@@ -49,9 +49,71 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
   // Responsive logo sizing for different devices
-  const { width } = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const isTablet = width >= 768;
-  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+  const isVerySmallPhone = !isTablet && height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && height > 700 && height <= 850; // iPhone 14 Pro (844) and similar
+  const logoSize = isVerySmallPhone ? 80 : (isTablet ? 200 : 120); // Even smaller logo for iPhone SE
+
+  // Create dynamic styles based on screen size
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: isVerySmallPhone ? 16 : 24,
+      paddingTop: isVerySmallPhone ? 25 : 60,
+      paddingBottom: isVerySmallPhone ? 25 : 40,
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth: 720,
+    },
+    lottieAnimation: {
+      width: isVerySmallPhone ? 160 : 350,
+      height: isVerySmallPhone ? 160 : 350,
+      marginTop: isVerySmallPhone ? -35 : -100,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: isVerySmallPhone ? 12 : 20,
+      marginTop: isVerySmallPhone ? -45 : -80,
+    },
+    title: {
+      fontSize: isVerySmallPhone ? 22 : 28,
+      fontWeight: 'bold',
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 4 : 16,
+    },
+    subtitle: {
+      fontSize: isVerySmallPhone ? 13 : 16,
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 12 : 32,
+      opacity: 0.8,
+    },
+    formContainer: {
+      marginBottom: isVerySmallPhone ? 12 : 32,
+    },
+    inputContainer: {
+      marginBottom: isVerySmallPhone ? 8 : 16,
+    },
+    buttonContainer: {
+      marginTop: isVerySmallPhone ? 8 : 24,
+      marginBottom: isVerySmallPhone ? 6 : 24,
+    },
+    signUpContainer: {
+      marginTop: isVerySmallPhone ? 6 : 16,
+      marginBottom: isVerySmallPhone ? 2 : 8,
+      width: '100%',
+      alignSelf: 'center',
+      position: 'absolute',
+      bottom: isVerySmallPhone ? 20 : 30,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  }), [isVerySmallPhone]);
 
   // Maximum scroll based on content size (prevents blank space past the end)
   const maxScrollableY = useMemo(() => Math.max(0, contentH - svH), [contentH, svH]);
@@ -165,7 +227,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={[
-              styles.scrollContent,
+              dynamicStyles.scrollContent,
               Platform.OS === 'ios' ? styles.pb8 : keyboardPaddingStyle,
             ]}
             showsVerticalScrollIndicator={false}
@@ -197,14 +259,14 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             source={JC6_ANIMATION}
             autoPlay
             loop
-            style={styles.lottieAnimation}
+            style={dynamicStyles.lottieAnimation}
           />
         </View>
 
         {/* Title */}
-        <View style={styles.titleContainer}>
-          <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
-          <ThemedText style={styles.subtitle}>Join siFia: Where Faith Meets Action</ThemedText>
+        <View style={dynamicStyles.titleContainer}>
+          <ThemedText weight="bold" style={dynamicStyles.title}>Create an Account</ThemedText>
+          <ThemedText style={dynamicStyles.subtitle}>Join siFia: Where Faith Meets Action</ThemedText>
         </View>
 
         {/* Inline Error Banner */}
@@ -216,7 +278,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         {/* Form */}
-        <View style={styles.formContainer}>
+        <View style={dynamicStyles.formContainer}>
           <View style={styles.nameRow}>
             <View style={[styles.inputContainer, styles.nameInput]}>
               <Ionicons name="person" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
@@ -372,17 +434,17 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <ThemedText style={styles.loginText}>Already a member? </ThemedText>
-              <TouchableOpacity onPress={handleLogin}>
-                <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
-              </TouchableOpacity>
-            </View>
-
           </ScrollView>
         </View>
       </TouchableWithoutFeedback>
+      
+      {/* Login Link - Outside constrained content for proper centering */}
+      <View style={dynamicStyles.signUpContainer}>
+        <ThemedText style={styles.loginText}>Already a member? </ThemedText>
+        <TouchableOpacity onPress={handleLogin}>
+          <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 };

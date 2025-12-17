@@ -136,8 +136,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const isTablet = screenSize.width >= 768;
 
   // Proper device classification based on actual iPhone dimensions (in points)
-  // Adjusted threshold based on actual SE reporting 844 height
-  const isSmallPhone = !isTablet && screenSize.height <= 850; // Covers SE (844) and older SE (667)
+  // iPhone SE 2nd gen: 375x667, iPhone SE 3rd gen: 375x667
+  const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const isRegularPhone = !isTablet && screenSize.height > 850 && screenSize.height < 950; // iPhone 17: 402x874
 
   // Debug: Log screen dimensions and classification only when they change
@@ -149,6 +150,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     });
 
     Logger.info('DEVICE CLASSIFICATION:', {
+      isVerySmallPhone,
       isSmallPhone,
       isRegularPhone,
       isTablet,
@@ -361,14 +363,73 @@ const OnboardingWelcomeScreen: React.FC = () => {
     }, 100); // Reduced from 500ms to 100ms to minimize overlap
   };
 
+  // Create dynamic styles based on screen size
+  const dynamicStyles = React.useMemo(() => StyleSheet.create({
+    logoSection: {
+      ...OnboardingStyles.logoSection,
+      paddingHorizontal: 24,
+      marginTop: isVerySmallPhone ? 5 : (isSmallPhone ? 12 : 20),
+      marginBottom: isVerySmallPhone ? -30 : (isSmallPhone ? -65 : -90),
+    },
+    slideContainer: {
+      ...styles.slideContainer,
+      paddingTop: isVerySmallPhone ? -80 : (isSmallPhone ? -130 : -220),
+    },
+    lottieIconUnderLogo: {
+      width: isVerySmallPhone ? 160 : (isSmallPhone ? 310 : 350),
+      height: isVerySmallPhone ? 160 : (isSmallPhone ? 310 : 350),
+    },
+    buttonSectionSmallPhone: {
+      ...styles.buttonSectionSmallPhone,
+      marginTop: isVerySmallPhone ? 0 : (isSmallPhone ? 8 : 10),
+      marginBottom: isVerySmallPhone ? 6 : (isSmallPhone ? 8 : 10),
+    },
+    termsContainer: {
+      ...styles.termsContainer,
+      marginTop: isVerySmallPhone ? 8 : (isSmallPhone ? 6 : 0),
+      marginBottom: isVerySmallPhone ? 0 : (isSmallPhone ? 4 : 10),
+    },
+    primaryButtonCompact: {
+      ...(isVerySmallPhone || isSmallPhone) ? {
+        height: isVerySmallPhone ? 48 : 52,
+        paddingVertical: isVerySmallPhone ? 12 : 14,
+        paddingHorizontal: 32,
+        backgroundColor: Colors.alertCoral,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      } : {},
+    },
+    loginButtonCompact: {
+      ...(isVerySmallPhone || isSmallPhone) ? {
+        height: isVerySmallPhone ? 48 : 52,
+        paddingVertical: isVerySmallPhone ? 12 : 14,
+        paddingHorizontal: 24,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        marginTop: isVerySmallPhone ? 8 : 10,
+      } : {},
+    },
+  }), [isVerySmallPhone, isSmallPhone]);
+
   const renderSlide = ({ item }: { item: Slide }) => (
     <View
       style={[
-        styles.slideContainer,
+        dynamicStyles.slideContainer,
         {
           width: listWidth || screenSize.width,
           // On tablets, push the slide content further down so the middle content sits lower
-          paddingTop: isTablet ? styles.tabletPaddingTop.paddingTop : styles.phonePaddingTop.paddingTop,
+          paddingTop: isTablet ? styles.tabletPaddingTop.paddingTop : dynamicStyles.slideContainer.paddingTop,
         },
       ]}
     >
@@ -417,7 +478,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={OnboardingStyles.innerContainer}>
         {/* Logo Section */}
-        <View style={styles.logoSection}>
+        <View style={dynamicStyles.logoSection}>
           {/* Lottie Animation under logo */}
           {currentSlide >= 0 && slides[currentSlide] && slides[currentSlide].useLottie && (
             <View style={styles.logoLottieContainer}>
@@ -429,7 +490,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
                 }
                 autoPlay
                 loop
-                style={styles.lottieIconUnderLogo}
+                style={dynamicStyles.lottieIconUnderLogo}
               />
             </View>
           )}
@@ -479,7 +540,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         <View
           style={[
             styles.buttonSection,
-            isSmallPhone ? styles.buttonSectionSmallPhone : (isTablet ? styles.buttonSectionTablet : styles.buttonSectionRegularPhone),
+            (isVerySmallPhone || isSmallPhone) ? dynamicStyles.buttonSectionSmallPhone : (isTablet ? styles.buttonSectionTablet : styles.buttonSectionRegularPhone),
             {
               width: contentWidth,
             },
@@ -487,7 +548,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           ]}
         >
           <TouchableOpacity
-            style={[styles.createButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
+            style={[styles.createButton, dynamicStyles.primaryButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
             disabled={isLoading}
           >
@@ -497,7 +558,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.loginButton, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
+            style={[styles.loginButton, dynamicStyles.loginButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleLogin}
             disabled={isLoading}
           >
@@ -508,7 +569,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         </View>
 
         {/* Terms Text */}
-        <View style={[styles.termsContainer, { width: contentWidth }, styles.centeredContainer]}>
+        <View style={[dynamicStyles.termsContainer, { width: contentWidth }, styles.centeredContainer]}>
           <ThemedText style={styles.termsText}>
             By continuing, you agree to our{' '}
             <ThemedText style={styles.linkText} onPress={() => Linking.openURL('https://sifia.app/legal/terms')}>
@@ -559,7 +620,7 @@ const styles = StyleSheet.create({
   slideContainer: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: -250,
+    paddingTop: -220,
     paddingBottom: 20,
     justifyContent: 'flex-start',
   },
@@ -626,7 +687,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonSectionSmallPhone: {
-    marginTop: 20,
+    marginTop: 10,
+    marginBottom: 10,
   },
   buttonSectionRegularPhone: {
     marginTop: 10,
@@ -648,7 +710,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    height: 56,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -660,7 +721,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 16,
     fontFamily: Fonts.system.medium,
-    marginLeft: 12,
     fontWeight: '500',
   },
 

@@ -31,7 +31,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const isTablet = screen.width >= 768;
   const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
   // Treat SE-class and other very small phones as small; threshold mirrors onboarding/register screens
-  const isSmallPhone = !isTablet && screen.height <= 850;
+  const isVerySmallPhone = !isTablet && screen.height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && screen.height > 700 && screen.height <= 850;
   const contentWidth = Math.min(isLandscape ? screen.width * 0.6 : screen.width * 0.92, 600);
   const [error, setError] = React.useState<string>('');
   const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
@@ -49,6 +50,107 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProvider(null);
     }
   }, [loading, activeProvider]);
+
+  // Create dynamic styles based on screen size
+  const dynamicStyles = React.useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.anchorBlue,
+      paddingHorizontal: isVerySmallPhone ? 16 : 24,
+      paddingTop: isVerySmallPhone ? 30 : 60,
+      paddingBottom: isVerySmallPhone ? 30 : 40,
+      justifyContent: 'flex-start',
+    },
+    illustrationContainer: {
+      width: '100%',
+      height: isVerySmallPhone ? 220 : 300,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: isVerySmallPhone ? 8 : 20,
+    },
+    lottieAnimation: {
+      width: isVerySmallPhone ? 260 : 350,
+      height: isVerySmallPhone ? 260 : 350,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: isVerySmallPhone ? 3 : 6,
+      width: '100%',
+    },
+    title: {
+      fontSize: isVerySmallPhone ? 22 : 28,
+      fontWeight: 'bold',
+      fontFamily: Fonts.system.bold,
+      color: Colors.hopeWhite,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 2 : 4,
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: isVerySmallPhone ? 6 : 12,
+      marginTop: isVerySmallPhone ? 8 : 16,
+    },
+    appleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: Colors.divineVeil,
+      borderRadius: 12,
+      paddingVertical: isVerySmallPhone ? 10 : 16,
+      paddingHorizontal: 24,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+      height: isVerySmallPhone ? 44 : 56,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    googleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: Colors.divineVeil,
+      borderRadius: 12,
+      paddingVertical: isVerySmallPhone ? 10 : 16,
+      paddingHorizontal: 24,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+      height: isVerySmallPhone ? 44 : 56,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    emailButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      borderRadius: 12,
+      paddingVertical: isVerySmallPhone ? 10 : 16,
+      paddingHorizontal: 24,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+      height: isVerySmallPhone ? 44 : 56,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    loginContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: isVerySmallPhone ? 8 : 16,
+      marginBottom: isVerySmallPhone ? 4 : 0,
+      width: '100%',
+      alignSelf: 'center',
+    },
+  }), [isVerySmallPhone]);
 
   const handleGoogleLogin = async () => {
     triggerLightHaptic();
@@ -98,13 +200,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        // On small phones, reduce top/bottom padding slightly so the content and buttons fit comfortably
-        isSmallPhone && styles.containerSmallPhone,
-      ]}
-    >
+    <View style={dynamicStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
@@ -116,30 +212,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         />
 
         {/* Illustration */}
-        <View
-          style={[
-            styles.illustrationContainer,
-            error ? styles.illustrationContainerCompressed : null,
-            // On small phones, make the illustration a bit shorter and tighten vertical margins
-            isSmallPhone && styles.illustrationContainerSmallPhone,
-            // Move up Lottie animation in landscape mode
-            isLandscape && styles.illustrationContainerLandscape,
-          ]}
-        >
+        <View style={dynamicStyles.illustrationContainer}>
           <LottieView
             source={require('../../assets/animations/JC 2.json')}
             autoPlay
             loop
-            style={styles.lottieAnimation}
+            style={dynamicStyles.lottieAnimation}
           />
         </View>
 
         {/* Title */}
-        <View style={[
-          styles.titleContainer,
-          error ? styles.titleContainerCompressed : null,
-        ]}>
-          <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
+        <View style={dynamicStyles.titleContainer}>
+          <ThemedText weight="bold" style={dynamicStyles.title}>Login</ThemedText>
 
           {/* Inline Error Message */}
           {error ? (
@@ -151,13 +235,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Social Buttons */}
-        <View style={[
-          styles.buttonContainer,
-          isLandscape ? styles.buttonContainerLandscape : null,
-        ]}>
+        <View style={dynamicStyles.buttonContainer}>
           {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={styles.appleButton}
+              style={dynamicStyles.appleButton}
               onPress={handleAppleLogin}
               disabled={loading}
             >
@@ -173,7 +254,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <TouchableOpacity
-            style={styles.googleButton}
+            style={dynamicStyles.googleButton}
             onPress={handleGoogleLogin}
             disabled={loading}
           >
@@ -188,7 +269,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.emailButton}
+            style={dynamicStyles.emailButton}
             onPress={handleEmailLogin}
             disabled={loading}
           >
@@ -197,7 +278,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         {/* Sign Up Link (moved inside content like Register screen) */}
-        <View style={styles.loginContainer}>
+        <View style={dynamicStyles.loginContainer}>
           <ThemedText style={styles.loginText}>Not yet a member? </ThemedText>
           <TouchableOpacity onPress={handleSignUp}>
             <ThemedText weight="semiBold" style={styles.loginLink}>Sign Up</ThemedText>

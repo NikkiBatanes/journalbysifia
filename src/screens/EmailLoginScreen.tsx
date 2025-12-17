@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LottieView from 'lottie-react-native';
 import {
@@ -37,9 +37,71 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signIn, loading } = useAuth();
 
   // Responsive logo sizing for different devices
-  const { width } = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const isTablet = width >= 768;
-  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+  const isVerySmallPhone = !isTablet && height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && height > 700 && height <= 850; // iPhone 14 Pro (844) and similar
+  const logoSize = isVerySmallPhone ? 80 : (isTablet ? 200 : 120); // Even smaller logo for iPhone SE
+
+  // Create dynamic styles based on screen size
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: isVerySmallPhone ? 16 : 24,
+      paddingTop: isVerySmallPhone ? 25 : 60,
+      paddingBottom: isVerySmallPhone ? 25 : 40,
+      alignSelf: 'center',
+      width: '100%',
+      maxWidth: 720,
+    },
+    lottieAnimation: {
+      width: isVerySmallPhone ? 160 : 350,
+      height: isVerySmallPhone ? 160 : 350,
+      marginTop: isVerySmallPhone ? -35 : -100,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: isVerySmallPhone ? 12 : 40,
+      marginTop: isVerySmallPhone ? -45 : -90,
+    },
+    title: {
+      fontSize: isVerySmallPhone ? 22 : 28,
+      fontWeight: 'bold',
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 4 : 16,
+    },
+    subtitle: {
+      fontSize: isVerySmallPhone ? 13 : 16,
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 12 : 32,
+      opacity: 0.8,
+    },
+    formContainer: {
+      marginBottom: isVerySmallPhone ? 12 : 32,
+    },
+    inputContainer: {
+      marginBottom: isVerySmallPhone ? 8 : 16,
+    },
+    buttonContainer: {
+      marginTop: isVerySmallPhone ? 8 : 24,
+      marginBottom: isVerySmallPhone ? 6 : 24,
+    },
+    signUpContainer: {
+      marginTop: isVerySmallPhone ? 6 : 16,
+      marginBottom: isVerySmallPhone ? 2 : 8,
+      width: '100%',
+      alignSelf: 'center',
+      position: 'absolute',
+      bottom: isVerySmallPhone ? 20 : 30,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  }), [isVerySmallPhone]);
 
   const handleLogin = async () => {
     triggerLightHaptic();
@@ -88,122 +150,125 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Register');
   };
 
+  const handleForgotPassword = () => {
+    triggerLightHaptic();
+    navigation.navigate('ForgotPassword');
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <ScrollView contentContainerStyle={dynamicStyles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../assets/icons/siFiaTransparent.png')}
-            style={[styles.logo, { width: logoSize, height: logoSize }]}
-            resizeMode="contain"
-          />
-          <LottieView
-            source={JC6_ANIMATION}
-            autoPlay
-            loop
-            style={styles.lottieAnimation}
-          />
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
-          <ThemedText style={styles.subtitle}>Welcome back to siFia</ThemedText>
-        </View>
-
-        {/* Form */}
-        <View style={styles.formContainer}>
-          {/* Inline Error (shown inside form) */}
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
-            </View>
-          ) : null}
-          {/* Removed inline Create Account CTA as requested */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <ThemedTextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              value={email}
-              onChangeText={(t) => {
-                setEmail(t);
-                if (error) {setError('');}
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
+          {/* Header */}
+          <View style={styles.header}>
+            <Image
+              source={require('../../assets/icons/siFiaTransparent.png')}
+              style={[styles.logo, { width: logoSize, height: logoSize }]}
+              resizeMode="contain"
+            />
+            <LottieView
+              source={JC6_ANIMATION}
+              autoPlay
+              loop
+              style={dynamicStyles.lottieAnimation}
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <ThemedTextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              value={password}
-              onChangeText={(t) => {
-                setPassword(t);
-                if (error) {setError('');}
-              }}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye' : 'eye-off'}
-                size={20}
-                color="#FF6B6B"
+          {/* Title */}
+          <View style={dynamicStyles.titleContainer}>
+            <ThemedText weight="bold" style={dynamicStyles.title}>Login</ThemedText>
+            <ThemedText style={dynamicStyles.subtitle}>Welcome back to siFia</ThemedText>
+          </View>
+
+          {/* Form */}
+          <View style={dynamicStyles.formContainer}>
+            {/* Inline Error (shown inside form) */}
+            {error ? (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              </View>
+            ) : null}
+            {/* Removed inline Create Account CTA as requested */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <ThemedTextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={email}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  if (error) {setError('');}
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <ThemedTextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  if (error) {setError('');}
+                }}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color="#FF6B6B"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Forgot Password Link */}
+            <TouchableOpacity onPress={handleForgotPassword}>
+              <ThemedText style={styles.forgotPassword}>Forgot password?</ThemedText>
+            </TouchableOpacity>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#274673" />
+              ) : (
+                <ThemedText weight="bold" style={styles.loginButtonText}>Login</ThemedText>
+              )}
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => {
-              triggerLightHaptic();
-              navigation.navigate('ForgotPassword');
-            }}
-          >
-            <ThemedText style={styles.forgotPasswordText}>Forgot Password?</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#274673" />
-            ) : (
-              <ThemedText weight="bold" style={styles.loginButtonText}>Login</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Sign Up Link */}
-        <View style={styles.signUpContainer}>
-          <ThemedText style={styles.signUpText}>Not yet a member? </ThemedText>
-          <TouchableOpacity onPress={handleSignUp}>
-            <ThemedText weight="semiBold" style={styles.signUpLink}>Sign Up</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      
+      {/* Sign Up Link - Outside constrained content for proper centering */}
+      <View style={dynamicStyles.signUpContainer}>
+        <ThemedText style={styles.signUpText}>Not yet a member? </ThemedText>
+        <TouchableOpacity onPress={handleSignUp}>
+          <ThemedText weight="semiBold" style={styles.signUpLink}>Sign Up</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -211,6 +276,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -300,6 +368,10 @@ const styles = StyleSheet.create({
   forgotPassword: {
     alignSelf: 'flex-end',
     marginBottom: 24,
+    fontSize: 14,
+    fontFamily: Fonts.system.regular,
+    color: Colors.holyGlow,
+    textDecorationLine: 'none',
   },
   forgotPasswordText: {
     fontSize: 14,
