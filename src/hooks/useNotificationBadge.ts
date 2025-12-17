@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { pushNotificationService } from '../services/pushNotificationService';
@@ -14,6 +14,8 @@ export function useNotificationBadge() {
   const { user } = useAuth();
   const [badgeCount, setBadgeCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const isClearingRef = useRef(false);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Fetch pending notification count
@@ -25,8 +27,25 @@ export function useNotificationBadge() {
       return;
     }
 
-    try {
-      setLoading(true);
+    // Skip fetching if we're in the middle of a clear operation
+    // This prevents race conditions with real-time subscriptions
+    if (isClearingRef.current) {
+      Logger.debug('Skipping fetchBadgeCount during clear operation', {
+        component: 'useNotificationBadge',
+        userId: user.id,
+      });
+      return;
+    }
+
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Debounce the fetch to prevent rapid successive calls
+    fetchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setLoading(true);
 
       // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
 
@@ -70,7 +89,8 @@ export function useNotificationBadge() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+      }, 300); // 300ms debounce delay
+    }, [user]);
 
   /**
    * Clear badge count
@@ -83,9 +103,17 @@ export function useNotificationBadge() {
     }
 
     try {
+      // Set clearing flag to prevent race conditions with real-time subscriptions
+      isClearingRef.current = true;
+
       // Update local state IMMEDIATELY for instant UI feedback
       setBadgeCount(0);
       await pushNotificationService.setBadgeNumber(0);
+
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
 
       // Clear all unread notifications in database
       await Promise.all([
@@ -110,6 +138,11 @@ export function useNotificationBadge() {
         userId: user.id,
       });
       // Badge already set to 0 above, no need to repeat
+    } finally {
+      // Clear the flag after a short delay to allow real-time subscriptions to settle
+      setTimeout(() => {
+        isClearingRef.current = false;
+      }, 500);
     }
   }, [user]);
 
@@ -240,6 +273,16 @@ export function useNotificationBadge() {
 
     return () => clearInterval(interval);
   }, [fetchBadgeCount]);
+
+  // Cleanup timeout and clearing flag on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      isClearingRef.current = false;
+    };
+  }, []);
 
   return {
     badgeCount,
