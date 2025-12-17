@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TouchableOpacity,
-  Alert,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
   StatusBar,
   Image,
+  Dimensions,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 
 import { Colors } from '../theme/colors';
@@ -30,6 +30,11 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const { resetPassword, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+
+  // Responsive logo sizing for different devices
+  const { width, height } = Dimensions.get('window');
+  const isTablet = width >= 768;
+  const logoSize = isTablet ? 120 : 100; // iPad (120), iPhone (100)
 
   const validateEmail = (emailInput: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -91,7 +96,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <Image
             source={require('../../assets/icons/siFia-logo-white.png')}
-            style={styles.logo}
+            style={[styles.logo, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />
         </View>
@@ -127,7 +132,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                   onSubmitEditing={handleResetPassword}
                 />
               </View>
-              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+              {emailError ? <ThemedText style={styles.errorText}>{emailError}</ThemedText> : null}
             </View>
 
             {/* Reset Button */}
