@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: '90%',
-    height: 200,
+    height: 120,
   },
   guidanceSubtitle: {
     color: 'rgba(255,255,255,0.9)',
