@@ -1514,7 +1514,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings!'
-                                  : "Your Journey Begins"}
+                                  : 'Your Journey Begins'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1562,7 +1562,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 <ThemedText style={styles.growthPlanSubtitle}>
                   For deeper transformation
                 </ThemedText>
-              
+
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
@@ -1848,7 +1848,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             const tier = pricingTiers.find(t => t.id === selectedTier)
               || pricingTiers.find(t => t.id === 'growth')
               || pricingTiers[0];
-            if (!tier) return null;
+            if (!tier) {return null;}
 
             const formatValue = (value: number) => {
               if (currencyInfo?.currency === 'PHP' && value % 1 === 0) {
