@@ -1,0 +1,56 @@
+name: Daily Notifications - Evening Batch
+
+on:
+  schedule:
+    # Run at 11:00 AM UTC (7:00 PM Philippines) - for next-morning notifications
+    - cron: '0 11 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  generate-evening-notifications:
+    name: Generate Evening Notification Batch
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Generate daily notifications
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🌙 Generating evening notification batch (7 PM Philippines)..."
+          
+          # Call the Supabase edge function for daily batch
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/generate-daily-notifications" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response: $BODY"
+          echo "HTTP Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Evening notification generation failed with code $HTTP_CODE"
+            exit 1
+          fi
+          
+          echo "✅ Evening notification batch completed successfully"
+          
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Evening Notification Batch Failed',
+              body: 'The evening notification generation job (7 PM Philippines) failed. Please check the logs and investigate immediately.\n\nThis affects next-morning user engagement.',
+              labels: ['bug', 'urgent', 'notifications']
+            })

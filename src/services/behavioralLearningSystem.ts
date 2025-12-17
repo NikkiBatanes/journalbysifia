@@ -762,7 +762,7 @@ class BehavioralLearningSystem {
         recommendations: [
           consistency < 0.5 ? 'Encourage daily spiritual habits' : 'Maintain current spiritual rhythm',
           `Focus on ${preferredActivities[0]} activities`,
-          'Gradually expand spiritual practices',
+          'Gradually expand faith practices',
         ],
         impact: 0.9,
         validUntil: new Date(Date.now() + 2592000000).toISOString(), // 30 days

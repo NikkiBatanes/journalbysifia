@@ -61,8 +61,10 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
+  const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
-  const logoSize = isTablet ? 200 : 120; // Larger logo for iPad (200), smaller for iPhone (120)
+  const logoSize = isVerySmallPhone ? 90 : (isTablet ? 200 : 120); // Even smaller logo for iPhone SE
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -150,6 +152,45 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     return () => sub?.remove();
   }, []);
 
+  // Create dynamic styles based on screen size
+  const dynamicStyles = React.useMemo(() => StyleSheet.create({
+    logoSection: {
+      ...OnboardingStyles.logoSection,
+      marginBottom: isVerySmallPhone ? 0 : OnboardingSpacing.sm,
+      alignItems: 'center',
+    },
+    animationContainer: {
+      width: '100%',
+      aspectRatio: 1.2,
+      maxHeight: isVerySmallPhone ? 170 : 320,
+      marginTop: isVerySmallPhone ? -OnboardingSpacing.xxl : -OnboardingSpacing.xxxl,
+      marginBottom: 0,
+      alignSelf: 'center',
+      overflow: 'visible',
+    },
+    transformTitle: {
+      ...OnboardingTypography.heroTitle,
+      color: Colors.hopeWhite,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? OnboardingSpacing.xs : OnboardingSpacing.md,
+      fontSize: isVerySmallPhone ? 20 : 28, // Even smaller font for very small phones
+      lineHeight: isVerySmallPhone ? 24 : 34,
+    },
+    textContainer: {
+      width: '100%',
+      paddingHorizontal: isVerySmallPhone ? 12 : 24,
+      marginBottom: isVerySmallPhone ? OnboardingSpacing.xs : OnboardingSpacing.md,
+    },
+    mainText: {
+      ...OnboardingTypography.subtitle,
+      color: Colors.hopeWhite,
+      textAlign: 'left',
+      marginBottom: isVerySmallPhone ? 0 : OnboardingSpacing.sm,
+      fontSize: isVerySmallPhone ? 13 : 15, // Even smaller font for very small phones
+      lineHeight: isVerySmallPhone ? 16 : 20,
+    },
+  }), [isVerySmallPhone]);
+
   const handleContinue = async () => {
     // Haptic feedback for primary action
     triggerLightHaptic();
@@ -180,15 +221,15 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         ]}
       >
         {/* Logo Section */}
-        <View style={styles.logoSection}>
+        <View style={dynamicStyles.logoSection}>
           <Image
-            source={require('../../../assets/icons/siFiaTransparent.png')}
+            source={require('../../../assets/icons/siFia-logo-white.png')}
             style={[styles.logoImage, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />
 
           {/* Lottie Animation */}
-          <View style={styles.animationContainer}>
+          <View style={dynamicStyles.animationContainer}>
             <Lottie
               source={require('../../../assets/animations/Jesus walking on water.json')}
               autoPlay
@@ -201,14 +242,14 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <View style={styles.textContainer}>
-            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
+            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, dynamicStyles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
           </View>
 
-          <View style={styles.textContainer}>
-            <ThemedText style={styles.mainText}>
+          <View style={dynamicStyles.textContainer}>
+            <ThemedText style={dynamicStyles.mainText}>
             God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
             </ThemedText>
-            <ThemedText style={[styles.mainText, styles.textWithMarginTop]}>
+            <ThemedText style={[dynamicStyles.mainText, styles.textWithMarginTop]}>
             Let's take the first step together.
             </ThemedText>
           </View>

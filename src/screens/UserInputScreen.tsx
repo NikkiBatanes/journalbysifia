@@ -500,7 +500,7 @@ const UserInputScreen: React.FC = () => {
       >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }, { scale: headerScale }] }]}>
-            <Animated.Image source={require('../../assets/images/siFia.png')} style={[styles.logo, { opacity: headerIntroOpacity }]} resizeMode="contain" />
+            <Animated.Image source={require('../../assets/icons/siFia-logo-white.png')} style={[styles.logo, { opacity: headerIntroOpacity }]} resizeMode="contain" />
           </Animated.View>
         </View>
 

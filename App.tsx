@@ -320,7 +320,7 @@ function AppWithAuth({
     return (
       <View style={styles.loadingContainer}>
         <Image
-          source={require('./assets/icons/siFiaTransparent.png')}
+          source={require('./assets/icons/siFia-logo-white.png')}
           style={styles.loadingLogo}
           resizeMode="contain"
         />
@@ -357,7 +357,7 @@ function AppWithAuth({
       fallback={
         <View style={styles.loadingContainer}>
           <Image
-            source={require('./assets/icons/siFiaTransparent.png')}
+            source={require('./assets/icons/siFia-logo-white.png')}
             style={styles.loadingLogo}
             resizeMode="contain"
           />

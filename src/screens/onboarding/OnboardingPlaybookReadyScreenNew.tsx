@@ -116,6 +116,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPortrait = windowHeight > windowWidth;
   const isTablet = windowWidth >= 768;
+  const isVerySmallPhone = !isTablet && windowHeight <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && windowHeight > 700 && windowHeight <= 850; // iPhone 14 Pro (844) and similar
 
 
   // Intro modal visibility (shows once per component mount, no persistence)
@@ -1163,7 +1165,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </View>
 
         {/* Gap below header */}
-        <View style={{ height: isPortrait ? 20 : 16 }} />
+        <View style={{ height: isPortrait ? (isVerySmallPhone ? 12 : (isSmallPhone ? 16 : 20)) : 16 }} />
         {/* CAROUSEL CARDS */}
         <View>
         <View style={[
@@ -1173,8 +1175,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
-            // Dynamic margin based on orientation
-            marginBottom: isPortrait ? 20 : 10,
+            // Dynamic margin based on orientation and screen size
+            marginBottom: isPortrait ? (isVerySmallPhone ? 12 : (isSmallPhone ? 16 : 20)) : 10,
           },
         ]}>
           {/* STACKED CARDS VIEW */}
@@ -1196,8 +1198,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
-              // Standard dimensions for stacked cards (slightly shorter on tablets)
-              const STACKED_CARD_HEIGHT = isTablet ? 330 : 400;
+              // Standard dimensions for stacked cards (smaller on very small phones)
+              const STACKED_CARD_HEIGHT = isVerySmallPhone ? 280 : (isSmallPhone ? 320 : (isTablet ? 330 : 400));
               const STACKED_CARD_WIDTH = ITEM_WIDTH;
 
               // Background colors for each card
@@ -1277,8 +1279,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                         style={{
                           width: STACKED_CARD_WIDTH,
                           // Allow content to scroll under footer; we'll add a spacer to clear it
-                          // On iPad, use less offset so expanded card occupies more vertical space
-                          height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet ? -120 : 100)),
+                          // On iPad/very small phones, use less offset so expanded card occupies more vertical space
+                          height: Math.max(260, windowHeight - _headerH - insets.top - (isTablet || isVerySmallPhone || isSmallPhone ? -120 : 100)),
                           borderRadius: 30,
                         }}
                         contentContainerStyle={{ paddingBottom: isPortrait ? (_footerH + insets.bottom + 100) : (_footerH + insets.bottom + 400) }}

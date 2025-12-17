@@ -222,6 +222,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
+  const isTablet = screenSize.width >= 768;
+  const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
+  const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
 
   // Track registration method for analytics only
@@ -290,6 +293,38 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     });
     return () => sub?.remove();
   }, []);
+
+  // Create dynamic styles based on screen size
+  const dynamicStyles = React.useMemo(() => StyleSheet.create({
+    titleContainer: {
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      marginBottom: isVerySmallPhone ? 15 : (isSmallPhone ? 20 : 30),
+      backgroundColor: Colors.anchorBlue,
+    },
+    scrollContainer: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: isVerySmallPhone ? 28 : (isSmallPhone ? 34 : 44), // Reduced padding for small phones
+    },
+    stepTitle: {
+      fontSize: 20,
+      fontFamily: Fonts.bold,
+      fontWeight: '600',
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 12 : (isSmallPhone ? 15 : 20),
+    },
+    stepSubtitle: {
+      fontSize: 14,
+      fontFamily: Fonts.regular,
+      color: Colors.white,
+      textAlign: 'center',
+      marginBottom: isVerySmallPhone ? 20 : (isSmallPhone ? 25 : 30),
+      opacity: 0.8,
+      lineHeight: 20,
+    },
+  }), [isVerySmallPhone, isSmallPhone]);
 
   // Debug effect for step rendering
   React.useEffect(() => {
@@ -848,7 +883,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>Which stage of life are you in right now?</ThemedText>
+      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Which stage of life are you in right now?</ThemedText>
       <View style={styles.ageOptionsContainer}>
         {ageGroups.map((ageGroup) => (
           <TouchableOpacity
@@ -887,10 +922,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderFaithJourneyStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>Where are you in your{`
+      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Where are you in your{`
 `}walk with God?</ThemedText>
       <ThemedText
-        style={styles.stepSubtitle}>
+        style={dynamicStyles.stepSubtitle}>
         There's no wrong answer. {'\n'}He welcomes you exactly as you are.
       </ThemedText>
       <View style={styles.optionsContainer}>
@@ -918,8 +953,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>What's your biggest{'\n'}challenge right now?</ThemedText>
-      <ThemedText style={styles.stepSubtitle}>
+      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>What's your biggest{'\n'}challenge right now?</ThemedText>
+      <ThemedText style={dynamicStyles.stepSubtitle}>
         Choose the area where you need the most guidance,{'\n'}
         and we'll create a personalized playbook just for you
       </ThemedText>
@@ -949,7 +984,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={styles.stepTitle}>Tell us more, if you'd like.</ThemedText>
+      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
 
       {selectedChallenge && (
         <View style={styles.challengeCard}>
@@ -1098,7 +1133,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('../../../assets/icons/siFiaTransparent.png')}
+            source={require('../../../assets/icons/siFia-logo-white.png')}
             style={OnboardingStyles.logoImage}
             resizeMode="contain"
           />
@@ -1106,7 +1141,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       </View>
 
       <View style={[
-        styles.titleContainer,
+        dynamicStyles.titleContainer,
         // Condense header further when keyboard is visible on details step to free vertical space
         (currentStep === 4 && keyboardVisible) && styles.noMarginBottom,
       ]}>
@@ -1156,7 +1191,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
         <ScrollView
           ref={scrollViewRef}
-          style={styles.scrollContainer}
+          style={dynamicStyles.scrollContainer}
           contentContainerStyle={styles.reducedPaddingBottom}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
@@ -1324,7 +1359,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: Fonts.bold,
     fontWeight: '600',
     color: Colors.white,

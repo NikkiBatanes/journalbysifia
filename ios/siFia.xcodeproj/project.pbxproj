@@ -416,7 +416,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = siFia/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = siFia;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -458,7 +458,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = siFia/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = siFia;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

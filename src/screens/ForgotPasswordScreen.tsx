@@ -90,7 +90,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         {/* Header with Logo */}
         <View style={styles.header}>
           <Image
-            source={require('../../assets/icons/siFiaTransparent.png')}
+            source={require('../../assets/icons/siFia-logo-white.png')}
             style={styles.logo}
             resizeMode="contain"
           />

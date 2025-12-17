@@ -161,7 +161,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={require('../../assets/icons/siFiaTransparent.png')}
+            source={require('../../assets/icons/siFia-logo-white.png')}
             style={styles.logo}
             resizeMode="contain"
           />

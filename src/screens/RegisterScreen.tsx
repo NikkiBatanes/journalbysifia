@@ -294,7 +294,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
         {/* Logo */}
         <Image
-          source={require('../../assets/icons/siFiaTransparent.png')}
+          source={require('../../assets/icons/siFia-logo-white.png')}
           style={[styles.logo, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />

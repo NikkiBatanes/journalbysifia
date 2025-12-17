@@ -561,7 +561,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       {/* Logo Section */}
       <View style={styles.logoSection}>
         <Image
-          source={require('../../../assets/icons/siFiaTransparent.png')}
+          source={require('../../../assets/icons/siFia-logo-white.png')}
           style={[styles.logoImage, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
