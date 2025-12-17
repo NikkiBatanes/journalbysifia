@@ -791,6 +791,16 @@ const OnboardingTrialOfferScreen = () => {
     return Math.round(percentage);
   };
 
+  const formatShortDate = (date: Date) => {
+    return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const addDays = (base: Date, days: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + days);
+    return d;
+  };
+
   // hasTrialAvailable removed - defined but never called
 
   // Removed duplicate handleStartTrial function
@@ -800,15 +810,15 @@ const OnboardingTrialOfferScreen = () => {
   const timelineItems = [
     {
       id: 1,
-      title: 'Today - Free trial starts',
-      description: `Try siFia ${getTierDisplayName(selectedTierId)} PLAN free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.\n\nIncludes: 2 playbooks + 2 devotionals to get you started.`,
+      title: 'Today - Your free trial begins',
+      description: '',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
     },
     {
       id: 2,
-      title: 'Dec 12 - Notification Reminder',
+      title: `${formatShortDate(addDays(new Date(), 2))} - We'll Remind You`,
       description: "We'll send a gentle push notification before your trial ends so you can decide with peace.",
       icon: 'notifications',
       iconColor: Colors.growthGreen,
@@ -816,8 +826,8 @@ const OnboardingTrialOfferScreen = () => {
     },
     {
       id: 3,
-      title: 'Dec 13 - Continue Your Journey',
-      description: 'Your trial ends and you\'ll be charged, unless cancelled.\n\nAfter your trial you\'ll receive full playbook and devotional limits.',
+      title: `${formatShortDate(addDays(new Date(), 3))} - Continue Your Journey`,
+      description: '',
       icon: 'rocket',
       iconColor: Colors.alertCoral,
       isCompleted: false,
@@ -844,23 +854,67 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <ThemedText style={styles.timelineDescription}>
-              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
-              No pressure, no catch.{'\n'}
-              Experience personalized guidance and see how it fits your story.{'\n\n'}
-              <View style={styles.includesContainer}>
-                <View style={styles.includesColumn}>
-                  <View style={styles.includesBadge}>
-                    <ThemedText weight="semiBold" style={styles.badgeText}>
-                      Includes
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.includesDetails}>
-                    2 playbooks + 2 devotionals to get you started
-                  </ThemedText>
+            <View>
+              <ThemedText style={styles.timelineDescription}>
+                {`Experience siFia ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} and see how it fits your season.`}
+              </ThemedText>
+
+              <View style={styles.timelineBulletsContainer}>
+                <View style={styles.timelineBulletRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.timelineBulletText}>{`Access all ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} features`}</ThemedText>
+                </View>
+                <View style={styles.timelineBulletRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.timelineBulletText}>Generate personalized playbooks & devotionals</ThemedText>
+                </View>
+                <View style={styles.timelineBulletRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.timelineBulletText}>Use Smart Journaling and reflection tools</ThemedText>
                 </View>
               </View>
-            </ThemedText>
+
+              <ThemedText style={styles.timelineDescription}>
+                During your trial, you can generate a limited number of playbooks and devotionals so you can experience how siFia works.
+              </ThemedText>
+            </View>
+          ) : item.id === 3 ? (
+            (() => {
+              const t = getSelectedTier();
+              const first = t?.features?.[0]?.trim?.() || '';
+
+              let limitsLine = '';
+              const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+              if (t?.id === 'transformation' || /^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
+                limitsLine = 'Unlimited playbooks & devotionals';
+              } else if (t?.id === 'growth') {
+                limitsLine = '20 playbooks & 20 devotionals per month';
+              } else if (m) {
+                limitsLine = `${m[1]} playbooks & ${m[2]} devotionals per month`;
+              }
+
+              return (
+                <View style={styles.timelineBulletsContainer}>
+                  <View style={styles.timelineBulletRow}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.timelineBulletText}>
+                      Your trial ends and your subscription begins unless cancelled
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.timelineBulletRow}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.timelineBulletText}>{`Full ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} limits unlock:`}</ThemedText>
+                  </View>
+
+                  {!!limitsLine && (
+                    <View style={styles.timelineIndentedRow}>
+                      <ThemedText style={styles.timelineIndentedText}>{limitsLine}</ThemedText>
+                    </View>
+                  )}
+                </View>
+              );
+            })()
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -1005,72 +1059,23 @@ const OnboardingTrialOfferScreen = () => {
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
           </View>
 
-          {/* Pricing Summary (dynamic) */}
-          <View style={styles.pricingSummary}>
-            {/* Rounded divider with floating centered tag */}
-            <View style={styles.dividerWrapper}>
-              <View style={styles.dividerLine} />
-              <View style={styles.planTagFloating}>
-                <ThemedText weight="bold" style={styles.planTagText}>
-                  {`${getTierDisplayName(selectedTierId)} PLAN`}
-                </ThemedText>
-              </View>
-            </View>
-            <ThemedText weight="bold" style={styles.pricingTitle}>
-              {`3 days free, then ${getLocalizedPrice()} per ${isAnnual ? 'year' : 'month'}`}
-            </ThemedText>
-            {isAnnual ? (
-              <View style={styles.savingsContainer}>
-                <ThemedText weight="bold" style={styles.pricingSubtitle}>
-                  {(() => {
-                    const monthlyEq = getMonthlyEquivalent();
-                    const formatted = (currencyInfo?.currency === 'PHP' && monthlyEq % 1 === 0) ? Math.floor(monthlyEq) : monthlyEq.toFixed(2);
-                    return `Only ${currencyInfo?.symbol || '₱'}${formatted}/month`;
-                  })()}
-                </ThemedText>
-                <ThemedText weight="semiBold" style={styles.freeOfferText}>Pay for 10 months, get 12</ThemedText>
-                <ThemedText weight="semiBold" style={styles.savingsText}>
-                  {(() => {
-                    const savings = getAnnualSavings();
-                    const formatted = (currencyInfo?.currency === 'PHP' && savings % 1 === 0) ? Math.floor(savings) : savings.toFixed(2);
-                    return `Save ${currencyInfo?.symbol || '₱'}${formatted} (${getSavingsPercentage()}%)`;
-                  })()}
-                </ThemedText>
-              </View>
-            ) : null}
-
-            {/* Plan Selector - Change Plan Button */}
+          {/* Bottom Links */}
+          <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
-              style={styles.changePlanButton}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setShowPlanSelector(true);
-              }}
+              style={styles.linkButton}
+              onPress={handleRestorePurchase}
               activeOpacity={0.7}
             >
-              <ThemedText weight="medium" style={styles.changePlanButtonText}>
-                Change Plan
-              </ThemedText>
+              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
             </TouchableOpacity>
 
-            {/* Bottom Links */}
-            <View style={styles.bottomLinksContainer}>
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={handleRestorePurchase}
-                activeOpacity={0.7}
-              >
-                <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={handleTermsOfService}
-                activeOpacity={0.7}
-              >
-                <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={handleTermsOfService}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
         </ScrollView>
@@ -1078,6 +1083,34 @@ const OnboardingTrialOfferScreen = () => {
 
       {/* CTA and Footer (sticky) */}
       <View style={styles.footerBlock} pointerEvents="box-none">
+        {/* Pricing Summary (dynamic) */}
+        <View style={styles.pricingSummary}>
+          {/* Rounded divider with floating centered tag */}
+          <View style={styles.dividerWrapper}>
+            <View style={styles.dividerLine} />
+            <View style={styles.planTagFloating}>
+              <ThemedText weight="bold" style={styles.planTagText}>
+                {`${getTierDisplayName(selectedTierId)} PLAN`}
+              </ThemedText>
+            </View>
+          </View>
+          <ThemedText weight="bold" style={styles.pricingTitle}>
+            {`3 days free, then ${getLocalizedPrice()} / ${isAnnual ? 'year' : 'month'}`}
+          </ThemedText>
+          {isAnnual ? (
+            <View style={styles.savingsContainer}>
+              <ThemedText weight="bold" style={styles.pricingSubtitle}>
+                {(() => {
+                  const monthlyEq = getMonthlyEquivalent();
+                  const formatted = (currencyInfo?.currency === 'PHP' && monthlyEq % 1 === 0) ? Math.floor(monthlyEq) : monthlyEq.toFixed(2);
+                  return `≈ ${currencyInfo?.symbol || '₱'}${formatted} / month`;
+                })()}
+              </ThemedText>
+              <ThemedText weight="semiBold" style={styles.freeOfferText}>Save 2 months free</ThemedText>
+            </View>
+          ) : null}
+        </View>
+
         <TouchableOpacity
           style={[styles.startTrialButton, (isStartingTrial || isClosing) && styles.disabledButton]}
           onPress={handleStartTrial}
@@ -1085,7 +1118,7 @@ const OnboardingTrialOfferScreen = () => {
           disabled={isStartingTrial || isClosing}
         >
           <ThemedText weight="bold" style={styles.startTrialButtonText}>
-            {isStartingTrial ? 'Starting Trial...' : 'Start your free 3‑day trial'}
+            {isStartingTrial ? 'Starting Trial...' : 'Start 3-day Free Trial'}
           </ThemedText>
         </TouchableOpacity>
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
@@ -1266,10 +1299,10 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingTop: 0,
   },
   scrollContentLandscape: {
-    paddingBottom: 220,
+    paddingBottom: 200,
   },
   scrollContentPortrait: {
-    paddingBottom: 280,
+    paddingBottom: 240,
   },
   mainTitle: {
     fontSize: 24,
@@ -1389,13 +1422,13 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 20,
     alignSelf: 'center',
     overflow: 'hidden',
   },
   toggleButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 26,
+    paddingVertical: 9,
+    paddingHorizontal: 24,
     borderRadius: 16,
     alignItems: 'center',
   },
@@ -1412,7 +1445,35 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.semiBold,
   },
   timelineContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  timelineBulletsContainer: {
+    marginTop: 10,
+    marginBottom: 10,
+    gap: 8,
+  },
+  timelineBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timelineBulletText: {
+    marginLeft: 10,
+    fontSize: 13,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
+    lineHeight: 18,
+    flex: 1,
+  },
+  timelineIndentedRow: {
+    marginLeft: 28,
+    marginTop: -3,
+  },
+  timelineIndentedText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    lineHeight: 18,
   },
   simpleWhatsIncluded: {
     alignItems: 'center',
@@ -1479,16 +1540,16 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   timelineItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   timelineIconContainer: {
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   timelineIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
@@ -1514,13 +1575,13 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   timelineContent: {
     flex: 1,
-    paddingTop: 4,
+    paddingTop: 3,
   },
   timelineTitle: {
     fontSize: 15,
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   timelineDescription: {
     fontSize: 13,
@@ -1573,7 +1634,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   pricingSummary: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: -8,
     paddingVertical: 16,
   },
   savingsContainer: {
@@ -1651,7 +1712,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   contentWrap: {
     flexShrink: 1,
     paddingBottom: 8,
-    marginTop: 12,
+    marginTop: 10,
   },
   startTrialButton: {
     backgroundColor: Colors.alertCoral,
@@ -1677,8 +1738,10 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 6,
     paddingHorizontal: 24,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   startTrialButtonText: {
     fontSize: 17,
@@ -1747,8 +1810,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    marginTop: 24,
-    marginBottom: 32,
+    marginTop: 20,
+    marginBottom: 24,
   },
   linkButton: {
     paddingVertical: 8,

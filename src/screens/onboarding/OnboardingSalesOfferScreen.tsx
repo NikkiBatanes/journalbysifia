@@ -1884,7 +1884,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
                     {`${symbol}${formatValue(annualPrice)}/year`}
                   </ThemedText>
-                  <ThemedText style={styles.footerPriceSub}>2 months free</ThemedText>
+                  <ThemedText style={styles.footerPriceSub}>Save 2 months free</ThemedText>
                   <ThemedText style={styles.footerPriceApprox}>
                     {`≈ ${symbol}${formatValue(monthlyEquivalent)}/month`}
                   </ThemedText>
