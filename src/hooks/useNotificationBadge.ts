@@ -83,6 +83,10 @@ export function useNotificationBadge() {
     }
 
     try {
+      // Update local state IMMEDIATELY for instant UI feedback
+      setBadgeCount(0);
+      await pushNotificationService.setBadgeNumber(0);
+
       // Clear all unread notifications in database
       await Promise.all([
         // Mark all push notifications as read
@@ -96,10 +100,6 @@ export function useNotificationBadge() {
         notificationManagementService.markAllNotificationsAsRead(user.id),
       ]);
 
-      // Update local state and app badge
-      setBadgeCount(0);
-      await pushNotificationService.setBadgeNumber(0);
-
       Logger.info('Badge cleared and all notifications marked as read', {
         component: 'useNotificationBadge',
         userId: user.id,
@@ -109,9 +109,7 @@ export function useNotificationBadge() {
         component: 'useNotificationBadge',
         userId: user.id,
       });
-      // Still update local state even if database update fails
-      setBadgeCount(0);
-      await pushNotificationService.setBadgeNumber(0);
+      // Badge already set to 0 above, no need to repeat
     }
   }, [user]);
 

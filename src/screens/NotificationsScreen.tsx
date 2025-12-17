@@ -310,6 +310,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       // Clear badge immediately for instant UI update
       await clearBadge();
 
+      // Force refresh badge count to ensure instant update
+      await fetchBadgeCount();
+
       // Refresh the notification list
       await fetchNotifications();
 

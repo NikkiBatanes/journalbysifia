@@ -1,9 +1,10 @@
-import { contextualNotificationService } from '../services/contextualNotificationService';
+import { enhancedNotificationScheduler } from '../services/enhancedNotificationScheduler';
 import { streakTrackingService } from '../services/streakTrackingService';
 import { Logger } from './ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_SCHEDULED_KEY = 'notifications:lastScheduled';
+const SCHEDULE_INTERVAL_HOURS = 6; // Re-schedule every 6 hours to ensure notifications are sent
 
 /**
  * Daily Notification Scheduler
@@ -12,7 +13,8 @@ const LAST_SCHEDULED_KEY = 'notifications:lastScheduled';
  */
 export class DailyNotificationScheduler {
   /**
-   * Check if notifications need to be scheduled today
+   * Check if notifications need to be scheduled
+   * Now allows scheduling multiple times per day (every 6 hours)
    */
   static async shouldScheduleToday(): Promise<boolean> {
     try {
@@ -23,16 +25,14 @@ export class DailyNotificationScheduler {
       }
 
       const lastDate = new Date(lastScheduled);
-      const today = new Date();
+      const now = new Date();
 
-      // Check if it's a new day
-      return (
-        lastDate.getDate() !== today.getDate() ||
-        lastDate.getMonth() !== today.getMonth() ||
-        lastDate.getFullYear() !== today.getFullYear()
-      );
+      // Check if it's been more than SCHEDULE_INTERVAL_HOURS since last schedule
+      const hoursSinceLastSchedule = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+
+      return hoursSinceLastSchedule >= SCHEDULE_INTERVAL_HOURS;
     } catch (error) {
-      Logger.error('Failed to check if should schedule today', error as Error, {
+      Logger.error('Failed to check if should schedule', error as Error, {
         component: 'DailyNotificationScheduler',
       });
       return true; // Default to scheduling if check fails
@@ -55,13 +55,13 @@ export class DailyNotificationScheduler {
         return false;
       }
 
-      Logger.info('Scheduling daily notifications', {
+      Logger.info('Scheduling comprehensive daily notifications', {
         component: 'DailyNotificationScheduler',
         userId,
       });
 
-      // Schedule all contextual notifications
-      await contextualNotificationService.scheduleAllDailyNotifications(userId);
+      // Use enhanced scheduler for comprehensive notifications (2x daily + context-based)
+      await enhancedNotificationScheduler.scheduleAllDailyNotifications(userId);
 
       // Check and schedule streak alerts
       await streakTrackingService.checkAllStreaksForUser(userId);

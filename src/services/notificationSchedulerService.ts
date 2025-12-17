@@ -15,7 +15,7 @@ export interface ScheduleOptions {
  * Handles intelligent scheduling and batching
  */
 class NotificationSchedulerService {
-  private readonly MAX_NOTIFICATIONS_PER_DAY = 8;
+  private readonly MAX_NOTIFICATIONS_PER_DAY = 20;
   private appState: AppStateStatus = 'active';
 
   constructor() {
@@ -54,14 +54,25 @@ class NotificationSchedulerService {
         batchWithOthers = true,
       } = options;
 
-      // Smart suppression: Don't schedule if app is active (user is already engaged)
-      // EXCEPTION: Prayer requests and critical notifications should never be suppressed
-      const isPrayerRequest = notification.type === 'prayer_request_reminder' ||
-                             notification.type === 'prayer_request_alert' ||
-                             notification.title?.toLowerCase().includes('pray for');
+      // Smart suppression: Only suppress low-priority notifications when app is active
+      // EXCEPTION: Prayer requests, devotionals, affirmations, scripture, and critical notifications always send
+      const importantTypes = [
+        'prayer_request_reminder',
+        'prayer_request_alert',
+        'devotional_reminder',
+        'daily_scripture',
+        'affirmation_reminder',
+        'morning_devotional',
+        'evening_reflection',
+        'gratitude_reminder',
+        'midday_checkin',
+      ];
+      const isImportant = importantTypes.includes(notification.type) ||
+                         notification.title?.toLowerCase().includes('pray for');
 
-      if (this.isAppActive() && priority !== 'critical' && !isPrayerRequest) {
-        Logger.info('App is active - suppressing notification', {
+      // Only suppress if app is active AND it's a low-priority, non-important notification
+      if (this.isAppActive() && priority === 'low' && !isImportant) {
+        Logger.info('App is active - suppressing low-priority notification', {
           component: 'notificationSchedulerService',
           userId: notification.user_id,
           type: notification.type,
@@ -69,10 +80,14 @@ class NotificationSchedulerService {
         return false;
       }
 
-      // Check notification fatigue
+      // Check notification fatigue - only block if critical AND user is fatigued
       const isFatigued = await notificationAnalyticsService.checkNotificationFatigue(notification.user_id);
-      if (isFatigued && priority !== 'critical' && !isPrayerRequest) {
-        Logger.info('User experiencing notification fatigue - skipping notification', {
+      const isImportantForFatigue = importantTypes.includes(notification.type) ||
+                                    notification.title?.toLowerCase().includes('pray for');
+
+      // Only suppress low-priority notifications when fatigued
+      if (isFatigued && priority === 'low' && !isImportantForFatigue) {
+        Logger.info('User experiencing notification fatigue - skipping low-priority notification', {
           component: 'notificationSchedulerService',
           userId: notification.user_id,
           type: notification.type,
