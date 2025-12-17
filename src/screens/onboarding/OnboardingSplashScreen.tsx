@@ -11,6 +11,7 @@ import {
   StatusBar,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,7 +39,9 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const isNavigatingRef = useRef(false);
 
   // Consistent 200x200 logo across all devices
-  const logoSize = 200;
+  const { width: screenWidth } = Dimensions.get('window');
+  const isTablet = screenWidth >= 768;
+  const logoSize = isTablet ? 140 : 110; // Slightly larger for splash while staying consistent
 
 
   useEffect(() => {
