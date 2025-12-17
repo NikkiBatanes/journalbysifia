@@ -1157,6 +1157,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return tier ? (isAnnual ? tier.annualPrice : tier.monthlyPrice) : 0;
   };
 
+  const getGrowthTierPrice = () => {
+    const growthTier = pricingTiers.find(t => t.id === 'growth');
+    return growthTier ? (isAnnual ? growthTier.annualPrice : growthTier.monthlyPrice) : 0;
+  };
+
+  const getGrowthMonthlyEquivalent = () => {
+    const growthTier = pricingTiers.find(t => t.id === 'growth');
+    if (!growthTier) return '0';
+    const price = isAnnual ? (growthTier.annualPrice / 12) : growthTier.monthlyPrice;
+    // Remove .00 for PHP whole numbers
+    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
+      return Math.floor(price).toString();
+    }
+    return price.toFixed(2);
+  };
+
   const getMonthlyEquivalent = (tier: PricingTier) => {
     const price = isAnnual ? (tier.annualPrice / 12) : tier.monthlyPrice;
     // Remove .00 for PHP whole numbers
@@ -1513,7 +1529,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings!'
-                                  : "You've taken your first step!"}
+                                  : "Your Journey Begins"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1538,10 +1554,96 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
                             : fromExportRestriction
                               ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
-                              : 'Keep walking, one faithful step at a time.'}
+                              : 'Personalized playbooks, devotionals, and journaling tools to help you walk steadily with God.'}
           </ThemedText>
 
-          {/* Feature Bullets */}
+          {/* Small motivational text */}
+          <ThemedText style={styles.smallMotivationalText}>
+            You've taken your first step! Keep walking, one faithful step at a time.
+          </ThemedText>
+
+          {/* Growth Plan Benefits - show only for registration onboarding flow */}
+          {routeParams?.onboardingFlow && (
+            <View>
+              {isAnnual && (
+                <View style={styles.freeBannerContainer}>
+                  <ThemedText weight="semiBold" style={styles.freeBannerText}>Save 2 months with annual billing</ThemedText>
+                </View>
+              )}
+              <View style={styles.growthPlanSection}>
+                <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
+                  siFia Growth Plan
+                </ThemedText>
+                <ThemedText style={styles.growthPlanSubtitle}>
+                  For deeper transformation
+                </ThemedText>
+              
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  20 playbooks each month
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  20 devotionals each month
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Access 1-day, 3-day, 5-day devotionals
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Smart Journaling for personalized reflection
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Gentle reminders to keep you on track
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Track your progress week by week
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Calendar Sync to stay on track
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Copy To-Dos to other dates for flexibility
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Advanced reflection prompts
+                </ThemedText>
+              </View>
+              <View style={styles.featureBullet}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                <ThemedText style={styles.bulletText}>
+                  Export to PDF for sharing and printing
+                </ThemedText>
+              </View>
+              </View>
+            </View>
+          )}
+
+          {/* Feature Bullets - hide for onboarding flow */}
+          {!routeParams?.onboardingFlow && (
           <View style={styles.featuresSection}>
             {isUpgradeMode ? (
               // Upgrade mode benefits (pastoral, limit to 3)
@@ -1648,39 +1750,77 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               )
             )}
           </View>
+          )}
 
           {/* Trial Benefits Section - show whenever user is trial-eligible */}
           {shouldUseTrialProduct && (
             <View style={styles.trialBenefitsContainer}>
+              {(() => {
+                const tier = pricingTiers.find(t => t.id === selectedTier)
+                  || pricingTiers.find(t => t.id === 'growth')
+                  || pricingTiers[0];
+
+                // Derive a friendly tier name and its monthly limits from the tier's first feature line.
+                const tierName = tier?.id ? getTierDisplayName(tier.id).replace(/^siFia\s+/i, '') : 'Growth';
+
+                let playbooksLimitText = '';
+                let devotionalsLimitText = '';
+                if (tier?.features?.length) {
+                  const first = tier.features[0]?.trim() || '';
+                  const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+                  if (m) {
+                    playbooksLimitText = `${m[1]} playbooks`;
+                    devotionalsLimitText = `${m[2]} devotionals`;
+                  } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
+                    playbooksLimitText = 'unlimited playbooks';
+                    devotionalsLimitText = 'unlimited devotionals';
+                  }
+                }
+
+                const tierId = tier?.id || 'growth';
+                const postTrialLimitsText = tierId === 'transformation'
+                  ? "After your trial, you'll unlock unlimited playbooks and devotionals."
+                  : tierId === 'growth'
+                    ? "After your trial, you'll unlock the full Growth plan limits: 20 playbooks and 20 devotionals per month."
+                    : (playbooksLimitText && devotionalsLimitText
+                      ? `After your trial, you'll unlock the full ${tierName} plan limits: ${playbooksLimitText} and ${devotionalsLimitText} per month.`
+                      : `After your trial, you'll unlock the full ${tierName} plan limits.`);
+
+                return (
+                  <>
               <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                What you get during your trial:
+                What you get during your 3-day trial:
               </ThemedText>
               <View style={styles.trialBenefitItem}>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
                 <ThemedText style={styles.trialBenefitText}>
-                  2 playbooks + 2 devotionals to get you started
+                  Generate personalized playbooks & devotionals just for you
                 </ThemedText>
               </View>
               <View style={styles.trialBenefitItem}>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
                 <ThemedText style={styles.trialBenefitText}>
-                  After your trial you'll receive full playbook and devotional limits.
+                  Smart Journaling and reflection tools to help you grow
                 </ThemedText>
               </View>
               <View style={styles.trialBenefitItem}>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
                 <ThemedText style={styles.trialBenefitText}>
-                  Full access to {getTierDisplayName(selectedTier)} features
+                  All other {tierName} features fully available
                 </ThemedText>
               </View>
-                          </View>
-          )}
-
-          {isAnnual && (
-            <View style={styles.freeBannerContainer}>
-              <ThemedText weight="semiBold" style={styles.freeBannerText}>Save 2 months with annual billing</ThemedText>
+              <View style={styles.trialSupportingTextContainer}>
+                <ThemedText style={styles.trialSupportingText}>
+                  {`During your trial, you can generate a limited number of playbooks and devotionals to experience siFia's personalized guidance. ${postTrialLimitsText}`}
+                </ThemedText>
+              </View>
+                  </>
+                );
+              })()}
             </View>
           )}
+
+          {!routeParams?.onboardingFlow && (
           <View style={styles.cardsContainer}>
             {pricingTiers.length > 0 ? (
               pricingTiers.map(renderPricingCard)
@@ -1692,6 +1832,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </View>
             )}
           </View>
+        )}
 
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
@@ -1716,6 +1857,52 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       {/* Fixed Footer CTA */}
       <View style={styles.footerContainer}>
+        {/* Growth Price Display */}
+        <View style={styles.footerPriceSection}>
+          {(() => {
+            const tier = pricingTiers.find(t => t.id === selectedTier)
+              || pricingTiers.find(t => t.id === 'growth')
+              || pricingTiers[0];
+            if (!tier) return null;
+
+            const formatValue = (value: number) => {
+              if (currencyInfo?.currency === 'PHP' && value % 1 === 0) {
+                return Math.floor(value).toString();
+              }
+              return value.toFixed(2);
+            };
+
+            const symbol = currencyInfo?.symbol || '$';
+
+            if (isAnnual) {
+              const annualPrice = tier.annualPrice;
+              const monthlyEquivalent = annualPrice / 12;
+
+              return (
+                <>
+                  <ThemedText style={styles.footerPriceBadge}>⭐ Most Popular</ThemedText>
+                  <ThemedText weight="bold" style={styles.footerPriceMain}>
+                    {`${symbol}${formatValue(annualPrice)}/year`}
+                  </ThemedText>
+                  <ThemedText style={styles.footerPriceSub}>2 months free</ThemedText>
+                  <ThemedText style={styles.footerPriceApprox}>
+                    {`≈ ${symbol}${formatValue(monthlyEquivalent)}/month`}
+                  </ThemedText>
+                </>
+              );
+            }
+
+            const monthlyPrice = tier.monthlyPrice;
+            return (
+              <>
+                <ThemedText weight="bold" style={styles.footerPriceMain}>
+                  {`${symbol}${formatValue(monthlyPrice)}/month`}
+                </ThemedText>
+              </>
+            );
+          })()}
+        </View>
+
         <TouchableOpacity
           style={[
             styles.unlockButton,
@@ -1744,7 +1931,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               hasEverStartedTrial,
               isSeekerTier,
               currentUserTier,
-              buttonText: shouldUseTrialProduct ? 'Start your free 3-day trial' : 'Regular purchase',
+              buttonText: shouldUseTrialProduct ? 'Start 3-Day Free Trial' : 'Regular purchase',
             });
 
             // If it's a trial button, navigate to trial offer screen instead of processing directly
@@ -1780,7 +1967,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             {isPurchasing
               ? 'Processing...'
               : shouldUseTrialProduct
-                ? 'Start your free 3-day trial'
+                ? 'Start 3-Day Free Trial'
                 : fromExportRestriction
                   ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
                   : fromSmartJournalingLock
@@ -1804,8 +1991,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         </TouchableOpacity>
         <View style={styles.footerRow}>
           <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
-          <ThemedText style={styles.footerText}>Cancel anytime.</ThemedText>
-          <ThemedText style={styles.footerText}> Secure checkout</ThemedText>
+          <ThemedText style={styles.footerText}>No Payment Now.</ThemedText>
+          <ThemedText style={styles.footerText}> Cancel Anytime</ThemedText>
         </View>
       </View>
 
@@ -1898,7 +2085,45 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 22,
-    opacity: 0.8,
+  },
+  smallMotivationalText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  growthPlanSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 20,
+    paddingTop: 28,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  growthPlanTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  growthPlanSubtitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 16,
+    opacity: 0.9,
+  },
+  featureCategory: {
+    marginBottom: 16,
+  },
+  featureCategoryTitle: {
+    fontSize: 14,
+    color: Colors.growthGreen,
+    fontWeight: '600',
+    marginBottom: 8,
+    opacity: 0.9,
   },
   featuresSection: {
     marginBottom: 24,
@@ -1914,6 +2139,26 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
     lineHeight: 20,
+  },
+  trialBenefitText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 20,
+  },
+  trialSupportingTextContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  trialSupportingText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -1981,24 +2226,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   popularText: {
-    fontSize: 12,
-    // weight handled by ThemedText
+    fontSize: 11,
     color: Colors.hopeWhite,
-  },
-  freeBadgeSmall: {
-    backgroundColor: Colors.faithGold,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginRight: 8,
-  },
-  freeBadgeSmallText: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
+    letterSpacing: 0.6,
   },
   loadingText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
   },
   loadingSubtext: {
     color: Colors.hopeWhite,
@@ -2012,7 +2247,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     marginTop: 8,
-    marginBottom: 16,
+    marginBottom: -16,
+    zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   freeBannerText: {
     fontSize: 14,
@@ -2178,6 +2419,41 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  footerPriceSection: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  footerPriceBadge: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.85,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  footerPriceMain: {
+    fontSize: 22,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  footerPriceSub: {
+    fontSize: 14,
+    color: Colors.faithGold,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  footerPriceApprox: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    textAlign: 'center',
+    marginTop: 2,
   },
   footerRow: {
     flexDirection: 'row',
