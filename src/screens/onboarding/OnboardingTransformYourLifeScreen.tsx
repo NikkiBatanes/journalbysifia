@@ -64,7 +64,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
   const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
-  const logoSize = isVerySmallPhone ? 90 : (isTablet ? 200 : 120); // Even smaller logo for iPhone SE
+  const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100); // iPad (120), iPhone (100)
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -162,16 +162,17 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     animationContainer: {
       width: '100%',
       aspectRatio: 1.2,
-      maxHeight: isVerySmallPhone ? 170 : 320,
-      marginTop: isVerySmallPhone ? -OnboardingSpacing.xxl : -OnboardingSpacing.xxxl,
+      maxHeight: isVerySmallPhone ? 240 : 320,
+      marginTop: isVerySmallPhone ? OnboardingSpacing.xxxl : -OnboardingSpacing.xxxl,
       marginBottom: 0,
       alignSelf: 'center',
       overflow: 'visible',
+      transform: isVerySmallPhone ? [{ translateY: -70 }] : [],
     },
     transformTitle: {
       ...OnboardingTypography.heroTitle,
       color: Colors.hopeWhite,
-      textAlign: 'center',
+      textAlign: isVerySmallPhone ? 'left' : 'center',
       marginBottom: isVerySmallPhone ? OnboardingSpacing.xs : OnboardingSpacing.md,
       fontSize: isVerySmallPhone ? 20 : 28, // Even smaller font for very small phones
       lineHeight: isVerySmallPhone ? 24 : 34,

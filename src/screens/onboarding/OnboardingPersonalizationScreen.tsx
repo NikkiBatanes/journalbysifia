@@ -1134,7 +1134,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         <View style={styles.logoContainer}>
           <Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
-            style={OnboardingStyles.logoImage}
+            style={[OnboardingStyles.logoImage, { 
+              width: isVerySmallPhone ? 100 : (isTablet ? 120 : 100),
+              height: isVerySmallPhone ? 100 : (isTablet ? 120 : 100)
+            }]}
             resizeMode="contain"
           />
         </View>
@@ -1262,6 +1265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 10,
   },
   modalHeader: {
     flexDirection: 'row',
