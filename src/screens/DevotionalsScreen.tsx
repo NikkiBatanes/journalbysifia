@@ -69,14 +69,12 @@ const DevotionalsScreen = () => {
       const focusTime = Date.now();
       Logger.debug('[DevotionalsScreen] Screen focused', { component: 'DevotionalsScreen', focusTime });
 
-      // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
-      // This prevents blocking the UI thread during screen transitions
-      const raf = typeof requestAnimationFrame === 'function'
-        ? requestAnimationFrame
-        : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
-      raf(() => {
-        const rafTime = Date.now();
-        Logger.debug('[DevotionalsScreen] RAF fired, refetching playbooks', { component: 'DevotionalsScreen', delay: rafTime - focusTime });
+      // CRITICAL: Use InteractionManager to prevent VirtualizedList freeze
+      // requestAnimationFrame doesn't wait for navigation animations to complete
+      const { InteractionManager } = require('react-native');
+      InteractionManager.runAfterInteractions(() => {
+        const interactionTime = Date.now();
+        Logger.debug('[DevotionalsScreen] InteractionManager fired, refetching playbooks', { component: 'DevotionalsScreen', delay: interactionTime - focusTime });
         // Force a refetch regardless of staleTime, so newly created playbooks are visible
         refetchPlaybooks();
         Logger.debug('[DevotionalsScreen] Playbooks refetch triggered', { component: 'DevotionalsScreen' });

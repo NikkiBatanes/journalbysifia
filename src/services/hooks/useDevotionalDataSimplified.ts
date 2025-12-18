@@ -235,41 +235,14 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       return transformApiEntryToDevotional(apiEntry);
     },
     onMutate: async ({ devotionalId, dayNumber, userId: mutationUserId }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(mutationUserId) });
+      // CRITICAL FIX: DO NOT update devotionals list cache - causes VirtualizedList freeze
+      // Only cancel and snapshot queries, update detail query only
       await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.detail(mutationUserId, devotionalId) });
 
-      // Snapshot the previous values
-      const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(mutationUserId));
+      // Snapshot only the detail query
       const previousDevotionalDetail = queryClient.getQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId));
 
-      // Optimistically update the cache by marking the day as complete
-      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
-        if (!Array.isArray(old)) {return old;}
-
-        return old.map((devotional: any) => {
-          if (devotional.id === devotionalId) {
-            // Update the specific day to completed
-            const updatedDays = devotional.days.map((day: any, index: number) =>
-              index === dayNumber - 1 ? { ...day, completed: true } : day
-            );
-
-            // Check if this makes the entire devotional complete
-            const completedDaysCount = updatedDays.filter((day: any) => day.completed).length;
-            const isComplete = completedDaysCount === devotional.totalDays;
-
-            return {
-              ...devotional,
-              days: updatedDays,
-              completed: isComplete,
-              updatedAt: new Date().toISOString(),
-            };
-          }
-          return devotional;
-        });
-      });
-
-      // Also optimistically update the individual devotional detail query
+      // Only update the individual devotional detail query (lightweight)
       queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), (old: any) => {
         if (!old || !old.days) {return old;}
 
@@ -290,8 +263,8 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         };
       });
 
-      // Return a context object with the snapshotted values
-      return { previousDevotionals, previousDevotionalDetail };
+      // Return context with snapshotted value
+      return { previousDevotionalDetail };
     },
     onSuccess: async (data, { devotionalId, dayNumber, userId: mutationUserId }) => {
 
@@ -323,28 +296,14 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         });
       }
 
-      // Update cache with the latest server data to ensure consistency
-      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
-        if (!Array.isArray(old)) {return old;}
-
-        return old.map((devotional: any) => {
-          if (devotional.id === devotionalId) {
-            return data; // Use the server response for the updated devotional
-          }
-          return devotional;
-        });
-      });
-
-      // Also update the individual devotional detail query
+      // CRITICAL FIX: DO NOT update devotionals list cache - causes VirtualizedList freeze
+      // Only update the detail query with server data
       queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), data);
 
       // Analytics tracking removed for now
     },
     onError: (error: Error, { userId: mutationUserId, devotionalId }, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousDevotionals) {
-        queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), context.previousDevotionals);
-      }
+      // If the mutation fails, use the context returned from onMutate to roll back detail query only
       if (context?.previousDevotionalDetail) {
         queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), context.previousDevotionalDetail);
       }
