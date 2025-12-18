@@ -137,7 +137,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
   if (currentTier === 'seeker') {
     return {
       title: `Unlock ${featureNamePlural}`,
-      message: `${featureNamePlural} are available with a siFia subscription.\n\nChoose the plan that fits your spiritual journey:`,
+      message: `${featureNamePlural} are available with a siFia subscription.`,
       primaryCta: 'View Plans',
       recommendedTier: 'growth',
       showUpgradeOptions: true,

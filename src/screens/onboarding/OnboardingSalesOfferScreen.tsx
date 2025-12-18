@@ -88,6 +88,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   };
 
+  const [footerHeight, setFooterHeight] = useState(0);
+
   const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly || false);
 
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
@@ -1462,8 +1464,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <ScrollView
           style={styles.pricingScroll}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContentPadding}
-          scrollIndicatorInsets={{ bottom: 60 }}
+          contentContainerStyle={[
+            styles.scrollContentPadding,
+            { paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
+          ]}
+          scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
           stickyHeaderIndices={[0]}
         >
           {/* Sticky header: Monthly / Annual toggle */}
@@ -1841,7 +1846,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       </View>
 
       {/* Fixed Footer CTA */}
-      <View style={styles.footerContainer}>
+      <View
+        style={styles.footerContainer}
+        onLayout={(e) => {
+          const next = e.nativeEvent.layout.height;
+          if (next && next !== footerHeight) {
+            setFooterHeight(next);
+          }
+        }}
+      >
         {/* Growth Price Display */}
         <View style={styles.footerPriceSection}>
           {(() => {
@@ -1865,7 +1878,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               return (
                 <>
-                  <ThemedText style={styles.footerPriceBadge}>⭐ Most Popular</ThemedText>
+                  {tier.id === 'growth' && (
+                    <ThemedText style={styles.footerPriceBadge}>⭐ Most Popular</ThemedText>
+                  )}
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
                     {`${symbol}${formatValue(annualPrice)}/year`}
                   </ThemedText>
@@ -2043,7 +2058,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignSelf: 'center',
     width: '100%',
-    maxWidth: 720,
+    minHeight: '100%',
   },
   pricingScroll: {
     flex: 1,
@@ -2492,7 +2507,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   scrollContentPadding: {
-    paddingBottom: 80,
+    paddingBottom: 120,
   },
   // Copy todos stats styles
   statsSection: {

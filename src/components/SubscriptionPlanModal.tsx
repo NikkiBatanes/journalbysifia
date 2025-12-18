@@ -319,12 +319,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       // For other tiers, use normal upgrade mode
       const isTransformationMonthly = tierBase === 'transformation' && !isAnnual;
       const isAnnualUser = isAnnual && tierBase !== 'seeker';
+      const isSeekerUser = tierBase === 'seeker';
 
       (navigation as any).navigate('OnboardingSalesOffer', {
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
         skipNotificationPreference: true,
-        upgradeMode: !isTransformationMonthly && !isAnnualUser, // Use onboarding mode for Transformation monthly to show all tiers, but filtered mode for annual users
+        // Seeker users tapping "Avail Plan" should see the default onboarding copy ("Your Journey Begins"),
+        // not limit-gating copy like "Unlock playbooks".
+        upgradeMode: isSeekerUser ? false : (!isTransformationMonthly && !isAnnualUser),
         forceTransformationAnnual: isTransformationMonthly, // Custom flag to filter to only annual transformation
         forceAnnualOnly: isAnnualUser, // Show only annual plans for current tier
       });
