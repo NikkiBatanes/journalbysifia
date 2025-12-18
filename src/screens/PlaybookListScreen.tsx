@@ -269,12 +269,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
           const focusTime = Date.now();
           console.log('[PlaybookListScreen] Screen focused at', focusTime);
 
-          const raf = typeof requestAnimationFrame === 'function'
-            ? requestAnimationFrame
-            : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
-          raf(() => {
-            const rafTime = Date.now();
-            console.log('[PlaybookListScreen] RAF fired, refetching playbooks', { delay: rafTime - focusTime });
+          // CRITICAL: Use InteractionManager for 1-day devotional freeze fix
+          // requestAnimationFrame doesn't wait for navigation animations to complete
+          const { InteractionManager } = require('react-native');
+          InteractionManager.runAfterInteractions(() => {
+            const interactionTime = Date.now();
+            console.log('[PlaybookListScreen] InteractionManager fired, refetching playbooks', { delay: interactionTime - focusTime });
             refetch();
             console.log('[PlaybookListScreen] Playbooks refetch triggered');
           });
