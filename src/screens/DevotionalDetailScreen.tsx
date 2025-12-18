@@ -721,9 +721,15 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     // If we're on the last day, navigate back to previous screen
     if (currentDayIndex === devotional.days.length - 1) {
-      const isOneDayDevotional = devotional.days.length === 1;
-      const navigationDelay = isOneDayDevotional ? 800 : 500;
-      navigateBackSafely('last-day-completion-continue', navigationDelay);
+      // Use simple immediate navigation for all devotionals (including 1-day)
+      // The complex navigateBackSafely was causing hangs for 1-day devotionals
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          (navigation as any).navigate('Devotionals');
+        }
+      }, 300); // Minimal delay for modal animation
       return;
     }
 
