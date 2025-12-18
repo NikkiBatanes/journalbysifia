@@ -239,53 +239,106 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.list(mutationUserId) });
       await queryClient.cancelQueries({ queryKey: queryKeys.devotionals.detail(mutationUserId, devotionalId) });
 
-      // Snapshot the previous values for rollback
+      // Snapshot the previous values
       const previousDevotionals = queryClient.getQueryData(queryKeys.devotionals.list(mutationUserId));
       const previousDevotionalDetail = queryClient.getQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId));
 
-      // CRITICAL: DO NOT update cache here - causes VirtualizedList freeze during navigation
-      // The optimistic updates will trigger re-renders before navigation completes
-      // Let the server response update the cache after navigation is done
-      
-      // Return context for rollback on error
+      // Optimistically update the cache by marking the day as complete
+      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
+        if (!Array.isArray(old)) {return old;}
+
+        return old.map((devotional: any) => {
+          if (devotional.id === devotionalId) {
+            // Update the specific day to completed
+            const updatedDays = devotional.days.map((day: any, index: number) =>
+              index === dayNumber - 1 ? { ...day, completed: true } : day
+            );
+
+            // Check if this makes the entire devotional complete
+            const completedDaysCount = updatedDays.filter((day: any) => day.completed).length;
+            const isComplete = completedDaysCount === devotional.totalDays;
+
+            return {
+              ...devotional,
+              days: updatedDays,
+              completed: isComplete,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return devotional;
+        });
+      });
+
+      // Also optimistically update the individual devotional detail query
+      queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), (old: any) => {
+        if (!old || !old.days) {return old;}
+
+        // Update the specific day to completed
+        const updatedDays = old.days.map((day: any, index: number) =>
+          index === dayNumber - 1 ? { ...day, completed: true } : day
+        );
+
+        // Check if this makes the entire devotional complete
+        const completedDaysCount = updatedDays.filter((day: any) => day.completed).length;
+        const isComplete = completedDaysCount === old.totalDays;
+
+        return {
+          ...old,
+          days: updatedDays,
+          completed: isComplete,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      // Return a context object with the snapshotted values
       return { previousDevotionals, previousDevotionalDetail };
     },
     onSuccess: async (data, { devotionalId, dayNumber, userId: mutationUserId }) => {
 
-      // CRITICAL: Defer ALL operations to prevent UI freeze during navigation
-      // The modal is closing and navigating back - any cache updates will cause VirtualizedList re-render
-      setTimeout(() => {
-        try {
-          // Check if this completion makes the entire devotional complete
-          const completedDaysCount = data.days.filter(day => day.completed).length;
-          const isFullDevotionalComplete = completedDaysCount === data.totalDays;
+      // ENTERPRISE-GRADE: Trigger cross-component sync immediately in background without blocking
+      // All heavy operations (DB writes, invalidations) are already deferred internally
+      try {
+        // Check if this completion makes the entire devotional complete
+        const completedDaysCount = data.days.filter(day => day.completed).length;
+        const isFullDevotionalComplete = completedDaysCount === data.totalDays;
 
-          syncDevotionalCompletion(
-            devotionalId,
-            undefined, // playbookId - not available in this context
-            {
-              isFullDevotionalComplete,
-              completedDaysCount,
-              totalDays: data.totalDays,
-              currentDay: dayNumber,
-            }
-          ).catch((syncError: Error) => {
-            Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
-              component: 'useDevotionalDataSimplified',
-            });
-          });
-
-          // CRITICAL: DO NOT update devotionals list cache - causes VirtualizedList freeze
-          // The DevotionalsScreen will refetch naturally when user navigates back via focus listener
-          // Only update the individual devotional detail query (lightweight)
-          queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), data);
-
-        } catch (syncError) {
-          Logger.error('[useMarkDayCompleteReactQuery] Deferred sync error', syncError as Error, {
+        syncDevotionalCompletion(
+          devotionalId,
+          undefined, // playbookId - not available in this context
+          {
+            isFullDevotionalComplete,
+            completedDaysCount,
+            totalDays: data.totalDays,
+            currentDay: dayNumber,
+          }
+        ).catch((syncError: Error) => {
+          Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
             component: 'useDevotionalDataSimplified',
           });
-        }
-      }, 1000); // Wait for navigation to complete before any cache updates
+        });
+
+      } catch (syncError) {
+        Logger.error('[useMarkDayCompleteReactQuery] Sync error', syncError as Error, {
+          component: 'useDevotionalDataSimplified',
+        });
+      }
+
+      // Update cache with the latest server data to ensure consistency
+      queryClient.setQueryData(queryKeys.devotionals.list(mutationUserId), (old: any) => {
+        if (!Array.isArray(old)) {return old;}
+
+        return old.map((devotional: any) => {
+          if (devotional.id === devotionalId) {
+            return data; // Use the server response for the updated devotional
+          }
+          return devotional;
+        });
+      });
+
+      // Also update the individual devotional detail query
+      queryClient.setQueryData(queryKeys.devotionals.detail(mutationUserId, devotionalId), data);
+
+      // Analytics tracking removed for now
     },
     onError: (error: Error, { userId: mutationUserId, devotionalId }, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back

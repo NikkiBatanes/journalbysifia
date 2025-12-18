@@ -783,6 +783,7 @@ export const useCreateDevotionalPrayer = () => {
         content: prayer.content,
         selected_date: prayer.dateStr,
         status: 'pending',
+        prayed: true, // Mark as prayed when user creates devotional prayer
         devotional_title: prayer.devotionalTitle,
         day_number: prayer.dayNumber,
         day_title: prayer.dayTitle,

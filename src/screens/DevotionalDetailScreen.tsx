@@ -370,7 +370,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         return matches;
       });
 
-      if (existingPrayer) {
+      if (existingPrayer && existingPrayer.prayed === true) {
         newPrayedDays[prayerKey] = true;
       }
     });

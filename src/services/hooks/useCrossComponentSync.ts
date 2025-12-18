@@ -123,20 +123,52 @@ export const useCrossComponentSync = (userId: string) => {
         completionContext,
       });
 
-      // 2. CRITICAL: DO NOT invalidate queries - causes VirtualizedList freeze
-      // PlaybookListScreen and Dashboard will refetch naturally when user navigates back via focus listeners
-      // Previous fix (commit 4ee93ee6): Removing invalidations fixed 4.5s freeze
-      // Only update cross-component relationships without triggering invalidations
-      if (playbookId) {
-        queryClient.setQueryData(
-          queryKeys.playbooks.withDevotionals(userId, playbookId),
-          (oldData: any) => ({
-            ...oldData,
-            lastDevotionalCompleted: devotionalId,
-            lastSynced: new Date().toISOString(),
-          })
-        );
-      }
+      // 2. Defer all query invalidations with a longer delay to ensure navigation completes first
+      const deferInvalidations = () => {
+        // Use a 500ms delay to ensure navigation is fully complete before invalidating
+        setTimeout(() => {
+          try {
+            console.log('[CrossComponentSync] Starting deferred invalidations');
+            // CRITICAL: DO NOT invalidate devotionals list - causes 4.5s VirtualizedList freeze
+            // The PlaybookListScreen will refetch naturally when user navigates back
+            // queryClient.invalidateQueries({
+            //   queryKey: ['devotionals', 'list', userId],
+            // });
+
+            // Invalidate dashboard-related queries in parallel
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'streaks', userId],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'insights', userId],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['dashboard', 'affirmations', userId],
+            });
+
+            // If linked to a playbook, update playbook queries
+            if (playbookId) {
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.playbooks.detail(userId, playbookId),
+              });
+
+              // Update cross-component relationship
+              queryClient.setQueryData(
+                queryKeys.playbooks.withDevotionals(userId, playbookId),
+                (oldData: any) => ({
+                  ...oldData,
+                  lastDevotionalCompleted: devotionalId,
+                  lastSynced: new Date().toISOString(),
+                })
+              );
+            }
+            console.log('[CrossComponentSync] Deferred invalidations complete');
+          } catch (e) {
+            Logger.error('[CrossComponentSync] Deferred invalidations failed', e as Error, { component: 'useCrossComponentSync' });
+          }
+        }, 500); // 500ms delay to ensure navigation completes first
+      };
+      deferInvalidations();
 
       Logger.debug('[CrossComponentSync] AFTER Promise.all parallel operations', {
         component: 'useCrossComponentSync',
