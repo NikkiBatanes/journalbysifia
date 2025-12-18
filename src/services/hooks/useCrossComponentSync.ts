@@ -123,7 +123,14 @@ export const useCrossComponentSync = (userId: string) => {
         completionContext,
       });
 
-      // 2. Defer all query invalidations with a longer delay to ensure navigation completes first
+      // 2. CRITICAL: For 1-day devotionals, skip ALL query invalidations to prevent PlaybookListScreen hang
+      // 1-day devotionals complete immediately and navigate back, causing UI freeze
+      if (isFullDevotionalComplete && totalDays === 1) {
+        console.log('[CrossComponentSync] Skipping invalidations for 1-day devotional to prevent PlaybookListScreen hang');
+        return; // Skip all invalidations for 1-day devotionals
+      }
+
+      // For multi-day devotionals, defer invalidations with longer delay
       const deferInvalidations = () => {
         // Use a 500ms delay to ensure navigation is fully complete before invalidating
         setTimeout(() => {
