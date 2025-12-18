@@ -6,7 +6,7 @@
 export interface APIKey {
   id: string;
   key: string;
-  tier: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation';
+  tier: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation' | 'free_trial';
   rateLimit: number;
   currentUsage: number;
   lastUsed: number;
@@ -17,7 +17,7 @@ export interface APIKey {
 export interface UserTier {
   name: string;
   priority: number;
-  keyPool: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation';
+  keyPool: 'onboarding' | 'seeker' | 'spark' | 'growth' | 'transformation' | 'free_trial';
   maxRequestsPerHour: number;
 }
 
@@ -88,6 +88,20 @@ class KeyPoolManager {
       }
     ]);
 
+    // Free Trial pool - reuses Spark key (Key 2) for free trial users
+    this.keyPools.set('free_trial', [
+      {
+        id: 'free_trial_1',
+        key: Deno.env.get('OPENAI_API_KEY_2') || '', // Share with Spark
+        tier: 'free_trial',
+        rateLimit: 500,
+        currentUsage: 0,
+        lastUsed: 0,
+        isHealthy: true,
+        costPerToken: 0.000015
+      }
+    ]);
+
     // Seeker pool - reuses Spark key (Key 2) for free tier
     this.keyPools.set('seeker', [
       {
@@ -137,6 +151,13 @@ class KeyPoolManager {
       priority: 1, // Second highest priority
       keyPool: 'transformation',
       maxRequestsPerHour: 200
+    });
+
+    this.userTiers.set('free_trial', {
+      name: 'Free Trial',
+      priority: 4, // Higher priority than seekers, lower than paid tiers
+      keyPool: 'free_trial',
+      maxRequestsPerHour: 25 // More generous than seekers (5), less than Spark (50)
     });
   }
 

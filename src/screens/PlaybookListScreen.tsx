@@ -263,18 +263,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
         textOpacity.setValue(0);
         setTimeout(() => { expandButton(); }, 1000);
 
-        // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
-        // This prevents blocking the UI thread during screen transitions
+        // CRITICAL: Defer refetch using InteractionManager to prevent hang when returning from devotional
+        // This ensures refetch happens AFTER navigation transition completes
         if (userId) {
           const focusTime = Date.now();
           console.log('[PlaybookListScreen] Screen focused at', focusTime);
 
-          const raf = typeof requestAnimationFrame === 'function'
-            ? requestAnimationFrame
-            : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
-          raf(() => {
+          const { InteractionManager } = require('react-native');
+          InteractionManager.runAfterInteractions(() => {
             const rafTime = Date.now();
-            console.log('[PlaybookListScreen] RAF fired, refetching playbooks', { delay: rafTime - focusTime });
+            console.log('[PlaybookListScreen] InteractionManager fired, refetching playbooks', { delay: rafTime - focusTime });
             refetch();
             console.log('[PlaybookListScreen] Playbooks refetch triggered');
           });

@@ -779,7 +779,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { user } = useAuth();
   const { subscription, usage, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
-  const { badgeCount } = useNotificationBadge();
+  const { badgeCount, fetchBadgeCount } = useNotificationBadge();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchBadgeCount();
+    }, [fetchBadgeCount])
+  );
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);

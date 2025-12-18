@@ -235,7 +235,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
-  const headerSpacingAdjustment = isTablet ? 500 : -40;
+  const headerSpacingAdjustment = isTablet ? 0 : -40;
   const baseTopInset = Math.max(insets.top, 10);
   const overlayTop = baseTopInset + playbookHeaderHeight + headerSpacingAdjustment;
   const [_expandedTopY, _setExpandedTopY] = useState(0);
