@@ -143,11 +143,11 @@ serve(async (req) => {
     if (findError || !subscription) {
       console.error('[AppleWebhook] User not found for original transaction:', originalTransactionId);
       
-      // FALLBACK: Try platform_transaction_id for backwards compatibility
+      // FALLBACK: Try both platform_subscription_id and platform_transaction_id for backwards compatibility
       const { data: fallbackSub } = await supabaseClient
         .from('user_subscriptions_new')
         .select('*')
-        .eq('platform_transaction_id', transactionId)  // Fix: Use transactionId not originalTransactionId
+        .or(`platform_subscription_id.eq.${transactionId},platform_transaction_id.eq.${transactionId}`)
         .single();
       
       if (!fallbackSub) {

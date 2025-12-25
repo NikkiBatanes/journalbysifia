@@ -855,15 +855,16 @@ export class AppleStoreKitService {
             timestamp: new Date().toISOString(),
           });
 
-          // ONLY store transaction ID for NEW trials (seeker), not for existing trials
-          // For existing trials, createTrial() already set everything including transaction IDs
-          if (currentTier === 'seeker') {
+          // ALWAYS store transaction IDs for BOTH new trials (seeker) and existing trials (free_trial)
+          // This ensures webhook can find users when trials convert to paid
+          if (currentTier === 'seeker' || currentTier === 'free_trial') {
             try {
               await supabase
                 .from('user_subscriptions_new')
                 .update({
                   original_transaction_id: purchase.transactionId,
                   platform_transaction_id: purchase.transactionId,
+                  platform_subscription_id: purchase.transactionId, // Add platform_subscription_id for webhook fallback
                   updated_at: new Date().toISOString(),
                 })
                 .eq('user_id', this.currentUserId);
@@ -877,11 +878,6 @@ export class AppleStoreKitService {
                 component: 'AppleStoreKitService',
               });
             }
-          } else {
-            Logger.info(`[StoreKit][${debugId}] ⏭️ Skipping transaction ID update - already set by createTrial()`, {
-              component: 'AppleStoreKitService',
-              currentTier,
-            });
           }
         } else {
           // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
