@@ -70,6 +70,7 @@ interface ValidationResult {
 
 interface ValidationData {
   transactionId: string;
+  originalTransactionId: string;
   productId: string;
   purchaseDate: Date | null;
   expiresAt: Date | null;
@@ -84,6 +85,7 @@ interface CreateTrialParams {
   chosenTier: string;
   platformSubscriptionId: string;
   transactionId: string;
+  originalTransactionId: string;
   billingCycle?: 'monthly' | 'annual';
 }
 
@@ -98,7 +100,7 @@ interface CreateTrialResult {
 // Create trial function
 async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult> {
   try {
-    const { supabase, userId, chosenTier, platformSubscriptionId, transactionId, billingCycle } = params;
+    const { supabase, userId, chosenTier, platformSubscriptionId, transactionId, originalTransactionId, billingCycle } = params;
 
     // Calculate trial end date (3 days from now)
     const trialEndDate = new Date();
@@ -116,6 +118,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         trial_end_date: trialEndDateIso,
         platform_subscription_id: platformSubscriptionId,
         platform_transaction_id: transactionId,
+        original_transaction_id: originalTransactionId, // CRITICAL: Store for webhook lookup
         billing_cycle: billingCycle || 'monthly',
         auto_renew_enabled: true,
         status: 'active',
@@ -262,6 +265,8 @@ serve(async (req) => {
     const currentTier = currentSub?.tier || 'seeker';
     const targetTier = mapProductIdToTier(validationResult.data?.productId || '');
     const isAppleTrialPeriod = validationResult.data?.isTrialPeriod || false;
+    const isExpired = validationResult.data?.isExpired || false;
+    const isActive = validationResult.data?.isActive || false;
 
     // DEBUG: Log all detection variables
     console.log('[ValidateReceipt] TRIAL DETECTION DEBUG:', {
@@ -270,8 +275,44 @@ serve(async (req) => {
       productId: validationResult.data?.productId,
       isEligibleForTrial,
       isAppleTrialPeriod,
+      isActive,
+      isExpired,
+      expiresAt: validationResult.data?.expiresAt?.toISOString(),
       expectedTrialLogic: 'seeker + eligible + Apple trial period = NEW TRIAL'
     });
+
+    // CRITICAL: Handle expired subscriptions
+    if (isExpired && !isAppleTrialPeriod) {
+      console.log('[ValidateReceipt] ⚠️ EXPIRED subscription detected - reverting to seeker', {
+        userId,
+        productId: validationResult.data?.productId,
+        expiresAt: validationResult.data?.expiresAt?.toISOString(),
+      });
+
+      // Revert user to seeker tier
+      await supabase
+        .from('user_subscriptions_new')
+        .update({
+          tier: 'seeker',
+          subscription_display_name: 'siFia Seeker',
+          status: 'expired',
+          playbooks_limit: 0,
+          devotionals_limit: 0,
+          smart_journaling_enabled: false,
+          auto_renew_enabled: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Subscription expired - reverted to seeker tier',
+          data: validationResult.data,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // LOGIC:
     // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with 2/2 limits)
@@ -298,6 +339,7 @@ serve(async (req) => {
         chosenTier: targetTier,
         platformSubscriptionId: validationResult.data?.transactionId || '',
         transactionId: validationResult.data?.transactionId || '',
+        originalTransactionId: validationResult.data?.originalTransactionId || '',
         billingCycle,
       });
 
@@ -466,14 +508,35 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
     totalTransactions: receipts.length,
   });
 
+  // CRITICAL: Validate subscription state based on expiration
+  const now = new Date();
+  const expiresAt = latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms)) : null;
+  const isTrialPeriod = latestReceipt.is_trial_period === 'true';
+  
+  // Determine subscription state
+  const isActive = expiresAt && expiresAt > now;
+  const isExpired = expiresAt && expiresAt <= now;
+  
+  console.log('[ValidateReceipt] Subscription state check:', {
+    expiresAt: expiresAt?.toISOString(),
+    now: now.toISOString(),
+    isActive,
+    isExpired,
+    isTrialPeriod,
+    productId: latestReceipt.product_id,
+  });
+
   return {
     success: true,
     data: {
-      transactionId: latestReceipt.transaction_id || latestReceipt.original_transaction_id,
-      productId: latestReceipt.product_id,
+      transactionId: latestReceipt.transaction_id || latestReceipt.original_transaction_id || '',
+      originalTransactionId: latestReceipt.original_transaction_id || latestReceipt.transaction_id || '',
+      productId: latestReceipt.product_id || '',
       purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms)) : null,
-      expiresAt: latestReceipt.expires_date_ms ? new Date(parseInt(latestReceipt.expires_date_ms)) : null,
-      isTrialPeriod: latestReceipt.is_trial_period === 'true',
+      expiresAt,
+      isTrialPeriod,
+      isActive,
+      isExpired,
       environment: response.environment,
       rawResponse: response,
     },

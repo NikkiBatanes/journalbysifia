@@ -266,7 +266,15 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { user_id, duration_days = 3, trial_chosen_tier, billing_cycle } = options;
+    const { 
+      user_id, 
+      duration_days = 3, 
+      trial_chosen_tier, 
+      billing_cycle,
+      platform_transaction_id,
+      original_transaction_id,
+      platform_subscription_id,
+    } = options;
 
     try {
       // Since the start_free_trial RPC function doesn't exist, implement manually
@@ -299,6 +307,10 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         updated_at: new Date().toISOString(),
+        // CRITICAL: Store transaction IDs for webhook lookup
+        platform_transaction_id: platform_transaction_id,
+        original_transaction_id: original_transaction_id,
+        platform_subscription_id: platform_subscription_id,
       };
 
       // CRITICAL FIX: Use a transaction-like approach with retry logic

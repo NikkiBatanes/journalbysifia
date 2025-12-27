@@ -216,6 +216,9 @@ export interface TrialStartOptions {
   duration_days?: number; // Default 3 days
   trial_chosen_tier?: SubscriptionTier; // The plan user chose during trial signup
   billing_cycle?: 'monthly' | 'annual'; // Billing preference for post-trial conversion
+  platform_transaction_id?: string;
+  original_transaction_id?: string;
+  platform_subscription_id?: string;
 }
 
 // POST-LAUNCH: Family Invite Options

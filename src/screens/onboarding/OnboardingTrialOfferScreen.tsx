@@ -500,6 +500,9 @@ const OnboardingTrialOfferScreen = () => {
             duration_days: 3,
             trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
             billing_cycle: isAnnual ? 'annual' : 'monthly',
+            platform_transaction_id: result.transactionId,
+            original_transaction_id: result.transactionId,
+            platform_subscription_id: result.transactionId,
           });
 
           const trialSetupDuration = Date.now() - trialSetupStartTime;
@@ -1013,30 +1016,6 @@ const OnboardingTrialOfferScreen = () => {
         >
           <View style={styles.contentWrap}>
 
-          {/* Plan Toggle */}
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(false);
-              }}
-              activeOpacity={0.9}
-            >
-              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(true);
-              }}
-              activeOpacity={0.9}
-            >
-              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
-            </TouchableOpacity>
-          </View>
-
           {/* Timeline */}
           <View style={styles.timelineContainer}>
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
@@ -1066,6 +1045,30 @@ const OnboardingTrialOfferScreen = () => {
 
       {/* CTA and Footer (sticky) */}
       <View style={styles.footerBlock} pointerEvents="box-none">
+        {/* Monthly/Annual Toggle */}
+        <View style={styles.footerToggleContainer}>
+          <TouchableOpacity
+            style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setIsAnnual(false);
+            }}
+            activeOpacity={0.9}
+          >
+            <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setIsAnnual(true);
+            }}
+            activeOpacity={0.9}
+          >
+            <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+          </TouchableOpacity>
+        </View>
+        
         {/* Pricing Summary (dynamic) */}
         <View style={styles.pricingSummary}>
           {/* Rounded divider with floating centered tag */}
@@ -1082,14 +1085,13 @@ const OnboardingTrialOfferScreen = () => {
           </ThemedText>
           {isAnnual ? (
             <View style={styles.savingsContainer}>
-              <ThemedText weight="bold" style={styles.pricingSubtitle}>
-                {(() => {
-                  const monthlyEq = getMonthlyEquivalent();
-                  const formatted = (currencyInfo?.currency === 'PHP' && monthlyEq % 1 === 0) ? Math.floor(monthlyEq) : monthlyEq.toFixed(2);
-                  return `≈ ${currencyInfo?.symbol || '₱'}${formatted} / month`;
-                })()}
+              <ThemedText style={styles.annualSavingsHighlight}>Save 2 months free</ThemedText>
+              <ThemedText style={styles.annualSavingsText}>
+                Annual plan saves you 2 months.
               </ThemedText>
-              <ThemedText weight="semiBold" style={styles.freeOfferText}>Save 2 months free</ThemedText>
+              <ThemedText style={styles.annualSavingsText}>
+                Pay once, grow all year.
+              </ThemedText>
             </View>
           ) : null}
         </View>
@@ -1105,7 +1107,7 @@ const OnboardingTrialOfferScreen = () => {
           </ThemedText>
         </TouchableOpacity>
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-          Try 3 days free. No pressure. Cancel anytime
+          Try 3 days free. No payment now. Cancel anytime.
         </ThemedText>
       </View>
 
@@ -1638,6 +1640,21 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
+  annualSavingsHighlight: {
+    fontSize: 14,
+    fontFamily: fonts.semiBold,
+    color: Colors.faithGold,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  annualSavingsText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginTop: 2,
+    opacity: 0.85,
+  },
   dividerWrapper: {
     width: '100%',
     justifyContent: 'center',
@@ -1805,6 +1822,31 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '500',
+  },
+  // Footer toggle styles
+  footerToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 16,
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  footerToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  activeFooterToggle: {
+    backgroundColor: Colors.growthGreen,
+  },
+  footerToggleText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  activeFooterToggleText: {
+    color: Colors.hopeWhite,
   },
 });
 

@@ -10,12 +10,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT transaction info (simplified - production should verify signature)
+// Decode JWT (both transaction info and signed payload)
 interface TransactionInfo {
   transactionId: string;
   originalTransactionId: string;
   productId: string;
   offerType?: number;
+}
+
+interface WebhookPayload {
+  notificationType: string;
+  subtype?: string;
+  data?: {
+    signedTransactionInfo: string;
+  };
+}
+
+function decodeJWT(token: string): WebhookPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(payload) as WebhookPayload;
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
 }
 
 function decodeTransactionInfo(signedInfo: string): TransactionInfo | null {
@@ -99,15 +120,51 @@ serve(async (req) => {
     );
 
     const body = await req.json();
-    console.log('[AppleWebhook] Received notification:', {
-      type: body.notificationType,
-      subtype: body.subtype,
+    console.log('[AppleWebhook] Raw payload received');
+
+    // CRITICAL FIX: Handle both v1 and v2 payload formats
+    let notificationType: string | undefined;
+    let subtype: string | undefined;
+    let signedTransactionInfo: string | undefined;
+
+    // Check for v2 format (signedPayload)
+    if (body.signedPayload) {
+      console.log('[AppleWebhook] v2 format detected (signedPayload)');
+      
+      // Decode outer signedPayload
+      const decodedPayload = decodeJWT(body.signedPayload);
+      if (!decodedPayload) {
+        console.error('[AppleWebhook] Failed to decode signedPayload');
+        return new Response('Bad Request', { status: 400, headers: corsHeaders });
+      }
+
+      notificationType = decodedPayload.notificationType;
+      subtype = decodedPayload.subtype;
+      signedTransactionInfo = decodedPayload.data?.signedTransactionInfo;
+
+      console.log('[AppleWebhook] v2 decoded:', {
+        notificationType,
+        subtype,
+        hasTransactionInfo: !!signedTransactionInfo,
+      });
+    } 
+    // Check for v1 format (body.notificationType)
+    else if (body.notificationType) {
+      console.log('[AppleWebhook] v1 format detected');
+      notificationType = body.notificationType;
+      subtype = body.subtype;
+      signedTransactionInfo = body.data?.signedTransactionInfo;
+    } 
+    else {
+      console.error('[AppleWebhook] Unknown payload format');
+      return new Response('Bad Request', { status: 400, headers: corsHeaders });
+    }
+
+    console.log('[AppleWebhook] Notification:', {
+      type: notificationType,
+      subtype: subtype,
       timestamp: new Date().toISOString(),
     });
-
-    const notificationType = body.notificationType;
-    const subtype = body.subtype;
-    const signedTransactionInfo = body.data?.signedTransactionInfo;
 
     if (!signedTransactionInfo) {
       console.log('[AppleWebhook] No transaction info, skipping');
@@ -173,7 +230,10 @@ serve(async (req) => {
         
         const isTrialProduct = (productId || '').includes('freetrial');
         const isNewTrialStart = subscription.tier === 'seeker' && isTrialProduct;
-        const isTrialConversion = subscription.tier === 'free_trial' && offerType === 1;
+        
+        // FIX: Trial conversion detection - check tier first, offerType is optional
+        // Apple may not always send offerType, so we rely on tier + trial_end_date
+        const isTrialConversion = subscription.tier === 'free_trial';
 
         if (isNewTrialStart) {
           // NEW TRIAL START: Skip webhook - app will handle with createTrial()
@@ -186,7 +246,13 @@ serve(async (req) => {
           break;
         } else if (isTrialConversion) {
           // CRITICAL: Trial → Paid conversion
-          console.log('[AppleWebhook] 🎉 Trial converting to paid (Apple charged)');
+          console.log('[AppleWebhook] 🎉 TRIAL CONVERSION: User charged after trial period', {
+            userId,
+            currentTier: subscription.tier,
+            productId,
+            offerType,
+            trialEndDate: subscription.trial_end_date,
+          });
 
           // Extract actual tier from product ID (handles annual detection)
           const actualTier = getTierFromProductId(productId);
@@ -224,6 +290,7 @@ serve(async (req) => {
               trial_converted_date: now.toISOString(),
               billing_issue: false,
               grace_period_end_date: null,
+              status: 'active', // Ensure status is active
               updated_at: now.toISOString(),
             })
             .eq('user_id', userId);

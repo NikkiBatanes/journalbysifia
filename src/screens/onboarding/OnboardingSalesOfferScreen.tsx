@@ -784,23 +784,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
 
-              const trialResult = await TrialManagementService.createTrial(
-                user?.id || '',
-                selectedTier as SubscriptionTier,
-                productId,
-                result.transactionId,
-                isAnnual ? 'annual' : 'monthly',
-              );
-
-              if (!trialResult.success) {
-                logger.error('❌ Failed to create trial', new Error(trialResult.error || 'Unknown error'));
-                throw new Error('Failed to create trial. Please contact support.');
-              }
+              await NewSubscriptionService.startFreeTrial({
+                user_id: user?.id || '',
+                duration_days: 3,
+                trial_chosen_tier: selectedTier as SubscriptionTier,
+                billing_cycle: isAnnual ? 'annual' : 'monthly',
+                platform_transaction_id: result.transactionId,
+                original_transaction_id: result.transactionId,
+                platform_subscription_id: result.transactionId,
+              });
 
               logger.info('✅ Trial created successfully (UPGRADE MODE)', {
                 tier: 'free_trial',
                 chosenTier: selectedTier,
-                trialEndDate: trialResult.trialEndDate,
               });
             }
 
@@ -1000,23 +996,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
 
-              const trialResult = await TrialManagementService.createTrial(
-                user?.id || '',
-                selectedTier as SubscriptionTier,
-                productId,
-                result.transactionId,
-                isAnnual ? 'annual' : 'monthly',
-              );
-
-              if (!trialResult.success) {
-                logger.error('❌ Failed to create trial', new Error(trialResult.error || 'Unknown error'));
-                throw new Error('Failed to create trial. Please contact support.');
-              }
+              await NewSubscriptionService.startFreeTrial({
+                user_id: user?.id || '',
+                duration_days: 3,
+                trial_chosen_tier: selectedTier as SubscriptionTier,
+                billing_cycle: isAnnual ? 'annual' : 'monthly',
+                platform_transaction_id: result.transactionId,
+                original_transaction_id: result.transactionId,
+                platform_subscription_id: result.transactionId,
+              });
 
               logger.info('✅ Trial created successfully (ONBOARDING MODE)', {
                 tier: 'free_trial',
                 chosenTier: selectedTier,
-                trialEndDate: trialResult.trialEndDate,
               });
             }
 
@@ -1469,32 +1461,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             { paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
           ]}
           scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
-          stickyHeaderIndices={[0]}
         >
-          {/* Sticky header: Monthly / Annual toggle */}
-          <View style={styles.stickyToggleHeader}>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity
-                style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  setIsAnnual(false);
-                }}
-              >
-                <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  setIsAnnual(true);
-                }}
-              >
-                <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
             {dynamicSalesCopy
@@ -1519,7 +1486,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings!'
-                                  : 'Your Journey Begins'}
+                                  : 'Faith in Action'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1544,7 +1511,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
                             : fromExportRestriction
                               ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
-                              : 'Personalized playbooks, devotionals, and journaling tools to help you walk steadily with God.'}
+                              : 'Daily Steps for Real Spiritual Growth'}
           </ThemedText>
 
           {/* Small motivational text */}
@@ -1571,61 +1538,31 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  20 playbooks each month
+                  20 personalized playbooks & devotionals monthly — stay consistent in faith
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  20 devotionals each month
+                  Smart journaling — reflect, grow, find clarity
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Access 1-day, 3-day, 5-day devotionals
+                  Gentle reminders — build lasting spiritual habits
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Smart Journaling for personalized reflection
+                  Track progress weekly — celebrate meaningful milestones
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Gentle reminders to keep you on track
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Track your progress week by week
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Calendar Sync to stay on track
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Copy To-Dos to other dates for flexibility
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Advanced reflection prompts
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Export to PDF for sharing and printing
+                  Calendar sync & flexible planning — integrate faith into daily life
                 </ThemedText>
               </View>
               </View>
@@ -1723,18 +1660,32 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Personalized playbooks and devotionals delivered at a pace that fits your plan.
+                      <ThemedText weight="semiBold">Personalized playbooks & devotionals:</ThemedText> Guidance at a pace that fits you
                     </ThemedText>
                   </View>
                   <View style={styles.featureBullet}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Track growth with journaling tools and deeper reflections over time.
+                      <ThemedText weight="semiBold">Smart journaling tools:</ThemedText> Reflect, track, and celebrate progress
                     </ThemedText>
                   </View>
                   <View style={styles.featureBullet}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
+                    <ThemedText style={styles.bulletText}>
+                      <ThemedText weight="semiBold">Flexible daily guidance:</ThemedText> Take one faithful step at a time
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      <ThemedText weight="semiBold">Spiritual growth made practical:</ThemedText> Turn reflection into action
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      <ThemedText weight="semiBold">Your journey, your pace:</ThemedText> Designed for real-life application
+                    </ThemedText>
                   </View>
                 </>
               )
@@ -1857,6 +1808,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       >
         {/* Growth Price Display */}
         <View style={styles.footerPriceSection}>
+          {/* Monthly/Annual Toggle */}
+          <View style={styles.footerToggleContainer}>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(false);
+              }}
+            >
+              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(true);
+              }}
+            >
+              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+            </TouchableOpacity>
+          </View>
+          
           {(() => {
             const tier = pricingTiers.find(t => t.id === selectedTier)
               || pricingTiers.find(t => t.id === 'growth')
@@ -1874,7 +1847,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             if (isAnnual) {
               const annualPrice = tier.annualPrice;
-              const monthlyEquivalent = annualPrice / 12;
 
               return (
                 <>
@@ -1886,7 +1858,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   </ThemedText>
                   <ThemedText style={styles.footerPriceSub}>Save 2 months free</ThemedText>
                   <ThemedText style={styles.footerPriceApprox}>
-                    {`≈ ${symbol}${formatValue(monthlyEquivalent)}/month`}
+                    Annual plan saves you 2 months.
+                  </ThemedText>
+                  <ThemedText style={styles.footerPriceApprox}>
+                    Pay once, grow all year.
                   </ThemedText>
                 </>
               );
@@ -2575,6 +2550,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '500',
+  },
+  // Footer toggle styles
+  footerToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 16,
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  footerToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  activeFooterToggle: {
+    backgroundColor: Colors.growthGreen,
+  },
+  footerToggleText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  activeFooterToggleText: {
+    color: Colors.hopeWhite,
   },
 });
 
