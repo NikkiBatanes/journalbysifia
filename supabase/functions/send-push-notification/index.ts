@@ -272,7 +272,7 @@ async function sendAPNS(message: PushMessage) {
     headers: {
       'Authorization': `Bearer ${Deno.env.get('APNS_JWT_TOKEN')}`,
       'Content-Type': 'application/json',
-      'apns-topic': Deno.env.get('APNS_BUNDLE_ID') || 'com.sifiaopc.app',
+      'apns-topic': Deno.env.get('APNS_BUNDLE_ID') || 'app.sifia.com',
       'apns-priority': message.priority === 'high' ? '10' : '5',
     },
     body: JSON.stringify(payload),

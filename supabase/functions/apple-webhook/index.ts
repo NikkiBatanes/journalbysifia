@@ -190,6 +190,22 @@ serve(async (req) => {
       offerType,
     });
 
+    // Persist webhook metadata for auditing/debugging
+    try {
+      await supabaseClient.from('apple_webhook_events').insert([
+        {
+          notification_type: notificationType,
+          notification_subtype: subtype ?? null,
+          transaction_id: transactionId,
+          original_transaction_id: originalTransactionId,
+          product_id: productId,
+          payload: body,
+        },
+      ]);
+    } catch (logError) {
+      console.error('[AppleWebhook] Failed to log event', logError);
+    }
+
     // Find user by original transaction ID (never changes across renewals)
     let { data: subscription, error: findError } = await supabaseClient
       .from('user_subscriptions_new')
