@@ -319,7 +319,7 @@ const OnboardingNotificationSetupScreen = () => {
     if (fromCancelledSales) {
       return {
         title: 'Welcome, Seeker',
-        subtitle: `You're welcome to stay here for now.\nMove at a pace that feels right for your season.`,
+        subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
         badge: 'Seeker Access',
       };
     }
@@ -362,7 +362,7 @@ const OnboardingNotificationSetupScreen = () => {
       default:
         return {
           title: 'Welcome, Seeker',
-          subtitle: `You're welcome to stay here for now.\nMove at a pace that feels right for your season.`,
+          subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
           badge: 'Seeker Access',
         };
     }

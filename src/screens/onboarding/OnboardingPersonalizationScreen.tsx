@@ -889,7 +889,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Which stage of life are you in right now?</ThemedText>
       <ThemedText style={dynamicStyles.stepSubtitle}>
-        {`There are no right or wrong answers\nThis simply helps us guide the reflection.`}
+        {'There are no right or wrong answers\nThis simply helps us guide the reflection.'}
       </ThemedText>
       <View style={styles.ageOptionsContainer}>
         {ageGroups.map((ageGroup) => (
@@ -962,7 +962,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>What feels hardest right now?</ThemedText>
       <ThemedText style={dynamicStyles.stepSubtitle}>
-        {`Choose one area where you need clarity or support.\nWe'll start there.`}
+        {'Choose one area where you need clarity or support.\nWe\'ll start there.'}
       </ThemedText>
 
       <View style={styles.challengeOptionsContainer}>
@@ -992,7 +992,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
       <ThemedText style={dynamicStyles.stepSubtitle}>
-        {`You can be as honest or brief as you want.\nThis helps shape your first playbook.`}
+        {'You can be as honest or brief as you want.\nThis helps shape your first playbook.'}
       </ThemedText>
 
       {selectedChallenge && (
@@ -1159,7 +1159,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ) : null}
         <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
         <ThemedText style={OnboardingStyles.subtitle}>
-          {`Tell us a little about your season of life\nSo we can create a playbook that speaks to what you're walking through.`}
+          {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
         </ThemedText>
       </View>
 

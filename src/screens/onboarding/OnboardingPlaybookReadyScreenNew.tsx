@@ -611,7 +611,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
                       const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
                       return (
-                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
+                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}>
                           <Ionicons name="book" size={p.size} color={p.color} />
                         </Animated.View>
                       );
@@ -1034,12 +1034,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </Animated.View>
               ))}
             </View>
-            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{`\n`}Playbook is Ready</ThemedText>
-            <ThemedText style={styles.modalSubtitle}>{`This is a space to slow down\nand reflect with God.`}</ThemedText>
+            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</ThemedText>
+            <ThemedText style={styles.modalSubtitle}>{'This is a space to slow down\nand reflect with God.'}</ThemedText>
             <View style={styles.warningContainer}>
               <Ionicons name="heart" size={16} color={Colors.alertCoral} />
               <ThemedText style={styles.warningText}>
-                {`Not everything will feel easy.\nThis is an invitation to listen, reflect, and move with wisdom.`}
+                {'Not everything will feel easy.\nThis is an invitation to listen, reflect, and move with wisdom.'}
               </ThemedText>
             </View>
             <TouchableOpacity

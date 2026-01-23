@@ -247,7 +247,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 
           <View style={dynamicStyles.textContainer}>
             <ThemedText style={dynamicStyles.mainText}>
-              {`Bring what you're carrying.\nAnd take a moment to reflect before God.`}
+              {'Bring what you\'re carrying.\nAnd take a moment to reflect before God.'}
             </ThemedText>
           </View>
 

@@ -17,35 +17,35 @@ async function testAppleAPI() {
     console.log('Testing Apple API credentials...');
     console.log('Key ID:', appleKeyId);
     console.log('Issuer ID:', appleIssuerId);
-    
+
     // Convert PEM private key to CryptoKey
-    const pemHeader = "-----BEGIN PRIVATE KEY-----";
-    const pemFooter = "-----END PRIVATE KEY-----";
+    const pemHeader = '-----BEGIN PRIVATE KEY-----';
+    const pemFooter = '-----END PRIVATE KEY-----';
     const pemContents = applePrivateKey
-      .replace(pemHeader, "")
-      .replace(pemFooter, "")
-      .replace(/\s/g, "");
-    
+      .replace(pemHeader, '')
+      .replace(pemFooter, '')
+      .replace(/\s/g, '');
+
     const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    
+
     const cryptoKey = await crypto.subtle.importKey(
-      "pkcs8",
+      'pkcs8',
       binaryKey,
-      { name: "ECDSA", namedCurve: "P-256" },
+      { name: 'ECDSA', namedCurve: 'P-256' },
       false,
-      ["sign"]
+      ['sign']
     );
 
     console.log('Private key imported successfully');
 
     // Create JWT token
     const jwtToken = await create(
-      { alg: "ES256", kid: appleKeyId, typ: "JWT" },
+      { alg: 'ES256', kid: appleKeyId, typ: 'JWT' },
       {
         iss: appleIssuerId,
         iat: getNumericDate(0),
         exp: getNumericDate(60 * 60), // 1 hour
-        aud: "appstoreconnect-v1",
+        aud: 'appstoreconnect-v1',
       },
       cryptoKey
     );
@@ -69,7 +69,7 @@ async function testAppleAPI() {
 
     console.log('API Response Status:', response.status);
     console.log('API Response Headers:', Object.fromEntries(response.headers.entries()));
-    
+
     const responseText = await response.text();
     console.log('API Response Body:', responseText);
 

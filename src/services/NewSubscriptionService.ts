@@ -266,10 +266,10 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { 
-      user_id, 
-      duration_days = 3, 
-      trial_chosen_tier, 
+    const {
+      user_id,
+      duration_days = 3,
+      trial_chosen_tier,
       billing_cycle,
       platform_transaction_id,
       original_transaction_id,

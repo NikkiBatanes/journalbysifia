@@ -26,7 +26,6 @@ import { PurchaseSuccessModal } from '../../components/PurchaseSuccessModal';
 import { PurchaseLoadingModal } from '../../components/PurchaseLoadingModal';
 import { notificationService } from '../../services/notificationService';
 import { useScreenStatusBar } from '../../hooks/useScreenStatusBar';
-import { TrialManagementService } from '../../services/TrialManagementService';
 import { useQueryClient } from '@tanstack/react-query';
 import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 import ThemedText from '../../components/common/ThemedText';
@@ -1171,17 +1170,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     setExpandedCards(newExpanded);
   };
 
-  const getTierDisplayName = (tierId: string) => {
-    switch (tierId) {
-      case 'seeker':
-      case 'basic': return 'siFia Seeker';
-      case 'spark':
-      case 'starter': return 'siFia Spark';
-      case 'growth': return 'siFia Growth';
-      case 'transformation': return 'siFia Transformation';
-      default: return tierId;
-    }
-  };
 
   const renderPricingCard = (tier: PricingTier) => {
     const isSelected = selectedTier === tier.id;
@@ -1704,36 +1692,6 @@ Continue walking with intention and wisdom.`}
           {shouldUseTrialProduct && (
             <View style={styles.trialBenefitsContainer}>
               {(() => {
-                const tier = pricingTiers.find(t => t.id === selectedTier)
-                  || pricingTiers.find(t => t.id === 'growth')
-                  || pricingTiers[0];
-
-                // Derive a friendly tier name and its monthly limits from the tier's first feature line.
-                const tierName = tier?.id ? getTierDisplayName(tier.id).replace(/^siFia\s+/i, '') : 'Growth';
-
-                let playbooksLimitText = '';
-                let devotionalsLimitText = '';
-                if (tier?.features?.length) {
-                  const first = tier.features[0]?.trim() || '';
-                  const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
-                  if (m) {
-                    playbooksLimitText = `${m[1]} playbooks`;
-                    devotionalsLimitText = `${m[2]} devotionals`;
-                  } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-                    playbooksLimitText = 'unlimited playbooks';
-                    devotionalsLimitText = 'unlimited devotionals';
-                  }
-                }
-
-                const tierId = tier?.id || 'growth';
-                const postTrialLimitsText = tierId === 'transformation'
-                  ? "After your trial, you'll unlock unlimited playbooks and devotionals."
-                  : tierId === 'growth'
-                    ? "After your trial, you'll unlock the full Growth plan limits: 20 playbooks and 20 devotionals per month."
-                    : (playbooksLimitText && devotionalsLimitText
-                      ? `After your trial, you'll unlock the full ${tierName} plan limits: ${playbooksLimitText} and ${devotionalsLimitText} per month.`
-                      : `After your trial, you'll unlock the full ${tierName} plan limits.`);
-
                 return (
                   <>
               <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
@@ -1823,7 +1781,7 @@ Continue walking with intention and wisdom.`}
               <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
             </TouchableOpacity>
           </View>
-          
+
           {(() => {
             const tier = pricingTiers.find(t => t.id === selectedTier)
               || pricingTiers.find(t => t.id === 'growth')

@@ -770,12 +770,6 @@ const OnboardingTrialOfferScreen = () => {
     return `${currencyInfo?.symbol || '₱'}${price.toFixed(2)}`;
   };
 
-  const getMonthlyEquivalent = () => {
-    // Use tier pricing
-    const t = getSelectedTier();
-    if (!t) {return 0;}
-    return (t.annualPrice / 12);
-  };
 
   const formatShortDate = (date: Date) => {
     return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
@@ -1049,7 +1043,7 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
           </TouchableOpacity>
         </View>
-        
+
         {/* Pricing Summary (dynamic) */}
         <View style={styles.pricingSummary}>
           {/* Rounded divider with floating centered tag */}

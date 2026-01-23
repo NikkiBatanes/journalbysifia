@@ -866,7 +866,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   )}
   <ThemedText weight="regular" style={styles.footerText}>
-    God’s Word is a lamp to your feet and a light to your path.{`\n`}May this devotional be a quiet space to listen and walk with Him.
+    God’s Word is a lamp to your feet and a light to your path.{'\n'}May this devotional be a quiet space to listen and walk with Him.
   </ThemedText>
 </View>
             </View>
