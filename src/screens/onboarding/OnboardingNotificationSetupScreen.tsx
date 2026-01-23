@@ -103,14 +103,14 @@ const OnboardingNotificationSetupScreen = () => {
     {
       id: 'playbooks',
       title: 'Playbooks',
-      description: 'Reminders for action steps and challenges in your Playbooks',
+      description: 'Gentle reminders for the steps and invitations in your playbooks',
       icon: 'albums-outline',
       enabled: true,
     },
     {
       id: 'daily_devotional',
       title: 'Devotionals',
-      description: 'Start your day with personalized guidance',
+      description: 'Soft prompts to begin your day with Scripture and reflection',
       icon: 'book-outline',
       enabled: true,
       required: false,
@@ -118,28 +118,28 @@ const OnboardingNotificationSetupScreen = () => {
     {
       id: 'journal_reminders',
       title: 'Journal Reminders',
-      description: 'Gentle prompts to help you reflect and write',
+      description: 'Occasional nudges to pause, reflect, and write',
       icon: 'create-outline',
       enabled: true,
     },
     {
       id: 'prayer_reminders',
       title: 'Prayer Reminders',
-      description: 'Gentle nudges for your prayer time',
+      description: 'Gentle invitations to return to prayer',
       icon: 'heart-outline',
       enabled: true,
     },
     {
       id: 'progress_updates',
       title: 'Progress Updates',
-      description: 'Celebrate your growth milestones',
+      description: 'Quiet celebrations of growth and faithfulness',
       icon: 'trending-up-outline',
       enabled: true,
     },
     {
       id: 'trial_reminders',
       title: 'Trial Reminders',
-      description: 'Important updates about your trial status',
+      description: 'Helpful updates so you can decide with peace',
       icon: 'time-outline',
       enabled: true,
       required: effectiveUserType === 'trial',
@@ -147,7 +147,7 @@ const OnboardingNotificationSetupScreen = () => {
     {
       id: 'prayer_request_alerts',
       title: 'Prayer Request Alerts',
-      description: 'Get notified about prayer requests that need attention',
+      description: 'Notifications when prayer requests need care and attention',
       icon: 'notifications-outline',
       enabled: true,
     },
@@ -319,8 +319,8 @@ const OnboardingNotificationSetupScreen = () => {
     if (fromCancelledSales) {
       return {
         title: 'Welcome, Seeker',
-        subtitle: 'Get started with basic access and upgrade anytime.',
-        badge: 'Seeker Freemium',
+        subtitle: `You're welcome to stay here for now.\nMove at a pace that feels right for your season.`,
+        badge: 'Seeker Access',
       };
     }
 
@@ -362,8 +362,8 @@ const OnboardingNotificationSetupScreen = () => {
       default:
         return {
           title: 'Welcome, Seeker',
-          subtitle: 'Stay motivated with gentle reminders and encouragement.',
-          badge: 'Seeker (Freemium)',
+          subtitle: `You're welcome to stay here for now.\nMove at a pace that feels right for your season.`,
+          badge: 'Seeker Access',
         };
     }
   };
@@ -396,14 +396,17 @@ const OnboardingNotificationSetupScreen = () => {
             adjustsFontSizeToFit
             minimumFontScale={0.9}
           >
-            {`Welcome ${displayName}`}
+            {`Welcome, ${displayName}`}
           </ThemedText>
-          <ThemedText style={styles.welcomeSubtitle}>{welcomeData.subtitle}</ThemedText>
+          <ThemedText style={styles.welcomeSubtitle}>
+            {welcomeData.subtitle}
+          </ThemedText>
         </View>
 
         {/* Notification Settings */}
         <View style={styles.settingsSection}>
           <ThemedText weight="bold" style={styles.settingsTitle}>Notification Preferences</ThemedText>
+          <ThemedText style={styles.settingsSubtitle}>Choose what would be helpful for you right now. You can change these anytime.</ThemedText>
 
           {notificationSettings.map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
@@ -433,22 +436,8 @@ const OnboardingNotificationSetupScreen = () => {
         {/* Benefits Section */}
         <View style={styles.benefitsSection}>
           <ThemedText weight="semiBold" style={styles.benefitsTitle}>Why turn on notifications?</ThemedText>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <ThemedText style={styles.benefitText}>Stay on track with your action steps</ThemedText>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <ThemedText style={styles.benefitText}>Get reminders for Playbook challenges</ThemedText>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <ThemedText style={styles.benefitText}>Timely nudges for devotionals, prayer, and journaling</ThemedText>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <ThemedText style={styles.benefitText}>Celebrate milestones and track your progress</ThemedText>
-          </View>
+          <ThemedText style={styles.benefitText}>Gentle reminders to support your journey.</ThemedText>
+          <ThemedText style={styles.benefitText}>Nothing urgent. Nothing forced.</ThemedText>
         </View>
 
       </ScrollView>
@@ -526,6 +515,17 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     lineHeight: 24,
   },
+  welcomeSubtitlePrimary: {
+    fontWeight: '600',
+  },
+  welcomeSubtitleNote: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.75,
+    lineHeight: 18,
+    marginTop: 8,
+  },
   settingsSection: {
     marginBottom: 32,
   },
@@ -534,6 +534,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     marginBottom: 20,
+  },
+  settingsSubtitle: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.75,
+    lineHeight: 20,
+    marginBottom: 16,
+    textAlign: 'left',
   },
   settingItem: {
     flexDirection: 'row',
@@ -560,6 +568,7 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+    marginRight: 16,
   },
   settingTitle: {
     fontSize: 16,
