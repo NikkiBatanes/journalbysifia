@@ -138,13 +138,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
-    { title: 'Listening to your heart…', description: '' },
-    { title: 'Finding God\'s Word for your season…', description: '' },
-    { title: 'Preparing your steps…', description: '' },
-    { title: 'Equipping you for the journey…', description: '' },
-    { title: 'Breathe in peace...', description: '' },
-    { title: 'Breathe out worry...', description: '' },
-    { title: 'Finalizing Your Playbook', description: '' },
+    { title: 'Pausing with God…', description: '' },
+    { title: 'Bringing your situation into the light…', description: '' },
+    { title: 'Grounding in Scripture…', description: '' },
+    { title: 'Clarifying what faithfulness looks like right now…', description: '' },
+    { title: 'Preparing gentle next steps…', description: '' },
+    { title: 'Making space to respond, not react…', description: '' },
+    { title: 'Finalizing your playbook…', description: '' },
   ];
 
   // Current step title without trailing ellipsis/dots

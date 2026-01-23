@@ -888,6 +888,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Which stage of life are you in right now?</ThemedText>
+      <ThemedText style={dynamicStyles.stepSubtitle}>
+        {`There are no right or wrong answers\nThis simply helps us guide the reflection.`}
+      </ThemedText>
       <View style={styles.ageOptionsContainer}>
         {ageGroups.map((ageGroup) => (
           <TouchableOpacity
@@ -930,7 +933,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 `}walk with God?</ThemedText>
       <ThemedText
         style={dynamicStyles.stepSubtitle}>
-        There's no wrong answer. {'\n'}He welcomes you exactly as you are.
+        You are welcome here exactly as you are.
       </ThemedText>
       <View style={styles.optionsContainer}>
         {faithJourneyOptions.map((option) => (
@@ -957,10 +960,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>What's your biggest{'\n'}challenge right now?</ThemedText>
+      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>What feels hardest right now?</ThemedText>
       <ThemedText style={dynamicStyles.stepSubtitle}>
-        Choose the area where you need the most guidance,{'\n'}
-        and we'll create a personalized playbook just for you
+        {`Choose one area where you need clarity or support.\nWe'll start there.`}
       </ThemedText>
 
       <View style={styles.challengeOptionsContainer}>
@@ -989,6 +991,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
+      <ThemedText style={dynamicStyles.stepSubtitle}>
+        {`You can be as honest or brief as you want.\nThis helps shape your first playbook.`}
+      </ThemedText>
 
       {selectedChallenge && (
         <View style={styles.challengeCard}>
@@ -1154,7 +1159,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ) : null}
         <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
         <ThemedText style={OnboardingStyles.subtitle}>
-          Tell us a little about your season of life so we can create a playbook that speaks right to your heart.
+          {`Tell us a little about your season of life\nSo we can create a playbook that speaks to what you're walking through.`}
         </ThemedText>
       </View>
 

@@ -242,15 +242,12 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <View style={styles.textContainer}>
-            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, dynamicStyles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
+            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, dynamicStyles.transformTitle, styles.titleLeftAlign]}>A quiet companion for faithful living.</ThemedText>
           </View>
 
           <View style={dynamicStyles.textContainer}>
             <ThemedText style={dynamicStyles.mainText}>
-            God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
-            </ThemedText>
-            <ThemedText style={[dynamicStyles.mainText, styles.textWithMarginTop]}>
-            Let's take the first step together.
+              {`Bring what you're carrying.\nAnd take a moment to reflect before God.`}
             </ThemedText>
           </View>
 

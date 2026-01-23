@@ -57,12 +57,12 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    title: 'When life feels heavy,\nGod\'s Word is light.',
-    subtitle: 'We\'ll help you hear His voice in your exact situation and give you simple steps to live it out today.',
+    title: 'When life feels heavy',
+    subtitle: 'Faith can be sincere\nand still feel confusing in real life.',
     features: [
-      'Hear God\'s voice in your exact situation',
-      'Simple, faith-driven steps you can do now',
-      'Encouragement that lasts beyond Sunday',
+      'You love God',
+      'You want to respond faithfully',
+      'But emotions, pressure, and decisions feel tangled',
     ],
     color: Colors.alertCoral,
     useLottie: true,
@@ -70,12 +70,12 @@ const slides: Slide[] = [
   },
   {
     id: 2,
-    title: 'A plan for your heart,\nnot just your calendar.',
-    subtitle: 'Your playbook is more than a checklist. It\'s a companion for your walk with God.',
+    title: 'Clarity before action',
+    subtitle: 'siFia helps you slow down and reflect before God.',
     features: [
-      'Made for your season of life',
-      'Clear steps that bring real progress',
-      'Reminders that keep your spirit steady',
+      'Space to name what you are carrying',
+      'Scripture to ground your thoughts',
+      'Discernment before reacting',
     ],
     color: Colors.alertCoral,
     useLottie: true,
@@ -83,12 +83,12 @@ const slides: Slide[] = [
   },
   {
     id: 3,
-    title: 'Grow steady,\neven in the storm.',
-    subtitle: 'Guided devotionals and journaling prompts will help you keep your heart anchored in truth.',
+    title: 'A gentle structure for real life',
+    subtitle: 'Not answers. Not pressure.\nJust guidance rooted in faith.',
     features: [
-      'Daily moments with God',
-      'Reflections that reveal His work in you',
-      'A clear picture of your growth over time',
+      'Scripture-rooted reflection',
+      'Honest discernment',
+      'One faithful response at a time',
     ],
     color: Colors.alertCoral,
     useLottie: true,
@@ -163,6 +163,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const hasNudgedRef = useRef(false);
 
   // Listen to dimension changes to respond to rotation
   useEffect(() => {
@@ -259,19 +260,25 @@ const OnboardingWelcomeScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, navigation]); // user.email and user.user_metadata intentionally excluded - checked within effect
 
-  // Auto slideshow
+  // Subtle swipe nudge to hint at carousel interaction without auto-sliding
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const nextSlide = (prev + 1) % slides.length;
-        if (nextSlide !== prev) {
-          animateToSlide(nextSlide);
-        }
-        return nextSlide;
-      });
-    }, 8000); // Change slide every 8 seconds
+    if (hasNudgedRef.current) {return;}
+    hasNudgedRef.current = true;
 
-    return () => clearInterval(interval);
+    const timeout = setTimeout(() => {
+      const list = flatListRef.current;
+      if (!list) {return;}
+
+      list.scrollToOffset({ offset: 40, animated: true });
+
+      const returnTimeout = setTimeout(() => {
+        list.scrollToOffset({ offset: 0, animated: true });
+      }, 400);
+
+      return () => clearTimeout(returnTimeout);
+    }, 1600);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const animateToSlide = (slideIndex: number) => {

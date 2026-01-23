@@ -1034,12 +1034,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </Animated.View>
               ))}
             </View>
-            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</ThemedText>
-            <ThemedText style={styles.modalSubtitle}>Here's your first step toward clarity.</ThemedText>
+            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{`\n`}Playbook is Ready</ThemedText>
+            <ThemedText style={styles.modalSubtitle}>{`This is a space to slow down\nand reflect with God.`}</ThemedText>
             <View style={styles.warningContainer}>
               <Ionicons name="heart" size={16} color={Colors.alertCoral} />
               <ThemedText style={styles.warningText}>
-                Some truths may be hard to hear, but they are shared in love to help you grow.
+                {`Not everything will feel easy.\nThis is an invitation to listen, reflect, and move with wisdom.`}
               </ThemedText>
             </View>
             <TouchableOpacity
@@ -1070,7 +1070,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 });
               }}
             >
-              <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>
+              <ThemedText weight="bold" style={styles.modalButtonText}>Open My Playbook</ThemedText>
             </TouchableOpacity>
           </View>
         </Animated.View>

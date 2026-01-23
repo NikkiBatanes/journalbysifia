@@ -139,8 +139,23 @@ class KeyPoolManager {
       maxRequestsPerHour: 50
     });
 
+    // Annual plan aliases reuse the same key pools and limits as their base tiers
+    this.userTiers.set('spark_annual', {
+      name: 'Spark Annual',
+      priority: 3,
+      keyPool: 'spark',
+      maxRequestsPerHour: 50
+    });
+
     this.userTiers.set('growth', {
       name: 'Growth',
+      priority: 2,
+      keyPool: 'growth',
+      maxRequestsPerHour: 100
+    });
+
+    this.userTiers.set('growth_annual', {
+      name: 'Growth Annual',
       priority: 2,
       keyPool: 'growth',
       maxRequestsPerHour: 100
@@ -149,6 +164,13 @@ class KeyPoolManager {
     this.userTiers.set('transformation', {
       name: 'Transformation',
       priority: 1, // Second highest priority
+      keyPool: 'transformation',
+      maxRequestsPerHour: 200
+    });
+
+    this.userTiers.set('transformation_annual', {
+      name: 'Transformation Annual',
+      priority: 1,
       keyPool: 'transformation',
       maxRequestsPerHour: 200
     });
