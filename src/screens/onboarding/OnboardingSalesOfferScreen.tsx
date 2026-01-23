@@ -1511,12 +1511,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
                             : fromExportRestriction
                               ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
-                              : 'Daily Steps for Real Spiritual Growth'}
+                              : 'Gentle structure for faithful living'}
           </ThemedText>
 
           {/* Small motivational text */}
           <ThemedText style={styles.smallMotivationalText}>
-            You've taken your first step! Keep walking, one faithful step at a time.
+            {`You've taken a first step.
+Continue walking with intention and wisdom.`}
           </ThemedText>
 
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
@@ -1532,37 +1533,43 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   siFia Growth Plan
                 </ThemedText>
                 <ThemedText style={styles.growthPlanSubtitle}>
-                  For deeper transformation
+                  Deeper clarity for ongoing situations.
+                </ThemedText>
+                <ThemedText style={styles.growthPlanDescription}>
+                  Designed for seasons where decisions, emotions, and faith feel intertwined.
+                </ThemedText>
+                <ThemedText style={styles.growthPlanListLabel}>
+                  Includes:
                 </ThemedText>
 
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  20 personalized playbooks & devotionals monthly — stay consistent in faith
+                  More playbooks and devotionals for emotionally complex situations
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Smart journaling — reflect, grow, find clarity
+                  Structured space for reflection, prayer, and discernment
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Gentle reminders — build lasting spiritual habits
+                  Journaling tools to process honestly before God
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Track progress weekly — celebrate meaningful milestones
+                  Gentle reminders to stay attentive without pressure
                 </ThemedText>
               </View>
               <View style={styles.featureBullet}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                 <ThemedText style={styles.bulletText}>
-                  Calendar sync & flexible planning — integrate faith into daily life
+                  A simple way to notice progress and patterns over time
                 </ThemedText>
               </View>
               </View>
@@ -1730,29 +1737,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 return (
                   <>
               <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                What you get during your 3-day trial:
+                What's included in your 3-day trial
               </ThemedText>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                <ThemedText style={styles.trialBenefitText}>
-                  Generate personalized playbooks & devotionals just for you
-                </ThemedText>
-              </View>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                <ThemedText style={styles.trialBenefitText}>
-                  Smart Journaling and reflection tools to help you grow
-                </ThemedText>
-              </View>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                <ThemedText style={styles.trialBenefitText}>
-                  All other {tierName} features fully available
+              <View style={[styles.trialSupportingTextContainer, styles.trialSupportingTextContainerFirst]}>
+                <ThemedText style={styles.trialSupportingText}>
+                  Experience the full Growth flow with limited playbooks and devotionals, so you can discern whether this structure serves your current season.
                 </ThemedText>
               </View>
               <View style={styles.trialSupportingTextContainer}>
                 <ThemedText style={styles.trialSupportingText}>
-                  {`During your trial, you can generate a limited number of playbooks and devotionals to experience siFia's personalized guidance. ${postTrialLimitsText}`}
+                  After the trial, the Growth plan includes up to 20 playbooks and 20 devotionals per month.
                 </ThemedText>
               </View>
                   </>
@@ -2087,8 +2081,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.9,
+    alignSelf: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  growthPlanDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  growthPlanListLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    marginBottom: 8,
   },
   featureCategory: {
     marginBottom: 16,
@@ -2126,7 +2136,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  trialSupportingTextContainerFirst: {
+    paddingTop: 0,
+    borderTopWidth: 0,
   },
   trialSupportingText: {
     fontSize: 13,

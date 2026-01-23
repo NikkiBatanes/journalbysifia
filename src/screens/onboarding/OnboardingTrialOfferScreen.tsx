@@ -804,15 +804,15 @@ const OnboardingTrialOfferScreen = () => {
     },
     {
       id: 2,
-      title: `${formatShortDate(addDays(new Date(), 2))} - We'll Remind You`,
-      description: "We'll send a gentle push notification before your trial ends so you can decide with peace.",
+      title: `${formatShortDate(addDays(new Date(), 2))}`,
+      description: 'We will send a gentle reminder before your trial ends, so you can decide with peace.',
       icon: 'notifications',
       iconColor: Colors.growthGreen,
       isCompleted: false,
     },
     {
       id: 3,
-      title: `${formatShortDate(addDays(new Date(), 3))} - Continue Your Journey`,
+      title: `${formatShortDate(addDays(new Date(), 3))}`,
       description: '',
       icon: 'rocket',
       iconColor: Colors.alertCoral,
@@ -842,65 +842,46 @@ const OnboardingTrialOfferScreen = () => {
           {item.id === 1 ? (
             <View>
               <ThemedText style={styles.timelineDescription}>
-                {`Experience siFia ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} and see how it fits your season.`}
+                {`Explore siFia ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} and see how it fits your current season.`}
               </ThemedText>
+
+              <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>During your trial, you can:</ThemedText>
 
               <View style={styles.timelineBulletsContainer}>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>{`Access all ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} features`}</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Access all Growth features</ThemedText>
                 </View>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Generate personalized playbooks & devotionals</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Generate a limited number of personalized playbooks and devotionals</ThemedText>
                 </View>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Use Smart Journaling and reflection tools</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Use journaling and reflection tools to process with clarity</ThemedText>
                 </View>
               </View>
-
-              <ThemedText style={styles.timelineDescription}>
-                During your trial, you can generate a limited number of playbooks and devotionals so you can experience how siFia works.
-              </ThemedText>
             </View>
           ) : item.id === 3 ? (
-            (() => {
-              const t = getSelectedTier();
-              const first = t?.features?.[0]?.trim?.() || '';
-
-              let limitsLine = '';
-              const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
-              if (t?.id === 'transformation' || /^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-                limitsLine = 'Unlimited playbooks & devotionals';
-              } else if (t?.id === 'growth') {
-                limitsLine = '20 playbooks & 20 devotionals per month';
-              } else if (m) {
-                limitsLine = `${m[1]} playbooks & ${m[2]} devotionals per month`;
-              }
-
-              return (
+            <View>
+              <ThemedText style={styles.timelineDescription}>
+                If you choose to continue, your subscription begins.
+              </ThemedText>
+              <View style={styles.timelineSectionSpacing}>
+                <ThemedText style={styles.timelineDescription}>You’ll have full access to:</ThemedText>
                 <View style={styles.timelineBulletsContainer}>
                   <View style={styles.timelineBulletRow}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>
-                      Your trial ends and your subscription begins unless cancelled
-                    </ThemedText>
+                    <ThemedText style={styles.timelineBulletText}>Up to 20 playbooks per month</ThemedText>
                   </View>
-
                   <View style={styles.timelineBulletRow}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>{`Full ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} limits unlock:`}</ThemedText>
+                    <ThemedText style={styles.timelineBulletText}>Up to 20 devotionals per month.</ThemedText>
                   </View>
-
-                  {!!limitsLine && (
-                    <View style={styles.timelineIndentedRow}>
-                      <ThemedText style={styles.timelineIndentedText}>{limitsLine}</ThemedText>
-                    </View>
-                  )}
                 </View>
-              );
-            })()
+                <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>You can cancel anytime before the trial ends.</ThemedText>
+              </View>
+            </View>
           ) : (
             <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
@@ -1000,7 +981,7 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.onboardingFlow ? 'How your trial works' : 'Not sure yet?'}
+              {routeParams?.onboardingFlow ? 'How your free trial works' : 'Not sure yet?'}
             </ThemedText>
           </View>
         </View>
@@ -1574,6 +1555,12 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 18,
     opacity: 0.9,
+  },
+  timelineDescriptionSpacing: {
+    marginTop: 8,
+  },
+  timelineSectionSpacing: {
+    marginTop: 8,
   },
   includesContainer: {
     borderRadius: 12,
