@@ -540,7 +540,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       logger.debug('No action steps found - card will not be created');
     }
 
-    // Affirmations card - single card with all affirmations
+    // Scripture Anchor card
+    if (playbook.bibleVerse) {
+      cards.push({
+        id: 'bible',
+        type: 'Bible Verse',
+        component: (
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+            <BibleVerseCard
+              key="bible"
+              verse={playbook.bibleVerse}
+              showCloseButton={false}
+            />
+          </View>
+        ),
+        backgroundColor: undefined,
+      });
+    }
+
+    // Words to Reflect On card - single card with all affirmations
     if (playbook.affirmations && playbook.affirmations.length > 0) {
       cards.push({
         id: 'affirmations',
@@ -561,7 +579,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 weight="semiBold"
                 style={styles.affirmationsTitle}
               >
-                Declarations
+                Words to Reflect On
               </ThemedText>
             </View>
             <View style={styles.affirmationsList}>
@@ -593,7 +611,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
                       const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
                       return (
-                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}>
+                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
                           <Ionicons name="book" size={p.size} color={p.color} />
                         </Animated.View>
                       );
@@ -642,24 +660,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
-        ),
-        backgroundColor: undefined,
-      });
-    }
-
-    // Bible Verse card
-    if (playbook.bibleVerse) {
-      cards.push({
-        id: 'bible',
-        type: 'Bible Verse',
-        component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-            <BibleVerseCard
-              key="bible"
-              verse={playbook.bibleVerse}
-              showCloseButton={false}
-            />
           </View>
         ),
         backgroundColor: undefined,
@@ -1157,7 +1157,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               trackStyle={styles.progressBar}
               fillStyle={styles.progressFill}
             />
-            <ThemedText weight="medium" style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</ThemedText>
+            <ThemedText weight="medium" style={styles.progressText}>{progressData.completed}/{progressData.total} Steps Explored</ThemedText>
           </View>
 
           {/* Pagination dots removed for stacked cards view */}
@@ -1375,8 +1375,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               bottom: 0,
               // Collapse top padding when helper text is hidden (cards expanded)
               paddingTop: expandedCards.size === 0 ? 8 : 0,
-              // Keep footer at natural position with just safe area padding
-              paddingBottom: Math.max(insets.bottom, 8),
+              // Keep footer as low as possible while respecting safe area
+              paddingBottom: Math.max(insets.bottom, 4),
               backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
             },
           ]}>
@@ -1393,15 +1393,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <TouchableOpacity
               style={[
                 styles.continueButton,
-                { width: ITEM_WIDTH, alignSelf: 'center', marginTop: 16 },
+                { width: ITEM_WIDTH, alignSelf: 'center', marginTop: -10 },
                 !continueEnabled && styles.continueButtonDisabled,
               ]}
               onPress={() => { if (!continueEnabled) { return; } try { triggerLightHaptic(); } catch {} handleContinueJourney(); }}
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
             >
-              <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
+              <ThemedText weight="bold" style={styles.continueButtonText}>Continue with siFia</ThemedText>
             </TouchableOpacity>
+            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Unlock full access to guided playbooks and devotionals.</ThemedText>
           </>
           </View>
         </View>
@@ -1898,6 +1899,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  continueButtonSubtext: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    opacity: 0.85,
+    marginTop: 4,
   },
   continueButtonDisabled: {
     opacity: 0.5,

@@ -62,7 +62,7 @@ export default function BibleVerseCard({
             color={Colors.alertCoral}
             style={styles.icon}
           />
-          <ThemedText weight="semiBold" style={[styles.heading, { color: textColor }]}>Bible Verse</ThemedText>
+          <ThemedText weight="semiBold" style={[styles.heading, { color: textColor }]}>Scripture Anchor</ThemedText>
         </View>
         {expanded && showCloseButton && (
           <View style={styles.closeButtonContainer}>

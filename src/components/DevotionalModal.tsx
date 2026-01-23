@@ -27,22 +27,22 @@ const DURATION_OPTIONS: DurationOption[] = [
   {
     days: 1,
     title: '1-Day Devotional',
-    description: 'Perfect for a quick lift of faith',
+    description: 'A simple moment to pause, pray, and reflect with God.',
   },
   {
     days: 3,
     title: '3-Day Devotional',
-    description: 'Great for a focused mid-week refresh',
+    description: 'Space to sit with a season and listen more carefully.',
   },
   {
     days: 5,
     title: '5-Day Devotional',
-    description: 'Ideal for a deeper dive into your journey',
+    description: 'A gentle rhythm for continued reflection and clarity.',
   },
   {
     days: 7,
     title: '7-Day Devotional',
-    description: 'A full week of spiritual growth',
+    description: 'A slower walk through this season with Scripture and prayer.',
   },
 ];
 
@@ -588,10 +588,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
           <View style={styles.contentWrapper}>
             <View style={styles.fixedContent}>
-              <ThemedText weight="semiBold" style={styles.title}>Create Your Personalized Devotional</ThemedText>
+              <ThemedText weight="semiBold" style={styles.title}>Create a Devotional for This Season</ThemedText>
               <View style={styles.subtitleContainer}>
                 <ThemedText weight="regular" style={styles.subtitle}>
-                  Based on what you've shared, we'll craft a devotional tailored to your journey.
+                  Based on what you’ve shared, this devotional helps you reflect, pray, and listen with God as you continue your journey.
                 </ThemedText>
               </View>
             </View>
@@ -808,7 +808,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       }}
       activeOpacity={0.85}
     >
-      <ThemedText weight="semiBold" style={styles.continueJourneyButtonText}>Continue My Journey</ThemedText>
+      <ThemedText weight="semiBold" style={styles.continueJourneyButtonText}>Continue with siFia</ThemedText>
     </TouchableOpacity>
   )}
   {/* Usage Badges moved near footer and centered (hidden during onboarding) */}
@@ -866,7 +866,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   )}
   <ThemedText weight="regular" style={styles.footerText}>
-    God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
+    God’s Word is a lamp to your feet and a light to your path.{`\n`}May this devotional be a quiet space to listen and walk with Him.
   </ThemedText>
 </View>
             </View>
@@ -1106,11 +1106,11 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 0,
-    lineHeight: 24,
+    lineHeight: 16,
   },
   durationPrompt: {
     fontSize: 13,

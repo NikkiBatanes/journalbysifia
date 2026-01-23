@@ -197,7 +197,7 @@ const HeaderLeftInner = ({ showUserInput, setShowUserInput, chevronStyle, showCo
               />
             </View>
             <ThemedText weight="medium" style={styles.headerTasksText}>
-              {completedTasksCount}/{totalTasksCount} Steps
+              {completedTasksCount}/{totalTasksCount} Steps Explored
             </ThemedText>
           </View>
         </View>
@@ -614,18 +614,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
     {
-      id: 'affirmation',
-      type: 'affirmation' as const,
-      affirmations: finalAffirmations,
-      tappable: false,
-    },
-    {
       id: 'bible',
       type: 'bible' as const,
       verse: {
         text: playbook.bibleVerse?.text ?? 'No verse text available',
         reference: playbook.bibleVerse?.reference ?? 'Unknown',
       },
+      tappable: false,
+    },
+    {
+      id: 'affirmation',
+      type: 'affirmation' as const,
+      affirmations: finalAffirmations,
       tappable: false,
     },
     {
@@ -1807,7 +1807,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                           color={Colors.alertCoral}
                           style={styles.quoteIconStack}
                         />
-                        <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Declarations</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.affirmationsTitleStack}>Words to Reflect On</ThemedText>
                       </View>
                     </View>
                     <View style={styles.affirmationsListStack}>

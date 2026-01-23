@@ -899,7 +899,7 @@ export default function ActionStepsCard({
               textColor ? { color: textColor } : {},
             ]}
           >
-            {titleOverride ? titleOverride : `${steps.length} Action Steps`}
+            {titleOverride ? titleOverride : `${steps.length} Faithful Actions`}
           </ThemedText>
           {expanded && (
             <TouchableOpacity
@@ -945,7 +945,7 @@ export default function ActionStepsCard({
               styles.noStepsText,
               { color: textColor || Colors.hopeWhite },
             ]}>
-              No action steps available.
+              No faithful actions available.
             </ThemedText>
           </View>
         ) : (
