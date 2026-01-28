@@ -685,24 +685,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       });
     }
 
-    // Scripture Anchor card
-    if (playbook.bibleVerse) {
-      cards.push({
-        id: 'bible',
-        type: 'Bible Verse',
-        component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-            <BibleVerseCard
-              key="bible"
-              verse={playbook.bibleVerse}
-              showCloseButton={false}
-            />
-          </View>
-        ),
-        backgroundColor: undefined,
-      });
-    }
-
     // Challenge card
     if (playbook.directChallenge) {
       const challengeText = typeof playbook.directChallenge === 'string'
