@@ -685,6 +685,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       });
     }
 
+    // Scripture Anchor card
+    if (playbook.bibleVerse) {
+      cards.push({
+        id: 'bible',
+        type: 'Bible Verse',
+        component: (
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+            <BibleVerseCard
+              key="bible"
+              verse={playbook.bibleVerse}
+              showCloseButton={false}
+            />
+          </View>
+        ),
+        backgroundColor: undefined,
+      });
+    }
+
     // Challenge card
     if (playbook.directChallenge) {
       const challengeText = typeof playbook.directChallenge === 'string'
@@ -1211,12 +1229,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               const isExpanded = expandedCardId === card.id;
 
               // Truth in Love has highest z-index (on top), others stack below
-              // Updated z-index to match swapped order: bible now before affirmations
               const zIndexMap = {
                 truth: 5,      // Top card
                 action: 4,
-                bible: 3,      // Scripture Anchor (swapped position)
-                affirmations: 2, // Words to Reflect On (swapped position)
+                affirmations: 3,
+                bible: 2,
                 challenge: 1,  // Bottom card
               };
 

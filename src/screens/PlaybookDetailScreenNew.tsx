@@ -614,18 +614,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
     {
+      id: 'affirmation',
+      type: 'affirmation' as const,
+      affirmations: finalAffirmations,
+      tappable: false,
+    },
+    {
       id: 'bible',
       type: 'bible' as const,
       verse: {
         text: playbook.bibleVerse?.text ?? 'No verse text available',
         reference: playbook.bibleVerse?.reference ?? 'Unknown',
       },
-      tappable: false,
-    },
-    {
-      id: 'affirmation',
-      type: 'affirmation' as const,
-      affirmations: finalAffirmations,
       tappable: false,
     },
     {
