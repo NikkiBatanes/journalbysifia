@@ -35,6 +35,15 @@ export default function BibleVerseCard({
   preferredBibleTranslation,
 }: BibleVerseCardProps) {
   const [showCopyright, setShowCopyright] = useState(false);
+  
+  // Debug: Log what verse data we received
+  console.log('📖 BibleVerseCard received verse:', {
+    hasVerse: !!verse,
+    text: verse?.text,
+    reference: verse?.reference,
+    textLength: verse?.text?.length || 0,
+  });
+  
   // Extract version from reference if stored version is missing
   const getVersionFromReference = (ref: string) => {
     const match = ref.match(/\(([^)]+)\)$/);
