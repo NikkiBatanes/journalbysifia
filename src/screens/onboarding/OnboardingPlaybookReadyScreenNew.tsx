@@ -1228,16 +1228,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             {carouselCards.map((card, index) => {
               const isExpanded = expandedCardId === card.id;
 
-              // Truth in Love has highest z-index (on top), others stack below
-              const zIndexMap = {
-                truth: 5,      // Top card
-                action: 4,
-                affirmations: 3,
-                bible: 2,
-                challenge: 1,  // Bottom card
-              };
-
-              const baseZIndex = zIndexMap[card.id as keyof typeof zIndexMap] || index;
+              // Use card order for stacking (prevents cards from being hidden when reordered).
+              // Keep Truth in Love always on top.
+              const baseZIndex = card.id === 'truth'
+                ? 1000
+                : (carouselCards.length - index);
 
               // When a card is expanded, bring it to the very top
               const cardZIndex = isExpanded ? 9999 : baseZIndex;
