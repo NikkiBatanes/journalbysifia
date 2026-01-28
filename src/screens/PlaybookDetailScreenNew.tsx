@@ -614,18 +614,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       tappable: false,
     },
     {
-      id: 'affirmation',
-      type: 'affirmation' as const,
-      affirmations: finalAffirmations,
-      tappable: false,
-    },
-    {
       id: 'bible',
       type: 'bible' as const,
       verse: {
         text: playbook.bibleVerse?.text ?? 'No verse text available',
         reference: playbook.bibleVerse?.reference ?? 'Unknown',
       },
+      tappable: false,
+    },
+    {
+      id: 'affirmation',
+      type: 'affirmation' as const,
+      affirmations: finalAffirmations,
       tappable: false,
     },
     {
@@ -1726,8 +1726,14 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     const STACKED_CARD_HEIGHT = 450;
     const STACKED_CARD_WIDTH = maxCardWidth;
 
-    // Use card order for stacking (prevents cards from being hidden when reordered).
-    // Keep Truth in Love always on top.
+    // Z-index mapping for cards (truth on top, challenge on bottom)
+    const zIndexMap = {
+      truth: 5,
+      action: 4,
+      affirmation: 3,
+      bible: 2,
+      challenge: 1,
+    };
 
     return (
       <View style={[styles.cardStackContainer, isTablet && styles.tabletCardStackContainer]}>
@@ -1735,9 +1741,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           const isExpanded = expandedCardId === card.id;
 
           // Get z-index for this card
-          const baseZIndex = card.type === 'truth'
-            ? 1000
-            : (cardData.length - index);
+          const baseZIndex = zIndexMap[card.type as keyof typeof zIndexMap] || index;
           const cardZIndex = isExpanded ? 9999 : baseZIndex;
 
           // Get animation values for this card
