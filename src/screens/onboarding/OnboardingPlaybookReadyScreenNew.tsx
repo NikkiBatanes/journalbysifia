@@ -556,7 +556,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       bibleVerseValue: playbook.bibleVerse,
       willAddCard: !!playbook.bibleVerse,
     });
-    
+
     if (playbook.bibleVerse) {
       console.log('✅ Adding Bible Verse card to carousel');
       cards.push({
@@ -685,6 +685,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       });
     }
 
+    // Scripture Anchor card
+    if (playbook.bibleVerse) {
+      cards.push({
+        id: 'bible',
+        type: 'Bible Verse',
+        component: (
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
+            <BibleVerseCard
+              key="bible"
+              verse={playbook.bibleVerse}
+              showCloseButton={false}
+            />
+          </View>
+        ),
+        backgroundColor: undefined,
+      });
+    }
+
     // Challenge card
     if (playbook.directChallenge) {
       const challengeText = typeof playbook.directChallenge === 'string'
@@ -711,7 +729,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
-  
+
   // Debug: Log the final cards array
   console.log('🔍 Final carouselCards array:', {
     totalCards: carouselCards.length,
