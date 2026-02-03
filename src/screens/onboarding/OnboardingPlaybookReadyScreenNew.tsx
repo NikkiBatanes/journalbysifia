@@ -550,33 +550,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       logger.debug('No action steps found - card will not be created');
     }
 
-    // Scripture Anchor card
-    console.log('🔍 Checking bibleVerse condition:', {
-      hasBibleVerse: !!playbook.bibleVerse,
-      bibleVerseValue: playbook.bibleVerse,
-      willAddCard: !!playbook.bibleVerse,
-    });
-
-    if (playbook.bibleVerse) {
-      console.log('✅ Adding Bible Verse card to carousel');
-      cards.push({
-        id: 'bible',
-        type: 'Bible Verse',
-        component: (
-          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
-            <BibleVerseCard
-              key="bible"
-              verse={playbook.bibleVerse}
-              showCloseButton={false}
-            />
-          </View>
-        ),
-        backgroundColor: undefined,
-      });
-    } else {
-      console.log('❌ NOT adding Bible Verse card - playbook.bibleVerse is falsy');
-    }
-
     // Words to Reflect On card - single card with all affirmations
     if (playbook.affirmations && playbook.affirmations.length > 0) {
       cards.push({
@@ -685,7 +658,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       });
     }
 
-    // Scripture Anchor card
+    // Scripture Anchor card (after affirmations, before Rise in Faith)
     if (playbook.bibleVerse) {
       cards.push({
         id: 'bible',
@@ -1078,12 +1051,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </Animated.View>
               ))}
             </View>
-            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</ThemedText>
-            <ThemedText style={styles.modalSubtitle}>{'This is a space to slow down\nand reflect with God.'}</ThemedText>
+            <ThemedText weight="bold" style={styles.modalTitle}>Your playbook is ready</ThemedText>
+            <ThemedText style={styles.modalSubtitle}>{'This is a space to slow down and reflect with God. Not everything will feel easy.\nThat’s okay.'}</ThemedText>
             <View style={styles.warningContainer}>
               <Ionicons name="heart" size={16} color={Colors.alertCoral} />
               <ThemedText style={styles.warningText}>
-                {'Not everything will feel easy.\nThis is an invitation to listen, reflect, and move with wisdom.'}
+                {'The next time something unsettles you, return here before you respond.'}
               </ThemedText>
             </View>
             <TouchableOpacity

@@ -27,6 +27,7 @@ import {
   Animated,
   Keyboard,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -218,6 +219,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  const detailsOnlyFlow = true;
+
   // Responsive dimensions for landscape/tablet support
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
@@ -234,7 +237,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Name step removed to comply with Apple guidelines
   // Note: Apple Private Relay ONLY hides email, NEVER names
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
-  const [currentStep, setCurrentStep] = useState(routeParams?.step || 1);
+  const [currentStep, setCurrentStep] = useState(detailsOnlyFlow ? 1 : (routeParams?.step || 1));
   const [name, setName] = React.useState(routeParams?.name || '');
   const greetingName = React.useMemo(() => {
     if (!name) {return '';}
@@ -526,13 +529,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
   };
 
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
-  const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
-  const [selectedChallenge, setSelectedChallenge] = useState<string>('');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>(detailsOnlyFlow ? 'adult' : '');
+  const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>(detailsOnlyFlow ? 'growing' : '');
+  const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
   const detailsInputRef = useRef<TextInput>(null);
   const [scrollY, setScrollY] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [showOptionalHelper, setShowOptionalHelper] = useState(false);
   const askBoxYRef = useRef(0);
   // Animate the rounded-top container when keyboard opens (details step only)
   const containerTranslateY = useRef(new Animated.Value(0)).current;
@@ -540,6 +544,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Tooltip for input guidance (mirrors UserInputScreen)
   const [showTooltip, setShowTooltip] = useState(false);
+  const hintButtonRef = useRef<any>(null);
+  const [tooltipAnchor, setTooltipAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
@@ -576,20 +582,23 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [showTooltip, hintIconScale]);
   const onPressHint = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
-    setShowTooltip((prev) => {
-      const next = !prev;
-      if (next) {
-        Animated.parallel([
-          Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
-          Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
-        ]).start();
-      } else {
-        Animated.parallel([
-          Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-          Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
-        ]).start();
-      }
-      return next;
+    hintButtonRef.current?.measureInWindow?.((x: number, y: number, width: number, height: number) => {
+      setTooltipAnchor({ x, y, width, height });
+      setShowTooltip((prev) => {
+        const next = !prev;
+        if (next) {
+          Animated.parallel([
+            Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+            Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
+          ]).start();
+        } else {
+          Animated.parallel([
+            Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+            Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+          ]).start();
+        }
+        return next;
+      });
     });
   }, [tooltipOpacity, tooltipTranslateY]);
 
@@ -654,7 +663,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
-    const isDetailsStep = currentStep === 4;
+    const isDetailsStep = detailsOnlyFlow ? true : currentStep === 4;
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
@@ -700,10 +709,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       subShow.remove();
       subHide.remove();
     };
-  }, [currentStep, containerTranslateY, insets?.bottom]);
+  }, [currentStep, containerTranslateY, detailsOnlyFlow, insets?.bottom]);
 
   // Always 4 steps: Age → Faith → Challenge → Details
-  const totalSteps = 4;
+  const totalSteps = detailsOnlyFlow ? 1 : 4;
 
   const handleBack = () => {
     // On age group step, don't go back
@@ -796,13 +805,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
 
+        const ageGroupForNavigation = selectedAgeGroup || 'adult';
+        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
+        const challengeForNavigation = selectedChallenge || 'relationships';
+
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
           onboardingData: {
-            ageGroup: selectedAgeGroup,
-            faithJourney: selectedFaithJourney,
-            challenge: selectedChallenge,
+            ageGroup: ageGroupForNavigation,
+            faithJourney: faithJourneyForNavigation,
+            challenge: challengeForNavigation,
             challengeDetails,
           },
         });
@@ -851,13 +864,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         }
 
         const userInput = challengeDetails.trim();
+        const ageGroupForNavigation = selectedAgeGroup || 'adult';
+        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
+        const challengeForNavigation = selectedChallenge || 'relationships';
+
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
           userInput,
           onboardingData: {
-            ageGroup: selectedAgeGroup,
-            faithJourney: selectedFaithJourney,
-            challenge: selectedChallenge,
+            ageGroup: ageGroupForNavigation,
+            faithJourney: faithJourneyForNavigation,
+            challenge: challengeForNavigation,
             challengeDetails,
           },
         });
@@ -866,6 +883,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   };
 
   const canContinue = () => {
+    if (detailsOnlyFlow) {
+      return challengeDetails.trim().length > 0;
+    }
+
     // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
     switch (currentStep) {
       case 1:
@@ -990,12 +1011,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
-      <ThemedText style={dynamicStyles.stepSubtitle}>
-        {'You can be as honest or brief as you want.\nThis helps shape your first playbook.'}
-      </ThemedText>
+      {!detailsOnlyFlow ? (
+        <>
+          <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
+          <ThemedText style={dynamicStyles.stepSubtitle}>
+            {'You can be as honest or brief as you want.\nThis helps shape your first playbook.'}
+          </ThemedText>
+        </>
+      ) : null}
 
-      {selectedChallenge && (
+      {!detailsOnlyFlow && selectedChallenge && (
         <View style={styles.challengeCard}>
           <View style={styles.challengeCardIcon}>
             <Ionicons
@@ -1016,24 +1041,26 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       )}
 
       {/* Examples label */}
-      {challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
+      {!detailsOnlyFlow && challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
         <View style={styles.examplesLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={styles.iconWithMarginAndOpacity} />
           <ThemedText style={styles.examplesLabelText}>Suggested Prompts</ThemedText>
         </View>
       )}
 
-      <View style={styles.exampleTags}>
-        {challengeOptions.find(c => c.id === selectedChallenge)?.examples?.map((example, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.exampleTag}
-            onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example.template); }}
-          >
-            <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {!detailsOnlyFlow ? (
+        <View style={styles.exampleTags}>
+          {challengeOptions.find(c => c.id === selectedChallenge)?.examples?.map((example, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.exampleTag}
+              onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example.template); }}
+            >
+              <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.askWrapper}>
         <Animated.View
@@ -1044,28 +1071,30 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         >
           <ThemedTextInput
             style={styles.askInput}
-            placeholder={(
-              (() => {
-                const placeholders: Record<string, string> = {
-                  relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                  anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                  purpose: "I'm unsure about my career path and want godly direction.",
-                  forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                  financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                  spiritual: 'I want to deepen prayer and Bible study habits.',
-                  addiction: "I'm trying to break a habit and need support and scripture.",
-                  grief: "I'm grieving a recent loss and need comfort and hope.",
-                };
-                if (selectedChallenge && placeholders[selectedChallenge]) {
-                  return placeholders[selectedChallenge];
-                }
-                return 'Describe your situation for this challenge (optional)';
-              })()
-            )}
+            placeholder={detailsOnlyFlow
+              ? 'Something happened and I don\'t know how to respond faithfully.'
+              : (
+                (() => {
+                  const placeholders: Record<string, string> = {
+                    relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                    anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                    purpose: "I'm unsure about my career path and want godly direction.",
+                    forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                    financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                    spiritual: 'I want to deepen prayer and Bible study habits.',
+                    addiction: "I'm trying to break a habit and need support and scripture.",
+                    grief: "I'm grieving a recent loss and need comfort and hope.",
+                  };
+                  if (selectedChallenge && placeholders[selectedChallenge]) {
+                    return placeholders[selectedChallenge];
+                  }
+                  return 'Describe your situation for this challenge (optional)';
+                })()
+              )}
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             cursorColor={Colors.hopeWhite}
             selectionColor={Colors.hopeWhite}
-            // No autoFocus: user must tap to activate cursor
+            autoFocus={detailsOnlyFlow}
             value={challengeDetails}
             onChangeText={setChallengeDetails}
             onTouchStart={() => {
@@ -1080,6 +1109,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           />
           <View style={styles.actionsOverlay}>
             <TouchableOpacity
+              ref={hintButtonRef}
               onPress={onPressHint}
               activeOpacity={0.9}
               style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
@@ -1095,40 +1125,89 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </Animated.View>
-        {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
-        {showTooltip && (
-          <Animated.View style={[
-            styles.tooltip,
-            { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] },
-          ]} pointerEvents="box-none">
-            <ThemedText weight="semiBold" style={styles.tooltipKicker}>How Fia can help you.</ThemedText>
-            <ThemedText weight="bold" style={styles.tooltipTitle}>Share what you're going through in detail. The more context, the better.</ThemedText>
-            <ThemedText style={styles.tooltipSubtitle}>Helpful details to include:</ThemedText>
-            <View style={styles.tooltipList}>
-              <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>1</ThemedText></View>
-                <ThemedText style={styles.tooltipItemText}>What happened</ThemedText>
+        {detailsOnlyFlow ? (
+          <View style={styles.optionalHelperContainer}>
+            <TouchableOpacity
+              style={styles.optionalHelperToggle}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setShowOptionalHelper(prev => !prev);
+              }}
+              activeOpacity={0.9}
+            >
+              <ThemedText style={styles.optionalHelperToggleText}>Need help putting words to it?</ThemedText>
+              <Ionicons
+                name={showOptionalHelper ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={'rgba(255, 255, 255, 0.75)'}
+              />
+            </TouchableOpacity>
+
+            {showOptionalHelper ? (
+              <View style={styles.optionalHelperList}>
+                <TouchableOpacity
+                  style={styles.optionalHelperChip}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('We talked and now I feel unsettled.');
+                    focusDetailsInput();
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.optionalHelperChipText}>{'We talked and now I feel unsettled.'}</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionalHelperChip}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I reacted quickly and regret it.');
+                    focusDetailsInput();
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.optionalHelperChipText}>{'I reacted quickly and regret it.'}</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionalHelperChip}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I feel guilty but don\'t know why.');
+                    focusDetailsInput();
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.optionalHelperChipText}>{'I feel guilty but don\'t know why.'}</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionalHelperChip}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I’m afraid of making the wrong decision.');
+                    focusDetailsInput();
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.optionalHelperChipText}>{'I’m afraid of making the wrong decision.'}</ThemedText>
+                </TouchableOpacity>
               </View>
-              <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>2</ThemedText></View>
-                <ThemedText style={styles.tooltipItemText}>Your pain</ThemedText>
-              </View>
-              <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>3</ThemedText></View>
-                <ThemedText style={styles.tooltipItemText}>A situation or struggle</ThemedText>
-              </View>
-              <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>4</ThemedText></View>
-                <ThemedText style={styles.tooltipItemText}>A decision you need to make</ThemedText>
-              </View>
-            </View>
-            <ThemedText style={styles.tooltipFooter}>Then we'll turn this into a personalized playbook.</ThemedText>
-            <View style={styles.tooltipCaret} />
-          </Animated.View>
-        )}
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );
+
+  const tooltipWidth = 280;
+  const screenWidth = Dimensions.get('window').width;
+  const computedLeft = tooltipAnchor
+    ? Math.min(Math.max(tooltipAnchor.x + tooltipAnchor.width - tooltipWidth, 10), screenWidth - tooltipWidth - 10)
+    : 10;
+  const computedTop = tooltipAnchor
+    ? Math.max(tooltipAnchor.y - 330, (insets?.top ?? 0) + 10)
+    : (insets?.top ?? 0) + 10;
 
   return (
     <OnboardingErrorBoundary>
@@ -1152,51 +1231,64 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <View style={[
         dynamicStyles.titleContainer,
         // Condense header further when keyboard is visible on details step to free vertical space
-        (currentStep === 4 && keyboardVisible) && styles.noMarginBottom,
+        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
       ]}>
         {greetingName ? (
           <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
         ) : null}
-        <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
-        <ThemedText style={OnboardingStyles.subtitle}>
-          {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
-        </ThemedText>
+        {detailsOnlyFlow ? (
+          <>
+            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
+            <ThemedText style={OnboardingStyles.subtitle}>
+              {'Describe the moment that stayed with you.\nNot the whole story. Just enough to bring it before God.'}
+            </ThemedText>
+          </>
+        ) : (
+          <>
+            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
+            <ThemedText style={OnboardingStyles.subtitle}>
+              {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
+            </ThemedText>
+          </>
+        )}
       </View>
 
       <Animated.View style={[
         styles.contentContainer,
         // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        (currentStep === 4 && keyboardVisible) && styles.nudgeUpward,
+        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.nudgeUpward,
       ]}>
-        <View style={styles.modalHeader} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.modalBackButton}
-            onPress={handleBack}
-            disabled={currentStep === 1} // Age group is now step 1
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={currentStep === 1 ? 'transparent' : Colors.white}
-            />
-          </TouchableOpacity>
-          <View style={styles.progressContainer}>
-            {/* Welcome-style dot pagination */}
-            <View style={styles.dotsContainer}>
-              {Array.from({ length: totalSteps }, (_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    (index + 1) === currentStep && styles.activeDotGreen,
-                  ]}
-                />
-              ))}
+        {!detailsOnlyFlow ? (
+          <View style={styles.modalHeader} pointerEvents="box-none">
+            <TouchableOpacity
+              style={styles.modalBackButton}
+              onPress={handleBack}
+              disabled={currentStep === 1} // Age group is now step 1
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={currentStep === 1 ? 'transparent' : Colors.white}
+              />
+            </TouchableOpacity>
+            <View style={styles.progressContainer}>
+              {/* Welcome-style dot pagination */}
+              <View style={styles.dotsContainer}>
+                {Array.from({ length: totalSteps }, (_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dot,
+                      (index + 1) === currentStep && styles.activeDotGreen,
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.spacer} />
-        </View>
+            <View style={styles.spacer} />
+          </View>
+        ) : null}
 
         <ScrollView
           ref={scrollViewRef}
@@ -1207,11 +1299,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
-          {currentStep === 1 && renderAgeStep()}
-          {currentStep === 2 && renderFaithJourneyStep()}
-          {currentStep === 3 && renderChallengeStep()}
-          {currentStep === 4 && renderChallengeDetailsStep()}
+          {detailsOnlyFlow ? (
+            renderChallengeDetailsStep()
+          ) : (
+            <>
+              {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
+              {currentStep === 1 && renderAgeStep()}
+              {currentStep === 2 && renderFaithJourneyStep()}
+              {currentStep === 3 && renderChallengeStep()}
+              {currentStep === 4 && renderChallengeDetailsStep()}
+            </>
+          )}
         </ScrollView>
 
         <View
@@ -1236,7 +1334,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               {(() => {
                 // Safeguard to always show button text
                 if (currentStep === totalSteps) {
-                  return 'Create My Playbook';
+                  return detailsOnlyFlow ? 'Create My First Playbook' : 'Create My Playbook';
                 } else if (currentStep > 0 && currentStep <= totalSteps) {
                   return 'Continue';
                 } else {
@@ -1248,6 +1346,69 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </View>
       </Animated.View>
       </View>
+
+        <Modal
+          visible={showTooltip}
+          transparent
+          animationType="none"
+          onRequestClose={() => {
+            Animated.parallel([
+              Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+              Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+            ]).start(() => setShowTooltip(false));
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.tooltipModalBackdrop}
+            onPress={() => {
+              Animated.parallel([
+                Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+                Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+              ]).start(() => setShowTooltip(false));
+            }}
+          >
+            <Animated.View
+              style={[
+                styles.tooltip,
+                {
+                  left: computedLeft,
+                  top: computedTop,
+                  right: undefined,
+                  bottom: undefined,
+                  opacity: tooltipOpacity,
+                  transform: [{ translateY: tooltipTranslateY }],
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <ThemedText weight="semiBold" style={styles.tooltipKicker}>How siFia can help</ThemedText>
+              <ThemedText weight="bold" style={styles.tooltipTitle}>You don't need to explain everything perfectly.</ThemedText>
+              <ThemedText weight="bold" style={[styles.tooltipTitle, { marginTop: 2 }]}>Just share what feels important right now.</ThemedText>
+              <ThemedText style={styles.tooltipSubtitle}>If it helps, you can mention:</ThemedText>
+              <View style={styles.tooltipList}>
+                <View style={styles.tooltipItemRow}>
+                  <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>1</ThemedText></View>
+                  <ThemedText style={styles.tooltipItemText}>What just happened</ThemedText>
+                </View>
+                <View style={styles.tooltipItemRow}>
+                  <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>2</ThemedText></View>
+                  <ThemedText style={styles.tooltipItemText}>What feels heavy or unclear</ThemedText>
+                </View>
+                <View style={styles.tooltipItemRow}>
+                  <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>3</ThemedText></View>
+                  <ThemedText style={styles.tooltipItemText}>A situation you’re sitting with</ThemedText>
+                </View>
+                <View style={styles.tooltipItemRow}>
+                  <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>4</ThemedText></View>
+                  <ThemedText style={styles.tooltipItemText}>A decision you don’t know how to respond to yet</ThemedText>
+                </View>
+              </View>
+              <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
+              <View style={styles.tooltipCaret} />
+            </Animated.View>
+          </TouchableOpacity>
+        </Modal>
     </KeyboardAvoidingView>
     </OnboardingErrorBoundary>
   );
@@ -1623,6 +1784,36 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
   },
+  optionalHelperContainer: {
+    width: '100%',
+    marginTop: 14,
+    paddingHorizontal: 4,
+  },
+  optionalHelperToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  optionalHelperToggleText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 14,
+  },
+  optionalHelperList: {
+    marginTop: 6,
+  },
+  optionalHelperChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  optionalHelperChipText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   actionsOverlay: {
     position: 'absolute',
     bottom: 12,
@@ -1636,15 +1827,18 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: 'absolute',
-    right: 10,
-    bottom: 58,
     maxWidth: 280,
     backgroundColor: Colors.alertCoral,
     borderColor: 'transparent',
     borderWidth: 0,
     borderRadius: 12,
     padding: 12,
-    zIndex: 20,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  tooltipModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   tooltipTitle: {
     color: 'rgba(255,255,255,0.95)',

@@ -583,28 +583,29 @@ const UserInputScreen: React.FC = () => {
                 {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
                 {showTooltip && (
                   <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] }]} pointerEvents="box-none">
-                    <Text style={[styles.tooltipKicker, font]}>How Fia can help you.</Text>
-                    <Text style={[styles.tooltipTitle, font]}>Share what you're going through in detail. The more context, the better.</Text>
-                    <Text style={[styles.tooltipSubtitle, font]}>Helpful details to include:</Text>
+                    <Text style={[styles.tooltipKicker, font]}>How siFia can help</Text>
+                    <Text style={[styles.tooltipTitle, font]}>You don't need to explain everything perfectly.</Text>
+                    <Text style={[styles.tooltipTitle, font, { marginTop: 2 }]}>Just share what feels important right now.</Text>
+                    <Text style={[styles.tooltipSubtitle, font]}>If it helps, you can mention:</Text>
                     <View style={styles.tooltipList}>
                       <View style={styles.tooltipItemRow}>
                         <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>1</Text></View>
-                        <Text style={[styles.tooltipItemText, font]}>What happened</Text>
+                        <Text style={[styles.tooltipItemText, font]}>What just happened</Text>
                       </View>
                       <View style={styles.tooltipItemRow}>
                         <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>2</Text></View>
-                        <Text style={[styles.tooltipItemText, font]}>Your pain</Text>
+                        <Text style={[styles.tooltipItemText, font]}>What feels heavy or unclear</Text>
                       </View>
                       <View style={styles.tooltipItemRow}>
                         <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>3</Text></View>
-                        <Text style={[styles.tooltipItemText, font]}>A situation or struggle</Text>
+                        <Text style={[styles.tooltipItemText, font]}>A situation you’re sitting with</Text>
                       </View>
                       <View style={styles.tooltipItemRow}>
                         <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>4</Text></View>
-                        <Text style={[styles.tooltipItemText, font]}>A decision you need to make</Text>
+                        <Text style={[styles.tooltipItemText, font]}>A decision you don’t know how to respond to yet</Text>
                       </View>
                     </View>
-                    <Text style={[styles.tooltipFooter, font]}>Then we'll turn this into a personalized playbook.</Text>
+                    <Text style={[styles.tooltipFooter, font]}>siFia will help you slow down and shape this into a playbook.</Text>
                     <View style={styles.tooltipCaret} />
                   </Animated.View>
                 )}
