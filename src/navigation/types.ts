@@ -8,6 +8,9 @@ export type RootStackParamList = {
 
   // Onboarding Stack
   OnboardingSplash: undefined;
+  OnboardingWhenToOpenSiFia: undefined;
+  OnboardingPosture: undefined;
+  OnboardingAccountCreation: undefined;
   OnboardingWelcome: undefined;
 
   OnboardingPersonalProfile: undefined;

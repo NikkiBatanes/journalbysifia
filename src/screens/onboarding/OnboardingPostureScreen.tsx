@@ -1,9 +1,3 @@
-/**
- * OnboardingTransformYourLifeScreen.tsx
- * Transform Your Life Through Faith-Driven Action
- * Introduction screen with key features overview
- */
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
@@ -27,33 +21,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import { onboardingService } from '../../services/onboardingService';
 
-// Feature interface removed as it's not currently used in the component
-
-/* const features = [
-  {
-    id: 'playbooks',
-    title: 'AI-powered playbooks for your unique challenges',
-    description: 'Personalized guidance tailored to your specific life situations',
-    icon: 'book',
-    color: Colors.alertCoral,
-  },
-  {
-    id: 'devotionals',
-    title: 'Custom devotionals to strengthen your faith',
-    description: 'Daily spiritual nourishment designed just for you',
-    icon: 'heart',
-    color: Colors.alertCoral,
-  },
-  {
-    id: 'journaling',
-    title: 'Smart journaling to deepen your reflection',
-    description: 'Guided reflection tools to track your spiritual growth',
-    icon: 'pencil',
-    color: Colors.alertCoral,
-  },
-]; */
-
-const OnboardingTransformYourLifeScreen: React.FC = () => {
+const OnboardingPostureScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, isLoggingOut } = useAuth();
   const insets = useSafeAreaInsets();
@@ -72,13 +40,11 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
-    // Check for immediate navigation needs (post-auth redirect, completed onboarding)
     const checkImmediateNavigation = async () => {
       if (hasNavigatedRef.current || isNavigatingRef.current) {
         return;
       }
 
-      // Check for post-auth redirect
       try {
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
@@ -88,7 +54,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
           const isLoginFlow = redirect?.is_login_flow === true;
 
           if (user && target && isLoginFlow) {
-            // Login flow - bypass all checks
             navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
             await AsyncStorage.removeItem('post_auth_redirect');
             hasNavigatedRef.current = true;
@@ -96,10 +61,9 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
           }
         }
       } catch (e) {
-        Logger.warn('Error checking redirect', { component: 'OnboardingTransformYourLifeScreen', error: e as Error });
+        Logger.warn('Error checking redirect', { component: 'OnboardingPostureScreen', error: e as Error });
       }
 
-      // Check if user has completed onboarding
       if (user && !isLoggingOut) {
         try {
           const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
@@ -109,17 +73,16 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             return;
           }
         } catch (e) {
-          Logger.warn('Error checking onboarding completion', { component: 'OnboardingTransformYourLifeScreen', error: e as Error });
+          Logger.warn('Error checking onboarding completion', { component: 'OnboardingPostureScreen', error: e as Error });
         }
       }
     };
 
-    // Run check after a short delay to allow auth state to settle
     const timeout = setTimeout(() => {
       if (isMountedRef.current) {
         checkImmediateNavigation();
       }
-    }, 1000); // 1 second delay
+    }, 1000);
 
     return () => {
       isMountedRef.current = false;
@@ -128,7 +91,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   }, [user, isLoggingOut, navigation]);
 
   useEffect(() => {
-    // Entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -143,7 +105,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  // Respond to orientation changes
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setScreenSize({ width: window.width, height: window.height });
@@ -151,7 +112,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     return () => sub?.remove();
   }, []);
 
-  // Create dynamic styles based on screen size
   const dynamicStyles = React.useMemo(() => StyleSheet.create({
     logoSection: {
       ...OnboardingStyles.logoSection,
@@ -168,12 +128,12 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       overflow: 'visible',
       transform: isVerySmallPhone ? [{ translateY: -70 }] : [],
     },
-    transformTitle: {
+    postureTitle: {
       ...OnboardingTypography.heroTitle,
       color: Colors.hopeWhite,
       textAlign: isVerySmallPhone ? 'left' : 'center',
       marginBottom: isVerySmallPhone ? OnboardingSpacing.xs : OnboardingSpacing.md,
-      fontSize: isVerySmallPhone ? 20 : 28, // Even smaller font for very small phones
+      fontSize: isVerySmallPhone ? 20 : 28,
       lineHeight: isVerySmallPhone ? 24 : 34,
     },
     textContainer: {
@@ -186,21 +146,19 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       color: Colors.hopeWhite,
       textAlign: 'left',
       marginBottom: isVerySmallPhone ? 0 : OnboardingSpacing.sm,
-      fontSize: isVerySmallPhone ? 13 : 15, // Even smaller font for very small phones
+      fontSize: isVerySmallPhone ? 13 : 15,
       lineHeight: isVerySmallPhone ? 16 : 20,
     },
   }), [isVerySmallPhone, isTablet]);
 
   const handleContinue = async () => {
-    // Haptic feedback for primary action
     triggerLightHaptic();
     setIsLoading(true);
 
     try {
-      // Navigate to next screen
-      navigation.navigate('OnboardingWhenToOpenSiFia' as any);
+      navigation.navigate('OnboardingAccountCreation' as any);
     } catch (error) {
-      Logger.error('Error proceeding to when-to-open screen', error as Error, { component: 'OnboardingTransformYourLifeScreen' });
+      Logger.error('Error proceeding to account creation screen', error as Error, { component: 'OnboardingPostureScreen' });
     } finally {
       setIsLoading(false);
     }
@@ -210,74 +168,72 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <View style={[OnboardingStyles.innerContainer, { width: contentWidth }, styles.innerContainerCentered]}>
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Logo Section */}
-        <View style={dynamicStyles.logoSection}>
-          <Image
-            source={require('../../../assets/icons/siFia-logo-white.png')}
-            style={[styles.logoImage, { width: logoSize, height: logoSize }]}
-            resizeMode="contain"
-          />
-
-          {/* Lottie Animation */}
-          <View style={dynamicStyles.animationContainer}>
-            <Lottie
-              source={require('../../../assets/animations/Jesus walking on water.json')}
-              autoPlay
-              loop
-              style={styles.animation}
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={dynamicStyles.logoSection}>
+            <Image
+              source={require('../../../assets/icons/siFia-logo-white.png')}
+              style={[styles.logoImage, { width: logoSize, height: logoSize }]}
+              resizeMode="contain"
             />
-          </View>
-        </View>
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          <View style={styles.textContainer}>
-            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, dynamicStyles.transformTitle, styles.titleLeftAlign]}>A pause before you respond.</ThemedText>
-          </View>
-
-          <View style={dynamicStyles.textContainer}>
-            <ThemedText style={dynamicStyles.mainText}>
-              {'siFia helps you bring real moments before God when emotions are involved and the next faithful step isn’t clear.'}
-            </ThemedText>
+            <View style={dynamicStyles.animationContainer}>
+              <Lottie
+                source={require('../../../assets/animations/Jesus walking on water.json')}
+                autoPlay
+                loop
+                style={styles.animation}
+              />
+            </View>
           </View>
 
-          {/* Features List - Temporarily Hidden */}
-          <View style={styles.featuresList}>
-            <View style={[styles.featureItem, styles.hiddenFeature]} />
-            <View style={[styles.featureItem, styles.hiddenFeature]} />
-            <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
-
-            {/* Button */}
-            <TouchableOpacity
-              style={[
-                OnboardingStyles.primaryButton,
-                styles.startButton,
-                styles.startButtonFullWidth,
-                !isTablet && styles.startButtonPhone,
-                !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
-                isLoading && OnboardingStyles.buttonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={isLoading}
-            >
-              <ThemedText weight="bold" style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
-                {isLoading ? 'Continuing...' : 'Continue'}
+          <View style={styles.mainContent}>
+            <View style={styles.textContainer}>
+              <ThemedText
+                weight="bold"
+                style={[OnboardingStyles.mainTitle, dynamicStyles.postureTitle, styles.titleLeftAlign]}
+              >
+                This isn’t about fixing yourself.
               </ThemedText>
-            </TouchableOpacity>
+            </View>
 
+            <View style={dynamicStyles.textContainer}>
+              <ThemedText style={dynamicStyles.mainText}>
+                {'siFia doesn’t replace prayer, Scripture, or the Holy Spirit.\n\nIt creates space to slow down, name what\'s happening, and listen before acting.'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.featuresList}>
+              <View style={[styles.featureItem, styles.hiddenFeature]} />
+              <View style={[styles.featureItem, styles.hiddenFeature]} />
+              <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
+
+              <TouchableOpacity
+                style={[
+                  OnboardingStyles.primaryButton,
+                  styles.startButton,
+                  styles.startButtonFullWidth,
+                  !isTablet && styles.startButtonPhone,
+                  !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
+                  isLoading && OnboardingStyles.buttonDisabled,
+                ]}
+                onPress={handleContinue}
+                disabled={isLoading}
+              >
+                <ThemedText weight="bold" style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
+                  {isLoading ? 'Continuing...' : 'Continue'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-      </Animated.View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -286,20 +242,6 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: OnboardingStyles.container,
   content: OnboardingStyles.content,
-  logoSection: {
-    ...OnboardingStyles.logoSection,
-    marginBottom: OnboardingSpacing.md,
-    alignItems: 'center',
-  },
-  animationContainer: {
-    width: '100%',
-    aspectRatio: 1.2, // Allow more vertical space for the illustration
-    maxHeight: 320, // Increase height so the figure appears larger
-    marginTop: -OnboardingSpacing.xxxl, // Move up very significantly
-    marginBottom: 0, // No bottom margin
-    alignSelf: 'center',
-    overflow: 'visible', // Ensure no clipping of the waves
-  },
   animation: {
     width: '115%',
     height: '115%',
@@ -307,7 +249,6 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.05 }],
   },
   logoImage: {
-    // Remove fixed dimensions to allow dynamic sizing
     overflow: 'hidden',
   },
   mainContent: {
@@ -315,30 +256,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  transformTitle: {
-    ...OnboardingTypography.heroTitle,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: OnboardingSpacing.md,
-  },
   textContainer: {
     width: '100%',
     paddingHorizontal: 24,
     marginBottom: OnboardingSpacing.md,
   },
-  mainText: {
-    ...OnboardingTypography.subtitle,
-    color: Colors.hopeWhite,
-    textAlign: 'left',
-    marginBottom: OnboardingSpacing.sm,
-  },
-  subText: {
-    ...OnboardingTypography.subtitle,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'left',
-    fontStyle: 'italic',
-  },
-
   featuresList: {
     width: '100%',
     alignSelf: 'stretch',
@@ -348,61 +270,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  featureIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  featureItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    flex: 1,
-    lineHeight: 22,
-  },
-  bottomSection: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  startButton: {
-    // Additional custom styling if needed
-  },
+  startButton: {},
   startButtonPhone: {
     marginBottom: 52,
   },
-  startButtonText: {
-    // Additional custom styling if needed
-  },
-  signInRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  signInText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 14,
-  },
-  signInLink: {
-    color: Colors.alertCoral,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  trialText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginTop: 10,
-  },
+  startButtonText: {},
   titleLeftAlign: {
     textAlign: 'left',
     width: '100%',
-  },
-  textWithMarginTop: {
-    marginTop: 20,
   },
   hiddenFeature: {
     opacity: 0,
@@ -421,4 +296,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default withErrorBoundary(OnboardingTransformYourLifeScreen, 'OnboardingTransformYourLifeScreen');
+export default withErrorBoundary(OnboardingPostureScreen, 'OnboardingPostureScreen');

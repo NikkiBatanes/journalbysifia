@@ -22,6 +22,9 @@ import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
+import OnboardingWhenToOpenSiFiaScreen from '../screens/onboarding/OnboardingWhenToOpenSiFiaScreen';
+import OnboardingPostureScreen from '../screens/onboarding/OnboardingPostureScreen';
+import OnboardingAccountCreationScreen from '../screens/onboarding/OnboardingAccountCreationScreen';
 
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
 
@@ -192,6 +195,21 @@ export default function RootStackNavigator({
         name="TransformJourney"
         component={OnboardingTransformYourLifeScreen as React.ComponentType}
         options={splashToFirstScreenAnimation}
+      />
+      <Stack.Screen
+        name="OnboardingWhenToOpenSiFia"
+        component={OnboardingWhenToOpenSiFiaScreen as React.ComponentType}
+        options={OnboardingAnimations.pushFromBottom}
+      />
+      <Stack.Screen
+        name="OnboardingPosture"
+        component={OnboardingPostureScreen as React.ComponentType}
+        options={OnboardingAnimations.pushFromBottom}
+      />
+      <Stack.Screen
+        name="OnboardingAccountCreation"
+        component={OnboardingAccountCreationScreen as React.ComponentType}
+        options={OnboardingAnimations.pushFromBottom}
       />
       <Stack.Screen
         name="OnboardingWelcome"
