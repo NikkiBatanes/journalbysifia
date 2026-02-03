@@ -128,6 +128,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
   const requestedDuration = routeParams?.requestedDuration;
+  const [isAboutGrowthExpanded, setIsAboutGrowthExpanded] = useState(false);
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
@@ -1474,7 +1475,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings!'
-                                  : 'Faith in Action'}
+                                  : 'Continue walking with intention'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1499,67 +1500,101 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
                             : fromExportRestriction
                               ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
-                              : 'Gentle structure for faithful living'}
-          </ThemedText>
-
-          {/* Small motivational text */}
-          <ThemedText style={styles.smallMotivationalText}>
-            {`You've taken a first step.
-Continue walking with intention and wisdom.`}
+                              : routeParams?.onboardingFlow
+                                ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care — again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
+                                : 'Gentle structure for faithful living'}
           </ThemedText>
 
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
           {routeParams?.onboardingFlow && (
             <View>
-              {isAnnual && (
-                <View style={styles.freeBannerContainer}>
-                  <ThemedText weight="semiBold" style={styles.freeBannerText}>Save 2 months with annual billing</ThemedText>
-                </View>
-              )}
               <View style={styles.growthPlanSection}>
-                <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
-                  siFia Growth Plan
-                </ThemedText>
-                <ThemedText style={styles.growthPlanSubtitle}>
-                  Deeper clarity for ongoing situations.
-                </ThemedText>
-                <ThemedText style={styles.growthPlanDescription}>
-                  Designed for seasons where decisions, emotions, and faith feel intertwined.
-                </ThemedText>
                 <ThemedText style={styles.growthPlanListLabel}>
-                  Includes:
+                  What staying supported includes
                 </ThemedText>
 
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  More playbooks and devotionals for emotionally complex situations
-                </ThemedText>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Ongoing discernment support for emotionally complex moments
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Space for reflection, prayer, and Scripture
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    A place to pause before responding instead of reacting
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Gentle structure that supports faithfulness without pressure
+                  </ThemedText>
+                </View>
               </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Structured space for reflection, prayer, and discernment
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Journaling tools to process honestly before God
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  Gentle reminders to stay attentive without pressure
-                </ThemedText>
-              </View>
-              <View style={styles.featureBullet}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                <ThemedText style={styles.bulletText}>
-                  A simple way to notice progress and patterns over time
-                </ThemedText>
-              </View>
+
+              {shouldUseTrialProduct && (
+                <View style={styles.trialBenefitsContainer}>
+                  {(() => {
+                    return (
+                      <>
+                        <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
+                          Start with a free 3-day trial
+                        </ThemedText>
+                        <View style={styles.trialSupportingTextContainerFirst}>
+                          <ThemedText style={styles.trialSupportingText}>
+                            This trial lets you experience the full siFia flow in real situations,
+                            so you can discern whether this structure serves your current season.
+                          </ThemedText>
+                        </View>
+                      </>
+                    );
+                  })()}
+                </View>
+              )}
+
+              <View style={styles.growthPlanDuplicateCard}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setIsAboutGrowthExpanded(prev => !prev);
+                  }}
+                  style={styles.growthPlanToggleRow}
+                >
+                  <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
+                    About the Growth plan
+                  </ThemedText>
+                  <Ionicons
+                    name={isAboutGrowthExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={Colors.hopeWhite}
+                  />
+                </TouchableOpacity>
+                {isAboutGrowthExpanded && (
+                  <>
+                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
+                      The Growth plan is for seasons where decisions, emotions, and faith feel intertwined.
+                    </ThemedText>
+                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
+                      {'\n'}It offers continued access to playbooks and devotionals, so you don’t have to start from scratch each time something arises.
+                    </ThemedText>
+                    {shouldUseTrialProduct && (
+                      <>
+                        <View style={styles.trialDivider} />
+                        <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign, styles.additionalFollowupText]}>
+                          After the trial, the Growth plan includes access to a monthly set of guided playbooks and devotionals.
+                        </ThemedText>
+                      </>
+                    )}
+                  </>
+                )}
               </View>
             </View>
           )}
@@ -1689,24 +1724,20 @@ Continue walking with intention and wisdom.`}
           )}
 
           {/* Trial Benefits Section - show whenever user is trial-eligible */}
-          {shouldUseTrialProduct && (
+          {!routeParams?.onboardingFlow && shouldUseTrialProduct && (
             <View style={styles.trialBenefitsContainer}>
               {(() => {
                 return (
                   <>
-              <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                What's included in your 3-day trial
-              </ThemedText>
-              <View style={[styles.trialSupportingTextContainer, styles.trialSupportingTextContainerFirst]}>
-                <ThemedText style={styles.trialSupportingText}>
-                  Experience the full Growth flow with limited playbooks and devotionals, so you can discern whether this structure serves your current season.
-                </ThemedText>
-              </View>
-              <View style={styles.trialSupportingTextContainer}>
-                <ThemedText style={styles.trialSupportingText}>
-                  After the trial, the Growth plan includes up to 20 playbooks and 20 devotionals per month.
-                </ThemedText>
-              </View>
+                    <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
+                      Start with a free 3-day trial
+                    </ThemedText>
+                    <View style={styles.trialSupportingTextContainer}> 
+                      <ThemedText style={styles.trialSupportingText}>
+                        This trial lets you experience the full siFia flow in real situations,
+                        so you can discern whether this structure serves your current season.
+                      </ThemedText>
+                    </View>
                   </>
                 );
               })()}
@@ -1803,7 +1834,7 @@ Continue walking with intention and wisdom.`}
               return (
                 <>
                   {tier.id === 'growth' && (
-                    <ThemedText style={styles.footerPriceBadge}>⭐ Most Popular</ThemedText>
+                    <ThemedText style={styles.footerPriceBadge}>⭐ MOST CHOSEN</ThemedText>
                   )}
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
                     {`${symbol}${formatValue(annualPrice)}/year`}
@@ -2029,11 +2060,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
+  growthPlanDuplicateCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 28,
+    padding: 22,
+    paddingTop: 30,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   growthPlanTitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  growthPlanToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   growthPlanSubtitle: {
     fontSize: 16,
@@ -2047,6 +2098,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.75)',
     textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  growthPlanDuplicateSubtitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  growthPlanDuplicateDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textAlign: 'left',
     lineHeight: 20,
     marginBottom: 8,
   },
@@ -2106,6 +2171,19 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  textLeftAlign: {
+    textAlign: 'left',
+  },
+  trialDivider: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: 12,
+  },
+  additionalFollowupText: {
+    marginTop: 8,
+    marginBottom: 0,
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -2186,25 +2264,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 12,
     marginTop: 8,
-  },
-  freeBannerContainer: {
-    alignSelf: 'center',
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginTop: 8,
-    marginBottom: -16,
-    zIndex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  freeBannerText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
   },
   errorContainer: {
     padding: 20,
@@ -2500,6 +2559,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.growthGreen,
     marginBottom: 12,
+    textAlign: 'center',
   },
   trialBenefitItem: {
     flexDirection: 'row',

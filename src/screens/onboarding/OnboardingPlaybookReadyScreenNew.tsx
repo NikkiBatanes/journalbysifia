@@ -843,27 +843,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Show devotional CTA after a short delay (not dependent on card expansion)
   useEffect(() => {
-    if (!devotionalTimerRef.current) {
-      devotionalTimerRef.current = setTimeout(() => {
-        setDevotionalVisible(true);
-        devotionalTimerRef.current = null;
-        // Start expand/collapse animation
-        setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(devotionalButtonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
-            Animated.timing(devotionalTextOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
-          ]).start(() => {
-            setTimeout(() => {
-              Animated.parallel([
-                Animated.timing(devotionalTextOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
-                Animated.timing(devotionalButtonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
-              ]).start();
-            }, 2500);
-          });
-        }, 100);
-      }, 5000);
-    }
-  }, [devotionalButtonWidth, devotionalTextOpacity]);
+    // intentionally disabled on onboarding playbook ready
+  }, []);
 
   const toggleCardExpansion = (cardId: string) => {
     try { triggerLightHaptic(); } catch {}
@@ -1149,12 +1130,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
 
           {/* User Input Display - Between PLAYBOOK and Title */}
-          {showUserInput && (
-            <View style={[styles.userInputContainer, {
-              marginTop: isPortrait ? 8 : 4,
-              marginBottom: isPortrait ? 10 : 6,
-            }]}>
-              <ThemedText weight="semiBold" style={styles.userInputLabel}>Your Challenge:</ThemedText>
+            {showUserInput && (
+              <View style={[styles.userInputContainer, {
+                marginTop: isPortrait ? 8 : 4,
+                marginBottom: isPortrait ? 10 : 6,
+              }]}>
               <ThemedText style={styles.userInputText}>{onboardingData.challengeDetails}</ThemedText>
             </View>
           )}
@@ -1417,15 +1397,15 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
             >
-              <ThemedText weight="bold" style={styles.continueButtonText}>Continue with siFia</ThemedText>
+              <ThemedText weight="bold" style={styles.continueButtonText}>Continue with this moment</ThemedText>
             </TouchableOpacity>
-            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Unlock full access to guided playbooks and devotionals.</ThemedText>
+            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Guided playbooks and devotionals are available next</ThemedText>
           </>
           </View>
         </View>
 
         {/* Expandable Devotional Button (Dashboard style) - Outside ScrollView */}
-        {devotionalVisible && (
+        {false && devotionalVisible && (
           <Animated.View
             style={[
               styles.floatingDevotionalContainer,

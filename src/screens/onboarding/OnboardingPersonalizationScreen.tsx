@@ -1071,40 +1071,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         >
           <ThemedTextInput
             style={styles.askInput}
-            placeholder={detailsOnlyFlow
-              ? 'Something happened and I don\'t know how to respond faithfully.'
-              : (
-                (() => {
-                  const placeholders: Record<string, string> = {
-                    relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                    anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                    purpose: "I'm unsure about my career path and want godly direction.",
-                    forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                    financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                    spiritual: 'I want to deepen prayer and Bible study habits.',
-                    addiction: "I'm trying to break a habit and need support and scripture.",
-                    grief: "I'm grieving a recent loss and need comfort and hope.",
-                  };
-                  if (selectedChallenge && placeholders[selectedChallenge]) {
-                    return placeholders[selectedChallenge];
-                  }
-                  return 'Describe your situation for this challenge (optional)';
-                })()
-              )}
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
-            cursorColor={Colors.hopeWhite}
-            selectionColor={Colors.hopeWhite}
-            autoFocus={detailsOnlyFlow}
-            value={challengeDetails}
-            onChangeText={setChallengeDetails}
-            onTouchStart={() => {
-              focusDetailsInput();
-              triggerLightHaptic();
-            }}
-            onFocus={handleDetailsFocus}
-            onBlur={handleDetailsBlur}
-            multiline
-            textAlignVertical="top"
+            placeholder={(() => {
+              if (detailsOnlyFlow) {
+                return 'Something happened and I don\'t know how to respond faithfully.';
+              }
+              const placeholders: Record<string, string> = {
+                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                purpose: "I'm unsure about my career path and want godly direction.",
+                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                spiritual: 'I want to deepen prayer and Bible study habits.',
+              };
+              return placeholders[selectedChallenge] ?? 'What situation are you facing?';
+            })()}
+            autoFocus={false}
             scrollEnabled={true}
           />
           <View style={styles.actionsOverlay}>
