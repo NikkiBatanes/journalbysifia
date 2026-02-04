@@ -1054,7 +1054,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             <TouchableOpacity
               key={index}
               style={styles.exampleTag}
-              onPress={() => { try { triggerLightHaptic(); } catch {} setChallengeDetails(example.template); }}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setChallengeDetails(example.template);
+                focusDetailsInput();
+              }}
             >
               <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
             </TouchableOpacity>
@@ -1070,7 +1074,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
         >
           <ThemedTextInput
+            ref={detailsInputRef}
             style={styles.askInput}
+            value={challengeDetails}
+            onChangeText={setChallengeDetails}
+            multiline={true}
+            placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
             placeholder={(() => {
               if (detailsOnlyFlow) {
                 return 'Something happened and I don\'t know how to respond faithfully.';
@@ -1901,7 +1910,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     padding: 16,
-    paddingBottom: 0,
+    paddingBottom: 16,
     backgroundColor: 'transparent',
     textAlignVertical: 'top',
     minHeight: 150,

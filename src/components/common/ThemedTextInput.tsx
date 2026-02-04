@@ -10,7 +10,7 @@ interface ThemedTextInputProps extends TextInputProps {
   style?: StyleProp<TextStyle>;
 }
 
-const ThemedTextInput: React.FC<ThemedTextInputProps> = ({ weight = 'regular', style, ...rest }) => {
+const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ weight = 'regular', style, ...rest }, ref) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, weight);
@@ -20,7 +20,7 @@ const ThemedTextInput: React.FC<ThemedTextInputProps> = ({ weight = 'regular', s
     { fontFamily },
   ];
 
-  return <TextInput {...rest} style={combinedStyle} />;
-};
+  return <TextInput ref={ref} {...rest} style={combinedStyle} />;
+});
 
 export default ThemedTextInput;
