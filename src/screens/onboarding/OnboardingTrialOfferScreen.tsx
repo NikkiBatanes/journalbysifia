@@ -836,7 +836,10 @@ const OnboardingTrialOfferScreen = () => {
           {item.id === 1 ? (
             <View>
               <ThemedText style={styles.timelineDescription}>
-                {`Explore siFia ${getTierDisplayName(selectedTierId).replace(/^siFia\s+/i, '')} and see how it fits your current season.`}
+                Explore siFia Growth and see how it supports your current season.
+              </ThemedText>
+              <ThemedText style={styles.timelineDescription}>
+                There's nothing you need to decide today.
               </ThemedText>
 
               <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>During your trial, you can:</ThemedText>
@@ -844,22 +847,29 @@ const OnboardingTrialOfferScreen = () => {
               <View style={styles.timelineBulletsContainer}>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Access all Growth features</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Create playbooks and devotionals</ThemedText>
                 </View>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Generate a limited number of personalized playbooks and devotionals</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Reflect, pray, and journal with clarity</ThemedText>
                 </View>
                 <View style={styles.timelineBulletRow}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Use journaling and reflection tools to process with clarity</ThemedText>
+                  <ThemedText style={styles.timelineBulletText}>Return to siFia when moments come up</ThemedText>
                 </View>
               </View>
+            </View>
+          ) : item.id === 2 ? (
+            <View>
+              <ThemedText style={styles.timelineDescription}>
+                We'll send a gentle reminder before your trial ends.
+              </ThemedText>
+              <View style={styles.timelineSectionSpacing} />
             </View>
           ) : item.id === 3 ? (
             <View>
               <ThemedText style={styles.timelineDescription}>
-                If you choose to continue, your subscription begins.
+                If you choose to continue, your subscription starts.
               </ThemedText>
               <View style={styles.timelineSectionSpacing}>
                 <ThemedText style={styles.timelineDescription}>You’ll have full access to:</ThemedText>
@@ -871,6 +881,10 @@ const OnboardingTrialOfferScreen = () => {
                   <View style={styles.timelineBulletRow}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.timelineBulletText}>Up to 20 devotionals per month.</ThemedText>
+                  </View>
+                  <View style={styles.timelineBulletRow}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.timelineBulletText}>A consistent space for reflection, prayer, and faithful next steps.</ThemedText>
                   </View>
                 </View>
                 <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>You can cancel anytime before the trial ends.</ThemedText>
