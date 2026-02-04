@@ -110,104 +110,51 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const baseTierKey = effectiveTierKey.replace('_annual', ''); // Get base tier for pricing lookup
     const baseName = planNames[effectiveTierKey] || planNames[baseTierKey] || effectiveTierKey;
 
-    // Build display name with billing cycle from prop
+    // Build display names
     const billingCycle = isAnnual ? ' Annual' : '';
     const baseDisplayName = `siFia ${baseName}${billingCycle}`;
+    const canonicalName = `siFia ${planNames[baseTierKey] || baseName}`;
 
     // Get tier features from pricing service (use base tier, not annual variant)
     const currentTier = pricingTiers.find(t => t.id === baseTierKey);
 
     if (isTrial) {
-      const benefits: string[] = [];
-
-      // Use pricing service features for trial
-      if (currentTier) {
-        benefits.push(`3 days free access to the ${baseName}${billingCycle} plan`);
-        benefits.push('Generate 2 Playbooks during the trial');
-        benefits.push('Generate 2 Devotionals during the trial');
-
-        // Add key features from pricing service
-        if (currentTier.features.length > 0) {
-          // Show first 2 features to give them a taste
-          const keyFeatures = currentTier.features.slice(0, 2);
-          benefits.push(...keyFeatures);
-        }
-      } else {
-        // Fallback if pricing not loaded
-        benefits.push(`3 days free access to the ${baseName}${billingCycle} plan`);
-        benefits.push('Generate 2 Playbooks during the trial');
-        benefits.push('Generate 2 Devotionals during the trial');
-      }
-
-      benefits.push('Cancel anytime');
-      benefits.push('No commitment');
+      const benefits = [
+        `Explore siFia ${baseName}${billingCycle} for 3 days`,
+        'Create 2 playbooks during your trial',
+        'Create 2 devotionals during your trial',
+        'Return anytime when a moment comes up',
+        'Cancel anytime before your trial ends',
+      ];
 
       return {
-        // e.g. "siFia Spark Annual Trial" or "siFia Growth Trial"
-        name: `${baseDisplayName} Trial`,
+        name: canonicalName,
         color: Colors.alertCoral,
         benefits,
       };
     }
 
-    // For paid plans, use pricing service features
+    // For paid plans, use the consistent “What you can do next” list
+    const paidBenefits = [
+      'Create playbooks when life feels tangled',
+      'Return to Scripture with clarity and peace',
+      'Take one faithful next step at a time',
+      'Use journaling and prayer tools as needed',
+    ];
+
     if (currentTier) {
       return {
-        name: baseDisplayName,
+        name: canonicalName,
         color: Colors.alertCoral,
-        benefits: currentTier.features,
+        benefits: paidBenefits,
       };
     }
 
     // Fallback if pricing not loaded yet
-    if (effectiveTierKey === 'spark') {
-      return {
-        name: baseDisplayName,
-        color: Colors.alertCoral,
-        benefits: [
-          '8 playbooks & 8 devotionals each month',
-          'Gentle reminders to keep you on track',
-          'Track your progress week by week',
-          'Basic journaling tools',
-          'Calendar Sync to stay on track',
-          'Copy To-Dos to other dates for flexibility',
-        ],
-      };
-    }
-
-    if (effectiveTierKey === 'growth') {
-      return {
-        name: baseDisplayName,
-        color: Colors.alertCoral,
-        benefits: [
-          'All in Spark, plus:',
-          '20 playbooks & 20 devotionals each month',
-          'Access 1-day, 3-day & 5-day devotionals',
-          'Advanced reflection prompts',
-          'Smart Journaling for personalized reflection',
-          'Export to PDF for sharing and printing',
-        ],
-      };
-    }
-
-    if (effectiveTierKey === 'transformation') {
-      return {
-        name: baseDisplayName,
-        color: Colors.alertCoral,
-        benefits: [
-          'All in Growth, plus:',
-          'Unlimited playbooks & devotionals',
-          '7-day devotionals for deep reflection',
-          'Priority support',
-          'Export to Word for professional use',
-        ],
-      };
-    }
-
     return {
-      name: baseDisplayName,
+      name: canonicalName,
       color: Colors.alertCoral,
-      benefits: ['Full access to siFia features'],
+      benefits: paidBenefits,
     };
   };
 
@@ -241,13 +188,13 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
               },
             ]}
           >
-            <Ionicons name="checkmark" size={60} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={48} color="#FFFFFF" />
           </Animated.View>
 
           {/* Success Message */}
           <ThemedText style={[styles.title, { color: Colors.hopeWhite }]}
           >
-            {isTrial ? 'Trial Started!' : 'Purchase Successful!'}
+            {isTrial ? 'Your free trial has started' : "You're all set"}
           </ThemedText>
 
           <ThemedText style={[styles.subtitle, { color: Colors.hopeWhite }]}
@@ -259,12 +206,12 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {isValidated ? (
             <View style={styles.validationBadge}>
               <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
-              <ThemedText style={styles.validationText}>Verified by Apple</ThemedText>
+              <ThemedText style={styles.validationText}>Confirmed by Apple</ThemedText>
             </View>
           ) : (
             <View style={styles.validationBadge}>
-              <Ionicons name="warning" size={16} color="#FFA500" />
-              <ThemedText style={[styles.validationText, styles.warningText]}>Processing payment...</ThemedText>
+              <Ionicons name="hourglass-outline" size={16} color="#FFA500" />
+              <ThemedText style={[styles.validationText, styles.warningText]}>Confirming with Apple...</ThemedText>
             </View>
           )}
 
@@ -272,7 +219,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           <View style={styles.benefitsContainer}>
             <ThemedText style={[styles.benefitsTitle, { color: Colors.hopeWhite }]}
             >
-              What's Included:
+              What you can do next:
             </ThemedText>
             {tierInfo.benefits.map((benefit, index) => (
               <View key={index} style={styles.benefitRow}>
@@ -287,11 +234,12 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
           {/* Trial Notice */}
           {isTrial && (
-            <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}>
+            <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}
+            >
               <Ionicons name="information-circle" size={20} color="#FFD93D" />
               <ThemedText style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}
               >
-                Your trial starts now. Cancel anytime before it ends.
+                Your trial begins today. You can cancel anytime before it ends.
               </ThemedText>
             </View>
           )}
@@ -305,7 +253,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
+            <ThemedText style={styles.continueButtonText}>Go to my playbook</ThemedText>
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </Animated.View>
@@ -320,13 +268,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.modalOverlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   modalContainer: {
-    width: width - 40,
-    maxWidth: 400,
-    borderRadius: 24,
-    padding: 32,
+    width: width - 60,
+    maxWidth: 360,
+    borderRadius: 22,
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -334,23 +282,35 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
   checkmarkContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '500',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 24,
+    fontWeight: '700',
     marginBottom: 16,
     textAlign: 'center',
   },

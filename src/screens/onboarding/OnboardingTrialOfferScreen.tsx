@@ -950,6 +950,10 @@ const OnboardingTrialOfferScreen = () => {
     }, 100);
   }, [route?.params?.skipNotificationPreference, navigation, safeNavigate, fromRegistrationOnboarding]);
 
+  const handleSuccessModalDismiss = useCallback(() => {
+    handleSuccessModalContinue();
+  }, [handleSuccessModalContinue]);
+
   // Reset auto-dismissal state when component unmounts
   useEffect(() => {
     return () => {
@@ -960,19 +964,17 @@ const OnboardingTrialOfferScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
-      {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
       <PurchaseLoadingModal
         visible={isStartingTrial && !showSuccessModal}
         step={loadingStep}
       />
 
-      {/* ENTERPRISE IMPROVEMENT: Success Modal */}
       <PurchaseSuccessModal
         visible={showSuccessModal}
         tier={selectedTierId}
         isTrial={true}
         isValidated={purchaseValidated}
-        onContinue={handleSuccessModalContinue}
+        onContinue={handleSuccessModalDismiss}
       />
 
       {/* Header */}
@@ -1028,6 +1030,7 @@ const OnboardingTrialOfferScreen = () => {
               <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
             </TouchableOpacity>
           </View>
+          {/* Dev controls removed */}
         </View>
         </ScrollView>
       </View>
@@ -1437,6 +1440,29 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 18,
     flex: 1,
+  },
+  devControlsContainer: {
+    marginTop: 16,
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  devControlsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  devControlButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  devControlText: {
+    fontSize: 12,
+    fontFamily: fonts.semiBold,
+    color: Colors.hopeWhite,
   },
   timelineIndentedRow: {
     marginLeft: 28,
