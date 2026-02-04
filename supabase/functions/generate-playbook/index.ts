@@ -565,14 +565,16 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     // Remove version marker like (AMP), ( AMP), (NASB) etc. from the end of verse text
     verseText = verseText.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
 
-    // Set the values in the playbook (text is the raw verse text, reference is just book/chapter/verse)
-    playbook.bibleVerse.text = verseText || verseContent;
-
     // Clean the reference and strip any trailing version marker like (AMP), (NASB) etc.
     let cleanVerseRef = verseRef ? verseRef.trim() : '';
     if (cleanVerseRef) {
       cleanVerseRef = cleanVerseRef.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
     }
+
+    const fallbackVerseText = cleanVerseContentFallback(verseContent, cleanVerseRef || verseRef || '');
+
+    // Set the values in the playbook (text is the raw verse text, reference is just book/chapter/verse)
+    playbook.bibleVerse.text = verseText || fallbackVerseText;
 
     console.log('[BIBLE VERSE PARSER] Extracted values:', {
       verseText: verseText.substring(0, 100),
@@ -640,7 +642,56 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     ].join('\n');
   }
 
+  sanitizeYogaSuggestions(playbook);
+
   return playbook;
+}
+
+function sanitizeText(text: string): string {
+  return text.replace(/\byoga\b/gi, 'gentle stretching');
+}
+
+function cleanVerseContentFallback(content: string, verseRef: string): string {
+  let cleaned = content;
+  if (verseRef) {
+    cleaned = cleaned.replace(new RegExp(escapeRegExp(verseRef), 'i'), '');
+  }
+
+  cleaned = cleaned.replace(/"""+/g, '"');
+  cleaned = cleaned.replace(/""/g, '"');
+  cleaned = cleaned.replace(/^"\s*|\s*"$/g, '');
+  cleaned = cleaned.replace(/\s*"\s*/g, ' ');
+  cleaned = cleaned.trim();
+
+  if (cleaned.length === 0) {
+    cleaned = content.replace(/"""+/g, '"').replace(/""/g, '"').replace(/^"\s*|\s*"$/g, '').trim();
+  }
+
+  return cleaned;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sanitizeYogaSuggestions(playbook: Playbook) {
+  playbook.actionSteps = playbook.actionSteps.map(step => ({
+    ...step,
+    title: sanitizeText(step.title),
+    subTasks: step.subTasks.map(subTask => ({
+      ...subTask,
+      text: sanitizeText(subTask.text),
+    })),
+    examples: step.examples.map(example => sanitizeText(example)),
+  }));
+
+  playbook.directChallenge = sanitizeText(playbook.directChallenge);
+  playbook.truthInLove = {
+    summary: sanitizeText(playbook.truthInLove.summary),
+    text: sanitizeText(playbook.truthInLove.text),
+  };
+  playbook.title = sanitizeText(playbook.title);
+  playbook.subtitle = sanitizeText(playbook.subtitle);
 }
 
 interface RequestBody {

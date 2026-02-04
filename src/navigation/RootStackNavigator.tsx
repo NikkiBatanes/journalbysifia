@@ -199,7 +199,7 @@ export default function RootStackNavigator({
       <Stack.Screen
         name="OnboardingWhenToOpenSiFia"
         component={OnboardingWhenToOpenSiFiaScreen as React.ComponentType}
-        options={OnboardingAnimations.pushFromBottom}
+        options={OnboardingAnimations.slideFromRight}
       />
       <Stack.Screen
         name="OnboardingPosture"
