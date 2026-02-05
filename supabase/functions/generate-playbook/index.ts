@@ -565,6 +565,15 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     // Remove version marker like (AMP), ( AMP), (NASB) etc. from the end of verse text
     verseText = verseText.replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
 
+    // Remove reference prefix if AI included it at the start (e.g., "Philippians 4:6-7 "Be anxious...")
+    // This prevents duplicate reference display in the UI
+    if (verseRef && verseText.toLowerCase().startsWith(verseRef.toLowerCase())) {
+      verseText = verseText.substring(verseRef.length).trim();
+    }
+
+    // Remove leading quotes that may have been left after removing reference
+    verseText = verseText.replace(/^[""'"]+\s*/, '').trim();
+
     // Clean the reference and strip any trailing version marker like (AMP), (NASB) etc.
     let cleanVerseRef = verseRef ? verseRef.trim() : '';
     if (cleanVerseRef) {
