@@ -585,7 +585,7 @@ const UserInputScreen: React.FC = () => {
                   <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] }]} pointerEvents="box-none">
                     <Text style={[styles.tooltipKicker, font]}>How siFia can help</Text>
                     <Text style={[styles.tooltipTitle, font]}>You don't need to explain everything perfectly.</Text>
-                    <Text style={[styles.tooltipTitle, font, { marginTop: 2 }]}>Just share what feels important right now.</Text>
+                    <Text style={[styles.tooltipTitleSpaced, font]}>Just share what feels important right now.</Text>
                     <Text style={[styles.tooltipSubtitle, font]}>If it helps, you can mention:</Text>
                     <View style={styles.tooltipList}>
                       <View style={styles.tooltipItemRow}>
@@ -853,6 +853,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
     marginBottom: 6,
+  },
+  tooltipTitleSpaced: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+    marginTop: 2,
   },
   tooltipKicker: {
     color: 'rgba(255,255,255,0.9)',

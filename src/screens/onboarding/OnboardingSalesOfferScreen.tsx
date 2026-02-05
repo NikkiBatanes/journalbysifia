@@ -1732,7 +1732,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
                       Start with a free 3-day trial
                     </ThemedText>
-                    <View style={styles.trialSupportingTextContainer}> 
+                    <View style={styles.trialSupportingTextContainer}>
                       <ThemedText style={styles.trialSupportingText}>
                         This trial lets you experience the full siFia flow in real situations,
                         so you can discern whether this structure serves your current season.

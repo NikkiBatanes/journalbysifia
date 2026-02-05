@@ -22,8 +22,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme';
 import { BorderRadii } from '../../theme/styles';
-import { notificationService } from '../../services/notificationService';
-import { faithPointsService } from '../../services/faithPointsService';
+// import { notificationService } from '../../services/notificationService';
+// import { faithPointsService } from '../../services/faithPointsService';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { usePlaybookStoreReactQuery } from '../../store/usePlaybookStoreReactQuery';
 import AnimatedProgressBar from '../../components/ui/AnimatedProgressBar';
@@ -59,7 +59,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { getCompletedStepsCount, actionSteps, setActionSteps } = useActionSteps(); // Use context for dynamic progress
-  const { user } = useAuth();
 
   // Block back navigation to prevent multiple free playbook generation
   useEffect(() => {
@@ -108,7 +107,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Animated values for smooth card transitions
   const cardAnimations = useRef<{ [key: string]: { translateY: Animated.Value; scale: Animated.Value; opacity: Animated.Value } }>({}).current;
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [devotionalVisible, setDevotionalVisible] = useState(false);
+  const [devotionalVisible, _setDevotionalVisible] = useState(false);
   const [continueEnabled, setContinueEnabled] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
   const [_footerH, setFooterH] = useState(156);
@@ -123,7 +122,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Intro modal visibility (shows once per component mount, no persistence)
   const [showIntroModal, setShowIntroModal] = useState(false);
   const hasShownIntroRef = useRef(false);
-  const faithPointsAwardedRef = useRef(false);
+  // const faithPointsAwardedRef = useRef(false);
   const buttonPressedRef = useRef(false); // Track if button was ever pressed
   const modalOpacity = useRef(new Animated.Value(0)).current; // For smooth fade transition
 
@@ -187,7 +186,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const hasRead = usePlaybookStoreReactQuery(state => playbook?.id ? !!state.readAloudMap[playbook.id] : false);
   const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
   const readCooldownRef = useRef<number>(0);
-  const readAwardedRef = useRef<boolean>(false);
+  // const readAwardedRef = useRef<boolean>(false);
   // Particle burst (match dashboard)
   const [particles, setParticles] = useState<{ id: number; progress: Animated.Value; dx: number; dy: number; size: number; rotate: number; color: string; delay: number;}[]>([]);
   const particleIdRef = useRef(0);
@@ -262,8 +261,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   useEffect(() => {
     // Cleanup timers on unmount
     return () => {
-      if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
-      if (continueTimerRef.current) {clearTimeout(continueTimerRef.current);}
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const devotionalTimer = devotionalTimerRef.current;
+      const continueTimer = continueTimerRef.current;
+      if (devotionalTimer) {clearTimeout(devotionalTimer);}
+      if (continueTimer) {clearTimeout(continueTimer);}
       // Ensure any pending read haptic timers are cleared on unmount
       try {
         readHapticTimersRef.current.forEach(t => clearTimeout(t));
@@ -395,26 +397,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   // Award faith points function
 
+  /*
   const awardFaithPoints = useCallback(async () => {
+    // Faith points rewards temporarily disabled.
     try {
-      // Award faith points to user's account during onboarding
       if (user?.id) {
         logger.debug('Awarding faith points for playbook generation');
         await faithPointsService.awardPoints(user.id, 'playbook_generated', {
           isOnboarding: true,
-          suppressNotification: false, // Let faithPointsService handle the notification
+          suppressNotification: false,
         });
         logger.debug('Faith points awarded successfully');
       } else {
         logger.warn('No user ID available for faith points');
-        // Still show notification even if we can't award points
         const points = faithPointsService.getPointsForActivity('playbook_generated');
         notificationService.showPointsNotification(points, 'playbook_generated', 'center');
       }
     } catch (e) {
-      // Non-blocking: if anything fails, proceed silently
       logger.warn('Failed to award faith points:', e as Error);
-      // Show notification anyway
       try {
         const points = faithPointsService.getPointsForActivity('playbook_generated');
         notificationService.showPointsNotification(points, 'playbook_generated', 'center');
@@ -423,6 +423,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       }
     }
   }, [user]);
+  */
 
 
   const handleContinueJourney = useCallback(() => {
@@ -624,6 +625,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                       // Match dashboard: celebratory burst + multi-pulse light haptics
                       startReadBurstHaptics();
                       startBurst();
+                      /*
                       // Award once per day per playbook
                       if (!readAwardedRef.current && user?.id && playbook?.id) {
                         readAwardedRef.current = true;
@@ -638,6 +640,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                           }
                         })();
                       }
+                      */
                     } else {
                       try { triggerLightHaptic(); } catch {}
                     }
@@ -1050,10 +1053,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 buttonPressedRef.current = true;
                 hasShownIntroRef.current = true;
 
+                /*
                 if (!faithPointsAwardedRef.current) {
                   faithPointsAwardedRef.current = true;
                   awardFaithPoints().catch(err => logger.warn('awardFaithPoints failed on modal button', err as Error));
                 }
+                */
 
                 // Fade out modal smoothly
                 Animated.timing(modalOpacity, {

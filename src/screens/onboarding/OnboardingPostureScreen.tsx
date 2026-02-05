@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  Image,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +30,6 @@ const OnboardingPostureScreen: React.FC = () => {
   const isTablet = screenSize.width >= 768;
   const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
-  const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100); // iPad (120), iPhone (100)
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;

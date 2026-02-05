@@ -48,7 +48,8 @@ const OnboardingAccountCreationScreen: React.FC = () => {
   const isLandscape = screenSize.width > screenSize.height;
   const isTablet = screenSize.width >= 768;
   const isVerySmallPhone = !isTablet && screenSize.height <= 700;
-  const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.9, 720);
+  const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
+  const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100);
 
   const { isAuthenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -225,10 +226,10 @@ const OnboardingAccountCreationScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
         <View style={OnboardingStyles.innerContainer}>
-          <View style={[styles.logoSection, { width: contentWidth }]}> 
+          <View style={[styles.logoSection, { width: contentWidth }]}>
             <Image
               source={require('../../../assets/icons/siFia-logo-white.png')}
-              style={[styles.logoImage, { width: isVerySmallPhone ? 100 : (isTablet ? 120 : 100), height: isVerySmallPhone ? 100 : (isTablet ? 120 : 100) }]}
+              style={[styles.logoImage, { width: logoSize, height: logoSize }]}
               resizeMode="contain"
             />
           </View>
@@ -289,8 +290,8 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   logoImage: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
   },
   contentSection: {
     flex: 1,

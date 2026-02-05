@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  Image,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,7 +38,7 @@ const OnboardingWhenToOpenSiFiaScreen: React.FC = () => {
   const isTablet = screenSize.width >= 768;
   const isVerySmallPhone = !isTablet && screenSize.height <= 700;
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
-  const logoSize = isVerySmallPhone ? 100 : (isTablet ? 120 : 100);
+  const featuresPadding = isVerySmallPhone ? 12 : 24;
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -210,7 +209,7 @@ const OnboardingWhenToOpenSiFiaScreen: React.FC = () => {
               </ThemedText>
             </View>
 
-            <View style={[styles.featuresList, { paddingHorizontal: isVerySmallPhone ? 12 : 24 }]}>
+            <View style={[styles.featuresList, { paddingHorizontal: featuresPadding }]}>
               {BULLETS.map((text, index) => (
                 <View key={index} style={styles.featureItem}>
                   <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.iconMarginTop} />

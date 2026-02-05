@@ -1400,8 +1400,7 @@ serve(async (req: Request): Promise<Response> => {
       bibleVersion
     );
 
-    // Enforce exact scriptures using BibleGateway scraper for problematic translations
-    // NASB removed from scraping list to prevent timeouts (it doesn't have formatting issues)
+    // Enforce exact scriptures using BibleGateway scraper for problematic translations (NASB now included)
     // Wrap in timeout to prevent function from crashing if scraping takes too long
     try {
       const SCRIPTURE_TIMEOUT_MS = 15000; // 15 seconds max for scripture enforcement

@@ -602,28 +602,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     });
   }, [tooltipOpacity, tooltipTranslateY]);
 
-  const handleDetailsFocus = useCallback(() => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 2,
-      duration: 120,
-      useNativeDriver: false,
-    }).start();
-    if (showTooltip) {
-      Animated.parallel([
-        Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
-      ]).start(() => setShowTooltip(false));
-    }
-  }, [inputBorderWidth, showTooltip, tooltipOpacity, tooltipTranslateY]);
-
-  const handleDetailsBlur = useCallback(() => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 1.5,
-      duration: 120,
-      useNativeDriver: false,
-    }).start();
-  }, [inputBorderWidth]);
-
   const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
       // Small delay helps after layout/keyboard animations
@@ -1230,7 +1208,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           <>
             <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
             <ThemedText style={OnboardingStyles.subtitle}>
-              {'Describe the moment that stayed with you.\nNot the whole story. Just enough to bring it before God.'}
+              {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
             </ThemedText>
           </>
         ) : (
@@ -1374,7 +1352,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             >
               <ThemedText weight="semiBold" style={styles.tooltipKicker}>How siFia can help</ThemedText>
               <ThemedText weight="bold" style={styles.tooltipTitle}>You don't need to explain everything perfectly.</ThemedText>
-              <ThemedText weight="bold" style={[styles.tooltipTitle, { marginTop: 2 }]}>Just share what feels important right now.</ThemedText>
+              <ThemedText weight="bold" style={styles.tooltipTitleSpaced}>Just share what feels important right now.</ThemedText>
               <ThemedText style={styles.tooltipSubtitle}>If it helps, you can mention:</ThemedText>
               <View style={styles.tooltipList}>
                 <View style={styles.tooltipItemRow}>
@@ -1836,6 +1814,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
     marginBottom: 6,
+  },
+  tooltipTitleSpaced: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+    marginTop: 2,
   },
   tooltipKicker: {
     color: 'rgba(255,255,255,0.9)',

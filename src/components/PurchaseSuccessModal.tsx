@@ -112,7 +112,6 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     // Build display names
     const billingCycle = isAnnual ? ' Annual' : '';
-    const baseDisplayName = `siFia ${baseName}${billingCycle}`;
     const canonicalName = `siFia ${planNames[baseTierKey] || baseName}`;
 
     // Get tier features from pricing service (use base tier, not annual variant)
