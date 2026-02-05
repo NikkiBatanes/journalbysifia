@@ -209,7 +209,7 @@ export default function RootStackNavigator({
       <Stack.Screen
         name="OnboardingAccountCreation"
         component={OnboardingAccountCreationScreen as React.ComponentType}
-        options={OnboardingAnimations.pushFromBottom}
+        options={OnboardingAnimations.slideFromRight}
       />
       <Stack.Screen
         name="OnboardingWelcome"

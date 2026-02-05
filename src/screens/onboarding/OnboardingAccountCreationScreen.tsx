@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     ...OnboardingStyles.logoSection,
     alignSelf: 'center',
     paddingHorizontal: 24,
-    marginTop: 24,
+    marginTop: 220,
     marginBottom: 0,
   },
   logoImage: {

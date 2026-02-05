@@ -265,9 +265,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Title */}
         <View style={dynamicStyles.titleContainer}>
           <ThemedText weight="bold" style={dynamicStyles.title}>Create an Account</ThemedText>
-          <ThemedText style={dynamicStyles.subtitle}>
-            {'Join siFia: A quiet companion for faithful living'}
-          </ThemedText>
         </View>
 
         {/* Inline Error Banner */}
