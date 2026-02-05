@@ -8,7 +8,6 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
@@ -226,21 +225,12 @@ const OnboardingAccountCreationScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
         <View style={OnboardingStyles.innerContainer}>
-          <View style={[styles.logoSection, { width: contentWidth }]}>
+          <View style={[styles.logoSection, { width: contentWidth }]}> 
             <Image
               source={require('../../../assets/icons/siFia-logo-white.png')}
               style={[styles.logoImage, { width: isVerySmallPhone ? 100 : (isTablet ? 120 : 100), height: isVerySmallPhone ? 100 : (isTablet ? 120 : 100) }]}
               resizeMode="contain"
             />
-
-            <View style={styles.animationContainer}>
-              <Lottie
-                source={require('../../../assets/animations/Jesus walking on water.json')}
-                autoPlay
-                loop
-                style={styles.animation}
-              />
-            </View>
           </View>
 
           <View style={[styles.contentSection, { width: contentWidth }]}>
@@ -301,21 +291,6 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 120,
     height: 120,
-  },
-  animationContainer: {
-    width: '100%',
-    aspectRatio: 1.2,
-    maxHeight: 320,
-    marginTop: -OnboardingSpacing.xxxl,
-    marginBottom: 0,
-    alignSelf: 'center',
-    overflow: 'visible',
-  },
-  animation: {
-    width: '115%',
-    height: '115%',
-    alignSelf: 'center',
-    transform: [{ scale: 1.05 }],
   },
   contentSection: {
     flex: 1,
