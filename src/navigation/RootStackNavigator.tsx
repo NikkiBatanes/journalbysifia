@@ -204,7 +204,7 @@ export default function RootStackNavigator({
       <Stack.Screen
         name="OnboardingPosture"
         component={OnboardingPostureScreen as React.ComponentType}
-        options={OnboardingAnimations.pushFromBottom}
+        options={OnboardingAnimations.crossDissolve}
       />
       <Stack.Screen
         name="OnboardingAccountCreation"

@@ -129,9 +129,9 @@ const OnboardingWhenToOpenSiFiaScreen: React.FC = () => {
     animationContainer: {
       width: '100%',
       aspectRatio: 1.2,
-      maxHeight: isVerySmallPhone ? 240 : (isTablet ? 380 : 320),
-      marginTop: isVerySmallPhone ? OnboardingSpacing.xxxl : -OnboardingSpacing.xxxl,
-      marginBottom: 0,
+      maxHeight: isVerySmallPhone ? 230 : (isTablet ? 320 : 280),
+      marginTop: isVerySmallPhone ? OnboardingSpacing.xxxl + 40 : -OnboardingSpacing.xxxl + 40,
+      marginBottom: isVerySmallPhone ? -OnboardingSpacing.md : -OnboardingSpacing.lg,
       alignSelf: 'center',
       overflow: 'visible',
       transform: isVerySmallPhone ? [{ translateY: -70 }] : [],
@@ -193,15 +193,9 @@ const OnboardingWhenToOpenSiFiaScreen: React.FC = () => {
           ]}
         >
           <View style={dynamicStyles.logoSection}>
-            <Image
-              source={require('../../../assets/icons/siFia-logo-white.png')}
-              style={[styles.logoImage, { width: logoSize, height: logoSize }]}
-              resizeMode="contain"
-            />
-
             <View style={dynamicStyles.animationContainer}>
               <Lottie
-                source={require('../../../assets/animations/Jesus walking on water.json')}
+                source={require('../../../assets/animations/JC 5.json')}
                 autoPlay
                 loop
                 style={styles.animation}
@@ -254,10 +248,10 @@ const styles = StyleSheet.create({
   container: OnboardingStyles.container,
   content: OnboardingStyles.content,
   animation: {
-    width: '115%',
-    height: '115%',
+    width: '110%',
+    height: '110%',
     alignSelf: 'center',
-    transform: [{ scale: 1.05 }],
+    transform: [{ scale: 1.02 }],
   },
   logoImage: {
     overflow: 'hidden',
@@ -266,6 +260,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -OnboardingSpacing.md,
   },
   textContainer: {
     width: '100%',
