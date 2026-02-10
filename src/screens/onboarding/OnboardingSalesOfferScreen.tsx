@@ -1501,7 +1501,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                             : fromExportRestriction
                               ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
                               : routeParams?.onboardingFlow
-                                ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care — again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
+                                ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care. Again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
                                 : 'Gentle structure for faithful living'}
           </ThemedText>
 

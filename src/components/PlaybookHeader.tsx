@@ -171,7 +171,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                   <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
                 </View>
                 <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
-                  {completedTasks}/{totalTasks} Steps
+                  {completedTasks}/{totalTasks} Steps Explored
                 </ThemedText>
 
                 {showToggle && onToggleView && (
@@ -348,7 +348,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   progressBarBg: {
-    flex: 1,
+    flex: 0,
+    width: 150,
     height: 12,
     borderRadius: 6,
     overflow: 'hidden',
@@ -362,7 +363,8 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     // fontFamily handled by ThemedText weight="semiBold"
-    marginLeft: 8,
+    marginLeft: 0,
+    marginRight: 8,
     minWidth: 80,
   },
   toggleRow: {

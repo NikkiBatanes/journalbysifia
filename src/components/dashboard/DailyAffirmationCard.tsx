@@ -350,7 +350,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
     }
   };
 
-  const titleCopy = affirmations.length > 1 ? "TODAY'S DECLARATIONS" : "TODAY'S DECLARATION";
+  const titleCopy = affirmations.length > 1 ? "TODAY'S WORDS TO REFLECT ON" : "TODAY'S WORD TO REFLECT ON";
 
   if (loading) {
     return <DashboardAffirmationSkeleton />;

@@ -1643,6 +1643,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
               progress={progress}
               completedTasks={completedTasksCount}
               totalTasks={totalTasksCount}
+              alignTasksLeft
               showToggle={true}
               viewMode={viewMode}
               onToggleView={(mode: 'stack' | 'document') => {
@@ -1668,6 +1669,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                 progress={progress}
                 completedTasks={completedTasksCount}
                 totalTasks={totalTasksCount}
+                alignTasksLeft
                 showToggle={true}
                 viewMode={viewMode}
                 onToggleView={(mode: 'stack' | 'document') => {
