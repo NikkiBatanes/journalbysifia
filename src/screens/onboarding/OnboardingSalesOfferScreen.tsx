@@ -1555,7 +1555,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   style={styles.growthPlanToggleRow}
                 >
                   <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
-                    About the Growth plan
+                    About the Spark plan
                   </ThemedText>
                   <Ionicons
                     name={isAboutGrowthExpanded ? 'chevron-up' : 'chevron-down'}
@@ -1566,16 +1566,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 {isAboutGrowthExpanded && (
                   <>
                     <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      The Growth plan is for seasons where decisions, emotions, and faith feel intertwined.
+                      The Spark plan is for everyday moments when you want gentle structure without pressure.
                     </ThemedText>
                     <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      {'\n'}It offers continued access to playbooks and devotionals, so you don’t have to start from scratch each time something arises.
+                      {'\n'}It gives you continued access to playbooks and devotionals, so you can return when situations resurface instead of starting over each time.
                     </ThemedText>
                     {shouldUseTrialProduct && (
                       <>
                         <View style={styles.trialDivider} />
                         <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign, styles.additionalFollowupText]}>
-                          After the trial, the Growth plan includes access to a monthly set of guided playbooks and devotionals.
+                          After the trial, the Spark plan includes access to a monthly set of guided playbooks and devotionals.
                         </ThemedText>
                       </>
                     )}
