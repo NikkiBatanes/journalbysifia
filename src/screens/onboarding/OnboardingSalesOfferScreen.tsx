@@ -310,6 +310,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
+        // Filter to only show Spark tier in onboarding flow
+        if (routeParams?.onboardingFlow) {
+          tiers = tiers.filter(t => t.id === 'spark');
+          logger.debug('Filtered to only show Spark tier for onboarding flow', {
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
         // Filter out Spark tier if coming from Growth+ only features
         if (fromGrowthOnlyFeature) {
           tiers = tiers.filter(t => t.id !== 'spark');
