@@ -1447,7 +1447,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
-                  ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
+                  ? 'Gently prepare for what’s ahead with guided journaling, playbooks, and devotionals.'
                   : fromCopyTodosLock
                     ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
@@ -1612,24 +1612,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               // Onboarding benefits (limit to 3, aligned copy)
               fromPlanningLock ? (
                 <>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      Plan days ahead with clear focus, to-dos, and time blocks.
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      Stay consistent with guided journaling that builds faithful rhythms.
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      Gain momentum with personalized playbooks and devotionals.
-                    </ThemedText>
-                  </View>
+                  <ThemedText style={styles.featureBulletLabel}>
+                  With Plan Ahead, you can:
+                </ThemedText>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Prepare for upcoming days without rushing or pressure
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Hold decisions and to-dos in a calm, prayerful structure
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Build steady rhythms through guided journaling
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Return to playbooks and devotionals as situations unfold
+                  </ThemedText>
+                </View>
                 </>
               ) : fromCopyTodosLock ? (
                 <>
@@ -2093,6 +2102,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  featureBulletLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
   },
   exportGrowthSection: {
     marginTop: 16,
