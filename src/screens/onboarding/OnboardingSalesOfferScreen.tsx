@@ -103,9 +103,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const initialSelectedTier = (route.params as any)?.forceTransformationAnnual ? 'transformation' :
                               (route.params as any)?.forceAnnualOnly ? currentUserTier :
                               isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
+                              (route.params as any)?.selectedTier ? (route.params as any).selectedTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
-                              (route.params as any)?.selectedTier || 'spark'; // Use passed selectedTier or default to spark
+                              'spark'; // Default to spark
 
   // Debug logging
   logger.debug('Sales offer screen debug', {
