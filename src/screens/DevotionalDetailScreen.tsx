@@ -53,6 +53,7 @@ import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDet
 import { pdfExportService } from '../utils/pdfExportService';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Alert } from 'react-native';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
@@ -957,8 +958,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 if (!pdfExportAccess.hasAccess) {
                   const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
                   Alert.alert(
-                    upgradePrompt?.title || 'Upgrade Required',
-                    upgradePrompt?.message || 'PDF export is available with Growth and Transformation plans.',
+                    upgradePrompt?.title || PDF_EXPORT_UPGRADE_PROMPT.title,
+                    upgradePrompt?.message || PDF_EXPORT_UPGRADE_PROMPT.message,
                     [
                       { text: 'Maybe Later', style: 'cancel' },
                       {

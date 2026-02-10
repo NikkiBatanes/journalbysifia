@@ -78,6 +78,7 @@ import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 import { Alert } from 'react-native';
 
 // Navigation types
@@ -1332,8 +1333,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     if (!pdfExportAccess.hasAccess) {
       const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
       Alert.alert(
-        upgradePrompt?.title || 'Upgrade Required',
-        upgradePrompt?.message || 'PDF export is available with Growth and Transformation plans.',
+        upgradePrompt?.title || PDF_EXPORT_UPGRADE_PROMPT.title,
+        upgradePrompt?.message || PDF_EXPORT_UPGRADE_PROMPT.message,
         [
           { text: 'Maybe Later', style: 'cancel' },
           {

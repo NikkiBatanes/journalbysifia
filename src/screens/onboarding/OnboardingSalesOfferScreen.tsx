@@ -1603,24 +1603,30 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {!routeParams?.onboardingFlow && (
           <View style={styles.featuresSection}>
             {isUpgradeMode ? (
-              // Upgrade mode benefits (pastoral, limit to 3)
+              // Upgrade mode benefits (pastoral, limit to 4)
               <>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Devotionals at the pace you’re ready for—longer paths when you want to linger.
+                    Ongoing playbooks for moments that return
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    More monthly devotionals and playbooks to support steady, faithful rhythms.
+                    Devotionals that meet you where you are
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Simple, guided journaling tools to help you hear and respond to God.
+                    A steady structure for prayer, reflection and next steps
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Space to journal honestly and respond with wisdom
                   </ThemedText>
                 </View>
               </>

@@ -30,6 +30,12 @@ export interface TierRestriction {
   featureFlag?: keyof SubscriptionLimits;
 }
 
+export const PDF_EXPORT_UPGRADE_PROMPT = {
+  title: 'Save this reflection as a PDF',
+  message:
+    'Export your playbooks and devotionals as PDF files so you can revisit them offline, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans, designed for seasons where you want more space to reflect and return.',
+};
+
 class TierRestrictionService {
   private restrictions: TierRestriction[] = [
     // Export features - Growth tier and above only
@@ -413,8 +419,8 @@ class TierRestrictionService {
 
     if (isExportFeature) {
       return {
-        title: `Unlock ${featureName}`,
-        message: `Export your playbooks and devotionals as ${feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`,
+        title: PDF_EXPORT_UPGRADE_PROMPT.title,
+        message: PDF_EXPORT_UPGRADE_PROMPT.message,
         cta: 'Upgrade to Growth',
         recommendedTier: requiredTier,
       };
