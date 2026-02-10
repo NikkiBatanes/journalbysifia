@@ -291,7 +291,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const getUpgradeButtonText = () => {
     switch (tierBase) {
       case 'seeker':
-        return 'Avail Plan';
+        return 'Continue with siFia';
       case 'spark':
         return 'Upgrade Plan';
       case 'growth':
