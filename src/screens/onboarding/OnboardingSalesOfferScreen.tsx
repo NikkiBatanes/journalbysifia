@@ -400,9 +400,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
             if (!chosen) {
               const popularTier = tiers.find(t => (t as any).isPopular === true);
-              const sparkTier = tiers.find(t => t.id === 'spark');
               const growthTier = tiers.find(t => t.id === 'growth');
-              chosen = popularTier || sparkTier || growthTier || tiers[0];
+              chosen = popularTier || growthTier || tiers[0];
             }
             setSelectedTier(chosen.id);
           }

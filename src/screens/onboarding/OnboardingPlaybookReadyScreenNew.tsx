@@ -436,6 +436,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     navigation.navigate('OnboardingSalesOffer' as any, {
       onboardingFlow: true,
       skipNotificationPreference: false,
+      selectedTier: 'spark',
     });
   }, [navigation]);
 
