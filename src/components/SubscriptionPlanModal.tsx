@@ -119,11 +119,11 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'seeker':
         return {
           name: 'siFia Seeker',
-          description: 'Free access to basic features',
+          description: 'Free access',
           features: [
-            'Access to basic journaling tools',
-            'Access to generated Playbooks',
-            'Access to generated Devotionals',
+            'Basic journaling for personal reflection',
+            'A quiet space to write and process your thoughts',
+            'Explore siFia’s approach to discernment',
           ],
           limits: {
             playbooks: 2,
