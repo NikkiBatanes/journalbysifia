@@ -1470,7 +1470,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           : fromSmartJournalingLock
                             ? 'Upgrade to Unlock Smart Journaling'
                             : fromExportRestriction
-                              ? `Unlock ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                              ? 'Save your reflection as a PDF'
                               : (route.params as any)?.forceTransformationAnnual
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
@@ -1499,11 +1499,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           : fromSmartJournalingLock
                             ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
                             : fromExportRestriction
-                              ? `Export your playbooks and devotionals as ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} documents. Available exclusively with Growth or Transformation plans.`
+                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
                               : routeParams?.onboardingFlow
                                 ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care. Again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
                                 : 'Gentle structure for faithful living'}
           </ThemedText>
+          {fromExportRestriction && (
+            <View style={styles.exportGrowthSection}>
+              <ThemedText weight="semiBold" style={styles.exportGrowthTitle}>
+                What Growth includes
+              </ThemedText>
+              {[
+                'More playbooks and devotionals for ongoing situations',
+                'Smart journaling to help you reflect and notice patterns',
+                'Gentle guidance for faithful next steps',
+                'A consistent space to return when moments resurface',
+              ].map((item) => (
+                <View key={item} style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>{item}</ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
           {routeParams?.onboardingFlow && (
@@ -1691,40 +1709,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     </ThemedText>
                   </View>
                 </>
-              ) : (
-                <>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      <ThemedText weight="semiBold">Personalized playbooks & devotionals:</ThemedText> Guidance at a pace that fits you
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      <ThemedText weight="semiBold">Smart journaling tools:</ThemedText> Reflect, track, and celebrate progress
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      <ThemedText weight="semiBold">Flexible daily guidance:</ThemedText> Take one faithful step at a time
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      <ThemedText weight="semiBold">Spiritual growth made practical:</ThemedText> Turn reflection into action
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureBullet}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.bulletText}>
-                      <ThemedText weight="semiBold">Your journey, your pace:</ThemedText> Designed for real-life application
-                    </ThemedText>
-                  </View>
-                </>
-              )
+              ) : null
             )}
           </View>
           )}
@@ -2151,6 +2136,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  exportGrowthSection: {
+    marginTop: 16,
+    padding: 0,
+  },
+  exportGrowthTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+    color: Colors.hopeWhite,
   },
   bulletText: {
     fontSize: 14,
