@@ -1212,47 +1212,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             ]}
           />
         )}
-        {(() => {
-          const isCurrentPaidTier = tier.id === currentUserTier && currentUserTier !== 'seeker';
-
-          // Check if this tier matches the user's current billing period
-          const userSubscription = devotionalGating.subscription;
-          const userIsAnnual = userSubscription?.tier?.includes('_annual') || false;
-          const tierMatchesBillingPeriod = isAnnual === userIsAnnual;
-
-          // Show "Your Plan" for current paid tier AND correct billing period
-          if (isCurrentPaidTier && tierMatchesBillingPeriod) {
-            return (
-              <View style={styles.popularBadge}>
-                <ThemedText weight="semiBold" style={styles.popularText}>YOUR PLAN</ThemedText>
-              </View>
-            );
-          }
-
-          // Hide Popular badge when coming from profile AND user has paid plan
-          // (but still show Popular for Seeker users)
-          if (isFromProfile && currentUserTier !== 'seeker') {
-            return null;
-          }
-
-          // Hide Popular badge when forcing Transformation annual (only one tier shown)
-          if ((route.params as any)?.forceTransformationAnnual) {
-            return null;
-          }
-
-          // Hide Popular badge when forcing annual only (only one tier shown)
-          if ((route.params as any)?.forceAnnualOnly) {
-            return null;
-          }
-
-          // Show Popular badge in other contexts
-          const shouldShowPopular = tier.isPopular || (tier.id === 'transformation' && !growthVisible);
-          return shouldShowPopular ? (
-            <View style={styles.popularBadge}>
-              <ThemedText weight="semiBold" style={styles.popularText}>POPULAR</ThemedText>
-            </View>
-          ) : null;
-        })()}
+        {null}
 
         <View style={styles.cardHeader}>
           <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
@@ -1824,9 +1784,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               return (
                 <>
-                  {tier.id === 'growth' && (
-                    <ThemedText style={styles.footerPriceBadge}>⭐ MOST CHOSEN</ThemedText>
-                  )}
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
                     {`${symbol}${formatValue(annualPrice)}/year`}
                   </ThemedText>
