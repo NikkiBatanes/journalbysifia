@@ -400,8 +400,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
             if (!chosen) {
               const popularTier = tiers.find(t => (t as any).isPopular === true);
-              const growthTier = tiers.find(t => t.id === 'growth');
-              chosen = popularTier || growthTier || tiers[0];
+              const sparkTier = tiers.find(t => t.id === 'spark');
+              chosen = popularTier || sparkTier || tiers[0];
             }
             setSelectedTier(chosen.id);
           }
@@ -1177,7 +1177,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // Only highlight the currently selected tier, not always the growth tier
     const isFocused = isSelected; // Remove hardcoded growth tier focus
     const isExpanded = expandedCards.has(tier.id);
-    const growthVisible = pricingTiers.some(t => t.id === 'growth');
 
     return (
       <View key={tier.id} style={styles.cardWrapper}>
