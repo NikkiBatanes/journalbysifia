@@ -325,33 +325,34 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     newMomentCardContainer: {
       marginBottom: 24,
-      marginTop: 8,
+      marginTop: 16,
     },
     newMomentCardContent: {
       backgroundColor: 'transparent',
       borderRadius: 12,
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 0,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 12,
-    },
-    newMomentCardTitle: {
-      fontSize: 12,
-      letterSpacing: 0.8,
-      color: Colors.hopeWhite,
-      textAlign: 'center',
-      textTransform: 'uppercase',
     },
     newMomentInnerCard: {
       backgroundColor: 'rgba(255, 255, 255, 0.06)',
       borderRadius: 30,
-      paddingVertical: 20,
+      paddingVertical: 24,
       paddingHorizontal: 24,
       borderWidth: 1,
       borderColor: Colors.cardBorder,
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
+      gap: 16,
+    },
+    newMomentPrompt: {
+      color: Colors.anchorBlue,
+      fontSize: 20,
+      textAlign: 'center',
+      letterSpacing: 0.5,
+      lineHeight: 24,
     },
     newMomentButton: {
       backgroundColor: 'transparent',
@@ -1372,8 +1373,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Playbooks Section - Only show when user has playbooks */}
           <View style={styles.newMomentCardContainer}>
             <View style={styles.newMomentCardContent}>
-              <ThemedText weight="semiBold" style={styles.newMomentCardTitle}>START A NEW MOMENT</ThemedText>
               <View style={styles.newMomentInnerCard}>
+                <ThemedText weight="medium" style={styles.newMomentPrompt}>What moment are you carrying right now?</ThemedText>
                 <TouchableOpacity
                   style={styles.newMomentButton}
                   activeOpacity={0.7}
