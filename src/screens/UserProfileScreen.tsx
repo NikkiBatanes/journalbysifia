@@ -2455,6 +2455,11 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     flex: 1,
   },
+  streakSection: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
   headerWrapper: {
     // extra space so the header isn't cut by the notch
     paddingTop: 18,

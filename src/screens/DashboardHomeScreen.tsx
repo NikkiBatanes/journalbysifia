@@ -42,8 +42,6 @@ import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 
-import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
-import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
 import PlaybookCarousel from '../components/dashboard/PlaybookCarousel';
 import DevotionalCarousel from '../components/dashboard/DevotionalCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -69,19 +67,6 @@ import { useNotificationBadge } from '../hooks/useNotificationBadge';
 
 const { width } = Dimensions.get('window');
 
-// Motivational texts that rotate
-const MOTIVATIONAL_TEXTS = [
-  "Let's grow in faith today",
-  'Grow closer to God today with faith in action',
-  'Transform your faith into action today',
-  'Walk boldly in His purpose for you',
-  'Let His love guide your steps today',
-  'Embrace His grace in every moment',
-  'Find strength in His promises today',
-  'Let faith be your compass today',
-  'Discover His plan through prayer and action',
-  'Trust His timing, embrace His calling',
-];
 
 interface DashboardHomeScreenProps {
   navigation: any;
@@ -821,11 +806,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   }, [user?.id, subscription?.tier, queryClient]); // Re-run when cached subscription changes
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
-  const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
   const [hasPlaybooks, setHasPlaybooks] = useState(true); // Track if user has playbooks
   const [hasDevotionals, setHasDevotionals] = useState(true); // Track if user has devotionals
-  const [hasScripture, setHasScripture] = useState(true); // Track if scripture is shown
-  const [hasAffirmations, setHasAffirmations] = useState(true); // Track if affirmations are shown
   // Reflection Questions state
   const [selectedReflection, setSelectedReflection] = useState<{
     question: string;
@@ -984,14 +966,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     user?.email?.split('@')[0] ||
     'Friend';
 
-  // Set daily motivational text based on current date
-  useEffect(() => {
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    const textIndex = dayOfYear % MOTIVATIONAL_TEXTS.length;
-    setCurrentMotivationalText(textIndex);
-  }, []);
-
   // Removed auto-expand animation on mount/focus for floating button per UX update
 
   useFocusEffect(
@@ -1043,16 +1017,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     const onDevotionalCreated = () => {
       // Show devotionals section when new devotional is created
       setHasDevotionals(true);
-      // Devotionals contain scripture, so show scripture section
-      setHasScripture(true);
     };
 
     const onPlaybookCreated = () => {
       // Show playbooks section when new playbook is created
       setHasPlaybooks(true);
-      // Playbooks contain scripture and affirmations, so show both sections
-      setHasScripture(true);
-      setHasAffirmations(true);
     };
 
     const subDevotional = DeviceEventEmitter.addListener('devotional_created', onDevotionalCreated);
@@ -1458,7 +1427,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     <View style={styles.greetingSection}>
       <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</ThemedText>
       <ThemedText weight="semiBold" style={styles.motivationalText}>
-        {MOTIVATIONAL_TEXTS[currentMotivationalText]}
+        What moment are you carrying right now?
       </ThemedText>
     </View>
   );
@@ -1551,46 +1520,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.pageInner}>
-          {hasScripture && (
-            <>
-              <DailyBibleVerseCard
-                onRefresh={() => setRefreshing(true)}
-                onEmpty={() => setHasScripture(false)}
-                onLongPress={(content) => {
-                  setJournalSelectorContent(content);
-                  setSelectedReflection({
-                    question: content,
-                    source: 'Today\'s Scripture',
-                    sourceType: 'playbook',
-                  });
-                  setShowJournalTypeSelector(true);
-                }}
-              />
-              <View style={styles.sectionGap} />
-            </>
-          )}
+          {/* Today’s Scripture removed */}
 
-          {/* Row 1: Inspiration Cards (Affirmation only) - Hide when empty to prevent gap */}
-          {hasAffirmations && (
-            <>
-              <View style={styles.row}>
-                <DailyAffirmationCard
-                  onRefresh={() => setRefreshing(true)}
-                  onEmpty={() => setHasAffirmations(false)}
-                  onLongPress={(content) => {
-                    setJournalSelectorContent(content);
-                    setSelectedReflection({
-                      question: content,
-                      source: 'Today\'s Declaration',
-                      sourceType: 'playbook',
-                    });
-                    setShowJournalTypeSelector(true);
-                  }}
-                />
-              </View>
-              <View style={styles.sectionGap} />
-            </>
-          )}
+          {/* Today’s Word to Reflect On removed */}
 
           {/* Prayer Requests Section (hide when empty) */}
           {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
