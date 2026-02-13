@@ -348,7 +348,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       gap: 16,
     },
     newMomentPrompt: {
-      color: Colors.anchorBlue,
+      color: Colors.hopeWhite,
       fontSize: 20,
       textAlign: 'center',
       letterSpacing: 0.5,
