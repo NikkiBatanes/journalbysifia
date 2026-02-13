@@ -482,6 +482,8 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 999,
     zIndex: 100,
   },
   playbookLabelContainer: {
