@@ -1389,6 +1389,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               </View>
             </View>
           </View>
+          <View style={styles.sectionGap} />
           {hasContent && (
             <>
               {/* Collapsing Playbook label */}
