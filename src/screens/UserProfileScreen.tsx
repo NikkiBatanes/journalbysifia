@@ -37,6 +37,7 @@ import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsE
 import { accountDeletionService } from '../services/accountDeletionService';
 import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
 import { UserProgress, UserPreferences } from '../types/auth';
+import StreakTracker from '../components/dashboard/StreakTracker';
 // Types for subscription - using inline types to avoid import issues
 interface Subscription {
   id: string;
@@ -2393,7 +2394,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          {/* Badges removed from main container */}
+          <View style={styles.streakSection}>
+            <StreakTracker />
+          </View>
           {renderSubscriptionSection()}
           {renderMenuOptions()}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
@@ -3112,6 +3115,7 @@ const styles = StyleSheet.create({
   countersRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 8,
   },
   counterCard: {
     backgroundColor: Colors.modalBlue,
@@ -3151,7 +3155,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 8,
     width: '82%',
-    alignSelf: 'center',
   },
   progressValue: {
     height: 8,

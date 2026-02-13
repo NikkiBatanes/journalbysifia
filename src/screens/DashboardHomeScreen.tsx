@@ -56,7 +56,6 @@ import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
 import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTypeSelectorTooltip';
 
-import StreakTracker from '../components/dashboard/StreakTracker';
 // Removed WeeklyInsights and AIInsights
 // Removed AsyncStorage (unused)
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
@@ -1552,11 +1551,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.pageInner}>
-          {/* Progress Tracking - moved above Today's Scripture */}
-          <StreakTracker />
-          <View style={styles.smallSectionGap} />
-
-          {/* Daily Scripture - now below Streak Tracker - Hide when empty */}
           {hasScripture && (
             <>
               <DailyBibleVerseCard
