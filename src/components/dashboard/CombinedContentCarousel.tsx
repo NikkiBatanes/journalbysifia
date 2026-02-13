@@ -80,6 +80,20 @@ interface DevotionalContent extends BaseContent {
 
 type CombinedContent = PlaybookContent | DevotionalContent;
 
+const normalizeDayTitle = (title?: string | null): string | undefined => {
+  if (!title) { return undefined; }
+  const trimmed = title.trim();
+  if (!trimmed) { return undefined; }
+  const upper = trimmed.toUpperCase();
+  if (upper.startsWith('CATEGORY:')) {
+    const parts = trimmed.split(':');
+    parts.shift();
+    const remainder = parts.join(':').trim();
+    return remainder || undefined;
+  }
+  return trimmed;
+};
+
 interface CombinedContentCarouselProps {
   onPlaybookPress?: (playbook: PlaybookContent) => void;
   onDevotionalPress?: (devotional: DevotionalContent) => void;
@@ -332,9 +346,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const dayEntry = days[currentDay - 1];
                 const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
                 nextDayNumber = currentDay;
-                nextDayTitle = (dayEntry?.title && typeof dayEntry.title === 'string')
-                  ? dayEntry.title
-                  : `Day ${currentDay}`;
+                const rawDayTitle = typeof dayEntry?.title === 'string' ? dayEntry.title : undefined;
+                const cleanedTitle = normalizeDayTitle(rawDayTitle);
+                nextDayTitle = cleanedTitle || `Day ${currentDay}`;
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
                   estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
