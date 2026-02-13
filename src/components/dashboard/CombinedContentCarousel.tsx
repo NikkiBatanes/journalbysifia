@@ -880,9 +880,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="view-carousel" size={24} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.title}>Continue Your Journey</ThemedText>
+      <View style={styles.headerCenter}>
+        <ThemedText weight="semiBold" style={styles.title}>CONTINUE YOUR JOURNEY</ThemedText>
       </View>
 
       {error ? (
@@ -945,16 +944,18 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     paddingHorizontal: 16,
   },
-  header: {
-    flexDirection: 'row',
+  headerCenter: {
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
-    gap: 8,
   },
   title: {
-    fontSize: 18,
+    fontSize: 12,
     color: Colors.hopeWhite,
-    flex: 1,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   viewAllButtons: {
     flexDirection: 'row',
