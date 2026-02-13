@@ -333,10 +333,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderRadius: 12,
       borderWidth: 1,
       borderColor: Colors.hopeWhite,
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     newMomentButtonText: {
       color: Colors.hopeWhite,
       letterSpacing: 0.5,
+    },
+    newMomentButtonIcon: {
+      marginRight: 8,
     },
     actionsHeaderContainer: {
       alignItems: 'center',
@@ -1340,12 +1345,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <View style={styles.newMomentCtaContainer}>
             <TouchableOpacity
               style={styles.newMomentButton}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
                 navigation.navigate('UserInput');
               }}
             >
+              <MaterialCommunityIcons name="pencil" size={18} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
               <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
             </TouchableOpacity>
           </View>
