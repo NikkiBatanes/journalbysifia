@@ -14,7 +14,6 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -84,16 +83,12 @@ type CombinedContent = PlaybookContent | DevotionalContent;
 interface CombinedContentCarouselProps {
   onPlaybookPress?: (playbook: PlaybookContent) => void;
   onDevotionalPress?: (devotional: DevotionalContent) => void;
-  onViewAllPlaybooks?: () => void;
-  onViewAllDevotionals?: () => void;
   onEmpty?: () => void;
 }
 
 const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   onPlaybookPress,
   onDevotionalPress,
-  onViewAllPlaybooks,
-  onViewAllDevotionals,
   onEmpty,
 }) => {
   const { user } = useAuth();
@@ -410,9 +405,18 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         })
       );
 
+      // Filter out completed items and limit to 3 of each type
+      const activePlaybooks = playbooksWithProgress
+        .filter(p => p.progress < 100)
+        .slice(0, 3);
+
+      const activeDevotionals = devotionalsWithStatus
+        .filter(d => !d.isCompleted)
+        .slice(0, 3);
+
       const combined: CombinedContent[] = [
-        ...playbooksWithProgress,
-        ...devotionalsWithStatus,
+        ...activePlaybooks,
+        ...activeDevotionals,
       ].sort((a, b) => {
         const aDate = new Date(a.lastAccessed || 0).getTime();
         const bDate = new Date(b.lastAccessed || 0).getTime();
@@ -704,7 +708,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ]}
         >
           <View style={styles.typeIndicator}>
-            <Ionicons name="book" size={16} color={Colors.faithGold} />
+            <MaterialCommunityIcons name="book" size={16} color={Colors.faithGold} />
             <ThemedText weight="semiBold" style={styles.typeText}>DEVOTIONAL</ThemedText>
           </View>
 
@@ -748,7 +752,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             <View style={styles.nextDayInfo}>
               {devotional.nextDayNumber && devotional.nextDayTitle && (
                 <ThemedText weight="medium" style={styles.nextDayText}>
-                  Next: {devotional.nextDayTitle}
+                  Next: Day {devotional.nextDayNumber} - {devotional.nextDayTitle}
                 </ThemedText>
               )}
               <ThemedText style={styles.durationText}>
@@ -804,40 +808,11 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     return <DashboardPlaybookSkeleton />;
   }
 
-  const playbookCount = content.filter(c => c.type === 'playbook').length;
-  const devotionalCount = content.filter(c => c.type === 'devotional').length;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="view-carousel" size={24} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.title}>Your Content</ThemedText>
-        {content.length > 1 && (
-          <View style={styles.viewAllButtons}>
-            {playbookCount > 1 && (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  onViewAllPlaybooks?.();
-                }}
-                style={styles.viewAllButton}
-              >
-                <ThemedText weight="medium" style={styles.viewAllText}>PLAYBOOKS</ThemedText>
-              </TouchableOpacity>
-            )}
-            {devotionalCount > 1 && (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  onViewAllDevotionals?.();
-                }}
-                style={styles.viewAllButton}
-              >
-                <ThemedText weight="medium" style={styles.viewAllText}>DEVOTIONALS</ThemedText>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        <ThemedText weight="semiBold" style={styles.title}>Continue Your Journey</ThemedText>
       </View>
 
       {error ? (

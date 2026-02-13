@@ -324,21 +324,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     newMomentCtaContainer: {
       marginBottom: 12,
-      alignItems: 'flex-start',
+      alignItems: 'center',
     },
     newMomentButton: {
-      backgroundColor: Colors.faithGold,
+      backgroundColor: 'transparent',
       paddingVertical: 12,
       paddingHorizontal: 20,
       borderRadius: 12,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 10,
-      elevation: 3,
+      borderWidth: 1,
+      borderColor: Colors.hopeWhite,
     },
     newMomentButtonText: {
-      color: Colors.anchorBlue,
+      color: Colors.hopeWhite,
       letterSpacing: 0.5,
     },
     actionsHeaderContainer: {
@@ -1337,14 +1334,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Today’s Word to Reflect On removed */}
 
-          {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-            <>
-              {renderPrayerRequestsCard()}
-              <View style={styles.sectionGap} />
-            </>
-          )}
-
           {/* Removed Weekly Insights and AI Insights */}
 
           {/* Playbooks Section - Only show when user has playbooks */}
@@ -1376,7 +1365,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                     }}
                     style={styles.playbookLabel}
                   >
-                    Your Content
+                    Continue Your Journey
                   </ThemedText>
                 </Animated.View>
               </View>
@@ -1390,16 +1379,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   triggerLightHaptic();
                   navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
                 }}
-                onViewAllPlaybooks={() => {
-                  triggerLightHaptic();
-                  navigation.navigate('Playbooks');
-                }}
-                onViewAllDevotionals={() => {
-                  triggerLightHaptic();
-                  navigation.navigate('Devotionals');
-                }}
                 onEmpty={() => setHasContent(false)}
               />
+              <View style={styles.sectionGap} />
+            </>
+          )}
+
+          {/* Prayer Requests Section (hide when empty) */}
+          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
+            <>
+              {renderPrayerRequestsCard()}
               <View style={styles.sectionGap} />
             </>
           )}
