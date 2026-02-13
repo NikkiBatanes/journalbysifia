@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    left: 20,
+    right: 76,
     width: 40,
     height: 40,
     justifyContent: 'center',
