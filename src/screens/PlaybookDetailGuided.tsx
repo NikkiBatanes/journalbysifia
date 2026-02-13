@@ -21,7 +21,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { Colors } from '../theme/colors';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
-import { triggerLightHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 
 // Components
 import ThemedText from '../components/common/ThemedText';
@@ -334,6 +334,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       <TouchableOpacity
         onPress={() => {
           triggerLightHaptic();
+          triggerMediumHaptic();
           navigation.goBack();
         }}
         style={[styles.closeButton, { top: insets.top + 10 }]}
