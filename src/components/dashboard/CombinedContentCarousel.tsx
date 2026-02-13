@@ -757,7 +757,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 </>
               )}
               <View style={styles.durationRow}>
-                <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.hopeWhite} />
+                <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textGray} />
                 <ThemedText style={styles.durationText}>
                   {devotional.estimatedDuration} min read
                 </ThemedText>
