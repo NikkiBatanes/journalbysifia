@@ -80,19 +80,67 @@ interface DevotionalContent extends BaseContent {
 
 type CombinedContent = PlaybookContent | DevotionalContent;
 
-const normalizeDayTitle = (title?: string | null): string | undefined => {
+interface NormalizeDayTitleOptions {
+  dayNumber?: number;
+  category?: string;
+}
+
+const normalizeDayTitle = (title?: string | null, options: NormalizeDayTitleOptions = {}): string | undefined => {
+  const { dayNumber, category } = options;
   if (!title) { return undefined; }
-  const trimmed = title.trim();
-  if (!trimmed) { return undefined; }
-  let cleaned = trimmed.replace(/^DAY\s*\d+[:.-]?\s*/i, '').trim();
+
+  const collapseWhitespace = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+  let cleaned = collapseWhitespace(title);
   if (!cleaned) { return undefined; }
-  const upper = cleaned.toUpperCase();
-  if (upper.startsWith('CATEGORY:')) {
-    const parts = cleaned.split(':');
-    parts.shift();
-    cleaned = parts.join(':').trim();
-    if (!cleaned) { return undefined; }
+
+  const removeLeadingPattern = (pattern: RegExp) => {
+    cleaned = cleaned.replace(pattern, '');
+    cleaned = collapseWhitespace(cleaned);
+  };
+
+  cleaned = cleaned.replace(/^[-*•]+/, '');
+  cleaned = collapseWhitespace(cleaned);
+
+  const prefixPatterns = [
+    /^[^A-Za-z0-9]*day\s*\d+\s*[-:–—.]*\s*/i,
+    /^[^A-Za-z0-9]*focus\s*[-:–—.]*\s*/i,
+  ];
+  prefixPatterns.forEach(removeLeadingPattern);
+
+  removeLeadingPattern(/^[^A-Za-z0-9]*category\s*[-:–—.]*\s*/i);
+
+  if (cleaned.includes('|')) {
+    const segments = cleaned
+      .split('|')
+      .map(segment => collapseWhitespace(segment))
+      .filter(Boolean);
+
+    const preferredSegment = segments.find(segment => {
+      const lower = segment.toLowerCase();
+      if (dayNumber && lower === `day ${dayNumber}`.toLowerCase()) { return false; }
+      if (category && lower === category.trim().toLowerCase()) { return false; }
+      return true;
+    });
+    cleaned = preferredSegment || segments[segments.length - 1] || cleaned;
   }
+
+  if (!cleaned) { return undefined; }
+
+  if (dayNumber && cleaned.toLowerCase() === `day ${dayNumber}`.toLowerCase()) {
+    return undefined;
+  }
+
+  if (category && cleaned.toLowerCase() === category.trim().toLowerCase()) {
+    return undefined;
+  }
+
+  const categoryIndex = cleaned.toLowerCase().indexOf('category:');
+  if (categoryIndex >= 0) {
+    const afterCategory = collapseWhitespace(cleaned.substring(categoryIndex + 'category:'.length));
+    cleaned = afterCategory || cleaned.substring(0, categoryIndex).trim();
+  }
+
   return cleaned;
 };
 
@@ -310,6 +358,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             let nextDayNumber: number | undefined;
             let nextDayTitle: string | undefined;
 
+            const derivedCategory = deriveCategory(devotional);
+
             try {
               const devotionalContent = devotional.content
                 ? (typeof devotional.content === 'string'
@@ -324,7 +374,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 };
               }
 
-              let days = (devotional as any).days ?? devotionalContent?.days;
+              let days = devotionalContent?.days ?? (devotional as any).days;
               if (typeof days === 'string') {
                 try { days = JSON.parse(days); } catch {}
               }
@@ -348,9 +398,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const dayEntry = days[currentDay - 1];
                 const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
                 nextDayNumber = currentDay;
-                const candidateTitle = typeof dayEntry?.dayTitle === 'string' ? dayEntry.dayTitle : dayEntry?.title;
-                const rawDayTitle = typeof candidateTitle === 'string' ? candidateTitle : undefined;
-                const cleanedTitle = normalizeDayTitle(rawDayTitle);
+                const rawDayTitle = typeof dayEntry?.title === 'string' ? dayEntry.title : undefined;
+                const cleanedTitle = normalizeDayTitle(rawDayTitle, { dayNumber: currentDay, category: derivedCategory });
                 nextDayTitle = cleanedTitle || `Day ${currentDay}`;
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
@@ -397,7 +446,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               completedAt,
               lastAccessed,
               estimatedDuration,
-              category: deriveCategory(devotional),
+              category: derivedCategory,
               verse,
               current_day: (devotional as any).current_day,
               total_days: (devotional as any).total_days,

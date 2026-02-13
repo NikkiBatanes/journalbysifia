@@ -322,9 +322,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     smallSectionGap: {
       height: 8,
     },
-    newMomentCtaContainer: {
+    newMomentCardContainer: {
       marginBottom: 12,
+    },
+    newMomentCardContent: {
+      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
       alignItems: 'center',
+      justifyContent: 'center',
     },
     newMomentButton: {
       backgroundColor: 'transparent',
@@ -1342,18 +1350,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Removed Weekly Insights and AI Insights */}
 
           {/* Playbooks Section - Only show when user has playbooks */}
-          <View style={styles.newMomentCtaContainer}>
-            <TouchableOpacity
-              style={styles.newMomentButton}
-              activeOpacity={0.7}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                navigation.navigate('UserInput');
-              }}
-            >
-              <MaterialCommunityIcons name="pencil" size={18} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
-              <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
-            </TouchableOpacity>
+          <View style={styles.newMomentCardContainer}>
+            <View style={styles.newMomentCardContent}>
+              <TouchableOpacity
+                style={styles.newMomentButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  navigation.navigate('UserInput');
+                }}
+              >
+                <MaterialCommunityIcons name="pencil" size={18} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
+                <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
           {hasContent && (
             <>
