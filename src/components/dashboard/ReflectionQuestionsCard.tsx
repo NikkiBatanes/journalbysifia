@@ -461,8 +461,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       }
 
       // Limit to 10 total questions: 7 devotional questions + up to 3 guided prompts
-      const limitedDevotionalQuestions = allQuestions.slice(0, 7);
-      setQuestions([...limitedDevotionalQuestions, ...guidedQuestions.slice(0, 3)]);
+      const devotionalQuestions = allQuestions.filter(q => q.sourceType === 'devotional');
+      const selectedDevotional = devotionalQuestions.slice(0, 3);
+      const remainingSlots = Math.max(0, 3 - selectedDevotional.length);
+      const selectedGuided = guidedQuestions.slice(0, remainingSlots);
+      setQuestions([...selectedDevotional, ...selectedGuided]);
 
     } catch (err) {
       const errorMessage = (err as Error)?.message || '';
