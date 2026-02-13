@@ -99,6 +99,25 @@ const UserInputScreen: React.FC = () => {
     loadDraft();
   }, [route.params?.initialText]);
 
+  useEffect(() => {
+    if (!route.params?.autoFocus) { return; }
+    const focusInput = () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    };
+
+    focusInput();
+    autoFocusTimer.current = setTimeout(focusInput, 120);
+
+    return () => {
+      if (autoFocusTimer.current) {
+        clearTimeout(autoFocusTimer.current);
+        autoFocusTimer.current = null;
+      }
+    };
+  }, [route.params?.autoFocus]);
+
   // Auto-save draft when user types (debounced)
   const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
@@ -266,6 +285,7 @@ const UserInputScreen: React.FC = () => {
   const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
+  const autoFocusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Simple chat input - no complex height calculations needed
 

@@ -1380,7 +1380,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   activeOpacity={0.7}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    navigation.navigate('UserInput');
+                    navigation.navigate('UserInput', { autoFocus: true });
                   }}
                 >
                   <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
