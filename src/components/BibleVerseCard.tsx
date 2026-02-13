@@ -142,7 +142,7 @@ export default function BibleVerseCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#274673',
+    backgroundColor: 'transparent',
   },
   headerContainer: {
     flexDirection: 'row',

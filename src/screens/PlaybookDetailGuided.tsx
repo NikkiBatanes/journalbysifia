@@ -9,6 +9,8 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 // Navigation
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,10 +64,34 @@ interface CardData {
   challengeCTA?: string;
 }
 
-const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation: _navigation }) => {
+const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
 
   useScreenStatusBar('dark', Colors.anchorBlue);
+
+  // UI state
+  const [showUserInput, setShowUserInput] = useState(false);
+  const chevronRotation = useRef(new Animated.Value(0)).current;
+
+  // Animate chevron rotation
+  React.useEffect(() => {
+    Animated.timing(chevronRotation, {
+      toValue: showUserInput ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [showUserInput, chevronRotation]);
+
+  const chevronStyle = {
+    transform: [
+      {
+        rotate: chevronRotation.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['0deg', '180deg'],
+        }),
+      },
+    ],
+  };
 
   // Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
@@ -114,6 +140,45 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
   // State
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const cardTranslateX = useRef(new Animated.Value(0)).current;
+
+  // Swipe gesture handlers
+  const goToPreviousCard = useCallback(() => {
+    if (currentCardIndex > 0) {
+      triggerLightHaptic();
+      const prevIndex = currentCardIndex - 1;
+
+      Animated.sequence([
+        Animated.timing(cardTranslateX, {
+          toValue: SCREEN_WIDTH,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateX, {
+          toValue: -SCREEN_WIDTH,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateX, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      setCurrentCardIndex(prevIndex);
+    }
+  }, [currentCardIndex, cardTranslateX]);
+
+  // Pan gesture for swiping
+  const panGesture = Gesture.Pan()
+    .onEnd((event) => {
+      const swipeThreshold = 50;
+      if (event.translationX > swipeThreshold) {
+        runOnJS(goToPreviousCard)();
+      } else if (event.translationX < -swipeThreshold) {
+        runOnJS(goToNextCard)();
+      }
+    });
 
   // Build cards array
   const cards: CardData[] = React.useMemo(() => {
@@ -231,6 +296,47 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
 
   return (
     <View style={styles.container}>
+      {/* Close Button */}
+      <TouchableOpacity
+        onPress={() => {
+          triggerLightHaptic();
+          navigation.goBack();
+        }}
+        style={[styles.closeButton, { top: insets.top + 10 }]}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="close" size={28} color={Colors.hopeWhite} />
+      </TouchableOpacity>
+
+      {/* PLAYBOOK Label with Chevron */}
+      <View style={[styles.playbookLabelContainer, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            setShowUserInput(!showUserInput);
+          }}
+          style={styles.playbookLabelButton}
+          activeOpacity={0.7}
+        >
+          <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
+          <Animated.View style={chevronStyle}>
+            <Ionicons name="chevron-down" size={15} color={Colors.hopeWhite} />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Share/PDF Button */}
+      <TouchableOpacity
+        onPress={() => {
+          triggerLightHaptic();
+          // TODO: Implement share/PDF export
+        }}
+        style={[styles.shareButton, { top: insets.top + 10 }]}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+      </TouchableOpacity>
+
       {/* Header */}
       <PlaybookHeader
         title={replaceAllNamePlaceholders(playbook.title, user as any || {})}
@@ -238,6 +344,8 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         completedTasks={completedTasksCount}
         totalTasks={totalTasksCount}
         showToggle={false}
+        showUserInput={showUserInput}
+        userInput={playbook.userInput}
       />
 
       {/* Pagination Dots */}
@@ -256,49 +364,56 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       </View>
 
       {/* Card Container */}
-      <View style={styles.cardContainer}>
-        <Animated.View
-          style={[
-            styles.cardWrapper,
-            { transform: [{ translateX: cardTranslateX }] },
-          ]}
-        >
-          {currentCard && (
-            <>
-              {currentCard.type === 'truth' && (
-                <TruthInLoveCard
-                  truth={currentCard.truth || ''}
-                  summary={currentCard.summary || ''}
-                  expanded={true}
-                />
-              )}
+      <GestureDetector gesture={panGesture}>
+        <View style={styles.cardContainer}>
+          <Animated.View
+            style={[
+              styles.cardWrapper,
+              { transform: [{ translateX: cardTranslateX }] },
+            ]
+          }
+          >
+            {currentCard && (
+              <>
+                {currentCard.type === 'truth' && (
+                  <TruthInLoveCard
+                    truth={currentCard.truth || ''}
+                    summary={currentCard.summary || ''}
+                    expanded={true}
+                    showCloseButton={false}
+                  />
+                )}
 
-              {currentCard.type === 'action' && (
-                <ActionStepsCard
-                  steps={currentCard.steps || []}
-                  onToggleSubTaskMutation={handleToggleSubTask}
-                  expanded={true}
-                />
-              )}
+                {currentCard.type === 'action' && (
+                  <ActionStepsCard
+                    steps={currentCard.steps || []}
+                    onToggleSubTaskMutation={handleToggleSubTask}
+                    expanded={true}
+                    showCloseButton={false}
+                  />
+                )}
 
-              {currentCard.type === 'bible' && currentCard.verse && (
-                <BibleVerseCard
-                  verse={currentCard.verse}
-                  expanded={true}
-                />
-              )}
+                {currentCard.type === 'bible' && currentCard.verse && (
+                  <BibleVerseCard
+                    verse={currentCard.verse}
+                    expanded={true}
+                    showCloseButton={false}
+                  />
+                )}
 
-              {currentCard.type === 'challenge' && (
-                <DirectChallengeCard
-                  challenge={typeof currentCard.challenge === 'string' ? currentCard.challenge : currentCard.challenge?.text || ''}
-                  challengeCTA={currentCard.challengeCTA}
-                  expanded={true}
-                />
-              )}
-            </>
-          )}
-        </Animated.View>
-      </View>
+                {currentCard.type === 'challenge' && (
+                  <DirectChallengeCard
+                    challenge={typeof currentCard.challenge === 'string' ? currentCard.challenge : currentCard.challenge?.text || ''}
+                    challengeCTA={currentCard.challengeCTA}
+                    expanded={true}
+                    showCloseButton={false}
+                  />
+                )}
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </GestureDetector>
 
       {/* Next Button - Right Bottom Corner */}
       {!isLastCard && (
@@ -344,8 +459,41 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   dotActive: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.growthGreen,
     width: 24,
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  playbookLabelContainer: {
+    alignItems: 'center',
+    paddingBottom: 8,
+    backgroundColor: Colors.anchorBlue,
+  },
+  playbookLabelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  playbookLabelText: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+    letterSpacing: 1,
+  },
+  shareButton: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
   nextButton: {
     position: 'absolute',

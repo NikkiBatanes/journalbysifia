@@ -338,9 +338,9 @@ export default function RootStackNavigator({
             component={PlaybookDetailScreenWithProvider as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
-              gestureEnabled: true,
+              gestureEnabled: false,
             }}
           />
           <Stack.Screen
