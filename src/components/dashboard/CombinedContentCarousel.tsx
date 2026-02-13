@@ -708,17 +708,17 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ]}
         >
           <View style={styles.typeIndicator}>
-            <MaterialCommunityIcons name="book" size={16} color={Colors.faithGold} />
+            <MaterialCommunityIcons name="book" size={16} color={Colors.alertCoral} />
             <ThemedText weight="semiBold" style={styles.typeText}>DEVOTIONAL</ThemedText>
           </View>
 
-          <View style={styles.badgeContainer}>
-            <View style={[styles.statusBadge, { backgroundColor: devotional.isCompleted ? Colors.growthGreen : Colors.alertCoral }]}>
-              <ThemedText weight="semiBold" style={styles.statusBadgeText}>
-                {devotional.isCompleted ? 'DONE' : 'ACTIVE'}
-              </ThemedText>
+          {devotional.isCompleted && (
+            <View style={styles.badgeContainer}>
+              <View style={[styles.statusBadge, { backgroundColor: Colors.growthGreen }]}>
+                <ThemedText weight="semiBold" style={styles.statusBadgeText}>DONE</ThemedText>
+              </View>
             </View>
-          </View>
+          )}
 
           <ThemedText weight="semiBold" style={styles.cardTitle}>
             {devotional.title}
