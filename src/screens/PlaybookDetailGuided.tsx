@@ -8,6 +8,7 @@ import {
   View,
   Animated,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
@@ -67,7 +68,7 @@ interface CardData {
 const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
 
-  useScreenStatusBar('dark', Colors.anchorBlue);
+  useScreenStatusBar('light', Colors.anchorBlue);
 
   // UI state
   const [showUserInput, setShowUserInput] = useState(false);
@@ -296,16 +297,16 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
 
   return (
     <View style={styles.container}>
-      {/* Close Button */}
+      {/* Share/PDF Button - Left */}
       <TouchableOpacity
         onPress={() => {
           triggerLightHaptic();
-          navigation.goBack();
+          // TODO: Implement share/PDF export
         }}
-        style={[styles.closeButton, { top: insets.top + 10 }]}
+        style={[styles.shareButton, { top: insets.top + 10 }]}
         activeOpacity={0.7}
       >
-        <Ionicons name="close" size={28} color={Colors.hopeWhite} />
+        <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
       {/* PLAYBOOK Label with Chevron */}
@@ -325,16 +326,16 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         </TouchableOpacity>
       </View>
 
-      {/* Share/PDF Button */}
+      {/* Close Button - Right */}
       <TouchableOpacity
         onPress={() => {
           triggerLightHaptic();
-          // TODO: Implement share/PDF export
+          navigation.goBack();
         }}
-        style={[styles.shareButton, { top: insets.top + 10 }]}
+        style={[styles.closeButton, { top: insets.top + 10 }]}
         activeOpacity={0.7}
       >
-        <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
+        <Ionicons name="close" size={28} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
       {/* Header */}
@@ -365,7 +366,11 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
 
       {/* Card Container */}
       <GestureDetector gesture={panGesture}>
-        <View style={styles.cardContainer}>
+        <ScrollView
+          style={styles.cardContainer}
+          contentContainerStyle={styles.cardScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <Animated.View
             style={[
               styles.cardWrapper,
@@ -412,7 +417,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
               </>
             )}
           </Animated.View>
-        </View>
+        </ScrollView>
       </GestureDetector>
 
       {/* Next Button - Right Bottom Corner */}
@@ -445,12 +450,14 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
+  },
+  cardScrollContent: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 100,
   },
   cardWrapper: {
     width: '100%',
-    flex: 1,
   },
   dot: {
     width: 8,
@@ -464,7 +471,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    left: 20,
+    right: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -488,7 +495,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    right: 20,
+    left: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
