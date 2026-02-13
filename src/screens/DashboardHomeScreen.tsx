@@ -24,6 +24,7 @@ import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
@@ -323,32 +324,40 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       height: 8,
     },
     newMomentCardContainer: {
-      marginBottom: 12,
+      marginBottom: 24,
+      marginTop: 8,
     },
     newMomentCardContent: {
-      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+      backgroundColor: 'transparent',
       borderRadius: 12,
       padding: 16,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    newMomentCardHeader: {
-      width: '100%',
-      alignItems: 'center',
-      marginBottom: 8,
+      gap: 12,
     },
     newMomentCardTitle: {
       fontSize: 12,
-      letterSpacing: 1,
-      color: Colors.textGray,
+      letterSpacing: 0.8,
+      color: Colors.hopeWhite,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+    newMomentInnerCard: {
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+      borderRadius: 30,
+      paddingVertical: 20,
+      paddingHorizontal: 24,
+      borderWidth: 1,
+      borderColor: Colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
     },
     newMomentButton: {
       backgroundColor: 'transparent',
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      borderRadius: 20,
       borderWidth: 1,
       borderColor: Colors.hopeWhite,
       flexDirection: 'row',
@@ -357,6 +366,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     newMomentButtonText: {
       color: Colors.hopeWhite,
       letterSpacing: 0.5,
+      fontSize: 15,
     },
     newMomentButtonIcon: {
       marginRight: 8,
@@ -1362,20 +1372,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Playbooks Section - Only show when user has playbooks */}
           <View style={styles.newMomentCardContainer}>
             <View style={styles.newMomentCardContent}>
-              <View style={styles.newMomentCardHeader}>
-                <ThemedText weight="semiBold" style={styles.newMomentCardTitle}>START A NEW MOMENT</ThemedText>
+              <ThemedText weight="semiBold" style={styles.newMomentCardTitle}>START A NEW MOMENT</ThemedText>
+              <View style={styles.newMomentInnerCard}>
+                <TouchableOpacity
+                  style={styles.newMomentButton}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    navigation.navigate('UserInput');
+                  }}
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
+                  <ThemedText weight="medium" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.newMomentButton}
-                activeOpacity={0.7}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  navigation.navigate('UserInput');
-                }}
-              >
-                <MaterialCommunityIcons name="pencil" size={18} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
-                <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
-              </TouchableOpacity>
             </View>
           </View>
           {hasContent && (
