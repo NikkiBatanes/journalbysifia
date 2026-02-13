@@ -10,8 +10,7 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { PanResponder } from 'react-native';
 
 // Navigation
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -170,16 +169,21 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
     }
   }, [currentCardIndex, cardTranslateX]);
 
-  // Pan gesture for swiping
-  const panGesture = Gesture.Pan()
-    .onEnd((event) => {
-      const swipeThreshold = 50;
-      if (event.translationX > swipeThreshold) {
-        runOnJS(goToPreviousCard)();
-      } else if (event.translationX < -swipeThreshold) {
-        runOnJS(goToNextCard)();
-      }
-    });
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gestureState) => {
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        const swipeThreshold = 50;
+        if (gestureState.dx > swipeThreshold) {
+          goToPreviousCard();
+        } else if (gestureState.dx < -swipeThreshold) {
+          goToNextCard();
+        }
+      },
+    })
+  ).current;
 
   // Build cards array
   const cards: CardData[] = React.useMemo(() => {
@@ -365,9 +369,11 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       </View>
 
       {/* Card Container */}
-      <GestureDetector gesture={panGesture}>
+      <View
+        style={styles.cardContainer}
+        {...panResponder.panHandlers}
+      >
         <ScrollView
-          style={styles.cardContainer}
           contentContainerStyle={styles.cardScrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -418,7 +424,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
             )}
           </Animated.View>
         </ScrollView>
-      </GestureDetector>
+      </View>
 
       {/* Next Button - Right Bottom Corner */}
       {!isLastCard && (
