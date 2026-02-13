@@ -437,7 +437,7 @@ export class QueueService {
     const supabaseUrl = env.SUPABASE_URL;
     const supabaseKey = env.SUPABASE_ANON_KEY;
 
-    const functionUrl = `${supabaseUrl}/functions/v1/generate-playbook`;
+    const functionUrl = `${supabaseUrl}/functions/v1/generate-guided-playbook`;
 
     // Get user subscription for tier-based key selection
     const subscription = await subscriptionService.getUserSubscription(item.user_id);

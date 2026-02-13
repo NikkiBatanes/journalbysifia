@@ -242,7 +242,7 @@ export class UnifiedGenerationService {
       // Get user subscription for tier-based key selection
       const subscription = await subscriptionService.getUserSubscription(request.userId);
 
-      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-playbook`;
+      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook`;
       const bibleVersion = await this.getPreferredBibleVersion();
       const userMetadata = await this.getUserMetadata(request.userId);
 

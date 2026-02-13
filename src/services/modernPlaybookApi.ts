@@ -250,7 +250,7 @@ async function generatePlaybookInternal(
     throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
   }
 
-  const functionUrl = `${process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co'}/functions/v1/generate-playbook`;
+  const functionUrl = `${process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co'}/functions/v1/generate-guided-playbook`;
   let lastError: Error | null = null;
 
   // Retry logic with exponential backoff
@@ -326,7 +326,7 @@ async function generatePlaybookInternal(
         });
 
         const sdkResponse = await withTimeout(
-          supabase.functions.invoke('generate-playbook', {
+          supabase.functions.invoke('generate-guided-playbook', {
             body: {
               userInput,
               userName,
