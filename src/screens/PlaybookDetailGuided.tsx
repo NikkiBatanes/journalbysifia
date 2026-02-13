@@ -28,6 +28,7 @@ import ActionStepsCard from '../components/ActionStepsCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
+import PlaybookHeader from '../components/PlaybookHeader';
 
 // Types & Context
 import { Playbook, ActionStep } from '../interfaces/playbook';
@@ -61,7 +62,7 @@ interface CardData {
   challengeCTA?: string;
 }
 
-const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation }) => {
+const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation: _navigation }) => {
   const insets = useSafeAreaInsets();
 
   useScreenStatusBar('dark', Colors.anchorBlue);
@@ -231,26 +232,27 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.goBack();
-          }}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={28} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+      <PlaybookHeader
+        title={replaceAllNamePlaceholders(playbook.title, user as any || {})}
+        progress={(completedTasksCount / totalTasksCount) * 100}
+        completedTasks={completedTasksCount}
+        totalTasks={totalTasksCount}
+        showToggle={false}
+      />
 
-        <View style={styles.headerCenter}>
-          <ThemedText weight="bold" style={styles.headerTitle} numberOfLines={1}>
-            {replaceAllNamePlaceholders(playbook.title, user as any || {})}
-          </ThemedText>
-          <ThemedText weight="medium" style={styles.headerSubtitle}>
-            {completedTasksCount}/{totalTasksCount} Steps Explored
-          </ThemedText>
+      {/* Pagination Dots */}
+      <View style={styles.paginationContainer}>
+        <View style={styles.progressDots}>
+          {cards.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === currentCardIndex && styles.dotActive,
+              ]}
+            />
+          ))}
         </View>
-
-        <View style={styles.headerRight} />
       </View>
 
       {/* Card Container */}
@@ -298,30 +300,16 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         </Animated.View>
       </View>
 
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 20 }]}>
-        <View style={styles.progressDots}>
-          {cards.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentCardIndex && styles.dotActive,
-              ]}
-            />
-          ))}
-        </View>
-
-        {!isLastCard && (
-          <TouchableOpacity
-            onPress={goToNextCard}
-            style={styles.nextButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Next Button - Right Bottom Corner */}
+      {!isLastCard && (
+        <TouchableOpacity
+          onPress={goToNextCard}
+          style={[styles.nextButton, { bottom: insets.bottom + 20 }]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -331,56 +319,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  header: {
-    flexDirection: 'row',
+  paginationContainer: {
+    paddingVertical: 12,
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
     backgroundColor: Colors.anchorBlue,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: Colors.textGray,
-    marginTop: 2,
-  },
-  headerRight: {
-    width: 40,
-  },
-  cardContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  cardWrapper: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  bottomNav: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    alignItems: 'center',
   },
   progressDots: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+  },
+  cardContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  cardWrapper: {
+    width: '100%',
+    flex: 1,
   },
   dot: {
     width: 8,
@@ -393,6 +348,8 @@ const styles = StyleSheet.create({
     width: 24,
   },
   nextButton: {
+    position: 'absolute',
+    right: 20,
     width: 56,
     height: 56,
     borderRadius: 28,
