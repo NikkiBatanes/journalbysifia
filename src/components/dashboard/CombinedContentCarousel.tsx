@@ -751,13 +751,18 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ) : (
             <View style={styles.nextDayInfo}>
               {devotional.nextDayNumber && devotional.nextDayTitle && (
-                <ThemedText weight="medium" style={styles.nextDayText}>
-                  Next: Day {devotional.nextDayNumber} - {devotional.nextDayTitle}
-                </ThemedText>
+                <View style={styles.nextDayTextGroup}>
+                  <ThemedText weight="medium" style={styles.nextDayText}>Next</ThemedText>
+                  <ThemedText weight="medium" style={styles.nextDayDay}>Day {devotional.nextDayNumber}</ThemedText>
+                  <ThemedText style={styles.nextDayTitle} numberOfLines={1}>{devotional.nextDayTitle}</ThemedText>
+                </View>
               )}
-              <ThemedText style={styles.durationText}>
-                {devotional.estimatedDuration} min read
-              </ThemedText>
+              <View style={styles.durationRow}>
+                <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.hopeWhite} />
+                <ThemedText style={styles.durationText}>
+                  {devotional.estimatedDuration} min read
+                </ThemedText>
+              </View>
             </View>
           )}
         </Animated.View>
@@ -1079,6 +1084,23 @@ const styles = StyleSheet.create({
   nextDayText: {
     fontSize: 12,
     color: Colors.hopeWhite,
+  },
+  nextDayTextGroup: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  nextDayDay: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+  nextDayTitle: {
+    fontSize: 12,
+    color: Colors.textGray,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   durationText: {
     fontSize: 11,
