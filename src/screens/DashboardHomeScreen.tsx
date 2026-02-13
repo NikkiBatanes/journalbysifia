@@ -334,6 +334,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       justifyContent: 'center',
     },
+    newMomentCardHeader: {
+      width: '100%',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    newMomentCardTitle: {
+      fontSize: 12,
+      letterSpacing: 1,
+      color: Colors.textGray,
+    },
     newMomentButton: {
       backgroundColor: 'transparent',
       paddingVertical: 12,
@@ -1352,6 +1362,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Playbooks Section - Only show when user has playbooks */}
           <View style={styles.newMomentCardContainer}>
             <View style={styles.newMomentCardContent}>
+              <View style={styles.newMomentCardHeader}>
+                <ThemedText weight="semiBold" style={styles.newMomentCardTitle}>START A NEW MOMENT</ThemedText>
+              </View>
               <TouchableOpacity
                 style={styles.newMomentButton}
                 activeOpacity={0.7}
