@@ -31,6 +31,7 @@ import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils'
 import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
+import { Logger } from '../utils/ProductionLogger';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -141,6 +142,24 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
+    },
+    counterBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: Colors.anchorBlue,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 14,
+    },
+    counterText: {
+      fontSize: 12,
+      color: Colors.hopeWhite,
+    },
+    iconButton: {
+      padding: 6,
+      borderRadius: 14,
+      backgroundColor: 'transparent',
     },
     profileButton: {
       width: 32,
