@@ -84,14 +84,16 @@ const normalizeDayTitle = (title?: string | null): string | undefined => {
   if (!title) { return undefined; }
   const trimmed = title.trim();
   if (!trimmed) { return undefined; }
-  const upper = trimmed.toUpperCase();
+  let cleaned = trimmed.replace(/^DAY\s*\d+[:.-]?\s*/i, '').trim();
+  if (!cleaned) { return undefined; }
+  const upper = cleaned.toUpperCase();
   if (upper.startsWith('CATEGORY:')) {
-    const parts = trimmed.split(':');
+    const parts = cleaned.split(':');
     parts.shift();
-    const remainder = parts.join(':').trim();
-    return remainder || undefined;
+    cleaned = parts.join(':').trim();
+    if (!cleaned) { return undefined; }
   }
-  return trimmed;
+  return cleaned;
 };
 
 interface CombinedContentCarouselProps {
@@ -346,7 +348,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const dayEntry = days[currentDay - 1];
                 const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
                 nextDayNumber = currentDay;
-                const rawDayTitle = typeof dayEntry?.title === 'string' ? dayEntry.title : undefined;
+                const candidateTitle = typeof dayEntry?.dayTitle === 'string' ? dayEntry.dayTitle : dayEntry?.title;
+                const rawDayTitle = typeof candidateTitle === 'string' ? candidateTitle : undefined;
                 const cleanedTitle = normalizeDayTitle(rawDayTitle);
                 nextDayTitle = cleanedTitle || `Day ${currentDay}`;
                 if (typeof dayText === 'string' && dayText.length > 0) {
