@@ -32,8 +32,7 @@ import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 
-import PlaybookCarousel from '../components/dashboard/PlaybookCarousel';
-import DevotionalCarousel from '../components/dashboard/DevotionalCarousel';
+import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
 import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
@@ -739,8 +738,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   }, [user?.id, subscription?.tier, queryClient]); // Re-run when cached subscription changes
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
-  const [hasPlaybooks, setHasPlaybooks] = useState(true); // Track if user has playbooks
-  const [hasDevotionals, setHasDevotionals] = useState(true); // Track if user has devotionals
+  const [hasContent, setHasContent] = useState(true); // Track if user has any content
   // Reflection Questions state
   const [selectedReflection, setSelectedReflection] = useState<{
     question: string;
@@ -880,18 +878,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   // Listen for content creation events to show hidden sections
   useEffect(() => {
-    const onDevotionalCreated = () => {
-      // Show devotionals section when new devotional is created
-      setHasDevotionals(true);
+    const onContentCreated = () => {
+      // Show content section when new content is created
+      setHasContent(true);
     };
 
-    const onPlaybookCreated = () => {
-      // Show playbooks section when new playbook is created
-      setHasPlaybooks(true);
-    };
-
-    const subDevotional = DeviceEventEmitter.addListener('devotional_created', onDevotionalCreated);
-    const subPlaybook = DeviceEventEmitter.addListener('playbook_created', onPlaybookCreated);
+    const subDevotional = DeviceEventEmitter.addListener('devotional_created', onContentCreated);
+    const subPlaybook = DeviceEventEmitter.addListener('playbook_created', onContentCreated);
 
     return () => {
       try { subDevotional.remove(); } catch {}
@@ -1348,7 +1341,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
             </TouchableOpacity>
           </View>
-          {hasPlaybooks && (
+          {hasContent && (
             <>
               {/* Collapsing Playbook label */}
               <View style={styles.playbookLabelContainer}>
@@ -1364,41 +1357,29 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                     }}
                     style={styles.playbookLabel}
                   >
-                    Playbook
+                    Your Content
                   </ThemedText>
                 </Animated.View>
               </View>
 
-              <PlaybookCarousel
+              <CombinedContentCarousel
                 onPlaybookPress={(playbook) => {
                   triggerLightHaptic();
                   navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
                 }}
-                onViewAll={() => {
-                  // Navigate to playbooks list
-                  triggerLightHaptic();
-                  navigation.navigate('Playbooks');
-                }}
-                onEmpty={() => setHasPlaybooks(false)}
-              />
-              <View style={styles.sectionGap} />
-            </>
-          )}
-          {/* Devotionals Section - Only show when user has devotionals */}
-          {hasDevotionals && (
-            <>
-              <DevotionalCarousel
                 onDevotionalPress={(devotional) => {
-                  // Navigate to devotional detail screen
                   triggerLightHaptic();
                   navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
                 }}
-                onViewAll={() => {
-                  // Navigate to devotionals list
+                onViewAllPlaybooks={() => {
+                  triggerLightHaptic();
+                  navigation.navigate('Playbooks');
+                }}
+                onViewAllDevotionals={() => {
                   triggerLightHaptic();
                   navigation.navigate('Devotionals');
                 }}
-                onEmpty={() => setHasDevotionals(false)}
+                onEmpty={() => setHasContent(false)}
               />
               <View style={styles.sectionGap} />
             </>
