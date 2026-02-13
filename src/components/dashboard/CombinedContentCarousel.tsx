@@ -660,7 +660,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
           <View style={styles.stepInfo}>
             <ThemedText weight="medium" style={styles.stepText}>
-              {playbook.completedSteps} of {playbook.totalSteps} steps
+              {playbook.completedSteps}/{playbook.totalSteps} Steps Explored
             </ThemedText>
           </View>
         </Animated.View>
@@ -751,11 +751,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ) : (
             <View style={styles.nextDayInfo}>
               {devotional.nextDayNumber && devotional.nextDayTitle && (
-                <View style={styles.nextDayTextGroup}>
+                <>
                   <ThemedText weight="medium" style={styles.nextDayText}>Next</ThemedText>
-                  <ThemedText weight="medium" style={styles.nextDayDay}>Day {devotional.nextDayNumber}</ThemedText>
-                  <ThemedText style={styles.nextDayTitle} numberOfLines={1}>{devotional.nextDayTitle}</ThemedText>
-                </View>
+                  <ThemedText weight="medium" style={styles.nextDayText}>{`Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle}`}</ThemedText>
+                </>
               )}
               <View style={styles.durationRow}>
                 <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.hopeWhite} />
@@ -1079,28 +1078,17 @@ const styles = StyleSheet.create({
     color: Colors.growthGreen,
   },
   nextDayInfo: {
-    gap: 4,
-  },
-  nextDayText: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-  },
-  nextDayTextGroup: {
-    flexDirection: 'column',
-    gap: 2,
-  },
-  nextDayDay: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-  },
-  nextDayTitle: {
-    fontSize: 12,
-    color: Colors.textGray,
+    marginTop: 12,
   },
   durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginTop: 4,
+  },
+  nextDayText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
   },
   durationText: {
     fontSize: 11,
