@@ -110,22 +110,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       backgroundColor: Colors.hopeWhite,
     },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
       paddingHorizontal: 20,
       paddingTop: insets.top,
       paddingBottom: 0,
       backgroundColor: Colors.hopeWhite,
+      gap: 16,
     },
-    headerLeft: {
+    headerTopRow: {
       flexDirection: 'row',
+      justifyContent: 'flex-end',
       alignItems: 'center',
-      gap: 12,
-    },
-    headerTitle: {
-      fontSize: 24,
-      color: Colors.anchorBlue,
     },
     subscriptionBadge: {
       backgroundColor: Colors.faithGold,
@@ -143,6 +137,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
+    },
+    headerCtaWrapper: {
+      width: '100%',
+      alignItems: 'center',
     },
     counterBadge: {
       flexDirection: 'row',
@@ -324,8 +322,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       height: 8,
     },
     newMomentCardContainer: {
-      marginBottom: 24,
-      marginTop: 16,
+      marginBottom: 0,
+      marginTop: 0,
     },
     newMomentCardContent: {
       backgroundColor: 'transparent',
@@ -1201,8 +1199,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderHeader = () => (
     <View style={styles.header}>
-      {/* Right side - Subscription and Profile */}
-      <View style={styles.headerRight}>
+      <View style={styles.headerTopRow}>
+        {/* Right side - Subscription and Profile */}
+        <View style={styles.headerRight}>
         {/* Subscription Status */}
         {SHOW_SUBSCRIPTION_BADGE && (() => {
           // Use direct subscription if available and different from cached
@@ -1329,6 +1328,28 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           })()}
         </TouchableOpacity>
       </View>
+      </View>
+
+      <View style={styles.headerCtaWrapper}>
+        <View style={styles.newMomentCardContainer}>
+          <View style={styles.newMomentCardContent}>
+            <View style={styles.newMomentInnerCard}>
+              <ThemedText weight="medium" style={styles.newMomentPrompt}>What moment are you carrying right now?</ThemedText>
+              <TouchableOpacity
+                style={styles.newMomentButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  navigation.navigate('UserInput');
+                }}
+              >
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
+                <ThemedText weight="medium" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
     </View>
   );
 
@@ -1371,25 +1392,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Removed Weekly Insights and AI Insights */}
 
           {/* Playbooks Section - Only show when user has playbooks */}
-          <View style={styles.newMomentCardContainer}>
-            <View style={styles.newMomentCardContent}>
-              <View style={styles.newMomentInnerCard}>
-                <ThemedText weight="medium" style={styles.newMomentPrompt}>What moment are you carrying right now?</ThemedText>
-                <TouchableOpacity
-                  style={styles.newMomentButton}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    navigation.navigate('UserInput');
-                  }}
-                >
-                  <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
-                  <ThemedText weight="medium" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          <View style={styles.sectionGap} />
           {hasContent && (
             <>
               {/* Collapsing Playbook label */}
