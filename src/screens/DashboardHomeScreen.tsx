@@ -1,13 +1,4 @@
-  // Feature flags: hide subscription badge and usage counters for all plans
-  const SHOW_SUBSCRIPTION_BADGE = false;
-  const SHOW_USAGE_COUNTERS = false;
-/**
- * DashboardHomeScreen.tsx
- * Enterprise-grade dashboard home screen with comprehensive faith-based features
- */
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Logger } from '../utils/ProductionLogger';
 import {
   View,
   ScrollView,
@@ -24,7 +15,6 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,6 +54,10 @@ import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
+
+// Feature flags: hide subscription badge and usage counters for all plans
+const SHOW_SUBSCRIPTION_BADGE = false;
+const SHOW_USAGE_COUNTERS = false;
 
 const { width } = Dimensions.get('window');
 
@@ -192,45 +186,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       fontSize: 20,
       color: Colors.text,
     },
-    bottomSpacing: {
-      height: 100,
-    },
-    floatingButton: {
-      position: 'absolute',
-      bottom: 110, // Above bottom navigation
-      right: 20,
-      zIndex: 1000,
-    },
-    floatingButtonText: {
-      color: Colors.hopeWhite,
-      fontSize: 24,
-      letterSpacing: 0.5,
-    },
-    counterBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Colors.hopeWhite,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      gap: 4,
-      // Remove elevation/shadow; use subtle border instead
-      borderWidth: 1,
-      borderColor: Colors.faithGold,
-    },
-    counterText: {
-      fontSize: 12,
-      color: Colors.anchorBlue,
-      // weight handled by ThemedText
-    },
-    iconButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'transparent',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     notificationBadge: {
       position: 'absolute',
       top: notificationBadgeTop,
@@ -274,7 +229,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingBottom: 4,
     },
     greeting: {
-      fontSize: 24,
+      fontSize: 20,
       // weight handled by ThemedText
       letterSpacing: 0.5,
       color: Colors.anchorBlue,
@@ -282,7 +237,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       marginBottom: 2,
     },
     motivationalText: {
-      fontSize: 14,
+      fontSize: 16,
       color: Colors.anchorBlue,
       opacity: 1,
       marginTop: 0,
@@ -349,6 +304,25 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     smallSectionGap: {
       height: 8,
     },
+    newMomentCtaContainer: {
+      marginBottom: 12,
+      alignItems: 'flex-start',
+    },
+    newMomentButton: {
+      backgroundColor: Colors.faithGold,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    newMomentButtonText: {
+      color: Colors.anchorBlue,
+      letterSpacing: 0.5,
+    },
     actionsHeaderContainer: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -368,47 +342,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       fontSize: 12,
       color: Colors.textGray,
       textAlign: 'center',
-      marginTop: -2,
-      marginBottom: 6,
-      // weight handled by ThemedText
-    },
-    expandableButton: {
-      backgroundColor: Colors.hopeWhite,
-      borderRadius: 28,
-      height: 56,
-      shadowColor: Colors.black,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-      alignSelf: 'flex-end',
-    },
-    expandableButtonTouchable: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-start', // keep content anchored left; icon container provides centering
-      paddingHorizontal: 0,
-      minWidth: 56, // ensures perfect circle when collapsed
-    },
-    fabIconContainer: {
-      height: 56,
-      borderRadius: 28,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    floatingButtonIcon: {
-      width: 40,
-      height: 40,
-      alignSelf: 'center',
-      tintColor: Colors.alertCoral,
-    },
-    expandText: {
-      color: Colors.anchorBlue,
-      fontSize: 14,
-      marginLeft: 8,
-      overflow: 'hidden',
-      // weight handled by ThemedText
     },
     // Prayer Modal Styles
     modalOverlay: {
@@ -881,9 +814,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const playbookWidth = useRef(new Animated.Value(0)).current;
   const [playbookMeasuredWidth, setPlaybookMeasuredWidth] = useState(0);
 
-  // Simple expandable button
-  const buttonWidth = useRef(new Animated.Value(56)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
   // ScrollView ref to reset position on focus
   const scrollRef = useRef<ScrollView | null>(null);
   // Dashboard mount animation (fade + subtle slide up)
@@ -903,59 +833,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       }),
     ]).start();
   }, [mountOpacity, mountTranslateY]);
-  const fabPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const fabPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        fabPan.setOffset({ x: (fabPan as any).x._value || 0, y: (fabPan as any).y._value || 0 });
-        fabPan.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: (_evt, gesture) => {
-        fabPan.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: () => {
-        fabPan.flattenOffset();
-      },
-      onPanResponderTerminate: () => {
-        fabPan.flattenOffset();
-      },
-    })
-  ).current;
-  // When collapsed, keep text width at 0 so the icon stays perfectly centered
-  const textWidth = textOpacity.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 180], // max width for the label when expanded
-  });
-  // Removed draggable FAB logic (unused)
-
-  // Reintroduce auto-expand animation (parity with PlaybookListScreen)
-  const expandButton = useCallback(() => {
-    let animationCount = 0;
-    const maxAnimations = 2;
-    const runAnimation = () => {
-      if (animationCount >= maxAnimations) { return; }
-      animationCount++;
-      Animated.parallel([
-        Animated.timing(buttonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
-        Animated.timing(textOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
-      ]).start(() => {
-        setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(textOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
-            Animated.timing(buttonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
-          ]).start(() => {
-            if (animationCount < maxAnimations) {
-              setTimeout(() => { runAnimation(); }, 3000);
-            }
-          });
-        }, 2500);
-      });
-    };
-    runAnimation();
-  }, [buttonWidth, textOpacity]);
-
   // Get user's first name with robust fallbacks
   const firstName =
     (user as any)?.firstName ||
@@ -966,14 +843,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     user?.email?.split('@')[0] ||
     'Friend';
 
-  // Removed auto-expand animation on mount/focus for floating button per UX update
-
   useFocusEffect(
     useCallback(() => {
-      // Reset state
-      buttonWidth.setValue(56);
-      textOpacity.setValue(0);
-
       // Always scroll to top when dashboard gains focus
       try { scrollRef.current?.scrollTo({ y: 0, animated: false }); } catch {}
 
@@ -998,17 +869,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         playbookWidth.setValue(playbookMeasuredWidth);
         Animated.timing(playbookWidth, { toValue: 0, duration: 400, useNativeDriver: false }).start();
       }
-      // Auto-expand FAB after a short delay (match PlaybookListScreen UX)
-      setTimeout(() => { expandButton(); }, 1000);
     }, [
       playbookMeasuredWidth,
       playbookWidth,
-      buttonWidth,
-      textOpacity,
       refreshSubscription,
       queryClient,
       user?.id,
-      expandButton,
     ])
   );
 
@@ -1432,71 +1298,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     </View>
   );
 
-  // Removed unused renderPlaceholderCard
-
-  const renderFloatingButton = () => (
-    <Animated.View
-      style={[
-        styles.floatingButton,
-        { right: Math.max(36, insets.right + 36) },
-        { transform: [{ translateX: fabPan.x }, { translateY: fabPan.y }] },
-      ]}
-      {...fabPanResponder.panHandlers}
-    >
-      <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
-        <TouchableOpacity
-          style={styles.expandableButtonTouchable}
-          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={[
-            styles.fabIconContainer,
-            {
-              width: buttonWidth.interpolate({
-                inputRange: [56, 220],
-                outputRange: [56, 80], // Icon container expands from 56 to 80 when button expands
-                extrapolate: 'clamp',
-              }),
-            },
-          ]}>
-            <Animated.Image
-              source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
-              style={[
-                styles.floatingButtonIcon,
-                {
-                  transform: [
-                    {
-                      scale: buttonWidth.interpolate({
-                        inputRange: [56, 220],
-                        outputRange: [1, 1.1], // Icon scales up 10% when button expands
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-                },
-              ]}
-              resizeMode="contain"
-              accessibilityLabel="siFia"
-            />
-          </Animated.View>
-          <Animated.View style={{
-            opacity: textOpacity,
-            width: textWidth,
-            marginLeft: buttonWidth.interpolate({
-              inputRange: [56, 220],
-              outputRange: [0, -20], // Shift text left by 20px when icon expands to compensate
-              extrapolate: 'clamp',
-            }),
-          }}>
-            <ThemedText weight="semiBold" style={styles.expandText} numberOfLines={1}>
-              Create a Playbook
-            </ThemedText>
-          </Animated.View>
-        </TouchableOpacity>
-      </Animated.View>
-    </Animated.View>
-  );
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
       <Animated.View
@@ -1535,6 +1336,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Removed Weekly Insights and AI Insights */}
 
           {/* Playbooks Section - Only show when user has playbooks */}
+          <View style={styles.newMomentCtaContainer}>
+            <TouchableOpacity
+              style={styles.newMomentButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                navigation.navigate('UserInput');
+              }}
+            >
+              <ThemedText weight="semiBold" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
+            </TouchableOpacity>
+          </View>
           {hasPlaybooks && (
             <>
               {/* Collapsing Playbook label */}
@@ -1648,13 +1461,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
 
-          {/* Bottom spacing for floating button */}
-          <View style={styles.bottomSpacing} />
           </View>
         </ScrollView>
       </BlueSheet>
-      {renderFloatingButton()}
-
       {/* Reflection Modals */}
       <SmartJournalingReflectionModal
         visible={showSJModal}
