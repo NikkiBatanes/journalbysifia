@@ -6,7 +6,7 @@ import {
 // Removed CommonActions import as we navigate directly to UserProfile
 
 import BottomTabNavigator from './BottomTabNavigator';
-import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
+import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
