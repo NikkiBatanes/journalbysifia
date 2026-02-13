@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textGray,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   progressSection: {
     marginBottom: 12,
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     color: Colors.growthGreen,
   },
   nextDayInfo: {
-    marginTop: 12,
+    marginTop: 4,
   },
   durationRow: {
     flexDirection: 'row',
