@@ -342,6 +342,27 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         <Ionicons name="close" size={28} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
+      <View
+        style={[
+          styles.progressFab,
+          { top: insets.top + 12 },
+        ]}
+      >
+        <View style={styles.progressBarBgFab}>
+          <View
+            style={[
+              styles.progressBarFillGuided,
+              {
+                width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%`,
+              },
+            ]}
+          />
+        </View>
+        <ThemedText weight="semiBold" style={styles.progressSummaryTextFab}>
+          {completedTasksCount}/{totalTasksCount} Steps Explored
+        </ThemedText>
+      </View>
+
       {isFirstScreen && (
         <>
           <View style={[styles.playbookLabelContainer, { paddingTop: insets.top + 10 }, styles.playbookLabelOffset]}
@@ -445,19 +466,6 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                       } as const,
                     ]}
                   >
-                    <View style={styles.progressSummaryContainer}>
-                      <View style={styles.progressBarBgGuided}>
-                        <View
-                          style={[
-                            styles.progressBarFillGuided,
-                            { width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%` },
-                          ]}
-                        />
-                      </View>
-                      <ThemedText weight="semiBold" style={styles.progressSummaryText}>
-                        {completedTasksCount}/{totalTasksCount} Steps Explored
-                      </ThemedText>
-                    </View>
                     <ActionStepsCard
                       steps={currentCard.steps || []}
                       onToggleSubTaskMutation={handleToggleSubTask}
@@ -688,6 +696,34 @@ const styles = StyleSheet.create({
   scriptureCard: {
     backgroundColor: 'transparent',
     alignSelf: 'stretch',
+  },
+  progressFab: {
+    position: 'absolute',
+    left: 20,
+    width: 140,
+    padding: 10,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  progressBarBgFab: {
+    width: '100%',
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
+  },
+  progressSummaryTextFab: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   closeButton: {
     position: 'absolute',
