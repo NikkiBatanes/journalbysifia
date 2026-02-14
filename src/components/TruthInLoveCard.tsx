@@ -58,9 +58,21 @@ export default function TruthInLoveCard({
     return result;
   }, [truth, freshUserData]);
 
-  const processedSummary = React.useMemo(() => {
-    const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
-    return result;
+  const { summaryText, cueText } = React.useMemo(() => {
+    const substituted = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
+    if (!substituted) {
+      return { summaryText: '', cueText: '' };
+    }
+    const trimmed = substituted.trim();
+    const cueMatch = trimmed.match(/\s*\(([^)]+)\)\s*$/);
+    if (cueMatch && cueMatch.index !== undefined) {
+      return {
+        summaryText: trimmed.slice(0, cueMatch.index).trim(),
+        cueText: cueMatch[1].trim(),
+      };
+    }
+
+    return { summaryText: trimmed, cueText: '' };
   }, [summary, freshUserData]);
 
   const truthParagraphs = React.useMemo(() => {
@@ -96,21 +108,41 @@ export default function TruthInLoveCard({
           )}
         </View>
         {isExpanded && Platform.OS === 'ios' ? (
-          <ThemedTextInput
-            weight="bold"
-            value={processedSummary}
-            editable={false}
-            multiline={true}
-            scrollEnabled={false}
-            style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
-          />
+          <>
+            <ThemedTextInput
+              weight="bold"
+              value={summaryText}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+            />
+            {cueText ? (
+              <ThemedText
+                weight="regular"
+                style={[styles.regulationCue, { color: textColor }]}
+              >
+                {cueText}
+              </ThemedText>
+            ) : null}
+          </>
         ) : (
-          <ThemedText
-            weight="regular"
-            style={[styles.content, styles.contentWithMargin, { color: textColor }]}
-          >
-            <ThemedText weight="bold" style={[styles.summary, { color: textColor }]}>{processedSummary}</ThemedText>
-          </ThemedText>
+          <>
+            <ThemedText
+              weight="bold"
+              style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+            >
+              {summaryText}
+            </ThemedText>
+            {cueText ? (
+              <ThemedText
+                weight="regular"
+                style={[styles.regulationCue, { color: textColor }]}
+              >
+                {cueText}
+              </ThemedText>
+            ) : null}
+          </>
         )}
       </View>
 
@@ -212,6 +244,14 @@ const styles = StyleSheet.create({
   },
   summary: {
     // Typography handled by ThemedText weight="bold"
+  },
+  regulationCue: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.7,
+    marginTop: 12,
+    alignSelf: 'center',
+    textAlign: 'center',
   },
   truth: {
     // Typography handled by ThemedText weight="regular"

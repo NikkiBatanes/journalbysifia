@@ -67,6 +67,24 @@ interface CardData {
   challengeCTA?: string;
 }
 
+const splitSummaryAndCue = (raw: string): { summaryText: string; cueText: string } => {
+  if (!raw) {
+    return { summaryText: '', cueText: '' };
+  }
+
+  const trimmed = raw.trim();
+  const cueMatch = trimmed.match(/\s*\(([^)]+)\)\s*$/);
+
+  if (cueMatch && cueMatch.index !== undefined) {
+    return {
+      summaryText: trimmed.slice(0, cueMatch.index).trim(),
+      cueText: cueMatch[1].trim(),
+    };
+  }
+
+  return { summaryText: trimmed, cueText: '' };
+};
+
 const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
 
@@ -171,7 +189,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       result.push({
         id: 'truth-summary',
         type: 'truth-summary',
-        summary: truthSummaryText,
+        summary: replaceAllNamePlaceholders(truthSummaryText, (user as any) || {}),
         truth: truthText,
       });
     }
@@ -180,7 +198,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       result.push({
         id: 'truth-detail',
         type: 'truth',
-        truth: truthText,
+        truth: replaceAllNamePlaceholders(truthText, (user as any) || {}),
       });
     }
 
@@ -450,9 +468,21 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                       } as const,
                     ]}
                   >
-                    <ThemedText weight="bold" style={styles.truthSummaryText}>
-                      {currentCard.summary}
-                    </ThemedText>
+                    {(() => {
+                      const { summaryText, cueText } = splitSummaryAndCue(currentCard.summary || '');
+                      return (
+                        <>
+                          <ThemedText weight="bold" style={styles.truthSummaryText}>
+                            {summaryText}
+                          </ThemedText>
+                          {cueText ? (
+                            <ThemedText weight="regular" style={styles.truthSummaryCue}>
+                              {cueText}
+                            </ThemedText>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </View>
                 )}
 
@@ -658,6 +688,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 38,
     opacity: 0.95,
+  },
+  truthSummaryCue: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.65,
+    marginTop: 8,
+    letterSpacing: 0.2,
   },
   truthHeadingOffset: {
     marginTop: 110,
