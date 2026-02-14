@@ -342,26 +342,28 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         <Ionicons name="close" size={28} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
-      <View
-        style={[
-          styles.progressFab,
-          { top: insets.top + 5 },
-        ]}
-      >
-        <View style={styles.progressBarBgFab}>
-          <View
-            style={[
-              styles.progressBarFillGuided,
-              {
-                width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%`,
-              },
-            ]}
-          />
+      {currentCard?.type === 'action' && (
+        <View
+          style={[
+            styles.progressFab,
+            { top: insets.top + 5 },
+          ]}
+        >
+          <View style={styles.progressBarBgFab}>
+            <View
+              style={[
+                styles.progressBarFillGuided,
+                {
+                  width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%`,
+                },
+              ]}
+            />
+          </View>
+          <ThemedText weight="regular" style={styles.progressSummaryTextFab}>
+            {completedTasksCount}/{totalTasksCount} Steps Explored
+          </ThemedText>
         </View>
-        <ThemedText weight="semiBold" style={styles.progressSummaryTextFab}>
-          {completedTasksCount}/{totalTasksCount} Steps Explored
-        </ThemedText>
-      </View>
+      )}
 
       {isFirstScreen && (
         <>
@@ -461,7 +463,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                     style={[
                       styles.actionCardWrapper,
                       {
-                        paddingTop: insets.top + 80,
+                        paddingTop: insets.top + 40,
                         paddingBottom: insets.bottom + 160,
                       } as const,
                     ]}
@@ -703,15 +705,10 @@ const styles = StyleSheet.create({
     width: 160,
     padding: 12,
     borderRadius: 999,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
   },
   progressBarBgFab: {
     width: '100%',

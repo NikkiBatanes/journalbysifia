@@ -89,6 +89,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
     userInputText: {
       color: userInputTextColor || textColor,
     },
+    userInputLabel: {
+      color: textColor,
+    },
     progressBarBg: {
       backgroundColor: backgroundColor === Colors.anchorBlue
         ? 'rgba(255,255,255,0.15)'
@@ -138,6 +141,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                 }}
                 activeOpacity={0.9}
               >
+                <ThemedText weight="semiBold" style={[styles.userInputLabel, dynamicStyles.userInputLabel]}>
+                  The moment you brought in:
+                </ThemedText>
                 <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
                   {userInput}
                 </ThemedText>
@@ -413,6 +419,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
     lineHeight: 18,
     paddingRight: 32,
+  },
+  userInputLabel: {
+    alignSelf: 'flex-start',
+    fontSize: 14,
+    marginBottom: 4,
+    letterSpacing: 0.3,
   },
   editIconButton: {
     position: 'absolute',
