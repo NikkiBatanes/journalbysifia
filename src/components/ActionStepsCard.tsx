@@ -899,7 +899,7 @@ export default function ActionStepsCard({
               textColor ? { color: textColor } : {},
             ]}
           >
-            {titleOverride ? titleOverride : `${steps.length} Faithful Actions`}
+            {titleOverride ? titleOverride : 'Faithful Actions'}
           </ThemedText>
           {expanded && (
             <TouchableOpacity

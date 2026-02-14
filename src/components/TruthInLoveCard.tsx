@@ -23,6 +23,7 @@ type TruthInLoveCardProps = {
   playbookTitle?: string;
   userInput?: string;
   showCloseButton?: boolean;
+  headingStyle?: StyleProp<ViewStyle>;
 };
 
 export default function TruthInLoveCard({
@@ -38,6 +39,7 @@ export default function TruthInLoveCard({
   playbookTitle: _playbookTitle,
   userInput: _userInput,
   showCloseButton = true,
+  headingStyle,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   // Use only parent-controlled expansion
@@ -75,7 +77,7 @@ export default function TruthInLoveCard({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
-        <View style={styles.headingContainer}>
+        <View style={[styles.headingContainer, headingStyle]}>
           {/* Header area - expansion handled by parent card tap */}
           <View style={styles.rowCenterFlex1}>
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
@@ -171,11 +173,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   contentWrapper: {
-    // Remove flex constraints to allow natural scrolling
-    // flex: 1,
-    // minHeight: 0,
-    marginTop: 16,
-    // flexShrink: 1,
+    marginTop: 8,
   },
   textContainer: {
     // Remove flex and overflow constraints
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8, // Reduced from 20 to 8
+    marginBottom: -50,
   },
   heartIcon: {
     marginRight: 8,

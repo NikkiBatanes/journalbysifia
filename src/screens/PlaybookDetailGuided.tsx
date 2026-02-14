@@ -59,6 +59,7 @@ interface CardData {
   truth?: string;
   summary?: string;
   steps?: ActionStep[];
+  affirmations?: Array<{ id: string; text: string; completed: boolean }>;
   verse?: { text: string; reference: string };
   challenge?: string | { text: string; summary: string };
   challengeCTA?: string;
@@ -141,50 +142,6 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const cardTranslateX = useRef(new Animated.Value(0)).current;
 
-  // Swipe gesture handlers
-  const goToPreviousCard = useCallback(() => {
-    if (currentCardIndex > 0) {
-      triggerLightHaptic();
-      const prevIndex = currentCardIndex - 1;
-
-      Animated.sequence([
-        Animated.timing(cardTranslateX, {
-          toValue: SCREEN_WIDTH,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardTranslateX, {
-          toValue: -SCREEN_WIDTH,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardTranslateX, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      setCurrentCardIndex(prevIndex);
-    }
-  }, [currentCardIndex, cardTranslateX]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_evt, gestureState) => {
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
-      },
-      onPanResponderRelease: (_evt, gestureState) => {
-        const swipeThreshold = 50;
-        if (gestureState.dx > swipeThreshold) {
-          goToPreviousCard();
-        } else if (gestureState.dx < -swipeThreshold) {
-          goToNextCard();
-        }
-      },
-    })
-  ).current;
-
   // Build cards array
   const cards: CardData[] = React.useMemo(() => {
     if (!playbook) {
@@ -225,6 +182,15 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         id: 'action',
         type: 'action',
         steps: playbook.actionSteps,
+      });
+    }
+
+    // Affirmation card
+    if (playbook.affirmations && playbook.affirmations.length > 0) {
+      result.push({
+        id: 'affirmations',
+        type: 'affirmation',
+        affirmations: playbook.affirmations,
       });
     }
 
@@ -293,6 +259,49 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       setCurrentCardIndex(nextIndex);
     }
   }, [currentCardIndex, cards.length, cardTranslateX]);
+
+  const goToPreviousCard = useCallback(() => {
+    if (currentCardIndex > 0) {
+      triggerLightHaptic();
+      const prevIndex = currentCardIndex - 1;
+
+      Animated.sequence([
+        Animated.timing(cardTranslateX, {
+          toValue: SCREEN_WIDTH,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateX, {
+          toValue: -SCREEN_WIDTH,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateX, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      setCurrentCardIndex(prevIndex);
+    }
+  }, [currentCardIndex, cardTranslateX]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gestureState) => {
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        const swipeThreshold = 50;
+        if (gestureState.dx > swipeThreshold) {
+          goToPreviousCard();
+        } else if (gestureState.dx < -swipeThreshold) {
+          goToNextCard();
+        }
+      },
+    })
+  ).current;
 
   // Calculate progress
   const completedTasksCount = playbook ? getTaskStats(playbook.actionSteps || []).completed : 0;
@@ -379,16 +388,25 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         {...panResponder.panHandlers}
       >
         <ScrollView
-          contentContainerStyle={styles.cardScrollContent}
+          contentContainerStyle={[
+            styles.cardScrollContent,
+            currentCard?.type === 'truth-summary' || currentCard?.type === 'bible' || currentCard?.type === 'challenge' || currentCard?.type === 'affirmation'
+              ? styles.cardScrollContentCentered
+              : currentCard?.type === 'action'
+                ? styles.cardScrollContentAction
+                : undefined,
+          ]}
           showsVerticalScrollIndicator={currentCard?.type !== 'truth-summary'}
           scrollEnabled={currentCard?.type !== 'truth-summary'}
         >
           <Animated.View
             style={[
               styles.cardWrapper,
+              currentCard?.type === 'truth-summary' || currentCard?.type === 'bible' || currentCard?.type === 'challenge' || currentCard?.type === 'affirmation'
+                ? styles.cardWrapperCentered
+                : undefined,
               { transform: [{ translateX: cardTranslateX }] },
-            ]
-          }
+            ]}
           >
             {currentCard && (
               <>
@@ -406,48 +424,104 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                     summary={currentCard.summary || ''}
                     expanded={true}
                     showCloseButton={false}
+                    headingStyle={styles.truthHeadingOffset}
                   />
                 )}
 
                 {currentCard.type === 'action' && (
-                  <View style={styles.progressSummaryContainer}>
-                    <View style={styles.progressBarBgGuided}>
-                      <View
-                        style={[
-                          styles.progressBarFillGuided,
-                          { width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%` },
-                        ]}
-                      />
+                  <View
+                    style={[
+                      styles.actionCardWrapper,
+                      {
+                        paddingTop: insets.top + 80,
+                        paddingBottom: insets.bottom + 160,
+                      } as const,
+                    ]}
+                  >
+                    <View style={styles.progressSummaryContainer}>
+                      <View style={styles.progressBarBgGuided}>
+                        <View
+                          style={[
+                            styles.progressBarFillGuided,
+                            { width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%` },
+                          ]}
+                        />
+                      </View>
+                      <ThemedText weight="semiBold" style={styles.progressSummaryText}>
+                        {completedTasksCount}/{totalTasksCount} Steps Explored
+                      </ThemedText>
                     </View>
-                    <ThemedText weight="semiBold" style={styles.progressSummaryText}>
-                      {completedTasksCount}/{totalTasksCount} Steps Explored
-                    </ThemedText>
+                    <ActionStepsCard
+                      steps={currentCard.steps || []}
+                      onToggleSubTaskMutation={handleToggleSubTask}
+                      expanded={true}
+                      showCloseButton={false}
+                    />
                   </View>
                 )}
-                {currentCard.type === 'action' && (
-                  <ActionStepsCard
-                    steps={currentCard.steps || []}
-                    onToggleSubTaskMutation={handleToggleSubTask}
-                    expanded={true}
-                    showCloseButton={false}
-                  />
+                {currentCard.type === 'affirmation' && currentCard.affirmations && (
+                  <View
+                    style={[
+                      styles.affirmationCardWrapper,
+                      {
+                        paddingTop: insets.top + 80,
+                        paddingBottom: insets.bottom + 140,
+                      } as const,
+                    ]}
+                  >
+                    <View style={styles.affirmationsHeader}>
+                      <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.affirmationIcon} />
+                      <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Words to Reflect On</ThemedText>
+                    </View>
+                    <View style={styles.affirmationsList}>
+                      {currentCard.affirmations.map((affirmation) => (
+                        <View key={affirmation.id} style={styles.affirmationItem}>
+                          <ThemedText weight="regular" style={styles.affirmationText}>
+                            {affirmation.text}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
                 )}
 
                 {currentCard.type === 'bible' && currentCard.verse && (
-                  <BibleVerseCard
-                    verse={currentCard.verse}
-                    expanded={true}
-                    showCloseButton={false}
-                  />
+                  <View
+                    style={[
+                      styles.scriptureCardWrapper,
+                      {
+                        paddingTop: insets.top + 60,
+                        paddingBottom: insets.bottom + 120,
+                      } as const,
+                    ]}
+                  >
+                    <BibleVerseCard
+                      verse={currentCard.verse}
+                      expanded={true}
+                      showCloseButton={false}
+                      backgroundColor="transparent"
+                      style={styles.scriptureCard}
+                    />
+                  </View>
                 )}
 
                 {currentCard.type === 'challenge' && (
-                  <DirectChallengeCard
-                    challenge={typeof currentCard.challenge === 'string' ? currentCard.challenge : currentCard.challenge?.text || ''}
-                    challengeCTA={currentCard.challengeCTA}
-                    expanded={true}
-                    showCloseButton={false}
-                  />
+                  <View
+                    style={[
+                      styles.challengeCardWrapper,
+                      {
+                        paddingTop: insets.top + 80,
+                        paddingBottom: insets.bottom + 140,
+                      } as const,
+                    ]}
+                  >
+                    <DirectChallengeCard
+                      challenge={typeof currentCard.challenge === 'string' ? currentCard.challenge : currentCard.challenge?.text || ''}
+                      challengeCTA={currentCard.challengeCTA}
+                      expanded={true}
+                      showCloseButton={false}
+                    />
+                  </View>
                 )}
               </>
             )}
@@ -491,8 +565,23 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 100,
   },
+  cardScrollContentCentered: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 40,
+    paddingBottom: 40,
+  },
+  cardScrollContentAction: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 40,
+    paddingBottom: 60,
+  },
   cardWrapper: {
     width: '100%',
+  },
+  cardWrapperCentered: {
+    justifyContent: 'center',
   },
   dot: {
     width: 8,
@@ -506,13 +595,13 @@ const styles = StyleSheet.create({
   },
   progressSummaryContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 20,
   },
   progressBarBgGuided: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 4,
     overflow: 'hidden',
-    height: 6,
+    height: 8,
     marginBottom: 6,
   },
   progressBarFillGuided: {
@@ -523,21 +612,71 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     fontSize: 12,
+    marginBottom: 12,
+  },
+  actionCardWrapper: {
+    flex: 1,
+    justifyContent: 'center',
   },
   truthSummaryCard: {
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
-    paddingTop: 100,
-    paddingBottom: 140,
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
-    marginTop: 100,
   },
   truthSummaryText: {
     color: Colors.hopeWhite,
     fontSize: 28,
     lineHeight: 38,
     opacity: 0.95,
+  },
+  truthHeadingOffset: {
+    marginTop: 110,
+  },
+  scriptureCardWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingHorizontal: 20,
+  },
+  challengeCardWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  affirmationCardWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  affirmationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  affirmationIcon: {
+    marginRight: 8,
+  },
+  affirmationsTitle: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+  },
+  affirmationsList: {
+    gap: 16,
+  },
+  affirmationItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  affirmationText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    opacity: 0.95,
+  },
+  scriptureCard: {
+    backgroundColor: 'transparent',
+    alignSelf: 'stretch',
   },
   closeButton: {
     position: 'absolute',
