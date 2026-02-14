@@ -345,7 +345,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       <View
         style={[
           styles.progressFab,
-          { top: insets.top + 12 },
+          { top: insets.top + 5 },
         ]}
       >
         <View style={styles.progressBarBgFab}>
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   progressBarFillGuided: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.growthGreen,
     height: '100%',
   },
   progressSummaryText: {
@@ -700,13 +700,13 @@ const styles = StyleSheet.create({
   progressFab: {
     position: 'absolute',
     left: 20,
-    width: 140,
-    padding: 10,
+    width: 160,
+    padding: 12,
     borderRadius: 999,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -715,9 +715,9 @@ const styles = StyleSheet.create({
   },
   progressBarBgFab: {
     width: '100%',
-    height: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    height: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     overflow: 'hidden',
   },
   progressSummaryTextFab: {
