@@ -51,7 +51,7 @@ interface PlaybookGuidedProps {
   route: { params: { playbookId?: string; playbook?: { id: string } } };
 }
 
-type CardType = 'truth' | 'action' | 'affirmation' | 'bible' | 'challenge';
+type CardType = 'truth' | 'truth-summary' | 'action' | 'affirmation' | 'bible' | 'challenge';
 
 interface CardData {
   id: string;
@@ -191,15 +191,31 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       return [];
     }
 
+
     const result: CardData[] = [];
 
-    // Truth card
-    if (playbook.truthInLove?.text) {
+    // Truth summary card (first page split)
+    const truthText = playbook.truthInLove?.text;
+    const truthSummaryText = (playbook.truthInLove?.summary?.trim().length ? playbook.truthInLove.summary : truthText)
+      ?.split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join(' ');
+
+    if (truthSummaryText) {
       result.push({
-        id: 'truth',
+        id: 'truth-summary',
+        type: 'truth-summary',
+        summary: truthSummaryText,
+        truth: truthText,
+      });
+    }
+
+    if (truthText) {
+      result.push({
+        id: 'truth-detail',
         type: 'truth',
-        truth: playbook.truthInLove.text,
-        summary: playbook.truthInLove.summary,
+        truth: truthText,
       });
     }
 
@@ -298,10 +314,10 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
 
   const currentCard = cards[currentCardIndex];
   const isLastCard = currentCardIndex === cards.length - 1;
+  const isFirstScreen = currentCardIndex === 0;
 
   return (
     <View style={styles.container}>
-      {/* Share/PDF Button - Left */}
       <TouchableOpacity
         onPress={() => {
           triggerLightHaptic();
@@ -313,24 +329,6 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         <Ionicons name="share-outline" size={20} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
-      {/* PLAYBOOK Label with Chevron */}
-      <View style={[styles.playbookLabelContainer, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            setShowUserInput(!showUserInput);
-          }}
-          style={styles.playbookLabelButton}
-          activeOpacity={0.7}
-        >
-          <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
-          <Animated.View style={chevronStyle}>
-            <Ionicons name="chevron-down" size={15} color={Colors.hopeWhite} />
-          </Animated.View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Close Button - Right */}
       <TouchableOpacity
         onPress={() => {
           triggerLightHaptic();
@@ -343,31 +341,37 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
         <Ionicons name="close" size={28} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
-      {/* Header */}
-      <PlaybookHeader
-        title={replaceAllNamePlaceholders(playbook.title, user as any || {})}
-        progress={(completedTasksCount / totalTasksCount) * 100}
-        completedTasks={completedTasksCount}
-        totalTasks={totalTasksCount}
-        showToggle={false}
-        showUserInput={showUserInput}
-        userInput={playbook.userInput}
-      />
+      {isFirstScreen && (
+        <>
+          <View style={[styles.playbookLabelContainer, { paddingTop: insets.top + 10 }, styles.playbookLabelOffset]}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                setShowUserInput(!showUserInput);
+              }}
+              style={styles.playbookLabelButton}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
+              <Animated.View style={chevronStyle}>
+                <Ionicons name="chevron-down" size={15} color={Colors.hopeWhite} />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
 
-      {/* Pagination Dots */}
-      <View style={styles.paginationContainer}>
-        <View style={styles.progressDots}>
-          {cards.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentCardIndex && styles.dotActive,
-              ]}
-            />
-          ))}
-        </View>
-      </View>
+          <PlaybookHeader
+            title={replaceAllNamePlaceholders(playbook.title, user as any || {})}
+            progress={(completedTasksCount / totalTasksCount) * 100}
+            completedTasks={completedTasksCount}
+            totalTasks={totalTasksCount}
+            showToggle={false}
+            showUserInput={showUserInput}
+            userInput={playbook.userInput}
+            showProgressRow={false}
+          />
+        </>
+      )}
 
       {/* Card Container */}
       <View
@@ -376,7 +380,8 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
       >
         <ScrollView
           contentContainerStyle={styles.cardScrollContent}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={currentCard?.type !== 'truth-summary'}
+          scrollEnabled={currentCard?.type !== 'truth-summary'}
         >
           <Animated.View
             style={[
@@ -387,6 +392,14 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
           >
             {currentCard && (
               <>
+                {currentCard.type === 'truth-summary' && (
+                  <View style={styles.truthSummaryCard}>
+                    <ThemedText weight="bold" style={styles.truthSummaryText}>
+                      {currentCard.summary}
+                    </ThemedText>
+                  </View>
+                )}
+
                 {currentCard.type === 'truth' && (
                   <TruthInLoveCard
                     truth={currentCard.truth || ''}
@@ -396,6 +409,21 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                   />
                 )}
 
+                {currentCard.type === 'action' && (
+                  <View style={styles.progressSummaryContainer}>
+                    <View style={styles.progressBarBgGuided}>
+                      <View
+                        style={[
+                          styles.progressBarFillGuided,
+                          { width: `${Math.max(0, Math.min(100, (completedTasksCount / totalTasksCount) * 100))}%` },
+                        ]}
+                      />
+                    </View>
+                    <ThemedText weight="semiBold" style={styles.progressSummaryText}>
+                      {completedTasksCount}/{totalTasksCount} Steps Explored
+                    </ThemedText>
+                  </View>
+                )}
                 {currentCard.type === 'action' && (
                   <ActionStepsCard
                     steps={currentCard.steps || []}
@@ -476,6 +504,41 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     width: 24,
   },
+  progressSummaryContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  progressBarBgGuided: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    height: 6,
+    marginBottom: 6,
+  },
+  progressBarFillGuided: {
+    backgroundColor: Colors.hopeWhite,
+    height: '100%',
+  },
+  progressSummaryText: {
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+    fontSize: 12,
+  },
+  truthSummaryCard: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingTop: 100,
+    paddingBottom: 140,
+    flex: 1,
+    justifyContent: 'center',
+    marginTop: 100,
+  },
+  truthSummaryText: {
+    color: Colors.hopeWhite,
+    fontSize: 28,
+    lineHeight: 38,
+    opacity: 0.95,
+  },
   closeButton: {
     position: 'absolute',
     right: 20,
@@ -502,9 +565,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     letterSpacing: 1,
   },
+  playbookLabelOffset: {
+    marginTop: 40,
+  },
   shareButton: {
     position: 'absolute',
-    right: 76,
+    right: 58,
     width: 40,
     height: 40,
     justifyContent: 'center',
