@@ -1,6 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
+import { discernmentCompanionPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
@@ -940,7 +940,7 @@ serve(async (req: Request) => {
     let contextualPrompt = '';
 
     // Apply persona context with Bible version
-    contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
+    contextualPrompt = applyPersonaContext(discernmentCompanionPersona, effectiveUserInput, bibleVersion);
 
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
     // Build contextual prompt with title uniqueness check and age personalization
@@ -1017,7 +1017,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
               messages: [
                 {
                   role: 'system',
-                  content: strategicAdvisorPersona.systemPrompt,
+                  content: discernmentCompanionPersona.systemPrompt,
                 },
                 {
                   role: 'user',
@@ -1112,7 +1112,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
         console.log('[Generate-Playbook] Paraphrased:', effectiveUserInput.substring(0, 100));
 
         // Rebuild prompt with paraphrased input
-        contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
+        contextualPrompt = applyPersonaContext(discernmentCompanionPersona, effectiveUserInput, bibleVersion);
         contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
 
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
@@ -1326,7 +1326,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     if (aiData.choices?.[0]?.message?.content) {
       const enforcedContent = enforcePersona(
         aiData.choices[0].message.content,
-        strategicAdvisorPersona
+        discernmentCompanionPersona
       );
 
       // Update playbook with enforced content if needed
@@ -1346,7 +1346,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     // Set totalTasks to the number of main action steps
     playbook.totalTasks = playbook.actionSteps.length;
     playbook.progress = 0; // Reset progress to 0 since no tasks are completed yet
-    playbook.persona = strategicAdvisorPersona.role; // Track which persona was used
+    playbook.persona = discernmentCompanionPersona.role; // Track which persona was used
 
     // Caching disabled for personalized content
     console.log('[Generate-Playbook] Response generated (not cached)');

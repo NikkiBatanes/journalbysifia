@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { PanResponder } from 'react-native';
 
@@ -16,6 +17,7 @@ import { PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Theme & Styling
 import { Colors } from '../theme/colors';
@@ -69,6 +71,12 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
   const insets = useSafeAreaInsets();
 
   useScreenStatusBar('light', Colors.anchorBlue);
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setHidden(true, 'slide');
+      return () => StatusBar.setHidden(false, 'slide');
+    }, [])
+  );
 
   // UI state
   const [showUserInput, setShowUserInput] = useState(false);
