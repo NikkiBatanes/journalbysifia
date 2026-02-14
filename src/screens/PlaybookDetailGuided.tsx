@@ -43,7 +43,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Types
 interface PlaybookGuidedProps {
@@ -407,8 +407,15 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
                     style={[
                       styles.truthSummaryCard,
                       {
-                        paddingTop: insets.top + 60,
-                        paddingBottom: insets.bottom + 120,
+                        minHeight: Math.max(
+                          0,
+                          SCREEN_HEIGHT
+                            - (insets.top + 10 + 40)
+                            - (insets.bottom + 20 + 56)
+                        ),
+                        paddingTop: insets.top + 10,
+                        paddingBottom: insets.bottom + 60,
+                        justifyContent: 'flex-start',
                       } as const,
                     ]}
                   >
@@ -596,12 +603,16 @@ const styles = StyleSheet.create({
   progressSummaryContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    alignItems: 'center',
+    width: '100%',
   },
   progressBarBgGuided: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 4,
+    borderRadius: 10,
     overflow: 'hidden',
-    height: 8,
+    height: 10,
+    alignSelf: 'stretch',
+    width: '100%',
     marginBottom: 6,
   },
   progressBarFillGuided: {
