@@ -236,72 +236,64 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
   const goToNextCard = useCallback(() => {
     if (currentCardIndex < cards.length - 1) {
       triggerLightHaptic();
-      const nextIndex = currentCardIndex + 1;
 
-      Animated.sequence([
-        Animated.timing(cardTranslateX, {
-          toValue: -SCREEN_WIDTH,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardTranslateX, {
-          toValue: SCREEN_WIDTH,
-          duration: 0,
-          useNativeDriver: true,
-        }),
+      Animated.timing(cardTranslateX, {
+        toValue: -SCREEN_WIDTH,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentCardIndex(currentCardIndex + 1);
+        cardTranslateX.setValue(SCREEN_WIDTH);
         Animated.timing(cardTranslateX, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        }),
-      ]).start();
-
-      setCurrentCardIndex(nextIndex);
+        }).start();
+      });
     }
   }, [currentCardIndex, cards.length, cardTranslateX]);
 
   const goToPreviousCard = useCallback(() => {
     if (currentCardIndex > 0) {
       triggerLightHaptic();
-      const prevIndex = currentCardIndex - 1;
 
-      Animated.sequence([
-        Animated.timing(cardTranslateX, {
-          toValue: SCREEN_WIDTH,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardTranslateX, {
-          toValue: -SCREEN_WIDTH,
-          duration: 0,
-          useNativeDriver: true,
-        }),
+      Animated.timing(cardTranslateX, {
+        toValue: SCREEN_WIDTH,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentCardIndex(currentCardIndex - 1);
+        cardTranslateX.setValue(-SCREEN_WIDTH);
         Animated.timing(cardTranslateX, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        }),
-      ]).start();
-
-      setCurrentCardIndex(prevIndex);
+        }).start();
+      });
     }
   }, [currentCardIndex, cardTranslateX]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_evt, gestureState) => {
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
-      },
-      onPanResponderRelease: (_evt, gestureState) => {
-        const swipeThreshold = 50;
-        if (gestureState.dx > swipeThreshold) {
-          goToPreviousCard();
-        } else if (gestureState.dx < -swipeThreshold) {
-          goToNextCard();
-        }
-      },
-    })
-  ).current;
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_evt, gestureState) => {
+          const isHorizontal = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+          const hasMovedEnough = Math.abs(gestureState.dx) > 10;
+          return isHorizontal && hasMovedEnough;
+        },
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderRelease: (_evt, gestureState) => {
+          const swipeThreshold = 50;
+          if (gestureState.dx > swipeThreshold) {
+            goToPreviousCard();
+          } else if (gestureState.dx < -swipeThreshold) {
+            goToNextCard();
+          }
+        },
+      }),
+    [goToPreviousCard, goToNextCard]
+  );
 
   // Calculate progress
   const completedTasksCount = playbook ? getTaskStats(playbook.actionSteps || []).completed : 0;
@@ -411,7 +403,15 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
             {currentCard && (
               <>
                 {currentCard.type === 'truth-summary' && (
-                  <View style={styles.truthSummaryCard}>
+                  <View
+                    style={[
+                      styles.truthSummaryCard,
+                      {
+                        paddingTop: insets.top + 60,
+                        paddingBottom: insets.bottom + 120,
+                      } as const,
+                    ]}
+                  >
                     <ThemedText weight="bold" style={styles.truthSummaryText}>
                       {currentCard.summary}
                     </ThemedText>
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
   truthSummaryCard: {
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
   },
   truthSummaryText: {
