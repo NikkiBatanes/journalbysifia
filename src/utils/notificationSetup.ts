@@ -5,6 +5,25 @@ import { notificationDeepLinkService } from '../services/notificationDeepLinkSer
 import { DailyNotificationScheduler } from './dailyNotificationScheduler';
 import { notificationDeliveryService } from '../services/notificationDeliveryService';
 import { Logger } from './ProductionLogger';
+import { supabase } from '../services/supabaseClient';
+
+/**
+ * Save user's device timezone to user_profiles for notification scheduling
+ */
+const saveUserTimezone = async (userId: string) => {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await supabase
+      .from('user_profiles')
+      .update({ timezone })
+      .eq('id', userId);
+    Logger.info('Timezone saved', { component: 'notificationSetup', timezone });
+  } catch (error) {
+    Logger.error('Failed to save timezone', error as Error, {
+      component: 'notificationSetup',
+    });
+  }
+};
 
 /**
  * Initialize notification system
@@ -33,6 +52,10 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
     const initPushNotifications = async () => {
       try {
         await pushNotificationService.initialize(userId);
+
+        // Save device timezone for notification scheduling
+        await saveUserTimezone(userId);
+
         Logger.info('Push notification service initialized', {
           component: 'notificationSetup',
           userId,

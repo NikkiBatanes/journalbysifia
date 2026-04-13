@@ -62,69 +62,10 @@ class NotificationDeliveryService {
    * Process all pending notifications (public for testing)
    */
   async processPendingNotifications(): Promise<void> {
-    if (this.isProcessing) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    try {
-      Logger.info('Processing pending notifications', {
-        component: 'NotificationDeliveryService',
-      });
-
-      // Get all pending notifications that are due
-      const now = new Date().toISOString();
-      const { data: pendingNotifications, error } = await supabase
-        .from('notification_queue')
-        .select('*')
-        .eq('status', 'pending')
-        .lte('scheduled_for', now)
-        .order('scheduled_for', { ascending: true })
-        .limit(50);
-
-      if (error) {
-        Logger.error('Error fetching pending notifications', error as Error, {
-          component: 'NotificationDeliveryService',
-        });
-        return;
-      }
-
-      if (!pendingNotifications || pendingNotifications.length === 0) {
-        Logger.info('No pending notifications to process', {
-          component: 'NotificationDeliveryService',
-        });
-        return;
-      }
-
-      Logger.info(`Found ${pendingNotifications.length} pending notifications`, {
-        component: 'NotificationDeliveryService',
-      });
-
-      // Process each notification
-      const processingPromises = pendingNotifications.map(notification =>
-        this.deliverNotification(notification).catch(deliveryError => {
-          Logger.error(`Failed to deliver notification ${notification.id}`, deliveryError as Error, {
-            component: 'NotificationDeliveryService',
-            notificationId: notification.id,
-          });
-        })
-      );
-
-      await Promise.allSettled(processingPromises);
-
-      Logger.info('Completed processing pending notifications', {
-        component: 'NotificationDeliveryService',
-        count: pendingNotifications.length,
-      });
-
-    } catch (error) {
-      Logger.error('Error in processPendingNotifications', error as Error, {
-        component: 'NotificationDeliveryService',
-      });
-    } finally {
-      this.isProcessing = false;
-    }
+    // Server-side process-notification-queue handles push delivery via APNS.
+    // This client service only handles in-app notification display.
+    // Do not process the queue here to avoid duplicates.
+    return;
   }
 
   /**
@@ -214,56 +155,12 @@ class NotificationDeliveryService {
    * Deliver push notification
    */
   private async deliverPushNotification(notification: any): Promise<void> {
-    try {
-      // Get the user's device token from the database
-      const { data: deviceToken, error: tokenError } = await supabase
-        .from('device_tokens')
-        .select('token')
-        .eq('user_id', notification.user_id)
-        .eq('is_active', true)
-        .single();
-
-      if (tokenError || !deviceToken?.token) {
-        throw new Error(`No device token found for user ${notification.user_id}`);
-      }
-
-      // Since PushNotificationService only supports local notifications,
-      // we'll deliver as local notification but with push-like behavior
-      // In a real implementation, this would integrate with FCM/APNS
-      await pushNotificationService.scheduleLocalNotification({
-        title: notification.title,
-        message: notification.message,
-        badge: notification.badge,
-        sound: notification.sound || 'default',
-        data: {
-          ...notification.data,
-          push_notification: true,
-          device_token: deviceToken.token,
-        },
-      }, new Date());
-
-      Logger.info('Push notification delivered (via local service)', {
-        component: 'NotificationDeliveryService',
-        userId: notification.user_id,
-        notificationId: notification.id,
-        type: notification.type,
-        deviceToken: deviceToken.token.substring(0, 10) + '...',
-      });
-
-    } catch (error) {
-      Logger.error('Failed to send push notification', error as Error, {
-        component: 'NotificationDeliveryService',
-        userId: notification.user_id,
-        notificationId: notification.id,
-      });
-
-      // Fallback to local notification if push fails
-      Logger.info('Falling back to local notification', {
-        component: 'NotificationDeliveryService',
-        userId: notification.user_id,
-      });
-      await this.deliverLocalNotification(notification);
-    }
+    // Push delivery is handled server-side via APNS.
+    // This client only displays notifications in the in-app notification center.
+    Logger.info('Push notification handled server-side', {
+      component: 'NotificationDeliveryService',
+      notificationId: notification.id,
+    });
   }
 
   /**
