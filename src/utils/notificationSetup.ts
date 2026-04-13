@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
-import { DailyNotificationScheduler } from './dailyNotificationScheduler';
 import { notificationDeliveryService } from '../services/notificationDeliveryService';
 import { Logger } from './ProductionLogger';
 import { supabase } from '../services/supabaseClient';
@@ -103,50 +101,7 @@ export function useNotificationSetup(userId: string | undefined, navigationRef: 
       }
     };
 
-    // Schedule daily notifications
-    const scheduleDailyNotifications = async () => {
-      try {
-        await DailyNotificationScheduler.scheduleForUser(userId);
-        Logger.info('Daily notifications scheduled', {
-          component: 'notificationSetup',
-          userId,
-        });
-      } catch (error) {
-        Logger.error('Failed to schedule daily notifications', error as Error, {
-          component: 'notificationSetup',
-          userId,
-        });
-      }
-    };
-
     initPushNotifications();
-    scheduleDailyNotifications();
-  }, [userId]);
-
-  // Listen for app state changes to reschedule when app comes to foreground
-  useEffect(() => {
-    if (!userId) {
-      return;
-    }
-
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        // App came to foreground - check if we need to reschedule
-        try {
-          await DailyNotificationScheduler.scheduleForUser(userId);
-        } catch (error) {
-          Logger.error('Failed to reschedule on app active', error as Error, {
-            component: 'notificationSetup',
-          });
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
   }, [userId]);
 }
 
