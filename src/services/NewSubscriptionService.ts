@@ -782,10 +782,31 @@ export class NewSubscriptionService {
    * Handle expired trial (auto-downgrade to seeker)
    */
   static async handleExpiredTrial(userId: string): Promise<Subscription> {
-    const { error } = await supabase.rpc('check_and_handle_expired_trials');
+    const seekerLimits = this.getTierLimits('seeker');
+
+    const { error } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        tier: 'seeker',
+        subscription_display_name: 'siFia Seeker',
+        playbooks_limit: seekerLimits.playbooks_limit,
+        devotionals_limit: seekerLimits.devotionals_limit,
+        playbooks_used: 0,
+        devotionals_used: 0,
+        smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+        billing_cycle: null,
+        status: 'expired',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('tier', 'free_trial'); // safety: only downgrade if actually on trial
 
     if (error) {
-      throw new SubscriptionError(`Failed to handle expired trial: ${error.message}`, 'TRIAL_EXPIRY_ERROR', error);
+      throw new SubscriptionError(
+        `Failed to handle expired trial: ${error.message}`,
+        'TRIAL_EXPIRY_ERROR',
+        error
+      );
     }
 
     return await this.getUserSubscription(userId);
@@ -824,13 +845,35 @@ export class NewSubscriptionService {
    * Check and process all expired trials (background job)
    */
   static async processExpiredTrials(): Promise<number> {
-    const { data, error } = await supabase.rpc('check_and_handle_expired_trials');
+    const seekerLimits = this.getTierLimits('seeker');
+
+    const { data, error } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        tier: 'seeker',
+        subscription_display_name: 'siFia Seeker',
+        playbooks_limit: seekerLimits.playbooks_limit,
+        devotionals_limit: seekerLimits.devotionals_limit,
+        playbooks_used: 0,
+        devotionals_used: 0,
+        smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+        billing_cycle: null,
+        status: 'expired',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tier', 'free_trial')
+      .lt('trial_end_date', new Date().toISOString()) // only expired trials
+      .select();
 
     if (error) {
-      throw new SubscriptionError(`Failed to process expired trials: ${error.message}`, 'BATCH_EXPIRY_ERROR', error);
+      throw new SubscriptionError(
+        `Failed to process expired trials: ${error.message}`,
+        'BATCH_EXPIRY_ERROR',
+        error
+      );
     }
 
-    return data || 0;
+    return data?.length || 0;
   }
 
   // ===== DISCOUNT CODES =====

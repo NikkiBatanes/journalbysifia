@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
+import { supabase } from '../services/supabaseClient';
 import {
   Subscription,
   SubscriptionCheck,
@@ -60,6 +61,32 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: 'always', // Always refetch on mount to get latest state
   });
+
+  // Listen for real-time changes to the subscription row
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`subscription-realtime:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_subscriptions_new',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          // Invalidate the query so it refetches with fresh data
+          queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
 
   // Computed properties
   const isSeeker = subscription?.tier === 'seeker';

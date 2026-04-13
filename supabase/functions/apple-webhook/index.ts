@@ -101,16 +101,12 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Apple webhooks don't send authorization headers, so we allow them without auth
-  // Apple authenticates via signed payload verification (which we do below)
-  const userAgent = req.headers.get('user-agent') || '';
-  const appleNotificationType = req.headers.get('apple-notification-type') || '';
-  const isAppleWebhook = userAgent.includes('Apple') || appleNotificationType !== null;
+  // Apple webhooks are authenticated via signed payload verification
+  // No authorization header needed — just allow all POST requests through
+  const isAppleWebhook = req.method === 'POST';
 
-  console.log('[AppleWebhook] Auth check:', { userAgent, appleNotificationType, isAppleWebhook });
-
-  if (!isAppleWebhook && !req.headers.get('authorization')) {
-    return new Response('Missing authorization header', { status: 401 });
+  if (!isAppleWebhook) {
+    return new Response('Method not allowed', { status: 405 });
   }
 
   try {
@@ -154,7 +150,7 @@ serve(async (req) => {
       notificationType = body.notificationType;
       subtype = body.subtype;
       signedTransactionInfo = body.data?.signedTransactionInfo;
-    } 
+    }
     else {
       console.error('[AppleWebhook] Unknown payload format');
       return new Response('Bad Request', { status: 400, headers: corsHeaders });
@@ -166,8 +162,22 @@ serve(async (req) => {
       timestamp: new Date().toISOString(),
     });
 
+    // Persist webhook event BEFORE checking transaction info
+    // This ensures ALL events are logged including TEST and non-transaction events
+    try {
+      await supabaseClient.from('apple_webhook_events').insert([{
+        notification_type: notificationType ?? 'UNKNOWN',
+        subtype: subtype ?? null,
+        signed_payload: body.signedPayload ?? null,
+        transaction_info: null, // Transaction details are in signed_payload for real events
+      }]);
+      console.log('[AppleWebhook] ✅ Event logged');
+    } catch (logError) {
+      console.error('[AppleWebhook] Failed to log event', logError);
+    }
+
     if (!signedTransactionInfo) {
-      console.log('[AppleWebhook] No transaction info, skipping');
+      console.log('[AppleWebhook] No transaction info, skipping processing');
       return new Response('OK', { headers: corsHeaders });
     }
 
@@ -181,7 +191,7 @@ serve(async (req) => {
     const transactionId = transaction.transactionId;
     const originalTransactionId = transaction.originalTransactionId;
     const productId = transaction.productId;
-    const offerType = transaction.offerType; // 1 = introductory/trial
+    const offerType = transaction.offerType;
 
     console.log('[AppleWebhook] Transaction decoded:', {
       transactionId: transactionId?.substring(0, 10) + '...',
@@ -189,22 +199,6 @@ serve(async (req) => {
       productId,
       offerType,
     });
-
-    // Persist webhook metadata for auditing/debugging
-    try {
-      await supabaseClient.from('apple_webhook_events').insert([
-        {
-          notification_type: notificationType,
-          notification_subtype: subtype ?? null,
-          transaction_id: transactionId,
-          original_transaction_id: originalTransactionId,
-          product_id: productId,
-          payload: body,
-        },
-      ]);
-    } catch (logError) {
-      console.error('[AppleWebhook] Failed to log event', logError);
-    }
 
     // Find user by original transaction ID (never changes across renewals)
     let { data: subscription, error: findError } = await supabaseClient
@@ -220,7 +214,11 @@ serve(async (req) => {
       const { data: fallbackSub } = await supabaseClient
         .from('user_subscriptions_new')
         .select('*')
-        .or(`platform_subscription_id.eq.${transactionId},platform_transaction_id.eq.${transactionId}`)
+        .or(
+          `platform_subscription_id.eq.${transactionId},` +
+          `platform_transaction_id.eq.${transactionId},` +
+          `original_transaction_id.eq.${transactionId}` 
+        )
         .single();
       
       if (!fallbackSub) {
@@ -238,6 +236,39 @@ serve(async (req) => {
 
     // Route to appropriate handler
     switch (notificationType) {
+      case 'SUBSCRIBED': {
+        if (subtype === 'INITIAL_BUY') {
+          const actualTier = getTierFromProductId(productId);
+          const paidLimits = getTierLimits(actualTier);
+          const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
+          const now = new Date();
+          const subscriptionEndDate = new Date(now);
+          billingCycle === 'annual'
+            ? subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1)
+            : subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
+
+          await supabaseClient
+            .from('user_subscriptions_new')
+            .update({
+              tier: actualTier,
+              subscription_display_name: getTierDisplayName(actualTier),
+              billing_cycle: billingCycle,
+              playbooks_limit: paidLimits.playbooks_limit,
+              devotionals_limit: paidLimits.devotionals_limit,
+              smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+              platform_transaction_id: transactionId,
+              subscription_start_date: now.toISOString(),
+              subscription_end_date: subscriptionEndDate.toISOString(),
+              billing_issue: false,
+              status: 'active',
+              updated_at: now.toISOString(),
+            })
+            .eq('user_id', userId);
+
+          console.log('[AppleWebhook] ✅ New sale recorded:', actualTier, billingCycle);
+        }
+        break;
+      }
       case 'DID_RENEW': {
         // CRITICAL: Detect NEW TRIAL START vs TRIAL CONVERSION vs REGULAR RENEWAL
         // NEW TRIAL START: User on 'seeker' purchasing .freetrial product → Skip (app handles with createTrial)
@@ -400,22 +431,44 @@ serve(async (req) => {
       }
 
       case 'DID_FAIL_TO_RENEW': {
-        // Payment failure - enter grace period (3 days)
-        console.log('[AppleWebhook] Payment failed - entering grace period');
+        const hasGracePeriod = subtype === 'GRACE_PERIOD';
 
-        const gracePeriodEnd = new Date();
-        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
+        if (hasGracePeriod) {
+          const gracePeriodEnd = new Date();
+          gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 16);
+          await supabaseClient
+            .from('user_subscriptions_new')
+            .update({
+              billing_issue: true,
+              grace_period_end_date: gracePeriodEnd.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
 
-        await supabaseClient
-          .from('user_subscriptions_new')
-          .update({
-            billing_issue: true,
-            grace_period_end_date: gracePeriodEnd.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+          console.log('[AppleWebhook] ✅ Grace period activated');
+        } else {
+          // No grace period — GCash or 3rd party billing, downgrade immediately
+          const seekerLimits = getTierLimits('seeker');
+          await supabaseClient
+            .from('user_subscriptions_new')
+            .update({
+              tier: 'seeker',
+              subscription_display_name: 'siFia Seeker',
+              playbooks_limit: seekerLimits.playbooks_limit,
+              devotionals_limit: seekerLimits.devotionals_limit,
+              smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+              billing_cycle: null,
+              billing_issue: false,
+              grace_period_end_date: null,
+              subscription_end_date: new Date().toISOString(),
+              auto_renew_enabled: false,
+              status: 'expired',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
 
-        console.log('[AppleWebhook] ✅ Grace period activated until', gracePeriodEnd.toISOString());
+          console.log('[AppleWebhook] ✅ GCash/3rd party failure — downgraded to seeker immediately');
+        }
         break;
       }
 

@@ -1107,6 +1107,16 @@ export class AppleStoreKitService {
         platform_subscription_id: purchase.transactionId || purchase.productId,
       });
 
+      // ADD THIS BLOCK
+      await supabase
+        .from('user_subscriptions_new')
+        .update({
+          original_transaction_id: purchase.transactionId,
+          platform_transaction_id: purchase.transactionId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', finalUserId);
+
       // Send payment success notification for new purchase/upgrade
       try {
         const subscription = await NewSubscriptionService.getUserSubscription(finalUserId);
