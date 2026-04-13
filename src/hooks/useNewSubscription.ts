@@ -64,7 +64,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
   // Listen for real-time changes to the subscription row
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {return;}
 
     const channel = supabase
       .channel(`subscription-realtime:${userId}`)
@@ -76,7 +76,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
           table: 'user_subscriptions_new',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (_payload) => {
           // Invalidate the query so it refetches with fresh data
           queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
         }
