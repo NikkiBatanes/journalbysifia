@@ -220,7 +220,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
       <View style={styles.verseCard}>
         {/* Reference row: book icon + reference + version badge + info icon */}
         <View style={styles.verseRefRow}>
-          <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+          <Ionicons name="book-outline" size={13} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.scriptureRef}>
             {reference}
           </ThemedText>
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
   scriptureRef: {
     fontSize: 14,
     letterSpacing: 0.5,
-    color: Colors.faithGold,
+    color: Colors.alertCoral,
   },
   versionBadge: {
     borderRadius: 4,
@@ -1227,9 +1227,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   reflectionNote: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 23,
+    lineHeight: 24,
   },
 
   // Faithful Actions
