@@ -24,6 +24,7 @@ import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 
 import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
+import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
@@ -188,11 +189,13 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext }) =
 interface ScriptureStepProps {
   reference: string;
   text: string;
+  version?: string;
   reflection?: string;
   onNext: () => void;
 }
 
-const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, reflection, onNext }) => {
+const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext }) => {
+  const [showCopyright, setShowCopyright] = useState(false);
   const reflectionLines = reflection
     ? splitParagraphs(reflection)
     : ['Sit with that.'];
@@ -210,14 +213,41 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, re
         </ThemedText>
       </View>
 
-      <ThemedText weight="semiBold" style={styles.scriptureRef}>
-        {reference}
-      </ThemedText>
+      {/* alertCoral vertical bar — blockquote style */}
+      <View style={styles.verseCard}>
+        {/* Reference row: book icon + reference + version badge + info icon */}
+        <View style={styles.verseRefRow}>
+          <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+          <ThemedText weight="semiBold" style={styles.scriptureRef}>
+            {reference}
+          </ThemedText>
+          {version ? (
+            <View style={styles.versionBadge}>
+              <ThemedText weight="semiBold" style={styles.versionText}>
+                {version.toUpperCase()}
+              </ThemedText>
+            </View>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => { triggerLightHaptic(); setShowCopyright(true); }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="information-circle-outline" size={16} color={Colors.alertCoral} />
+          </TouchableOpacity>
+        </View>
+        <ThemedText weight="medium" style={styles.scriptureText}>
+          "{text}"
+        </ThemedText>
+      </View>
 
-      <ThemedText weight="medium" style={styles.scriptureText}>
-        "{text}"
-      </ThemedText>
+      <BibleCopyrightModal
+        visible={showCopyright}
+        onClose={() => setShowCopyright(false)}
+        bibleVersion={version || 'NASB'}
+      />
 
+      {/* Reflection lines sit below the bar */}
       <View style={styles.reflectionBlock}>
         {reflectionLines.map((line, i) => (
           <ThemedText key={i} style={styles.reflectionNote}>
@@ -682,6 +712,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <ScriptureAnchorStep
             reference={playbook.bibleVerse?.reference || ''}
             text={playbook.bibleVerse?.text || ''}
+            version={playbook.bibleVerse?.version}
             reflection={(playbook as any).bibleVerseReflection}
             onNext={goNext}
           />
@@ -855,6 +886,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 26,
     marginBottom: 24,
+    textAlign: 'center',
   },
   summaryBlock: {
     gap: 16,
@@ -902,26 +934,54 @@ const styles = StyleSheet.create({
   },
 
   // Scripture
+  // alertCoral vertical bar on the left — blockquote style
+  verseCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.alertCoral,
+    borderRadius: 2,
+    paddingLeft: 18,
+    paddingVertical: 4,
+    marginTop: 48,
+    marginBottom: 28,
+  },
+  verseRefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
   scriptureRef: {
-    fontSize: 15,
-    letterSpacing: 1,
+    fontSize: 14,
+    letterSpacing: 0.5,
     color: Colors.faithGold,
-    marginBottom: 16,
+  },
+  versionBadge: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  versionText: {
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: 'rgba(255,255,255,0.5)',
   },
   scriptureText: {
-    fontSize: 20,
+    fontSize: 19,
     color: Colors.hopeWhite,
-    lineHeight: 30,
-    marginBottom: 28,
+    lineHeight: 28,
   },
   reflectionBlock: {
     gap: 8,
     marginBottom: 40,
+    paddingHorizontal: 4,
   },
   reflectionNote: {
     fontSize: 15,
     color: Colors.hopeWhite,
-    lineHeight: 22,
+    lineHeight: 23,
   },
 
   // Faithful Actions

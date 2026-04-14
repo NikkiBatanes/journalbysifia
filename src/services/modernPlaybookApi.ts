@@ -1274,8 +1274,8 @@ export async function getPlaybook(
 
     const rawBible = safeParse(data.bible_verse);
     const normalizedBible = rawBible && typeof rawBible === 'object'
-      ? { text: rawBible.text || '', reference: rawBible.reference || '' }
-      : { text: typeof rawBible === 'string' ? rawBible : '', reference: '' };
+      ? { text: rawBible.text || '', reference: rawBible.reference || '', version: rawBible.version || '' }
+      : { text: typeof rawBible === 'string' ? rawBible : '', reference: '', version: '' };
 
     const rawChallenge = safeParse(data.direct_challenge);
     const normalizedChallenge = rawChallenge && typeof rawChallenge === 'object'
