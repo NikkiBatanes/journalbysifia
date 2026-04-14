@@ -187,32 +187,19 @@ TITLE GENERATION RULES (STRICT ENFORCEMENT):
 • Keep it concrete, emotionally recognizable, and grounded in the present moment.
 
 TRUTH SUMMARY:
-{userName}, [10-15 word summary of the core truth]
+[Write EXACTLY 3 lines separated by newlines. Do NOT number them. No labels.]
+Line 1: {userName}, [complete this sentence — describe why this moment matters or weighs on them specifically. Use “this matters to you because”, “this feels heavy because”, “this is painful because”, or similar. One personalized sentence only.]
+Line 2: [A single grounding pause. Choose what fits: “Pause for a moment.” / “Sit still for a moment.” / “Pause.” / “Take a breath.”]
+Line 3: Jesus is not [one fitting word — e.g. anxious / rushed / measuring / surprised / distant / absent / disappointed] about this [one fitting word — e.g. conversation / season / decision / struggle / question / moment].
 
 TRUTH SUMMARY RULES (STRICT ENFORCEMENT):
-• Write exactly one sentence, 10–15 words maximum.
-• Address the user by name.
-• Gently correct ONE distorted belief implied in their situation.
-• Do NOT explain theology.
-• Do NOT mention Scripture.
-• Do NOT diagnose root causes.
-• Do NOT use devotional reassurance language.
-• Avoid phrases like “God loves you,” “God has a plan,” “You are worthy,” or other generic encouragement.
-• The sentence must reduce emotional intensity, not preach, inspire, or motivate.
-• Keep it steady, grounding, and corrective.
-• The sentence must remove exaggeration or finality from the user’s statement.
-• If the summary sounds like encouragement, rewrite it.
-• If the summary introduces future outcomes (hope, breakthrough, restoration), rewrite it.
-• The summary must stay in the present moment.
-
-REGULATION CUE REQUIREMENT:
-• Immediately after the TRUTH SUMMARY, include one short regulation cue in parentheses.
-• Keep it 4–8 words.
-• The cue should invite slowing down or grounding (e.g., "Pause and breathe slowly." "Let that settle for a moment." "Take one steady breath." "Notice where you feel tension." "Unclench your jaw, breathe out.").
-• VARY the cue based on the user's emotional state and situation. Do NOT repeat the same cue for every playbook.
-• Do NOT over-spiritualize the cue.
-• Do NOT turn it into a prayer.
-• It must support nervous system regulation before confrontation begins.
+• Write exactly 3 lines. No more, no less.
+• Line 1 must be personalized to their specific situation — not generic.
+• Line 2 must be a short grounding pause — do NOT turn it into a prayer or spiritual declaration.
+• Line 3 must name one quality of Jesus that directly counters the user’s emotional state.
+• Do NOT mention Scripture in any of the 3 lines.
+• Do NOT use devotional reassurance language like “God loves you” or “You are worthy.”
+• Do NOT add a 4th line, subtitle, or parenthetical cue after these 3 lines.
 
 TRUTH IN LOVE:
 [Speak the truth with both courage and compassion. This is where you lovingly confront what the user may not want to hear but desperately needs to. Be direct and specific—address the ROOT CAUSE, not just surface symptoms. Call out the rationalizations, the excuses, the blind spots, and the patterns they keep repeating. Ground your words in both Scripture and reality.

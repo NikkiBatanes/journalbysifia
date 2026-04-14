@@ -254,9 +254,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
-          navigation.navigate('PlaybookDetail' as any, {
+          navigation.navigate('PlaybookWalkthrough' as any, {
             playbook: savedPlaybook,
-            isFromOnboarding: true,
           });
         } else {
           navigation.reset({
@@ -269,7 +268,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
                 ],
                 index: 1,
               }},
-              { name: 'PlaybookDetail', params: { playbook: savedPlaybook } },
+              { name: 'PlaybookWalkthrough', params: { playbook: savedPlaybook } },
             ],
           });
         }

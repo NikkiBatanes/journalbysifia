@@ -7,6 +7,7 @@ import {
 
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
+import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
@@ -333,6 +334,16 @@ export default function RootStackNavigator({
           />
 
           {/* Main App Detail Screens */}
+          <Stack.Screen
+            name="PlaybookWalkthrough"
+            component={PlaybookWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
+            }}
+          />
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreenWithProvider as React.ComponentType}

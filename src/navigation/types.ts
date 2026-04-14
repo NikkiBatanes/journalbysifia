@@ -73,6 +73,9 @@ export type RootStackParamList = {
       challengeDetails: string;
     };
   };
+  PlaybookWalkthrough: {
+    playbook: Playbook;
+  };
   GeneratingPlaybook: {
     userInput: string;
     userName: string;
