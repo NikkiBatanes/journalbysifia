@@ -784,7 +784,18 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   onFinish,
   insets,
 }) => {
-  const paragraphs = splitParagraphs(closingText);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+
+  // Parse completion text to extract question and choices
+  const parseCompletionText = (text: string) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const questionLine = lines.find(l => l.startsWith('Before you') || l.includes('What is'));
+    const question = questionLine || '';
+    const choices = lines.filter(l => l.length > 0 && l.length < 50 && !l.startsWith('Before you') && !l.includes('What is'));
+    return { question, choices };
+  };
+
+  const { question, choices } = parseCompletionText(closingText);
 
   return (
     <ScrollView
@@ -792,22 +803,51 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.stepLabelRow}>
-        <Ionicons name="flash" size={18} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-          You completed:
+      <View style={styles.completionHeaderContainer}>
+        <View style={styles.stepLabelRow}>
+          <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            You've completed
+          </ThemedText>
+        </View>
+        <ThemedText weight="bold" style={styles.completionTitle}>
+          {title}
         </ThemedText>
+        <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
       </View>
 
-      <ThemedText weight="bold" style={styles.completionTitle}>
-        {title}
-      </ThemedText>
+      {question && (
+        <ThemedText style={styles.completionQuestion}>{question}</ThemedText>
+      )}
 
-      {paragraphs.map((para, i) => (
-        <ThemedText key={i} style={styles.completionBody}>
-          {para}
-        </ThemedText>
-      ))}
+      {choices.length > 0 && (
+        <View style={styles.completionChoicesContainer}>
+          {choices.map((choice, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.completionChoicePill,
+                selectedChoice === choice && styles.completionChoicePillActive,
+              ]}
+              onPress={() => {
+                triggerLightHaptic();
+                setSelectedChoice(choice);
+              }}
+              activeOpacity={0.8}
+            >
+              <ThemedText
+                weight={selectedChoice === choice ? 'semiBold' : undefined}
+                style={[
+                  styles.completionChoiceText,
+                  selectedChoice === choice && styles.completionChoiceTextActive,
+                ]}
+              >
+                {choice}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.primaryButton, styles.finishButton]}
@@ -1467,11 +1507,52 @@ const styles = StyleSheet.create({
   },
 
   // Completion
+  completionHeaderContainer: {
+    gap: 8,
+    marginBottom: 28,
+  },
+  completionPlaybookLabel: {
+    fontSize: 12,
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.5)',
+  },
   completionTitle: {
     fontSize: 28,
     color: Colors.hopeWhite,
     lineHeight: 34,
-    marginBottom: 28,
+  },
+  completionQuestion: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    lineHeight: 26,
+    marginBottom: 20,
+  },
+  completionChoicesContainer: {
+    gap: 12,
+    marginBottom: 32,
+  },
+  completionChoicePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  completionChoicePillActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderColor: 'rgba(255, 107, 107, 0.4)',
+  },
+  completionChoiceText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 20,
+  },
+  completionChoiceTextActive: {
+    color: Colors.alertCoral,
   },
   completionBody: {
     fontSize: 16,

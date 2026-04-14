@@ -462,14 +462,50 @@ BAD EXAMPLES (NEVER DO THESE):
 ❌ God is always with you. Sit with that.  [Too generic — not connected to their specific situation]
 ❌ It strays right next to God's design for marriage and the commitment that comes with it, period. It shows that God values the covenant relationships you entered into. Even amid struggles, He invites healing and restoration into your marriage.  [WAY TOO LONG — this is a paragraph, not short lines — NEVER DO THIS]
 
-CHALLENGE:
-[🚨 REQUIRED - TWO-PART CHALLENGE - DO NOT SKIP THIS SECTION]:
+COMPLETION:
+[🚨 REQUIRED - COMPLETION QUESTION & CHOICES - DO NOT SKIP THIS SECTION]:
 
-SPIRITUAL: [Specific prayer commitment, Scripture to meditate on, or worship act - with timing]
+Write a short, direct question that frames the ONE thing they need to decide or do before closing this playbook. The question must be specific to their exact situation — no generic "what did you learn" questions.
 
-TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g., "Complete full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]
+Format:
+Before you [context]:
+What is the [specific question]?
+[Choice pill 1]
+[Choice pill 2]
+[Choice pill 3 - optional]
 
-[Make it explicit WHO they report to and WHEN they'll do it.]
+CHOICE PILLS:
+- Each choice is a short, concrete action (under 10 words)
+- No bullets, no dashes, no periods
+- Each choice must be tappable and actionable
+- Choices should be mutually exclusive alternatives or sequential steps
+- Write 2-3 choices maximum
+
+GOOD EXAMPLES:
+- "Before you return to him:
+What is the first sentence you will say?
+Carry Christ's tone into the room.
+Speak truth without shame.
+Listen before you correct."
+
+- "Before you close:
+What is the one obedient step you will take this week?
+Do that.
+Let Christ handle comparison."
+
+- "Before you close:
+What is the first financial action you will take today?
+Open the account.
+Write the numbers.
+Delete the app.
+Set the rule.
+Do that now."
+
+BAD EXAMPLES:
+- ❌ "Before you close:
+What did you learn?" (too generic, not actionable)
+- ❌ "Take time to reflect." (not specific enough to be a choice)
+- ❌ Multiple sentences in one choice (keep each choice to one short line)
 
 PRAYER:
 [Write a short, honest prayer — 3 to 5 lines only. Start with "Heavenly Father,". Address the specific situation directly. Each line is a separate sentence. Let the ending emerge naturally from the prayer — do NOT force a template ending. The prayer should flow freely and end where it feels complete. No flowery language. Write it the way a person would actually pray it out loud. It will be read aloud by the user in the app.]

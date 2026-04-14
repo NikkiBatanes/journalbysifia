@@ -176,7 +176,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
           subtitle = titleMatchGPT4o[2].trim();
         } else {
           // Fallback to the original method without bold formatting
-          const playbookTitleMatch = content.match(/(?:###\s*)?TITLE:\s*([\s\S]*?)(?=\n(?:###\s*)?(?:TRUTH SUMMARY:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$))/i);
+          const playbookTitleMatch = content.match(/(?:###\s*)?TITLE:\s*([\s\S]*?)(?=\n(?:###\s*)?(?:TRUTH SUMMARY:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$))/i);
           if (playbookTitleMatch) {
             const titleLines = playbookTitleMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
             mainTitle = titleLines[0] || '';
@@ -221,14 +221,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   };
 
   // Parse Truth Summary (handle bold formatting)
-  let truthSummaryMatch = content.match(/\*\*TRUTH SUMMARY:\*\*\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let truthSummaryMatch = content.match(/\*\*TRUTH SUMMARY:\*\*\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   if (!truthSummaryMatch) {
     // Fallback to ### format
-    truthSummaryMatch = content.match(/### TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### TRUTH IN LOVE:|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthSummaryMatch = content.match(/### TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|### TRUTH IN LOVE:|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### COMPLETION:|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (!truthSummaryMatch) {
     // Fallback to non-bold formatting
-    truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=\*\*TRUTH IN LOVE:\*\*|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (truthSummaryMatch) {
     const summary = truthSummaryMatch[1].trim();
@@ -240,14 +240,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Truth in Love (handle bold formatting)
-  let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   if (!truthInLoveMatch) {
     // Fallback to ### format
-    truthInLoveMatch = content.match(/### TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthInLoveMatch = content.match(/### TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### COMPLETION:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (!truthInLoveMatch) {
     // Fallback to non-bold formatting
-    truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (truthInLoveMatch) {
     const truthText = truthInLoveMatch[1].trim();
@@ -262,11 +262,11 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   let faithfulActionsIntroMatch = content.match(/FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=ACTION STEPS:|$)/i);
   if (!faithfulActionsIntroMatch) {
     // Fallback to bold formatting
-    faithfulActionsIntroMatch = content.match(/\*\*FAITHFUL ACTIONS INTRO:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    faithfulActionsIntroMatch = content.match(/\*\*FAITHFUL ACTIONS INTRO:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (!faithfulActionsIntroMatch) {
     // Fallback to hash formatting
-    faithfulActionsIntroMatch = content.match(/### FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=### ACTION STEPS:|ACTION STEPS:|### AFFIRMATIONS:|AFFIRMATIONS:|### BIBLE VERSE:|BIBLE VERSE:|### CHALLENGE:|CHALLENGE:|$)/i);
+    faithfulActionsIntroMatch = content.match(/### FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=### ACTION STEPS:|ACTION STEPS:|### AFFIRMATIONS:|AFFIRMATIONS:|### BIBLE VERSE:|BIBLE VERSE:|### COMPLETION:|COMPLETION:|$)/i);
   }
   if (faithfulActionsIntroMatch) {
     const introText = faithfulActionsIntroMatch[1].trim().split('\n')[0].trim();
@@ -276,14 +276,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Action Steps with Smart Journaling (handle bold formatting)
-  let actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   if (!actionStepsMatch) {
     // Fallback to ### format
-    actionStepsMatch = content.match(/### ACTION STEPS:\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    actionStepsMatch = content.match(/### ACTION STEPS:\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|### AFFIRMATIONS:|### BIBLE VERSE:|### COMPLETION:|AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (!actionStepsMatch) {
     // Fallback to non-bold formatting
-    actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (actionStepsMatch) {
     const stepBlocks = actionStepsMatch[1]
@@ -376,14 +376,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Affirmations (handle bold formatting)
-  let affMatch = content.match(/\*\*AFFIRMATIONS:\*\*\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let affMatch = content.match(/\*\*AFFIRMATIONS:\*\*\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|BIBLE VERSE:|COMPLETION:|$)/i);
   if (!affMatch) {
     // Fallback to ### format
-    affMatch = content.match(/### AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### BIBLE VERSE:|### CHALLENGE:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    affMatch = content.match(/### AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|### BIBLE VERSE:|### COMPLETION:|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (!affMatch) {
     // Fallback to non-bold formatting
-    affMatch = content.match(/AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|BIBLE VERSE:|CHALLENGE:|$)/i);
+    affMatch = content.match(/AFFIRMATIONS:\s*([\s\S]*?)(?=\*\*BIBLE VERSE:\*\*|\*\*COMPLETION:\*\*|BIBLE VERSE:|COMPLETION:|$)/i);
   }
   if (affMatch) {
     const affirmationsText = affMatch[1].trim();
@@ -480,12 +480,12 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
 
   // Parse Bible Verse with enhanced scripture patterns (handle bold formatting)
   // Stop before SCRIPTURE NOTE so the reflection doesn't bleed into verse parsing
-  let bibleVerseMatch = content.match(/\*\*BIBLE VERSE:\*\*\s*([\s\S]*?)(?=\*\*SCRIPTURE NOTE:\*\*|SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+  let bibleVerseMatch = content.match(/\*\*BIBLE VERSE:\*\*\s*([\s\S]*?)(?=\*\*SCRIPTURE NOTE:\*\*|SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|\*\*COMPLETION:\*\*|COMPLETION:|$)/i);
   if (!bibleVerseMatch) {
-    bibleVerseMatch = content.match(/### BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|### CHALLENGE:|CHALLENGE:|$)/i);
+    bibleVerseMatch = content.match(/### BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|### COMPLETION:|COMPLETION:|$)/i);
   }
   if (!bibleVerseMatch) {
-    bibleVerseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|CHALLENGE:|$)/i);
+    bibleVerseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|COMPLETION:|$)/i);
   }
   if (bibleVerseMatch) {
     const verseContent = bibleVerseMatch[1].trim();
@@ -672,12 +672,12 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Scripture Note (2-3 short reflection lines shown below the verse)
-  let scriptureNoteMatch = content.match(/\*\*SCRIPTURE NOTE:\*\*\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+  let scriptureNoteMatch = content.match(/\*\*SCRIPTURE NOTE:\*\*\s*([\s\S]*?)(?=\*\*COMPLETION:\*\*|COMPLETION:|$)/i);
   if (!scriptureNoteMatch) {
-    scriptureNoteMatch = content.match(/SCRIPTURE NOTE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+    scriptureNoteMatch = content.match(/SCRIPTURE NOTE:\s*([\s\S]*?)(?=COMPLETION:|$)/i);
   }
   if (!scriptureNoteMatch) {
-    scriptureNoteMatch = content.match(/SCRIPTURE REFLECTION:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+    scriptureNoteMatch = content.match(/SCRIPTURE REFLECTION:\s*([\s\S]*?)(?=COMPLETION:|$)/i);
   }
   if (scriptureNoteMatch) {
     let rawReflection = scriptureNoteMatch[1].trim();
@@ -698,25 +698,25 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     console.log('[SCRIPTURE NOTE PARSER] Parsed reflection:', playbook.bibleVerseReflection);
   }
 
-  // Parse Direct Challenge (handle bold formatting)
+  // Parse Completion (handle bold formatting)
   // Stop before PRAYER section so it doesn't consume the new fields
-  let challengeMatch = content.match(/\*\*CHALLENGE:\*\*\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|PRAYER:|$)/i);
-  if (!challengeMatch) {
+  let completionMatch = content.match(/\*\*COMPLETION:\*\*\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|PRAYER:|$)/i);
+  if (!completionMatch) {
     // Fallback to ### format
-    challengeMatch = content.match(/### CHALLENGE:\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|### PRAYER:|PRAYER:|$)/i);
+    completionMatch = content.match(/### COMPLETION:\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|### PRAYER:|PRAYER:|$)/i);
   }
-  if (!challengeMatch) {
+  if (!completionMatch) {
     // Fallback to non-bold formatting
-    challengeMatch = content.match(/CHALLENGE:\s*([\s\S]*?)(?=PRAYER:|$)/i);
+    completionMatch = content.match(/COMPLETION:\s*([\s\S]*?)(?=PRAYER:|$)/i);
   }
-  if (challengeMatch) {
-    playbook.directChallenge = challengeMatch[1].trim();
-    console.log('[CHALLENGE PARSER] Parsed challenge length:', playbook.directChallenge.length);
+  if (completionMatch) {
+    playbook.directChallenge = completionMatch[1].trim();
+    console.log('[COMPLETION PARSER] Parsed completion length:', playbook.directChallenge.length);
   } else {
-    console.log('[CHALLENGE PARSER] No match found. Checking content around CHALLENGE...');
-    const challengeIndex = content.indexOf('CHALLENGE:');
-    if (challengeIndex !== -1) {
-      console.log('[CHALLENGE PARSER] Content around CHALLENGE:', content.substring(challengeIndex, challengeIndex + 200));
+    console.log('[COMPLETION PARSER] No match found. Checking content around COMPLETION...');
+    const completionIndex = content.indexOf('COMPLETION:');
+    if (completionIndex !== -1) {
+      console.log('[COMPLETION PARSER] Content around COMPLETION:', content.substring(completionIndex, completionIndex + 200));
     }
   }
 
@@ -1355,7 +1355,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
     console.log('[Generate-Playbook] ========== RAW AI OUTPUT END ==========');
 
     // Extract and log just the Bible verse section
-    const bibleVerseMatch = rawContent.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+    const bibleVerseMatch = rawContent.match(/BIBLE VERSE:\s*([\s\S]*?)(?=COMPLETION:|$)/i);
     if (bibleVerseMatch) {
       console.log('[Generate-Playbook] ========== BIBLE VERSE SECTION START ==========');
       console.log(bibleVerseMatch[1].trim());
