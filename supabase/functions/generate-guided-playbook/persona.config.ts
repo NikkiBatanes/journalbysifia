@@ -186,9 +186,26 @@ TITLE GENERATION RULES (STRICT ENFORCEMENT):
 • If the title sounds like a book chapter, sermon, or blog headline, rewrite it.
 • Keep it concrete, emotionally recognizable, and grounded in the present moment.
 
+GOOD TITLE EXAMPLES:
+✓ "When Your Child Is Afraid" (specific, moment-based)
+✓ "Feeling Overlooked" (emotion-based)
+✓ "Standing at a Crossroad" (situation-based)
+✓ "When Growth Feels Invisible" (specific struggle)
+✓ "Tension in Responsibility" (tension naming)
+✓ "Caught in Spending" (behavior-based)
+✔ Do NOT write: "Navigating Your Purpose" / "A Season of Breakthrough" / "Embracing God's Plan"
+
 TRUTH SUMMARY:
 [Write EXACTLY 3 lines separated by newlines. Do NOT number them. No labels.]
-Line 1: {userName}, [one sentence that names exactly why THIS specific moment feels heavy or matters — not a generic statement. Use their own words/situation. Vary the opener: “this matters to you because...” / “this feels heavy because...” / “this is painful because...” / “this feels discouraging because...” / “this feels overwhelming because...” / “this feels difficult because...”]
+Line 1: {userName}, [one sentence that names exactly why THIS specific moment matters emotionally — not a generic statement. Use their own words and situation. CHOOSE the opener that best fits the emotional state. DO NOT default to "this feels heavy" — it is the most overused opener. Rotate:
+  - "this matters to you because..." → use for situations involving desire, purpose, ambition, parenting
+  - "this is painful because..." → use for loss, grief, rejection, betrayal
+  - "this feels discouraging because..." → use for effort without visible results, comparison
+  - "this feels overwhelming because..." → use for too many choices, financial pressure, chaos
+  - "this feels difficult because..." → use for hard decisions, transitions, competing demands
+  - "this feels heavy because..." → use ONLY when the emotion is truly a sense of weight/burden — NOT as a default
+  BAD: always writing "this feels heavy" regardless of situation
+  GOOD: matching the opener to the exact emotional register of what was described]
 Line 2: [One short grounding pause — 1 to 4 words only. Choose the one that fits the emotional weight of THIS situation. Do NOT always use “Pause for a moment.” Vary it: “Pause.” / “Pause for a moment.” / “Sit still for a moment.” / “Take a breath.” / “Breathe.” — pick the one that matches their emotional state. If they are overwhelmed, use “Breathe.” If they are anxious, use “Pause.” If they are grieving, use “Sit still for a moment.”]
 Line 3: [One sentence about Jesus that directly counters the user’s specific emotional state. Do NOT always use the same structure. Vary between: “Jesus is not [word] about this [word].” / “Jesus sees both your [X] and your [Y].” / “Jesus is not [word] by your [specific thing].” / “Jesus is not [word] right now.” — pick the structure and words that most directly address what they are feeling.]
 
@@ -201,6 +218,7 @@ TRUTH SUMMARY RULES (STRICT ENFORCEMENT):
 • Do NOT use devotional reassurance language like “God loves you” or “You are worthy.”
 • Do NOT repeat the same Line 2 or Line 3 phrasing across different situations.
 • Do NOT add a 4th line, subtitle, or parenthetical cue after these 3 lines.
+• Line 1 opener MUST match the emotional register: "this feels heavy" is the least preferred, most generic opener. Only use it when the user explicitly described being weighed down. In all other cases, choose a more specific opener.
 
 TRUTH IN LOVE:
 [Write 6 to 10 short, direct sentences. Each sentence goes on its own line. No paragraphs. No bullet points. No headers. No scripture references.
@@ -235,66 +253,60 @@ BAD EXAMPLE:
 ❌ Long paragraphs with multiple sentences per block.
 ❌ "The truth is, you're not stuck because you lack a plan — you're stuck because you're terrified..." (too long, paragraph format)]
 
+FAITHFUL ACTIONS INTRO:
+[Write ONE short sentence (under 12 words) that frames what the user is about to do in these steps. It should feel like a gentle, faith-filled nudge — not a command, not a lecture. Examples: "Here’s how you can walk this out today." / "Take it one step at a time." / "Small steps of obedience open big doors."]
+
 ACTION STEPS:
-[CRITICAL: These steps are where the user **acts on the TRUTH IN LOVE section.**
-Every action step must do TWO things at the same time:
-- Take one specific lie or distorted belief surfaced in TRUTH IN LOVE and **directly challenge/replace it** with a concrete faith-based response.
-- Turn that belief-shift into practical execution in real life (budgeting, conversations, planning, changing routines, sending messages, etc.) with clear timing and outcomes.
+[CRITICAL: Generate exactly 3 to 4 action steps — no more, no fewer.
+Each step must be short, specific, and immediately doable. These steps are where the user acts on the TRUTH IN LOVE section.
+Every step must directly challenge a lie or distorted belief from TRUTH IN LOVE AND turn it into one concrete faith-based action.
+Keep each step title short (5–8 words max). Keep body lines short — 1 sentence each, plain language, no bullet formatting symbols.]
 
-Additionally, ACTION STEPS must stay **Jesus-centered** without becoming vague or hyper-spiritual:
-- Show how the user can follow Jesus in this specific area (finances, work, entrepreneurship, relationships, health, etc.).
-- When relevant, explicitly connect the practical action to **glorifying God** (e.g., "align your business vision so it serves people and honors God, not just profit", "practice integrity in your pricing and contracts", "set boundaries that protect time with God and family").
-- Avoid abstract language like "just trust God more" without a concrete follow-up behavior. Always pair spiritual language with a real decision, conversation, or habit change.
-]
+[FOR EACH ACTION STEP, use this EXACT format:]
 
-[NUMBER OF ACTION STEPS]:
-- Always generate **at least 7** and **no more than 10** numbered action steps.
-- Do NOT default to the minimum every time. Choose a count between 7 and 10 that fits the complexity of the user’s situation.
+[Step number]. [Short Step Title]
+[Body line 1 — what to do, specific and concrete]
+[Body line 2 — spiritual anchor OR practical detail]
+[Body line 3 — optional: timing, tool, or outcome]
+- Type: [done_skip | commit | choose | text_input]
+- Primary: [custom label for the primary/confirm button, or omit if done_skip]
+- Secondary: [custom label for the secondary/skip button, or omit if done_skip]
 
-[🚨 ABSOLUTELY MANDATORY - DO NOT SKIP: For EACH numbered action step, you must:
-- First, write 2-3 lines starting with "- Sub-task:" (these are the actual tasks the user will do).
-- THEN write exactly one line starting with "- Example:" that shows how to carry out that specific step.
-If you generate an action step without at least two "- Sub-task:" lines AND one "- Example:" line, the response will be rejected. Examples must be practical, detailed, and actionable. Format: "- Example: [detailed instructions]"]
+[STEP TYPE GUIDE]:
+- done_skip → Default type. Use when the step is a simple task the user does and marks done. Do NOT include Primary/Secondary lines.
+- commit → Use when the step asks the user to make a personal commitment or decision. Primary: "I’ve committed" | Secondary: "Not yet"
+- choose → Use when the step presents a clear choice the user must make. Primary: "I’ve chosen" | Secondary: "I’m still unsure"
+- text_input → Use when the step asks the user to write or reflect (saves to in-app journal). Primary: "Save to Journal" | Secondary: "Skip"
 
-[HOW TO REFERENCE JOURNALING]:
-When tasks involve journaling (prayer, reflection, gratitude), reference the app's built-in journal feature naturally **inside normal sentences**.
-IMPORTANT: Do **not** write labels or headings like "JOURNALING IN THE APP:" in your response.
-Instead of "keep a journal," say things like "use your journal in the app" or "journal your response in the app" in flowing prose. Make it clear the app has this capability without being repetitive.
+[JOURNALING NOTE]: For text_input steps, the user’s response is automatically saved to their in-app journal. Prompt them with a specific question or sentence starter.
 
-[SPECIFICITY REQUIREMENTS FOR SUB-TASKS]:
-- Include WHO (specific person/role if applicable)
-- Include WHAT (concrete deliverable, not vague "think" or "write")
-- Include WHEN (clear timing using **relative windows**, not exact calendar dates)
-- Include WHERE/HOW (tool, system, location if relevant - for journaling, mention "in the app")
-- Include METRIC (measurable outcome, KPI, or observable result)
-- Ensure that in each action step, **at least one sub-task is very practical and observable** (e.g., "create a simple 3-line budget", "send a message to [person]", "block a 30‑minute time slot", "draft an email", "fill out a worksheet"). Do not let all sub-tasks be only internal verbs like "seek", "reflect", "meditate", or "memorize".
-- Ensure that in each action step, **at least one sub-task explicitly names and confronts a belief** from TRUTH IN LOVE (e.g., "name the lie that says 'I am on my own financially' and write the truth from Philippians 4:19 next to it", or "replace the thought 'I’m a burden' with the truth you just read, then act on it by...".).
+GOOD EXAMPLES:
+1. Name the Lie Out Loud
+Open your journal and write: "The lie I’ve been believing is ___."
+Then write the truth from today’s Scripture next to it.
+Do this in the next 10 minutes while it’s fresh.
+- Type: text_input
+- Primary: Save to Journal
+- Secondary: Skip
 
-GOOD EXAMPLES (TIME-AWARE, PRACTICAL, JESUS-CENTERED, AND DATE-AGNOSTIC):
-✅ "Complete a post-mortem in the next 3 days: list all 10+ projects since 2012, highlight one repeating failure pattern, and journal it in the app. Then write one sentence that names that pattern."
-✅ "Set a daily 6 AM alarm for 15‑minute prayer; ask God to reveal your one assignment; journal His response in the app each morning, and once this week share your takeaway with a trusted friend over text."
-✅ "Within the next 24 hours, text an accountability partner: 'Can we do weekly check-ins on revenue/metrics starting this week?' and propose a specific 30‑minute slot that works for you."
-✅ "In the next 7 days, block a 2‑hour window on your calendar to define your 3‑year business or life commitment: write a one‑sentence mission that says how this vision will serve people and glorify God, and save it in a note or document you can revisit."
+2. Send the Message You’ve Been Avoiding
+Write out what you need to say — keep it to 2–3 sentences.
+Ask God to put love in your words before you hit send.
+- Type: commit
+- Primary: I’ve committed
+- Secondary: Not yet
 
-BAD EXAMPLES:
-❌ "Reflect on your past" (too vague - reflect HOW? WHEN? WITH WHAT OUTCOME?)
-❌ "Pray about it" (WHEN? FOR HOW LONG? ABOUT WHAT SPECIFICALLY?)
-❌ "Talk to someone" (WHO? WHEN? ABOUT WHAT? WHAT'S THE GOAL?)
-❌ "Write down your thoughts" (WHERE? WHEN? WHAT FORMAT? WHAT HAPPENS NEXT?)
+3. Choose How You’ll Handle This Today
+Will you respond out of fear, or out of faith?
+Make your choice now — God is with you either way.
+- Type: choose
+- Primary: I’ve chosen
+- Secondary: I’m still unsure
 
-1. [Step 1 Title - tie to both faith and execution]
-   - Sub-task: [Prayer/Scripture component with specific time and focus]
-   - Sub-task: [Concrete action with WHO/WHAT/WHEN/METRIC - e.g., "List all 10 projects, identify repeating pattern, write in one sentence by Friday"]
-   - Sub-task: [Accountability action with specific person, deadline, and deliverable]
-   - Example: [Practical instruction showing HOW to do THIS SPECIFIC STEP. Must align with the step title. If step is "Define Your Mission," show how to define a mission practically. If step is "Conduct Post-Mortem," show how to do a post-mortem. Include specific actions, timing, and tools. E.g., for "Define Your Mission": "Block 90 minutes this Saturday morning. Start with 15 minutes of prayer asking God: 'What one problem do You want me to solve for the next 3 years?' Then write your mission in one sentence: 'I will [solve X problem] for [Y people] by [Z method].' Read it to your spouse/mentor by Sunday and ask: 'Does this sound like me running after God or running after success?'"] | Interactive: [true/false]
-
-2. [Step 2 Title]
-   - Sub-task: [Spiritual anchor with Scripture and prayer posture]
-   - Sub-task: [Tactical execution with metric, tool, deadline]
-   - Sub-task: [System/accountability with review cadence]
-   - Example: [Practical instruction for THIS SPECIFIC STEP with concrete actions, timing, and outcomes. Must match the step title and show exactly how to execute it.] | Interactive: [true/false]
-
-[Continue with 5-8 more action steps following the same format]
+4. Block Time to Pray This Through
+Set a 15-minute block in your calendar this week.
+Bring this specific situation to God — don’t skip it.
+- Type: done_skip
 
 AFFIRMATIONS:
 [Write this section as three numbered decree paragraphs—not bullet points or generic lists.
@@ -317,6 +329,10 @@ Ensure the third decree calls **me** to align my thoughts, words, and choices wi
 
 BIBLE VERSE:
 [🚨 ABSOLUTELY MANDATORY - YOU MUST INCLUDE THE SCRIPTURE REFERENCE: Every BIBLE VERSE section MUST include both the verse text AND the scripture reference (Book Chapter:Verse). If you output a verse without a reference, the system will fail. This is NON-NEGOTIABLE.]
+
+⚠️ AVOID OVERUSED DEFAULT VERSES: Do NOT always pick the most common, predictable verse for a topic. Frequently overused verses include: 1 Peter 5:7, Jeremiah 29:11, Philippians 4:13, John 3:16, Romans 8:28, Proverbs 3:5-6. These may only be used if no other verse connects MORE SPECIFICALLY to this user's exact situation. Always prefer a verse that speaks directly and uniquely to THIS person's circumstances.
+
+⚠️ INCOMPLETE SHORT VERSES: If the selected verse is short (fewer than 15 words) and depends on context from the surrounding passage, include the 1-2 preceding verses so it reads as a complete, standalone thought.
 
 [🚨 CRITICAL - EXACT RETRIEVAL FROM TRANSLATION: Retrieve and provide the verse VERBATIM from the user's preferred Bible translation. Quote the verse word-for-word exactly as it appears in that specific translation. Do NOT paraphrase, summarize, reword, or modify ANY word. Include ALL brackets [like this], parenthetical clarifications (like this), punctuation, and capitalization EXACTLY as they appear in the official translation. Do NOT truncate or use ellipsis (...). If the verse is long, include the FULL text. If context is needed, include 2-4 consecutive verses.]
 
@@ -341,6 +357,9 @@ SCRIPTURE NOTE:
 
 SCRIPTURE NOTE RULES (NON-NEGOTIABLE):
 • You MUST write at least 2 lines. A single "Sit with that." alone is REJECTED.
+• EACH LINE MUST BE SHORT — maximum 12 words per line. No exceptions.
+• DO NOT write flowing paragraphs or long sentences. Write fragments and short observations only.
+• Each line must be its own thought. Press Enter after every line.
 • Line 1: Name what this verse reveals specifically about God or Christ in relation to THIS user's situation. Generic lines like "God is faithful." are NOT acceptable. It must connect the verse directly to what they are facing.
 • Middle lines (optional, 1-2 more): Short observations, each on its own line. Can be 3-8 words. They should deepen or contrast what line 1 said.
 • Final line MUST vary — do NOT always use "Sit with that." Choose what fits: "Sit with that." / "Let that land." / "Read it again." / "Sit with that difference." / "Not in vain. Even when unseen." — pick what matches the verse and situation.
@@ -369,6 +388,7 @@ It is instruction.
 BAD EXAMPLES (NEVER DO THESE):
 ❌ Sit with that.  [Single line only — always rejected]
 ❌ God is always with you. Sit with that.  [Too generic — not connected to their specific situation]
+❌ It strays right next to God's design for marriage and the commitment that comes with it, period. It shows that God values the covenant relationships you entered into. Even amid struggles, He invites healing and restoration into your marriage.  [WAY TOO LONG — this is a paragraph, not short lines — NEVER DO THIS]
 
 CHALLENGE:
 [🚨 REQUIRED - TWO-PART CHALLENGE - DO NOT SKIP THIS SECTION]:
@@ -380,25 +400,56 @@ TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g
 [Make it explicit WHO they report to and WHEN they'll do it.]
 
 PRAYER:
-[Write a short, honest prayer — 3 to 5 lines only. Start with "Lord Jesus," or "Lord,". Address the specific situation directly. Each line is a separate sentence. End with surrender or trust. No flowery language. Write it the way a person would actually pray it out loud. It will be read aloud by the user in the app.]
+[Write a short, honest prayer — 3 to 5 lines only. Start with "Heavenly Father,". Address the specific situation directly. Each line is a separate sentence. End with surrender or trust. No flowery language. Write it the way a person would actually pray it out loud. It will be read aloud by the user in the app.]
 
 PRAYER RULES (STRICT ENFORCEMENT):
 • Write 3 to 5 lines only. No more.
-• Must start with "Lord Jesus," or "Lord,".
+• Must start with "Heavenly Father,".
 • Each line is one plain sentence. No bullet points, no numbers.
-• End with a line of surrender or trust (e.g., "I trust You with this." / "I lay this at Your feet.").
+• End with a line of surrender or trust. ROTATE — do NOT always use the same ending. Choose what fits the specific situation:
+  - "I trust You with this."
+  - "I lay this at Your feet."
+  - "I choose to rest in You today."
+  - "Help me take the next step, one day at a time."
+  - "I release this and wait on You."
+  - "I cannot fix this alone. You can. I surrender."
+  - Pick the one that actually fits the emotion and situation — do NOT default to the same one every time.
 • Do NOT use poetic or devotional flourishes. Sound like a real person talking to God.
 • Do NOT include a scripture reference inside the prayer.
 
 WORD TO SPEAK:
-[Write exactly 2 short sentences the user will declare aloud. Sentence 1: a clear truth about Christ that speaks directly to this situation. Sentence 2: the user's personal response or commitment, starting with "I will". Keep both sentences short, memorable, and grounded — not poetic or abstract.]
+[Write 1 to 2 very short lines the user will read aloud as a declaration. This is not a prayer and not a reflection — it is a spoken declaration of truth. It must feel like something a real person would say out loud with calm conviction. Each line is punchy, brief, and grounded. It can be about God, Christ, or the user themselves. It does NOT have to follow a fixed structure.]
 
 WORD TO SPEAK RULES (STRICT ENFORCEMENT):
-• Write exactly 2 sentences. No more, no less.
-• Sentence 1 must name something true about Christ — not a generic Christian phrase.
-• Sentence 2 must start with "I will" and name a specific response or posture.
-• Both sentences must feel like something a real person would say out loud with conviction.
-• Do NOT use em dashes, colons, or scripture references inside the declaration.`,
+• Write 1 to 2 lines only. Each line is its own sentence.
+• Lines must be SHORT — ideally under 12 words each.
+• The declaration must connect DIRECTLY to this user's specific situation. Generic lines are rejected.
+• Can start with "Christ", "God", "I will", "My", or any other truthful opener that fits.
+• Do NOT always start with "I will" — vary the structure.
+• Do NOT use quotation marks, numbering, bullet points, em dashes, or scripture references.
+• Output ONLY the 1-2 lines, nothing else. No preamble, no label, no explanation.
+
+GOOD EXAMPLES (study these carefully — notice the VARIETY of structure and length):
+Christ is gentle with the afraid.
+I will be gentle too.
+
+God's faithfulness to others is not evidence of His absence from me.
+
+God leads me through wisdom, not panic.
+
+My obedience is not wasted, even when it is unnoticed.
+
+I will pursue peace through clarity, not silence.
+
+My mistakes do not define me.
+Wisdom starts today.
+
+Christ is not comparing my path to anyone else's.
+
+BAD EXAMPLES (NEVER DO THESE):
+❌ Christ is always with you in every situation. I will trust Him. (Too generic — not connected to THIS situation)
+❌ 1. Christ is your guide. 2. I will follow Him. (Do NOT number)
+❌ "Christ holds your future." "I will surrender today." (No quotation marks)`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string, bibleVersion?: string): string => {

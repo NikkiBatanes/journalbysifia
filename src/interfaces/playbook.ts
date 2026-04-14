@@ -22,6 +22,10 @@ export interface ActionStep {
   subTasks?: SubTask[]; // Only present if there are sub-tasks
   completed: boolean; // Always boolean for strict typing
   orderIndex?: number; // For ordering action steps
+  // New walkthrough format
+  actionType?: 'done_skip' | 'commit' | 'choose' | 'text_input';
+  primaryButton?: string; // Custom primary button label
+  secondaryButton?: string; // Custom secondary button label
 }
 
 export interface TruthInLove {
@@ -49,6 +53,7 @@ export interface Playbook {
   prayer?: string; // Short prayer to God for the walkthrough (Screen 4)
   wordToSpeak?: string; // Short declaration the user reads aloud (Screen 5)
   bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
+  faithfulActionsIntro?: string; // One-line framing sentence before action steps (Screen 3)
   profileImage?: string;
   progress: number;
   totalTasks: number;

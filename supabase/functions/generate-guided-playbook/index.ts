@@ -33,11 +33,15 @@ interface SubTask {
 interface ActionStep {
   id: string;
   title: string;
+  description?: string;
   subTasks: SubTask[];
   examples: string[];
   example_interactive?: boolean;
   completed: boolean;
   orderIndex?: number;
+  actionType?: 'done_skip' | 'commit' | 'choose' | 'text_input';
+  primaryButton?: string;
+  secondaryButton?: string;
 }
 
 interface Playbook {
@@ -55,6 +59,7 @@ interface Playbook {
   prayer?: string;
   wordToSpeak?: string;
   bibleVerseReflection?: string;
+  faithfulActionsIntro?: string;
   createdAt: string;
   updatedAt: string;
   userInput: string;
@@ -246,6 +251,15 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     playbook.truthInLove.text = truthText;
   }
 
+  // Parse FAITHFUL ACTIONS INTRO (new guided format)
+  const faithfulActionsIntroMatch = content.match(/FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=ACTION STEPS:|$)/i);
+  if (faithfulActionsIntroMatch) {
+    const introText = faithfulActionsIntroMatch[1].trim().split('\n')[0].trim();
+    if (introText) {
+      playbook.faithfulActionsIntro = introText;
+    }
+  }
+
   // Parse Action Steps with Smart Journaling (handle bold formatting)
   let actionStepsMatch = content.match(/\*\*ACTION STEPS:\*\*\s*([\s\S]*?)(?=\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (!actionStepsMatch) {
@@ -267,12 +281,27 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       const subTasks: SubTask[] = [];
       const examples: string[] = [];
       let exampleInteractive = false;
+      let actionType: 'done_skip' | 'commit' | 'choose' | 'text_input' | undefined;
+      let primaryButton: string | undefined;
+      let secondaryButton: string | undefined;
+      const bodyLines: string[] = [];
 
       lines.slice(1).forEach((line: string) => {
         const trimmedLine = line.trim();
-        if (/^\s*-\s*Sub-task:/i.test(trimmedLine)) {
-          const subTaskText = trimmedLine.replace(/^\s*-\s*Sub-task:\s*/i, '').trim();
 
+        // New guided format: - Type:, - Primary:, - Secondary:
+        if (/^\s*-\s*Type:/i.test(trimmedLine)) {
+          const typeVal = trimmedLine.replace(/^\s*-\s*Type:\s*/i, '').trim().toLowerCase();
+          if (['done_skip', 'commit', 'choose', 'text_input'].includes(typeVal)) {
+            actionType = typeVal as 'done_skip' | 'commit' | 'choose' | 'text_input';
+          }
+        } else if (/^\s*-\s*Primary:/i.test(trimmedLine)) {
+          primaryButton = trimmedLine.replace(/^\s*-\s*Primary:\s*/i, '').trim();
+        } else if (/^\s*-\s*Secondary:/i.test(trimmedLine)) {
+          secondaryButton = trimmedLine.replace(/^\s*-\s*Secondary:\s*/i, '').trim();
+        } else if (/^\s*-\s*Sub-task:/i.test(trimmedLine)) {
+          // Legacy format: - Sub-task:
+          const subTaskText = trimmedLine.replace(/^\s*-\s*Sub-task:\s*/i, '').trim();
           if (subTaskText) {
             subTasks.push({
               id: generateUUID(),
@@ -284,41 +313,47 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
             });
           }
         } else if (/^\s*-\s*Example:/i.test(trimmedLine)) {
+          // Legacy format: - Example:
           const exampleText = trimmedLine.replace(/^\s*-\s*Example:\s*/i, '').trim();
-
-          // Check if example is interactive
           const interactiveMatch = exampleText.match(/(.+?)\s*\|\s*Interactive:\s*(true|false)/i);
           if (interactiveMatch) {
             const cleanExampleText = interactiveMatch[1].trim();
             exampleInteractive = interactiveMatch[2].toLowerCase() === 'true';
-            if (cleanExampleText) {examples.push(cleanExampleText);}
+            if (cleanExampleText) { examples.push(cleanExampleText); }
           } else if (exampleText) {
             examples.push(exampleText);
           }
-        } else if (subTasks.length > 0 && !trimmedLine.startsWith('- ')) {
-          // Handle multi-line sub-tasks
-          const lastIndex = subTasks.length - 1;
-          subTasks[lastIndex].text = `${subTasks[lastIndex].text} ${trimmedLine}`.trim();
+        } else if (!trimmedLine.startsWith('- ')) {
+          // New guided format: plain body lines (not tagged)
+          bodyLines.push(trimmedLine);
         }
       });
+
+      // For new format (has Type tag or plain body lines), store body as description
+      // For old format (has Sub-tasks), keep subTasks array
+      const description = bodyLines.length > 0 ? bodyLines.join('\n') : undefined;
 
       return {
         id: generateUUID(),
         title: titleLine,
+        description,
         subTasks,
         examples,
         example_interactive: exampleInteractive,
         completed: false,
         orderIndex: idx,
+        actionType: actionType ?? (subTasks.length > 0 ? 'done_skip' : 'done_skip'),
+        primaryButton,
+        secondaryButton,
       };
     });
 
-    // Calculate total tasks (count all subtasks)
-    playbook.totalTasks = playbook.actionSteps.reduce((total, step) => total + step.subTasks.length, 0);
+    // Calculate total tasks
+    playbook.totalTasks = playbook.actionSteps.length;
 
-    // Validate that each action step has at least one example
+    // Validate that each action step has at least one example (legacy format only)
     playbook.actionSteps.forEach((step, index) => {
-      if (!step.examples || step.examples.length === 0) {
+      if (step.subTasks.length > 0 && (!step.examples || step.examples.length === 0)) {
         console.warn(`⚠️ Action step ${index + 1} ("${step.title}") is missing examples. Adding placeholder.`);
         step.examples = [`For "${step.title}": Set aside dedicated time this week to work through this step. Break it into smaller tasks, pray for guidance, and track your progress in the app.`];
       }
@@ -630,8 +665,22 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     scriptureNoteMatch = content.match(/SCRIPTURE REFLECTION:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
   }
   if (scriptureNoteMatch) {
-    playbook.bibleVerseReflection = scriptureNoteMatch[1].trim();
-    console.log('[SCRIPTURE NOTE PARSER] Parsed reflection length:', playbook.bibleVerseReflection.length);
+    let rawReflection = scriptureNoteMatch[1].trim();
+
+    // Enforce short-line format: if the AI wrote a flowing paragraph (no newlines),
+    // split at sentence boundaries and rejoin as separate lines (max 4 lines)
+    const lines = rawReflection.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    if (lines.length === 1 && lines[0].length > 60) {
+      // Single long paragraph — split at sentence endings
+      const sentences = lines[0].split(/(?<=[.!?])\s+/);
+      rawReflection = sentences.slice(0, 4).join('\n');
+    } else {
+      // Already multi-line — just cap at 4 lines
+      rawReflection = lines.slice(0, 4).join('\n');
+    }
+
+    playbook.bibleVerseReflection = rawReflection;
+    console.log('[SCRIPTURE NOTE PARSER] Parsed reflection:', playbook.bibleVerseReflection);
   }
 
   // Parse Direct Challenge (handle bold formatting)
@@ -680,8 +729,30 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     wordToSpeakMatch = content.match(/WORD TO SPEAK:\s*([\s\S]*?)(?=WORD TO SPEAK RULES:|$)/i);
   }
   if (wordToSpeakMatch) {
-    playbook.wordToSpeak = wordToSpeakMatch[1].trim();
-    console.log('[WORD TO SPEAK PARSER] Parsed wordToSpeak length:', playbook.wordToSpeak.length);
+    let rawWord = wordToSpeakMatch[1].trim();
+    // Strip any echoed rules or examples blocks
+    rawWord = rawWord.replace(/WORD TO SPEAK RULES[\s\S]*/i, '').trim();
+    rawWord = rawWord.replace(/GOOD EXAMPLES[\s\S]*/i, '').trim();
+    rawWord = rawWord.replace(/BAD EXAMPLES[\s\S]*/i, '').trim();
+    // Strip markdown bullet points, numbers, bold markers, quotation marks
+    rawWord = rawWord
+      .replace(/^[•\-\*\d\.]+\s*/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/[""]/g, '')
+      .replace(/^["']/gm, '')
+      .replace(/["']$/gm, '')
+      .trim();
+
+    // Prefer splitting on newlines first (most reliable when AI follows format)
+    const linesSplit = rawWord.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 4);
+    if (linesSplit.length >= 1) {
+      // 1 or 2 lines — cap at 2
+      playbook.wordToSpeak = linesSplit.slice(0, 2).join('\n');
+    } else {
+      // Fallback: take the raw word as-is (single declaration)
+      playbook.wordToSpeak = rawWord;
+    }
+    console.log('[WORD TO SPEAK PARSER] Parsed:', playbook.wordToSpeak);
   }
 
   if (!playbook.directChallenge || playbook.directChallenge.trim().length === 0) {

@@ -6,7 +6,7 @@
 
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
-import { Playbook } from '../interfaces/playbook';
+import { Playbook, ActionStep } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
 import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
@@ -604,6 +604,24 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
       : playbook.title;
 
     // Save to Supabase using the actual database schema
+    // Piggyback bibleVerseReflection into bible_verse JSONB (no schema change needed)
+    const bibleVerseToSave = {
+      ...playbook.bibleVerse,
+      ...(playbook.bibleVerseReflection ? { reflection: playbook.bibleVerseReflection } : {}),
+    };
+
+    // Piggyback prayer + wordToSpeak into direct_challenge JSONB (no schema change needed)
+    const rawDC = playbook.directChallenge;
+    const directChallengeToSave = (() => {
+      const base: Record<string, any> = typeof rawDC === 'object' && rawDC !== null
+        ? { ...(rawDC as any) }
+        : { text: typeof rawDC === 'string' ? rawDC : '', summary: '' };
+      if (playbook.prayer) { base.prayer = playbook.prayer; }
+      if (playbook.wordToSpeak) { base.wordToSpeak = playbook.wordToSpeak; }
+      if (playbook.faithfulActionsIntro) { base.faithfulActionsIntro = playbook.faithfulActionsIntro; }
+      return base;
+    })();
+
     const { error } = await supabase
       .from('playbooks')
       .upsert({
@@ -612,8 +630,8 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         title: truncatedTitle,
         user_input: playbook.userInput, // Use the actual user_input column
         truth_in_love: playbook.truthInLove,
-        bible_verse: playbook.bibleVerse,
-        direct_challenge: playbook.directChallenge,
+        bible_verse: bibleVerseToSave,
+        direct_challenge: directChallengeToSave,
         challenge_cta: playbook.challengeCTA,
         status: playbook.status || 'ongoing',
         created_at: playbook.createdAt || new Date().toISOString(),
@@ -649,11 +667,26 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             : step.examples;
         }
 
+        // Piggyback guided format metadata into examples field as JSON
+        // If step has actionType, store metadata as JSON object with __meta marker
+        let examplesField: string = examplesText;
+        if (step.actionType) {
+          const meta: Record<string, any> = {
+            __meta: true,
+            actionType: step.actionType,
+          };
+          if (step.primaryButton) { meta.primaryButton = step.primaryButton; }
+          if (step.secondaryButton) { meta.secondaryButton = step.secondaryButton; }
+          if (step.description) { meta.description = step.description; }
+          if (examplesText) { meta.examples = examplesText; }
+          examplesField = JSON.stringify(meta);
+        }
+
         return {
           id: step.id,
           playbook_id: playbook.id,
           text: step.title, // Clean title without examples
-          examples: examplesText, // Store examples in dedicated field
+          examples: examplesField, // Store examples (or guided metadata) in dedicated field
           completed: step.completed || false,
           order_index: index,
           example_interactive: step.example_interactive || false,
@@ -1219,13 +1252,38 @@ export async function getPlaybook(
           completed: subTask.completed || false,
         }));
 
+      // Parse guided format metadata from examples field if it contains __meta JSON
+      let actionType: ActionStep['actionType'] | undefined;
+      let primaryButton: string | undefined;
+      let secondaryButton: string | undefined;
+      let description: string | undefined;
+      let examplesValue: string = step.examples || '';
+
+      if (examplesValue.startsWith('{') && examplesValue.includes('__meta')) {
+        try {
+          const meta = JSON.parse(examplesValue);
+          if (meta.__meta) {
+            actionType = meta.actionType;
+            primaryButton = meta.primaryButton;
+            secondaryButton = meta.secondaryButton;
+            description = meta.description;
+            examplesValue = meta.examples || '';
+          }
+        } catch {
+          // Not valid JSON — keep as plain examples string
+        }
+      }
+
       return {
         id: step.id,
         title: step.text,
-        description: '', // Not stored in database
+        description: description || '', // Extracted from __meta or empty
         subTasks: stepSubTasks,
-        examples: step.examples || '', // Read from dedicated examples field
+        examples: examplesValue, // Read from dedicated examples field
         completed: step.completed,
+        actionType,
+        primaryButton,
+        secondaryButton,
       };
     });
 
@@ -1276,11 +1334,29 @@ export async function getPlaybook(
     const normalizedBible = rawBible && typeof rawBible === 'object'
       ? { text: rawBible.text || '', reference: rawBible.reference || '', version: rawBible.version || '' }
       : { text: typeof rawBible === 'string' ? rawBible : '', reference: '', version: '' };
+    // Extract bibleVerseReflection piggybacked into bible_verse JSONB
+    const storedBibleVerseReflection: string | undefined =
+      rawBible && typeof rawBible === 'object' && rawBible.reflection
+        ? String(rawBible.reflection)
+        : undefined;
 
     const rawChallenge = safeParse(data.direct_challenge);
     const normalizedChallenge = rawChallenge && typeof rawChallenge === 'object'
       ? { text: rawChallenge.text || '', summary: rawChallenge.summary || '' }
       : (typeof rawChallenge === 'string' ? rawChallenge : '');
+    // Extract prayer + wordToSpeak + faithfulActionsIntro piggybacked into direct_challenge JSONB
+    const storedPrayer: string | undefined =
+      rawChallenge && typeof rawChallenge === 'object' && rawChallenge.prayer
+        ? String(rawChallenge.prayer)
+        : undefined;
+    const storedWordToSpeak: string | undefined =
+      rawChallenge && typeof rawChallenge === 'object' && rawChallenge.wordToSpeak
+        ? String(rawChallenge.wordToSpeak)
+        : undefined;
+    const storedFaithfulActionsIntro: string | undefined =
+      rawChallenge && typeof rawChallenge === 'object' && rawChallenge.faithfulActionsIntro
+        ? String(rawChallenge.faithfulActionsIntro)
+        : undefined;
 
     // Transform to Playbook interface
     const playbook: Playbook = {
@@ -1293,6 +1369,10 @@ export async function getPlaybook(
       bibleVerse: normalizedBible,
       directChallenge: normalizedChallenge,
       challengeCTA: data.challenge_cta,
+      prayer: storedPrayer,
+      wordToSpeak: storedWordToSpeak,
+      bibleVerseReflection: storedBibleVerseReflection,
+      faithfulActionsIntro: storedFaithfulActionsIntro,
       profileImage: '', // Not stored in current schema
       progress: progress, // Calculated manually
       totalTasks: totalTasks, // Calculated manually

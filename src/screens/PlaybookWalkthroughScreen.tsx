@@ -1,6 +1,6 @@
 // src/screens/PlaybookWalkthroughScreen.tsx
 import * as React from 'react';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,6 +9,8 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,6 +23,7 @@ import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
+import { useCreateJournalEntry } from '../services/hooks/useJournalData';
 
 import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -37,7 +40,6 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
 const TOTAL_STEPS = 7;
-const PRAYER_FALLBACK = 'Lord, meet me here. I bring this to You.';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,7 @@ interface EnterMomentProps {
   summary: string;
   userName: string;
   onContinue: () => void;
+  insets: { top: number };
 }
 
 const EnterMomentStep: React.FC<EnterMomentProps> = ({
@@ -71,6 +74,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   summary,
   userName,
   onContinue,
+  insets,
 }) => {
   const [showUserInput, setShowUserInput] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
@@ -96,7 +100,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   return (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Centered PLAYBOOK label + animated chevron — matches PlaybookDetailGuided header */}
@@ -151,16 +155,17 @@ interface TruthStepProps {
   text: string;
   userName: string;
   onNext: () => void;
+  insets: { top: number };
 }
 
-const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext }) => {
+const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext, insets }) => {
   const personalized = replaceAllNamePlaceholders(text, userName);
   const paragraphs = splitParagraphs(personalized);
 
   return (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.stepLabelRow}>
@@ -192,22 +197,21 @@ interface ScriptureStepProps {
   version?: string;
   reflection?: string;
   onNext: () => void;
+  insets: { top: number };
 }
 
-const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext }) => {
+const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext, insets }) => {
   const [showCopyright, setShowCopyright] = useState(false);
-  const reflectionLines = reflection
-    ? splitParagraphs(reflection)
-    : ['Sit with that.'];
+  const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
   return (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.stepLabelRow}>
-        <Ionicons name="book" size={18} color={Colors.alertCoral} />
+        <MaterialCommunityIcons name="book" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
           Scripture Anchor
         </ThemedText>
@@ -221,20 +225,23 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
           <ThemedText weight="semiBold" style={styles.scriptureRef}>
             {reference}
           </ThemedText>
-          {version ? (
-            <View style={styles.versionBadge}>
-              <ThemedText weight="semiBold" style={styles.versionText}>
-                {version.toUpperCase()}
-              </ThemedText>
-            </View>
-          ) : null}
-          <TouchableOpacity
-            onPress={() => { triggerLightHaptic(); setShowCopyright(true); }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="information-circle-outline" size={16} color={Colors.alertCoral} />
-          </TouchableOpacity>
+          <View style={styles.versionAndInfoRow}>
+            {version ? (
+              <View style={styles.versionBadge}>
+                <ThemedText weight="semiBold" style={styles.versionText}>
+                  {version.toUpperCase()}
+                </ThemedText>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              onPress={() => { triggerLightHaptic(); setShowCopyright(true); }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginLeft: -4 }}
+            >
+              <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          </View>
         </View>
         <ThemedText weight="medium" style={styles.scriptureText}>
           "{text}"
@@ -264,57 +271,49 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Step 3: Faithful Actions ────────────────────────────────────────────────
 
+const STEP_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣'];
+
 interface FaithfulActionsStepProps {
   steps: ActionStep[];
+  intro?: string;
   playbookId: string;
   userId: string;
   onNext: () => void;
+  insets: { top: number };
 }
 
 const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   steps,
+  intro,
   playbookId,
   userId,
   onNext,
+  insets,
 }) => {
   const [actionStepIndex, setActionStepIndex] = useState(0);
+  const [journalText, setJournalText] = useState('');
+  const [journalSaved, setJournalSaved] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const updateSubTask = useUpdateSubTask();
+  const createJournalEntry = useCreateJournalEntry();
 
   const currentStep = steps[actionStepIndex];
   const isLastStep = actionStepIndex >= steps.length - 1;
 
-  const advanceStep = useCallback(
-    (markDone: boolean) => {
-      if (markDone && currentStep) {
-        // Mark all subtasks of this step complete
-        if (currentStep.subTasks?.length) {
-          currentStep.subTasks.forEach(sub => {
-            if (!sub.completed) {
-              updateSubTask.mutate({
-                playbookId,
-                stepId: currentStep.id,
-                subTaskId: sub.id,
-                completed: true,
-                userId,
-              });
-            }
-          });
-        }
-        triggerMediumHaptic();
-      }
+  // Reset journal state when step changes
+  useEffect(() => {
+    setJournalText('');
+    setJournalSaved(false);
+  }, [actionStepIndex]);
 
-      if (isLastStep) {
-        onNext();
-        return;
-      }
-
+  const animateToNext = useCallback(
+    (callback: () => void) => {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 150,
         useNativeDriver: true,
       }).start(() => {
-        setActionStepIndex(i => i + 1);
+        callback();
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 200,
@@ -322,8 +321,53 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         }).start();
       });
     },
-    [currentStep, isLastStep, fadeAnim, onNext, playbookId, updateSubTask]
+    [fadeAnim]
   );
+
+  const advanceStep = useCallback(
+    (markDone: boolean) => {
+      if (markDone) {
+        triggerMediumHaptic();
+      } else {
+        triggerLightHaptic();
+      }
+
+      if (isLastStep) {
+        onNext();
+        return;
+      }
+
+      animateToNext(() => setActionStepIndex(i => i + 1));
+    },
+    [isLastStep, onNext, animateToNext]
+  );
+
+  const handleSaveJournal = useCallback(() => {
+    const trimmed = journalText.trim();
+    if (!trimmed) {
+      advanceStep(false);
+      return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    createJournalEntry.mutate(
+      {
+        user_id: userId,
+        content_type: 'todays_focus',
+        content: trimmed,
+        selected_date: today,
+      },
+      {
+        onSuccess: () => {
+          triggerMediumHaptic();
+          setJournalSaved(true);
+          setTimeout(() => advanceStep(true), 600);
+        },
+        onError: () => {
+          Alert.alert('Oops', 'Could not save to journal. Try again.');
+        },
+      }
+    );
+  }, [journalText, userId, createJournalEntry, advanceStep]);
 
   if (!currentStep) {
     return (
@@ -338,15 +382,34 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const stepNumber = actionStepIndex + 1;
   const totalSteps = steps.length;
-  const subText = currentStep.subTasks?.length
-    ? currentStep.subTasks.map(s => s.text).join('\n')
-    : currentStep.description || '';
+  const emoji = STEP_EMOJIS[actionStepIndex] ?? `${stepNumber}.`;
+
+  // Body text: description (new format) or subtasks joined (legacy format)
+  const bodyLines: string[] = currentStep.description
+    ? currentStep.description.split('\n').map(l => l.trim()).filter(Boolean)
+    : (currentStep.subTasks?.map(s => s.text) ?? []);
+
+  // Button labels from actionType
+  const actionType = currentStep.actionType ?? 'done_skip';
+  const primaryLabel = currentStep.primaryButton ?? (
+    actionType === 'commit' ? "I've committed" :
+    actionType === 'choose' ? "I've chosen" :
+    actionType === 'text_input' ? 'Save to Journal' :
+    'Done'
+  );
+  const secondaryLabel = currentStep.secondaryButton ?? (
+    actionType === 'commit' ? 'Not yet' :
+    actionType === 'choose' ? "I'm still unsure" :
+    actionType === 'text_input' ? 'Skip' :
+    isLastStep ? 'Next →' : 'Skip'
+  );
 
   return (
     <View style={styles.stepScroll}>
       <ScrollView
-        contentContainerStyle={styles.stepContent}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
@@ -355,38 +418,68 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           </ThemedText>
         </View>
 
+        {/* Intro framing line (shown only on first step) */}
+        {intro && actionStepIndex === 0 && (
+          <ThemedText style={styles.actionIntro}>{intro}</ThemedText>
+        )}
+
         <ThemedText style={styles.actionCounter}>
           Step {stepNumber} of {totalSteps}
         </ThemedText>
 
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.actionStepCard}>
-            <View style={styles.actionBadge}>
-              <ThemedText weight="bold" style={styles.actionBadgeText}>
-                {stepNumber}
-              </ThemedText>
-            </View>
+            {/* Emoji number */}
+            <ThemedText style={styles.actionEmoji}>{emoji}</ThemedText>
 
+            {/* Step title */}
             <ThemedText weight="semiBold" style={styles.actionTitle}>
               {currentStep.title}
             </ThemedText>
 
-            {subText.length > 0 && (
-              <ThemedText style={styles.actionBody}>
-                {subText}
+            {/* Body lines */}
+            {bodyLines.map((line, idx) => (
+              <ThemedText key={idx} style={styles.actionBodyLine}>
+                {line}
               </ThemedText>
+            ))}
+
+            {/* TextInput for text_input type */}
+            {actionType === 'text_input' && (
+              <View style={styles.journalInputWrapper}>
+                <TextInput
+                  style={styles.journalInput}
+                  value={journalText}
+                  onChangeText={setJournalText}
+                  placeholder="Write your response here…"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                {journalSaved && (
+                  <ThemedText style={styles.journalSavedLabel}>✓ Saved to Journal</ThemedText>
+                )}
+              </View>
             )}
           </View>
         </Animated.View>
 
+        {/* Action buttons */}
         <View style={styles.doneSkipRow}>
           <TouchableOpacity
             style={styles.doneButton}
-            onPress={() => advanceStep(true)}
+            onPress={() => {
+              if (actionType === 'text_input') {
+                handleSaveJournal();
+              } else {
+                advanceStep(true);
+              }
+            }}
             activeOpacity={0.8}
           >
             <ThemedText weight="semiBold" style={styles.doneButtonText}>
-              {isLastStep ? 'Done' : 'Done'}
+              {isLastStep && actionType !== 'text_input' ? primaryLabel : primaryLabel}
             </ThemedText>
           </TouchableOpacity>
 
@@ -396,7 +489,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             activeOpacity={0.8}
           >
             <ThemedText style={styles.skipButtonText}>
-              {isLastStep ? 'Next →' : 'Skip'}
+              {isLastStep && actionType === 'done_skip' ? 'Next →' : secondaryLabel}
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -410,45 +503,97 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 interface PrayerStepProps {
   prayer: string;
   onNext: () => void;
+  insets: { top: number; bottom: number };
 }
 
-const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, onNext }) => {
+const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
+  const [hasPrayed, setHasPrayed] = useState(false);
+  const [showButton, setShowButton] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowButton(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [fadeAnim]);
+
   const handlePrayed = () => {
     triggerLightHaptic();
-    setTimeout(onNext, 300);
+    setHasPrayed(prev => !prev);
   };
 
+  // Always end with "In Jesus' Name, Amen." — strip any existing closing first
+  const prayerBody = prayer
+    .replace(/\n*In Jesus'? [Nn]ame,?\s*[Aa]men\.?/gi, '')
+    .replace(/\n*[Aa]men\.?$/gi, '')
+    .trimEnd();
+
+  // Ensure "Heavenly Father," is always on its own line
+  const fullPrayer = prayerBody.replace(
+    /^(Heavenly Father,)\s+(.)/i,
+    'Heavenly Father,\n$2'
+  );
+
   return (
-    <ScrollView
-      style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.stepLabelRow}>
-        <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-          Prayer
-        </ThemedText>
-      </View>
-
-      <View style={styles.prayerBlock}>
-        {splitParagraphs(prayer).map((line, i) => (
-          <ThemedText key={i} style={styles.prayerText}>
-            {line}
-          </ThemedText>
-        ))}
-      </View>
-
-      <TouchableOpacity
-        style={styles.confirmButton}
-        onPress={handlePrayed}
-        activeOpacity={0.85}
+    <>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
       >
-        <ThemedText weight="semiBold" style={styles.confirmButtonText}>
-          I prayed this
-        </ThemedText>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.stepLabelRow}>
+          <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            Prayer
+          </ThemedText>
+        </View>
+
+        <View style={styles.prayerBlock}>
+          {splitParagraphs(fullPrayer).map((line, i) => (
+            <View key={i}>
+              <ThemedText style={styles.prayerText}>{line}</ThemedText>
+              {i === 0 && <View style={{ height: 16 }} />}
+            </View>
+          ))}
+          <View style={{ height: 24 }} />
+          <ThemedText style={styles.prayerText}>
+            In Jesus' name, amen.
+          </ThemedText>
+        </View>
+
+        {/* Space for floating buttons */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
+
+      {/* Floating action button — bottom-left, aligned with Next button */}
+      {showButton && (
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }, hasPrayed && styles.prayerActionButtonActive]}
+            onPress={handlePrayed}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="hands-pray"
+              size={18}
+              color={hasPrayed ? Colors.alertCoral : Colors.hopeWhite}
+            />
+            <ThemedText
+              weight="bold"
+              style={[styles.prayerActionText, hasPrayed && styles.prayerActionTextActive]}
+            >
+              {hasPrayed ? 'Prayed' : 'I prayed this'}
+            </ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </>
   );
 };
 
@@ -457,45 +602,80 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, onNext }) => {
 interface WordToSpeakStepProps {
   word: string;
   onNext: () => void;
+  insets: { top: number; bottom: number };
 }
 
-const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, onNext }) => {
+const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
+  const [hasRead, setHasRead] = useState(false);
+  const [showButton, setShowButton] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowButton(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [fadeAnim]);
+
   const handleRead = () => {
     triggerLightHaptic();
-    setTimeout(onNext, 300);
+    setHasRead(prev => !prev);
   };
 
   return (
-    <ScrollView
-      style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.stepLabelRow}>
-        <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-          Word to Speak
-        </ThemedText>
-      </View>
-
-      <View style={styles.wordBlock}>
-        {splitParagraphs(word).map((line, i) => (
-          <ThemedText key={i} weight="medium" style={styles.wordText}>
-            {line}
-          </ThemedText>
-        ))}
-      </View>
-
-      <TouchableOpacity
-        style={styles.confirmButton}
-        onPress={handleRead}
-        activeOpacity={0.85}
+    <>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
       >
-        <ThemedText weight="semiBold" style={styles.confirmButtonText}>
-          I've read this aloud
-        </ThemedText>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.stepLabelRow}>
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            Word to Speak
+          </ThemedText>
+        </View>
+
+        <View style={styles.wordBlock}>
+          {splitParagraphs(word).map((line, i) => (
+            <ThemedText key={i} weight="medium" style={styles.wordText}>
+              {line}
+            </ThemedText>
+          ))}
+        </View>
+
+        {/* Space for floating buttons */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
+
+      {/* Floating action button — bottom-left, aligned with Next button */}
+      {showButton && (
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }, hasRead && styles.prayerActionButtonActive]}
+            onPress={handleRead}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={16}
+              color={hasRead ? Colors.alertCoral : Colors.hopeWhite}
+            />
+            <ThemedText
+              weight="bold"
+              style={[styles.prayerActionText, hasRead && styles.prayerActionTextActive]}
+            >
+              {hasRead ? 'Read aloud' : "I've read this aloud"}
+            </ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </>
   );
 };
 
@@ -505,19 +685,21 @@ interface CompletionStepProps {
   title: string;
   closingText: string;
   onFinish: () => void;
+  insets: { top: number };
 }
 
 const CompletionStep: React.FC<CompletionStepProps> = ({
   title,
   closingText,
   onFinish,
+  insets,
 }) => {
   const paragraphs = splitParagraphs(closingText);
 
   return (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={styles.stepContent}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.stepLabelRow}>
@@ -600,10 +782,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const goNext = useCallback(() => {
+    triggerLightHaptic();
     setStepIndex(i => Math.min(i + 1, TOTAL_STEPS - 1));
   }, []);
 
   const goBack = useCallback(() => {
+    triggerLightHaptic();
     if (stepIndex === 0) {
       navigation.goBack();
     } else {
@@ -646,16 +830,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   // Derive data
-  const prayerText =
-    playbook.prayer ||
-    PRAYER_FALLBACK;
+  const prayerText = playbook.prayer || '';
 
-  const wordToSpeak =
-    playbook.wordToSpeak ||
-    (playbook.affirmations?.length
-      ? playbook.affirmations[playbook.affirmations.length - 1]?.text
-      : '') ||
-    getDirectChallengeText(playbook.directChallenge);
+  const wordToSpeak = playbook.wordToSpeak || '';
 
   const closingText =
     playbook.challengeCTA ||
@@ -665,27 +842,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Progress bar width: 0–1 per step
   const progressFraction = stepIndex / (TOTAL_STEPS - 1);
 
-  // Steps where the CTA is inline (Prayer/Word) — no floating next button
-  const hasFloatingNext = stepIndex !== 4 && stepIndex !== 5 && stepIndex !== 6;
+  // Only Completion (step 6) handles its own CTA — all other steps get the floating next
+  const hasFloatingNext = stepIndex !== 6;
 
   return (
     <View style={styles.container}>
       {/* Thin progress bar — full width at very top, above safe area */}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progressFraction * 100}%` }]} />
-      </View>
-
-      {/* Dots row — matches original pagination style */}
-      <View style={[styles.dotsRow, { paddingTop: insets.top + 8 }]}>
-        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i === stepIndex && styles.dotActive,
-            ]}
-          />
-        ))}
       </View>
 
       {/* Step content */}
@@ -697,6 +861,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             summary={playbook.truthInLove?.summary || ''}
             userName={userName}
             onContinue={goNext}
+            insets={insets}
           />
         )}
 
@@ -705,6 +870,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             text={playbook.truthInLove?.text || ''}
             userName={userName}
             onNext={goNext}
+            insets={insets}
           />
         )}
 
@@ -713,17 +879,20 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             reference={playbook.bibleVerse?.reference || ''}
             text={playbook.bibleVerse?.text || ''}
             version={playbook.bibleVerse?.version}
-            reflection={(playbook as any).bibleVerseReflection}
+            reflection={playbook.bibleVerseReflection}
             onNext={goNext}
+            insets={insets}
           />
         )}
 
         {stepIndex === 3 && (
           <FaithfulActionsStep
             steps={playbook.actionSteps || []}
+            intro={playbook.faithfulActionsIntro}
             playbookId={playbook.id}
             userId={userId}
             onNext={goNext}
+            insets={insets}
           />
         )}
 
@@ -731,6 +900,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <PrayerStep
             prayer={prayerText}
             onNext={goNext}
+            insets={insets}
           />
         )}
 
@@ -738,6 +908,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <WordToSpeakStep
             word={wordToSpeak}
             onNext={goNext}
+            insets={insets}
           />
         )}
 
@@ -746,6 +917,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             title={playbook.title}
             closingText={closingText}
             onFinish={handleFinish}
+            insets={insets}
           />
         )}
       </View>
@@ -828,9 +1000,9 @@ const styles = StyleSheet.create({
   nextButton: {
     position: 'absolute',
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
@@ -900,12 +1072,11 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     marginBottom: 36,
   },
-  // Lines 1+: pause + Jesus line — smaller, muted, centered
+  // Lines 1+: pause + Jesus line — smaller, muted, left-aligned
   summaryMuted: {
     fontSize: 15,
     color: Colors.hopeWhite,
     lineHeight: 22,
-    textAlign: 'center',
   },
 
   // Shared label row (icon + text)
@@ -913,7 +1084,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 24,
+    marginTop: 48,
   },
   stepLabelWhite: {
     fontSize: 16,
@@ -924,12 +1095,14 @@ const styles = StyleSheet.create({
   // Truth in Love
   textBlock: {
     gap: 14,
+    marginTop: 48,
     marginBottom: 36,
   },
   bodyText: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '600',
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 30,
     opacity: 0.95,
   },
 
@@ -957,11 +1130,14 @@ const styles = StyleSheet.create({
     color: Colors.faithGold,
   },
   versionBadge: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
+  },
+  versionAndInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
   },
   versionText: {
     fontSize: 10,
@@ -985,6 +1161,44 @@ const styles = StyleSheet.create({
   },
 
   // Faithful Actions
+  actionIntro: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: 22,
+    marginTop: 8,
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  actionEmoji: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  actionBodyLine: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 23,
+  },
+  journalInputWrapper: {
+    marginTop: 8,
+    gap: 6,
+  },
+  journalInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    lineHeight: 22,
+    padding: 14,
+    minHeight: 100,
+    maxHeight: 200,
+  },
+  journalSavedLabel: {
+    fontSize: 13,
+    color: Colors.faithGold,
+    alignSelf: 'flex-start',
+  },
   actionCounter: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.45)',
@@ -1052,12 +1266,55 @@ const styles = StyleSheet.create({
   // Prayer
   prayerBlock: {
     gap: 10,
-    marginBottom: 40,
+    marginTop: 32,
+    marginBottom: 32,
   },
   prayerText: {
-    fontSize: 17,
+    fontSize: 20,
+    fontWeight: '600',
     color: Colors.hopeWhite,
-    lineHeight: 27,
+    lineHeight: 30,
+    opacity: 0.95,
+  },
+  // "I prayed this" — devotional-style toggleable pill
+  prayerActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 8,
+  },
+  prayerActionButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderColor: 'rgba(255, 107, 107, 0.4)',
+  },
+  prayerActionButtonFloating: {
+    position: 'absolute',
+    left: 20,
+    bottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  prayerActionText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  prayerActionTextActive: {
+    color: Colors.alertCoral,
   },
 
   // Word to Speak
@@ -1065,14 +1322,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 16,
     padding: 24,
-    marginBottom: 40,
-    gap: 8,
+    marginTop: 32,
+    marginBottom: 32,
+    gap: 10,
   },
   wordText: {
     fontSize: 20,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     lineHeight: 30,
-    textAlign: 'center',
   },
 
   // Completion
