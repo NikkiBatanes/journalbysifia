@@ -483,7 +483,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
     triggerLightHaptic();
-    navigation.navigate('PlaybookDetail', { playbook });
+    navigation.navigate('PlaybookWalkthrough', { playbook });
   }, [navigation, triggerLightHaptic]);
 
   const handleCardLongPress = useCallback((playbook: Playbook) => {
