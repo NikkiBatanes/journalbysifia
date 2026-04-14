@@ -22,7 +22,6 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
 
 import { useQuery } from '@tanstack/react-query';
@@ -73,7 +72,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   userInput,
   summary,
   userName,
-  onContinue,
+  onContinue: _onContinue,
   insets,
 }) => {
   const [showUserInput, setShowUserInput] = useState(false);
@@ -94,7 +93,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
-  const personalized = replaceAllNamePlaceholders(summary, userName);
+  const personalized = replaceAllNamePlaceholders(summary, { displayName: userName });
   const paragraphs = splitParagraphs(personalized);
 
   return (
@@ -158,8 +157,8 @@ interface TruthStepProps {
   insets: { top: number };
 }
 
-const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext, insets }) => {
-  const personalized = replaceAllNamePlaceholders(text, userName);
+const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _onNext, insets }) => {
+  const personalized = replaceAllNamePlaceholders(text, { displayName: userName });
   const paragraphs = splitParagraphs(personalized);
 
   return (
@@ -200,7 +199,7 @@ interface ScriptureStepProps {
   insets: { top: number };
 }
 
-const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext, insets }) => {
+const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext: _onNext, insets }) => {
   const [showCopyright, setShowCopyright] = useState(false);
   const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
@@ -327,7 +326,7 @@ interface FaithfulActionsStepProps {
 const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   steps,
   intro,
-  playbookId,
+  playbookId: _playbookId,
   userId,
   onNext,
   insets,
@@ -337,7 +336,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const updateSubTask = useUpdateSubTask();
   const createJournalEntry = useCreateJournalEntry();
 
   const currentStep = steps[actionStepIndex];

@@ -243,7 +243,7 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
     }
 
     return result;
-  }, [playbook]);
+  }, [playbook, user]);
 
   // Handle subtask toggle
   const handleToggleSubTask = useCallback(async (stepId: string, subTaskId: string, completed: boolean) => {
