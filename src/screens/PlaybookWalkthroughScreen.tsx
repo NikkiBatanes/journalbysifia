@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { GestureDetector, Gesture, Directions } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -124,26 +126,15 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         </View>
       )}
 
-      <ThemedText weight="bold" style={styles.title}>
-        {title}
-      </ThemedText>
+      <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
 
-      <View style={styles.summaryBlock}>
-        {paragraphs.map((para, i) =>
-          i === 0 ? (
-            <ThemedText key={i} weight="bold" style={styles.summaryLead}>
-              {para}
-            </ThemedText>
-          ) : (
-            <ThemedText key={i} style={styles.summaryMuted}>
-              {para}
-            </ThemedText>
-          )
-        )}
+      <View style={{ marginTop: 40 }}>
+        {paragraphs.map((paragraph, index) => (
+          <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'bold' : undefined}>
+            {paragraph}
+          </ThemedText>
+        ))}
       </View>
-
-      {/* No inline button — floating coral next button handles navigation */}
-      <View style={{ height: 80 }} />
     </ScrollView>
   );
 };
@@ -204,11 +195,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
   const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
   return (
-    <ScrollView
-      style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
       <View style={styles.stepLabelRow}>
         <MaterialCommunityIcons name="book" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -264,7 +251,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
       {/* No inline button — floating coral next button handles navigation */}
       <View style={{ height: 80 }} />
-    </ScrollView>
+    </View>
   );
 };
 
@@ -448,12 +435,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   );
 
   return (
-    <View style={styles.stepScroll}>
-      <ScrollView
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
         <View style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -583,7 +565,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </ThemedText>
           </TouchableOpacity>
         </View>
-      </ScrollView>
     </View>
   );
 };
@@ -632,11 +613,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
 
   return (
     <>
-      <ScrollView
-        style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, flex: 1 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
         <View style={styles.stepLabelRow}>
           <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -659,7 +636,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
 
         {/* Space for floating buttons */}
         <View style={{ height: 80 }} />
-      </ScrollView>
+      </View>
 
       {/* Floating action button — bottom-left, aligned with Next button */}
       {showButton && (
@@ -719,11 +696,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
 
   return (
     <>
-      <ScrollView
-        style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
         <View style={styles.stepLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -741,7 +714,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
 
         {/* Space for floating buttons */}
         <View style={{ height: 80 }} />
-      </ScrollView>
+      </View>
 
       {/* Floating action button — bottom-left, aligned with Next button */}
       {showButton && (
@@ -809,11 +782,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   const { contextLine, questionLine, actionLines, isChoicePills } = parseCompletionText(closingText);
 
   return (
-    <ScrollView
-      style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
       <View style={styles.completionHeaderContainer}>
         <View style={styles.stepLabelRow}>
           <Ionicons name="flash" size={18} color={Colors.alertCoral} />
@@ -897,7 +866,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           Turn this into a devotional
         </ThemedText>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -957,12 +926,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
-    if (stepIndex === 0) {
-      navigation.goBack();
-    } else {
-      setStepIndex(i => i - 1);
-    }
-  }, [stepIndex, navigation]);
+    navigation.goBack();
+  }, [navigation]);
 
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
@@ -1014,74 +979,94 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Step content */}
-      <View style={styles.stepContainer}>
-        {stepIndex === 0 && (
-          <EnterMomentStep
-            title={playbook.title}
-            userInput={playbook.userInput}
-            summary={playbook.truthInLove?.summary || ''}
-            userName={userName}
-            onContinue={goNext}
-            insets={insets}
-          />
-        )}
+      <GestureDetector
+        gesture={Gesture.Fling()
+          .direction(Directions.LEFT)
+          .onEnd(() => {
+            if (stepIndex < TOTAL_STEPS - 1) {
+              runOnJS(goNext)();
+            }
+          })}
+      >
+        <GestureDetector
+          gesture={Gesture.Fling()
+            .direction(Directions.RIGHT)
+            .onEnd(() => {
+              if (stepIndex > 0) {
+                runOnJS(goBack)();
+              }
+            })}
+        >
+          <View style={styles.stepContainer}>
+            {stepIndex === 0 && (
+              <EnterMomentStep
+                title={playbook.title}
+                userInput={playbook.userInput}
+                summary={playbook.truthInLove?.summary || ''}
+                userName={userName}
+                onContinue={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 1 && (
-          <TruthInLoveStep
-            text={playbook.truthInLove?.text || ''}
-            userName={userName}
-            onNext={goNext}
-            insets={insets}
-          />
-        )}
+            {stepIndex === 1 && (
+              <TruthInLoveStep
+                text={playbook.truthInLove?.text || ''}
+                userName={userName}
+                onNext={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 2 && (
-          <ScriptureAnchorStep
-            reference={playbook.bibleVerse?.reference || ''}
-            text={playbook.bibleVerse?.text || ''}
-            version={playbook.bibleVerse?.version}
-            reflection={playbook.bibleVerseReflection}
-            onNext={goNext}
-            insets={insets}
-          />
-        )}
+            {stepIndex === 2 && (
+              <ScriptureAnchorStep
+                reference={playbook.bibleVerse?.reference || ''}
+                text={playbook.bibleVerse?.text || ''}
+                version={playbook.bibleVerse?.version}
+                reflection={playbook.bibleVerseReflection}
+                onNext={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 3 && (
-          <FaithfulActionsStep
-            steps={playbook.actionSteps || []}
-            intro={playbook.faithfulActionsIntro}
-            playbookId={playbook.id}
-            userId={userId}
-            onNext={goNext}
-            insets={insets}
-          />
-        )}
+            {stepIndex === 3 && (
+              <FaithfulActionsStep
+                steps={playbook.actionSteps || []}
+                intro={playbook.faithfulActionsIntro}
+                playbookId={playbook.id}
+                userId={userId}
+                onNext={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 4 && (
-          <PrayerStep
-            prayer={prayerText}
-            onNext={goNext}
-            insets={insets}
-          />
-        )}
+            {stepIndex === 4 && (
+              <PrayerStep
+                prayer={prayerText}
+                onNext={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 5 && (
-          <WordToSpeakStep
-            word={wordToSpeak}
-            onNext={goNext}
-            insets={insets}
-          />
-        )}
+            {stepIndex === 5 && (
+              <WordToSpeakStep
+                word={wordToSpeak}
+                onNext={goNext}
+                insets={insets}
+              />
+            )}
 
-        {stepIndex === 6 && (
-          <CompletionStep
-            title={playbook.title}
-            closingText={closingText}
-            onFinish={handleFinish}
-            insets={insets}
-          />
-        )}
-      </View>
+            {stepIndex === 6 && (
+              <CompletionStep
+                title={playbook.title}
+                closingText={closingText}
+                onFinish={handleFinish}
+                insets={insets}
+              />
+            )}
+          </View>
+        </GestureDetector>
+      </GestureDetector>
 
       {/* Floating close / back button — top right, matches original */}
       <TouchableOpacity
@@ -1091,8 +1076,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Ionicons
-          name={stepIndex === 0 ? 'close' : 'chevron-back'}
-          size={22}
+          name={stepIndex === 6 ? 'share-outline' : 'close'}
+          size={18}
           color={Colors.hopeWhite}
         />
       </TouchableOpacity>
@@ -1186,6 +1171,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     marginBottom: 20,
+    marginTop: 20,
   },
   playbookLabel: {
     fontSize: 11,
@@ -1198,11 +1184,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     padding: 14,
-    marginBottom: 24,
   },
   userInputText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
+    color: Colors.hopeWhite,
     lineHeight: 20,
   },
   title: {
@@ -1239,9 +1224,10 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   stepLabelWhite: {
-    fontSize: 16,
-    letterSpacing: 0.8,
+    fontSize: 12,
+    letterSpacing: 1,
     color: Colors.hopeWhite,
+    textTransform: 'uppercase',
   },
 
   // Truth in Love
@@ -1419,7 +1405,7 @@ const styles = StyleSheet.create({
   },
   actionStepCard: {
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 22,
     marginBottom: 32,
     gap: 12,
@@ -1531,7 +1517,7 @@ const styles = StyleSheet.create({
   // Word to Speak
   wordBlock: {
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 32,
     marginTop: 32,
     marginBottom: 32,
