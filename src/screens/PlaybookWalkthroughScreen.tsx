@@ -271,7 +271,49 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Step 3: Faithful Actions ────────────────────────────────────────────────
 
-const STEP_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣'];
+// ─── Smart body-line detection ───────────────────────────────────────────────
+
+type BodyLineType = 'intro' | 'quote' | 'choice' | 'punch' | 'body';
+
+interface BodyLine {
+  text: string;
+  type: BodyLineType;
+}
+
+function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
+  return lines.map((raw, idx) => {
+    const line = raw.trim();
+
+    // Quoted text (starts with any quote char)
+    if (/^[""\u201C\u201D\u2018\u2019']/.test(line)) {
+      return { text: line, type: 'quote' };
+    }
+
+    // Intro / label line ending with colon (e.g. "Is it:", "Ask yourself:")
+    if (line.endsWith(':') && line.length < 55) {
+      return { text: line, type: 'intro' };
+    }
+
+    // For 'choose' type: candidate list items are short, not the first line, no trailing period
+    if (
+      actionType === 'choose' &&
+      idx > 0 &&
+      line.length < 42 &&
+      !line.endsWith('.') &&
+      !line.endsWith('?') &&
+      !line.endsWith(':')
+    ) {
+      return { text: line, type: 'choice' };
+    }
+
+    // Short punchy imperatives (single clause, < 38 chars)
+    if (line.length < 38 && !line.endsWith('?')) {
+      return { text: line, type: 'punch' };
+    }
+
+    return { text: line, type: 'body' };
+  });
+}
 
 interface FaithfulActionsStepProps {
   steps: ActionStep[];
@@ -293,6 +335,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [actionStepIndex, setActionStepIndex] = useState(0);
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const updateSubTask = useUpdateSubTask();
   const createJournalEntry = useCreateJournalEntry();
@@ -300,10 +343,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const currentStep = steps[actionStepIndex];
   const isLastStep = actionStepIndex >= steps.length - 1;
 
-  // Reset journal state when step changes
+  // Reset journal + choice state when step changes
   useEffect(() => {
     setJournalText('');
     setJournalSaved(false);
+    setSelectedChoice(null);
   }, [actionStepIndex]);
 
   const animateToNext = useCallback(
@@ -382,15 +426,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const stepNumber = actionStepIndex + 1;
   const totalSteps = steps.length;
-  const emoji = STEP_EMOJIS[actionStepIndex] ?? `${stepNumber}.`;
-
-  // Body text: description (new format) or subtasks joined (legacy format)
-  const bodyLines: string[] = currentStep.description
-    ? currentStep.description.split('\n').map(l => l.trim()).filter(Boolean)
-    : (currentStep.subTasks?.map(s => s.text) ?? []);
 
   // Button labels from actionType
   const actionType = currentStep.actionType ?? 'done_skip';
+
+  // Body text: description (new format) or subtasks joined (legacy format)
+  const rawBodyLines: string[] = currentStep.description
+    ? currentStep.description.split('\n').map(l => l.trim()).filter(Boolean)
+    : (currentStep.subTasks?.map(s => s.text) ?? []);
+
+  const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'commit' ? "I've committed" :
     actionType === 'choose' ? "I've chosen" :
@@ -429,20 +474,67 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.actionStepCard}>
-            {/* Emoji number */}
-            <ThemedText style={styles.actionEmoji}>{emoji}</ThemedText>
+            {/* Step number circle — matches ActionStepsCard design */}
+            <View style={styles.stepNumberContainer}>
+              <View style={styles.stepCircle}>
+                <ThemedText weight="bold" style={styles.stepNumber}>
+                  {stepNumber}
+                </ThemedText>
+              </View>
+            </View>
 
             {/* Step title */}
             <ThemedText weight="semiBold" style={styles.actionTitle}>
               {currentStep.title}
             </ThemedText>
 
-            {/* Body lines */}
-            {bodyLines.map((line, idx) => (
-              <ThemedText key={idx} style={styles.actionBodyLine}>
-                {line}
-              </ThemedText>
-            ))}
+            {/* Smart body lines */}
+            {smartBodyLines.map((item, idx) => {
+              if (item.type === 'quote') {
+                return (
+                  <ThemedText key={idx} style={styles.bodyLineQuote}>
+                    {item.text}
+                  </ThemedText>
+                );
+              }
+              if (item.type === 'intro') {
+                return (
+                  <ThemedText key={idx} style={styles.bodyLineIntro}>
+                    {item.text}
+                  </ThemedText>
+                );
+              }
+              if (item.type === 'choice') {
+                const isSelected = selectedChoice === item.text;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.choicePill, isSelected && styles.choicePillSelected]}
+                    onPress={() => { triggerLightHaptic(); setSelectedChoice(item.text); }}
+                    activeOpacity={0.75}
+                  >
+                    <ThemedText
+                      weight={isSelected ? 'semiBold' : undefined}
+                      style={[styles.choicePillText, isSelected && styles.choicePillTextSelected]}
+                    >
+                      {item.text}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              }
+              if (item.type === 'punch') {
+                return (
+                  <ThemedText key={idx} weight="medium" style={styles.bodyLinePunch}>
+                    {item.text}
+                  </ThemedText>
+                );
+              }
+              return (
+                <ThemedText key={idx} style={styles.actionBodyLine}>
+                  {item.text}
+                </ThemedText>
+              );
+            })}
 
             {/* TextInput for text_input type */}
             {actionType === 'text_input' && (
@@ -544,7 +636,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
     <>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, flex: 1 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.stepLabelRow}>
@@ -561,9 +653,9 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
               {i === 0 && <View style={{ height: 16 }} />}
             </View>
           ))}
-          <View style={{ height: 24 }} />
+          <View style={{ height: 16 }} />
           <ThemedText style={styles.prayerText}>
-            In Jesus' name, amen.
+            In Jesus' name, Amen.
           </ThemedText>
         </View>
 
@@ -839,19 +931,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     getDirectChallengeText(playbook.directChallenge) ||
     'Carry what God has shown you into the room.';
 
-  // Progress bar width: 0–1 per step
-  const progressFraction = stepIndex / (TOTAL_STEPS - 1);
-
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
   const hasFloatingNext = stepIndex !== 6;
 
   return (
     <View style={styles.container}>
-      {/* Thin progress bar — full width at very top, above safe area */}
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progressFraction * 100}%` }]} />
-      </View>
-
       {/* Step content */}
       <View style={styles.stepContainer}>
         {stepIndex === 0 && (
@@ -956,15 +1040,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
-  },
-  progressTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    width: '100%',
-  },
-  progressFill: {
-    height: 3,
-    backgroundColor: Colors.faithGold,
   },
   // Dots — matches original PlaybookDetailGuided pagination style
   dotsRow: {
@@ -1099,11 +1174,10 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   bodyText: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '500',
     color: Colors.hopeWhite,
-    lineHeight: 30,
-    opacity: 0.95,
+    lineHeight: 28,
   },
 
   // Scripture
@@ -1169,14 +1243,75 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: 'italic',
   },
-  actionEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
+  stepNumberContainer: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    lineHeight: 18,
+  },
+  // Body line styles — smart rendering
   actionBodyLine: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.75)',
     lineHeight: 23,
+  },
+  bodyLineQuote: {
+    fontSize: 16,
+    color: Colors.faithGold,
+    lineHeight: 24,
+    fontStyle: 'italic',
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.faithGold,
+  },
+  bodyLineIntro: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: 20,
+    letterSpacing: 0.3,
+    marginTop: 4,
+  },
+  bodyLinePunch: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 23,
+  },
+  // Choice pills — for 'choose' type steps
+  choicePill: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignSelf: 'flex-start',
+    marginVertical: 3,
+  },
+  choicePillSelected: {
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    borderColor: Colors.alertCoral,
+  },
+  choicePillText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 21,
+  },
+  choicePillTextSelected: {
+    color: Colors.hopeWhite,
   },
   journalInputWrapper: {
     marginTop: 8,
@@ -1216,13 +1351,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.faithGold,
+    backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionBadgeText: {
     fontSize: 14,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   actionTitle: {
     fontSize: 18,
@@ -1241,14 +1376,14 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     flex: 1,
-    backgroundColor: Colors.faithGold,
+    backgroundColor: Colors.alertCoral,
     borderRadius: 50,
     paddingVertical: 14,
     alignItems: 'center',
   },
   doneButtonText: {
     fontSize: 15,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   skipButton: {
     flex: 1,
@@ -1265,16 +1400,15 @@ const styles = StyleSheet.create({
 
   // Prayer
   prayerBlock: {
-    gap: 10,
-    marginTop: 32,
-    marginBottom: 32,
+    flex: 1,
+    justifyContent: 'flex-start',
+    marginTop: 100,
   },
   prayerText: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '500',
     color: Colors.hopeWhite,
-    lineHeight: 30,
-    opacity: 0.95,
+    lineHeight: 28,
   },
   // "I prayed this" — devotional-style toggleable pill
   prayerActionButton: {
@@ -1321,16 +1455,17 @@ const styles = StyleSheet.create({
   wordBlock: {
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 16,
-    padding: 24,
+    padding: 32,
     marginTop: 32,
     marginBottom: 32,
-    gap: 10,
+    gap: 12,
   },
   wordText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    lineHeight: 30,
+    lineHeight: 32,
+    textAlign: 'left',
   },
 
   // Completion
@@ -1356,7 +1491,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.faithGold,
+    backgroundColor: Colors.alertCoral,
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -1365,11 +1500,11 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   confirmButton: {
     borderWidth: 1.5,
-    borderColor: Colors.faithGold,
+    borderColor: Colors.alertCoral,
     borderRadius: 50,
     paddingVertical: 15,
     alignItems: 'center',
@@ -1377,7 +1512,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: 16,
-    color: Colors.faithGold,
+    color: Colors.hopeWhite,
   },
 });
 

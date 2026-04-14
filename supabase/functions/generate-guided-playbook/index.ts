@@ -132,7 +132,14 @@ async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): P
 }
 
 function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: string, bibleVersion?: string): Playbook {
-  const content = aiData.choices[0]?.message?.content || '';
+  const rawContent = aiData.choices[0]?.message?.content || '';
+
+  // Normalize gpt-4o markdown: strip leading ## / ### from section header lines
+  // and strip trailing ## artifacts (gpt-4o wraps sections in markdown headers)
+  const content = rawContent
+    .split('\n')
+    .map((line: string) => line.replace(/^#{1,4}\s+/, '').replace(/\s*#{1,4}\s*$/, ''))
+    .join('\n');
 
   // Extract playbook title and subtitle
   let mainTitle = '';
@@ -233,14 +240,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Truth in Love (handle bold formatting)
-  let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  let truthInLoveMatch = content.match(/\*\*TRUTH IN LOVE:\*\*\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (!truthInLoveMatch) {
     // Fallback to ### format
-    truthInLoveMatch = content.match(/### TRUTH IN LOVE:\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthInLoveMatch = content.match(/### TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|### ACTION STEPS:|### AFFIRMATIONS:|### BIBLE VERSE:|### CHALLENGE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   }
   if (!truthInLoveMatch) {
     // Fallback to non-bold formatting
-    truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+    truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=FAITHFUL ACTIONS INTRO:|\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   }
   if (truthInLoveMatch) {
     const truthText = truthInLoveMatch[1].trim();
@@ -252,7 +259,15 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse FAITHFUL ACTIONS INTRO (new guided format)
-  const faithfulActionsIntroMatch = content.match(/FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=ACTION STEPS:|$)/i);
+  let faithfulActionsIntroMatch = content.match(/FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=ACTION STEPS:|$)/i);
+  if (!faithfulActionsIntroMatch) {
+    // Fallback to bold formatting
+    faithfulActionsIntroMatch = content.match(/\*\*FAITHFUL ACTIONS INTRO:\*\*\s*([\s\S]*?)(?=\*\*ACTION STEPS:\*\*|\*\*AFFIRMATIONS:\*\*|\*\*BIBLE VERSE:\*\*|\*\*CHALLENGE:\*\*|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
+  }
+  if (!faithfulActionsIntroMatch) {
+    // Fallback to hash formatting
+    faithfulActionsIntroMatch = content.match(/### FAITHFUL ACTIONS INTRO:\s*([\s\S]*?)(?=### ACTION STEPS:|ACTION STEPS:|### AFFIRMATIONS:|AFFIRMATIONS:|### BIBLE VERSE:|BIBLE VERSE:|### CHALLENGE:|CHALLENGE:|$)/i);
+  }
   if (faithfulActionsIntroMatch) {
     const introText = faithfulActionsIntroMatch[1].trim().split('\n')[0].trim();
     if (introText) {
@@ -1176,7 +1191,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       contextualPrompt = contextualPrompt.substring(0, 4000) + '\n\n[Response truncated to fit token limit]';
     }
 
-    // Try with gpt-4o-mini, paraphrase and retry if refused
+    // Try with gpt-4o, paraphrase and retry if refused
     let openAIRes: Response;
     let aiData: any;
     let rawContent: string;
@@ -1184,7 +1199,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 
     try {
       // First try with original input
-      openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+      openAIRes = await callOpenAIWithFallback('gpt-4o');
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -1264,7 +1279,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         while (paraphrasedAttempt < maxParaphrasedAttempts) {
           paraphrasedAttempt++;
           console.log(`[Generate-Playbook] Paraphrased attempt ${paraphrasedAttempt}/${maxParaphrasedAttempts}`);
-          openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+          openAIRes = await callOpenAIWithFallback('gpt-4o');
           aiData = await openAIRes.json();
           rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -1325,7 +1340,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         }
       }
     } catch (error) {
-      console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);
+      console.error('[Generate-Playbook] Error with gpt-4o:', error);
       throw error; // Propagate error instead of falling back
     }
 
