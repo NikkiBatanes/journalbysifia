@@ -123,11 +123,17 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       </ThemedText>
 
       <View style={styles.summaryBlock}>
-        {paragraphs.map((para, i) => (
-          <ThemedText key={i} style={styles.summaryText}>
-            {para}
-          </ThemedText>
-        ))}
+        {paragraphs.map((para, i) =>
+          i === 0 ? (
+            <ThemedText key={i} weight="bold" style={styles.summaryLead}>
+              {para}
+            </ThemedText>
+          ) : (
+            <ThemedText key={i} style={styles.summaryMuted}>
+              {para}
+            </ThemedText>
+          )
+        )}
       </View>
 
       {/* No inline button — floating coral next button handles navigation */}
@@ -154,9 +160,12 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext }) =
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.stepLabel}>
-        Truth in Love
-      </ThemedText>
+      <View style={styles.stepLabelRow}>
+        <Ionicons name="heart-outline" size={18} color={Colors.hopeWhite} />
+        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          Truth in Love
+        </ThemedText>
+      </View>
 
       <View style={styles.textBlock}>
         {paragraphs.map((para, i) => (
@@ -835,19 +844,41 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    color: 'rgba(255,255,255,0.55)',
+    color: Colors.hopeWhite,
     lineHeight: 26,
     marginBottom: 24,
   },
   summaryBlock: {
-    gap: 14,
+    gap: 16,
+    marginTop: 'auto',
     marginBottom: 36,
   },
-  summaryText: {
-    fontSize: 22,
+  // Line 0: personalized sentence — large + bold, like the hero title
+  summaryLead: {
+    fontSize: 26,
     color: Colors.hopeWhite,
-    lineHeight: 32,
-    opacity: 0.95,
+    lineHeight: 34,
+    marginBottom: 36,
+  },
+  // Lines 1+: pause + Jesus line — smaller, muted, centered
+  summaryMuted: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+
+  // Shared label row (icon + text)
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  stepLabelWhite: {
+    fontSize: 16,
+    letterSpacing: 0.8,
+    color: Colors.hopeWhite,
   },
 
   // Truth in Love
