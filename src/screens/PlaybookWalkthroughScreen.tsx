@@ -786,16 +786,27 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 }) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
 
-  // Parse completion text to extract question and choices
+  // Parse completion text to extract question and action lines
   const parseCompletionText = (text: string) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const questionLine = lines.find(l => l.startsWith('Before you') || l.includes('What is'));
-    const question = questionLine || '';
-    const choices = lines.filter(l => l.length > 0 && l.length < 50 && !l.startsWith('Before you') && !l.includes('What is'));
-    return { question, choices };
+    console.log('[CompletionStep] Raw lines:', lines);
+    const contextLine = lines.find(l => l.startsWith('Before you'));
+    const questionLine = lines.find(l => l.endsWith('?'));
+    const actionLines = lines.filter(l => l.length > 0 && !l.startsWith('Before you') && !l.endsWith('?'));
+
+    console.log('[CompletionStep] Parsed:', { contextLine, questionLine, actionLines });
+
+    // Detect if action lines are choice pills (multiple short options) or sequential actions
+    // Choice pills: 2-4 very short lines (under 6 words), often similar structure
+    // Sequential actions: can be any length, more varied structure
+    const isChoicePills = actionLines.length >= 2 && actionLines.length <= 4 &&
+                          actionLines.every(l => l.split(' ').length <= 6) &&
+                          actionLines.some(l => l.toLowerCase().includes('or') || l.toLowerCase().includes('choose'));
+
+    return { contextLine, questionLine, actionLines, isChoicePills };
   };
 
-  const { question, choices } = parseCompletionText(closingText);
+  const { contextLine, questionLine, actionLines, isChoicePills } = parseCompletionText(closingText);
 
   return (
     <ScrollView
@@ -816,13 +827,16 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
         <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
       </View>
 
-      {question && (
-        <ThemedText style={styles.completionQuestion}>{question}</ThemedText>
+      {contextLine && (
+        <ThemedText style={styles.completionContext}>{contextLine}</ThemedText>
+      )}
+      {questionLine && (
+        <ThemedText style={styles.completionQuestion}>{questionLine}</ThemedText>
       )}
 
-      {choices.length > 0 && (
+      {isChoicePills && actionLines.length > 0 ? (
         <View style={styles.completionChoicesContainer}>
-          {choices.map((choice, index) => (
+          {actionLines.map((choice, index) => (
             <TouchableOpacity
               key={index}
               style={[
@@ -847,7 +861,19 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
             </TouchableOpacity>
           ))}
         </View>
+      ) : actionLines.length > 0 && (
+        <View style={styles.completionActionsContainer}>
+          {actionLines.map((line, index) => (
+            <ThemedText key={index} style={styles.completionActionLine}>
+              {line}
+            </ThemedText>
+          ))}
+        </View>
       )}
+
+      <ThemedText style={styles.completionStayNote}>
+        Need to stay with this a little longer?
+      </ThemedText>
 
       <TouchableOpacity
         style={[styles.primaryButton, styles.finishButton]}
@@ -856,6 +882,19 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       >
         <ThemedText weight="semiBold" style={styles.primaryButtonText}>
           Save &amp; Finish
+        </ThemedText>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.secondaryButton, styles.devotionalButton]}
+        onPress={() => {
+          // TODO: Navigate to devotional creation screen
+          console.log('Turn into devotional');
+        }}
+        activeOpacity={0.85}
+      >
+        <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+          Turn this into a devotional
         </ThemedText>
       </TouchableOpacity>
     </ScrollView>
@@ -1510,26 +1549,53 @@ const styles = StyleSheet.create({
   completionHeaderContainer: {
     gap: 8,
     marginBottom: 28,
+    alignItems: 'center',
+    marginTop: 40,
   },
   completionPlaybookLabel: {
     fontSize: 12,
     letterSpacing: 2,
     color: 'rgba(255,255,255,0.5)',
+    marginBottom: 24,
   },
   completionTitle: {
     fontSize: 28,
     color: Colors.hopeWhite,
     lineHeight: 34,
   },
-  completionQuestion: {
-    fontSize: 18,
+  completionContext: {
+    fontSize: 16,
+    fontWeight: '400',
     color: Colors.hopeWhite,
-    lineHeight: 26,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  completionQuestion: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
+    lineHeight: 28,
     marginBottom: 20,
   },
   completionChoicesContainer: {
     gap: 12,
     marginBottom: 32,
+  },
+  completionActionsContainer: {
+    gap: 8,
+    marginBottom: 32,
+  },
+  completionActionLine: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  completionStayNote: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    marginBottom: -4,
+    marginTop: 32,
   },
   completionChoicePill: {
     flexDirection: 'row',
@@ -1580,6 +1646,26 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 12,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  devotionalButton: {
+    marginTop: 8,
   },
   confirmButton: {
     borderWidth: 1.5,

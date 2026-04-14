@@ -463,35 +463,57 @@ BAD EXAMPLES (NEVER DO THESE):
 ❌ It strays right next to God's design for marriage and the commitment that comes with it, period. It shows that God values the covenant relationships you entered into. Even amid struggles, He invites healing and restoration into your marriage.  [WAY TOO LONG — this is a paragraph, not short lines — NEVER DO THIS]
 
 COMPLETION:
-[🚨 REQUIRED - COMPLETION QUESTION & CHOICES - DO NOT SKIP THIS SECTION]:
+[🚨 REQUIRED - COMPLETION QUESTION & ACTION - DO NOT SKIP THIS SECTION]:
 
 Write a short, direct question that frames the ONE thing they need to decide or do before closing this playbook. The question must be specific to their exact situation — no generic "what did you learn" questions.
 
 Format:
-Before you [context]:
+Before you [return / close / move on]:
 What is the [specific question]?
+
+[Action lines - choose the appropriate format]
+
+FORMAT OPTIONS:
+
+1. Single Action (most common):
+[Short action line]
+[Optional second reinforcing line]
+
+2. Multiple Sequential Actions:
+[Action line 1]
+[Action line 2]
+[Action line 3 - optional]
+[Final directive line]
+
+3. Choice Pills (ONLY when there are genuinely multiple options to choose from):
 [Choice pill 1]
 [Choice pill 2]
 [Choice pill 3 - optional]
 
-CHOICE PILLS:
+CHOICE PILLS RULES:
+- Use choice pills ONLY when there are multiple mutually exclusive options to choose from
 - Each choice is a short, concrete action (under 10 words)
 - No bullets, no dashes, no periods
-- Each choice must be tappable and actionable
-- Choices should be mutually exclusive alternatives or sequential steps
+- If it's a sequential process, use format 2 (Multiple Sequential Actions) instead
 - Write 2-3 choices maximum
 
 GOOD EXAMPLES:
+
+Format 1 - Single Action:
 - "Before you return to him:
 What is the first sentence you will say?
-Carry Christ's tone into the room.
-Speak truth without shame.
-Listen before you correct."
+Carry Christ's gentleness into the room."
 
 - "Before you close:
 What is the one obedient step you will take this week?
 Do that.
 Let Christ handle comparison."
+
+Format 2 - Multiple Sequential Actions:
+- "Before you close:
+When will you initiate the conversation?
+Choose a time.
+Follow through."
 
 - "Before you close:
 What is the first financial action you will take today?
@@ -499,12 +521,21 @@ Open the account.
 Write the numbers.
 Delete the app.
 Set the rule.
-Do that now."
+Do it now."
+
+Format 3 - Choice Pills (ONLY for genuine choices):
+- "Before you close:
+What is the one action you will take this week?
+Research one path.
+Schedule one test.
+Or wait intentionally.
+Choose calmly."
 
 BAD EXAMPLES:
 - ❌ "Before you close:
 What did you learn?" (too generic, not actionable)
-- ❌ "Take time to reflect." (not specific enough to be a choice)
+- ❌ "Take time to reflect." (not specific enough to be an action)
+- ❌ Using choice pills for sequential steps (use format 2 instead)
 - ❌ Multiple sentences in one choice (keep each choice to one short line)
 
 PRAYER:
