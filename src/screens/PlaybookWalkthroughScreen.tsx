@@ -66,7 +66,24 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   userName,
   onContinue,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [showUserInput, setShowUserInput] = useState(false);
+  const chevronAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleUserInput = () => {
+    triggerLightHaptic();
+    Animated.timing(chevronAnim, {
+      toValue: showUserInput ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    setShowUserInput(prev => !prev);
+  };
+
+  const chevronRotate = chevronAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
   const personalized = replaceAllNamePlaceholders(summary, userName);
   const paragraphs = splitParagraphs(personalized);
 
@@ -76,33 +93,31 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.stepLabel}>
-        Enter the Moment
-      </ThemedText>
+      {/* Centered PLAYBOOK label + animated chevron — matches PlaybookDetailGuided header */}
+      <TouchableOpacity
+        style={styles.playbookLabelContainer}
+        onPress={toggleUserInput}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+      >
+        <ThemedText weight="semiBold" style={styles.playbookLabel}>
+          PLAYBOOK
+        </ThemedText>
+        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.7)" />
+        </Animated.View>
+      </TouchableOpacity>
+
+      {/* User input card — revealed when chevron is tapped */}
+      {showUserInput && (
+        <View style={styles.userInputCard}>
+          <ThemedText style={styles.userInputText}>{userInput}</ThemedText>
+        </View>
+      )}
 
       <ThemedText weight="bold" style={styles.title}>
         {title}
       </ThemedText>
-
-      {/* Tappable user input row */}
-      <TouchableOpacity
-        style={styles.inputRow}
-        onPress={() => {
-          triggerLightHaptic();
-          setExpanded(prev => !prev);
-        }}
-        activeOpacity={0.7}
-      >
-        <ThemedText style={styles.inputLabel}>
-          {expanded ? userInput : (userInput.length > 80 ? userInput.slice(0, 80) + '…' : userInput)}
-        </ThemedText>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={Colors.trustGrey}
-          style={{ marginTop: 2 }}
-        />
-      </TouchableOpacity>
 
       <View style={styles.summaryBlock}>
         {paragraphs.map((para, i) => (
@@ -110,10 +125,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
             {para}
           </ThemedText>
         ))}
-        <ThemedText style={styles.summaryText}>Pause for a moment.</ThemedText>
-        <ThemedText style={styles.summaryText}>
-          Jesus is present in this with you.
-        </ThemedText>
       </View>
 
       {/* No inline button — floating coral next button handles navigation */}
@@ -745,6 +756,31 @@ const styles = StyleSheet.create({
   },
 
   // Enter the Moment
+  playbookLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 20,
+  },
+  playbookLabel: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.hopeWhite,
+  },
+  userInputCard: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    padding: 14,
+    marginBottom: 24,
+  },
+  userInputText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 20,
+  },
   title: {
     fontSize: 28,
     color: Colors.hopeWhite,
@@ -752,29 +788,15 @@ const styles = StyleSheet.create({
     opacity: 0.95,
     marginBottom: 16,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 28,
-    gap: 8,
-  },
-  inputLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.65)',
-    lineHeight: 20,
-  },
   summaryBlock: {
-    gap: 10,
+    gap: 12,
     marginBottom: 36,
   },
   summaryText: {
     fontSize: 17,
     color: Colors.hopeWhite,
     lineHeight: 26,
+    opacity: 0.9,
   },
 
   // Truth in Love

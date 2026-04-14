@@ -351,7 +351,28 @@ SPIRITUAL: [Specific prayer commitment, Scripture to meditate on, or worship act
 
 TACTICAL (48-72 hour deadline): [Concrete deliverable with metric or proof - e.g., "Complete full post-mortem by Friday, identify your one-sentence failure pattern, and text it to your accountability partner by Saturday noon."]
 
-[Make it explicit WHO they report to and WHEN they'll do it.]`,
+[Make it explicit WHO they report to and WHEN they'll do it.]
+
+PRAYER:
+[Write a short, honest prayer — 3 to 5 lines only. Start with "Lord Jesus," or "Lord,". Address the specific situation directly. Each line is a separate sentence. End with surrender or trust. No flowery language. Write it the way a person would actually pray it out loud. It will be read aloud by the user in the app.]
+
+PRAYER RULES (STRICT ENFORCEMENT):
+• Write 3 to 5 lines only. No more.
+• Must start with "Lord Jesus," or "Lord,".
+• Each line is one plain sentence. No bullet points, no numbers.
+• End with a line of surrender or trust (e.g., "I trust You with this." / "I lay this at Your feet.").
+• Do NOT use poetic or devotional flourishes. Sound like a real person talking to God.
+• Do NOT include a scripture reference inside the prayer.
+
+WORD TO SPEAK:
+[Write exactly 2 short sentences the user will declare aloud. Sentence 1: a clear truth about Christ that speaks directly to this situation. Sentence 2: the user's personal response or commitment, starting with "I will". Keep both sentences short, memorable, and grounded — not poetic or abstract.]
+
+WORD TO SPEAK RULES (STRICT ENFORCEMENT):
+• Write exactly 2 sentences. No more, no less.
+• Sentence 1 must name something true about Christ — not a generic Christian phrase.
+• Sentence 2 must start with "I will" and name a specific response or posture.
+• Both sentences must feel like something a real person would say out loud with conviction.
+• Do NOT use em dashes, colons, or scripture references inside the declaration.`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string, bibleVersion?: string): string => {

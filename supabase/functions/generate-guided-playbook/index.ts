@@ -52,6 +52,8 @@ interface Playbook {
   affirmations: { id: string; text: string; completed: boolean }[];
   bibleVerse: { text: string; reference: string; version?: string };
   directChallenge: string;
+  prayer?: string;
+  wordToSpeak?: string;
   createdAt: string;
   updatedAt: string;
   userInput: string;
@@ -620,14 +622,15 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Direct Challenge (handle bold formatting)
-  let challengeMatch = content.match(/\*\*CHALLENGE:\*\*\s*([\s\S]*)/i);
+  // Stop before PRAYER section so it doesn't consume the new fields
+  let challengeMatch = content.match(/\*\*CHALLENGE:\*\*\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|PRAYER:|$)/i);
   if (!challengeMatch) {
     // Fallback to ### format
-    challengeMatch = content.match(/### CHALLENGE:\s*([\s\S]*)/i);
+    challengeMatch = content.match(/### CHALLENGE:\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|### PRAYER:|PRAYER:|$)/i);
   }
   if (!challengeMatch) {
     // Fallback to non-bold formatting
-    challengeMatch = content.match(/CHALLENGE:\s*([\s\S]*)/i);
+    challengeMatch = content.match(/CHALLENGE:\s*([\s\S]*?)(?=PRAYER:|$)/i);
   }
   if (challengeMatch) {
     playbook.directChallenge = challengeMatch[1].trim();
@@ -638,6 +641,34 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     if (challengeIndex !== -1) {
       console.log('[CHALLENGE PARSER] Content around CHALLENGE:', content.substring(challengeIndex, challengeIndex + 200));
     }
+  }
+
+  // Parse Prayer
+  let prayerMatch = content.match(/\*\*PRAYER:\*\*\s*([\s\S]*?)(?=\*\*WORD TO SPEAK:\*\*|WORD TO SPEAK:|$)/i);
+  if (!prayerMatch) {
+    prayerMatch = content.match(/### PRAYER:\s*([\s\S]*?)(?=\*\*WORD TO SPEAK:\*\*|### WORD TO SPEAK:|WORD TO SPEAK:|$)/i);
+  }
+  if (!prayerMatch) {
+    prayerMatch = content.match(/PRAYER:\s*([\s\S]*?)(?=WORD TO SPEAK:|$)/i);
+  }
+  if (prayerMatch) {
+    const prayerText = prayerMatch[1].trim();
+    // Strip any "PRAYER RULES" block that AI may have echoed back
+    playbook.prayer = prayerText.replace(/PRAYER RULES[\s\S]*/i, '').trim();
+    console.log('[PRAYER PARSER] Parsed prayer length:', playbook.prayer.length);
+  }
+
+  // Parse Word to Speak
+  let wordToSpeakMatch = content.match(/\*\*WORD TO SPEAK:\*\*\s*([\s\S]*?)(?=WORD TO SPEAK RULES:|$)/i);
+  if (!wordToSpeakMatch) {
+    wordToSpeakMatch = content.match(/### WORD TO SPEAK:\s*([\s\S]*?)(?=WORD TO SPEAK RULES:|$)/i);
+  }
+  if (!wordToSpeakMatch) {
+    wordToSpeakMatch = content.match(/WORD TO SPEAK:\s*([\s\S]*?)(?=WORD TO SPEAK RULES:|$)/i);
+  }
+  if (wordToSpeakMatch) {
+    playbook.wordToSpeak = wordToSpeakMatch[1].trim();
+    console.log('[WORD TO SPEAK PARSER] Parsed wordToSpeak length:', playbook.wordToSpeak.length);
   }
 
   if (!playbook.directChallenge || playbook.directChallenge.trim().length === 0) {
@@ -695,6 +726,12 @@ function sanitizeYogaSuggestions(playbook: Playbook) {
   }));
 
   playbook.directChallenge = sanitizeText(playbook.directChallenge);
+  if (playbook.prayer) {
+    playbook.prayer = sanitizeText(playbook.prayer);
+  }
+  if (playbook.wordToSpeak) {
+    playbook.wordToSpeak = sanitizeText(playbook.wordToSpeak);
+  }
   playbook.truthInLove = {
     summary: sanitizeText(playbook.truthInLove.summary),
     text: sanitizeText(playbook.truthInLove.text),
