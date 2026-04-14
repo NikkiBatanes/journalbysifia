@@ -48,6 +48,7 @@ export interface Playbook {
   challengeCTA?: string; // Optional call-to-action separated from the challenge body
   prayer?: string; // Short prayer to God for the walkthrough (Screen 4)
   wordToSpeak?: string; // Short declaration the user reads aloud (Screen 5)
+  bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
   profileImage?: string;
   progress: number;
   totalTasks: number;

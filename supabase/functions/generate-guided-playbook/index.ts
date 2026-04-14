@@ -54,6 +54,7 @@ interface Playbook {
   directChallenge: string;
   prayer?: string;
   wordToSpeak?: string;
+  bibleVerseReflection?: string;
   createdAt: string;
   updatedAt: string;
   userInput: string;
@@ -428,14 +429,13 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   }
 
   // Parse Bible Verse with enhanced scripture patterns (handle bold formatting)
-  let bibleVerseMatch = content.match(/\*\*BIBLE VERSE:\*\*\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+  // Stop before SCRIPTURE NOTE so the reflection doesn't bleed into verse parsing
+  let bibleVerseMatch = content.match(/\*\*BIBLE VERSE:\*\*\s*([\s\S]*?)(?=\*\*SCRIPTURE NOTE:\*\*|SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
   if (!bibleVerseMatch) {
-    // Fallback to ### format
-    bibleVerseMatch = content.match(/### BIBLE VERSE:\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|### CHALLENGE:|CHALLENGE:|$)/i);
+    bibleVerseMatch = content.match(/### BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|### CHALLENGE:|CHALLENGE:|$)/i);
   }
   if (!bibleVerseMatch) {
-    // Fallback to non-bold formatting
-    bibleVerseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+    bibleVerseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=SCRIPTURE NOTE:|SCRIPTURE REFLECTION:|CHALLENGE:|$)/i);
   }
   if (bibleVerseMatch) {
     const verseContent = bibleVerseMatch[1].trim();
@@ -621,6 +621,19 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     }
   }
 
+  // Parse Scripture Note (2-3 short reflection lines shown below the verse)
+  let scriptureNoteMatch = content.match(/\*\*SCRIPTURE NOTE:\*\*\s*([\s\S]*?)(?=\*\*CHALLENGE:\*\*|CHALLENGE:|$)/i);
+  if (!scriptureNoteMatch) {
+    scriptureNoteMatch = content.match(/SCRIPTURE NOTE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+  }
+  if (!scriptureNoteMatch) {
+    scriptureNoteMatch = content.match(/SCRIPTURE REFLECTION:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
+  }
+  if (scriptureNoteMatch) {
+    playbook.bibleVerseReflection = scriptureNoteMatch[1].trim();
+    console.log('[SCRIPTURE NOTE PARSER] Parsed reflection length:', playbook.bibleVerseReflection.length);
+  }
+
   // Parse Direct Challenge (handle bold formatting)
   // Stop before PRAYER section so it doesn't consume the new fields
   let challengeMatch = content.match(/\*\*CHALLENGE:\*\*\s*([\s\S]*?)(?=\*\*PRAYER:\*\*|PRAYER:|$)/i);
@@ -731,6 +744,9 @@ function sanitizeYogaSuggestions(playbook: Playbook) {
   }
   if (playbook.wordToSpeak) {
     playbook.wordToSpeak = sanitizeText(playbook.wordToSpeak);
+  }
+  if (playbook.bibleVerseReflection) {
+    playbook.bibleVerseReflection = sanitizeText(playbook.bibleVerseReflection);
   }
   playbook.truthInLove = {
     summary: sanitizeText(playbook.truthInLove.summary),

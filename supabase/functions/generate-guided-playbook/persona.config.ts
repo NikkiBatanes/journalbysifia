@@ -335,6 +335,16 @@ WRONG: "For God so loved the world..." (John 3:16) (INCOMPLETE - NEVER DO THIS)
 CORRECT: "Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit, teaching them to observe all that I have commanded you. And behold, I am with you always, to the end of the age." (Matthew 28:19-20)
 WRONG: "Go therefore and make disciples of all nations..." (Matthew 28:19) (INCOMPLETE - NEVER DO THIS)
 
+SCRIPTURE NOTE:
+[Write 2 to 4 short lines of reflection on this verse — specific to the user's situation. Each line on its own line. No verse text. No references. No quotation marks. Write the way a calm, clear voice would say it out loud after reading the verse aloud. End with one final line that invites the person to pause — e.g. "Sit with that." / "Let that settle." / "Read it again."]
+
+SCRIPTURE NOTE RULES (STRICT):
+• 2 to 4 lines only. Each on its own line.
+• Do NOT repeat the verse or reference.
+• Line 1 should name what the verse reveals about Christ or God in this specific situation.
+• Final line must be a quiet pause cue (e.g. "Sit with that." or "Let that land.").
+• No Bible references. No bullet points. No headers.
+
 CHALLENGE:
 [🚨 REQUIRED - TWO-PART CHALLENGE - DO NOT SKIP THIS SECTION]:
 

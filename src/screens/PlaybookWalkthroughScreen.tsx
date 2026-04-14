@@ -28,6 +28,8 @@ import { getPlaybook } from '../services/apiIntegration';
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -161,7 +163,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext }) =
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.stepLabelRow}>
-        <Ionicons name="heart-outline" size={18} color={Colors.hopeWhite} />
+        <Ionicons name="heart" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
           Truth in Love
         </ThemedText>
@@ -186,21 +188,14 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext }) =
 interface ScriptureStepProps {
   reference: string;
   text: string;
+  reflection?: string;
   onNext: () => void;
 }
 
-const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, onNext }) => {
-  // Extract a closing reflection note if the verse text ends with a short sentence
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  const lastSentence = sentences[sentences.length - 1]?.trim() ?? '';
-  const verseText =
-    lastSentence.length > 0 && lastSentence.length < 60 && sentences.length > 1
-      ? sentences.slice(0, -1).join(' ')
-      : text;
-  const reflectionNote =
-    lastSentence.length > 0 && lastSentence.length < 60 && sentences.length > 1
-      ? lastSentence
-      : 'Sit with that.';
+const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, reflection, onNext }) => {
+  const reflectionLines = reflection
+    ? splitParagraphs(reflection)
+    : ['Sit with that.'];
 
   return (
     <ScrollView
@@ -208,21 +203,28 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, on
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.stepLabel}>
-        Scripture Anchor
-      </ThemedText>
+      <View style={styles.stepLabelRow}>
+        <Ionicons name="book" size={18} color={Colors.alertCoral} />
+        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          Scripture Anchor
+        </ThemedText>
+      </View>
 
       <ThemedText weight="semiBold" style={styles.scriptureRef}>
         {reference}
       </ThemedText>
 
       <ThemedText weight="medium" style={styles.scriptureText}>
-        "{verseText}"
+        "{text}"
       </ThemedText>
 
-      <ThemedText style={styles.reflectionNote}>
-        {reflectionNote}
-      </ThemedText>
+      <View style={styles.reflectionBlock}>
+        {reflectionLines.map((line, i) => (
+          <ThemedText key={i} style={styles.reflectionNote}>
+            {line}
+          </ThemedText>
+        ))}
+      </View>
 
       {/* No inline button — floating coral next button handles navigation */}
       <View style={{ height: 80 }} />
@@ -316,9 +318,12 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         contentContainerStyle={styles.stepContent}
         showsVerticalScrollIndicator={false}
       >
-        <ThemedText weight="bold" style={styles.stepLabel}>
-          Faithful Actions
-        </ThemedText>
+        <View style={styles.stepLabelRow}>
+          <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            Faithful Actions
+          </ThemedText>
+        </View>
 
         <ThemedText style={styles.actionCounter}>
           Step {stepNumber} of {totalSteps}
@@ -389,9 +394,12 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, onNext }) => {
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.stepLabel}>
-        Prayer
-      </ThemedText>
+      <View style={styles.stepLabelRow}>
+        <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
+        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          Prayer
+        </ThemedText>
+      </View>
 
       <View style={styles.prayerBlock}>
         {splitParagraphs(prayer).map((line, i) => (
@@ -433,9 +441,12 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, onNext }) => {
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.stepLabel}>
-        Word to Speak
-      </ThemedText>
+      <View style={styles.stepLabelRow}>
+        <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
+        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          Word to Speak
+        </ThemedText>
+      </View>
 
       <View style={styles.wordBlock}>
         {splitParagraphs(word).map((line, i) => (
@@ -479,9 +490,12 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       contentContainerStyle={styles.stepContent}
       showsVerticalScrollIndicator={false}
     >
-      <ThemedText weight="bold" style={styles.completionLabel}>
-        You completed:
-      </ThemedText>
+      <View style={styles.stepLabelRow}>
+        <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          You completed:
+        </ThemedText>
+      </View>
 
       <ThemedText weight="bold" style={styles.completionTitle}>
         {title}
@@ -668,6 +682,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <ScriptureAnchorStep
             reference={playbook.bibleVerse?.reference || ''}
             text={playbook.bibleVerse?.text || ''}
+            reflection={(playbook as any).bibleVerseReflection}
             onNext={goNext}
           />
         )}
@@ -808,13 +823,6 @@ const styles = StyleSheet.create({
     minHeight: SCREEN_HEIGHT * 0.7,
     justifyContent: 'flex-start',
   },
-  stepLabel: {
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: Colors.faithGold,
-    marginBottom: 20,
-  },
 
   // Enter the Moment
   playbookLabelContainer: {
@@ -895,23 +903,25 @@ const styles = StyleSheet.create({
 
   // Scripture
   scriptureRef: {
-    fontSize: 13,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontSize: 15,
+    letterSpacing: 1,
     color: Colors.faithGold,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   scriptureText: {
     fontSize: 20,
     color: Colors.hopeWhite,
     lineHeight: 30,
-    marginBottom: 24,
+    marginBottom: 28,
+  },
+  reflectionBlock: {
+    gap: 8,
+    marginBottom: 40,
   },
   reflectionNote: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.55)',
-    fontStyle: 'italic',
-    marginBottom: 40,
+    color: Colors.hopeWhite,
+    lineHeight: 22,
   },
 
   // Faithful Actions
@@ -1006,13 +1016,6 @@ const styles = StyleSheet.create({
   },
 
   // Completion
-  completionLabel: {
-    fontSize: 13,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: Colors.faithGold,
-    marginBottom: 12,
-  },
   completionTitle: {
     fontSize: 28,
     color: Colors.hopeWhite,
