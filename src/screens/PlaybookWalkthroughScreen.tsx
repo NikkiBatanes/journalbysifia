@@ -22,6 +22,9 @@ import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useUpdateSubTask } from '../services/hooks/usePlaybookData';
 
+import { useQuery } from '@tanstack/react-query';
+import { getPlaybook } from '../services/apiIntegration';
+
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -497,7 +500,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { playbook } = route.params;
+  const routePlaybook = route.params?.playbook;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [stepIndex, setStepIndex] = useState(0);
@@ -507,6 +510,34 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     (user as any)?.email?.split('@')[0] ||
     '';
   const userId: string = user?.id || '';
+
+  // Detect if the route playbook is a lightweight list object (missing full content)
+  const isFullPlaybook =
+    routePlaybook &&
+    'truthInLove' in routePlaybook &&
+    routePlaybook.truthInLove &&
+    typeof routePlaybook.truthInLove === 'object' &&
+    (routePlaybook.truthInLove as any).text &&
+    (routePlaybook.truthInLove as any).text.length > 0;
+
+  const playbookId = routePlaybook?.id;
+  const shouldFetch = !isFullPlaybook && !!playbookId && !!userId;
+
+  const { data: fetchedPlaybook, isLoading } = useQuery({
+    queryKey: ['playbook', playbookId, userId],
+    queryFn: async () => {
+      const result = await getPlaybook(userId, playbookId!);
+      return result;
+    },
+    enabled: shouldFetch,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: 2,
+  });
+
+  const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
   useFocusEffect(
     useCallback(() => {
@@ -539,6 +570,27 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       ],
     });
   }, [navigation]);
+
+  // Show loading state while fetching the full playbook from DB
+  if (isLoading || (shouldFetch && !playbook)) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ThemedText style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15 }}>
+          Loading…
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (!playbook) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ThemedText style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15 }}>
+          Could not load playbook.
+        </ThemedText>
+      </View>
+    );
+  }
 
   // Derive data
   const prayerText =
@@ -782,21 +834,20 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   title: {
-    fontSize: 28,
-    color: Colors.hopeWhite,
-    lineHeight: 38,
-    opacity: 0.95,
-    marginBottom: 16,
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: 26,
+    marginBottom: 24,
   },
   summaryBlock: {
-    gap: 12,
+    gap: 14,
     marginBottom: 36,
   },
   summaryText: {
-    fontSize: 17,
+    fontSize: 22,
     color: Colors.hopeWhite,
-    lineHeight: 26,
-    opacity: 0.9,
+    lineHeight: 32,
+    opacity: 0.95,
   },
 
   // Truth in Love
