@@ -412,6 +412,8 @@ interface RequestBody {
 // ─── serve ────────────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
+  console.log('[PERSONA CHECK]', discernmentCompanionPersona.systemPrompt.substring(0, 80));
+
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
