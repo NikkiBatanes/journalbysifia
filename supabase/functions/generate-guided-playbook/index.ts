@@ -51,19 +51,30 @@ interface Playbook {
   actionSteps: ActionStep[];
   // affirmations removed — replaced by wordsToSpeak
   wordsToSpeak: string[];
-  bibleVerse: { text: string; reference: string; version?: string };
-  directChallenge: string;
+  wordToSpeak?: string; // legacy compatibility
+  bibleVerse: {
+    text: string;
+    reference: string;
+    version?: string;
+  };
+  directChallenge?: string;
+  challengeCTA?: string;
   prayer?: string;
-  wordToSpeak?: string;          // single string kept for legacy compat
   bibleVerseReflection?: string;
   faithfulActionsIntro?: string;
-  createdAt: string;
-  updatedAt: string;
-  userInput: string;
+  profileImage?: string;
   progress: number;
   totalTasks: number;
+  user_id?: string;
+  userInput?: string; // original user input
+  createdAt?: string;
+  updatedAt?: string;
   persona?: string;
-  profileImage?: string;
+  ageGroup?: string;
+  bibleVersion?: string;
+  location?: string;
+  userTier?: string;
+  isOnboarding?: string;
 }
 
 interface OpenAIData {
@@ -134,7 +145,9 @@ function sanitizePlaybook(playbook: Playbook) {
   if (playbook.prayer) playbook.prayer = sanitizeText(playbook.prayer);
   if (playbook.wordToSpeak) playbook.wordToSpeak = sanitizeText(playbook.wordToSpeak);
   if (playbook.bibleVerseReflection) playbook.bibleVerseReflection = sanitizeText(playbook.bibleVerseReflection);
-  playbook.wordsToSpeak = playbook.wordsToSpeak.map(w => sanitizeText(w));
+  if (playbook.wordsToSpeak && Array.isArray(playbook.wordsToSpeak)) {
+    playbook.wordsToSpeak = playbook.wordsToSpeak.map(w => sanitizeText(w));
+  }
 }
 
 // ─── section extractor helper ────────────────────────────────────────────────
@@ -361,6 +374,8 @@ function parseOpenAIResponse(
     extractSection(content, 'WORDS TO SPEAK', []) ??
     extractSection(content, 'WORD TO SPEAK', []);
 
+  console.log('[WORDS TO SPEAK] Raw extracted:', wordsRaw?.substring(0, 200));
+
   if (wordsRaw) {
     let cleaned = wordsRaw
       .replace(/WORDS? TO SPEAK RULES[\s\S]*/i, '')
@@ -371,13 +386,22 @@ function parseOpenAIResponse(
       .replace(/^[•\-\*\d\.]+\s*/gm, '')
       .trim();
 
+    console.log('[WORDS TO SPEAK] Cleaned:', cleaned?.substring(0, 200));
+
     const lines = cleaned
       .split('\n')
       .map((l: string) => l.trim())
       .filter((l: string) => l.length > 4);
 
+    console.log('[WORDS TO SPEAK] Parsed lines:', lines);
+
     playbook.wordsToSpeak = lines; // array of declaration lines
     playbook.wordToSpeak = lines.join('\n'); // legacy single-string compat
+
+    console.log('[WORDS TO SPEAK] Final wordToSpeak:', playbook.wordToSpeak?.substring(0, 200));
+    console.log('[WORDS TO SPEAK] Final wordsToSpeak array length:', playbook.wordsToSpeak.length);
+  } else {
+    console.log('[WORDS TO SPEAK] No raw content found!');
   }
 
   // ── FALLBACK CHALLENGE ─────────────────────────────────────────────────────
