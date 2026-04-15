@@ -374,6 +374,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
         bible_verse: playbook.bibleVerse,
         direct_challenge: playbook.directChallenge,
         challenge_cta: playbook.challengeCTA,
+        transition_line: (playbook as any).transitionLine || '',
         status: playbook.status || 'ongoing',
       })
       .select()
