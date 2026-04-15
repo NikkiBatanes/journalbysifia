@@ -1,6 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { discernmentCompanionPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
+import { DEVELOPER_PROMPT, FEW_SHOT_EXAMPLES } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
@@ -49,7 +49,6 @@ interface Playbook {
     text: string;
   };
   actionSteps: ActionStep[];
-  // affirmations removed — replaced by wordsToSpeak
   wordsToSpeak: string[];
   wordToSpeak?: string; // legacy compatibility
   bibleVerse: {
@@ -62,11 +61,12 @@ interface Playbook {
   prayer?: string;
   bibleVerseReflection?: string;
   faithfulActionsIntro?: string;
+  transitionLine?: string;
   profileImage?: string;
   progress: number;
   totalTasks: number;
   user_id?: string;
-  userInput?: string; // original user input
+  userInput?: string;
   createdAt?: string;
   updatedAt?: string;
   persona?: string;
@@ -77,22 +77,88 @@ interface Playbook {
   isOnboarding?: string;
 }
 
-interface OpenAIData {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-}
+// ─── JSON Schema for Structured Outputs ─────────────────────────────────────
+// completion is now a structured object {question, lines} — not a flat string.
+// This forces the model to separate the reflective question from the imperative lines,
+// giving the UI clean data without regex parsing.
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+const PLAYBOOK_JSON_SCHEMA = {
+  name: 'sifiaPlaybook',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      playbook_title: { type: 'string' },
+      truth_summary: { type: 'string' },
+      truth_in_love: { type: 'string' },
+      transition_line: { type: 'string' },
+      bible_verse: {
+        type: 'object',
+        properties: {
+          reference: { type: 'string' },
+          text: { type: 'string' },
+        },
+        required: ['reference', 'text'],
+        additionalProperties: false,
+      },
+      // Exactly 3 lines — enforced in validation + prompt
+      scripture_note_lines: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      // 3–7 steps — enforced in validation + prompt
+      faithful_actions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            body: { type: 'string' },
+          },
+          required: ['title', 'body'],
+          additionalProperties: false,
+        },
+      },
+      prayer: { type: 'string' },
+      // 4–5 lines — enforced in validation + prompt
+      words_to_speak: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      // Structured object: separates reflective question from closing imperatives
+      completion: {
+        type: 'object',
+        properties: {
+          question: { type: 'string' },
+          lines: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        required: ['question', 'lines'],
+        additionalProperties: false,
+      },
+    },
+    required: [
+      'playbook_title',
+      'truth_summary',
+      'truth_in_love',
+      'transition_line',
+      'bible_verse',
+      'scripture_note_lines',
+      'faithful_actions',
+      'prayer',
+      'words_to_speak',
+      'completion',
+    ],
+    additionalProperties: false,
+  },
+};
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
 
 function sanitizeText(text: string): string {
   return text.replace(/\byoga\b/gi, 'gentle stretching');
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function cleanMarkdown(text: string): string {
@@ -105,25 +171,204 @@ function cleanMarkdown(text: string): string {
 
 function cleanVerseContentFallback(content: string, verseRef: string): string {
   let cleaned = content;
-  if (verseRef) cleaned = cleaned.replace(new RegExp(escapeRegExp(verseRef), 'i'), '');
+  if (verseRef) {
+    const escaped = verseRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cleaned = cleaned.replace(new RegExp(escaped, 'i'), '');
+  }
   cleaned = cleaned.replace(/"""+/g, '"').replace(/""/g, '"').replace(/^"\s*|\s*"$/g, '').trim();
   if (!cleaned) cleaned = content.replace(/"""+/g, '"').replace(/""/g, '"').replace(/^"\s*|\s*"$/g, '').trim();
   return cleaned;
 }
 
-// ─── bible verse enforcement ─────────────────────────────────────────────────
+// ─── Validate JSON playbook response ─────────────────────────────────────────
+// Thresholds reflect actual desired product shape, not just "something exists".
 
-async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): Promise<void> {
-  if (!playbook.bibleVerse?.reference) return;
+function validatePlaybook(json: Record<string, any>): string[] {
+  const issues: string[] = [];
 
-  try {
-    const exactVerse = await bibleVerseService.fetchVerse(playbook.bibleVerse.reference, version);
-    playbook.bibleVerse.text = exactVerse.text;
-    playbook.bibleVerse.reference = exactVerse.reference;
-    playbook.bibleVerse.version = version;
-  } catch (error) {
-    console.error('[Playbook Scripture] Enforcement failed, keeping AI text:', error);
+  if (!json.playbook_title || String(json.playbook_title).trim().length < 5) {
+    issues.push('playbook_title is missing or too short');
   }
+  if (!json.truth_summary || String(json.truth_summary).length < 80) {
+    issues.push(`truth_summary is too short (${String(json.truth_summary || '').length} chars, min 80)`);
+  }
+  if (!json.truth_in_love || String(json.truth_in_love).length < 200) {
+    issues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 200)`);
+  }
+  if (!json.transition_line || String(json.transition_line).trim().length < 5) {
+    issues.push('transition_line is missing');
+  }
+  if (!json.bible_verse?.reference || !json.bible_verse?.text) {
+    issues.push('bible_verse missing reference or text');
+  }
+
+  // scripture_note_lines: exactly 3
+  const noteCount = Array.isArray(json.scripture_note_lines) ? json.scripture_note_lines.length : 0;
+  if (noteCount < 3) {
+    issues.push(`scripture_note_lines has ${noteCount} items (need exactly 3)`);
+  }
+
+  // faithful_actions: 3–7
+  const actionCount = Array.isArray(json.faithful_actions) ? json.faithful_actions.length : 0;
+  if (actionCount < 3) {
+    issues.push(`faithful_actions has ${actionCount} items (need at least 3) — generation failure`);
+  }
+  if (actionCount > 7) {
+    issues.push(`faithful_actions has ${actionCount} items (max 7) — will trim`);
+  }
+
+  if (!json.prayer || String(json.prayer).length < 50) {
+    issues.push(`prayer is too short (${String(json.prayer || '').length} chars, min 50)`);
+  }
+
+  // words_to_speak: 4–5
+  const wordCount = Array.isArray(json.words_to_speak) ? json.words_to_speak.length : 0;
+  if (wordCount < 4) {
+    issues.push(`words_to_speak has ${wordCount} items (need at least 4)`);
+  }
+
+  // completion: structured object
+  if (!json.completion?.question || String(json.completion.question).trim().length < 10) {
+    issues.push('completion.question is missing or too short');
+  }
+  const completionLineCount = Array.isArray(json.completion?.lines) ? json.completion.lines.length : 0;
+  if (completionLineCount < 2) {
+    issues.push(`completion.lines has ${completionLineCount} items (need at least 2)`);
+  }
+
+  // Em dash presence — will be auto-repaired, not a hard failure
+  if (/\u2014/.test(JSON.stringify(json))) {
+    issues.push('Contains em dashes (—) — will auto-repair');
+  }
+
+  return issues;
+}
+
+// ─── Repair JSON playbook response ───────────────────────────────────────────
+
+function repairPlaybook(json: Record<string, any>): Record<string, any> {
+  // Deep-replace em dashes and stray markdown in all string values
+  const fix = (val: any): any => {
+    if (typeof val === 'string') {
+      return val
+        .replace(/\u2014/g, ', ')   // em dash → comma
+        .replace(/\*\*|__/g, '')    // strip bold/underline markdown
+        .trim();
+    }
+    if (Array.isArray(val)) return val.map(fix);
+    if (val && typeof val === 'object') {
+      const out: Record<string, any> = {};
+      for (const k of Object.keys(val)) out[k] = fix(val[k]);
+      return out;
+    }
+    return val;
+  };
+
+  const repaired = fix(json);
+
+  // Ensure prayer doesn't contain the closing — added by the UI
+  if (repaired.prayer) {
+    repaired.prayer = repaired.prayer
+      .replace(/\n*In Jesus'? [Nn]ame,?\s*[Aa]men\.?/gi, '')
+      .replace(/\n*[Aa]men\.?$/gi, '')
+      .trimEnd();
+  }
+
+  // Ensure completion.question ends with ?
+  if (repaired.completion?.question && !String(repaired.completion.question).trim().endsWith('?')) {
+    repaired.completion.question = String(repaired.completion.question).trim() + '?';
+  }
+
+  // Trim faithful_actions to max 7
+  if (Array.isArray(repaired.faithful_actions) && repaired.faithful_actions.length > 7) {
+    repaired.faithful_actions = repaired.faithful_actions.slice(0, 7);
+  }
+
+  return repaired;
+}
+
+// ─── Parse JSON response into Playbook interface ──────────────────────────────
+
+function parseJsonPlaybook(
+  json: Record<string, any>,
+  userName: string,
+  userInput: string,
+  bibleVersion?: string
+): Playbook {
+  const playbook: Playbook = {
+    id: generateUUID(),
+    title: cleanMarkdown(json.playbook_title || ''),
+    subtitle: '',
+    truthInLove: {
+      summary: json.truth_summary || '',
+      text: json.truth_in_love || '',
+    },
+    actionSteps: [],
+    wordsToSpeak: [],
+    bibleVerse: {
+      text: json.bible_verse?.text || '',
+      reference: json.bible_verse?.reference || '',
+      version: bibleVersion || 'NASB',
+    },
+    bibleVerseReflection: Array.isArray(json.scripture_note_lines)
+      ? json.scripture_note_lines
+          .filter((l: any) => typeof l === 'string' && l.trim().length > 0)
+          .slice(0, 4)
+          .join('\n')
+      : '',
+    // completion is now a structured object — serialize into the "Before you close:" format
+    // that CompletionStep.parseCompletionText already understands
+    directChallenge: (() => {
+      const c = json.completion;
+      if (c && typeof c === 'object') {
+        const question = String(c.question || '').trim();
+        const lines = Array.isArray(c.lines)
+          ? c.lines.filter((l: any) => typeof l === 'string' && l.trim().length > 0)
+          : [];
+        return `Before you close:\n${question}${lines.length > 0 ? '\n\n' + lines.join('\n') : ''}`;
+      }
+      // fallback for unexpected string (schema change race condition)
+      return String(c || '');
+    })(),
+    prayer: json.prayer || '',
+    transitionLine: json.transition_line || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    userInput,
+    progress: 0,
+    totalTasks: 0,
+  };
+
+  // Map faithful_actions → ActionStep[]
+  const actions = Array.isArray(json.faithful_actions) ? json.faithful_actions : [];
+  playbook.actionSteps = actions.map((action: any, idx: number) => {
+    const title = cleanMarkdown(String(action.title || ''));
+    const body = cleanMarkdown(String(action.body || ''));
+    return {
+      id: generateUUID(),
+      title,
+      description: body,
+      subTasks: [],
+      examples: [],
+      example_interactive: false,
+      completed: false,
+      orderIndex: idx,
+      actionType: 'done_skip' as const,
+    };
+  });
+  playbook.totalTasks = playbook.actionSteps.length;
+
+  // Map words_to_speak → string[]
+  const words = Array.isArray(json.words_to_speak) ? json.words_to_speak : [];
+  playbook.wordsToSpeak = words
+    .filter((w: any) => typeof w === 'string' && w.trim().length > 0)
+    .map((w: string) => cleanMarkdown(w));
+  playbook.wordToSpeak = playbook.wordsToSpeak.join('\n');
+
+  // Sanitize yoga → gentle stretching (brand safety)
+  sanitizePlaybook(playbook);
+
+  return playbook;
 }
 
 // ─── sanitize ────────────────────────────────────────────────────────────────
@@ -138,290 +383,33 @@ function sanitizePlaybook(playbook: Playbook) {
   playbook.actionSteps = playbook.actionSteps.map(step => ({
     ...step,
     title: sanitizeText(step.title),
+    description: step.description ? sanitizeText(step.description) : undefined,
     subTasks: step.subTasks.map(st => ({ ...st, text: sanitizeText(st.text) })),
     examples: step.examples.map(e => sanitizeText(e)),
   }));
-  playbook.directChallenge = sanitizeText(playbook.directChallenge);
+  if (playbook.directChallenge) playbook.directChallenge = sanitizeText(playbook.directChallenge);
   if (playbook.prayer) playbook.prayer = sanitizeText(playbook.prayer);
   if (playbook.wordToSpeak) playbook.wordToSpeak = sanitizeText(playbook.wordToSpeak);
   if (playbook.bibleVerseReflection) playbook.bibleVerseReflection = sanitizeText(playbook.bibleVerseReflection);
+  if (playbook.transitionLine) playbook.transitionLine = sanitizeText(playbook.transitionLine);
   if (playbook.wordsToSpeak && Array.isArray(playbook.wordsToSpeak)) {
     playbook.wordsToSpeak = playbook.wordsToSpeak.map(w => sanitizeText(w));
   }
 }
 
-// ─── section extractor helper ────────────────────────────────────────────────
+// ─── Bible verse enforcement ──────────────────────────────────────────────────
 
-/**
- * Extract a section from AI content.
- * Tries bold (**HEADER:**), hash (### HEADER:), and plain (HEADER:) variants.
- * stopPatterns: array of section header keywords that end this section.
- */
-function extractSection(content: string, header: string, stopHeaders: string[]): string | null {
-  const stopPattern = stopHeaders
-    .map(h => `(?:\\*\\*${h}:\\*\\*|###\\s*${h}:|${h}:)`)
-    .join('|');
+async function enforcePlaybookBibleVerse(playbook: Playbook, version: string): Promise<void> {
+  if (!playbook.bibleVerse?.reference) return;
 
-  const patterns = [
-    new RegExp(`\\*\\*${header}:\\*\\*\\s*([\\s\\S]*?)(?=${stopPattern}|$)`, 'i'),
-    new RegExp(`###\\s*${header}:\\s*([\\s\\S]*?)(?=${stopPattern}|$)`, 'i'),
-    new RegExp(`${header}:\\s*([\\s\\S]*?)(?=${stopPattern}|$)`, 'i'),
-  ];
-
-  for (const p of patterns) {
-    const m = content.match(p);
-    if (m) return m[1].trim();
+  try {
+    const exactVerse = await bibleVerseService.fetchVerse(playbook.bibleVerse.reference, version);
+    playbook.bibleVerse.text = exactVerse.text;
+    playbook.bibleVerse.reference = exactVerse.reference;
+    playbook.bibleVerse.version = version;
+  } catch (error) {
+    console.error('[Playbook Scripture] Enforcement failed, keeping AI text:', error);
   }
-  return null;
-}
-
-// ─── main parser ─────────────────────────────────────────────────────────────
-
-function parseOpenAIResponse(
-  aiData: OpenAIData,
-  userName: string,
-  userInput: string,
-  bibleVersion?: string
-): Playbook {
-  const rawContent = aiData.choices[0]?.message?.content || '';
-
-  // Strip leading markdown headers from section label lines
-  const content = rawContent
-    .split('\n')
-    .map((line: string) => line.replace(/^#{1,4}\s+/, '').replace(/\s*#{1,4}\s*$/, ''))
-    .join('\n');
-
-  const playbook: Playbook = {
-    id: generateUUID(),
-    title: '',
-    subtitle: '',
-    truthInLove: { summary: '', text: '' },
-    actionSteps: [],
-    wordsToSpeak: [],
-    bibleVerse: { text: '', reference: '' },
-    directChallenge: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    userInput,
-    progress: 0,
-    totalTasks: 0,
-  };
-
-  // ── TITLE ──────────────────────────────────────────────────────────────────
-  const titleRaw = extractSection(content, 'PLAYBOOK TITLE', [
-    'TRUTH SUMMARY', 'TRUTH IN LOVE', 'ACTION STEPS', 'FAITHFUL ACTIONS', 'AFFIRMATIONS',
-    'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (titleRaw) {
-    const titleLines = titleRaw.split('\n').map(l => cleanMarkdown(l)).filter(Boolean);
-    playbook.title = titleLines[0] || '';
-    playbook.subtitle = titleLines[1] || '';
-  }
-
-  // ── TRUTH SUMMARY ──────────────────────────────────────────────────────────
-  const summaryRaw = extractSection(content, 'TRUTH SUMMARY', [
-    'TRUTH IN LOVE', 'FAITHFUL ACTIONS INTRO', 'ACTION STEPS', 'FAITHFUL ACTIONS',
-    'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (summaryRaw) playbook.truthInLove.summary = summaryRaw;
-
-  // ── TRUTH IN LOVE ──────────────────────────────────────────────────────────
-  const truthRaw = extractSection(content, 'TRUTH IN LOVE', [
-    'FAITHFUL ACTIONS INTRO', 'ACTION STEPS', 'FAITHFUL ACTIONS', 'AFFIRMATIONS',
-    'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (truthRaw) playbook.truthInLove.text = truthRaw;
-
-  // ── FAITHFUL ACTIONS INTRO ─────────────────────────────────────────────────
-  const introRaw = extractSection(content, 'FAITHFUL ACTIONS INTRO', ['FAITHFUL ACTIONS']);
-  if (introRaw) {
-    const firstLine = introRaw.split('\n')[0].trim();
-    if (firstLine) playbook.faithfulActionsIntro = firstLine;
-  }
-
-  // ── ACTION STEPS ───────────────────────────────────────────────────────────
-  const stepsRaw = extractSection(content, 'FAITHFUL ACTIONS', [
-    'AFFIRMATIONS', 'BIBLE VERSE', 'SCRIPTURE NOTE', 'COMPLETION',
-    'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (stepsRaw) {
-    const stepBlocks = stepsRaw
-      .split(/\n(?=\d+\.\s)/)
-      .filter((block: string) => block.match(/^\d+\./));
-
-    playbook.actionSteps = stepBlocks.map((block: string, idx: number) => {
-      const lines = block.split('\n').map((l: string) => l.trim()).filter(Boolean);
-      const titleLine = cleanMarkdown(lines[0].replace(/^\d+\.\s*/, ''));
-      const subTasks: SubTask[] = [];
-      const examples: string[] = [];
-      let actionType: 'done_skip' | 'commit' | 'choose' | 'text_input' | undefined;
-      let primaryButton: string | undefined;
-      let secondaryButton: string | undefined;
-      const bodyLines: string[] = [];
-
-      lines.slice(1).forEach((line: string) => {
-        const t = line.trim();
-        if (/^\s*-\s*Type:/i.test(t)) {
-          const v = t.replace(/^\s*-\s*Type:\s*/i, '').trim().toLowerCase();
-          if (['done_skip', 'commit', 'choose', 'text_input'].includes(v)) {
-            actionType = v as typeof actionType;
-          }
-        } else if (/^\s*-\s*Primary:/i.test(t)) {
-          primaryButton = t.replace(/^\s*-\s*Primary:\s*/i, '').trim();
-        } else if (/^\s*-\s*Secondary:/i.test(t)) {
-          secondaryButton = t.replace(/^\s*-\s*Secondary:\s*/i, '').trim();
-        } else if (/^\s*-\s*Sub-task:/i.test(t)) {
-          const text = cleanMarkdown(t.replace(/^\s*-\s*Sub-task:\s*/i, '').trim());
-          if (text) subTasks.push({ id: generateUUID(), text, completed: false, orderIndex: subTasks.length });
-        } else if (/^\s*-\s*Example:/i.test(t)) {
-          const exText = t.replace(/^\s*-\s*Example:\s*/i, '').trim();
-          const interactiveMatch = exText.match(/(.+?)\s*\|\s*Interactive:\s*(true|false)/i);
-          if (interactiveMatch) examples.push(cleanMarkdown(interactiveMatch[1].trim()));
-          else if (exText) examples.push(cleanMarkdown(exText));
-        } else if (!t.startsWith('- ')) {
-          bodyLines.push(cleanMarkdown(t));
-        }
-      });
-
-      return {
-        id: generateUUID(),
-        title: titleLine,
-        description: bodyLines.length > 0 ? bodyLines.join('\n') : undefined,
-        subTasks,
-        examples,
-        example_interactive: false,
-        completed: false,
-        orderIndex: idx,
-        actionType: actionType ?? 'done_skip',
-        primaryButton,
-        secondaryButton,
-      };
-    });
-
-    playbook.totalTasks = playbook.actionSteps.length;
-  }
-
-  // ── BIBLE VERSE ────────────────────────────────────────────────────────────
-  const verseRaw = extractSection(content, 'BIBLE VERSE', [
-    'SCRIPTURE NOTE', 'SCRIPTURE REFLECTION', 'COMPLETION',
-    'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (verseRaw) {
-    const scripturePatterns = [
-      { pattern: /['"]([^'"\n]+)['"]\s*\(\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*\)/i, refFirst: false },
-      { pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*:\s*['"]([^'"\n]+)['"]/i, refFirst: true },
-      { pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i, refFirst: false },
-      { pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i, refFirst: true },
-      { pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s+([^\n]+)/i, refFirst: true },
-    ];
-
-    let verseText = '';
-    let verseRef = '';
-
-    for (const { pattern, refFirst } of scripturePatterns) {
-      const m = verseRaw.match(pattern);
-      if (m) {
-        if (refFirst) { verseRef = m[1]?.trim() || ''; verseText = m[2]?.trim() || ''; }
-        else { verseText = m[1]?.trim() || ''; verseRef = m[2]?.trim() || ''; }
-        if (verseText && verseRef) break;
-      }
-    }
-
-    // Fallback ref scan
-    if (!verseRef) {
-      const m = verseRaw.match(/([A-Za-z0-9]+\s+\d+:\d+(?:-\d+)?)/);
-      if (m) verseRef = m[1].trim();
-    }
-
-    verseText = verseText.trim().replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
-    if (verseRef && verseText.toLowerCase().startsWith(verseRef.toLowerCase())) {
-      verseText = verseText.substring(verseRef.length).trim();
-    }
-    verseText = verseText.replace(/^[""'"]+\s*/, '').trim();
-    verseRef = verseRef.trim().replace(/\s*\(\s*[A-Z]{2,5}\s*\)\s*$/i, '').trim();
-
-    playbook.bibleVerse.text = verseText || cleanVerseContentFallback(verseRaw, verseRef);
-    playbook.bibleVerse.reference = verseRef;
-    playbook.bibleVerse.version = bibleVersion || 'NASB';
-  }
-
-  // ── SCRIPTURE NOTE ─────────────────────────────────────────────────────────
-  const noteRaw = extractSection(content, 'SCRIPTURE NOTE', [
-    'FAITHFUL ACTIONS', 'ACTION STEPS', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  const reflRaw = noteRaw ?? extractSection(content, 'SCRIPTURE REFLECTION', [
-    'FAITHFUL ACTIONS', 'ACTION STEPS', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
-  ]);
-  if (reflRaw) {
-    const lines = reflRaw.split('\n').map((l: string) => l.trim()).filter(Boolean);
-    if (lines.length === 1 && lines[0].length > 60) {
-      const sentences = lines[0].split(/(?<=[.!?])\s+/);
-      playbook.bibleVerseReflection = sentences.slice(0, 4).join('\n');
-    } else {
-      playbook.bibleVerseReflection = lines.slice(0, 4).join('\n');
-    }
-  }
-
-  // ── COMPLETION ─────────────────────────────────────────────────────────────
-  const completionRaw = extractSection(content, 'COMPLETION', ['PRAYER', 'WORDS TO SPEAK']);
-  if (completionRaw) playbook.directChallenge = completionRaw;
-
-  // ── PRAYER ─────────────────────────────────────────────────────────────────
-  const prayerRaw = extractSection(content, 'PRAYER', ['WORDS TO SPEAK', 'WORD TO SPEAK']);
-  if (prayerRaw) {
-    playbook.prayer = prayerRaw.replace(/PRAYER RULES[\s\S]*/i, '').trim();
-  }
-
-  // ── WORDS TO SPEAK ─────────────────────────────────────────────────────────
-  // Parse as multiple declaration lines — shown one per line in the walkthrough
-  // Must provide a stop header — empty [] creates (?=|$) which always matches at pos 0
-  const wordsRaw =
-    extractSection(content, 'WORDS TO SPEAK', ['COMPLETION']) ??
-    extractSection(content, 'WORD TO SPEAK', ['COMPLETION', 'WORD TO SPEAK RULES']);
-
-  console.log('[WORDS TO SPEAK] Raw extracted:', wordsRaw?.substring(0, 200));
-
-  if (wordsRaw) {
-    let cleaned = wordsRaw
-      .replace(/WORDS? TO SPEAK RULES[\s\S]*/i, '')
-      .replace(/GOOD EXAMPLES[\s\S]*/i, '')
-      .replace(/BAD EXAMPLES[\s\S]*/i, '')
-      .replace(/\*\*/g, '')
-      .replace(/[""]/g, '')
-      .replace(/^[•\-\*\d\.]+\s*/gm, '')
-      .trim();
-
-    console.log('[WORDS TO SPEAK] Cleaned:', cleaned?.substring(0, 200));
-
-    const lines = cleaned
-      .split('\n')
-      .map((l: string) => l.trim())
-      .filter((l: string) => l.length > 4);
-
-    console.log('[WORDS TO SPEAK] Parsed lines:', lines);
-
-    playbook.wordsToSpeak = lines; // array of declaration lines
-    playbook.wordToSpeak = lines.join('\n'); // legacy single-string compat
-
-    console.log('[WORDS TO SPEAK] Final wordToSpeak:', playbook.wordToSpeak?.substring(0, 200));
-    console.log('[WORDS TO SPEAK] Final wordsToSpeak array length:', playbook.wordsToSpeak.length);
-  } else {
-    console.log('[WORDS TO SPEAK] No raw content found!');
-  }
-
-  // ── FALLBACK CHALLENGE ─────────────────────────────────────────────────────
-  if (!playbook.directChallenge || playbook.directChallenge.trim().length === 0) {
-    playbook.directChallenge = [
-      `${userName}, complete this two-part challenge:`,
-      '',
-      'SPIRITUAL: Within 24 hours, block 20 minutes to pray Psalm 139:23-24. Ask God to reveal truth. Journal what the Holy Spirit shows you.',
-      '',
-      'TACTICAL: Within 72 hours, schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner.',
-    ].join('\n');
-  }
-
-  sanitizePlaybook(playbook);
-  return playbook;
 }
 
 // ─── request body ─────────────────────────────────────────────────────────────
@@ -441,8 +429,6 @@ interface RequestBody {
 // ─── serve ────────────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
-  console.log('[PERSONA CHECK]', discernmentCompanionPersona.systemPrompt.substring(0, 80));
-
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -473,7 +459,7 @@ serve(async (req: Request) => {
   if (!rateLimitResult.allowed) {
     return createRateLimitError(
       rateLimitResult,
-      `You've created ${RATE_LIMIT_CONFIGS.playbook.maxRequests} playbooks in the last hour. Please wait before creating another.` 
+      `You've created ${RATE_LIMIT_CONFIGS.playbook.maxRequests} playbooks in the last hour. Please wait before creating another.`
     );
   }
 
@@ -528,36 +514,50 @@ serve(async (req: Request) => {
 
     let effectiveUserInput = userInput;
     const preferredBibleVersion = bibleVersion || 'NASB';
-    const generationTimestamp = new Date().toISOString();
 
-    const buildContextualPrompt = (input: string): string => {
-      let prompt = applyPersonaContext(discernmentCompanionPersona, input, bibleVersion);
+    // Build a clean structured context payload for the user turn.
+    // Keep this slim: name, Bible version, user moment, and per-request overrides only.
+    // All behavioral rules belong in DEVELOPER_PROMPT, not here.
+    const buildPlaybookUserContext = (input: string): string => {
+      const isMSG = preferredBibleVersion.toUpperCase() === 'MSG';
+      const bibleNote = isMSG
+        ? `BIBLE VERSION: ${preferredBibleVersion} — provide the verse reference only; final text is supplied by the Bible service.`
+        : `BIBLE VERSION: ${preferredBibleVersion} — provide a faithful draft verse text; the Bible service will verify and may replace it.`;
 
-      prompt += `\n\nUser Name: ${userName}
-User Request: ${input}
-Generation ID: ${generationTimestamp}
-
-IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name or variation.`;
+      let ctx = `${bibleNote}\n`;
+      ctx += `USER NAME: ${userName} — use this name only. Do not invent or substitute.\n`;
+      ctx += `USER INPUT: ${input}\n`;
 
       if (recentTitles.length > 0) {
-        prompt += `\n\nTITLE UNIQUENESS: The user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\nYou MUST create a completely different title.`;
+        ctx += `\nTITLE UNIQUENESS: User already has: ${recentTitles.map(t => `"${t}"`).join(', ')}. Create a completely different title.\n`;
       }
-
       if (isTeenUser) {
-        prompt += '\n\nLANGUAGE: This user is a teenager (13-16). Use simple, clear language. Avoid complex theological terms.';
+        ctx += `\nAUDIENCE: User is 13-16. Use simple clear language. Avoid complex theological terms.\n`;
       }
+      ctx += `\nSUPPORT SERVICES: General language only ("a trusted counselor", "local support services"). No phone numbers.\n`;
 
-      prompt += `\n\nBIBLE VERSION: Use ${preferredBibleVersion} for all scripture. Quote EXACTLY as it appears — all brackets, parentheses, punctuation intact. Do not truncate.`;
-
-      prompt += `\n\nSUPPORT SERVICES: When suggesting professional help, use general language only ("a trusted counselor", "your local support services"). Do not provide specific phone numbers.`;
-
-      if (prompt.length > 6000) prompt = prompt.substring(0, 6000) + '\n\n[Truncated]';
-      return prompt;
+      return ctx;
     };
 
-    let contextualPrompt = buildContextualPrompt(effectiveUserInput);
+    // Build the full user message: examples first, then the context payload.
+    // Do NOT blindly truncate the assembled message — trim examples first if needed.
+    const buildUserMessage = (input: string): string => {
+      const context = buildPlaybookUserContext(input);
+      const separator = '\n---\n\nNow generate a playbook:\n\n';
 
-    // OpenAI call helper
+      // If examples + context would exceed a safe token budget, drop to 2 examples
+      const fullMsg = FEW_SHOT_EXAMPLES + separator + context;
+      if (fullMsg.length <= 14000) return fullMsg;
+
+      // Trim: take only the first two examples (up to the third "---" separator)
+      const parts = FEW_SHOT_EXAMPLES.split('\n---\n');
+      const trimmedExamples = parts.slice(0, 3).join('\n---\n'); // intro + ex1 + ex2
+      return trimmedExamples + separator + context;
+    };
+
+    let userMessage = buildUserMessage(effectiveUserInput);
+
+    // OpenAI call helper — now uses JSON Structured Outputs
     async function callOpenAI(model: string): Promise<Response> {
       const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark');
       const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
@@ -577,13 +577,16 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
               body: JSON.stringify({
                 model,
                 messages: [
-                  { role: 'system', content: discernmentCompanionPersona.systemPrompt },
-                  { role: 'user', content: contextualPrompt },
+                  // 'developer' role is supported by GPT-4.1 family models
+                  { role: 'developer', content: DEVELOPER_PROMPT },
+                  { role: 'user', content: userMessage },
                 ],
-                temperature: 0.7,
-                max_tokens: 6000,
-                frequency_penalty: 0.1,
-                presence_penalty: 0.1,
+                temperature: 0.65,
+                max_tokens: 4096,
+                response_format: {
+                  type: 'json_schema',
+                  json_schema: PLAYBOOK_JSON_SCHEMA,
+                },
               }),
             },
             OPENAI_RETRY_CONFIG
@@ -597,23 +600,47 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
       }
     }
 
-    const refusalPatterns = [
-      /i'm sorry, but i can't assist/i,
-      /i'm sorry, but i cannot assist/i,
-      /i'm unable to assist/i,
-      /i cannot assist with this request/i,
-      /i'm unable to help with this/i,
-      /i cannot fulfill this request/i,
-      /i'?m\s+(really\s+)?sorry\s+to\s+hear\s+that\s+you'?re\s+feeling\s+this\s+way/i,
-      /please\s+(reach\s+out|talk)\s+to\s+(a\s+)?(mental\s+health|counselor|professional)/i,
-    ];
+    // Detect if the model refused or returned minimal content in JSON mode
+    const isRefusal = (json: Record<string, any>): boolean => {
+      const title = String(json.playbook_title || '').toLowerCase();
+      const truth = String(json.truth_in_love || '').toLowerCase();
+      const refusalPhrases = [
+        'i cannot assist',
+        "i'm sorry",
+        'i am unable',
+        'i cannot help',
+        'cannot fulfill',
+      ];
+      return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
+    };
 
     let openAIRes = await callOpenAI('gpt-4.1-mini');
-    let aiData: OpenAIData = await openAIRes.json();
+
+    if (!openAIRes.ok) {
+      const errData = await openAIRes.json().catch(() => ({}));
+      console.error('[Generate-Playbook] OpenAI HTTP error:', openAIRes.status, errData);
+      throw new Error(errData?.error?.message || `OpenAI returned ${openAIRes.status}`);
+    }
+
+    let aiData = await openAIRes.json();
     let rawContent: string = aiData.choices?.[0]?.message?.content || '';
 
-    // Retry with paraphrasing if refused
-    if (refusalPatterns.some(p => p.test(rawContent))) {
+    console.log('[Generate-Playbook] finish_reason:', aiData.choices?.[0]?.finish_reason);
+    console.log('[Generate-Playbook] ===== RAW JSON OUTPUT START =====');
+    console.log(rawContent.substring(0, 2000));
+    console.log('[Generate-Playbook] ===== RAW JSON OUTPUT END =====');
+
+    // Parse JSON from structured output
+    let parsedJson: Record<string, any>;
+    try {
+      parsedJson = JSON.parse(rawContent);
+    } catch (parseErr) {
+      console.error('[Generate-Playbook] JSON parse failed:', parseErr, 'raw:', rawContent.substring(0, 500));
+      throw new Error('AI returned malformed JSON. Please try again.');
+    }
+
+    // Refusal detection (rare with structured outputs but possible)
+    if (isRefusal(parsedJson)) {
       console.log('[Generate-Playbook] AI refused, attempting paraphrase retry...');
 
       effectiveUserInput = contentAnalysis.isVictimExperience
@@ -625,17 +652,21 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
             .replace(/\s+/g, ' ')
             .trim();
 
-      contextualPrompt = buildContextualPrompt(effectiveUserInput);
+      userMessage = buildUserMessage(effectiveUserInput);
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
         openAIRes = await callOpenAI('gpt-4.1-mini');
+        if (!openAIRes.ok) break;
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
-        if (!refusalPatterns.some(p => p.test(rawContent))) {
-          paraphrasedSuccess = true;
-          break;
-        }
+        try {
+          parsedJson = JSON.parse(rawContent);
+          if (!isRefusal(parsedJson)) {
+            paraphrasedSuccess = true;
+            break;
+          }
+        } catch { /* continue */ }
         await new Promise(r => setTimeout(r, 800));
       }
 
@@ -655,32 +686,27 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
       }
     }
 
-    // Log raw output
-    console.log('[Generate-Playbook] ===== RAW AI OUTPUT START =====');
-    console.log(rawContent);
-    console.log('[Generate-Playbook] ===== RAW AI OUTPUT END =====');
+    // Validate the JSON output
+    const validationIssues = validatePlaybook(parsedJson!);
+    if (validationIssues.length > 0) {
+      console.warn('[Generate-Playbook] Validation issues:', validationIssues);
 
-    if (!rawContent || rawContent.trim().length === 0) {
-      throw new Error('AI returned empty response');
-    }
-
-    // Final refusal check after paraphrase attempt
-    if (refusalPatterns.some(p => p.test(rawContent))) {
-      const finalAnalysis = analyzeContent(userInput);
-      return new Response(
-        JSON.stringify({
-          error: 'CONTENT_BLOCKED',
-          message: finalAnalysis.christianMessage || 'This request could not be processed. Please try rephrasing.',
-          alternatives: finalAnalysis.constructiveAlternatives,
-          category: finalAnalysis.category,
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      // Hard failures: missing title or no action steps
+      const hardFails = validationIssues.filter(i =>
+        i.includes('playbook_title') || i.includes('generation failure')
       );
+      if (hardFails.length > 0) {
+        throw new Error(`AI failed validation: ${hardFails.join(', ')}`);
+      }
     }
 
-    // Parse playbook (store original userInput, not paraphrased)
-    let playbook = parseOpenAIResponse(aiData, userName, userInput, preferredBibleVersion);
+    // Repair (em dash removal, completion prefix, prayer closing strip)
+    const repairedJson = repairPlaybook(parsedJson!);
 
+    // Build Playbook object from JSON (store original userInput, not paraphrased)
+    let playbook = parseJsonPlaybook(repairedJson, userName, userInput, preferredBibleVersion);
+
+    // Final safety check
     if (!playbook.title || playbook.title.trim().length < 3) {
       throw new Error('AI failed to generate a valid playbook title');
     }
@@ -688,23 +714,11 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
       throw new Error('AI failed to generate action steps');
     }
 
-    // Enforce persona rules
-    const enforcedContent = enforcePersona(rawContent, discernmentCompanionPersona);
-    if (enforcedContent !== rawContent) {
-      playbook = parseOpenAIResponse(
-        { choices: [{ message: { content: enforcedContent } }] },
-        userName,
-        userInput,
-        preferredBibleVersion
-      );
-    }
-
-    // Enforce exact bible verse text
+    // Enforce exact bible verse text from our verse database
     await enforcePlaybookBibleVerse(playbook, preferredBibleVersion);
 
     playbook.totalTasks = playbook.actionSteps.length;
     playbook.progress = 0;
-    playbook.persona = discernmentCompanionPersona.role;
 
     return new Response(JSON.stringify(playbook, null, 2), {
       headers: {
@@ -713,8 +727,14 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
         ...corsHeaders,
       },
     });
+
   } catch (error: unknown) {
     console.error('Error generating playbook:', error);
+
+    if ((error as any).contentBlocked) {
+      throw error;
+    }
+
     return new Response(
       JSON.stringify({
         error: "We couldn't create your playbook right now",
