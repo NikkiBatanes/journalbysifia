@@ -706,11 +706,43 @@ serve(async (req: Request) => {
     let aiData = await openAIRes.json();
     let rawContent: string = aiData.choices?.[0]?.message?.content || '';
 
-    console.log('[Generate-Playbook] finish_reason:', aiData.choices?.[0]?.finish_reason);
+    const finishReason = aiData.choices?.[0]?.finish_reason;
+    console.log('[Generate-Playbook] finish_reason:', finishReason);
     console.log('[Generate-Playbook] raw length:', rawContent.length, 'chars');
     console.log('[Generate-Playbook] ===== RAW JSON OUTPUT START =====');
     console.log(rawContent);
     console.log('[Generate-Playbook] ===== RAW JSON OUTPUT END =====');
+
+    // Content filter: OpenAI truncates the JSON mid-generation.
+    // Retry once with softened phrasing before giving up.
+    if (finishReason === 'content_filter') {
+      console.warn('[Generate-Playbook] Content filter triggered — retrying with neutral phrasing');
+      const softenedInput = effectiveUserInput
+        .replace(/\b(lying|lie|lied|liar|lies)\b/gi, 'struggling with honesty')
+        .replace(/\b(stealing|steal|stole|theft)\b/gi, 'struggling with taking what is not mine')
+        .replace(/\b(cheating|cheat|cheated)\b/gi, 'struggling with faithfulness')
+        .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
+        .trim();
+      userMessage = buildUserMessage(softenedInput);
+      const filterRetryRes = await callOpenAI('gpt-4.1-mini');
+      if (!filterRetryRes.ok) {
+        throw new Error(`OpenAI returned ${filterRetryRes.status} on content filter retry`);
+      }
+      aiData = await filterRetryRes.json();
+      rawContent = aiData.choices?.[0]?.message?.content || '';
+      const retryFinishReason = aiData.choices?.[0]?.finish_reason;
+      console.log('[Generate-Playbook] Content filter retry finish_reason:', retryFinishReason);
+      if (retryFinishReason === 'content_filter') {
+        return new Response(
+          JSON.stringify({
+            error: 'CONTENT_BLOCKED',
+            message: 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
+            retryable: false,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Parse JSON from structured output
     let parsedJson: Record<string, any>;
