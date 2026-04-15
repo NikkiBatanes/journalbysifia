@@ -105,6 +105,7 @@ interface EnterMomentProps {
   userInput: string;
   summary: string;
   userName: string;
+  transitionLine?: string;
   onContinue: () => void;
   insets: { top: number };
 }
@@ -114,6 +115,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   userInput,
   summary,
   userName,
+  transitionLine,
   onContinue: _onContinue,
   insets,
 }) => {
@@ -180,6 +182,12 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
           </ThemedText>
         ))}
       </StepFadeIn>
+
+      {transitionLine ? (
+        <StepFadeIn delay={320} style={styles.transitionLineContainer}>
+          <ThemedText style={styles.transitionLineText}>{transitionLine}</ThemedText>
+        </StepFadeIn>
+      ) : null}
     </ScrollView>
   );
 };
@@ -814,17 +822,27 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
   // Parse completion text to extract question and action lines
   const parseCompletionText = (text: string) => {
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    console.log('[CompletionStep] Raw lines:', lines);
-    const contextLine = lines.find(l => l.startsWith('Before you'));
+    // Normalize old challenge format — strip section labels, remove opener line
+    const normalized = text
+      .replace(/^.+?,\s+complete\s+this\s+.+?challenge:\s*/gim, '')
+      .replace(/^SPIRITUAL:\s*/gim, '')
+      .replace(/^TACTICAL(?:\s*\([^)]*\))?:\s*/gim, '')
+      .replace(/^TACTICAL\s+DEADLINE:\s*/gim, '')
+      .replace(/\*\*|__|\*/g, '');
+
+    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // Always show "Before you close:" — inject if not already present
+    const hasContext = lines.some(l => /^before you/i.test(l));
+    if (!hasContext) lines.unshift('Before you close:');
+
+    const contextLine = lines.find(l => /^before you/i.test(l));
     const questionLine = lines.find(l => l.endsWith('?'));
-    const actionLines = lines.filter(l => l.length > 0 && !l.startsWith('Before you') && !l.endsWith('?'));
+    const actionLines = lines.filter(l =>
+      l.length > 0 && !/^before you/i.test(l) && !l.endsWith('?')
+    );
 
-    console.log('[CompletionStep] Parsed:', { contextLine, questionLine, actionLines });
-
-    // Detect if action lines are choice pills (multiple short options) or sequential actions
-    // Choice pills: 2-4 very short lines (under 6 words), often similar structure
-    // Sequential actions: can be any length, more varied structure
+    // Choice pills: 2-4 very short lines (under 6 words) with choice language
     const isChoicePills = actionLines.length >= 2 && actionLines.length <= 4 &&
                           actionLines.every(l => l.split(' ').length <= 6) &&
                           actionLines.some(l => l.toLowerCase().includes('or') || l.toLowerCase().includes('choose'));
@@ -894,9 +912,16 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           ) : actionLines.length > 0 && (
             <View style={styles.completionActionsContainer}>
               {actionLines.map((line, index) => (
-                <ThemedText key={index} style={styles.completionActionLine}>
-                  {line}
-                </ThemedText>
+                <View key={index} style={styles.completionActionItem}>
+                  <View style={styles.completionActionCircle}>
+                    <ThemedText weight="bold" style={styles.completionActionNumber}>
+                      {index + 1}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={styles.completionActionLine}>
+                    {line}
+                  </ThemedText>
+                </View>
               ))}
             </View>
           )}
@@ -1131,6 +1156,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Thin progress bar — very top, faithGold fill */}
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${Math.round(progressFraction * 100)}%` }]} />
+      </View>
+
       {/* Step content */}
       <GestureDetector
         gesture={Gesture.Fling()
@@ -1160,6 +1190,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userInput={playbook.userInput}
                 summary={playbook.truthInLove?.summary || ''}
                 userName={userName}
+                transitionLine={(playbook as any).transitionLine || ''}
                 onContinue={goNext}
                 insets={insets}
               />
@@ -1769,11 +1800,32 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   completionActionsContainer: {
-    gap: 8,
+    gap: 16,
     marginBottom: 32,
   },
+  completionActionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  completionActionCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  completionActionNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    lineHeight: 18,
+  },
   completionActionLine: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
@@ -1853,6 +1905,23 @@ const styles = StyleSheet.create({
   },
   devotionalButton: {
     marginTop: 8,
+  },
+
+  // Transition line — calm bridge shown at bottom of Step 0
+  transitionLineContainer: {
+    marginTop: 32,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+  },
+  transitionLineText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+    lineHeight: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 0.2,
   },
   confirmButton: {
     borderWidth: 1.5,
