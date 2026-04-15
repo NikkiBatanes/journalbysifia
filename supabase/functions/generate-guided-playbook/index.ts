@@ -414,9 +414,9 @@ function parseOpenAIResponse(
     playbook.directChallenge = [
       `${userName}, complete this two-part challenge:`,
       '',
-      '1. Within 24 hours, block 20 minutes to pray Psalm 139:23-24. Ask God to reveal truth. Journal what the Holy Spirit shows you.',
+      'SPIRITUAL: Within 24 hours, block 20 minutes to pray Psalm 139:23-24. Ask God to reveal truth. Journal what the Holy Spirit shows you.',
       '',
-      '2. Within 72 hours, schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner.',
+      'TACTICAL: Within 72 hours, schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner.',
     ].join('\n');
   }
 
@@ -608,7 +608,7 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
       /please\s+(reach\s+out|talk)\s+to\s+(a\s+)?(mental\s+health|counselor|professional)/i,
     ];
 
-    let openAIRes = await callOpenAI('gpt-4o');
+    let openAIRes = await callOpenAI('gpt-4.1-mini');
     let aiData: OpenAIData = await openAIRes.json();
     let rawContent: string = aiData.choices?.[0]?.message?.content || '';
 
@@ -629,7 +629,7 @@ IMPORTANT: Use ONLY "${userName}" as the user's name. Do not use any other name 
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
-        openAIRes = await callOpenAI('gpt-4o');
+        openAIRes = await callOpenAI('gpt-4.1-mini');
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
         if (!refusalPatterns.some(p => p.test(rawContent))) {
