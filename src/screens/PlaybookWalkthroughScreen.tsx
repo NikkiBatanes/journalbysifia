@@ -119,6 +119,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   onContinue: _onContinue,
   insets,
 }) => {
+  console.log('[EnterMomentStep] transitionLine:', transitionLine);
   const [showUserInput, setShowUserInput] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
 
@@ -1062,26 +1063,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     [slideAnim]
   );
 
-  const goNext = useCallback(() => {
-    triggerLightHaptic();
-    if (stepIndex < TOTAL_STEPS - 1) {
-      // Skip prayer step (4) if this playbook has no prayer
-      const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
-      animateStep(next, 'forward');
-    }
-  }, [stepIndex, animateStep, hasPrayer]);
-
-  const goBack = useCallback(() => {
-    triggerLightHaptic();
-    if (stepIndex === 0) {
-      navigation.goBack();
-    } else {
-      // Skip back over prayer step (4) if this playbook has no prayer
-      const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
-      animateStep(prev, 'back');
-    }
-  }, [stepIndex, animateStep, navigation, hasPrayer]);
-
   const handleShare = useCallback(async () => {
     try {
       triggerLightHaptic();
@@ -1132,6 +1113,35 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // If no prayer exists (old playbooks), skip step 4 entirely
   const hasPrayer = prayerText.length > 0;
+
+  const goNext = useCallback(() => {
+    triggerLightHaptic();
+    if (stepIndex < TOTAL_STEPS - 1) {
+      // Skip prayer step (4) if this playbook has no prayer
+      const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
+      animateStep(next, 'forward');
+    }
+  }, [stepIndex, animateStep, hasPrayer]);
+
+  const goBack = useCallback(() => {
+    triggerLightHaptic();
+    if (stepIndex === 0) {
+      navigation.goBack();
+    } else {
+      // Skip back over prayer step (4) if this playbook has no prayer
+      const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
+      animateStep(prev, 'back');
+    }
+  }, [stepIndex, animateStep, navigation, hasPrayer]);
+
+  const transitionLine =
+    playbook.transitionLine ||
+    (Array.isArray((playbook as any).wordsToSpeak) && (playbook as any).wordsToSpeak.length > 0
+      ? (playbook as any).wordsToSpeak.join('\n')
+      : '');
+
+  console.log('[PlaybookWalkthroughScreen] playbook.transitionLine:', playbook.transitionLine);
+  console.log('[PlaybookWalkthroughScreen] computed transitionLine:', transitionLine);
 
   const wordToSpeak =
     playbook.wordToSpeak ||
