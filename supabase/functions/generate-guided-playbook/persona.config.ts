@@ -654,38 +654,39 @@ WORD TO SPEAK:
 [Write 1 to 2 very short lines the user will read aloud as a declaration. This is not a prayer and not a reflection — it is a spoken declaration of truth. It must feel like something a real person would say out loud with calm conviction. Each line is punchy, brief, and grounded. It can be about God, Christ, or the user themselves. It does NOT have to follow a fixed structure.]
 
 WORD TO SPEAK RULES (STRICT ENFORCEMENT):
-• Write 1 to 2 lines only. Each line is its own sentence.
-• Lines must be SHORT — ideally under 12 words each.
-• The declaration must connect DIRECTLY to this user's specific situation. Generic lines are rejected.
-• VARY the opener dynamically across situations. Do NOT default to "I will" — this is the most common error. Rotate between:
-  - "Christ" or "God" (statements about Him)
-  - "My" (statements about identity or possessions)
-  - "I will" (only when declaring action — use sparingly)
-  - Direct truth statements without a personal pronoun
-• Do NOT use quotation marks, numbering, bullet points, em dashes, or scripture references.
-• Output ONLY the 1-2 lines, nothing else. No preamble, no label, no explanation.
+- This is a SPOKEN AFFIRMATION — not a prayer, not a reflection, not a goal statement.
+- The person will read this out loud over themselves. It must feel like placing a truth over their situation — something that lands when spoken, not just read.
+- Write 1 to 2 lines only. Each line is its own sentence.
+- Lines must be SHORT — ideally under 12 words each.
+- The declaration must connect DIRECTLY to this user's specific situation and DIRECTLY counter the core lie from Truth in Love. Generic lines are rejected.
+- Do NOT write lines that describe a future goal or aspiration ("I will walk in peace today" — this is a hope, not a declaration). Write lines that place a present truth over them right now.
+- Do NOT use quotation marks, numbering, bullet points, em dashes, or scripture references.
+- Output ONLY the 1-2 lines, nothing else. No preamble, no label, no explanation.
 
-GOOD EXAMPLES (study these carefully — notice the VARIETY of structure and length):
+AFFIRMATION TEST: Read the line out loud. Does it feel like it lands? Does it push back against something specific? Would someone in the middle of this struggle feel seen by it? If it sounds like a bumper sticker or a general Christian quote, rewrite it.
+
+GOOD EXAMPLES (notice — each one counters a specific lie, feels like it lands when spoken aloud):
 Christ is gentle with the afraid.
 I will be gentle too.
 
-God's faithfulness to others is not evidence of His absence from me.
+My debt does not define what God sees when He looks at me.
+I am not what I owe.
 
-God leads me through wisdom, not panic.
+God's faithfulness to others is not evidence of His absence from me.
 
 My obedience is not wasted, even when it is unnoticed.
 
-I will pursue peace through clarity, not silence.
+Delay is not abandonment.
+I am in a hidden season, not a forgotten one.
 
-My mistakes do not define me.
-Wisdom starts today.
-
-Christ is not comparing my path to anyone else's.
+I am not behind.
+I am being formed.
 
 BAD EXAMPLES (NEVER DO THESE):
-❌ Christ is always with you in every situation. I will trust Him. (Too generic — not connected to THIS situation)
-❌ 1. Christ is your guide. 2. I will follow Him. (Do NOT number)
-❌ "Christ holds your future." "I will surrender today." (No quotation marks)`,
+❌ "I will walk in His peace today." (goal/aspiration — not a declaration of present truth)
+❌ "God's provision is greater than my debt." (true but generic — doesn't name the shame)
+❌ "Christ is always with you in every situation." (too broad, not specific to their lie)
+❌ Lines that could appear on any Christian greeting card — rewrite until it's specific`,
 };
 
 export const applyPersonaContext = (persona: Persona, userInput: string, bibleVersion?: string): string => {
