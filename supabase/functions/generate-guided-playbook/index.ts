@@ -209,7 +209,7 @@ function parseOpenAIResponse(
 
   // ── TITLE ──────────────────────────────────────────────────────────────────
   const titleRaw = extractSection(content, 'PLAYBOOK TITLE', [
-    'TRUTH SUMMARY', 'TRUTH IN LOVE', 'ACTION STEPS', 'AFFIRMATIONS',
+    'TRUTH SUMMARY', 'TRUTH IN LOVE', 'ACTION STEPS', 'FAITHFUL ACTIONS', 'AFFIRMATIONS',
     'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
   ]);
   if (titleRaw) {
@@ -220,27 +220,27 @@ function parseOpenAIResponse(
 
   // ── TRUTH SUMMARY ──────────────────────────────────────────────────────────
   const summaryRaw = extractSection(content, 'TRUTH SUMMARY', [
-    'TRUTH IN LOVE', 'FAITHFUL ACTIONS INTRO', 'ACTION STEPS',
+    'TRUTH IN LOVE', 'FAITHFUL ACTIONS INTRO', 'ACTION STEPS', 'FAITHFUL ACTIONS',
     'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
   ]);
   if (summaryRaw) playbook.truthInLove.summary = summaryRaw;
 
   // ── TRUTH IN LOVE ──────────────────────────────────────────────────────────
   const truthRaw = extractSection(content, 'TRUTH IN LOVE', [
-    'FAITHFUL ACTIONS INTRO', 'ACTION STEPS', 'AFFIRMATIONS',
+    'FAITHFUL ACTIONS INTRO', 'ACTION STEPS', 'FAITHFUL ACTIONS', 'AFFIRMATIONS',
     'BIBLE VERSE', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
   ]);
   if (truthRaw) playbook.truthInLove.text = truthRaw;
 
   // ── FAITHFUL ACTIONS INTRO ─────────────────────────────────────────────────
-  const introRaw = extractSection(content, 'FAITHFUL ACTIONS INTRO', ['ACTION STEPS']);
+  const introRaw = extractSection(content, 'FAITHFUL ACTIONS INTRO', ['FAITHFUL ACTIONS']);
   if (introRaw) {
     const firstLine = introRaw.split('\n')[0].trim();
     if (firstLine) playbook.faithfulActionsIntro = firstLine;
   }
 
   // ── ACTION STEPS ───────────────────────────────────────────────────────────
-  const stepsRaw = extractSection(content, 'ACTION STEPS', [
+  const stepsRaw = extractSection(content, 'FAITHFUL ACTIONS', [
     'AFFIRMATIONS', 'BIBLE VERSE', 'SCRIPTURE NOTE', 'COMPLETION',
     'PRAYER', 'WORDS TO SPEAK',
   ]);
