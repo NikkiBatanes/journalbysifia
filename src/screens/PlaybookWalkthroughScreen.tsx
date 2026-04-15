@@ -1162,18 +1162,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
   const hasFloatingNext = stepIndex !== 6;
 
-  // If no prayer, progress bar treats it as a 6-step journey
-  const effectiveSteps = hasPrayer ? TOTAL_STEPS : TOTAL_STEPS - 1;
-  const effectiveIndex = !hasPrayer && stepIndex > 4 ? stepIndex - 1 : stepIndex;
-  const progressFraction = effectiveIndex / (effectiveSteps - 1);
-
   return (
     <View style={styles.container}>
-      {/* Thin progress bar — very top, faithGold fill */}
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${Math.round(progressFraction * 100)}%` }]} />
-      </View>
-
       {/* Step content */}
       <GestureDetector
         gesture={Gesture.Fling()
@@ -1330,17 +1320,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
-  },
-  // Progress bar — thin gold strip at very top
-  progressTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    width: '100%',
-    zIndex: 200,
-  },
-  progressFill: {
-    height: 3,
-    backgroundColor: Colors.faithGold,
   },
   // Dots — matches original PlaybookDetailGuided pagination style
   dotsRow: {
