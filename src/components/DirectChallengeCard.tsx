@@ -16,13 +16,15 @@ type DirectChallengeCardProps = {
 };
 
 export default function DirectChallengeCard({ challenge, challengeCTA, style, expanded = true, showCloseButton = true }: DirectChallengeCardProps) {
-  // Parse numbered sections (1. and 2.) instead of SPIRITUAL/TACTICAL labels
-  const firstMatch = challenge.match(/^1\.\s*(.+?)(?=\n\s*2\.)/is);
-  const secondMatch = challenge.match(/^2\.\s*(.+?)$/is);
+  // Parse SPIRITUAL and TACTICAL sections if they exist
+  const spiritualMatch = challenge.match(/SPIRITUAL:\s*(.+?)(?=\n\s*TACTICAL)/is);
+  const tacticalMatch = challenge.match(/TACTICAL[^:]*:\s*(.+?)$/is);
 
-  const hasStructuredFormat = firstMatch && secondMatch;
-  const firstText = firstMatch?.[1]?.trim();
-  const secondText = secondMatch?.[1]?.trim();
+  const hasStructuredFormat = spiritualMatch && tacticalMatch;
+  const spiritualText = spiritualMatch?.[1]?.trim();
+  // Remove any remaining "TACTICAL (48-72 hour deadline):" prefix from the tactical text
+  // This handles cases where the AI includes the label in the content
+  const tacticalText = tacticalMatch?.[1]?.trim().replace(/^TACTICAL[^:]*:\s*/gi, '');
 
   return (
     <View style={[styles.container, style]}>
@@ -59,7 +61,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
               {expanded && Platform.OS === 'ios' ? (
                 <ThemedTextInput
                   weight="regular"
-                  value={firstText}
+                  value={spiritualText}
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
@@ -67,7 +69,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
                 />
               ) : (
                 <ThemedText weight="regular" style={styles.sectionText}>
-                  {firstText}
+                  {spiritualText}
                 </ThemedText>
               )}
             </View>
@@ -82,7 +84,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
               {expanded && Platform.OS === 'ios' ? (
                 <ThemedTextInput
                   weight="regular"
-                  value={secondText}
+                  value={tacticalText}
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
@@ -90,7 +92,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA, style, ex
                 />
               ) : (
                 <ThemedText weight="regular" style={styles.sectionText}>
-                  {secondText}
+                  {tacticalText}
                 </ThemedText>
               )}
             </View>

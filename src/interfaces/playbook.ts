@@ -55,6 +55,7 @@ export interface Playbook {
   wordsToSpeak?: string[]; // Array of declaration lines (new format)
   bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
   faithfulActionsIntro?: string; // One-line framing sentence before action steps (Screen 3)
+  transitionLine?: string; // Calm bridge line shown between Step 0 (Enter the Moment) and Step 1 (Truth in Love)
   profileImage?: string;
   progress: number;
   totalTasks: number;
