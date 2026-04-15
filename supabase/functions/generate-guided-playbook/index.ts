@@ -414,9 +414,9 @@ function parseOpenAIResponse(
     playbook.directChallenge = [
       `${userName}, complete this two-part challenge:`,
       '',
-      'SPIRITUAL: Within 24 hours, block 20 minutes to pray Psalm 139:23-24. Ask God to reveal truth. Journal what the Holy Spirit shows you.',
+      '1. Within 24 hours, block 20 minutes to pray Psalm 139:23-24. Ask God to reveal truth. Journal what the Holy Spirit shows you.',
       '',
-      'TACTICAL: Within 72 hours, schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner.',
+      '2. Within 72 hours, schedule a 30-minute check-in with a trusted pastor, mentor, or accountability partner.',
     ].join('\n');
   }
 
