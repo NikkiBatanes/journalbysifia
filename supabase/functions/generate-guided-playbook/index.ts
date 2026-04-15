@@ -180,68 +180,149 @@ function cleanVerseContentFallback(content: string, verseRef: string): string {
   return cleaned;
 }
 
-// ─── Validate JSON playbook response ─────────────────────────────────────────
-// Thresholds reflect actual desired product shape, not just "something exists".
+// ─── Structural quality helpers ──────────────────────────────────────────────
 
-function validatePlaybook(json: Record<string, any>): string[] {
-  const issues: string[] = [];
+// Count sentences in a string (splits on . ? ! followed by space or end)
+function countSentences(text: string): number {
+  const cleaned = text.trim().replace(/\s+/g, ' ');
+  const matches = cleaned.match(/[^.!?]*[.!?](\s|$)/g);
+  return matches ? matches.filter(s => s.trim().length > 2).length : 0;
+}
+
+// Count non-empty paragraphs (blocks separated by \n\n or \n)
+function countParagraphs(text: string): number {
+  return text
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0).length;
+}
+
+// Phrases that indicate the output is drifting toward polished spiritual generalism
+const DRIFT_PHRASES = [
+  'god can hold both',
+  'that pain is real',
+  'spiritual authenticity',
+  'authentic self',
+  'your persona',
+  'appearance vs reality',
+  'appearance versus reality',
+  'who you truly are',
+  'true to yourself',
+  'be honest with yourself',
+  'honor your feelings',
+  'sit with the discomfort',
+  'lean into',
+  'this is a season',
+  'god is writing your story',
+];
+
+// Weak action verbs — if the majority of action titles use these, the sequence is too soft
+const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
+const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
+
+// ─── Validate JSON playbook response ─────────────────────────────────────────
+// Returns two categories: hardIssues (must retry/fail) and softIssues (warn only).
+
+interface ValidationResult {
+  hardIssues: string[];   // Missing fields, generation failures — block or retry
+  softIssues: string[];   // Structural drift — log, trigger architectural retry
+}
+
+function validatePlaybook(json: Record<string, any>): ValidationResult {
+  const hardIssues: string[] = [];
+  const softIssues: string[] = [];
+
+  // ── Hard checks: field presence and minimum length ───────────────────────
 
   if (!json.playbook_title || String(json.playbook_title).trim().length < 5) {
-    issues.push('playbook_title is missing or too short');
+    hardIssues.push('playbook_title is missing or too short');
   }
   if (!json.truth_summary || String(json.truth_summary).length < 80) {
-    issues.push(`truth_summary is too short (${String(json.truth_summary || '').length} chars, min 80)`);
+    hardIssues.push(`truth_summary is too short (${String(json.truth_summary || '').length} chars, min 80)`);
   }
   if (!json.truth_in_love || String(json.truth_in_love).length < 200) {
-    issues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 200)`);
+    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 200)`);
   }
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
-    issues.push('transition_line is missing');
+    hardIssues.push('transition_line is missing');
   }
   if (!json.bible_verse?.reference || !json.bible_verse?.text) {
-    issues.push('bible_verse missing reference or text');
+    hardIssues.push('bible_verse missing reference or text');
   }
 
-  // scripture_note_lines: exactly 3
   const noteCount = Array.isArray(json.scripture_note_lines) ? json.scripture_note_lines.length : 0;
   if (noteCount < 3) {
-    issues.push(`scripture_note_lines has ${noteCount} items (need exactly 3)`);
+    hardIssues.push(`scripture_note_lines has ${noteCount} items (need exactly 3)`);
   }
 
-  // faithful_actions: 3–7
   const actionCount = Array.isArray(json.faithful_actions) ? json.faithful_actions.length : 0;
   if (actionCount < 3) {
-    issues.push(`faithful_actions has ${actionCount} items (need at least 3) — generation failure`);
+    hardIssues.push(`faithful_actions has ${actionCount} items (need at least 3) — generation failure`);
   }
   if (actionCount > 7) {
-    issues.push(`faithful_actions has ${actionCount} items (max 7) — will trim`);
+    softIssues.push(`faithful_actions has ${actionCount} items (max 7) — will trim`);
   }
 
   if (!json.prayer || String(json.prayer).length < 50) {
-    issues.push(`prayer is too short (${String(json.prayer || '').length} chars, min 50)`);
+    hardIssues.push(`prayer is too short (${String(json.prayer || '').length} chars, min 50)`);
   }
 
-  // words_to_speak: 4–5
   const wordCount = Array.isArray(json.words_to_speak) ? json.words_to_speak.length : 0;
   if (wordCount < 4) {
-    issues.push(`words_to_speak has ${wordCount} items (need at least 4)`);
+    hardIssues.push(`words_to_speak has ${wordCount} items (need at least 4)`);
   }
 
-  // completion: structured object
   if (!json.completion?.question || String(json.completion.question).trim().length < 10) {
-    issues.push('completion.question is missing or too short');
+    hardIssues.push('completion.question is missing or too short');
   }
   const completionLineCount = Array.isArray(json.completion?.lines) ? json.completion.lines.length : 0;
   if (completionLineCount < 2) {
-    issues.push(`completion.lines has ${completionLineCount} items (need at least 2)`);
+    hardIssues.push(`completion.lines has ${completionLineCount} items (need at least 2)`);
   }
 
-  // Em dash presence — will be auto-repaired, not a hard failure
+  // Em dash — auto-repaired, not a hard failure
   if (/\u2014/.test(JSON.stringify(json))) {
-    issues.push('Contains em dashes (—) — will auto-repair');
+    softIssues.push('Contains em dashes (—) — will auto-repair');
   }
 
-  return issues;
+  // ── Soft checks: structural architecture ─────────────────────────────────
+
+  // truth_summary must be exactly 4 sentences
+  if (json.truth_summary) {
+    const sentenceCount = countSentences(String(json.truth_summary));
+    if (sentenceCount < 3 || sentenceCount > 5) {
+      softIssues.push(`truth_summary has ${sentenceCount} sentences (expected exactly 4: ache, burden, correction, stabilizing truth)`);
+    }
+  }
+
+  // truth_in_love must be exactly 4 paragraphs (5 allowed with hard landing)
+  if (json.truth_in_love) {
+    const paraCount = countParagraphs(String(json.truth_in_love));
+    if (paraCount < 3) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 4: diagnosis, distinction, correction, direction)`);
+    } else if (paraCount > 5) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 5 — model may have drifted into essay mode)`);
+    }
+  }
+
+  // Abstraction drift — flag forbidden phrases
+  const allText = JSON.stringify(json).toLowerCase();
+  const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
+  if (driftFound.length > 0) {
+    softIssues.push(`Abstraction drift detected — forbidden phrases: ${driftFound.join(', ')}`);
+  }
+
+  // Action sequence quality — check verb sharpness across first 3 actions
+  if (Array.isArray(json.faithful_actions) && json.faithful_actions.length >= 3) {
+    const firstThreeTitles = json.faithful_actions.slice(0, 3).map((a: any) => String(a.title || '').toLowerCase());
+    const softCount = firstThreeTitles.filter(t => SOFT_ACTION_VERBS.some(v => t.startsWith(v))).length;
+    const sharpCount = firstThreeTitles.filter(t => SHARP_ACTION_VERBS.some(v => t.startsWith(v))).length;
+    if (softCount >= 2 && sharpCount === 0) {
+      softIssues.push(`Action sequence drift — first 3 actions start with soft verbs (${firstThreeTitles.join(' | ')}). Expected sharp diagnostic verbs.`);
+    }
+  }
+
+  return { hardIssues, softIssues };
 }
 
 // ─── Repair JSON playbook response ───────────────────────────────────────────
@@ -557,8 +638,8 @@ serve(async (req: Request) => {
 
     let userMessage = buildUserMessage(effectiveUserInput);
 
-    // OpenAI call helper — now uses JSON Structured Outputs
-    async function callOpenAI(model: string): Promise<Response> {
+    // OpenAI call helper — accepts optional message override for architectural retry
+    async function callOpenAI(model: string, messageOverride?: string): Promise<Response> {
       const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark');
       const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
       if (!apiKey) throw new Error('Service temporarily unavailable. Please try again.');
@@ -579,7 +660,7 @@ serve(async (req: Request) => {
                 messages: [
                   // 'developer' role is supported by GPT-4.1 family models
                   { role: 'developer', content: DEVELOPER_PROMPT },
-                  { role: 'user', content: userMessage },
+                  { role: 'user', content: messageOverride ?? userMessage },
                 ],
                 temperature: 0.65,
                 max_tokens: 4096,
@@ -687,17 +768,67 @@ serve(async (req: Request) => {
       }
     }
 
-    // Validate the JSON output
-    const validationIssues = validatePlaybook(parsedJson!);
-    if (validationIssues.length > 0) {
-      console.warn('[Generate-Playbook] Validation issues:', validationIssues);
+    // Validate the JSON output — two-tier: hard failures + structural soft issues
+    const { hardIssues, softIssues } = validatePlaybook(parsedJson!);
 
-      // Hard failures: missing title or no action steps
-      const hardFails = validationIssues.filter(i =>
+    if (hardIssues.length > 0) {
+      console.error('[Generate-Playbook] Hard validation failures:', hardIssues);
+      const criticalFails = hardIssues.filter(i =>
         i.includes('playbook_title') || i.includes('generation failure')
       );
-      if (hardFails.length > 0) {
-        throw new Error(`AI failed validation: ${hardFails.join(', ')}`);
+      if (criticalFails.length > 0) {
+        throw new Error(`AI failed validation: ${criticalFails.join(', ')}`);
+      }
+      // Non-critical hard issues: log but continue (length issues, missing minor fields)
+      console.warn('[Generate-Playbook] Non-critical hard issues (continuing):', hardIssues);
+    }
+
+    if (softIssues.length > 0) {
+      console.warn('[Generate-Playbook] Structural soft issues:', softIssues);
+    }
+
+    // Retry-on-weak-structure: if structural issues detected, retry once with an explicit
+    // architectural correction injected into the user message.
+    const architecturalIssues = softIssues.filter(i =>
+      i.includes('sentences') ||
+      i.includes('paragraphs') ||
+      i.includes('Action sequence drift') ||
+      i.includes('Abstraction drift')
+    );
+
+    if (architecturalIssues.length > 0) {
+      console.log('[Generate-Playbook] Architectural drift detected — retrying with correction:', architecturalIssues);
+
+      const correctionNote = [
+        '\nARCHITECTURAL CORRECTION — the previous attempt failed these checks:',
+        ...architecturalIssues.map(i => `  - ${i}`),
+        'Follow the DISCERNMENT PATTERN structure exactly:',
+        '  truth_summary must be exactly 4 sentences (S1 ache, S2 burden, S3 correction, S4 stabilizing truth).',
+        '  truth_in_love must be exactly 4 paragraphs (P1 diagnosis, P2 distinction, P3 correction, P4 direction).',
+        '  faithful_actions must follow the A1→A2→A3→A4+→Final sequence — not a list of tips.',
+        '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
+      ].join('\n');
+
+      const correctedMessage = userMessage + correctionNote;
+
+      const retryRes = await callOpenAI('gpt-4.1-mini', correctedMessage);
+      if (retryRes.ok) {
+        const retryData = await retryRes.json();
+        const retryContent: string = retryData.choices?.[0]?.message?.content || '';
+        try {
+          const retryJson = JSON.parse(retryContent);
+          if (!isRefusal(retryJson)) {
+            const { hardIssues: retryHard } = validatePlaybook(retryJson);
+            if (retryHard.filter(i => i.includes('generation failure')).length === 0) {
+              console.log('[Generate-Playbook] Architectural retry succeeded');
+              parsedJson = retryJson;
+            } else {
+              console.warn('[Generate-Playbook] Architectural retry also has issues — using original');
+            }
+          }
+        } catch {
+          console.warn('[Generate-Playbook] Architectural retry parse failed — using original');
+        }
       }
     }
 
