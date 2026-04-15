@@ -46,12 +46,13 @@ export interface Playbook {
   userInput: string;
   truthInLove: TruthInLove;
   actionSteps: ActionStep[];
-  affirmations: Affirmation[];
+  affirmations?: Affirmation[]; // @deprecated - replaced by wordsToSpeak array
   bibleVerse: BibleVerse;
   directChallenge?: string | { text: string; summary: string };
   challengeCTA?: string; // Optional call-to-action separated from the challenge body
   prayer?: string; // Short prayer to God for the walkthrough (Screen 4)
-  wordToSpeak?: string; // Short declaration the user reads aloud (Screen 5)
+  wordToSpeak?: string; // Short declaration the user reads aloud (Screen 5) - legacy compat
+  wordsToSpeak?: string[]; // Array of declaration lines (new format)
   bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
   faithfulActionsIntro?: string; // One-line framing sentence before action steps (Screen 3)
   profileImage?: string;

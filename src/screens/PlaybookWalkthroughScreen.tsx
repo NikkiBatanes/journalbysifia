@@ -1096,9 +1096,15 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   // Derive data
-  const prayerText = playbook.prayer || '';
+  const prayerText =
+    playbook.prayer ||
+    (playbook.affirmations?.[0]?.text ?? '');
 
-  const wordToSpeak = playbook.wordToSpeak || '';
+  const wordToSpeak =
+    playbook.wordToSpeak ||
+    (Array.isArray((playbook as any).wordsToSpeak) && (playbook as any).wordsToSpeak.length > 0
+      ? (playbook as any).wordsToSpeak.join('\n')
+      : '');
 
   const closingText =
     playbook.challengeCTA ||
