@@ -173,7 +173,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       </StepFadeIn>
 
       <StepFadeIn delay={80}>
-        <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+        <ThemedText weight="semiBold" style={styles.title}>{title}</ThemedText>
       </StepFadeIn>
 
       <StepFadeIn delay={160} style={{ marginTop: 40 }}>
@@ -512,21 +512,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.actionStepCard}>
-            {/* Step number circle and title in same row */}
-            <View style={styles.stepNumberAndTitleRow}>
-              <View style={styles.stepNumberContainer}>
-                <View style={styles.stepCircle}>
-                  <ThemedText weight="bold" style={styles.stepNumber}>
-                    {stepNumber}
-                  </ThemedText>
-                </View>
+            {/* Step number circle — matches ActionStepsCard design */}
+            <View style={styles.stepNumberContainer}>
+              <View style={styles.stepCircle}>
+                <ThemedText weight="bold" style={styles.stepNumber}>
+                  {stepNumber}
+                </ThemedText>
               </View>
-
-              {/* Step title */}
-              <ThemedText weight="semiBold" style={styles.actionTitle}>
-                {stripMd(currentStep.title)}
-              </ThemedText>
             </View>
+
+            {/* Step title */}
+            <ThemedText weight="semiBold" style={styles.actionTitle}>
+              {stripMd(currentStep.title)}
+            </ThemedText>
 
             {/* Smart body lines */}
             {smartBodyLines.map((item, idx) => {
@@ -1138,11 +1136,26 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // If no prayer exists (old playbooks), skip step 4 entirely
   const hasPrayer = prayerText.length > 0;
 
-  const transitionLine =
-    playbook.transitionLine ||
-    (Array.isArray((playbook as any).wordsToSpeak) && (playbook as any).wordsToSpeak.length > 0
-      ? (playbook as any).wordsToSpeak.join('\n')
-      : '');
+  // Gentle transition phrases — rotate based on playbook id so each playbook gets a
+  // consistent phrase, but it varies across different playbooks.
+  const TRANSITION_PHRASES = [
+    'Sit with that before you go further.',
+    'Take a breath. Then continue.',
+    'Let that settle before you move on.',
+    'Stay here for a moment before you read on.',
+    'Pause before you continue.',
+    'Read that again if you need to.',
+    'Let that land before moving forward.',
+    'Do not rush past this.',
+  ];
+  const transitionLine: string =
+    (playbook.transitionLine && playbook.transitionLine.trim().length > 0
+      ? playbook.transitionLine
+      : (() => {
+          const id = playbook.id || '';
+          const idx = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % TRANSITION_PHRASES.length;
+          return TRANSITION_PHRASES[idx];
+        })());
 
   console.log('[PlaybookWalkthroughScreen] playbook.transitionLine:', playbook.transitionLine);
   console.log('[PlaybookWalkthroughScreen] computed transitionLine:', transitionLine);
@@ -1195,7 +1208,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userInput={playbook.userInput}
                 summary={playbook.truthInLove?.summary || ''}
                 userName={userName}
-                transitionLine={(playbook as any).transitionLine || ''}
+                transitionLine={transitionLine}
                 onContinue={goNext}
                 insets={insets}
               />
@@ -1527,17 +1540,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: 'italic',
   },
-  stepNumberAndTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   stepNumberContainer: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 8,
   },
   stepCircle: {
     width: 28,
@@ -1916,11 +1924,11 @@ const styles = StyleSheet.create({
   },
   transitionLineText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(255,255,255,0.6)',
     lineHeight: 20,
     textAlign: 'center',
     fontStyle: 'italic',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   confirmButton: {
     borderWidth: 1.5,
