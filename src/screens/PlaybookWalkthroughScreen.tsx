@@ -1548,6 +1548,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: Colors.hopeWhite,
     lineHeight: 34,
+    textAlign: 'center',
   },
   completionContext: {
     fontSize: 16,
