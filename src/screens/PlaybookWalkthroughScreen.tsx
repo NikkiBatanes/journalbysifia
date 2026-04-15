@@ -1108,20 +1108,15 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  // Derive data
-  const prayerText = playbook.prayer || '';
-
-  // If no prayer exists (old playbooks), skip step 4 entirely
-  const hasPrayer = prayerText.length > 0;
-
   const goNext = useCallback(() => {
     triggerLightHaptic();
     if (stepIndex < TOTAL_STEPS - 1) {
       // Skip prayer step (4) if this playbook has no prayer
+      const hasPrayer = (playbook.prayer || '').length > 0;
       const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
       animateStep(next, 'forward');
     }
-  }, [stepIndex, animateStep, hasPrayer]);
+  }, [stepIndex, animateStep, playbook.prayer]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
@@ -1129,10 +1124,17 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       navigation.goBack();
     } else {
       // Skip back over prayer step (4) if this playbook has no prayer
+      const hasPrayer = (playbook.prayer || '').length > 0;
       const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
       animateStep(prev, 'back');
     }
-  }, [stepIndex, animateStep, navigation, hasPrayer]);
+  }, [stepIndex, animateStep, navigation, playbook.prayer]);
+
+  // Derive data
+  const prayerText = playbook.prayer || '';
+
+  // If no prayer exists (old playbooks), skip step 4 entirely
+  const hasPrayer = prayerText.length > 0;
 
   const transitionLine =
     playbook.transitionLine ||
