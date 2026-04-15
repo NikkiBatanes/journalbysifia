@@ -178,7 +178,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
 
       <StepFadeIn delay={160} style={{ marginTop: 40 }}>
         {paragraphs.map((paragraph, index) => (
-          <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'bold' : undefined}>
+          <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined}>
             {paragraph}
           </ThemedText>
         ))}
