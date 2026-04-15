@@ -633,6 +633,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         bible_verse: bibleVerseToSave,
         direct_challenge: directChallengeToSave,
         challenge_cta: playbook.challengeCTA,
+        transition_line: playbook.transitionLine || '',
         status: playbook.status || 'ongoing',
         created_at: playbook.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
