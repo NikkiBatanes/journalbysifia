@@ -662,7 +662,7 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.65,
+                temperature: 0.4,
                 max_tokens: 4096,
                 response_format: {
                   type: 'json_schema',
@@ -695,7 +695,7 @@ serve(async (req: Request) => {
       return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
     };
 
-    let openAIRes = await callOpenAI('gpt-4.1-mini');
+    let openAIRes = await callOpenAI('gpt-4.1');
 
     if (!openAIRes.ok) {
       const errData = await openAIRes.json().catch(() => ({}));
