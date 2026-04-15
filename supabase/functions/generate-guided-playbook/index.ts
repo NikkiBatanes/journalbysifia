@@ -251,7 +251,7 @@ function parseOpenAIResponse(
 
     playbook.actionSteps = stepBlocks.map((block: string, idx: number) => {
       const lines = block.split('\n').map((l: string) => l.trim()).filter(Boolean);
-      const titleLine = lines[0].replace(/^\d+\.\s*/, '');
+      const titleLine = cleanMarkdown(lines[0].replace(/^\d+\.\s*/, ''));
       const subTasks: SubTask[] = [];
       const examples: string[] = [];
       let actionType: 'done_skip' | 'commit' | 'choose' | 'text_input' | undefined;
@@ -271,15 +271,15 @@ function parseOpenAIResponse(
         } else if (/^\s*-\s*Secondary:/i.test(t)) {
           secondaryButton = t.replace(/^\s*-\s*Secondary:\s*/i, '').trim();
         } else if (/^\s*-\s*Sub-task:/i.test(t)) {
-          const text = t.replace(/^\s*-\s*Sub-task:\s*/i, '').trim();
+          const text = cleanMarkdown(t.replace(/^\s*-\s*Sub-task:\s*/i, '').trim());
           if (text) subTasks.push({ id: generateUUID(), text, completed: false, orderIndex: subTasks.length });
         } else if (/^\s*-\s*Example:/i.test(t)) {
           const exText = t.replace(/^\s*-\s*Example:\s*/i, '').trim();
           const interactiveMatch = exText.match(/(.+?)\s*\|\s*Interactive:\s*(true|false)/i);
-          if (interactiveMatch) examples.push(interactiveMatch[1].trim());
-          else if (exText) examples.push(exText);
+          if (interactiveMatch) examples.push(cleanMarkdown(interactiveMatch[1].trim()));
+          else if (exText) examples.push(cleanMarkdown(exText));
         } else if (!t.startsWith('- ')) {
-          bodyLines.push(t);
+          bodyLines.push(cleanMarkdown(t));
         }
       });
 
@@ -346,8 +346,12 @@ function parseOpenAIResponse(
   }
 
   // ── SCRIPTURE NOTE ─────────────────────────────────────────────────────────
-  const noteRaw = extractSection(content, 'SCRIPTURE NOTE', ['COMPLETION', 'PRAYER', 'WORDS TO SPEAK']);
-  const reflRaw = noteRaw ?? extractSection(content, 'SCRIPTURE REFLECTION', ['COMPLETION', 'PRAYER', 'WORDS TO SPEAK']);
+  const noteRaw = extractSection(content, 'SCRIPTURE NOTE', [
+    'FAITHFUL ACTIONS', 'ACTION STEPS', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
+  ]);
+  const reflRaw = noteRaw ?? extractSection(content, 'SCRIPTURE REFLECTION', [
+    'FAITHFUL ACTIONS', 'ACTION STEPS', 'COMPLETION', 'PRAYER', 'WORDS TO SPEAK',
+  ]);
   if (reflRaw) {
     const lines = reflRaw.split('\n').map((l: string) => l.trim()).filter(Boolean);
     if (lines.length === 1 && lines[0].length > 60) {
@@ -370,9 +374,10 @@ function parseOpenAIResponse(
 
   // ── WORDS TO SPEAK ─────────────────────────────────────────────────────────
   // Parse as multiple declaration lines — shown one per line in the walkthrough
+  // Must provide a stop header — empty [] creates (?=|$) which always matches at pos 0
   const wordsRaw =
-    extractSection(content, 'WORDS TO SPEAK', []) ??
-    extractSection(content, 'WORD TO SPEAK', []);
+    extractSection(content, 'WORDS TO SPEAK', ['COMPLETION']) ??
+    extractSection(content, 'WORD TO SPEAK', ['COMPLETION', 'WORD TO SPEAK RULES']);
 
   console.log('[WORDS TO SPEAK] Raw extracted:', wordsRaw?.substring(0, 200));
 

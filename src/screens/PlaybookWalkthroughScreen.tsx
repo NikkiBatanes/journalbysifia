@@ -242,7 +242,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
       <StepFadeIn delay={0} style={styles.stepLabelRow}>
         <MaterialCommunityIcons name="book" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-          Scripture Anchor
+          Scripture to Anchor
         </ThemedText>
       </StepFadeIn>
 
@@ -677,8 +677,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
               {i === 0 && <View style={{ height: 16 }} />}
             </View>
           ))}
-          <View style={{ height: 16 }} />
-          <ThemedText style={styles.prayerText}>
+          <ThemedText style={[styles.prayerText, { marginTop: 4 }]}>
             In Jesus' name, Amen.
           </ThemedText>
         </StepFadeIn>
@@ -749,7 +748,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            Word to Speak
+            Words to Speak over Myself
           </ThemedText>
         </StepFadeIn>
 
@@ -1037,18 +1036,22 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const goNext = useCallback(() => {
     triggerLightHaptic();
     if (stepIndex < TOTAL_STEPS - 1) {
-      animateStep(stepIndex + 1, 'forward');
+      // Skip prayer step (4) if this playbook has no prayer
+      const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
+      animateStep(next, 'forward');
     }
-  }, [stepIndex, animateStep]);
+  }, [stepIndex, animateStep, hasPrayer]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
     if (stepIndex === 0) {
       navigation.goBack();
     } else {
-      animateStep(stepIndex - 1, 'back');
+      // Skip back over prayer step (4) if this playbook has no prayer
+      const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
+      animateStep(prev, 'back');
     }
-  }, [stepIndex, animateStep, navigation]);
+  }, [stepIndex, animateStep, navigation, hasPrayer]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -1096,15 +1099,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   // Derive data
-  const prayerText =
-    playbook.prayer ||
-    (playbook.affirmations?.[0]?.text ?? '');
+  const prayerText = playbook.prayer || '';
+
+  // If no prayer exists (old playbooks), skip step 4 entirely
+  const hasPrayer = prayerText.length > 0;
 
   const wordToSpeak =
     playbook.wordToSpeak ||
     (Array.isArray((playbook as any).wordsToSpeak) && (playbook as any).wordsToSpeak.length > 0
       ? (playbook as any).wordsToSpeak.join('\n')
-      : '');
+      : (playbook.affirmations && playbook.affirmations.length > 0
+          ? playbook.affirmations.map((a: any) => a.text).join('\n')
+          : ''));
 
   const closingText =
     playbook.challengeCTA ||
@@ -1113,7 +1119,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
   const hasFloatingNext = stepIndex !== 6;
-  const progressFraction = stepIndex / (TOTAL_STEPS - 1);
+
+  // If no prayer, progress bar treats it as a 6-step journey
+  const effectiveSteps = hasPrayer ? TOTAL_STEPS : TOTAL_STEPS - 1;
+  const effectiveIndex = !hasPrayer && stepIndex > 4 ? stepIndex - 1 : stepIndex;
+  const progressFraction = effectiveIndex / (effectiveSteps - 1);
 
   return (
     <View style={styles.container}>
