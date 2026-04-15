@@ -136,7 +136,8 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   });
 
   const personalized = replaceAllNamePlaceholders(summary, { displayName: userName });
-  const paragraphs = splitParagraphs(personalized);
+  // Cap to 2 paragraphs — this is an entry moment, not the full truth section
+  const paragraphs = splitParagraphs(personalized).slice(0, 2);
 
   return (
     <ScrollView
@@ -455,10 +456,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   // Button labels from actionType
   const actionType = currentStep.actionType ?? 'done_skip';
 
+  // Strip leftover markdown bold/italic markers (** or *) from any field
+  const stripMd = (s: string) => s.replace(/\*\*|__|\*/g, '').trim();
+
   // Body text: description (new format) or subtasks joined (legacy format)
   const rawBodyLines: string[] = currentStep.description
-    ? currentStep.description.split('\n').map(l => l.trim()).filter(Boolean)
-    : (currentStep.subTasks?.map(s => s.text) ?? []);
+    ? currentStep.description.split('\n').map(l => stripMd(l)).filter(Boolean)
+    : (currentStep.subTasks?.map(s => stripMd(s.text)) ?? []);
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const primaryLabel = currentStep.primaryButton ?? (
@@ -492,7 +496,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
         <StepFadeIn delay={80}>
           <ThemedText style={styles.actionCounter}>
-            Step {stepNumber} of {totalSteps}
+            Action {stepNumber} of {totalSteps}
           </ThemedText>
         </StepFadeIn>
 
@@ -510,7 +514,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
             {/* Step title */}
             <ThemedText weight="semiBold" style={styles.actionTitle}>
-              {currentStep.title}
+              {stripMd(currentStep.title)}
             </ThemedText>
 
             {/* Smart body lines */}
