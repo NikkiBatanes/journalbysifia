@@ -512,19 +512,21 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.actionStepCard}>
-            {/* Step number circle — matches ActionStepsCard design */}
-            <View style={styles.stepNumberContainer}>
-              <View style={styles.stepCircle}>
-                <ThemedText weight="bold" style={styles.stepNumber}>
-                  {stepNumber}
-                </ThemedText>
+            {/* Step number circle and title in same row */}
+            <View style={styles.stepNumberAndTitleRow}>
+              <View style={styles.stepNumberContainer}>
+                <View style={styles.stepCircle}>
+                  <ThemedText weight="bold" style={styles.stepNumber}>
+                    {stepNumber}
+                  </ThemedText>
+                </View>
               </View>
-            </View>
 
-            {/* Step title */}
-            <ThemedText weight="semiBold" style={styles.actionTitle}>
-              {stripMd(currentStep.title)}
-            </ThemedText>
+              {/* Step title */}
+              <ThemedText weight="semiBold" style={styles.actionTitle}>
+                {stripMd(currentStep.title)}
+              </ThemedText>
+            </View>
 
             {/* Smart body lines */}
             {smartBodyLines.map((item, idx) => {
@@ -1525,12 +1527,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: 'italic',
   },
+  stepNumberAndTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   stepNumberContainer: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 12,
   },
   stepCircle: {
     width: 28,
