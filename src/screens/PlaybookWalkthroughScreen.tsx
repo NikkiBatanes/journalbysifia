@@ -1438,9 +1438,9 @@ const styles = StyleSheet.create({
   },
   // Line 0: personalized sentence — large + bold, like the hero title
   summaryLead: {
-    fontSize: 20,
+    fontSize: 22,
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 30,
     marginBottom: 36,
   },
   // Lines 1+: pause + Jesus line — smaller, muted, left-aligned
