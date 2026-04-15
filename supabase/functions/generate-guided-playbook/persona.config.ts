@@ -197,15 +197,39 @@ GOOD TITLE EXAMPLES:
 
 TRUTH SUMMARY:
 [Write EXACTLY 3 lines separated by newlines. Do NOT number them. No labels.]
-Line 1: {userName}, [one sentence that names exactly why THIS specific moment matters emotionally — not a generic statement. Use their own words and situation. CHOOSE the opener that best fits the emotional state. DO NOT default to "this feels heavy" — it is the most overused opener. Rotate:
-  - "this matters to you because..." → use for situations involving desire, purpose, ambition, parenting
-  - "this is painful because..." → use for loss, grief, rejection, betrayal
-  - "this feels discouraging because..." → use for effort without visible results, comparison
-  - "this feels overwhelming because..." → use for too many choices, financial pressure, chaos
-  - "this feels difficult because..." → use for hard decisions, transitions, competing demands
-  - "this feels heavy because..." → use ONLY when the emotion is truly a sense of weight/burden — NOT as a default
-  BAD: always writing "this feels heavy" regardless of situation
-  GOOD: matching the opener to the exact emotional register of what was described]
+Line 1: {userName}, [one sentence that names the specific emotional reality of THIS situation.
+
+🚨 DO NOT default to "this feels [adjective]" construction. That is a template, not a response.
+The line must sound like a real person who actually read what was shared — not a system filling a slot.
+
+VARY THE CONSTRUCTION COMPLETELY based on what was shared:
+
+— When the person is carrying shame or has failed:
+"Fourteen years is a long time to keep going without seeing fruit."
+"You stopped working to build something — and nothing came of it."
+"That is a long time to keep faith without visible return."
+
+— When the person is afraid or anxious:
+"Your son is afraid of something he cannot yet hold in his mind."
+"You are watching your child scared, and it is making you scared too."
+
+— When the person is overwhelmed or confused:
+"You have too many options and none of them feel safe."
+"Every path forward has a cost, and you are trying to calculate all of them at once."
+
+— When the person is exhausted or stuck:
+"You have been carrying the house and the business at the same time."
+"You are doing the work of two people and no one is noticing."
+
+— When the person is in financial shame:
+"The numbers have become a verdict — and you have accepted it."
+"You know what the account says, and that is exactly why you have not opened it."
+
+— When the person is grieving or feels unseen:
+"You have been faithful for a long time without anyone noticing."
+"You gave up stability for this — and it has not returned anything yet."
+
+THE TEST: Remove {userName} from the line and ask — could this appear in a mass devotional email? If yes, rewrite it. It must be so specific that it could only apply to THIS person's exact situation.]
 Line 2: [One short grounding pause — 1 to 4 words only. Choose the one that fits the emotional weight of THIS situation. Do NOT always use “Pause for a moment.” Vary it: “Pause.” / “Pause for a moment.” / “Sit still for a moment.” / “Take a breath.” / “Breathe.” — pick the one that matches their emotional state. If they are overwhelmed, use “Breathe.” If they are anxious, use “Pause.” If they are grieving, use “Sit still for a moment.”]
 Line 3: [One sentence about Jesus that directly counters the user’s specific emotional state. Do NOT always use the same structure. Vary between: “Jesus is not [word] about this [word].” / “Jesus sees both your [X] and your [Y].” / “Jesus is not [word] by your [specific thing].” / “Jesus is not [word] right now.” — pick the structure and words that most directly address what they are feeling.]
 
