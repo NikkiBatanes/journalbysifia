@@ -173,7 +173,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       </StepFadeIn>
 
       <StepFadeIn delay={80}>
-        <ThemedText weight="semiBold" style={styles.title}>{title}</ThemedText>
+        <ThemedText weight="medium" style={styles.title}>{title}</ThemedText>
       </StepFadeIn>
 
       <StepFadeIn delay={160} style={{ marginTop: 40 }}>
@@ -185,7 +185,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       </StepFadeIn>
 
       {transitionLine ? (
-        <StepFadeIn delay={320} style={styles.transitionLineContainer}>
+        <StepFadeIn delay={500} style={styles.transitionLineContainer}>
           <ThemedText style={styles.transitionLineText}>{transitionLine}</ThemedText>
         </StepFadeIn>
       ) : null}
@@ -219,13 +219,15 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
         </ThemedText>
       </StepFadeIn>
 
-      <StepFadeIn delay={100} style={styles.textBlock}>
+      <View style={styles.textBlock}>
         {paragraphs.map((para, i) => (
-          <ThemedText key={i} style={styles.bodyText}>
-            {para}
-          </ThemedText>
+          <StepFadeIn key={i} delay={100 + (i * 80)}>
+            <ThemedText style={styles.bodyText}>
+              {para}
+            </ThemedText>
+          </StepFadeIn>
         ))}
-      </StepFadeIn>
+      </View>
 
       <View style={{ height: 80 }} />
     </ScrollView>
@@ -713,7 +715,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
               color={hasPrayed ? Colors.alertCoral : Colors.hopeWhite}
             />
             <ThemedText
-              weight="bold"
+              weight="medium"
               style={[styles.prayerActionText, hasPrayed && styles.prayerActionTextActive]}
             >
               {hasPrayed ? 'Prayed' : 'I prayed this'}
@@ -768,9 +770,18 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
         {/* Word card */}
         <StepFadeIn delay={100} style={[styles.wordBlock, { marginTop: 32 }]}>
           {splitParagraphs(word).map((line, i) => (
-            <ThemedText key={i} weight="medium" style={styles.wordText}>
-              {line}
-            </ThemedText>
+            <View key={i} style={styles.wordLineRow}>
+              <View style={styles.wordNumberContainer}>
+                <View style={styles.wordNumberCircle}>
+                  <ThemedText weight="bold" style={styles.wordNumber}>
+                    {i + 1}
+                  </ThemedText>
+                </View>
+              </View>
+              <ThemedText weight="medium" style={styles.wordText}>
+                {line}
+              </ThemedText>
+            </View>
           ))}
         </StepFadeIn>
 
@@ -792,7 +803,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
               color={hasRead ? Colors.alertCoral : Colors.hopeWhite}
             />
             <ThemedText
-              weight="bold"
+              weight="medium"
               style={[styles.prayerActionText, hasRead && styles.prayerActionTextActive]}
             >
               {hasRead ? 'Read aloud' : "I've read this aloud"}
@@ -1425,9 +1436,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 26,
+    lineHeight: 28,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -1438,9 +1449,9 @@ const styles = StyleSheet.create({
   },
   // Line 0: personalized sentence — large + bold, like the hero title
   summaryLead: {
-    fontSize: 22,
+    fontSize: 24,
     color: Colors.hopeWhite,
-    lineHeight: 30,
+    lineHeight: 34,
     marginBottom: 36,
   },
   // Lines 1+: pause + Jesus line — smaller, muted, left-aligned
@@ -1471,7 +1482,7 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   bodyText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,
     opacity: 0.9,
@@ -1529,6 +1540,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     lineHeight: 24,
+    opacity: 0.7,
   },
 
   // Faithful Actions
@@ -1708,7 +1720,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   prayerText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,
     opacity: 0.9,
@@ -1761,12 +1773,38 @@ const styles = StyleSheet.create({
     padding: 36,
     gap: 14,
   },
+  wordLineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  wordNumberContainer: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  wordNumberCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  wordNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    lineHeight: 18,
+  },
   wordText: {
     fontSize: 22,
     fontWeight: '600',
     color: Colors.hopeWhite,
     lineHeight: 32,
     textAlign: 'left',
+    flex: 1,
   },
 
   // Completion
@@ -1774,13 +1812,13 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 28,
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 20,
   },
   completionPlaybookLabel: {
     fontSize: 12,
     letterSpacing: 2,
     color: 'rgba(255,255,255,0.5)',
-    marginBottom: 24,
+    marginBottom: 0,
   },
   completionTitle: {
     fontSize: 28,
