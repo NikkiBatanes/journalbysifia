@@ -308,7 +308,7 @@ export class EnhancedGenerationService {
           directChallenge: result.directChallenge,
           prayer: result.prayer,
           wordToSpeak: result.wordToSpeak,
-          transitionLine: result.transitionLine || '',
+          transitionLine: result.transition_line || '',
           challengeCTA: result.challengeCTA || '',
           status: 'ongoing' as const,
           createdAt: result.createdAt || new Date().toISOString(),
