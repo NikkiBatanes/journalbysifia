@@ -1144,6 +1144,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   console.log('[PlaybookWalkthroughScreen] playbook.transitionLine:', playbook.transitionLine);
   console.log('[PlaybookWalkthroughScreen] computed transitionLine:', transitionLine);
+  console.log('[PlaybookWalkthroughScreen] full playbook keys:', Object.keys(playbook));
 
   const wordToSpeak =
     playbook.wordToSpeak ||
