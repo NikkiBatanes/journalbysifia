@@ -653,7 +653,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
         duration: 300,
         useNativeDriver: true,
       }).start();
-    }, 1500);
+    }, 500);
     return () => clearTimeout(timer);
   }, [fadeAnim]);
 
@@ -748,7 +748,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
         duration: 300,
         useNativeDriver: true,
       }).start();
-    }, 1500);
+    }, 500);
     return () => clearTimeout(timer);
   }, [fadeAnim]);
 
@@ -1574,9 +1574,9 @@ const styles = StyleSheet.create({
   },
   // Body line styles — smart rendering
   actionBodyLine: {
-    fontSize: 15,
+    fontSize: 17,
     color: 'rgba(255,255,255,0.75)',
-    lineHeight: 23,
+    lineHeight: 25,
   },
   bodyLineQuote: {
     fontSize: 16,
