@@ -753,16 +753,17 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
           </ThemedText>
         </StepFadeIn>
 
-        {/* Word card — content-sized, vertically centered in the remaining space */}
-        <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 80 }}>
-          <StepFadeIn delay={100} style={styles.wordBlock}>
-            {splitParagraphs(word).map((line, i) => (
-              <ThemedText key={i} weight="medium" style={styles.wordText}>
-                {line}
-              </ThemedText>
-            ))}
-          </StepFadeIn>
-        </View>
+        {/* Word card */}
+        <StepFadeIn delay={100} style={[styles.wordBlock, { marginTop: 32 }]}>
+          {splitParagraphs(word).map((line, i) => (
+            <ThemedText key={i} weight="medium" style={styles.wordText}>
+              {line}
+            </ThemedText>
+          ))}
+        </StepFadeIn>
+
+        {/* Space for floating button */}
+        <View style={{ height: 80 }} />
       </View>
 
       {/* Floating action button — bottom-left, aligned with Next button */}
@@ -1408,7 +1409,7 @@ const styles = StyleSheet.create({
   // Truth in Love
   textBlock: {
     gap: 14,
-    marginTop: 48,
+    marginTop: 28,
     marginBottom: 36,
   },
   bodyText: {
@@ -1426,7 +1427,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     paddingLeft: 18,
     paddingVertical: 4,
-    marginTop: 48,
+    marginTop: 28,
     marginBottom: 28,
   },
   verseRefRow: {
