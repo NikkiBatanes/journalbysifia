@@ -626,8 +626,9 @@ serve(async (req: Request) => {
     let rawContent: string = aiData.choices?.[0]?.message?.content || '';
 
     console.log('[Generate-Playbook] finish_reason:', aiData.choices?.[0]?.finish_reason);
+    console.log('[Generate-Playbook] raw length:', rawContent.length, 'chars');
     console.log('[Generate-Playbook] ===== RAW JSON OUTPUT START =====');
-    console.log(rawContent.substring(0, 2000));
+    console.log(rawContent);
     console.log('[Generate-Playbook] ===== RAW JSON OUTPUT END =====');
 
     // Parse JSON from structured output
