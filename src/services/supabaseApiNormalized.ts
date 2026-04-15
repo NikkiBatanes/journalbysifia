@@ -17,6 +17,7 @@ interface PlaybookRow {
   bible_verse: any;
   direct_challenge: any;
   challenge_cta: string | null;
+  transition_line: string | null;
   status: 'ongoing' | 'completed' | 'paused';
   created_at: string;
   updated_at: string;
@@ -102,6 +103,7 @@ function transformPlaybookRow(
     bibleVerse: playbookRow.bible_verse,
     directChallenge: playbookRow.direct_challenge,
     challengeCTA: playbookRow.challenge_cta ?? undefined,
+    transitionLine: playbookRow.transition_line || '',
     actionSteps: transformedActionSteps,
     affirmations: transformedAffirmations,
     status: playbookRow.status,
