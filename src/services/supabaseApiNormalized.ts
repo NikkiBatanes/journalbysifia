@@ -279,6 +279,9 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
       .eq('user_id', userId)
       .single();
 
+    console.log('[getPlaybook] Raw playbook from DB:', playbook);
+    console.log('[getPlaybook] transition_line value:', playbook?.transition_line);
+
     if (playbookError) {
       if (playbookError.code === 'PGRST116') {
 
