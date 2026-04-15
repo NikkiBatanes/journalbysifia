@@ -296,6 +296,9 @@ export class UnifiedGenerationService {
 
       const result = await response.json();
 
+      console.log('[UnifiedGenerationService] AI result transition_line:', result.transitionLine);
+      console.log('[UnifiedGenerationService] AI result keys:', Object.keys(result));
+
       // Save the unique playbook to database
       const playbookToSave = {
         id: result.id,
