@@ -11,6 +11,7 @@ import {
   Dimensions,
   TextInput,
   Alert,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -36,7 +37,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
@@ -57,6 +58,45 @@ const splitParagraphs = (text: string): string[] =>
     .split(/\n+/)
     .map(p => p.trim())
     .filter(Boolean);
+
+// ─── StepFadeIn — fades + slides content up on mount ────────────────────────
+
+interface StepFadeInProps {
+  delay?: number;
+  children: React.ReactNode;
+  style?: any;
+}
+
+const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) => {
+  const opacity   = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(16)).current;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 340,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 55,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+};
 
 // ─── Step 0: Enter the Moment ────────────────────────────────────────────────
 
@@ -104,37 +144,41 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Centered PLAYBOOK label + animated chevron — matches PlaybookDetailGuided header */}
-      <TouchableOpacity
-        style={styles.playbookLabelContainer}
-        onPress={toggleUserInput}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
-      >
-        <ThemedText weight="semiBold" style={styles.playbookLabel}>
-          PLAYBOOK
-        </ThemedText>
-        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.7)" />
-        </Animated.View>
-      </TouchableOpacity>
+      {/* Centered PLAYBOOK label + animated chevron */}
+      <StepFadeIn delay={0}>
+        <TouchableOpacity
+          style={styles.playbookLabelContainer}
+          onPress={toggleUserInput}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+        >
+          <ThemedText weight="semiBold" style={styles.playbookLabel}>
+            PLAYBOOK
+          </ThemedText>
+          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+            <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.7)" />
+          </Animated.View>
+        </TouchableOpacity>
 
-      {/* User input card — revealed when chevron is tapped */}
-      {showUserInput && (
-        <View style={styles.userInputCard}>
-          <ThemedText style={styles.userInputText}>{userInput}</ThemedText>
-        </View>
-      )}
+        {/* User input card — revealed when chevron is tapped */}
+        {showUserInput && (
+          <View style={styles.userInputCard}>
+            <ThemedText style={styles.userInputText}>{userInput}</ThemedText>
+          </View>
+        )}
+      </StepFadeIn>
 
-      <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+      <StepFadeIn delay={80}>
+        <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+      </StepFadeIn>
 
-      <View style={{ marginTop: 40 }}>
+      <StepFadeIn delay={160} style={{ marginTop: 40 }}>
         {paragraphs.map((paragraph, index) => (
           <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'bold' : undefined}>
             {paragraph}
           </ThemedText>
         ))}
-      </View>
+      </StepFadeIn>
     </ScrollView>
   );
 };
@@ -158,22 +202,21 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
       contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.stepLabelRow}>
+      <StepFadeIn delay={0} style={styles.stepLabelRow}>
         <Ionicons name="heart" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
           Truth in Love
         </ThemedText>
-      </View>
+      </StepFadeIn>
 
-      <View style={styles.textBlock}>
+      <StepFadeIn delay={100} style={styles.textBlock}>
         {paragraphs.map((para, i) => (
           <ThemedText key={i} style={styles.bodyText}>
             {para}
           </ThemedText>
         ))}
-      </View>
+      </StepFadeIn>
 
-      {/* No inline button — floating coral next button handles navigation */}
       <View style={{ height: 80 }} />
     </ScrollView>
   );
@@ -196,16 +239,15 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
   return (
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.stepLabelRow}>
+      <StepFadeIn delay={0} style={styles.stepLabelRow}>
         <MaterialCommunityIcons name="book" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
           Scripture Anchor
         </ThemedText>
-      </View>
+      </StepFadeIn>
 
-      {/* alertCoral vertical bar — blockquote style */}
-      <View style={styles.verseCard}>
-        {/* Reference row: book icon + reference + version badge + info icon */}
+      {/* Verse card */}
+      <StepFadeIn delay={100} style={styles.verseCard}>
         <View style={styles.verseRefRow}>
           <Ionicons name="book-outline" size={13} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.scriptureRef}>
@@ -232,7 +274,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         <ThemedText weight="medium" style={styles.scriptureText}>
           "{text}"
         </ThemedText>
-      </View>
+      </StepFadeIn>
 
       <BibleCopyrightModal
         visible={showCopyright}
@@ -240,16 +282,14 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         bibleVersion={version || 'NASB'}
       />
 
-      {/* Reflection lines sit below the bar */}
-      <View style={styles.reflectionBlock}>
+      <StepFadeIn delay={190} style={styles.reflectionBlock}>
         {reflectionLines.map((line, i) => (
           <ThemedText key={i} style={styles.reflectionNote}>
             {line}
           </ThemedText>
         ))}
-      </View>
+      </StepFadeIn>
 
-      {/* No inline button — floating coral next button handles navigation */}
       <View style={{ height: 80 }} />
     </View>
   );
@@ -436,22 +476,27 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   return (
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.stepLabelRow}>
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             Faithful Actions
           </ThemedText>
-        </View>
+        </StepFadeIn>
 
         {/* Intro framing line (shown only on first step) */}
         {intro && actionStepIndex === 0 && (
-          <ThemedText style={styles.actionIntro}>{intro}</ThemedText>
+          <StepFadeIn delay={60}>
+            <ThemedText style={styles.actionIntro}>{intro}</ThemedText>
+          </StepFadeIn>
         )}
 
-        <ThemedText style={styles.actionCounter}>
-          Step {stepNumber} of {totalSteps}
-        </ThemedText>
+        <StepFadeIn delay={80}>
+          <ThemedText style={styles.actionCounter}>
+            Step {stepNumber} of {totalSteps}
+          </ThemedText>
+        </StepFadeIn>
 
+        <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.actionStepCard}>
             {/* Step number circle — matches ActionStepsCard design */}
@@ -536,8 +581,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             )}
           </View>
         </Animated.View>
+        </StepFadeIn>
 
         {/* Action buttons */}
+        <StepFadeIn delay={200}>
         <View style={styles.doneSkipRow}>
           <TouchableOpacity
             style={styles.doneButton}
@@ -565,6 +612,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </ThemedText>
           </TouchableOpacity>
         </View>
+        </StepFadeIn>
     </View>
   );
 };
@@ -613,15 +661,16 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
 
   return (
     <>
-      <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.stepLabelRow}>
+      <View style={[styles.stepScroll, styles.prayerStepOuter, { paddingTop: insets.top + 8 }]}>
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             Prayer
           </ThemedText>
-        </View>
+        </StepFadeIn>
 
-        <View style={styles.prayerBlock}>
+        {/* Vertically centered prayer block — sits in the space between label and floating button */}
+        <StepFadeIn delay={100} style={styles.prayerBlock}>
           {splitParagraphs(fullPrayer).map((line, i) => (
             <View key={i}>
               <ThemedText style={styles.prayerText}>{line}</ThemedText>
@@ -632,9 +681,9 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
           <ThemedText style={styles.prayerText}>
             In Jesus' name, Amen.
           </ThemedText>
-        </View>
+        </StepFadeIn>
 
-        {/* Space for floating buttons */}
+        {/* Spacer so prayer text isn't hidden behind the floating button */}
         <View style={{ height: 80 }} />
       </View>
 
@@ -696,24 +745,24 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
 
   return (
     <>
-      <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.stepLabelRow}>
+      <View style={[styles.stepScroll, styles.prayerStepOuter, { paddingTop: insets.top + 8 }]}>
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             Word to Speak
           </ThemedText>
-        </View>
+        </StepFadeIn>
 
-        <View style={styles.wordBlock}>
-          {splitParagraphs(word).map((line, i) => (
-            <ThemedText key={i} weight="medium" style={styles.wordText}>
-              {line}
-            </ThemedText>
-          ))}
+        {/* Word card — content-sized, vertically centered in the remaining space */}
+        <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 80 }}>
+          <StepFadeIn delay={100} style={styles.wordBlock}>
+            {splitParagraphs(word).map((line, i) => (
+              <ThemedText key={i} weight="medium" style={styles.wordText}>
+                {line}
+              </ThemedText>
+            ))}
+          </StepFadeIn>
         </View>
-
-        {/* Space for floating buttons */}
-        <View style={{ height: 80 }} />
       </View>
 
       {/* Floating action button — bottom-left, aligned with Next button */}
@@ -783,89 +832,103 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
   return (
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.completionHeaderContainer}>
-        <View style={styles.stepLabelRow}>
-          <Ionicons name="flash" size={18} color={Colors.alertCoral} />
-          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            You've completed
-          </ThemedText>
-        </View>
-        <ThemedText weight="bold" style={styles.completionTitle}>
-          {title}
-        </ThemedText>
-        <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
-      </View>
-
-      {contextLine && (
-        <ThemedText style={styles.completionContext}>{contextLine}</ThemedText>
-      )}
-      {questionLine && (
-        <ThemedText style={styles.completionQuestion}>{questionLine}</ThemedText>
-      )}
-
-      {isChoicePills && actionLines.length > 0 ? (
-        <View style={styles.completionChoicesContainer}>
-          {actionLines.map((choice, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.completionChoicePill,
-                selectedChoice === choice && styles.completionChoicePillActive,
-              ]}
-              onPress={() => {
-                triggerLightHaptic();
-                setSelectedChoice(choice);
-              }}
-              activeOpacity={0.8}
-            >
-              <ThemedText
-                weight={selectedChoice === choice ? 'semiBold' : undefined}
-                style={[
-                  styles.completionChoiceText,
-                  selectedChoice === choice && styles.completionChoiceTextActive,
-                ]}
-              >
-                {choice}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : actionLines.length > 0 && (
-        <View style={styles.completionActionsContainer}>
-          {actionLines.map((line, index) => (
-            <ThemedText key={index} style={styles.completionActionLine}>
-              {line}
+      <StepFadeIn delay={0}>
+        <View style={styles.completionHeaderContainer}>
+          <View style={styles.stepLabelRow}>
+            <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+            <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+              You've completed
             </ThemedText>
-          ))}
+          </View>
+          <ThemedText weight="bold" style={styles.completionTitle}>
+            {title}
+          </ThemedText>
+          <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
         </View>
-      )}
+      </StepFadeIn>
 
-      <ThemedText style={styles.completionStayNote}>
-        Need to stay with this a little longer?
-      </ThemedText>
+      <StepFadeIn delay={100}>
+        <>
+          {contextLine && (
+            <ThemedText style={styles.completionContext}>{contextLine}</ThemedText>
+          )}
+          {questionLine && (
+            <ThemedText style={styles.completionQuestion}>{questionLine}</ThemedText>
+          )}
+        </>
+      </StepFadeIn>
 
-      <TouchableOpacity
-        style={[styles.primaryButton, styles.finishButton]}
-        onPress={onFinish}
-        activeOpacity={0.85}
-      >
-        <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-          Save &amp; Finish
-        </ThemedText>
-      </TouchableOpacity>
+      <StepFadeIn delay={160}>
+        <>
+          {isChoicePills && actionLines.length > 0 ? (
+            <View style={styles.completionChoicesContainer}>
+              {actionLines.map((choice, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.completionChoicePill,
+                    selectedChoice === choice && styles.completionChoicePillActive,
+                  ]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setSelectedChoice(choice);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText
+                    weight={selectedChoice === choice ? 'semiBold' : undefined}
+                    style={[
+                      styles.completionChoiceText,
+                      selectedChoice === choice && styles.completionChoiceTextActive,
+                    ]}
+                  >
+                    {choice}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : actionLines.length > 0 && (
+            <View style={styles.completionActionsContainer}>
+              {actionLines.map((line, index) => (
+                <ThemedText key={index} style={styles.completionActionLine}>
+                  {line}
+                </ThemedText>
+              ))}
+            </View>
+          )}
+        </>
+      </StepFadeIn>
 
-      <TouchableOpacity
-        style={[styles.secondaryButton, styles.devotionalButton]}
-        onPress={() => {
-          // TODO: Navigate to devotional creation screen
-          console.log('Turn into devotional');
-        }}
-        activeOpacity={0.85}
-      >
-        <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-          Turn this into a devotional
-        </ThemedText>
-      </TouchableOpacity>
+      <StepFadeIn delay={220}>
+        <>
+          <ThemedText style={styles.completionStayNote}>
+            Need to stay with this a little longer?
+          </ThemedText>
+
+          <TouchableOpacity
+            style={[styles.primaryButton, styles.finishButton]}
+            onPress={onFinish}
+            activeOpacity={0.85}
+          >
+            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+              Save &amp; Finish
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.secondaryButton, styles.devotionalButton]}
+            onPress={() => {
+              // TODO: Navigate to devotional creation screen
+              console.log('Turn into devotional');
+            }}
+            activeOpacity={0.85}
+          >
+            <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+              Turn this into a devotional
+            </ThemedText>
+          </TouchableOpacity>
+        </>
+      </StepFadeIn>
     </View>
   );
 };
@@ -912,6 +975,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
+  // ── Slide animation between steps ──────────────────────────────────────────
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  // Share button scales + fades in when completion page is reached
+  const shareButtonAnim = useRef(new Animated.Value(0)).current;
+
   useFocusEffect(
     useCallback(() => {
       StatusBar.setHidden(true, 'slide');
@@ -919,15 +987,78 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }, [])
   );
 
+  // Animate share button in when we hit step 6
+  useEffect(() => {
+    if (stepIndex === 6) {
+      shareButtonAnim.setValue(0);
+      Animated.spring(shareButtonAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 350,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      shareButtonAnim.setValue(0);
+    }
+  }, [stepIndex, shareButtonAnim]);
+
+  const animateStep = useCallback(
+    (nextStep: number, direction: 'forward' | 'back') => {
+      const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.25 : SCREEN_WIDTH * 0.25;
+      const entryX = direction === 'forward' ? SCREEN_WIDTH : -SCREEN_WIDTH;
+
+      // 1. Slide current content out
+      Animated.timing(slideAnim, {
+        toValue: exitX,
+        duration: 160,
+        useNativeDriver: true,
+      }).start(() => {
+        // 2. Snap animated value to entry side, THEN update step
+        //    so the new content is mounted already off-screen
+        slideAnim.setValue(entryX);
+        setStepIndex(nextStep);
+
+        // 3. One frame later: new content is painted — spring it in
+        requestAnimationFrame(() => {
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 65,
+            friction: 11,
+            useNativeDriver: true,
+          }).start();
+        });
+      });
+    },
+    [slideAnim]
+  );
+
   const goNext = useCallback(() => {
     triggerLightHaptic();
-    setStepIndex(i => Math.min(i + 1, TOTAL_STEPS - 1));
-  }, []);
+    if (stepIndex < TOTAL_STEPS - 1) {
+      animateStep(stepIndex + 1, 'forward');
+    }
+  }, [stepIndex, animateStep]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
-    navigation.goBack();
-  }, [navigation]);
+    if (stepIndex === 0) {
+      navigation.goBack();
+    } else {
+      animateStep(stepIndex - 1, 'back');
+    }
+  }, [stepIndex, animateStep, navigation]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      triggerLightHaptic();
+      await Share.share({
+        message: `I just completed the "${playbook?.title}" playbook on siFia — walking it out one step at a time. 🙏`,
+      });
+    } catch (_error) {
+      // User cancelled share — silent
+    }
+  }, [playbook?.title]);
 
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
@@ -975,6 +1106,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
   const hasFloatingNext = stepIndex !== 6;
+  const progressFraction = stepIndex / (TOTAL_STEPS - 1);
 
   return (
     <View style={styles.container}>
@@ -997,7 +1129,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               }
             })}
         >
-          <View style={styles.stepContainer}>
+          {/* Animated slide container */}
+          <Animated.View
+            style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
+          >
             {stepIndex === 0 && (
               <EnterMomentStep
                 title={playbook.title}
@@ -1064,25 +1199,53 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 insets={insets}
               />
             )}
-          </View>
+          </Animated.View>
         </GestureDetector>
       </GestureDetector>
 
-      {/* Floating close / back button — top right, matches original */}
-      <TouchableOpacity
-        onPress={goBack}
-        style={[styles.closeButton, { top: insets.top + 8 }]}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons
-          name={stepIndex === 6 ? 'share-outline' : 'close'}
-          size={18}
-          color={Colors.hopeWhite}
-        />
-      </TouchableOpacity>
+      {/* Floating close button — top left (steps 0–5), always closes the screen */}
+      {stepIndex !== 6 && (
+        <TouchableOpacity
+          onPress={navigation.goBack}
+          style={[styles.closeButton, { top: insets.top + 8 }]}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      )}
 
-      {/* Floating coral next button — bottom right, matches original */}
+      {/* Animated share button — top left, completion page only */}
+      {stepIndex === 6 && (
+        <Animated.View
+          style={[
+            styles.closeButton,
+            { top: insets.top + 8 },
+            {
+              opacity: shareButtonAnim,
+              transform: [
+                {
+                  scale: shareButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.4, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleShare}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="share-outline" size={17} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Floating coral next button — bottom right */}
       {hasFloatingNext && (
         <TouchableOpacity
           onPress={goNext}
@@ -1103,6 +1266,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
+  // Progress bar — thin gold strip at very top
+  progressTrack: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: '100%',
+    zIndex: 200,
+  },
+  progressFill: {
+    height: 3,
+    backgroundColor: Colors.faithGold,
+  },
   // Dots — matches original PlaybookDetailGuided pagination style
   dotsRow: {
     flexDirection: 'row',
@@ -1121,15 +1295,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     width: 24,
   },
-  // Close/back — matches original: absolute, top-right, circular
+  // Close/share — top-right circle
   closeButton: {
     position: 'absolute',
     right: 20,
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     borderRadius: 999,
     zIndex: 100,
   },
@@ -1171,7 +1345,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     marginBottom: 20,
-    marginTop: 20,
+    marginTop: 16,
   },
   playbookLabel: {
     fontSize: 11,
@@ -1184,6 +1358,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     padding: 14,
+    marginBottom: 20,
   },
   userInputText: {
     fontSize: 14,
@@ -1237,10 +1412,10 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   bodyText: {
-    fontSize: 19,
-    fontWeight: '500',
+    fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 26,
+    opacity: 0.9,
   },
 
   // Scripture
@@ -1461,17 +1636,23 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
 
+  // Outer container for Prayer + Word to Speak — flex column so content can center
+  prayerStepOuter: {
+    flex: 1,
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 0,
+  },
+
   // Prayer
   prayerBlock: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    marginTop: 100,
+    marginTop: 28,
   },
   prayerText: {
-    fontSize: 19,
-    fontWeight: '500',
+    fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 26,
+    opacity: 0.9,
   },
   // "I prayed this" — devotional-style toggleable pill
   prayerActionButton: {
@@ -1518,10 +1699,8 @@ const styles = StyleSheet.create({
   wordBlock: {
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 24,
-    padding: 32,
-    marginTop: 32,
-    marginBottom: 32,
-    gap: 12,
+    padding: 36,
+    gap: 14,
   },
   wordText: {
     fontSize: 22,
