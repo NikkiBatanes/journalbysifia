@@ -389,6 +389,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const [journalMounted, setJournalMounted] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
@@ -405,13 +406,14 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     }).start();
 
     if (expanding) {
+      setJournalMounted(true);
       Animated.stagger(55, iconAnims.map(anim =>
         Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
       )).start();
     } else {
       Animated.stagger(40, [...iconAnims].reverse().map(anim =>
         Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
-      )).start();
+      )).start(() => setJournalMounted(false));
     }
   };
 
@@ -693,7 +695,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </StepFadeIn>
 
         {/* Expanded journal icons row — appears above buttons when open */}
-        {journalExpanded && (
+        {journalMounted && (
           <View style={styles.journalExpandedRow}>
             {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
               <Animated.View
@@ -1915,6 +1917,7 @@ const styles = StyleSheet.create({
   },
   doneSkipRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     marginTop: 4,
   },
