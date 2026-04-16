@@ -692,10 +692,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </Animated.View>
         </StepFadeIn>
 
-        {/* Journal FAB — collapsed circle that expands into 4 icons */}
-        <StepFadeIn delay={160}>
-          <View style={styles.journalFabRow}>
-            {/* Expanded icons — animate in from the trigger */}
+        {/* Expanded journal icons row — appears above buttons when open */}
+        {journalExpanded && (
+          <View style={styles.journalExpandedRow}>
             {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
               <Animated.View
                 key={type}
@@ -717,29 +716,29 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 </TouchableOpacity>
               </Animated.View>
             ))}
-
-            {/* Trigger circle */}
-            <TouchableOpacity
-              style={styles.journalTrigger}
-              onPress={toggleJournalIcons}
-              activeOpacity={0.8}
-            >
-              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-                <MaterialCommunityIcons
-                  name="pencil-plus-outline"
-                  size={20}
-                  color="rgba(255,255,255,0.7)"
-                />
-              </Animated.View>
-            </TouchableOpacity>
           </View>
-        </StepFadeIn>
+        )}
 
-        {/* Action buttons */}
+        {/* Action buttons row — trigger circle sits left of the primary button */}
         <StepFadeIn delay={200}>
         <View style={styles.doneSkipRow}>
+          {/* Journal trigger circle */}
           <TouchableOpacity
-            style={styles.doneButton}
+            style={styles.journalTrigger}
+            onPress={toggleJournalIcons}
+            activeOpacity={0.8}
+          >
+            <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+              <MaterialCommunityIcons
+                name="pencil-plus-outline"
+                size={20}
+                color="rgba(255,255,255,0.7)"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.doneButton, { flex: 1 }]}
             onPress={() => {
               if (actionType === 'text_input') {
                 handleSaveJournal();
@@ -1879,13 +1878,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 23,
   },
-  journalFabRow: {
+  journalExpandedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
+    justifyContent: 'space-around',
     marginTop: 20,
-    marginBottom: 4,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
   journalTrigger: {
