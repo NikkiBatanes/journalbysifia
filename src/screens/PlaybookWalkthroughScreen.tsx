@@ -780,7 +780,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
         <StepFadeIn delay={80}>
           <ThemedText style={styles.actionCounter}>
-            Action {stepNumber} of {totalSteps}
+            {Object.values(committedSteps).filter(v => v).length} of {totalSteps} completed
           </ThemedText>
         </StepFadeIn>
 
@@ -788,7 +788,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           <View style={styles.actionProgressBar}>
             <View style={[
               styles.actionProgressFill,
-              { width: `${(stepNumber / totalSteps) * 100}%` }
+              { width: `${(Object.values(committedSteps).filter(v => v).length / totalSteps) * 100}%` }
             ]} />
           </View>
         </StepFadeIn>
@@ -2384,7 +2384,7 @@ const styles = StyleSheet.create({
   actionCounter: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.45)',
-    marginTop: 16,
+    marginTop: 32,
     marginBottom: 8,
     letterSpacing: 0.5,
     textAlign: 'center' as const,
