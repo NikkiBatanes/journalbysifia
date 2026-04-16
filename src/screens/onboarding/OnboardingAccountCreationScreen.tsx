@@ -88,9 +88,9 @@ const OnboardingAccountCreationScreen: React.FC = () => {
                 .single();
 
               if (profile?.onboarding_completed) {
-                Logger.info('AccountCreationScreen: User completed onboarding - ignoring personalization redirect');
+                Logger.info('AccountCreationScreen: User completed onboarding - ignoring personalization redirect, navigating to UserInput');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-                (navigation as any).reset?.({ index: 0, routes: [{ name: 'MainTabs', params: {} }] });
+                (navigation as any).reset?.({ index: 0, routes: [{ name: 'UserInput', params: {} }] });
                 return;
               }
             } catch (error) {

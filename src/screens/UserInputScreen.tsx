@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useState, useRef, useEffect } from 'react';
 import {
@@ -51,7 +52,7 @@ const UserInputScreen: React.FC = () => {
   const isLandscape = width > height;
   const isPad = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
-  useScreenStatusBar('dark', Colors.anchorBlue);
+  useScreenStatusBar('light', Colors.anchorBlue);
 
   // No scrolling needed; content is static and footer is fixed
 
@@ -59,6 +60,9 @@ const UserInputScreen: React.FC = () => {
   // Typing, cycling placeholder for guided, non-chat input
   const [placeholderText, setPlaceholderText] = useState('What happened?');
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Navigation reveal state
+  const [showNavigation, setShowNavigation] = useState(false);
+  const navButtonAnim = useRef(new Animated.Value(0)).current;
 
   // Auto-save draft to prevent data loss
   const DRAFT_KEY = '@siFia:userInputDraft';
@@ -489,6 +493,17 @@ const UserInputScreen: React.FC = () => {
     }
   };
 
+  const handleNavigationToggle = () => {
+    try { triggerLightHaptic(); } catch {}
+    setShowNavigation(!showNavigation);
+    Animated.spring(navButtonAnim, {
+      toValue: showNavigation ? 0 : 1,
+      tension: 80,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const [showTooltip, setShowTooltip] = useState(false);
   const onPressHint = () => {
     try { triggerLightHaptic(); } catch {}
@@ -519,8 +534,38 @@ const UserInputScreen: React.FC = () => {
         style={styles.container}
       >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
-          <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }, { scale: headerScale }] }]}>
-            <Animated.Image source={require('../../assets/icons/siFia-logo-white.png')} style={[styles.logo, { opacity: headerIntroOpacity }]} resizeMode="contain" />
+          {/* Expandable navigation bar */}
+          <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
+            <TouchableOpacity
+              onPress={handleNavigationToggle}
+              style={styles.navButton}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Navigation icons when expanded */}
+          <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
+            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+              <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+              <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+              <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+              <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
+            </TouchableOpacity>
+          </Animated.View>
+
+          <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }] }]}>
+            <Animated.Image source={require('../../assets/icons/siFia-logo-white.png')} style={[styles.logo, { opacity: headerIntroOpacity, transform: [{ scale: headerScale }] }]} resizeMode="contain" />
+            <Animated.Text style={[styles.questionText, font, { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
+              {placeholderText}
+            </Animated.Text>
           </Animated.View>
         </View>
 
@@ -533,7 +578,7 @@ const UserInputScreen: React.FC = () => {
                   <TextInput
                     ref={inputRef}
                     style={[styles.askInput, font]}
-                    placeholder={placeholderText}
+                    placeholder="Create a Playbook with siFia"
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
                     onChangeText={handleInputChange}
@@ -706,8 +751,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
+    alignItems: 'stretch',
+    paddingHorizontal: 0,
     paddingBottom: 0,
   },
   contentLandscape: {
@@ -715,14 +760,60 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    justifyContent: 'center',
+    flexDirection: 'column',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 40,
+    paddingHorizontal: 0,
+    gap: 0,
   },
   logo: {
-    width: '90%',
-    height: 120,
+    width: '70%',
+    height: 100,
+    alignSelf: 'center',
+  },
+  questionText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 26,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: -30,
+    paddingHorizontal: 8,
+    maxWidth: '100%',
+  },
+  navButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+  },
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedNavContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 22,
+    paddingHorizontal: 12,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  navIconItem: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 38,
+    height: 38,
   },
   guidanceSubtitle: {
     color: 'rgba(255,255,255,0.9)',

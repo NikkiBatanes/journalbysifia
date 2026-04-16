@@ -77,9 +77,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
       // Block user-initiated navigation attempts but allow programmatic navigation
       const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
-        // Allow navigation to sales offer or main tabs (forward navigation)
+        // Allow navigation to sales offer or UserInput (forward navigation)
         if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' ||
-            e.data?.action?.payload?.name === 'MainTabs') {
+            e.data?.action?.payload?.name === 'UserInput') {
           return; // Let it proceed
         }
 

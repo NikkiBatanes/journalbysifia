@@ -200,10 +200,10 @@ const OnboardingWelcomeScreen: React.FC = () => {
                 .single();
 
               if (profile?.onboarding_completed) {
-                // User completed onboarding - ignore personalization redirect and go to main
-                Logger.info('WelcomeScreen: User completed onboarding - ignoring personalization redirect');
+                // User completed onboarding - ignore personalization redirect and go to UserInput
+                Logger.info('WelcomeScreen: User completed onboarding - ignoring personalization redirect, navigating to UserInput');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-                (navigation as any).reset?.({ index: 0, routes: [{ name: 'MainTabs', params: {} }] });
+                (navigation as any).reset?.({ index: 0, routes: [{ name: 'UserInput', params: {} }] });
                 return;
               }
             } catch (error) {

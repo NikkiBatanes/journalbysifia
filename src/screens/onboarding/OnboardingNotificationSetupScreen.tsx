@@ -231,10 +231,10 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Let\'s Go!',
               onPress: () => {
-                // Navigate to MainTabs after notification setup (post-purchase)
+                // Navigate to UserInput after notification setup (post-purchase)
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'MainTabs' as any }],
+                  routes: [{ name: 'UserInput' as any }],
                 });
               },
             },
@@ -249,10 +249,10 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Continue Anyway',
               onPress: () => {
-                // Navigate to MainTabs after notification setup (post-purchase)
+                // Navigate to UserInput after notification setup (post-purchase)
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'MainTabs' as any }],
+                  routes: [{ name: 'UserInput' as any }],
                 });
               },
             },
@@ -271,12 +271,12 @@ const OnboardingNotificationSetupScreen = () => {
         'You can always enable notifications later in your profile settings.',
         [
           {
-            text: 'Continue',
+            text: 'Let\'s Go!',
             onPress: () => {
-              // Navigate to MainTabs after notification setup (post-purchase)
+              // Navigate to UserInput after notification setup (post-purchase)
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'MainTabs' as any }],
+                routes: [{ name: 'UserInput' as any }],
               });
             },
           },
@@ -302,10 +302,10 @@ const OnboardingNotificationSetupScreen = () => {
         {
           text: 'Skip',
           onPress: () => {
-            // Navigate to MainTabs after notification setup (post-purchase)
+            // Navigate to UserInput after notification setup (post-purchase)
             navigation.reset({
               index: 0,
-              routes: [{ name: 'MainTabs' as any }],
+              routes: [{ name: 'UserInput' as any }],
             });
           },
         },

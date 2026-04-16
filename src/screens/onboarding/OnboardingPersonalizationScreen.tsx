@@ -266,11 +266,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         if (!isActive) {return;}
 
         if (hasCompleted) {
-          Logger.debug('Force navigation flag confirmed with completed onboarding. Redirecting to MainTabs.');
+          Logger.debug('Force navigation flag confirmed with completed onboarding. Redirecting to UserInput (new main screen).');
           await AsyncStorage.removeItem('force_navigate_to_main');
           (navigation as any).reset({
             index: 0,
-            routes: [{ name: 'MainTabs' }],
+            routes: [{ name: 'UserInput' }],
           });
         } else {
           Logger.debug('Force navigation flag found but onboarding incomplete. Clearing flag and staying in onboarding.');

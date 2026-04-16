@@ -104,7 +104,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         try {
           const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
           if (hasCompleted) {
-            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' as any }] });
+            navigation.reset({ index: 0, routes: [{ name: 'UserInput' as any }] });
             hasNavigatedRef.current = true;
             return;
           }
