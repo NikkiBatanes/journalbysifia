@@ -265,9 +265,9 @@ const UserInputScreen: React.FC = () => {
   useEffect(() => {
     const prompts = [
       'What happened?',
-      'How is it affecting you?',
-      'What are you struggling with?',
-      'What decision is ahead?',
+      'What feels heavy or unclear?',
+      'What feels hard right now?',
+      'What decision are you facing?',
     ];
 
     let isMounted = true;
@@ -1041,7 +1041,7 @@ const UserInputScreen: React.FC = () => {
                   <TextInput
                     ref={inputRef}
                     style={[styles.askInput, font]}
-                    placeholder="• What happened?\n• What feels heavy or unclear?\n• What feels hard right now?\n• What decision are you facing?"
+                    placeholder="Share what happened..."
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
                     onChangeText={handleInputChange}
