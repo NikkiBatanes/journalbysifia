@@ -714,7 +714,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
                     activeOpacity={0.75}
                   >
-                    <View style={[styles.journalIconCircle, { borderColor: color }]}>
+                    <View style={[styles.journalIconCircle, { backgroundColor: color + '28' }]}>
                       <MaterialCommunityIcons name={icon} size={20} color={color} />
                     </View>
                     <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
@@ -1908,10 +1908,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
   journalIconLabel: {
     fontSize: 10,
