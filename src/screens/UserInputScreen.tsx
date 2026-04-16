@@ -596,6 +596,29 @@ const UserInputScreen: React.FC = () => {
         Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
       ]).start(() => setShowTooltip(false));
     }
+    // Collapse navigation when input is focused
+    if (showNavigation) {
+      setShowNavigation(false);
+      const targetValue = 0;
+
+      // Animate container
+      Animated.spring(navButtonAnim, {
+        toValue: targetValue,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+
+      // Collapse individual icons immediately
+      navIconAnims.forEach((anim) => {
+        Animated.spring(anim, {
+          toValue: targetValue,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
   };
   const handleBlur = () => {
     Animated.timing(inputBorderWidth, {
