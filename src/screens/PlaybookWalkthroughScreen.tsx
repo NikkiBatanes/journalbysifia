@@ -539,49 +539,15 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
 
-  // Detect dynamic response label from step text when no explicit actionType is set
-  function detectResponseLabels(title: string): { primary: string; secondary: string } {
-    const t = title.toLowerCase();
-    if (/\bpray\b|prayer|lord|jesus|christ|ask god|bring.*god/.test(t)) {
-      return { primary: 'I prayed this', secondary: 'Not yet' };
-    }
-    if (/\bwrite\b|written|journal|document|note|list|jot|write down|write it/.test(t)) {
-      return { primary: 'I wrote it down', secondary: 'Not yet' };
-    }
-    if (/\bsay\b|speak|declare|read aloud|say.*aloud|say.*out loud|speak.*out/.test(t)) {
-      return { primary: 'I said it', secondary: 'Not yet' };
-    }
-    if (/reach out|talk.*to|tell.*someone|contact|message|call someone|share.*with/.test(t)) {
-      return { primary: 'I reached out', secondary: 'Not yet' };
-    }
-    if (/\bschedule\b|calendar|block.*time|plan.*time|set aside/.test(t)) {
-      return { primary: 'I scheduled it', secondary: 'Not yet' };
-    }
-    if (/\bcommit\b|decide|choose|make.*decision/.test(t)) {
-      return { primary: "I've committed", secondary: 'Not yet' };
-    }
-    if (/grateful|gratitude|thankful|give.*thanks|thank god/.test(t)) {
-      return { primary: 'I gave thanks', secondary: 'Not yet' };
-    }
-    if (/reflect|examine|consider|think.*about|sit with/.test(t)) {
-      return { primary: 'I reflected on this', secondary: 'Not yet' };
-    }
-    return { primary: 'Done', secondary: 'Skip' };
-  }
-
-  const detectedLabels = detectResponseLabels(currentStep.title ?? '');
-
   const primaryLabel = currentStep.primaryButton ?? (
-    actionType === 'commit' ? "I've committed" :
     actionType === 'choose' ? "I've chosen" :
     actionType === 'text_input' ? 'Save to Journal' :
-    detectedLabels.primary
+    "I've committed"
   );
   const secondaryLabel = currentStep.secondaryButton ?? (
-    actionType === 'commit' ? 'Not yet' :
     actionType === 'choose' ? "I'm still unsure" :
     actionType === 'text_input' ? 'Skip' :
-    detectedLabels.secondary
+    'Skip'
   );
 
   return (
