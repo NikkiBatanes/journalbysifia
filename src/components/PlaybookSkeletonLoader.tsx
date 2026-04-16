@@ -117,71 +117,31 @@ const AnimatedProgressBarSkeleton = () => {
 const PlaybookSkeletonLoader = () => {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
-  const horizontalPadding = isTablet ? 48 : 16;
-  const tabletCardWidth = Math.min(width - horizontalPadding * 2, 720);
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.contentContainer, isTablet && styles.contentContainerTablet]}>
-        {/* Playbook Info Skeleton */}
-        <View style={styles.playbookInfoContainer}>
-          <View style={styles.playbookHeader}>
-            <View style={styles.headerTitleContainer}>
-              {/* Title */}
-              <SkeletonBox width="75%" height={32} style={styles.titleSkeleton} backgroundColor={'rgba(255,255,255,0.22)'} />
-
-              {/* Day, date */}
-              <SkeletonBox width="40%" height={18} style={styles.dateSkeleton} backgroundColor={'rgba(255,255,255,0.16)'} />
-            </View>
-
-            {/* Progress bar */}
-            <View style={styles.progressAndViewRow}>
-              <View style={styles.progressContainer}>
-                <View style={styles.progressRow}>
-                  <View style={styles.progressBarBg}>
-                    <AnimatedProgressBarSkeleton />
-                  </View>
-
-                  {/* Tasks */}
-                </View>
-              </View>
-
-              {/* Two icons */}
-              <View style={styles.iconsWrapper}>
-                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} backgroundColor={'rgba(255,255,255,0.10)'} />
-                <SkeletonBox width={40} height={40} style={styles.iconSkeleton} backgroundColor={'rgba(255,255,255,0.10)'} />
-              </View>
-            </View>
-          </View>
+      <View style={styles.contentContainer}>
+        {/* Step Label Row - matches PlaybookWalkthroughScreen */}
+        <View style={styles.stepLabelRow}>
+          <View style={[styles.iconSkeleton, styles.stepIconSkeleton]} />
+          <SkeletonBox width="35%" height={14} backgroundColor={'rgba(255,255,255,0.22)'} />
         </View>
 
-        <View style={[styles.cardContainer, isTablet && styles.cardContainerTablet]}>
-          <View
-            style={[
-              styles.card,
-              isTablet && styles.cardTablet,
-              isTablet && { width: tabletCardWidth, maxWidth: tabletCardWidth },
-            ]}
-          >
-            {/* Title */}
-            <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.20)'} />
-            <View style={styles.summaryContainer}>
-              <SkeletonBox width="100%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
-              <SkeletonBox width="95%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.18)'} />
-              <SkeletonBox width="98%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
-              <SkeletonBox width="92%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.18)'} />
-              <SkeletonBox width="96%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.20)'} />
-              <SkeletonBox width="85%" height={24} style={styles.summaryLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-            </View>
+        {/* Text Block Skeleton - matches PlaybookWalkthroughScreen text blocks */}
+        <View style={styles.textBlock}>
+          <SkeletonBox width="100%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="95%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="98%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="92%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="96%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="85%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="90%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="88%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+        </View>
 
-            {/* Text - 3 lines */}
-            <View style={styles.textContainer}>
-              <SkeletonBox width="100%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-              <SkeletonBox width="92%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-              <SkeletonBox width="85%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-              <SkeletonBox width="85%" height={14} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-            </View>
-          </View>
+        {/* Floating Action Button Skeleton - matches PlaybookWalkthroughScreen floating buttons */}
+        <View style={styles.floatingButtonSkeleton}>
+          <SkeletonBox width={120} height={44} style={{ borderRadius: 22 }} backgroundColor={'rgba(255,255,255,0.18)'} />
         </View>
       </View>
     </SafeAreaView>
@@ -197,40 +157,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  contentContainerTablet: {
-    paddingHorizontal: 48,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  playbookInfoContainer: {
-    marginBottom: 24,
-  },
-  playbookHeader: {
-    width: '100%',
-  },
-  headerTitleContainer: {
-    marginBottom: 16,
-  },
-  progressAndViewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  progressContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  progressRow: {
+  stepLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginTop: 48,
   },
-  progressBarBg: {
-    flex: 1,
-    height: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  stepIconSkeleton: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  textBlock: {
+    marginTop: 24,
+  },
+  textLine: {
+    marginBottom: 8,
+  },
+  floatingButtonSkeleton: {
+    position: 'absolute',
+    bottom: 80,
+    left: 16,
+  },
+  iconSkeleton: {
+    borderRadius: 16,
   },
   progressBarFill: {
     height: 12,
@@ -238,65 +188,6 @@ const styles = StyleSheet.create({
   },
   progressBarEmpty: {
     width: 0,
-  },
-  tasksText: {
-    marginLeft: 12,
-  },
-  titleSkeleton: {
-    marginBottom: 12,
-  },
-  dateSkeleton: {
-    marginBottom: 20,
-  },
-  iconsWrapper: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconSkeleton: {
-    borderRadius: 16,
-  },
-  cardTitleSkeleton: {
-    marginBottom: 16,
-  },
-  iconsContainer: {
-    flexDirection: 'row',
-    gap: 0,
-  },
-  cardContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 0,
-  },
-  cardContainerTablet: {
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 335, // Matches SCREEN_WIDTH - 80 when screen width is 375 (iPhone 8)
-    height: 450,
-    backgroundColor: Colors.modalBlue,
-    borderRadius: 36,
-    padding: 24,
-  },
-  cardTablet: {
-    maxWidth: 520,
-    height: 520,
-    padding: 32,
-    borderRadius: 40,
-  },
-  summaryContainer: {
-    marginBottom: 24,
-    marginTop: 24,
-  },
-  summaryLine: {
-    marginBottom: 8,
-  },
-  textContainer: {
-    marginTop: 16,
-  },
-  textLine: {
-    marginBottom: 6,
   },
   progressBarFillLight: {
     backgroundColor: 'rgba(255, 255, 255, 0.20)',
