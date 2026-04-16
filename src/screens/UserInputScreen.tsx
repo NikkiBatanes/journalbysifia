@@ -606,11 +606,6 @@ const UserInputScreen: React.FC = () => {
     ]).start();
   }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad, route.params?.initialText, navIconEntranceAnim]);
   const handleFocus = () => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 2,
-      duration: 120,
-      useNativeDriver: false,
-    }).start();
     // Animate logo position when keyboard opens
     Animated.parallel([
       Animated.spring(headerTranslateY, {
@@ -657,11 +652,6 @@ const UserInputScreen: React.FC = () => {
     }
   };
   const handleBlur = () => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 1,
-      duration: 120,
-      useNativeDriver: false,
-    }).start();
     // Return logo to original position when keyboard closes
     Animated.parallel([
       Animated.spring(headerTranslateY, {
