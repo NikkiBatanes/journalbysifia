@@ -510,6 +510,8 @@ const UserInputScreen: React.FC = () => {
 
     resetGenerationSteps();
     updateStepStatus(0);
+    await wait(1000); // Delay initial progress animation
+    animateProgressTo(PHASE_PROGRESS_TARGETS[0], 800);
 
     const runGeneration = async () => {
       const response = await unifiedGenerationService.generatePlaybook({
@@ -584,14 +586,14 @@ const UserInputScreen: React.FC = () => {
             }
           }
 
-          // Gradual step progression during polling (every 1 second)
-          if (attempts === 1 && currentPhase < 1) {
+          // Gradual step progression during polling (every 5 seconds)
+          if (attempts === 5 && currentPhase < 1) {
             updateStepStatus(1);
             currentPhase = 1;
-          } else if (attempts === 2 && currentPhase < 2) {
+          } else if (attempts === 10 && currentPhase < 2) {
             updateStepStatus(2);
             currentPhase = 2;
-          } else if (attempts === 3 && currentPhase < 3) {
+          } else if (attempts === 15 && currentPhase < 3) {
             updateStepStatus(3);
             currentPhase = 3;
           }
@@ -602,6 +604,25 @@ const UserInputScreen: React.FC = () => {
 
       if (!savedPlaybook) {
         throw new Error('Playbook generation is taking longer than expected. Please try again.');
+      }
+
+      // Ensure all steps complete with continuous progression
+      if (currentPhase < 3) {
+        await wait(500);
+        if (currentPhase < 1) {
+          updateStepStatus(1);
+          currentPhase = 1;
+        }
+        await wait(500);
+        if (currentPhase < 2) {
+          updateStepStatus(2);
+          currentPhase = 2;
+        }
+        await wait(500);
+        if (currentPhase < 3) {
+          updateStepStatus(3);
+          currentPhase = 3;
+        }
       }
 
       return savedPlaybook;
