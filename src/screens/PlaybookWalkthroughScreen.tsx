@@ -22,6 +22,10 @@ import { runOnJS } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
+import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
+import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
+import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -355,15 +359,26 @@ interface FaithfulActionsStepProps {
   steps: ActionStep[];
   intro?: string;
   playbookId: string;
+  playbookTitle?: string;
   userId: string;
   onNext: () => void;
   insets: { top: number };
 }
 
+type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
+
+const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
+  { type: 'reflection', icon: 'head-lightbulb', color: Colors.reflectionBlue, label: 'Reflect' },
+  { type: 'prayer', icon: 'hands-pray', color: Colors.prayerPurple, label: 'Pray' },
+  { type: 'gratitude', icon: 'heart', color: Colors.gratitudeRed, label: 'Gratitude' },
+  { type: 'timeblock', icon: 'clock', color: Colors.timeblockGreen, label: 'Schedule' },
+];
+
 const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   steps,
   intro,
-  playbookId: _playbookId,
+  playbookId,
+  playbookTitle,
   userId,
   onNext,
   insets,
@@ -372,6 +387,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const createJournalEntry = useCreateJournalEntry();
 
@@ -480,8 +496,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
 
   // Detect dynamic response label from step text when no explicit actionType is set
-  function detectResponseLabels(title: string, body: string): { primary: string; secondary: string } {
-    const t = (title + ' ' + body).toLowerCase();
+  function detectResponseLabels(title: string): { primary: string; secondary: string } {
+    const t = title.toLowerCase();
     if (/\bpray\b|prayer|lord|jesus|christ|ask god|bring.*god/.test(t)) {
       return { primary: 'I prayed this', secondary: 'Not yet' };
     }
@@ -509,7 +525,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     return { primary: 'Done', secondary: 'Skip' };
   }
 
-  const detectedLabels = detectResponseLabels(currentStep.title ?? '', mainBodyText);
+  const detectedLabels = detectResponseLabels(currentStep.title ?? '');
 
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'commit' ? "I've committed" :
@@ -525,6 +541,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   );
 
   return (
+    <>
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
@@ -645,6 +662,23 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </Animated.View>
         </StepFadeIn>
 
+        {/* Journal icons row */}
+        <StepFadeIn delay={160}>
+          <View style={styles.journalIconsRow}>
+            {JOURNAL_ICONS.map(({ type, icon, color, label }) => (
+              <TouchableOpacity
+                key={type}
+                style={styles.journalIconButton}
+                onPress={() => { triggerLightHaptic(); setActiveJournalModal(type); }}
+                activeOpacity={0.75}
+              >
+                <MaterialCommunityIcons name={icon} size={22} color={color} />
+                <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </StepFadeIn>
+
         {/* Action buttons */}
         <StepFadeIn delay={200}>
         <View style={styles.doneSkipRow}>
@@ -660,7 +694,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             activeOpacity={0.8}
           >
             <ThemedText weight="semiBold" style={styles.doneButtonText}>
-              {isLastStep && actionType !== 'text_input' ? primaryLabel : primaryLabel}
+              {primaryLabel}
             </ThemedText>
           </TouchableOpacity>
 
@@ -670,12 +704,53 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             activeOpacity={0.8}
           >
             <ThemedText style={styles.skipButtonText}>
-              {isLastStep && actionType === 'done_skip' ? 'Next →' : secondaryLabel}
+              {secondaryLabel}
             </ThemedText>
           </TouchableOpacity>
         </View>
         </StepFadeIn>
     </View>
+
+      {activeJournalModal === 'reflection' && (
+        <SmartJournalingReflectionModal
+          visible={true}
+          subtaskTitle={currentStep.title ?? ''}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          onCancel={() => setActiveJournalModal(null)}
+        />
+      )}
+      {activeJournalModal === 'prayer' && (
+        <SmartJournalingPrayerModal
+          visible={true}
+          subtaskTitle={currentStep.title ?? ''}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          onCancel={() => setActiveJournalModal(null)}
+        />
+      )}
+      {activeJournalModal === 'gratitude' && (
+        <SmartJournalingGratitudeModal
+          visible={true}
+          subtaskTitle={currentStep.title ?? ''}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          onCancel={() => setActiveJournalModal(null)}
+        />
+      )}
+      {activeJournalModal === 'timeblock' && (
+        <SmartJournalingTimeBlockModal
+          visible={true}
+          subtaskTitle={currentStep.title ?? ''}
+          playbookId={playbookId}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          onCancel={() => setActiveJournalModal(null)}
+        />
+      )}
+    </>
   );
 };
 
@@ -1300,6 +1375,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 steps={playbook.actionSteps || []}
                 intro={playbook.faithfulActionsIntro}
                 playbookId={playbook.id}
+                playbookTitle={playbook.title}
                 userId={userId}
                 onNext={goNext}
                 insets={insets}
@@ -1746,6 +1822,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 23,
+  },
+  journalIconsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+  },
+  journalIconButton: {
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  journalIconLabel: {
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   doneSkipRow: {
     flexDirection: 'row',
