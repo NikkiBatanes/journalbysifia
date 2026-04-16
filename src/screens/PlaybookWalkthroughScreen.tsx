@@ -927,6 +927,11 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
     return () => clearTimeout(timer);
   }, [fadeAnim]);
 
+  // Ensure prayer always ends with the closing — append for old playbooks that don't have it
+  const fullPrayer = /In Jesus'? [Nn]ame|[Aa]men/i.test(prayer)
+    ? prayer
+    : prayer.trimEnd() + "\n\nIn Jesus' Name,\nAmen";
+
   const handlePrayed = () => {
     triggerMediumHaptic();
     const nowPrayed = !hasPrayed;
@@ -935,7 +940,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
 
     if (nowPrayed) {
       createPrayerMutation.mutate({
-        content: prayer,
+        content: fullPrayer,
         userId,
         dateStr: toLocalDateString(new Date()),
         devotionalTitle: playbookTitle ?? '',
@@ -946,11 +951,6 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
       });
     }
   };
-
-  // Ensure prayer always ends with the closing — append for old playbooks that don't have it
-  const fullPrayer = /In Jesus'? [Nn]ame|[Aa]men/i.test(prayer)
-    ? prayer
-    : prayer.trimEnd() + "\n\nIn Jesus' Name,\nAmen";
 
   // Split "In Jesus' Name, Amen" out so we can add a clear gap before it
   const jesusNameIdx = fullPrayer.search(/In Jesus'? [Nn]ame/i);
@@ -1309,17 +1309,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
-  // Reset module-level action step state on every fresh screen entry
+  // Reset module-level state only when opening a different playbook
   useEffect(() => {
-    persistedPlaybookId = playbookId;
-    persistedCommittedSteps = {};
-    persistedActionStepIndex = 0;
-    persistedHasPrayed = false;
-    persistedHasRead = false;
-    journalNudgeFired = false;
-    setActionStepIndex(0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally empty — runs once on mount only
+    if (playbookId !== persistedPlaybookId) {
+      persistedPlaybookId = playbookId;
+      persistedCommittedSteps = {};
+      persistedActionStepIndex = 0;
+      persistedHasPrayed = false;
+      persistedHasRead = false;
+      journalNudgeFired = false;
+      setActionStepIndex(0);
+    }
+  }, [playbookId]);
 
   // ── Slide animation between steps ──────────────────────────────────────────
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -1411,6 +1412,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
+    // Clear persisted state so re-opening the same playbook starts fresh
+    persistedPlaybookId = undefined;
+    persistedCommittedSteps = {};
+    persistedActionStepIndex = 0;
+    persistedHasPrayed = false;
+    persistedHasRead = false;
+    journalNudgeFired = false;
     navigation.reset({
       index: 0,
       routes: [
