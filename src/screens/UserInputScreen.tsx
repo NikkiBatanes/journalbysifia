@@ -1041,7 +1041,7 @@ const UserInputScreen: React.FC = () => {
                   <TextInput
                     ref={inputRef}
                     style={[styles.askInput, font]}
-                    placeholder="Create a Playbook with siFia"
+                    placeholder="Share what happened..."
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
                     onChangeText={handleInputChange}
