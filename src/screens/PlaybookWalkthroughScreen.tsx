@@ -1957,7 +1957,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
         >
           <TouchableOpacity
-            onPress={navigation.goBack}
+            onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
