@@ -389,10 +389,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
-  const [journalMounted, setJournalMounted] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
+  const rowHeight = useRef(new Animated.Value(0)).current;
+  const rowOpacity = useRef(new Animated.Value(0)).current;
+
+  const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
 
   const toggleJournalIcons = () => {
     const expanding = !journalExpanded;
@@ -406,14 +409,23 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     }).start();
 
     if (expanding) {
-      setJournalMounted(true);
-      Animated.stagger(55, iconAnims.map(anim =>
-        Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
-      )).start();
+      Animated.parallel([
+        Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
+        Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+      ]).start(() => {
+        Animated.stagger(50, iconAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
+        )).start();
+      });
     } else {
-      Animated.stagger(40, [...iconAnims].reverse().map(anim =>
+      Animated.stagger(35, [...iconAnims].reverse().map(anim =>
         Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
-      )).start(() => setJournalMounted(false));
+      )).start(() => {
+        Animated.parallel([
+          Animated.timing(rowHeight, { toValue: 0, duration: 220, useNativeDriver: false }),
+          Animated.timing(rowOpacity, { toValue: 0, duration: 180, useNativeDriver: false }),
+        ]).start();
+      });
     }
   };
 
@@ -697,32 +709,30 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         {/* Button area — relative container so expanded icons float above */}
         <StepFadeIn delay={200}>
         <View style={styles.buttonArea}>
-          {/* Expanded journal icons — absolutely positioned above buttons, no layout shift */}
-          {journalMounted && (
-            <View style={styles.journalExpandedRow}>
-              {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
-                <Animated.View
-                  key={type}
-                  style={{
-                    opacity: iconAnims[idx],
-                    transform: [{ scale: iconAnims[idx] }],
-                    alignItems: 'center',
-                  }}
+          {/* Expanded journal icons — animated height so row slides smoothly */}
+          <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
+            {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+              <Animated.View
+                key={type}
+                style={{
+                  opacity: iconAnims[idx],
+                  transform: [{ scale: iconAnims[idx] }],
+                  alignItems: 'center',
+                }}
+              >
+                <TouchableOpacity
+                  style={styles.journalIconButton}
+                  onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                  activeOpacity={0.75}
                 >
-                  <TouchableOpacity
-                    style={styles.journalIconButton}
-                    onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
-                    activeOpacity={0.75}
-                  >
-                    <View style={[styles.journalIconCircle, { backgroundColor: color + '28' }]}>
-                      <MaterialCommunityIcons name={icon} size={20} color={color} />
-                    </View>
-                    <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </View>
-          )}
+                  <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color }]}>
+                    <MaterialCommunityIcons name={icon} size={20} color={color} />
+                  </View>
+                  <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </Animated.View>
 
           <View style={styles.doneSkipRow}>
             {/* Journal trigger circle */}
@@ -1888,7 +1898,9 @@ const styles = StyleSheet.create({
   journalExpandedRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 12,
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginBottom: 4,
   },
   journalTrigger: {
     width: 44,
@@ -1910,6 +1922,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   journalIconLabel: {
     fontSize: 10,
@@ -1922,25 +1935,29 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    paddingVertical: 13,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   doneButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
   },
   skipButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   skipButtonText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.55)',
   },
 
   // Outer container for Prayer + Word to Speak — flex column so content can center
