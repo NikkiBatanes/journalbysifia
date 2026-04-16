@@ -15,6 +15,7 @@ import {
   Platform,
   StyleSheet,
   useWindowDimensions,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -64,8 +65,48 @@ const UserInputScreen: React.FC = () => {
   const [showNavigation, setShowNavigation] = useState(false);
   const navButtonAnim = useRef(new Animated.Value(0)).current;
 
+  // Generating state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1-4
+  const generationSteps = [
+    { title: 'Seeing this moment clearly', status: 'completed' },
+    { title: 'Naming what matters most', status: 'active' },
+    { title: 'Shaping faithful next steps', status: 'inactive' },
+    { title: 'Preparing your playbook', status: 'inactive' },
+  ];
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Transition animations
+  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
+  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Pulsing dot animation
+  const pulsingDotAnim = useRef(new Animated.Value(0)).current;
+
   // Auto-save draft to prevent data loss
   const DRAFT_KEY = '@siFia:userInputDraft';
+
+  // Pulsing dot animation loop
+  useEffect(() => {
+    if (isGenerating) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulsingDotAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulsingDotAnim, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseAnimation.start();
+      return () => pulseAnimation.stop();
+    }
+  }, [isGenerating, pulsingDotAnim]);
 
   // Load saved draft or initial text on mount
   useEffect(() => {
@@ -469,11 +510,30 @@ const UserInputScreen: React.FC = () => {
       }
     }
 
-    // Navigate directly to GeneratingPlaybookScreen - it will handle the generation and usage tracking
-    navigation.navigate('GeneratingPlaybook', {
-      userInput,
-      userName: userName || 'Friend',
-    });
+    // Trigger transition animation and start generation
+    setIsGenerating(true);
+    
+    // Close keyboard
+    Keyboard.dismiss();
+    
+    // Animate input collapse and generating state fade-in
+    Animated.parallel([
+      Animated.timing(inputCollapseAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(generatingFadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // TODO: Phase 4 - Integrate with generation service
+    // For now, just simulate the transition
+    console.log('Starting generation with input:', userInput);
 
     // Clear draft after successful navigation (generation will handle clearing input on success)
     // Note: Draft is preserved if generation fails, so user can try again
@@ -534,43 +594,143 @@ const UserInputScreen: React.FC = () => {
         style={styles.container}
       >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
-          {/* Expandable navigation bar */}
-          <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
-            <TouchableOpacity
-              onPress={handleNavigationToggle}
-              style={styles.navButton}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </Animated.View>
+          {/* Expandable navigation bar - hidden during generation */}
+          {!isGenerating && (
+            <>
+              <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
+                <TouchableOpacity
+                  onPress={handleNavigationToggle}
+                  style={styles.navButton}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              </Animated.View>
 
-          {/* Navigation icons when expanded */}
-          <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
-            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-              <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-              <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-              <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-              <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
-            </TouchableOpacity>
-          </Animated.View>
+              {/* Navigation icons when expanded */}
+              <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
+                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                  <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                  <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                  <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                  <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+              </Animated.View>
+            </>
+          )}
 
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }] }]}>
-            <Animated.Image source={require('../../assets/icons/siFia-logo-white.png')} style={[styles.logo, { opacity: headerIntroOpacity, transform: [{ scale: headerScale }] }]} resizeMode="contain" />
-            <Animated.Text style={[styles.questionText, font, { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
-              {placeholderText}
-            </Animated.Text>
+            {!isGenerating && (
+              <Animated.Image 
+                source={require('../../assets/icons/siFia-logo-white.png')} 
+                style={[
+                  styles.logo, 
+                  { 
+                    opacity: headerIntroOpacity, 
+                    transform: [{ scale: headerScale }],
+                  },
+                ]} 
+                resizeMode="contain" 
+              />
+            )}
+            {!isGenerating && (
+              <Animated.Text style={[styles.questionText, font, { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
+                {placeholderText}
+              </Animated.Text>
+            )}
           </Animated.View>
+
+          {/* Logo in generating state */}
+          {isGenerating && (
+            <Animated.Image 
+              source={require('../../assets/icons/siFia-logo-white.png')} 
+              style={[
+                styles.generatingLogo,
+                { opacity: generatingFadeAnim }
+              ]} 
+              resizeMode="contain" 
+            />
+          )}
+
+          {/* Generating State View */}
+          {isGenerating && (
+            <Animated.View style={[styles.generatingContainer, { opacity: generatingFadeAnim }]}>
+              <View style={styles.situationCard}>
+                <Text style={[styles.situationLabel, font]}>WHAT YOU'VE SHARED</Text>
+                <Text style={[styles.situationText, font]} numberOfLines={3}>"{userInput.length > 100 ? userInput.slice(0, 100) + '…"' : userInput + '"'}</Text>
+              </View>
+
+              <Text style={[styles.buildingHeading, font]}>Building your playbook…</Text>
+              <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
+
+              <View style={styles.stepsContainer}>
+                {generationSteps.map((step, index) => (
+                  <View key={index} style={[
+                    styles.stepCard,
+                    step.status === 'completed' && styles.stepCardCompleted,
+                    step.status === 'active' && styles.stepCardActive,
+                    step.status === 'inactive' && styles.stepCardDefault
+                  ]}>
+                    <View style={styles.stepRow}>
+                      <View style={[
+                        styles.stepCircle,
+                        step.status === 'completed' && styles.stepCompleted,
+                        step.status === 'active' && styles.stepActive,
+                        step.status === 'inactive' && styles.stepInactive
+                      ]}>
+                        {step.status === 'completed' && (
+                          <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                        )}
+                        {step.status === 'active' && (
+                          <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnim }]} />
+                        )}
+                        {step.status === 'inactive' && (
+                          <View style={styles.staticDot} />
+                        )}
+                      </View>
+                      <Text style={[
+                        styles.stepText,
+                        font,
+                        step.status === 'completed' && styles.stepTextCompleted,
+                        step.status === 'active' && styles.stepTextActive,
+                        step.status === 'inactive' && styles.stepTextInactive
+                      ]}>
+                        {step.title}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBarBackground}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.progressLabel, font]}>Phase {currentStep} of 4</Text>
+              </View>
+            </Animated.View>
+          )}
         </View>
 
         {/* Fixed footer input anchored to safe area */}
-        <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20 }]}>
+        <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -100] }) }] }]}>
           <View style={styles.inputContainer}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <View style={styles.askWrapper}>
@@ -677,7 +837,7 @@ const UserInputScreen: React.FC = () => {
               </View>
             </Animated.View>
           </View>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
@@ -814,6 +974,152 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 38,
     height: 38,
+  },
+  generatingContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 210,
+    paddingBottom: 40,
+  },
+  generatingLogo: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    width: 60,
+    height: 60,
+    zIndex: 10,
+  },
+  appName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 24,
+  },
+  situationCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  stepCard: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  stepCardCompleted: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: 'rgba(255, 107, 107, 0.2)',
+  },
+  stepCardActive: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  stepCardDefault: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  situationLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 8,
+  },
+  situationText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: Colors.white,
+    lineHeight: 24,
+  },
+  buildingHeading: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 8,
+  },
+  buildingSubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 32,
+  },
+  stepsContainer: {
+    marginBottom: 32,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepCompleted: {
+    backgroundColor: Colors.alertCoral,
+  },
+  stepActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  stepInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  pulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.hopeWhite,
+  },
+  staticDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  stepText: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  stepTextCompleted: {
+    color: Colors.alertCoral,
+    fontWeight: '600',
+  },
+  stepTextActive: {
+    color: Colors.white,
+    fontWeight: '600',
+  },
+  stepTextInactive: {
+    color: 'rgba(255,255,255,0.5)',
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 2,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
   },
   guidanceSubtitle: {
     color: 'rgba(255,255,255,0.9)',
