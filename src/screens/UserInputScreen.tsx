@@ -1384,13 +1384,13 @@ const UserInputScreen: React.FC = () => {
                       <TouchableOpacity
                         onPress={onPressHint}
                         activeOpacity={0.9}
-                        style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                        style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
                         hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                       >
                         <MaterialCommunityIcons
                           name="information"
-                          size={34}
-                          color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
+                          size={20}
+                          color={showTooltip ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -1864,7 +1864,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   askHintButton: {
-    // positioned in bottomRow
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askHintButtonActive: {
+    backgroundColor: Colors.alertCoral,
   },
   tooltip: {
     position: 'absolute',
