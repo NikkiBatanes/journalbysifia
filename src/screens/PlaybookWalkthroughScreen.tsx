@@ -35,8 +35,9 @@ import { useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { faithPointsService } from '../services/faithPointsService';
 import { toLocalDateString } from '../utils/date';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
+import { updatePlaybookStatus } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -1462,6 +1463,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const routePlaybook = route.params?.playbook;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [stepIndex, setStepIndex] = useState(0);
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -1692,6 +1694,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
+
+    // Mark the playbook as completed now that the user pressed Save & Finish
+    if (playbookId) {
+      updatePlaybookStatus(playbookId, 'completed').catch(() => {});
+      // Optimistically update query cache so list reflects completion immediately
+      queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
+    }
+
     // Clear persisted state so re-opening the same playbook starts fresh
     if (persistedPlaybookId) { clearSessionStorage(persistedPlaybookId); }
     persistedPlaybookId = undefined;
@@ -1709,7 +1719,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         },
       ],
     });
-  }, [navigation]);
+  }, [navigation, playbookId, userId, queryClient]);
 
   const goNext = useCallback(() => {
     triggerLightHaptic();

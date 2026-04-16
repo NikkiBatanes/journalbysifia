@@ -214,16 +214,14 @@ export const useUpdateActionStep = () => {
           const totalSteps = updatedActionSteps.length;
           const completedSteps = updatedActionSteps.filter(step => step.completed).length;
           const progress = totalSteps > 0 ? completedSteps / totalSteps : 0;
-          const status = progress === 1 ? 'completed' : 'inProgress';
+          // Never auto-complete — completion only happens via Save & Finish button
+          const status = playbook.status === 'completed' ? 'completed' : 'inProgress';
 
           return {
             ...playbook,
             actionSteps: updatedActionSteps,
             progress,
             status,
-            completedAt: status === 'completed' && playbook.status !== 'completed'
-              ? new Date().toISOString()
-              : playbook.completedAt,
             updatedAt: new Date().toISOString(),
           };
         });
@@ -392,7 +390,8 @@ export const useUpdateSubTask = () => {
           }
 
           const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-          const status = progress >= 100 ? 'completed' : 'inProgress';
+          // Never auto-complete — completion only happens via Save & Finish button
+          const status = playbook.status === 'completed' ? 'completed' : 'inProgress';
 
           return {
             ...playbook,
