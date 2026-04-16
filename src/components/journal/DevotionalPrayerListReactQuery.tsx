@@ -131,11 +131,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 <View style={styles.verticalLine} />
                 <View style={styles.metadataContent}>
                   <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
-                  {prayer.total_days && (
+                  {(prayer as any).prayer_type === 'guided_playbook' ? (
+                    <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                  ) : prayer.total_days ? (
                     <ThemedText style={styles.metadataText}>
                       {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
                     </ThemedText>
-                  )}
+                  ) : null}
                   <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                   {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
                     <ThemedText style={styles.metadataText}>
@@ -210,11 +212,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                     <View style={styles.verticalLine} />
                     <View style={styles.metadataContent}>
                       <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
-                      {prayer.total_days && (
+                      {(prayer as any).prayer_type === 'guided_playbook' ? (
+                        <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                      ) : prayer.total_days ? (
                         <ThemedText style={styles.metadataText}>
                           {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
                         </ThemedText>
-                      )}
+                      ) : null}
                       <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                       {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
                         <ThemedText style={styles.metadataText}>

@@ -776,10 +776,11 @@ export const useCreateDevotionalPrayer = () => {
       dayNumber: number;
       dayTitle: string;
       totalDays?: number;
+      prayer_type?: string;
     }) => {
       return PrayerApi.createPrayer({
         user_id: prayer.userId,
-        prayer_type: 'devotional',
+        prayer_type: prayer.prayer_type ?? 'devotional',
         content: prayer.content,
         selected_date: prayer.dateStr,
         status: 'pending',

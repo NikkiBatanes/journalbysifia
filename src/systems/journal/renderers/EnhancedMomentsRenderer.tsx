@@ -823,10 +823,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               ].filter(v => typeof v === 'boolean') as boolean[];
               // Treat explicit devotional types/metadata as devotional too
               const devotionalByType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'devotional';
+              const guidedPlaybookType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'guided_playbook';
               const devotionalByMetadata = !!((prayer as any).devotional_title || (prayer as any).day_number || (prayer as any).day_title || (prayer as any).total_days);
 
               const isDevotional =
                 devotionalByType ||
+                guidedPlaybookType ||
                 devotionalByMetadata ||
                 devoStrings.some(v => {
                   const s = (v || '').toLowerCase();
@@ -846,7 +848,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
                 // Compute type label with explicit mapping for people prayers
                 const prayerTypeForLabel = ((prayer as any).prayer_type || '').toString().toLowerCase();
-                const typeLabel = isDevotional
+                const typeLabel = guidedPlaybookType
+                  ? 'Guided Prayer'
+                  : isDevotional
                   ? 'Prayed Devotional'
                   : prayerTypeForLabel === 'people'
                     ? 'Prayer List'

@@ -617,6 +617,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           dayNumber: actionStepIndex + 1,
           dayTitle: currentStep.title ?? '',
           totalDays: steps.length,
+          prayer_type: 'guided_playbook',
         });
       }
 
