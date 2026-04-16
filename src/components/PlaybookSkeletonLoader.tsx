@@ -121,6 +121,12 @@ const PlaybookSkeletonLoader = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
+        {/* PLAYBOOK Label with Chevron - matches PlaybookWalkthroughScreen */}
+        <View style={styles.playbookLabelContainer}>
+          <SkeletonBox width="25%" height={12} backgroundColor={'rgba(255,255,255,0.22)'} />
+          <View style={styles.chevronSkeleton} />
+        </View>
+
         {/* Step Label Row - matches PlaybookWalkthroughScreen */}
         <View style={styles.stepLabelRow}>
           <View style={[styles.iconSkeleton, styles.stepIconSkeleton]} />
@@ -129,14 +135,14 @@ const PlaybookSkeletonLoader = () => {
 
         {/* Text Block Skeleton - matches PlaybookWalkthroughScreen text blocks */}
         <View style={styles.textBlock}>
-          <SkeletonBox width="100%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="95%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="98%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="92%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="96%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="85%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="90%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="88%" height={18} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="100%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="95%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="98%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="92%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="96%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="85%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
+          <SkeletonBox width="90%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
+          <SkeletonBox width="88%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
         </View>
 
         {/* Floating Action Button Skeleton - matches PlaybookWalkthroughScreen floating buttons */}
@@ -156,6 +162,18 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 16,
+  },
+  playbookLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 32,
+    alignSelf: 'center',
+  },
+  chevronSkeleton: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
   },
   stepLabelRow: {
     flexDirection: 'row',
