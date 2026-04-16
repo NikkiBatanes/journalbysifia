@@ -204,7 +204,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               user.id,
               'playbook_generated',
               {
-                suppressNotification: !!isFromOnboarding,
+                suppressNotification: true, // never show reward notification during generation
                 isOnboarding: !!isFromOnboarding,
               }
             );
