@@ -1041,7 +1041,7 @@ const UserInputScreen: React.FC = () => {
                   <TextInput
                     ref={inputRef}
                     style={[styles.askInput, font]}
-                    placeholder="Share what happened..."
+                    placeholder="• What happened?\n• What feels heavy or unclear?\n• What feels hard right now?\n• What decision are you facing?"
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
                     onChangeText={handleInputChange}
