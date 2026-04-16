@@ -127,9 +127,6 @@ const PlaybookSkeletonLoader = () => {
           <View style={styles.chevronSkeleton} />
         </View>
 
-        {/* Divider Line */}
-        <View style={styles.dividerLine} />
-
         {/* Step Label Row - matches PlaybookWalkthroughScreen */}
         <View style={styles.stepLabelRow}>
           <View style={[styles.iconSkeleton, styles.stepIconSkeleton]} />
@@ -148,9 +145,9 @@ const PlaybookSkeletonLoader = () => {
           <SkeletonBox width="88%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
         </View>
 
-        {/* Transition Line - matches PlaybookWalkthroughScreen transition line */}
+        {/* Transition Line Divider - matches PlaybookWalkthroughScreen Step 0 */}
         <View style={styles.transitionLineContainer}>
-          <View style={styles.transitionLineBar} />
+          <SkeletonBox width="60%" height={16} backgroundColor={'rgba(255,255,255,0.12)'} />
         </View>
 
         {/* Floating Action Button Skeleton - matches PlaybookWalkthroughScreen floating buttons */}
@@ -183,10 +180,12 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
   },
-  dividerLine: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 24,
+  transitionLineContainer: {
+    marginTop: 32,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
   },
   stepLabelRow: {
     flexDirection: 'row',
@@ -204,18 +203,6 @@ const styles = StyleSheet.create({
   },
   textLine: {
     marginBottom: 8,
-  },
-  transitionLineContainer: {
-    marginTop: 32,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-  },
-  transitionLineBar: {
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   floatingButtonSkeleton: {
     position: 'absolute',
