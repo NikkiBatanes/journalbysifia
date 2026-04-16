@@ -1883,17 +1883,12 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   buttonArea: {
-    position: 'relative',
     marginTop: 20,
   },
   journalExpandedRow: {
-    position: 'absolute',
-    bottom: '100%',
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingBottom: 12,
+    marginBottom: 12,
   },
   journalTrigger: {
     width: 44,
