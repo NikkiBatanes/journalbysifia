@@ -17,7 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 
@@ -30,7 +30,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useNewSubscription } from '../hooks/useNewSubscription';
 import { checkAndRecordRequest, type SubscriptionTier } from '../utils/rateLimiting';
-import { Alert } from 'react-native';
+import { Alert, StatusBar } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unifiedGenerationService } from '../services/unifiedGenerationService';
@@ -73,6 +73,14 @@ const UserInputScreen: React.FC = () => {
 
   useScreenStatusBar('light', Colors.anchorBlue);
 
+  // Re-enforce light status bar on every focus event (covers Alert dismiss,
+  // back navigation, and any native overlay that may reset the bar to dark).
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+    }, [])
+  );
+
   // No scrolling needed; content is static and footer is fixed
 
   const [userInput, setUserInput] = useState('');
@@ -92,6 +100,8 @@ const UserInputScreen: React.FC = () => {
   const generationAbortRef = useRef(false);
   const isMountedRef = useRef(true);
   const [generationMessage, setGenerationMessage] = useState<string | null>(null);
+  // Tracks which phase the trickle should stay below — raised by updateStepStatus
+  const currentPhaseRef = useRef(0);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -107,6 +117,27 @@ const UserInputScreen: React.FC = () => {
     progressAnim.setValue(0);
     setGenerationMessage(null);
     generationAbortRef.current = false;
+    currentPhaseRef.current = 0;
+  };
+
+  // Snap all transition animations back to their pre-submit state so the input
+  // screen is fully visible again when generation is cancelled or errors out.
+  // Also re-applies the light status bar since iOS Alert dialogs can disturb it.
+  const resetToInputState = () => {
+    inputCollapseAnim.setValue(0);
+    inputScaleAnim.setValue(1);
+    headerIntroOpacity.setValue(1);
+    askBoxOpacity.setValue(1);
+    generatingFadeAnim.setValue(0);
+    generatingScaleAnim.setValue(0.92);
+    genLogoEntryAnim.setValue(0);
+    genCardEntryAnim.setValue(0);
+    genHeadingEntryAnim.setValue(0);
+    genStepsEntryAnim.setValue(0);
+    genProgressEntryAnim.setValue(0);
+    setBuildingDots('');
+    StatusBar.setBarStyle('light-content', true);
+    setIsGenerating(false);
   };
 
   const animateProgressTo = (target: number, duration = 800) =>
@@ -130,6 +161,9 @@ const UserInputScreen: React.FC = () => {
   const getTargetProgressForStep = (stepIndex: number) => PHASE_PROGRESS_TARGETS[Math.min(stepIndex, PHASE_PROGRESS_TARGETS.length - 1)] || 95;
 
   const updateStepStatus = (stepIndex: number) => {
+    // Raise trickle ceiling so the bar is now allowed to approach this phase's target
+    currentPhaseRef.current = stepIndex;
+
     setGenerationSteps((prev) =>
       prev.map((step, index) => {
         if (index < stepIndex) {
@@ -142,44 +176,133 @@ const UserInputScreen: React.FC = () => {
       })
     );
     setCurrentStep(Math.min(stepIndex + 1, 4));
-    // Animate progress for all steps including step 0
-    const targetProgress = getTargetProgressForStep(stepIndex);
-    animateProgressTo(targetProgress, 700);
+
+    // Floor guarantee: when a phase completes, the bar must be at least at the
+    // PREVIOUS phase's target so there's no backward drift between label and bar.
+    if (stepIndex > 0) {
+      const prevTarget = PHASE_PROGRESS_TARGETS[stepIndex - 1];
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < prevTarget) {
+        animateProgressTo(prevTarget, 500);
+      }
+    }
+  };
+
+  // ── Continuous trickle: moves 5% of remaining distance each tick, capped at
+  //    the current phase ceiling. When updateStepStatus advances the phase,
+  //    currentPhaseRef rises and the bar is now allowed to approach the higher target.
+  const trickleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startProgressTrickle = () => {
+    const TICK_MS = 300;
+    let elapsed = 0;
+    const tick = () => {
+      elapsed += TICK_MS;
+      // Hard cap: 1pt below ceiling so the bar never visually enters the next phase
+      const phaseCeiling = (PHASE_PROGRESS_TARGETS[currentPhaseRef.current] ?? 95) - 1;
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < phaseCeiling) {
+        const remaining = phaseCeiling - current;
+        // 5% of remaining distance per tick → fast start, decelerates near ceiling
+        const step = Math.max(0.3, remaining * 0.05);
+        Animated.timing(progressAnim, {
+          toValue: Math.min(current + step, phaseCeiling),
+          duration: TICK_MS + 80,
+          useNativeDriver: false,
+        }).start();
+      }
+      if (elapsed < 120000) {
+        trickleRef.current = setTimeout(tick, TICK_MS);
+      }
+    };
+    trickleRef.current = setTimeout(tick, TICK_MS);
+  };
+  const stopProgressTrickle = () => {
+    if (trickleRef.current) { clearTimeout(trickleRef.current); trickleRef.current = null; }
   };
 
   // Transition animations
-  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
-  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
+  const inputCollapseAnim       = useRef(new Animated.Value(0)).current;
+  const generatingFadeAnim      = useRef(new Animated.Value(0)).current;
+  const generatingSlideAnim     = useRef(new Animated.Value(0)).current;   // unused slide — kept for compat
+  const generatingScaleAnim     = useRef(new Animated.Value(0.92)).current; // container scale spring
+  const inputScaleAnim          = useRef(new Animated.Value(1)).current;
 
-  // Pulsing dot animation
-  const pulsingDotAnim = useRef(new Animated.Value(0)).current;
+  // Per-step pulsing dots — one per step so the native driver never loses the binding
+  // on re-mount when the active step changes.
+  const pulsingDotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Shimmer opacity pulse for "Building your playbook..." text (letters only, no block)
+  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
+  const [buildingDots, setBuildingDots] = useState('');
+
+  // Staggered entrance anims for generating elements (0 = invisible, 1 = fully in)
+  const genLogoEntryAnim      = useRef(new Animated.Value(0)).current;
+  const genCardEntryAnim      = useRef(new Animated.Value(0)).current;
+  const genHeadingEntryAnim   = useRef(new Animated.Value(0)).current;
+  const genStepsEntryAnim     = useRef(new Animated.Value(0)).current;
+  const genProgressEntryAnim  = useRef(new Animated.Value(0)).current;
 
   // Auto-save draft to prevent data loss
   const DRAFT_KEY = '@siFia:userInputDraft';
 
-  // Pulsing dot animation loop
+  // ── Per-step pulsing dot loops ───────────────────────────────────────────────
   useEffect(() => {
     if (isGenerating) {
-      pulsingDotAnim.setValue(0);
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulsingDotAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulsingDotAnim, {
-            toValue: 0,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseAnimation.start();
-      return () => pulseAnimation.stop();
+      const loops = pulsingDotAnims.map((anim) => {
+        anim.setValue(0);
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 750, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0.2, duration: 750, useNativeDriver: true }),
+          ])
+        );
+      });
+      loops.forEach((l) => l.start());
+      return () => loops.forEach((l) => l.stop());
     } else {
-      pulsingDotAnim.setValue(0);
+      pulsingDotAnims.forEach((anim) => anim.setValue(0));
     }
+  }, [isGenerating]);
+
+  // ── Animated dots + text-opacity shimmer on "Building your playbook..." ──────
+  useEffect(() => {
+    if (!isGenerating) {
+      setBuildingDots('');
+      buildingTextOpacity.setValue(0.55);
+      return;
+    }
+
+    // Cycling dots: '' → '.' → '..' → '...'
+    const dotStates = ['', '.', '..', '...'];
+    let di = 0;
+    const dotInterval = setInterval(() => {
+      di = (di + 1) % dotStates.length;
+      setBuildingDots(dotStates[di]);
+    }, 420);
+
+    // Shimmer = the letters themselves breathing bright → dim → bright
+    // useNativeDriver:true works fine since we're only animating opacity
+    buildingTextOpacity.setValue(0.55);
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buildingTextOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.55,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    return () => {
+      clearInterval(dotInterval);
+      shimmerLoop.stop();
+    };
   }, [isGenerating]);
 
   // Load saved draft or initial text on mount
@@ -527,7 +650,31 @@ const UserInputScreen: React.FC = () => {
     }
 
     resetGenerationSteps();
+    startProgressTrickle();
+
+    // Track current phase so timers and post-playbook advancement stay in sync
+    let currentPhase = 0;
+
+    const advanceToPhase = (phase: number) => {
+      if (generationAbortRef.current || currentPhase >= phase) { return; }
+      currentPhase = phase;
+      updateStepStatus(phase);
+      try { triggerLightHaptic(); } catch {}
+    };
+
+    // Step 0 active immediately — with haptic
     updateStepStatus(0);
+    try { triggerLightHaptic(); } catch {}
+
+    // ── Time-based step timers — fully independent of API polling speed ───────
+    // Steps advance at fixed wall-clock intervals so the UI always feels alive
+    // regardless of whether the AI responds in 8s or 30s.
+    const phaseTimers = [
+      setTimeout(() => advanceToPhase(1), 4000),   // naming   at  4s
+      setTimeout(() => advanceToPhase(2), 8500),   // shaping  at  8.5s
+      setTimeout(() => advanceToPhase(3), 13500),  // preparing at 13.5s
+    ];
+    const clearPhaseTimers = () => phaseTimers.forEach(clearTimeout);
 
     const runGeneration = async () => {
       const response = await unifiedGenerationService.generatePlaybook({
@@ -542,7 +689,6 @@ const UserInputScreen: React.FC = () => {
       }
 
       let savedPlaybook: Playbook | null = null;
-      let currentPhase = 0;
 
       const fetchLatestPlaybook = async () => {
         if (!user.id) { return null; }
@@ -601,18 +747,7 @@ const UserInputScreen: React.FC = () => {
               Logger.error('[UserInputScreen] Fallback playbook fetch failed', fallbackError as Error);
             }
           }
-
-          // Gradual step progression during polling (every 5 seconds)
-          if (attempts === 5 && currentPhase < 1) {
-            updateStepStatus(1);
-            currentPhase = 1;
-          } else if (attempts === 10 && currentPhase < 2) {
-            updateStepStatus(2);
-            currentPhase = 2;
-          } else if (attempts === 15 && currentPhase < 3) {
-            updateStepStatus(3);
-            currentPhase = 3;
-          }
+          // Step advancement is handled entirely by phaseTimers — no attempt-based logic here
         }
       } else {
         savedPlaybook = await fetchLatestPlaybook();
@@ -622,42 +757,46 @@ const UserInputScreen: React.FC = () => {
         throw new Error('Playbook generation is taking longer than expected. Please try again.');
       }
 
-      // Ensure all steps complete with continuous progression (5-second intervals)
-      if (currentPhase < 3) {
-        await wait(5000);
-        if (currentPhase < 1) {
-          updateStepStatus(1);
-          currentPhase = 1;
-        }
-        await wait(5000);
-        if (currentPhase < 2) {
-          updateStepStatus(2);
-          currentPhase = 2;
-        }
-        await wait(5000);
-        if (currentPhase < 3) {
-          updateStepStatus(3);
-          currentPhase = 3;
-        }
-      }
-
       return savedPlaybook;
     };
 
     try {
       const playbook = await runGeneration();
+
+      // Stop timer-based advancement — we'll drive the remaining steps ourselves
+      clearPhaseTimers();
+
       if (!playbook) {
-        setIsGenerating(false);
+        resetToInputState();
         return;
       }
 
+      // ── Walk through any phases that haven't fired yet, each with a visible gap ──
+      // This ensures "shaping" and "preparing" never check simultaneously.
+      if (currentPhase < 1) {
+        await wait(400);
+        advanceToPhase(1);
+      }
+      if (currentPhase < 2) {
+        await wait(1500);
+        advanceToPhase(2);
+      }
+      if (currentPhase < 3) {
+        await wait(1500);
+        advanceToPhase(3);
+      }
+
+      // Let the final step pulse as "active" briefly before the checkmark lands
+      await wait(1000);
+
+      stopProgressTrickle();
       await completeProgress();
       try { triggerSuccessHaptic(); } catch {}
 
       if (user.id) {
         try {
           await faithPointsService.awardPoints(user.id, 'playbook_generated', {
-            suppressNotification: false,
+            suppressNotification: true, // hide faith points reward notification
             isOnboarding: false,
           });
         } catch (pointsError) {
@@ -690,6 +829,8 @@ const UserInputScreen: React.FC = () => {
         ],
       });
     } catch (error) {
+      clearPhaseTimers();
+      stopProgressTrickle();
       Logger.error('[UserInputScreen] Generation error', error as Error);
       try { triggerErrorHaptic(); } catch {}
 
@@ -700,7 +841,7 @@ const UserInputScreen: React.FC = () => {
           [
             {
               text: 'OK',
-              onPress: () => setIsGenerating(false),
+              onPress: () => { resetToInputState(); resetGenerationSteps(); },
             },
           ]
         );
@@ -722,7 +863,7 @@ const UserInputScreen: React.FC = () => {
             text: 'Cancel',
             style: 'cancel',
             onPress: () => {
-              setIsGenerating(false);
+              resetToInputState();
               resetGenerationSteps();
             },
           },
@@ -802,29 +943,78 @@ const UserInputScreen: React.FC = () => {
       }
     }
 
-    // Trigger transition animation and start generation
-    setIsGenerating(true);
-    
     // Close keyboard
     Keyboard.dismiss();
-    
-    // Animate input collapse and generating state fade-in
+
+    // ── Start API call immediately — don't wait for animations ──────────────
+    handleGenerationFlow();
+
+    // ── Phase 1: footer shrinks + header content fades (0–260ms) ────────────
+    generatingFadeAnim.setValue(0);
+    generatingScaleAnim.setValue(0.92);
+    genLogoEntryAnim.setValue(0);
+    genCardEntryAnim.setValue(0);
+    genHeadingEntryAnim.setValue(0);
+    genStepsEntryAnim.setValue(0);
+    genProgressEntryAnim.setValue(0);
+
     Animated.parallel([
       Animated.timing(inputCollapseAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 260,
         useNativeDriver: true,
       }),
-      Animated.timing(generatingFadeAnim, {
-        toValue: 1,
-        duration: 600,
-        delay: 200,
+      Animated.timing(inputScaleAnim, {
+        toValue: 0.88,
+        duration: 220,
         useNativeDriver: true,
       }),
-    ]).start();
+      Animated.timing(headerIntroOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(askBoxOpacity, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // ── Phase 2: switch to generating mode; each element bounces in ───────
+      setIsGenerating(true);
 
-    // Start generation flow
-    handleGenerationFlow();
+      requestAnimationFrame(() => {
+        // Container fades + scales in with spring bounce
+        Animated.parallel([
+          Animated.timing(generatingFadeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(generatingScaleAnim, {
+            toValue: 1,
+            tension: 45,
+            friction: 7,   // friction 7 → slight overshoot/bounce
+            useNativeDriver: true,
+          }),
+        ]).start();
+
+        // Staggered element entrance — each springs up with its own delay
+        const springConfig = { tension: 55, friction: 8, useNativeDriver: true as const };
+        const entries: [Animated.Value, number][] = [
+          [genLogoEntryAnim,     0],
+          [genCardEntryAnim,     90],
+          [genHeadingEntryAnim,  190],
+          [genStepsEntryAnim,    300],
+          [genProgressEntryAnim, 430],
+        ];
+        entries.forEach(([anim, delay]) => {
+          setTimeout(() => {
+            Animated.spring(anim, { toValue: 1, ...springConfig }).start();
+          }, delay);
+        });
+      });
+    });
 
     // Clear draft after successful navigation is handled post-generation
   };
@@ -950,49 +1140,99 @@ const UserInputScreen: React.FC = () => {
             )}
           </Animated.View>
 
-          {/* Logo in generating state */}
+          {/* Logo in generating state — slides in from the left */}
           {isGenerating && (
-            <Animated.Image 
-              source={require('../../assets/icons/siFia-logo-white.png')} 
+            <Animated.Image
+              source={require('../../assets/icons/siFia-logo-white.png')}
               style={[
                 styles.generatingLogo,
-                { opacity: generatingFadeAnim }
-              ]} 
-              resizeMode="contain" 
+                {
+                  opacity: genLogoEntryAnim,
+                  transform: [{
+                    translateX: genLogoEntryAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-24, 0],
+                    }),
+                  }],
+                },
+              ]}
+              resizeMode="contain"
             />
           )}
 
-          {/* Generating State View */}
+          {/* Generating State View — container bounces in via scale spring */}
           {isGenerating && (
-            <Animated.View style={[styles.generatingContainer, { opacity: generatingFadeAnim }]}>
-              <View style={styles.situationCard}>
-                <Text style={[styles.situationLabel, font]}>WHAT YOU'VE SHARED</Text>
-                <Text style={[styles.situationText, font]} numberOfLines={3}>"{userInput.length > 100 ? userInput.slice(0, 100) + '…"' : userInput + '"'}</Text>
-              </View>
+            <Animated.View style={[
+              styles.generatingContainer,
+              {
+                opacity: generatingFadeAnim,
+                transform: [{ scale: generatingScaleAnim }],
+              },
+            ]}>
 
-              <Text style={[styles.buildingHeading, font]}>Building your playbook…</Text>
-              <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
+              {/* Situation card */}
+              <Animated.View style={{
+                opacity: genCardEntryAnim,
+                transform: [{
+                  translateY: genCardEntryAnim.interpolate({
+                    inputRange: [0, 1], outputRange: [22, 0],
+                  }),
+                }],
+              }}>
+                <View style={styles.situationCard}>
+                  <Text style={[styles.situationLabel, font]}>WHAT YOU'VE SHARED</Text>
+                  <Text style={[styles.situationText, font]} numberOfLines={3}>"{userInput.length > 100 ? userInput.slice(0, 100) + '…"' : userInput + '"'}</Text>
+                </View>
+              </Animated.View>
 
-              <View style={styles.stepsContainer}>
+              {/* "Building your playbook..." — letters pulse via opacity shimmer */}
+              <Animated.View style={{
+                opacity: genHeadingEntryAnim,
+                transform: [{
+                  translateY: genHeadingEntryAnim.interpolate({
+                    inputRange: [0, 1], outputRange: [20, 0],
+                  }),
+                }],
+              }}>
+                <Animated.Text style={[styles.buildingHeading, font, { opacity: buildingTextOpacity }]}>
+                  {'Building your playbook' + buildingDots}
+                </Animated.Text>
+                <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
+              </Animated.View>
+
+              {/* Step cards */}
+              <Animated.View style={[
+                styles.stepsContainer,
+                {
+                  opacity: genStepsEntryAnim,
+                  transform: [{
+                    translateY: genStepsEntryAnim.interpolate({
+                      inputRange: [0, 1], outputRange: [18, 0],
+                    }),
+                  }],
+                },
+              ]}>
                 {generationSteps.map((step, index) => (
                   <View key={index} style={[
                     styles.stepCard,
                     step.status === 'completed' && styles.stepCardCompleted,
                     step.status === 'active' && styles.stepCardActive,
-                    step.status === 'inactive' && styles.stepCardDefault
+                    step.status === 'inactive' && styles.stepCardDefault,
                   ]}>
                     <View style={styles.stepRow}>
                       <View style={[
                         styles.stepCircle,
                         step.status === 'completed' && styles.stepCompleted,
                         step.status === 'active' && styles.stepActive,
-                        step.status === 'inactive' && styles.stepInactive
+                        step.status === 'inactive' && styles.stepInactive,
                       ]}>
                         {step.status === 'completed' && (
                           <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
                         )}
                         {step.status === 'active' && (
-                          <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnim }]} />
+                          // Each step has its own dedicated animation value so
+                          // the native driver stays bound even after re-mounts
+                          <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnims[index] }]} />
                         )}
                         {step.status === 'inactive' && (
                           <View style={styles.staticDot} />
@@ -1003,16 +1243,27 @@ const UserInputScreen: React.FC = () => {
                         font,
                         step.status === 'completed' && styles.stepTextCompleted,
                         step.status === 'active' && styles.stepTextActive,
-                        step.status === 'inactive' && styles.stepTextInactive
+                        step.status === 'inactive' && styles.stepTextInactive,
                       ]}>
                         {step.title}
                       </Text>
                     </View>
                   </View>
                 ))}
-              </View>
+              </Animated.View>
 
-              <View style={styles.progressContainer}>
+              {/* Progress bar */}
+              <Animated.View style={[
+                styles.progressContainer,
+                {
+                  opacity: genProgressEntryAnim,
+                  transform: [{
+                    translateY: genProgressEntryAnim.interpolate({
+                      inputRange: [0, 1], outputRange: [14, 0],
+                    }),
+                  }],
+                },
+              ]}>
                 <View style={styles.progressBarBackground}>
                   <Animated.View
                     style={[
@@ -1028,13 +1279,13 @@ const UserInputScreen: React.FC = () => {
                   />
                 </View>
                 <Text style={[styles.progressLabel, font]}>Phase {currentStep} of 4</Text>
-              </View>
+              </Animated.View>
             </Animated.View>
           )}
         </View>
 
         {/* Fixed footer input anchored to safe area */}
-        <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -100] }) }] }]}>
+        <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] }) }, { scale: inputScaleAnim }] }]}>
           <View style={styles.inputContainer}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <View style={styles.askWrapper}>
