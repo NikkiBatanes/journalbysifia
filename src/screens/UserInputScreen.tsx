@@ -1539,7 +1539,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginTop: -30,
-    paddingHorizontal: 8,
+    paddingHorizontal: 32,
     maxWidth: '100%',
   },
   navButtonContainer: {
