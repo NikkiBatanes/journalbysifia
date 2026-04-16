@@ -30,6 +30,9 @@ import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
+import { useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
+import { faithPointsService } from '../services/faithPointsService';
+import { toLocalDateString } from '../utils/date';
 
 import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -387,11 +390,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   insets,
 }) => {
   const [actionStepIndex, setActionStepIndex] = useState(0);
+  const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>({});
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const createPrayerMutation = useCreateDevotionalPrayer();
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
@@ -586,6 +591,46 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     'Skip'
   );
 
+  const isCommitted = !!committedSteps[actionStepIndex];
+
+  // Detect special step types from primary button label
+  const isPrayerStep = /pray/i.test(primaryLabel);
+  const isReadAloudStep = /aloud|read/i.test(primaryLabel);
+
+  const handlePrimaryPress = async () => {
+    const nowCommitted = !isCommitted;
+    setCommittedSteps(prev => ({ ...prev, [actionStepIndex]: nowCommitted }));
+    triggerLightHaptic();
+
+    if (nowCommitted) {
+      // Prayer step → save to prayers table
+      if (isPrayerStep) {
+        createPrayerMutation.mutate({
+          content: mainBodyText,
+          userId,
+          dateStr: toLocalDateString(new Date()),
+          devotionalTitle: playbookTitle ?? '',
+          dayNumber: actionStepIndex + 1,
+          dayTitle: currentStep.title ?? '',
+          totalDays: steps.length,
+        });
+      }
+
+      // Read aloud step → award affirmation faith points
+      if (isReadAloudStep) {
+        try {
+          await faithPointsService.awardPoints(userId, 'affirmation_read_aloud', {
+            playbookId,
+            playbookTitle,
+            source: 'playbook_walkthrough',
+          });
+        } catch (_) {}
+      }
+    }
+
+    advanceStep(nowCommitted);
+  };
+
   return (
     <>
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
@@ -753,16 +798,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.doneButton}
+              style={[styles.doneButton, isCommitted && styles.doneButtonCommitted]}
               onPress={() => {
                 if (actionType === 'text_input') {
                   handleSaveJournal();
                 } else {
-                  advanceStep(true);
+                  handlePrimaryPress();
                 }
               }}
               activeOpacity={0.85}
             >
+              {isCommitted && (
+                <Ionicons name="checkmark" size={15} color={Colors.hopeWhite} style={{ marginRight: 4 }} />
+              )}
               <ThemedText weight="semiBold" style={styles.doneButtonText}>
                 {primaryLabel}
               </ThemedText>
@@ -1937,12 +1985,18 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     flex: 1,
+    flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 22,
     paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+  },
+  doneButtonCommitted: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   doneButtonText: {
     fontSize: 15,
