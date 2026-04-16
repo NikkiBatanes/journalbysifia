@@ -107,6 +107,83 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
   );
 };
 
+// ─── Skeleton Loading Component ────────────────────────────────────────────────
+
+const SkeletonLoader: React.FC<{ insets: { top: number } }> = ({ insets }) => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const shimmer = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmer.start();
+    return () => shimmer.stop();
+  }, []);
+
+  const shimmerOpacity = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.6],
+  });
+
+  const SkeletonItem = ({ width, height, style }: { width?: number | string; height?: number; style?: any }) => (
+    <Animated.View
+      style={[
+        {
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          borderRadius: 4,
+        },
+        style,
+        width ? { width } : {},
+        height ? { height } : {},
+        { opacity: shimmerOpacity },
+      ]}
+    />
+  );
+
+  return (
+    <ScrollView
+      style={styles.stepScroll}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* PLAYBOOK label skeleton */}
+      <View style={styles.playbookLabelContainer}>
+        <SkeletonItem width={80} height={16} />
+      </View>
+
+      {/* Title skeleton */}
+      <View style={{ marginTop: 24 }}>
+        <SkeletonItem width="80%" height={28} style={{ marginBottom: 12 }} />
+        <SkeletonItem width="60%" height={28} />
+      </View>
+
+      {/* Summary paragraphs skeleton */}
+      <View style={{ marginTop: 40 }}>
+        <SkeletonItem width="100%" height={20} style={{ marginBottom: 12 }} />
+        <SkeletonItem width="95%" height={20} style={{ marginBottom: 12 }} />
+        <SkeletonItem width="90%" height={20} style={{ marginBottom: 12 }} />
+        <SkeletonItem width="85%" height={20} />
+      </View>
+
+      {/* Transition line skeleton */}
+      <View style={[styles.transitionLineContainer, { marginTop: 32 }]}>
+        <SkeletonItem width="70%" height={16} />
+      </View>
+    </ScrollView>
+  );
+};
+
 // ─── Step 0: Enter the Moment ────────────────────────────────────────────────
 
 interface EnterMomentProps {
@@ -1774,13 +1851,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ThemedText style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15 }}>
-          Loading…
-        </ThemedText>
-      </View>
-    );
+    return <SkeletonLoader insets={insets} />;
   }
 
   if (!playbook) {
