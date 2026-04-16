@@ -1552,6 +1552,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Screen 0 close and next buttons animate in with fade + scale
   const screen0CloseAnim = useRef(new Animated.Value(0)).current;
   const screen0NextAnim = useRef(new Animated.Value(0)).current;
+  // Scripture anchor (step 2) next button animates out when pressed
+  const scriptureNextAnim = useRef(new Animated.Value(1)).current;
+  // Prayer (step 4) next button animates in
+  const prayerNextAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -1622,6 +1626,29 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [stepIndex, actionStepIndex, backButtonAnim]);
 
+  // Reset scriptureNextAnim when not on step 2
+  useEffect(() => {
+    if (stepIndex !== 2) {
+      scriptureNextAnim.setValue(1);
+    }
+  }, [stepIndex, scriptureNextAnim]);
+
+  // Animate prayerNextAnim when entering step 4
+  useEffect(() => {
+    if (stepIndex === 4) {
+      prayerNextAnim.setValue(0);
+      Animated.spring(prayerNextAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 400,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      prayerNextAnim.setValue(0);
+    }
+  }, [stepIndex, prayerNextAnim]);
+
   const animateStep = useCallback(
     (nextStep: number, direction: 'forward' | 'back') => {
       const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.25 : SCREEN_WIDTH * 0.25;
@@ -1687,12 +1714,28 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const goNext = useCallback(() => {
     triggerLightHaptic();
     if (stepIndex < TOTAL_STEPS - 1) {
-      // Skip prayer step (4) if this playbook has no prayer
-      const hasPrayer = (playbook?.prayer || '').length > 0;
-      const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
-      animateStep(next, 'forward');
+      // Animate next button out on scripture anchor step (step 2)
+      if (stepIndex === 2) {
+        Animated.parallel([
+          Animated.timing(scriptureNextAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Skip prayer step (4) if this playbook has no prayer
+          const hasPrayer = (playbook?.prayer || '').length > 0;
+          const next = !hasPrayer ? 3 : 3;
+          animateStep(next, 'forward');
+        });
+      } else {
+        // Skip prayer step (4) if this playbook has no prayer
+        const hasPrayer = (playbook?.prayer || '').length > 0;
+        const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
+        animateStep(next, 'forward');
+      }
     }
-  }, [stepIndex, animateStep, playbook?.prayer]);
+  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
@@ -1985,10 +2028,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             styles.nextButton,
             { bottom: insets.bottom + 20 },
             {
-              opacity: stepIndex === 0 ? screen0NextAnim : 1,
+              opacity: stepIndex === 0 ? screen0NextAnim : stepIndex === 2 ? scriptureNextAnim : stepIndex === 4 ? prayerNextAnim : 1,
               transform: [
                 {
                   scale: stepIndex === 0 ? screen0NextAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }) : stepIndex === 2 ? scriptureNextAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }) : stepIndex === 4 ? prayerNextAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0.6, 1],
                   }) : 1,
