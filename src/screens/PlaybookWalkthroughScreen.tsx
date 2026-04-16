@@ -372,9 +372,9 @@ let journalNudgeFired = false;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
-  { type: 'prayer', icon: 'hands-pray', color: Colors.reflectionBlue, label: 'Pray' },
-  { type: 'gratitude', icon: 'heart', color: Colors.gratitudeRed, label: 'Gratitude' },
-  { type: 'timeblock', icon: 'clock', color: Colors.timeblockGreen, label: 'Schedule' },
+  { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
+  { type: 'gratitude', icon: 'heart', color: Colors.alertCoral, label: 'Gratitude' },
+  { type: 'timeblock', icon: 'clock', color: Colors.growthGreen, label: 'Schedule' },
 ];
 
 const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
@@ -727,7 +727,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
                   activeOpacity={0.75}
                 >
-                  <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color }]}>
+                  <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
                     <MaterialCommunityIcons name={icon} size={20} color={color} />
                   </View>
                   <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
@@ -1995,8 +1995,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   prayerActionButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderColor: 'rgba(255, 107, 107, 0.4)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   prayerActionButtonFloating: {
     position: 'absolute',
@@ -2006,12 +2006,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     alignSelf: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 18,
-    backgroundColor: 'rgba(26,60,109,0.15)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   prayerActionText: {
     fontSize: 14,
