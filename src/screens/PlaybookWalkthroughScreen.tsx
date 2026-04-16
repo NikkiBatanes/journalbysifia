@@ -379,6 +379,7 @@ let journalNudgeFired = false;
 let persistedCommittedSteps: Record<number, boolean> = {};
 let persistedActionStepIndex = 0;
 let persistedPlaybookId: string | undefined;
+let persistedHasPrayed = false;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
@@ -900,14 +901,17 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
 interface PrayerStepProps {
   prayer: string;
+  playbookTitle?: string;
+  userId: string;
   onNext: () => void;
   insets: { top: number; bottom: number };
 }
 
-const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
-  const [hasPrayed, setHasPrayed] = useState(false);
+const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, insets }) => {
+  const [hasPrayed, setHasPrayed] = useState(persistedHasPrayed);
   const [showButton, setShowButton] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const createPrayerMutation = useCreateDevotionalPrayer();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -922,8 +926,23 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
   }, [fadeAnim]);
 
   const handlePrayed = () => {
-    triggerLightHaptic();
-    setHasPrayed(prev => !prev);
+    triggerMediumHaptic();
+    const nowPrayed = !hasPrayed;
+    persistedHasPrayed = nowPrayed;
+    setHasPrayed(nowPrayed);
+
+    if (nowPrayed) {
+      createPrayerMutation.mutate({
+        content: prayer,
+        userId,
+        dateStr: toLocalDateString(new Date()),
+        devotionalTitle: playbookTitle ?? '',
+        dayNumber: 1,
+        dayTitle: 'Prayer',
+        totalDays: 1,
+        prayer_type: 'guided_playbook',
+      });
+    }
   };
 
   // Ensure prayer always ends with the closing — append for old playbooks that don't have it
@@ -1290,6 +1309,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedPlaybookId = playbookId;
     persistedCommittedSteps = {};
     persistedActionStepIndex = 0;
+    persistedHasPrayed = false;
     journalNudgeFired = false;
     setActionStepIndex(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1572,6 +1592,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             {stepIndex === 4 && (
               <PrayerStep
                 prayer={prayerText}
+                playbookTitle={playbook.title}
+                userId={userId}
                 onNext={goNext}
                 insets={insets}
               />
