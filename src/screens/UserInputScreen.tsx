@@ -118,6 +118,11 @@ const UserInputScreen: React.FC = () => {
     });
 
   const completeProgress = async () => {
+    // Mark all steps as completed
+    setGenerationSteps((prev) =>
+      prev.map((step) => ({ ...step, status: 'completed' }))
+    );
+    setCurrentStep(4);
     await animateProgressTo(100, 600);
   };
 
@@ -136,8 +141,11 @@ const UserInputScreen: React.FC = () => {
       })
     );
     setCurrentStep(Math.min(stepIndex + 1, 4));
-    const targetProgress = getTargetProgressForStep(stepIndex);
-    animateProgressTo(targetProgress, 700);
+    // Only animate progress for steps 1-3, not step 0 (let it fill naturally)
+    if (stepIndex > 0) {
+      const targetProgress = getTargetProgressForStep(stepIndex);
+      animateProgressTo(targetProgress, 700);
+    }
   };
 
   // Transition animations
@@ -510,8 +518,6 @@ const UserInputScreen: React.FC = () => {
 
     resetGenerationSteps();
     updateStepStatus(0);
-    await wait(1000); // Delay initial progress animation
-    animateProgressTo(PHASE_PROGRESS_TARGETS[0], 800);
 
     const runGeneration = async () => {
       const response = await unifiedGenerationService.generatePlaybook({
@@ -606,19 +612,19 @@ const UserInputScreen: React.FC = () => {
         throw new Error('Playbook generation is taking longer than expected. Please try again.');
       }
 
-      // Ensure all steps complete with continuous progression
+      // Ensure all steps complete with continuous progression (5-second intervals)
       if (currentPhase < 3) {
-        await wait(500);
+        await wait(5000);
         if (currentPhase < 1) {
           updateStepStatus(1);
           currentPhase = 1;
         }
-        await wait(500);
+        await wait(5000);
         if (currentPhase < 2) {
           updateStepStatus(2);
           currentPhase = 2;
         }
-        await wait(500);
+        await wait(5000);
         if (currentPhase < 3) {
           updateStepStatus(3);
           currentPhase = 3;
