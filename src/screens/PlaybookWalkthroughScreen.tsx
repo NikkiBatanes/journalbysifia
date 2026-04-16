@@ -380,6 +380,7 @@ let persistedCommittedSteps: Record<number, boolean> = {};
 let persistedActionStepIndex = 0;
 let persistedPlaybookId: string | undefined;
 let persistedHasPrayed = false;
+let persistedHasRead = false;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
@@ -909,11 +910,12 @@ interface PrayerStepProps {
 
 const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, insets }) => {
   const [hasPrayed, setHasPrayed] = useState(persistedHasPrayed);
-  const [showButton, setShowButton] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [showButton, setShowButton] = useState(persistedHasPrayed); // show immediately if already prayed
+  const fadeAnim = useRef(new Animated.Value(persistedHasPrayed ? 1 : 0)).current;
   const createPrayerMutation = useCreateDevotionalPrayer();
 
   useEffect(() => {
+    if (persistedHasPrayed) { return; } // already visible, skip delay
     const timer = setTimeout(() => {
       setShowButton(true);
       Animated.timing(fadeAnim, {
@@ -1022,11 +1024,12 @@ interface WordToSpeakStepProps {
 }
 
 const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
-  const [hasRead, setHasRead] = useState(false);
-  const [showButton, setShowButton] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [hasRead, setHasRead] = useState(persistedHasRead);
+  const [showButton, setShowButton] = useState(persistedHasRead); // show immediately if already read
+  const fadeAnim = useRef(new Animated.Value(persistedHasRead ? 1 : 0)).current;
 
   useEffect(() => {
+    if (persistedHasRead) { return; } // already visible, skip delay
     const timer = setTimeout(() => {
       setShowButton(true);
       Animated.timing(fadeAnim, {
@@ -1039,8 +1042,10 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
   }, [fadeAnim]);
 
   const handleRead = () => {
-    triggerLightHaptic();
-    setHasRead(prev => !prev);
+    triggerMediumHaptic();
+    const nowRead = !hasRead;
+    persistedHasRead = nowRead;
+    setHasRead(nowRead);
   };
 
   return (
@@ -1310,6 +1315,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedCommittedSteps = {};
     persistedActionStepIndex = 0;
     persistedHasPrayed = false;
+    persistedHasRead = false;
     journalNudgeFired = false;
     setActionStepIndex(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
