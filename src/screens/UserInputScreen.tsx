@@ -15,7 +15,6 @@ import {
   Platform,
   StyleSheet,
   useWindowDimensions,
-  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -26,7 +25,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { triggerLightHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerSuccessHaptic, triggerErrorHaptic } from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useNewSubscription } from '../hooks/useNewSubscription';
@@ -34,6 +33,10 @@ import { checkAndRecordRequest, type SubscriptionTier } from '../utils/rateLimit
 import { Alert } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { unifiedGenerationService } from '../services/unifiedGenerationService';
+import { faithPointsService } from '../services/faithPointsService';
+import { subscriptionService } from '../services/subscriptionService';
+import type { Playbook } from '../interfaces/playbook';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -41,6 +44,21 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 };
 
 const MAX_USER_INPUT_LENGTH = 2000;
+
+type StepStatus = 'completed' | 'active' | 'inactive';
+type GenerationStep = { key: string; title: string; status: StepStatus };
+
+const PHASE_PROGRESS_TARGETS = [20, 50, 80, 95];
+const INITIAL_GENERATION_STEPS: GenerationStep[] = [
+  { key: 'seeing', title: 'Seeing this moment clearly', status: 'inactive' },
+  { key: 'naming', title: 'Naming what matters most', status: 'inactive' },
+  { key: 'shaping', title: 'Shaping faithful next steps', status: 'inactive' },
+  { key: 'preparing', title: 'Preparing your playbook', status: 'inactive' },
+];
+
+const buildInitialGenerationSteps = () => INITIAL_GENERATION_STEPS.map((step) => ({ ...step }));
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
@@ -68,13 +86,63 @@ const UserInputScreen: React.FC = () => {
   // Generating state
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1-4
-  const generationSteps = [
-    { title: 'Seeing this moment clearly', status: 'completed' },
-    { title: 'Naming what matters most', status: 'active' },
-    { title: 'Shaping faithful next steps', status: 'inactive' },
-    { title: 'Preparing your playbook', status: 'inactive' },
-  ];
+  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>(() => buildInitialGenerationSteps());
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const generationAbortRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const [generationMessage, setGenerationMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      generationAbortRef.current = true;
+    };
+  }, []);
+
+  const resetGenerationSteps = () => {
+    setGenerationSteps(() => {
+      const steps = buildInitialGenerationSteps();
+      steps[0].status = 'active';
+      return steps;
+    });
+    setCurrentStep(1);
+    progressAnim.setValue(0);
+    setGenerationMessage(null);
+    generationAbortRef.current = false;
+  };
+
+  const animateProgressTo = (target: number, duration = 800) =>
+    new Promise<void>((resolve) => {
+      Animated.timing(progressAnim, {
+        toValue: target,
+        duration,
+        useNativeDriver: false,
+      }).start(() => resolve());
+    });
+
+  const completeProgress = async () => {
+    await animateProgressTo(100, 600);
+  };
+
+  const getTargetProgressForStep = (stepIndex: number) => PHASE_PROGRESS_TARGETS[Math.min(stepIndex, PHASE_PROGRESS_TARGETS.length - 1)] || 95;
+
+  const updateStepStatus = (stepIndex: number) => {
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        if (index < stepIndex) {
+          return { ...step, status: 'completed' };
+        }
+        if (index === stepIndex) {
+          return { ...step, status: 'active' };
+        }
+        return { ...step, status: 'inactive' };
+      })
+    );
+    setCurrentStep(Math.min(stepIndex + 1, 4));
+    const targetProgress = getTargetProgressForStep(stepIndex);
+    animateProgressTo(targetProgress, 700);
+  };
 
   // Transition animations
   const inputCollapseAnim = useRef(new Animated.Value(0)).current;
@@ -439,6 +507,206 @@ const UserInputScreen: React.FC = () => {
     setUserInput(text);
   };
 
+  const handleGenerationFlow = async () => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    resetGenerationSteps();
+    updateStepStatus(0);
+    setGenerationMessage('Seeing this moment clearly…');
+
+    const runGeneration = async () => {
+      const response = await unifiedGenerationService.generatePlaybook({
+        userId: user.id,
+        userInput,
+        userName,
+        isOnboarding: false,
+      });
+
+      if (!response.success) {
+        throw Object.assign(new Error(response.message || 'Unable to generate playbook'), response);
+      }
+
+      if (response.message) {
+        setGenerationMessage(response.message);
+      }
+
+      let savedPlaybook: Playbook | null = null;
+
+      const fetchLatestPlaybook = async () => {
+        if (!user.id) { return null; }
+        const { supabase } = await import('../services/supabaseClient');
+        const { data: recentPlaybooks } = await supabase
+          .from('playbooks')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!recentPlaybooks || recentPlaybooks.length === 0) {
+          return null;
+        }
+
+        const { getPlaybook } = await import('../services/modernPlaybookApi');
+        const completePlaybook = await getPlaybook(user.id, recentPlaybooks[0].id);
+        return completePlaybook as Playbook;
+      };
+
+      if (response.queueId) {
+        const maxAttempts = 60;
+        let attempts = 0;
+
+        while (attempts < maxAttempts && !savedPlaybook) {
+          if (generationAbortRef.current) {
+            return null;
+          }
+
+          attempts += 1;
+          await wait(1000);
+
+          const status = await unifiedGenerationService.checkGenerationStatus(response.queueId);
+
+          if (status.status === 'failed') {
+            throw new Error(status.message || 'Generation failed. Please try again.');
+          }
+
+          if (status.status === 'completed' && status.resultId && user.id) {
+            const { getPlaybook } = await import('../services/modernPlaybookApi');
+            const completePlaybook = await getPlaybook(user.id, status.resultId);
+            if (completePlaybook) {
+              savedPlaybook = completePlaybook as Playbook;
+              break;
+            }
+          }
+
+          if (status.status === 'processing') {
+            if (status.message) {
+              setGenerationMessage(status.message);
+            }
+          }
+
+          if (status.status === 'processing' && attempts > 15) {
+            try {
+              const fallback = await fetchLatestPlaybook();
+              if (fallback) {
+                savedPlaybook = fallback;
+                break;
+              }
+            } catch (fallbackError) {
+              Logger.error('[UserInputScreen] Fallback playbook fetch failed', fallbackError as Error);
+            }
+          }
+
+          if (attempts === 15) {
+            updateStepStatus(1);
+            setGenerationMessage('Naming what matters most…');
+          } else if (attempts === 30) {
+            updateStepStatus(2);
+            setGenerationMessage('Shaping faithful next steps…');
+          } else if (attempts === 45) {
+            updateStepStatus(3);
+            setGenerationMessage('Preparing your playbook…');
+          }
+        }
+      } else {
+        savedPlaybook = await fetchLatestPlaybook();
+      }
+
+      if (!savedPlaybook) {
+        throw new Error('Playbook generation is taking longer than expected. Please try again.');
+      }
+
+      return savedPlaybook;
+    };
+
+    try {
+      const playbook = await runGeneration();
+      if (!playbook) {
+        setIsGenerating(false);
+        return;
+      }
+
+      await completeProgress();
+      try { triggerSuccessHaptic(); } catch {}
+
+      if (user.id) {
+        try {
+          await faithPointsService.awardPoints(user.id, 'playbook_generated', {
+            suppressNotification: false,
+            isOnboarding: false,
+          });
+        } catch (pointsError) {
+          Logger.error('[UserInputScreen] Failed to award faith points', pointsError as Error);
+        }
+
+        try {
+          await subscriptionService.trackUsage(user.id, 'playbook', 0, false);
+        } catch (usageError) {
+          Logger.error('[UserInputScreen] Failed to track usage', usageError as Error);
+        }
+      }
+
+      try {
+        await AsyncStorage.removeItem(DRAFT_KEY);
+      } catch {}
+
+      generationAbortRef.current = true;
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            state: {
+              routes: [{ name: 'Home' }, { name: 'PlaybookList' }],
+              index: 1,
+            },
+          },
+          { name: 'PlaybookWalkthrough', params: { playbook } },
+        ],
+      });
+    } catch (error) {
+      Logger.error('[UserInputScreen] Generation error', error as Error);
+      try { triggerErrorHaptic(); } catch {}
+
+      if ((error as any).contentBlocked) {
+        Alert.alert(
+          'Content Review',
+          (error as any).christianMessage || 'Content blocked for review.',
+          [
+            {
+              text: 'OK',
+              onPress: () => setIsGenerating(false),
+            },
+          ]
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Connection Lost',
+        (error as Error)?.message || 'The network connection was lost. Please try again.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => {
+              generationAbortRef.current = false;
+              handleGenerationFlow();
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsGenerating(false);
+              resetGenerationSteps();
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const handleGeneratePlaybook = async () => {
     try { triggerLightHaptic(); } catch {}
     animateButton();
@@ -531,13 +799,11 @@ const UserInputScreen: React.FC = () => {
       }),
     ]).start();
 
-    // TODO: Phase 4 - Integrate with generation service
-    // For now, just simulate the transition
-    console.log('Starting generation with input:', userInput);
+    // Start generation flow
+    handleGenerationFlow();
 
-    // Clear draft after successful navigation (generation will handle clearing input on success)
-    // Note: Draft is preserved if generation fails, so user can try again
-};
+    // Clear draft after successful navigation is handled post-generation
+  };
 
   const handleInputPress = () => {
     inputRef.current?.focus();
@@ -668,6 +934,9 @@ const UserInputScreen: React.FC = () => {
 
               <Text style={[styles.buildingHeading, font]}>Building your playbook…</Text>
               <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
+              {generationMessage && (
+                <Text style={[styles.generationMessage, font]}>{generationMessage}</Text>
+              )}
 
               <View style={styles.stepsContainer}>
                 {generationSteps.map((step, index) => (
@@ -1043,6 +1312,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255,255,255,0.6)',
     marginBottom: 32,
+  },
+  generationMessage: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: 24,
   },
   stepsContainer: {
     marginBottom: 32,
