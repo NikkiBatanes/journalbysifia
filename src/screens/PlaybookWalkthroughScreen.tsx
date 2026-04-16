@@ -784,6 +784,15 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           </ThemedText>
         </StepFadeIn>
 
+        <StepFadeIn delay={100}>
+          <View style={styles.actionProgressBar}>
+            <View style={[
+              styles.actionProgressFill,
+              { width: `${(stepNumber / totalSteps) * 100}%` }
+            ]} />
+          </View>
+        </StepFadeIn>
+
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.actionStepCard}>
@@ -1584,7 +1593,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           toValue: 1,
           tension: 80,
           friction: 8,
-          delay: 400,
+          delay: 800,
           useNativeDriver: true,
         }),
       ]).start();
@@ -1776,7 +1785,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     'Carry what God has shown you into the room.';
 
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
-  const hasFloatingNext = stepIndex !== 6;
+  // Faithful Actions (step 3) has its own Done/Skip buttons, so hide the floating next
+  const hasFloatingNext = stepIndex !== 6 && stepIndex !== 3;
 
   return (
     <View style={styles.container}>
@@ -2074,8 +2084,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginBottom: 20,
-    marginTop: 16,
+    marginBottom: 8,
+    marginTop: 32,
   },
   playbookLabel: {
     fontSize: 11,
@@ -2098,7 +2108,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 22,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -2325,8 +2335,24 @@ const styles = StyleSheet.create({
   actionCounter: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.45)',
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 8,
     letterSpacing: 0.5,
+    textAlign: 'center' as const,
+  },
+  actionProgressBar: {
+    height: 6,
+    width: 120,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginBottom: 24,
+    overflow: 'hidden' as const,
+    alignSelf: 'center' as const,
+  },
+  actionProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 2,
   },
   actionStepCard: {
     backgroundColor: 'rgba(255,255,255,0.07)',
