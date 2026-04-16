@@ -373,6 +373,9 @@ type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | nu
 // Module-level flag — persists across remounts so the nudge only fires once per session
 let journalNudgeFired = false;
 
+// Module-level committed steps — persists across remounts (navigating back/forward)
+let persistedCommittedSteps: Record<number, boolean> = {};
+
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
   { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
@@ -390,7 +393,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   insets,
 }) => {
   const [actionStepIndex, setActionStepIndex] = useState(0);
-  const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>({});
+  const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
@@ -599,7 +602,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const handlePrimaryPress = async () => {
     const nowCommitted = !isCommitted;
-    setCommittedSteps(prev => ({ ...prev, [actionStepIndex]: nowCommitted }));
+    persistedCommittedSteps = { ...persistedCommittedSteps, [actionStepIndex]: nowCommitted };
+    setCommittedSteps({ ...persistedCommittedSteps });
     triggerLightHaptic();
 
     if (nowCommitted) {
@@ -808,10 +812,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               }}
               activeOpacity={0.85}
             >
-              {isCommitted && (
-                <Ionicons name="checkmark" size={15} color={Colors.hopeWhite} style={{ marginRight: 4 }} />
-              )}
-              <ThemedText weight="semiBold" style={styles.doneButtonText}>
+              <ThemedText weight="semiBold" style={[styles.doneButtonText, isCommitted && styles.doneButtonTextCommitted]}>
                 {primaryLabel}
               </ThemedText>
             </TouchableOpacity>
@@ -1995,8 +1996,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   doneButtonCommitted: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  doneButtonTextCommitted: {
+    color: Colors.hopeWhite,
   },
   doneButtonText: {
     fontSize: 15,
