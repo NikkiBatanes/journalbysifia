@@ -222,9 +222,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
       <View style={styles.textBlock}>
         {paragraphs.map((para, i) => (
           <StepFadeIn key={i} delay={100 + (i * 80)}>
-            <ThemedText style={styles.bodyText}>
-              {para}
-            </ThemedText>
+            <ThemedText style={styles.bodyText}>{para}</ThemedText>
           </StepFadeIn>
         ))}
       </View>
@@ -470,10 +468,14 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   // Strip leftover markdown bold/italic markers (** or *) from any field
   const stripMd = (s: string) => s.replace(/\*\*|__|\*/g, '').trim();
 
-  // Body text: description (new format) or subtasks joined (legacy format)
-  const rawBodyLines: string[] = currentStep.description
-    ? currentStep.description.split('\n').map(l => stripMd(l)).filter(Boolean)
-    : (currentStep.subTasks?.map(s => stripMd(s.text)) ?? []);
+  // Split body into main text and example (split on "Example:" marker)
+  const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
+  const exampleSplit = rawDescription.split(/Example:\s*/i);
+  const mainBodyText = stripMd(exampleSplit[0] ?? '');
+  const exampleText = exampleSplit.length > 1 ? stripMd(exampleSplit.slice(1).join('Example: ')) : null;
+
+  const rawBodyLines: string[] = mainBodyText
+    .split('\n').map(l => stripMd(l)).filter(Boolean);
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const primaryLabel = currentStep.primaryButton ?? (
@@ -576,6 +578,18 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               );
             })}
 
+            {/* Example block — matches ActionStepsCard original design */}
+            {exampleText && (
+              <StepFadeIn key={`example-${actionStepIndex}`} delay={300}>
+                <View style={styles.exampleContainer}>
+                  <View style={styles.exampleHeader}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={14} color="rgba(255,255,255,0.6)" />
+                  </View>
+                  <ThemedText style={styles.exampleText}>{exampleText}</ThemedText>
+                </View>
+              </StepFadeIn>
+            )}
+
             {/* TextInput for text_input type */}
             {actionType === 'text_input' && (
               <View style={styles.journalInputWrapper}>
@@ -662,17 +676,15 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
     setHasPrayed(prev => !prev);
   };
 
-  // Always end with "In Jesus' Name, Amen." — strip any existing closing first
-  const prayerBody = prayer
-    .replace(/\n*In Jesus'? [Nn]ame,?\s*[Aa]men\.?/gi, '')
-    .replace(/\n*[Aa]men\.?$/gi, '')
-    .trimEnd();
+  // Ensure prayer always ends with the closing — append for old playbooks that don't have it
+  const fullPrayer = /In Jesus'? [Nn]ame|[Aa]men/i.test(prayer)
+    ? prayer
+    : prayer.trimEnd() + "\n\nIn Jesus' Name,\nAmen";
 
-  // Ensure "Heavenly Father," is always on its own line
-  const fullPrayer = prayerBody.replace(
-    /^(Heavenly Father,)\s+(.)/i,
-    'Heavenly Father,\n$2'
-  );
+  // Split "In Jesus' Name, Amen" out so we can add a clear gap before it
+  const jesusNameIdx = fullPrayer.search(/In Jesus'? [Nn]ame/i);
+  const prayerBodyText = jesusNameIdx > 0 ? fullPrayer.slice(0, jesusNameIdx).trimEnd() : fullPrayer;
+  const prayerClosing = jesusNameIdx > 0 ? fullPrayer.slice(jesusNameIdx) : null;
 
   return (
     <>
@@ -686,15 +698,20 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, insets }) => {
 
         {/* Vertically centered prayer block — sits in the space between label and floating button */}
         <StepFadeIn delay={100} style={styles.prayerBlock}>
-          {splitParagraphs(fullPrayer).map((line, i) => (
+          {splitParagraphs(prayerBodyText).map((line, i) => (
             <View key={i}>
               <ThemedText style={styles.prayerText}>{line}</ThemedText>
               {i === 0 && <View style={{ height: 16 }} />}
             </View>
           ))}
-          <ThemedText style={[styles.prayerText, { marginTop: 4 }]}>
-            In Jesus' name, Amen.
-          </ThemedText>
+          {prayerClosing && (
+            <>
+              <View style={{ height: 24 }} />
+              {splitParagraphs(prayerClosing).map((line, i) => (
+                <ThemedText key={`closing-${i}`} style={styles.prayerText}>{line}</ThemedText>
+              ))}
+            </>
+          )}
         </StepFadeIn>
 
         {/* Spacer so prayer text isn't hidden behind the floating button */}
@@ -1598,6 +1615,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     lineHeight: 23,
+  },
+  // Example block — matches ActionStepsCard original design
+  exampleContainer: {
+    marginTop: 12,
+    marginLeft: 28,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255,255,255,0.2)',
+    paddingLeft: 12,
+    paddingRight: 4,
+  },
+  exampleHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: 4,
+  },
+  exampleText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
   },
   // Choice pills — for 'choose' type steps
   choicePill: {
