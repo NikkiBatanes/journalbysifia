@@ -1563,7 +1563,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     color: 'rgba(255,255,255,0.9)',
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: -30,
