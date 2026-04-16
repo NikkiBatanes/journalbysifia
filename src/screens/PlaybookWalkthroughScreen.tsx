@@ -389,6 +389,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const hasAutoNudged = useRef(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
@@ -443,6 +444,39 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setJournalText('');
     setJournalSaved(false);
     setSelectedChoice(null);
+  }, [actionStepIndex]);
+
+  // Auto-nudge: expand journal icons on first step, then collapse — one time only
+  useEffect(() => {
+    if (actionStepIndex !== 0 || hasAutoNudged.current) return;
+    hasAutoNudged.current = true;
+
+    const expandTimer = setTimeout(() => {
+      // Expand
+      setJournalExpanded(true);
+      Animated.parallel([
+        Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
+        Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+      ]).start(() => {
+        Animated.stagger(50, iconAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
+        )).start(() => {
+          // Hold for 1.4s then collapse
+          setTimeout(() => {
+            Animated.stagger(35, [...iconAnims].reverse().map(anim =>
+              Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
+            )).start(() => {
+              Animated.parallel([
+                Animated.timing(rowHeight, { toValue: 0, duration: 220, useNativeDriver: false }),
+                Animated.timing(rowOpacity, { toValue: 0, duration: 180, useNativeDriver: false }),
+              ]).start(() => setJournalExpanded(false));
+            });
+          }, 1400);
+        });
+      });
+    }, 900); // Wait for step content to settle
+
+    return () => clearTimeout(expandTimer);
   }, [actionStepIndex]);
 
   const animateToNext = useCallback(
