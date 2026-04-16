@@ -91,6 +91,8 @@ const UserInputScreen: React.FC = () => {
   const [showNavigation, setShowNavigation] = useState(false);
   const navButtonAnim = useRef(new Animated.Value(0)).current;
   const navIconEntranceAnim = useRef(new Animated.Value(0)).current;
+  // Individual icon animations for staggered entrance
+  const navIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
 
   // Generating state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1036,12 +1038,26 @@ const UserInputScreen: React.FC = () => {
   const handleNavigationToggle = () => {
     try { triggerLightHaptic(); } catch {}
     setShowNavigation(!showNavigation);
+    const targetValue = showNavigation ? 0 : 1;
+
+    // Animate container
     Animated.spring(navButtonAnim, {
-      toValue: showNavigation ? 0 : 1,
+      toValue: targetValue,
       tension: 80,
       friction: 8,
       useNativeDriver: true,
     }).start();
+
+    // Stagger individual icons
+    navIconAnims.forEach((anim, index) => {
+      Animated.spring(anim, {
+        toValue: targetValue,
+        tension: 80,
+        friction: 8,
+        delay: targetValue === 1 ? index * 50 : 0, // Stagger entrance, collapse immediately
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const [showTooltip, setShowTooltip] = useState(false);
@@ -1103,18 +1119,26 @@ const UserInputScreen: React.FC = () => {
 
               {/* Navigation icons when expanded */}
               <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
-                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-                  <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-                  <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-                  <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
-                  <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
-                </TouchableOpacity>
+                <Animated.View style={{ opacity: navIconAnims[0], transform: [{ scale: navIconAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                    <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Animated.View style={{ opacity: navIconAnims[1], transform: [{ scale: navIconAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                    <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                    <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
+                  </TouchableOpacity>
+                </Animated.View>
+                <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('MainTabs')}>
+                    <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
+                  </TouchableOpacity>
+                </Animated.View>
               </Animated.View>
             </>
           )}
