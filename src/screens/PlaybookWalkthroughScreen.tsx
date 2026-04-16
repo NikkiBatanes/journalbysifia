@@ -366,6 +366,8 @@ interface FaithfulActionsStepProps {
   userId: string;
   onNext: () => void;
   insets: { top: number };
+  actionStepIndex: number;
+  setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -373,8 +375,10 @@ type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | nu
 // Module-level flag — persists across remounts so the nudge only fires once per session
 let journalNudgeFired = false;
 
-// Module-level committed steps — persists across remounts (navigating back/forward)
+// Module-level committed steps — persists across remounts within the same playbook session
 let persistedCommittedSteps: Record<number, boolean> = {};
+let persistedActionStepIndex = 0;
+let persistedPlaybookId: string | undefined;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
@@ -391,8 +395,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   userId,
   onNext,
   insets,
+  actionStepIndex,
+  setActionStepIndex,
 }) => {
-  const [actionStepIndex, setActionStepIndex] = useState(0);
   const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
@@ -520,9 +525,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         return;
       }
 
-      animateToNext(() => setActionStepIndex(i => i + 1));
+      animateToNext(() => {
+        const next = actionStepIndex + 1;
+        persistedActionStepIndex = next;
+        setActionStepIndex(next);
+      });
     },
-    [isLastStep, onNext, animateToNext]
+    [isLastStep, onNext, animateToNext, actionStepIndex]
   );
 
   const handleSaveJournal = useCallback(() => {
@@ -607,7 +616,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const nowCommitted = !isCommitted;
     persistedCommittedSteps = { ...persistedCommittedSteps, [actionStepIndex]: nowCommitted };
     setCommittedSteps({ ...persistedCommittedSteps });
-    triggerLightHaptic();
+    triggerMediumHaptic();
 
     if (nowCommitted) {
       // Prayer step → save to prayers table
@@ -634,9 +643,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           });
         } catch (_) {}
       }
-    }
 
-    advanceStep(nowCommitted);
+      // Brief pause so the committed (orange) state is visible, then advance
+      setTimeout(() => advanceStep(true), 420);
+    }
   };
 
   return (
@@ -1230,6 +1240,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [stepIndex, setStepIndex] = useState(0);
+  const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
+  const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
     (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
@@ -1265,6 +1277,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
+  // Reset module-level action step state when opening a different playbook
+  useEffect(() => {
+    if (playbookId && playbookId !== persistedPlaybookId) {
+      persistedPlaybookId = playbookId;
+      persistedCommittedSteps = {};
+      persistedActionStepIndex = 0;
+      journalNudgeFired = false;
+    }
+  }, [playbookId]);
+
   // ── Slide animation between steps ──────────────────────────────────────────
   const slideAnim = useRef(new Animated.Value(0)).current;
   // Share button scales + fades in when completion page is reached
@@ -1292,6 +1314,25 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       shareButtonAnim.setValue(0);
     }
   }, [stepIndex, shareButtonAnim]);
+
+  // Animate back button — visible only on Faithful Actions step 2+ (actionStepIndex >= 1)
+  useEffect(() => {
+    const shouldShow = stepIndex === 3 && actionStepIndex >= 1;
+    if (shouldShow) {
+      Animated.spring(backButtonAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(backButtonAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [stepIndex, actionStepIndex, backButtonAnim]);
 
   const animateStep = useCallback(
     (nextStep: number, direction: 'forward' | 'back') => {
@@ -1368,6 +1409,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       animateStep(prev, 'back');
     }
   }, [stepIndex, animateStep, navigation, playbook?.prayer]);
+
+  // Back within faithful actions sub-steps (or go to previous main step if at sub-step 0)
+  const goBackActionStep = useCallback(() => {
+    triggerLightHaptic();
+    if (actionStepIndex > 0) {
+      const prev = actionStepIndex - 1;
+      persistedActionStepIndex = prev;
+      setActionStepIndex(prev);
+    } else {
+      goBack();
+    }
+  }, [actionStepIndex, goBack]);
 
   // Show loading state while fetching the full playbook from DB
   if (isLoading || (shouldFetch && !playbook)) {
@@ -1503,6 +1556,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userId={userId}
                 onNext={goNext}
                 insets={insets}
+                actionStepIndex={actionStepIndex}
+                setActionStepIndex={setActionStepIndex}
               />
             )}
 
@@ -1575,6 +1630,35 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </Animated.View>
       )}
+
+      {/* Animated back button — top right, left of close, Faithful Actions action 2+ only */}
+      <Animated.View
+        pointerEvents={stepIndex === 3 && actionStepIndex >= 1 ? 'auto' : 'none'}
+        style={[
+          styles.closeButton,
+          { top: insets.top + 8, right: 70 },
+          {
+            opacity: backButtonAnim,
+            transform: [
+              {
+                scale: backButtonAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={goBackActionStep}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="chevron-back" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Floating coral next button — bottom right */}
       {hasFloatingNext && (

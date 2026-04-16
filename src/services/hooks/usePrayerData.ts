@@ -780,7 +780,7 @@ export const useCreateDevotionalPrayer = () => {
     }) => {
       return PrayerApi.createPrayer({
         user_id: prayer.userId,
-        prayer_type: prayer.prayer_type ?? 'devotional',
+        prayer_type: (prayer.prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'],
         content: prayer.content,
         selected_date: prayer.dateStr,
         status: 'pending',
@@ -791,7 +791,8 @@ export const useCreateDevotionalPrayer = () => {
         total_days: prayer.totalDays,
       });
     },
-    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays }) => {
+    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays, prayer_type }) => {
+      const actualPrayerType = (prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'];
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
       await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
@@ -806,7 +807,7 @@ export const useCreateDevotionalPrayer = () => {
       const existsIn = (list: any[] | undefined) =>
         !!list?.some((p: any) =>
           p?.user_id === userId &&
-          p?.prayer_type === 'devotional' &&
+          (p?.prayer_type === 'devotional' || p?.prayer_type === 'guided_playbook') &&
           p?.selected_date === dateStr &&
           p?.devotional_title === devotionalTitle &&
           p?.day_number === dayNumber
@@ -822,7 +823,7 @@ export const useCreateDevotionalPrayer = () => {
       const optimisticPrayer: PrayerApiEntry = {
         id: `temp-${Date.now()}`,
         user_id: userId,
-        prayer_type: 'devotional',
+        prayer_type: actualPrayerType,
         content,
         selected_date: dateStr,
         created_at: new Date().toISOString(),
@@ -832,7 +833,7 @@ export const useCreateDevotionalPrayer = () => {
         day_number: dayNumber,
         day_title: dayTitle,
         total_days: totalDays,
-        type: 'devotional',
+        type: 'devotional' as const,
         is_answered: false,
       };
 
