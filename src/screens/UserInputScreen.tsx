@@ -639,7 +639,7 @@ const UserInputScreen: React.FC = () => {
                         <Ionicons
                           name="arrow-up-circle"
                           size={34}
-                          color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                          color={userInput.trim() ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
                         />
                       </TouchableOpacity>
                     </View>
