@@ -367,6 +367,9 @@ interface FaithfulActionsStepProps {
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
 
+// Module-level flag — persists across remounts so the nudge only fires once per session
+let journalNudgeFired = false;
+
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
   { type: 'prayer', icon: 'hands-pray', color: Colors.reflectionBlue, label: 'Pray' },
@@ -389,7 +392,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
-  const hasAutoNudged = useRef(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
@@ -446,10 +448,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setSelectedChoice(null);
   }, [actionStepIndex]);
 
-  // Auto-nudge: expand journal icons on first step, then collapse — one time only
+  // Auto-nudge: expand journal icons on first step, then collapse — one time only per session
   useEffect(() => {
-    if (actionStepIndex !== 0 || hasAutoNudged.current) return;
-    hasAutoNudged.current = true;
+    if (actionStepIndex !== 0 || journalNudgeFired) return;
+    journalNudgeFired = true;
 
     const expandTimer = setTimeout(() => {
       // Expand
