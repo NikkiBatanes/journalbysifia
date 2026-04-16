@@ -30,6 +30,8 @@ interface SmartJournalingPrayerModalProps {
   initialActiveTab?: 'freeform' | 'people';
   initialPersonName?: string;
   initialPrayerRequest?: string;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
@@ -47,6 +49,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   initialActiveTab,
   initialPersonName,
   initialPrayerRequest,
+  stepBody,
+  stepExample,
 }) => {
   // Log all props received by SmartJournalingPrayerModal
 
@@ -480,6 +484,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             initialActiveTab={initialActiveTab}
             initialPersonName={initialPersonName}
             initialPrayerRequest={initialPrayerRequest}
+            stepBody={stepBody}
+            stepExample={stepExample}
             dateString={(function() {
               const now = new Date();
               const year = now.getFullYear();

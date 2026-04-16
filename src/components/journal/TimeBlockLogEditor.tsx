@@ -1461,7 +1461,7 @@ function TimeBlockLogEditorInner(
                     <ThemedText style={s.metadataText}>{playbookTitle}</ThemedText>
                     {actionStepNumber && actionStepTitle && (
                       <ThemedText style={s.metadataText}>
-                        Step {actionStepNumber}: {actionStepTitle}
+                        Action {actionStepNumber}: {actionStepTitle}
                       </ThemedText>
                     )}
                   </View>

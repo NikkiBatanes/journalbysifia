@@ -1,6 +1,7 @@
 // src/screens/PlaybookWalkthroughScreen.tsx
 import * as React from 'react';
 import { useState, useRef, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   StyleSheet,
@@ -206,36 +207,57 @@ interface TruthStepProps {
   text: string;
   userName: string;
   onNext: () => void;
-  insets: { top: number };
+  insets: { top: number; bottom: number };
 }
+
+const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 
 const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _onNext, insets }) => {
   const personalized = replaceAllNamePlaceholders(text, { displayName: userName });
   const paragraphs = splitParagraphs(personalized);
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
+  const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT);
 
   return (
-    <ScrollView
-      style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <StepFadeIn delay={0} style={styles.stepLabelRow}>
-        <Ionicons name="heart" size={18} color={Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-          Truth in Love
-        </ThemedText>
-      </StepFadeIn>
+    <>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <Ionicons name="heart" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            Truth in Love
+          </ThemedText>
+        </StepFadeIn>
 
-      <View style={styles.textBlock}>
-        {paragraphs.map((para, i) => (
-          <StepFadeIn key={i} delay={100 + (i * 80)}>
-            <ThemedText style={styles.bodyText}>{para}</ThemedText>
-          </StepFadeIn>
-        ))}
-      </View>
+        <View style={styles.textBlock}>
+          {visible.map((para, i) => (
+            <StepFadeIn key={i} delay={100 + (i * 80)}>
+              <ThemedText style={styles.bodyText}>{para}</ThemedText>
+            </StepFadeIn>
+          ))}
+        </View>
 
-      <View style={{ height: 80 }} />
-    </ScrollView>
+        <View style={{ height: 80 }} />
+      </ScrollView>
+
+      {/* Floating "Read more" pill — only visible when collapsed */}
+      {hasMore && !expanded && (
+        <TouchableOpacity
+          onPress={() => { triggerLightHaptic(); setExpanded(true); }}
+          activeOpacity={0.8}
+          style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }]}
+        >
+          <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+          <ThemedText weight="medium" style={styles.prayerActionText}>
+            Read more
+          </ThemedText>
+        </TouchableOpacity>
+      )}
+    </>
   );
 };
 
@@ -382,6 +404,29 @@ let persistedPlaybookId: string | undefined;
 let persistedHasPrayed = false;
 let persistedHasRead = false;
 
+// ─── AsyncStorage session persistence ───────────────────────────────────────
+// Saves module-level vars to AsyncStorage so state survives Metro hot reloads
+// and full navigation exits.
+
+const getSessionKey = (id: string) => `playbook_session_${id}`;
+
+const saveCurrentSession = () => {
+  if (!persistedPlaybookId) { return; }
+  AsyncStorage.setItem(
+    getSessionKey(persistedPlaybookId),
+    JSON.stringify({
+      committedSteps: persistedCommittedSteps,
+      actionStepIndex: persistedActionStepIndex,
+      hasPrayed: persistedHasPrayed,
+      hasRead: persistedHasRead,
+    })
+  ).catch(() => {});
+};
+
+const clearSessionStorage = (id: string) => {
+  AsyncStorage.removeItem(getSessionKey(id)).catch(() => {});
+};
+
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
   { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
@@ -406,17 +451,25 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
   const createPrayerMutation = useCreateDevotionalPrayer();
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const cardTranslateY = useRef(new Animated.Value(0)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
   const rowHeight = useRef(new Animated.Value(0)).current;
   const rowOpacity = useRef(new Animated.Value(0)).current;
+  // Ref tracks real expanded state to avoid stale closure in toggle
+  const journalExpandedRef = useRef(false);
+  // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
+  const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
 
   const toggleJournalIcons = () => {
-    const expanding = !journalExpanded;
+    // Use ref so we always read the real current value, not a stale closure
+    const expanding = !journalExpandedRef.current;
+    journalExpandedRef.current = expanding;
     setJournalExpanded(expanding);
     triggerLightHaptic();
 
@@ -463,13 +516,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setSelectedChoice(null);
   }, [actionStepIndex]);
 
-  // Auto-nudge: expand journal icons on first step, then collapse — one time only per session
+  // Auto-nudge: expand journal icons on first step, then collapse — one time only per session.
+  // ALL inner timers are tracked in nudgeTimerRefs so they can be cancelled on unmount or
+  // if the user interacts before the nudge completes (preventing stale state updates).
   useEffect(() => {
     if (actionStepIndex !== 0 || journalNudgeFired) return;
     journalNudgeFired = true;
 
-    const expandTimer = setTimeout(() => {
+    const t1 = setTimeout(() => {
       // Expand
+      journalExpandedRef.current = true;
       setJournalExpanded(true);
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
@@ -478,40 +534,51 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         Animated.stagger(50, iconAnims.map(anim =>
           Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
         )).start(() => {
-          // Hold for 1.4s then collapse
-          setTimeout(() => {
+          // Hold 1.4s then auto-collapse
+          const t2 = setTimeout(() => {
+            nudgeTimerRefs.current = nudgeTimerRefs.current.filter(id => id !== t2);
+            // Only auto-collapse if the user hasn't manually interacted
+            if (!journalExpandedRef.current) { return; } // user already closed it
+            journalExpandedRef.current = false;
+            setJournalExpanded(false);
             Animated.stagger(35, [...iconAnims].reverse().map(anim =>
               Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
             )).start(() => {
               Animated.parallel([
                 Animated.timing(rowHeight, { toValue: 0, duration: 220, useNativeDriver: false }),
                 Animated.timing(rowOpacity, { toValue: 0, duration: 180, useNativeDriver: false }),
-              ]).start(() => setJournalExpanded(false));
+              ]).start();
             });
           }, 1400);
+          nudgeTimerRefs.current.push(t2);
         });
       });
-    }, 900); // Wait for step content to settle
+    }, 900);
+    nudgeTimerRefs.current.push(t1);
 
-    return () => clearTimeout(expandTimer);
+    return () => {
+      nudgeTimerRefs.current.forEach(id => clearTimeout(id));
+      nudgeTimerRefs.current = [];
+    };
   }, [actionStepIndex]);
 
   const animateToNext = useCallback(
     (callback: () => void) => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => {
+      // Exit: fade + slide up
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
+        Animated.timing(cardTranslateY, { toValue: -14, duration: 160, useNativeDriver: true }),
+      ]).start(() => {
         callback();
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
+        // Enter from below with spring bounce
+        cardTranslateY.setValue(22);
+        Animated.parallel([
+          Animated.spring(fadeAnim, { toValue: 1, tension: 75, friction: 8, useNativeDriver: true }),
+          Animated.spring(cardTranslateY, { toValue: 0, tension: 75, friction: 8, useNativeDriver: true }),
+        ]).start();
       });
     },
-    [fadeAnim]
+    [fadeAnim, cardTranslateY]
   );
 
   const advanceStep = useCallback(
@@ -531,6 +598,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         const next = actionStepIndex + 1;
         persistedActionStepIndex = next;
         setActionStepIndex(next);
+        saveCurrentSession();
       });
     },
     [isLastStep, onNext, animateToNext, actionStepIndex]
@@ -626,6 +694,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const nowCommitted = !isCommitted;
     persistedCommittedSteps = { ...persistedCommittedSteps, [actionStepIndex]: nowCommitted };
     setCommittedSteps({ ...persistedCommittedSteps });
+    saveCurrentSession();
     triggerMediumHaptic();
 
     if (nowCommitted) {
@@ -683,7 +752,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </StepFadeIn>
 
         <StepFadeIn delay={130}>
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.actionStepCard}>
             {/* Step number circle — matches ActionStepsCard design */}
             <View style={styles.stepNumberContainer}>
@@ -797,7 +866,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               >
                 <TouchableOpacity
                   style={styles.journalIconButton}
-                  onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                  onPress={() => { journalExpandedRef.current = false; setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
                   activeOpacity={0.75}
                 >
                   <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
@@ -808,6 +877,14 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               </Animated.View>
             ))}
           </Animated.View>
+
+          {/* Brief "Saved" feedback shown after journaling before advancing */}
+          {savedFeedback && (
+            <View style={styles.savedFeedbackRow}>
+              <Ionicons name="checkmark-circle" size={13} color={Colors.growthGreen} />
+              <ThemedText style={styles.savedFeedbackText}>{savedFeedback}</ThemedText>
+            </View>
+          )}
 
           <View style={styles.doneSkipRow}>
             {/* Journal trigger circle */}
@@ -861,7 +938,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
-          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          actionStepNumber={stepNumber}
+          actionStepTitle={currentStep.title ?? ''}
+          stepBody={mainBodyText || undefined}
+          stepExample={exampleText || undefined}
+          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Reflection saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -871,7 +952,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
-          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          actionStepNumber={stepNumber}
+          actionStepTitle={currentStep.title ?? ''}
+          stepBody={mainBodyText || undefined}
+          stepExample={exampleText || undefined}
+          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Prayer saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -881,7 +966,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
-          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          actionStepNumber={stepNumber}
+          actionStepTitle={currentStep.title ?? ''}
+          stepBody={mainBodyText || undefined}
+          stepExample={exampleText || undefined}
+          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Gratitude saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -890,7 +979,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           visible={true}
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
-          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
+          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Scheduled'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -937,6 +1026,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
     const nowPrayed = !hasPrayed;
     persistedHasPrayed = nowPrayed;
     setHasPrayed(nowPrayed);
+    saveCurrentSession();
 
     if (nowPrayed) {
       createPrayerMutation.mutate({
@@ -1046,6 +1136,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
     const nowRead = !hasRead;
     persistedHasRead = nowRead;
     setHasRead(nowRead);
+    saveCurrentSession();
   };
 
   return (
@@ -1273,6 +1364,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const [stepIndex, setStepIndex] = useState(0);
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
@@ -1309,17 +1401,48 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
-  // Reset module-level state only when opening a different playbook
+  // Load session state from AsyncStorage on mount / playbook change.
+  // We gate rendering on sessionLoaded so child components always initialize
+  // from the correct (AsyncStorage-hydrated) module-level vars.
   useEffect(() => {
-    if (playbookId !== persistedPlaybookId) {
-      persistedPlaybookId = playbookId;
-      persistedCommittedSteps = {};
-      persistedActionStepIndex = 0;
-      persistedHasPrayed = false;
-      persistedHasRead = false;
-      journalNudgeFired = false;
-      setActionStepIndex(0);
+    if (!playbookId) {
+      setSessionLoaded(true);
+      return;
     }
+
+    AsyncStorage.getItem(getSessionKey(playbookId))
+      .then(raw => {
+        if (raw) {
+          try {
+            const session = JSON.parse(raw);
+            persistedPlaybookId = playbookId;
+            persistedCommittedSteps = session.committedSteps ?? {};
+            persistedActionStepIndex = session.actionStepIndex ?? 0;
+            persistedHasPrayed = session.hasPrayed ?? false;
+            persistedHasRead = session.hasRead ?? false;
+            // Don't restore journalNudgeFired — always let the nudge run fresh
+            journalNudgeFired = false;
+            setActionStepIndex(persistedActionStepIndex);
+          } catch (_) {
+            // Corrupted data — fall through to reset below
+          }
+        } else if (playbookId !== persistedPlaybookId) {
+          // Different (or new) playbook — clear all state
+          persistedPlaybookId = playbookId;
+          persistedCommittedSteps = {};
+          persistedActionStepIndex = 0;
+          persistedHasPrayed = false;
+          persistedHasRead = false;
+          journalNudgeFired = false;
+          setActionStepIndex(0);
+        }
+        setSessionLoaded(true);
+      })
+      .catch(() => {
+        // Storage failure — still render with whatever state we have
+        setSessionLoaded(true);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playbookId]);
 
   // ── Slide animation between steps ──────────────────────────────────────────
@@ -1413,6 +1536,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
     // Clear persisted state so re-opening the same playbook starts fresh
+    if (persistedPlaybookId) { clearSessionStorage(persistedPlaybookId); }
     persistedPlaybookId = undefined;
     persistedCommittedSteps = {};
     persistedActionStepIndex = 0;
@@ -1459,13 +1583,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       const prev = actionStepIndex - 1;
       persistedActionStepIndex = prev;
       setActionStepIndex(prev);
+      saveCurrentSession();
     } else {
       goBack();
     }
   }, [actionStepIndex, goBack]);
 
-  // Show loading state while fetching the full playbook from DB
-  if (isLoading || (shouldFetch && !playbook)) {
+  // Show loading state while fetching the full playbook from DB or awaiting session load
+  if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ThemedText style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15 }}>
@@ -2077,6 +2202,18 @@ const styles = StyleSheet.create({
   },
   buttonArea: {
     marginTop: 20,
+  },
+  savedFeedbackRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  savedFeedbackText: {
+    fontSize: 12,
+    color: Colors.growthGreen,
+    opacity: 0.9,
   },
   journalExpandedRow: {
     flexDirection: 'row',

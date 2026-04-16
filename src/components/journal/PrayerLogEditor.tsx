@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
+import PlaybookMetaSection from './PlaybookMetaSection';
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -40,6 +41,8 @@ interface PrayerLogEditorProps {
   initialActiveTab?: 'freeform' | 'people';
   initialPersonName?: string;
   initialPrayerRequest?: string;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 export interface PrayerLogEditorRef {
@@ -381,6 +384,8 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     initialActiveTab,
     initialPersonName,
     initialPrayerRequest,
+    stepBody,
+    stepExample,
   },
   ref
 ) => {
@@ -903,22 +908,14 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                  Only show when we have a real playbook title. This keeps dashboard-triggered
                  prayers (scripture/declarations) from being labeled as FROM PLAYBOOK. */}
               {playbookTitle && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                    <ThemedText weight="medium" style={s.fromText}>
-                      FROM PLAYBOOK
-                    </ThemedText>
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                    {actionStepNumber && actionStepTitle && (
-                      <ThemedText style={s.metadataText}>
-                        Step {actionStepNumber}: {actionStepTitle}
-                      </ThemedText>
-                    )}
-                  </View>
-                </View>
+                <PlaybookMetaSection
+                  playbookTitle={playbookTitle}
+                  actionLabel={actionStepNumber && actionStepTitle
+                    ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                    : undefined}
+                  stepBody={stepBody}
+                  stepExample={stepExample}
+                />
               )}
             </ScrollView>
           </View>

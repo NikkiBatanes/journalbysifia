@@ -23,6 +23,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import PlaybookMetaSection from './PlaybookMetaSection';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -40,6 +41,8 @@ interface GratitudeLogEditorProps {
   actionStepTitle?: string;
   isLoading?: boolean;
   styles?: any;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 export interface GratitudeLogEditorRef {
@@ -413,6 +416,8 @@ const GratitudeLogEditorInner = (
     actionStepTitle,
     isLoading = false,
     styles,
+    stepBody,
+    stepExample,
   } = props;
   const navigation = useNavigation();
   const { subscription } = useSubscription();
@@ -733,29 +738,14 @@ const GratitudeLogEditorInner = (
 
             {/* Metadata section - matching reflection editor format */}
             {(_subtaskTitle || playbookTitle) && (
-              <View style={s.metadataContainer}>
-                <View style={s.verticalLine} />
-                <View>
-                  <ThemedText weight="medium" style={s.fromText}>
-                    FROM PLAYBOOK
-                  </ThemedText>
-                  {playbookTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                  )}
-                  {actionStepNumber && actionStepTitle && (
-                    <ThemedText style={s.metadataText}>
-                      Step {actionStepNumber}: {actionStepTitle}
-                    </ThemedText>
-                  )}
-                  {_subtaskTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {_subtaskTitle}
-                    </ThemedText>
-                  )}
-                </View>
-              </View>
+              <PlaybookMetaSection
+                playbookTitle={playbookTitle}
+                actionLabel={actionStepNumber && actionStepTitle
+                  ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                  : (_subtaskTitle && !actionStepTitle ? _subtaskTitle : undefined)}
+                stepBody={stepBody}
+                stepExample={stepExample}
+              />
             )}
           </ScrollView>
         </View>

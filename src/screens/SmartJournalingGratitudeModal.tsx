@@ -29,6 +29,8 @@ interface SmartJournalingGratitudeModalProps {
   existingGratitude?: any;
   onSave: (entry: any) => void;
   onCancel: () => void;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps> = ({
@@ -44,6 +46,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   existingGratitude,
   onSave,
   onCancel,
+  stepBody,
+  stepExample,
 }) => {
 
 
@@ -378,6 +382,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             actionStepTitle={preservedActionStepTitle}
             isLoading={createMutation.isPending || updateMutation.isPending}
             styles={reflectionLogStyles}
+            stepBody={stepBody}
+            stepExample={stepExample}
           />
 
           {/* New success modal system - completely isolated and robust */}

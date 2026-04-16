@@ -16,6 +16,7 @@ import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
 import { useNavigation } from '@react-navigation/native';
+import PlaybookMetaSection from './PlaybookMetaSection';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -57,6 +58,8 @@ interface ReflectionLogEditorProps {
   styles?: any;
   isLoading?: boolean;
   hideGuidedPromptButton?: boolean;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 export interface ReflectionLogEditorRef {
@@ -441,6 +444,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     styles,
     isLoading = false,
     hideGuidedPromptButton = false,
+    stepBody,
+    stepExample,
   },
   ref
 ) => {
@@ -1475,28 +1480,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 </View>
               )}
               {(source === 'playbook' || (playbookTitle && (source === 'thoughts' || source !== 'freeform'))) && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                  <ThemedText weight="medium" style={s.fromText}>
-                    FROM PLAYBOOK
-                  </ThemedText>
-                  {playbookTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                  )}
-                  {dayNumber && dayTitle && (
-                    <ThemedText style={s.metadataTextWithLineHeight}>
-                      {dayTitle === 'Suggestion' ? 'SUGGESTION' : (
-                      <>
-                        Step {dayNumber}: {dayTitle}
-                      </>
-                    )}
-                    </ThemedText>
-                  )}
-                  </View>
-                </View>
+                <PlaybookMetaSection
+                  playbookTitle={playbookTitle}
+                  actionLabel={dayNumber && dayTitle
+                    ? (dayTitle === 'Suggestion' ? 'SUGGESTION' : `Action ${dayNumber}: ${dayTitle}`)
+                    : undefined}
+                  stepBody={stepBody}
+                  stepExample={stepExample}
+                />
               )}
             </>
           ) : (
