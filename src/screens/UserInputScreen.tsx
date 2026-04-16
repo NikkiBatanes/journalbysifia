@@ -1567,7 +1567,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginTop: -30,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     maxWidth: '100%',
   },
   navButtonContainer: {
