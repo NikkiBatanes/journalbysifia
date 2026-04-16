@@ -127,6 +127,11 @@ const PlaybookSkeletonLoader = () => {
           <View style={styles.chevronSkeleton} />
         </View>
 
+        {/* Title Skeleton - below PLAYBOOK label */}
+        <View style={styles.titleSkeletonContainer}>
+          <SkeletonBox width="70%" height={28} backgroundColor={'rgba(255,255,255,0.24)'} />
+        </View>
+
         {/* Step Label Row - matches PlaybookWalkthroughScreen */}
         <View style={styles.stepLabelRow}>
           <View style={[styles.iconSkeleton, styles.stepIconSkeleton]} />
@@ -173,6 +178,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 32,
+    alignSelf: 'center',
+  },
+  titleSkeletonContainer: {
+    marginTop: 16,
     alignSelf: 'center',
   },
   chevronSkeleton: {
