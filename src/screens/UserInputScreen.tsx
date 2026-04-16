@@ -82,6 +82,7 @@ const UserInputScreen: React.FC = () => {
   // Navigation reveal state
   const [showNavigation, setShowNavigation] = useState(false);
   const navButtonAnim = useRef(new Animated.Value(0)).current;
+  const navIconEntranceAnim = useRef(new Animated.Value(0)).current;
 
   // Generating state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -415,6 +416,7 @@ const UserInputScreen: React.FC = () => {
       headerIntroOpacity.setValue(1);
       askBoxOpacity.setValue(1);
       askBoxTranslateY.setValue(0);
+      navIconEntranceAnim.setValue(1);
       return;
     }
 
@@ -433,8 +435,14 @@ const UserInputScreen: React.FC = () => {
         Animated.timing(askBoxOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
         Animated.timing(askBoxTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
       ]),
+      Animated.spring(navIconEntranceAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad, route.params?.initialText]);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad, route.params?.initialText, navIconEntranceAnim]);
   const handleFocus = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 2,
@@ -879,13 +887,27 @@ const UserInputScreen: React.FC = () => {
           {!isGenerating && (
             <>
               <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
-                <TouchableOpacity
-                  onPress={handleNavigationToggle}
-                  style={styles.navButton}
-                  activeOpacity={0.8}
+                <Animated.View
+                  style={{
+                    opacity: navIconEntranceAnim,
+                    transform: [
+                      {
+                        scale: navIconEntranceAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        }),
+                      },
+                    ],
+                  }}
                 >
-                  <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleNavigationToggle}
+                    style={styles.navButton}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </Animated.View>
               </Animated.View>
 
               {/* Navigation icons when expanded */}
