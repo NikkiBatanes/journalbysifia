@@ -270,6 +270,7 @@ const UserInputScreen: React.FC = () => {
       'What decision are you facing?',
     ];
 
+    const PREFIX = 'What ';
     let isMounted = true;
     let promptIndex = 0;
     let charIndex = prompts[0].length; // start at full first prompt so placeholder is visible initially
@@ -289,22 +290,22 @@ const UserInputScreen: React.FC = () => {
         charIndex += 1;
         typingTimer.current = setTimeout(typeNext, 60);
       } else {
-        // Pause, then erase and move to next prompt
+        // Pause, then erase only the part after "What " and move to next prompt
         typingTimer.current = setTimeout(() => {
           const erase = () => {
             if (!isMounted) {return;}
-            if (charIndex >= 0) {
+            if (charIndex > PREFIX.length) {
               setPlaceholderText(current.slice(0, charIndex));
               charIndex -= 1;
               typingTimer.current = setTimeout(erase, 35);
             } else {
               promptIndex = (promptIndex + 1) % prompts.length;
-              charIndex = 0;
+              charIndex = PREFIX.length;
               typeNext();
             }
           };
           erase();
-        }, 1600);
+        }, 2000);
       }
     };
 
