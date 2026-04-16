@@ -101,11 +101,7 @@ const UserInputScreen: React.FC = () => {
   }, []);
 
   const resetGenerationSteps = () => {
-    setGenerationSteps(() => {
-      const steps = buildInitialGenerationSteps();
-      steps[0].status = 'active';
-      return steps;
-    });
+    setGenerationSteps(() => buildInitialGenerationSteps());
     setCurrentStep(1);
     progressAnim.setValue(0);
     setGenerationMessage(null);
@@ -514,7 +510,6 @@ const UserInputScreen: React.FC = () => {
 
     resetGenerationSteps();
     updateStepStatus(0);
-    setGenerationMessage('Seeing this moment clearly…');
 
     const runGeneration = async () => {
       const response = await unifiedGenerationService.generatePlaybook({
@@ -528,11 +523,8 @@ const UserInputScreen: React.FC = () => {
         throw Object.assign(new Error(response.message || 'Unable to generate playbook'), response);
       }
 
-      if (response.message) {
-        setGenerationMessage(response.message);
-      }
-
       let savedPlaybook: Playbook | null = null;
+      let currentPhase = 0;
 
       const fetchLatestPlaybook = async () => {
         if (!user.id) { return null; }
@@ -580,12 +572,6 @@ const UserInputScreen: React.FC = () => {
             }
           }
 
-          if (status.status === 'processing') {
-            if (status.message) {
-              setGenerationMessage(status.message);
-            }
-          }
-
           if (status.status === 'processing' && attempts > 15) {
             try {
               const fallback = await fetchLatestPlaybook();
@@ -598,15 +584,16 @@ const UserInputScreen: React.FC = () => {
             }
           }
 
-          if (attempts === 15) {
+          // Gradual step progression during polling (every 1 second)
+          if (attempts === 1 && currentPhase < 1) {
             updateStepStatus(1);
-            setGenerationMessage('Naming what matters most…');
-          } else if (attempts === 30) {
+            currentPhase = 1;
+          } else if (attempts === 2 && currentPhase < 2) {
             updateStepStatus(2);
-            setGenerationMessage('Shaping faithful next steps…');
-          } else if (attempts === 45) {
+            currentPhase = 2;
+          } else if (attempts === 3 && currentPhase < 3) {
             updateStepStatus(3);
-            setGenerationMessage('Preparing your playbook…');
+            currentPhase = 3;
           }
         }
       } else {
@@ -934,9 +921,6 @@ const UserInputScreen: React.FC = () => {
 
               <Text style={[styles.buildingHeading, font]}>Building your playbook…</Text>
               <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
-              {generationMessage && (
-                <Text style={[styles.generationMessage, font]}>{generationMessage}</Text>
-              )}
 
               <View style={styles.stepsContainer}>
                 {generationSteps.map((step, index) => (
@@ -1387,7 +1371,7 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 2,
+    borderRadius: 4,
   },
   progressLabel: {
     fontSize: 12,
