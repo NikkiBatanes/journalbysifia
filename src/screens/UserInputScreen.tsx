@@ -93,6 +93,8 @@ const UserInputScreen: React.FC = () => {
   const navIconEntranceAnim = useRef(new Animated.Value(0)).current;
   // Individual icon animations for staggered entrance
   const navIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Check icon animations for generation steps
+  const checkIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
 
   // Generating state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -151,10 +153,37 @@ const UserInputScreen: React.FC = () => {
       }).start(() => resolve());
     });
 
-  const completeProgress = async () => {
-    // Mark all steps as completed
+  const completeAllSteps = async () => {
+    // Mark all steps as completed and animate check icons
     setGenerationSteps((prev) =>
-      prev.map((step) => ({ ...step, status: 'completed' }))
+      prev.map((step, index) => {
+        // Animate check icon for each completed step
+        Animated.spring(checkIconAnims[index], {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+        return { ...step, status: 'completed' };
+      })
+    );
+    setCurrentStep(4);
+    await animateProgressTo(100, 600);
+  };
+
+  const completeProgress = async () => {
+    // Mark all steps as completed and animate check icons
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        // Animate check icon for each completed step
+        Animated.spring(checkIconAnims[index], {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+        return { ...step, status: 'completed' };
+      })
     );
     setCurrentStep(4);
     await animateProgressTo(100, 600);
@@ -169,6 +198,13 @@ const UserInputScreen: React.FC = () => {
     setGenerationSteps((prev) =>
       prev.map((step, index) => {
         if (index < stepIndex) {
+          // Animate check icon for completed steps
+          Animated.spring(checkIconAnims[index], {
+            toValue: 1,
+            tension: 80,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
           return { ...step, status: 'completed' };
         }
         if (index === stepIndex) {
@@ -1274,7 +1310,9 @@ const UserInputScreen: React.FC = () => {
                         step.status === 'inactive' && styles.stepInactive,
                       ]}>
                         {step.status === 'completed' && (
-                          <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                          <Animated.View style={{ transform: [{ scale: checkIconAnims[index].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+                            <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                          </Animated.View>
                         )}
                         {step.status === 'active' && (
                           // Each step has its own dedicated animation value so
