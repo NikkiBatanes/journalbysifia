@@ -588,13 +588,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     actionType === 'text_input' ? 'Save to Journal' :
     "I've committed"
   );
-  const secondaryLabel = currentStep.secondaryButton ?? (
-    actionType === 'choose' ? "I'm still unsure" :
-    actionType === 'text_input' ? 'Skip' :
-    'Skip'
-  );
 
   const isCommitted = !!committedSteps[actionStepIndex];
+
+  const secondaryLabel = isCommitted ? 'Next' : (
+    currentStep.secondaryButton ?? (
+      actionType === 'choose' ? "I'm still unsure" :
+      actionType === 'text_input' ? 'Skip' :
+      'Skip'
+    )
+  );
 
   // Detect special step types from primary button label
   const isPrayerStep = /pray/i.test(primaryLabel);
@@ -1997,11 +2000,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   doneButtonCommitted: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   doneButtonTextCommitted: {
-    color: Colors.hopeWhite,
+    color: Colors.alertCoral,
   },
   doneButtonText: {
     fontSize: 15,
