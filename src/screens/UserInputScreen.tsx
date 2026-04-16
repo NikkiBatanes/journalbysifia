@@ -141,11 +141,9 @@ const UserInputScreen: React.FC = () => {
       })
     );
     setCurrentStep(Math.min(stepIndex + 1, 4));
-    // Only animate progress for steps 1-3, not step 0 (let it fill naturally)
-    if (stepIndex > 0) {
-      const targetProgress = getTargetProgressForStep(stepIndex);
-      animateProgressTo(targetProgress, 700);
-    }
+    // Animate progress for all steps including step 0
+    const targetProgress = getTargetProgressForStep(stepIndex);
+    animateProgressTo(targetProgress, 700);
   };
 
   // Transition animations
@@ -161,6 +159,7 @@ const UserInputScreen: React.FC = () => {
   // Pulsing dot animation loop
   useEffect(() => {
     if (isGenerating) {
+      pulsingDotAnim.setValue(0);
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulsingDotAnim, {
@@ -177,8 +176,10 @@ const UserInputScreen: React.FC = () => {
       );
       pulseAnimation.start();
       return () => pulseAnimation.stop();
+    } else {
+      pulsingDotAnim.setValue(0);
     }
-  }, [isGenerating, pulsingDotAnim]);
+  }, [isGenerating]);
 
   // Load saved draft or initial text on mount
   useEffect(() => {
