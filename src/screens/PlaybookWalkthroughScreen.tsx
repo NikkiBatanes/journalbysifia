@@ -368,8 +368,8 @@ interface FaithfulActionsStepProps {
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
-  { type: 'reflection', icon: 'head-lightbulb', color: Colors.reflectionBlue, label: 'Reflect' },
-  { type: 'prayer', icon: 'hands-pray', color: Colors.prayerPurple, label: 'Pray' },
+  { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
+  { type: 'prayer', icon: 'hands-pray', color: Colors.reflectionBlue, label: 'Pray' },
   { type: 'gratitude', icon: 'heart', color: Colors.gratitudeRed, label: 'Gratitude' },
   { type: 'timeblock', icon: 'clock', color: Colors.timeblockGreen, label: 'Schedule' },
 ];
