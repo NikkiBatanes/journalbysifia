@@ -608,9 +608,17 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     )
   );
 
-  // Detect special step types from primary button label
-  const isPrayerStep = /pray/i.test(primaryLabel);
-  const isReadAloudStep = /aloud|read/i.test(primaryLabel);
+  // Detect special step types — check label, title, AND body content so old playbooks
+  // without AI-generated primary_button still work correctly
+  const stepTitle = (currentStep.title || '').toLowerCase();
+  const bodyStart = mainBodyText.trim().slice(0, 60).toLowerCase();
+  const isPrayerStep =
+    /pray/i.test(primaryLabel) ||
+    /\bpray(er|ing)?\b/.test(stepTitle) ||
+    /^(lord|father|heavenly father|dear (lord|god|father)|god,|jesus)/.test(bodyStart);
+  const isReadAloudStep =
+    /aloud|read.*aloud/i.test(primaryLabel) ||
+    /\b(speak|declare|say.*aloud|read.*aloud)\b/.test(stepTitle);
 
   const handlePrimaryPress = async () => {
     const nowCommitted = !isCommitted;
@@ -1277,15 +1285,15 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
 
-  // Reset module-level action step state when opening a different playbook
+  // Reset module-level action step state on every fresh screen entry
   useEffect(() => {
-    if (playbookId && playbookId !== persistedPlaybookId) {
-      persistedPlaybookId = playbookId;
-      persistedCommittedSteps = {};
-      persistedActionStepIndex = 0;
-      journalNudgeFired = false;
-    }
-  }, [playbookId]);
+    persistedPlaybookId = playbookId;
+    persistedCommittedSteps = {};
+    persistedActionStepIndex = 0;
+    journalNudgeFired = false;
+    setActionStepIndex(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — runs once on mount only
 
   // ── Slide animation between steps ──────────────────────────────────────────
   const slideAnim = useRef(new Animated.Value(0)).current;
