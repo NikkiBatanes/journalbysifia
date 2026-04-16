@@ -388,7 +388,37 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
+  const [journalExpanded, setJournalExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const triggerRotation = useRef(new Animated.Value(0)).current;
+  const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
+
+  const toggleJournalIcons = () => {
+    const expanding = !journalExpanded;
+    setJournalExpanded(expanding);
+    triggerLightHaptic();
+
+    Animated.timing(triggerRotation, {
+      toValue: expanding ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+
+    if (expanding) {
+      Animated.stagger(55, iconAnims.map(anim =>
+        Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
+      )).start();
+    } else {
+      Animated.stagger(40, [...iconAnims].reverse().map(anim =>
+        Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
+      )).start();
+    }
+  };
+
+  const rotateInterpolate = triggerRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
   const createJournalEntry = useCreateJournalEntry();
 
   const currentStep = steps[actionStepIndex];
@@ -662,20 +692,46 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </Animated.View>
         </StepFadeIn>
 
-        {/* Journal icons row */}
+        {/* Journal FAB — collapsed circle that expands into 4 icons */}
         <StepFadeIn delay={160}>
-          <View style={styles.journalIconsRow}>
-            {JOURNAL_ICONS.map(({ type, icon, color, label }) => (
-              <TouchableOpacity
+          <View style={styles.journalFabRow}>
+            {/* Expanded icons — animate in from the trigger */}
+            {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+              <Animated.View
                 key={type}
-                style={styles.journalIconButton}
-                onPress={() => { triggerLightHaptic(); setActiveJournalModal(type); }}
-                activeOpacity={0.75}
+                style={{
+                  opacity: iconAnims[idx],
+                  transform: [{ scale: iconAnims[idx] }],
+                  alignItems: 'center',
+                }}
               >
-                <MaterialCommunityIcons name={icon} size={22} color={color} />
-                <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.journalIconButton}
+                  onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                  activeOpacity={0.75}
+                >
+                  <View style={[styles.journalIconCircle, { borderColor: color }]}>
+                    <MaterialCommunityIcons name={icon} size={20} color={color} />
+                  </View>
+                  <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
+
+            {/* Trigger circle */}
+            <TouchableOpacity
+              style={styles.journalTrigger}
+              onPress={toggleJournalIcons}
+              activeOpacity={0.8}
+            >
+              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+                <MaterialCommunityIcons
+                  name="pencil-plus-outline"
+                  size={20}
+                  color="rgba(255,255,255,0.7)"
+                />
+              </Animated.View>
+            </TouchableOpacity>
           </View>
         </StepFadeIn>
 
@@ -1823,22 +1879,41 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 23,
   },
-  journalIconsRow: {
+  journalFabRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
     marginTop: 20,
     marginBottom: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+  },
+  journalTrigger: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   journalIconButton: {
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  },
+  journalIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   journalIconLabel: {
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   doneSkipRow: {
     flexDirection: 'row',
