@@ -1096,14 +1096,14 @@ const UserInputScreen: React.FC = () => {
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.askSendButton, (!userInput || !userInput.trim()) && styles.disabledButton]}
+                        style={[styles.askSendButton, (!userInput || !userInput.trim()) && styles.disabledButton, userInput.trim() && styles.askSendButtonActive]}
                         onPress={handleGeneratePlaybook}
                         disabled={!userInput || !userInput.trim()}
                       >
                         <Ionicons
-                          name="arrow-up-circle"
-                          size={34}
-                          color={userInput.trim() ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
+                          name="arrow-up"
+                          size={20}
+                          color={Colors.hopeWhite}
                         />
                       </TouchableOpacity>
                     </View>
@@ -1556,7 +1556,14 @@ const styles = StyleSheet.create({
     }),
   },
   askSendButton: {
-    // positioned in bottomRow
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askSendButtonActive: {
+    backgroundColor: Colors.alertCoral,
   },
   askHintButton: {
     // positioned in bottomRow
