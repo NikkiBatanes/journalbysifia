@@ -2700,9 +2700,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -2711,7 +2711,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.hopeWhite,
   },
   devotionalButton: {
     marginTop: 8,
