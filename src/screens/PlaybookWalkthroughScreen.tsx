@@ -1711,16 +1711,31 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasPrayed = false;
     persistedHasRead = false;
     journalNudgeFired = false;
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'MainTabs',
-          state: { routes: [{ name: 'Home' }, { name: 'PlaybookList' }], index: 1 },
-        },
-      ],
-    });
-  }, [navigation, playbookId, userId, queryClient]);
+
+    // Navigate to UserInputScreen if source was user_input, otherwise go to PlaybookList
+    const source = route.params?.source;
+    if (source === 'user_input') {
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            state: { routes: [{ name: 'Home' }], index: 0 },
+          },
+        ],
+      });
+    } else {
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            state: { routes: [{ name: 'Home' }, { name: 'PlaybookList' }], index: 1 },
+          },
+        ],
+      });
+    }
+  }, [navigation, playbookId, userId, queryClient, route.params?.source]);
 
   const goNext = useCallback(() => {
     triggerLightHaptic();

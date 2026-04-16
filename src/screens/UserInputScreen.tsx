@@ -886,7 +886,7 @@ const UserInputScreen: React.FC = () => {
               index: 1,
             },
           },
-          { name: 'PlaybookWalkthrough', params: { playbook } },
+          { name: 'PlaybookWalkthrough', params: { playbook, source: 'user_input' } },
         ],
       });
     } catch (error) {

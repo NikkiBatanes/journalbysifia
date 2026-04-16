@@ -75,6 +75,7 @@ export type RootStackParamList = {
   };
   PlaybookWalkthrough: {
     playbook: Playbook;
+    source?: 'user_input' | 'playbook_list' | 'onboarding';
   };
   GeneratingPlaybook: {
     userInput: string;
