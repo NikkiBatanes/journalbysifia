@@ -42,8 +42,8 @@ const PlaybookMetaSection: React.FC<PlaybookMetaSectionProps> = ({
     lineAnimated.current = true;
     setLineHeight(h); // triggers useMemo to rebuild the interpolation with correct height
     Animated.parallel([
-      Animated.spring(lineScale, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
-      Animated.timing(lineOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.timing(lineOpacity, { toValue: 1, duration: 400, delay: 300, useNativeDriver: true }),
+      Animated.spring(lineScale, { toValue: 1, tension: 40, friction: 10, delay: 300, useNativeDriver: true }),
     ]).start();
   };
 

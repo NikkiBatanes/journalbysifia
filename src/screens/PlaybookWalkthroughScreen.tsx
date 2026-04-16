@@ -218,6 +218,21 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
   const [expanded, setExpanded] = useState(false);
   const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
   const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT);
+  const readMoreAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (hasMore && !expanded) {
+      Animated.spring(readMoreAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 600,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      readMoreAnim.setValue(0);
+    }
+  }, [hasMore, expanded, readMoreAnim]);
 
   return (
     <>
@@ -246,16 +261,34 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
 
       {/* Floating "Read more" pill — only visible when collapsed */}
       {hasMore && !expanded && (
-        <TouchableOpacity
-          onPress={() => { triggerLightHaptic(); setExpanded(true); }}
-          activeOpacity={0.8}
-          style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }]}
+        <Animated.View
+          style={[
+            styles.prayerActionButtonFloating,
+            { bottom: insets.bottom + 20 },
+            {
+              opacity: readMoreAnim,
+              transform: [
+                {
+                  scale: readMoreAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
-          <ThemedText weight="medium" style={styles.prayerActionText}>
-            Read more
-          </ThemedText>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { triggerLightHaptic(); setExpanded(true); }}
+            activeOpacity={0.8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          >
+            <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+            <ThemedText weight="medium" style={styles.prayerActionText}>
+              Read more
+            </ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </>
   );
@@ -1007,12 +1040,13 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
     if (persistedHasPrayed) { return; } // already visible, skip delay
     const timer = setTimeout(() => {
       setShowButton(true);
-      Animated.timing(fadeAnim, {
+      Animated.spring(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        tension: 80,
+        friction: 8,
         useNativeDriver: true,
       }).start();
-    }, 500);
+    }, 600);
     return () => clearTimeout(timer);
   }, [fadeAnim]);
 
@@ -1081,9 +1115,25 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
 
       {/* Floating action button — bottom-left, aligned with Next button */}
       {showButton && (
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View
+          style={[
+            styles.prayerActionButtonFloating,
+            { bottom: insets.bottom + 20, opacity: fadeAnim },
+            hasPrayed && styles.prayerActionButtonActive,
+            {
+              transform: [
+                {
+                  scale: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }, hasPrayed && styles.prayerActionButtonActive]}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
             onPress={handlePrayed}
             activeOpacity={0.8}
           >
@@ -1122,12 +1172,13 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
     if (persistedHasRead) { return; } // already visible, skip delay
     const timer = setTimeout(() => {
       setShowButton(true);
-      Animated.timing(fadeAnim, {
+      Animated.spring(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        tension: 80,
+        friction: 8,
         useNativeDriver: true,
       }).start();
-    }, 500);
+    }, 600);
     return () => clearTimeout(timer);
   }, [fadeAnim]);
 
@@ -1173,9 +1224,25 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
 
       {/* Floating action button — bottom-left, aligned with Next button */}
       {showButton && (
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View
+          style={[
+            styles.prayerActionButtonFloating,
+            { bottom: insets.bottom + 20, opacity: fadeAnim },
+            hasRead && styles.prayerActionButtonActive,
+            {
+              transform: [
+                {
+                  scale: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={[styles.prayerActionButtonFloating, { bottom: insets.bottom + 20 }, hasRead && styles.prayerActionButtonActive]}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
             onPress={handleRead}
             activeOpacity={0.8}
           >
@@ -1213,6 +1280,28 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   insets,
 }) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const headerAnim = useRef(new Animated.Value(40)).current;
+  const buttonsAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.spring(headerAnim, {
+      toValue: 0,
+      tension: 60,
+      friction: 10,
+      delay: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [headerAnim]);
+
+  useEffect(() => {
+    Animated.spring(buttonsAnim, {
+      toValue: 0,
+      tension: 60,
+      friction: 10,
+      delay: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [buttonsAnim]);
 
   // Parse completion text to extract question and action lines
   const parseCompletionText = (text: string) => {
@@ -1249,18 +1338,20 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   return (
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
       <StepFadeIn delay={0}>
-        <View style={styles.completionHeaderContainer}>
-          <View style={styles.stepLabelRow}>
-            <Ionicons name="flash" size={18} color={Colors.alertCoral} />
-            <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-              You've completed
+        <Animated.View style={{ transform: [{ translateY: headerAnim }] }}>
+          <View style={styles.completionHeaderContainer}>
+            <View style={styles.stepLabelRow}>
+              <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+              <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+                You've completed
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.completionTitle}>
+              {title}
             </ThemedText>
+            <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
           </View>
-          <ThemedText weight="bold" style={styles.completionTitle}>
-            {title}
-          </ThemedText>
-          <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
-        </View>
+        </Animated.View>
       </StepFadeIn>
 
       <StepFadeIn delay={100}>
@@ -1323,7 +1414,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       </StepFadeIn>
 
       <StepFadeIn delay={220}>
-        <>
+        <Animated.View style={{ transform: [{ translateY: buttonsAnim }] }}>
           <ThemedText style={styles.completionStayNote}>
             Need to stay with this a little longer?
           </ThemedText>
@@ -1350,7 +1441,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
               Turn this into a devotional
             </ThemedText>
           </TouchableOpacity>
-        </>
+        </Animated.View>
       </StepFadeIn>
     </View>
   );
@@ -1449,6 +1540,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   // Share button scales + fades in when completion page is reached
   const shareButtonAnim = useRef(new Animated.Value(0)).current;
+  // Screen 0 close and next buttons animate in with fade + scale
+  const screen0CloseAnim = useRef(new Animated.Value(0)).current;
+  const screen0NextAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -1472,6 +1566,33 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       shareButtonAnim.setValue(0);
     }
   }, [stepIndex, shareButtonAnim]);
+
+  // Animate screen 0 close and next buttons with staggered timing
+  useEffect(() => {
+    if (stepIndex === 0) {
+      screen0CloseAnim.setValue(0);
+      screen0NextAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(screen0CloseAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          delay: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(screen0NextAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          delay: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      screen0CloseAnim.setValue(0);
+      screen0NextAnim.setValue(0);
+    }
+  }, [stepIndex, screen0CloseAnim, screen0NextAnim]);
 
   // Animate back button — visible only on Faithful Actions step 2+ (actionStepIndex >= 1)
   useEffect(() => {
@@ -1760,14 +1881,32 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Floating close button — top left (steps 0–5), always closes the screen */}
       {stepIndex !== 6 && (
-        <TouchableOpacity
-          onPress={navigation.goBack}
-          style={[styles.closeButton, { top: insets.top + 8 }]}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        <Animated.View
+          style={[
+            styles.closeButton,
+            { top: insets.top + 8 },
+            {
+              opacity: stepIndex === 0 ? screen0CloseAnim : 1,
+              transform: [
+                {
+                  scale: stepIndex === 0 ? screen0CloseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }) : 1,
+                },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={navigation.goBack}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Animated share button — top left, completion page only */}
@@ -1831,13 +1970,31 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Floating coral next button — bottom right */}
       {hasFloatingNext && (
-        <TouchableOpacity
-          onPress={goNext}
-          style={[styles.nextButton, { bottom: insets.bottom + 20 }]}
-          activeOpacity={0.7}
+        <Animated.View
+          style={[
+            styles.nextButton,
+            { bottom: insets.bottom + 20 },
+            {
+              opacity: stepIndex === 0 ? screen0NextAnim : 1,
+              transform: [
+                {
+                  scale: stepIndex === 0 ? screen0NextAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }) : 1,
+                },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={goNext}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </View>
   );
