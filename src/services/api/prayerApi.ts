@@ -6,7 +6,7 @@ import { toLocalDateString } from '../../utils/date';
 export interface PrayerApiEntry {
   id: string;
   user_id: string;
-  prayer_type: 'journal' | 'people' | 'devotional';
+  prayer_type: 'journal' | 'people' | 'devotional' | 'guided_playbook';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   metadata?: Record<string, any>;
@@ -297,7 +297,23 @@ export class PrayerApi {
       userId = session.user.id;
     }
 
-    return this.getPrayersByType(userId, date, 'devotional');
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('selected_date', date)
+      .in('prayer_type', ['devotional', 'guided_playbook'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      Logger.error('Error fetching devotional prayers', error as Error, {
+        component: 'prayerApi',
+        action: 'error',
+      });
+      throw new Error(`Failed to fetch devotional prayers: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   // Get all devotional prayers for a user (for prayedItems display)
@@ -318,7 +334,7 @@ export class PrayerApi {
       .from('prayers')
       .select('*')
       .eq('user_id', userId)
-      .eq('prayer_type', 'devotional')
+      .in('prayer_type', ['devotional', 'guided_playbook'])
       .order('created_at', { ascending: false });
 
     if (error) {

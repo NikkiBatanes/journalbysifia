@@ -586,7 +586,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
     actionType === 'text_input' ? 'Save to Journal' :
-    "I've committed"
+    "Done"
   );
 
   const isCommitted = !!committedSteps[actionStepIndex];
