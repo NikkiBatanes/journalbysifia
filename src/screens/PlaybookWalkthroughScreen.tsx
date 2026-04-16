@@ -694,76 +694,78 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </Animated.View>
         </StepFadeIn>
 
-        {/* Expanded journal icons row — appears above buttons when open */}
-        {journalMounted && (
-          <View style={styles.journalExpandedRow}>
-            {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
-              <Animated.View
-                key={type}
-                style={{
-                  opacity: iconAnims[idx],
-                  transform: [{ scale: iconAnims[idx] }],
-                  alignItems: 'center',
-                }}
-              >
-                <TouchableOpacity
-                  style={styles.journalIconButton}
-                  onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.journalIconCircle, { borderColor: color }]}>
-                    <MaterialCommunityIcons name={icon} size={20} color={color} />
-                  </View>
-                  <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-        )}
-
-        {/* Action buttons row — trigger circle sits left of the primary button */}
+        {/* Button area — relative container so expanded icons float above */}
         <StepFadeIn delay={200}>
-        <View style={styles.doneSkipRow}>
-          {/* Journal trigger circle */}
-          <TouchableOpacity
-            style={styles.journalTrigger}
-            onPress={toggleJournalIcons}
-            activeOpacity={0.8}
-          >
-            <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-              <MaterialCommunityIcons
-                name="pencil-plus-outline"
-                size={20}
-                color="rgba(255,255,255,0.7)"
-              />
-            </Animated.View>
-          </TouchableOpacity>
+        <View style={styles.buttonArea}>
+          {/* Expanded journal icons — absolutely positioned above buttons, no layout shift */}
+          {journalMounted && (
+            <View style={styles.journalExpandedRow}>
+              {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+                <Animated.View
+                  key={type}
+                  style={{
+                    opacity: iconAnims[idx],
+                    transform: [{ scale: iconAnims[idx] }],
+                    alignItems: 'center',
+                  }}
+                >
+                  <TouchableOpacity
+                    style={styles.journalIconButton}
+                    onPress={() => { setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.journalIconCircle, { borderColor: color }]}>
+                      <MaterialCommunityIcons name={icon} size={20} color={color} />
+                    </View>
+                    <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+          )}
 
-          <TouchableOpacity
-            style={[styles.doneButton, { flex: 1 }]}
-            onPress={() => {
-              if (actionType === 'text_input') {
-                handleSaveJournal();
-              } else {
-                advanceStep(true);
-              }
-            }}
-            activeOpacity={0.8}
-          >
-            <ThemedText weight="semiBold" style={styles.doneButtonText}>
-              {primaryLabel}
-            </ThemedText>
-          </TouchableOpacity>
+          <View style={styles.doneSkipRow}>
+            {/* Journal trigger circle */}
+            <TouchableOpacity
+              style={styles.journalTrigger}
+              onPress={toggleJournalIcons}
+              activeOpacity={0.8}
+            >
+              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+                <MaterialCommunityIcons
+                  name="pencil-plus-outline"
+                  size={20}
+                  color="rgba(255,255,255,0.55)"
+                />
+              </Animated.View>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => advanceStep(false)}
-            activeOpacity={0.8}
-          >
-            <ThemedText style={styles.skipButtonText}>
-              {secondaryLabel}
-            </ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => {
+                if (actionType === 'text_input') {
+                  handleSaveJournal();
+                } else {
+                  advanceStep(true);
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <ThemedText weight="semiBold" style={styles.doneButtonText}>
+                {primaryLabel}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => advanceStep(false)}
+              activeOpacity={0.7}
+              style={styles.skipButton}
+            >
+              <ThemedText style={styles.skipButtonText}>
+                {secondaryLabel}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
         </StepFadeIn>
     </View>
@@ -1880,33 +1882,38 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 23,
   },
-  journalExpandedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+  buttonArea: {
+    position: 'relative',
     marginTop: 20,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+  },
+  journalExpandedRow: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingBottom: 12,
   },
   journalTrigger: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   journalIconButton: {
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   journalIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -1918,31 +1925,29 @@ const styles = StyleSheet.create({
   doneSkipRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
+    gap: 10,
   },
   doneButton: {
     flex: 1,
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   doneButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
   },
   skipButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 50,
     paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
   },
   skipButtonText: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
   },
 
   // Outer container for Prayer + Word to Speak — flex column so content can center
