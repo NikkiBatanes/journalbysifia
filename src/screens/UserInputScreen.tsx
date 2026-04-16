@@ -592,8 +592,8 @@ const UserInputScreen: React.FC = () => {
     ]).start();
     if (showTooltip) {
       Animated.parallel([
-        Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+        Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
       ]).start(() => setShowTooltip(false));
     }
     // Collapse navigation when input is focused
@@ -1052,8 +1052,8 @@ const UserInputScreen: React.FC = () => {
     Keyboard.dismiss();
     if (showTooltip) {
       Animated.parallel([
-        Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+        Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
       ]).start(() => setShowTooltip(false));
     }
   };
@@ -1090,13 +1090,13 @@ const UserInputScreen: React.FC = () => {
       const next = !v;
       if (next) {
         Animated.parallel([
-          Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
-          Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
+          Animated.spring(tooltipOpacity, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
+          Animated.spring(tooltipTranslateY, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
         ]).start();
       } else {
         Animated.parallel([
-          Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-          Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+          Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
+          Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
         ]).start();
       }
       return next;
