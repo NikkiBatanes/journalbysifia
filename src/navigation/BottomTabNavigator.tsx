@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   // Each tab: Animated.View takes equal share, scale bounce applies here
   pillTab: {
     flex: 1,
-    height: 56,
+    height: 48,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
