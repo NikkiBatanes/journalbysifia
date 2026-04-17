@@ -826,6 +826,7 @@ const DevotionalsScreen = () => {
                     styles.listContent,
                     styles.pageInner,
                     styles.listContentPadding,
+                    { paddingBottom: 70 },
                   ]
             }
             ListFooterComponent={<View style={{ height: 70 }} />}
