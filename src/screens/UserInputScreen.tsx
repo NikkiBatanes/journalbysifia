@@ -90,6 +90,7 @@ const UserInputScreen: React.FC = () => {
   // Navigation reveal state
   const [showNavigation, setShowNavigation] = useState(false);
   const navButtonAnim = useRef(new Animated.Value(0)).current;
+  const navButtonScaleAnim = useRef(new Animated.Value(1)).current;
   const navIconEntranceAnim = useRef(new Animated.Value(0)).current;
   // Individual icon animations for staggered entrance
   const navIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
@@ -1089,13 +1090,28 @@ const UserInputScreen: React.FC = () => {
     setShowNavigation(!showNavigation);
     const targetValue = showNavigation ? 0 : 1;
 
-    // Animate container
-    Animated.spring(navButtonAnim, {
-      toValue: targetValue,
-      tension: 80,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
+    // Animate container with scale effect when collapsing
+    if (showNavigation) {
+      Animated.parallel([
+        Animated.spring(navButtonAnim, {
+          toValue: targetValue,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.spring(navButtonScaleAnim, { toValue: 0.9, tension: 200, friction: 8, useNativeDriver: true }),
+          Animated.spring(navButtonScaleAnim, { toValue: 1,   tension: 180, friction: 10, useNativeDriver: true }),
+        ]),
+      ]).start();
+    } else {
+      Animated.spring(navButtonAnim, {
+        toValue: targetValue,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }
 
     // Stagger individual icons
     navIconAnims.forEach((anim, index) => {
@@ -1142,7 +1158,7 @@ const UserInputScreen: React.FC = () => {
           {/* Expandable navigation bar - hidden during generation */}
           {!isGenerating && (
             <>
-              <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
+              <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }, { scale: navButtonScaleAnim }] }]}>
                 <Animated.View
                   style={{
                     opacity: navIconEntranceAnim,
