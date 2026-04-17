@@ -171,7 +171,7 @@ const CustomTabBarComponent = ({
       <View style={styles.pill}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
-          const iconColor = isFocused ? theme.colors.alertCoral : 'rgba(255,255,255,0.55)';
+          const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
 
           const onPress = () => {
             const event = navigation.emit({
