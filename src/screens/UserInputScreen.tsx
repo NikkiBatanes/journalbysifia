@@ -90,7 +90,6 @@ const UserInputScreen: React.FC = () => {
   // Navigation reveal state
   const [showNavigation, setShowNavigation] = useState(false);
   const navButtonAnim = useRef(new Animated.Value(0)).current;
-  const navButtonScaleAnim = useRef(new Animated.Value(1)).current;
   const navIconEntranceAnim = useRef(new Animated.Value(0)).current;
   // Individual icon animations for staggered entrance
   const navIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
@@ -1090,28 +1089,13 @@ const UserInputScreen: React.FC = () => {
     setShowNavigation(!showNavigation);
     const targetValue = showNavigation ? 0 : 1;
 
-    // Animate container with scale effect when collapsing
-    if (showNavigation) {
-      Animated.parallel([
-        Animated.spring(navButtonAnim, {
-          toValue: targetValue,
-          tension: 80,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.sequence([
-          Animated.spring(navButtonScaleAnim, { toValue: 0.9, tension: 200, friction: 8, useNativeDriver: true }),
-          Animated.spring(navButtonScaleAnim, { toValue: 1,   tension: 180, friction: 10, useNativeDriver: true }),
-        ]),
-      ]).start();
-    } else {
-      Animated.spring(navButtonAnim, {
-        toValue: targetValue,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    }
+    // Animate container
+    Animated.spring(navButtonAnim, {
+      toValue: targetValue,
+      tension: 80,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
 
     // Stagger individual icons
     navIconAnims.forEach((anim, index) => {
@@ -1122,6 +1106,41 @@ const UserInputScreen: React.FC = () => {
         delay: targetValue === 1 ? index * 50 : 0, // Stagger entrance, collapse immediately
         useNativeDriver: true,
       }).start();
+    });
+  };
+
+  const handleNavigationWithCollapse = (navAction: () => void) => {
+    if (!showNavigation) {
+      navAction();
+      return;
+    }
+
+    // Animate collapse
+    Animated.spring(navButtonAnim, {
+      toValue: 0,
+      tension: 80,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    navIconAnims.forEach((anim) => {
+      Animated.spring(anim, {
+        toValue: 0,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    // Navigate after animation completes
+    Animated.spring(navButtonAnim, {
+      toValue: 0,
+      tension: 80,
+      friction: 8,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowNavigation(false);
+      navAction();
     });
   };
 
@@ -1158,7 +1177,7 @@ const UserInputScreen: React.FC = () => {
           {/* Expandable navigation bar - hidden during generation */}
           {!isGenerating && (
             <>
-              <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }, { scale: navButtonScaleAnim }] }]}>
+              <Animated.View style={[styles.navButtonContainer, { transform: [{ rotate: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }]}>
                 <Animated.View
                   style={{
                     opacity: navIconEntranceAnim,
@@ -1185,22 +1204,22 @@ const UserInputScreen: React.FC = () => {
               {/* Navigation icons when expanded */}
               <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
                 <Animated.View style={{ opacity: navIconAnims[0], transform: [{ scale: navIconAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }], index: 0 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }], index: 0 } }] }))}>
                     <MaterialIcons name="space-dashboard" size={20} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[1], transform: [{ scale: navIconAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Playbooks' }], index: 1 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Playbooks' }], index: 1 } }] }))}>
                     <MaterialCommunityIcons name="clipboard-text-play" size={20} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Devotionals' }], index: 1 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Devotionals' }], index: 1 } }] }))}>
                     <MaterialCommunityIcons name="book" size={20} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] }))}>
                     <MaterialCommunityIcons name="notebook-edit" size={20} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
