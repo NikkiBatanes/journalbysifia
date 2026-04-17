@@ -34,9 +34,8 @@ type CustomTabBarProps = {
 };
 
 
-// Solid-color equivalent of rgba(255,255,255,0.15) composited on anchorBlue #1a3c6d
-// R: 26*0.85+255*0.15=60  G: 60*0.85+255*0.15=89  B: 109*0.85+255*0.15=131
-const PILL_BG = '#264777';
+// Modern pill background - lighter, more balanced blue
+const PILL_BG = '#1e4270';
 
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
@@ -397,14 +396,12 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 36,
     backgroundColor: PILL_BG,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.22)',
     paddingHorizontal: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   // Each tab: Animated.View takes equal share, scale bounce applies here
   pillTab: {
