@@ -139,8 +139,8 @@ const CustomTabBarComponent = ({
             style={styles.tab}
           >
             {route.name === 'Home' ? (
-              <Octicons
-                name={'home-fill'}
+              <MaterialIcons
+                name={'home-variant'}
                 size={28}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
