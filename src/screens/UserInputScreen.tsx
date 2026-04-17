@@ -1174,17 +1174,17 @@ const UserInputScreen: React.FC = () => {
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[1], transform: [{ scale: navIconAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('Journal')}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Home' }, { name: 'Playbooks' }], index: 1 } }] })}>
                     <MaterialCommunityIcons name="clipboard-text-play" size={24} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Home' }, { name: 'Playbooks' }], index: 1 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Home' }, { name: 'Devotionals' }], index: 1 } }] })}>
                     <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Home' }, { name: 'Devotionals' }], index: 1 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('Journal')}>
                     <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
