@@ -83,6 +83,7 @@ const CustomTabBarComponent = ({
       }),
       Animated.sequence([
         Animated.spring(selectorScale, { toValue: 1.1, tension: 200, friction: 8, useNativeDriver: true }),
+        Animated.delay(100),
         Animated.spring(selectorScale, { toValue: 1,    tension: 180, friction: 10, useNativeDriver: true }),
       ]),
     ]).start();
