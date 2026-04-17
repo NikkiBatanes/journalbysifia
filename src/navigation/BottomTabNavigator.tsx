@@ -81,6 +81,12 @@ const CustomTabBarComponent = ({
     };
   }, []);
 
+  // Hide tab bar when Reflect tab is active
+  const currentRouteName = state.routes[state.index].name;
+  if (currentRouteName === 'Reflect') {
+    return null;
+  }
+
   return (
     <Animated.View
       style={[
