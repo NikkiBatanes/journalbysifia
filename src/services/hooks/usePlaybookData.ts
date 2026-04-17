@@ -501,7 +501,7 @@ export const useUpdateAffirmation = () => {
         const updatedPlaybooks = previousPlaybooks.map(playbook => {
           if (playbook.id !== playbookId) {return playbook;}
 
-          const updatedAffirmations = playbook.affirmations.map(affirmation => {
+          const updatedAffirmations = (playbook.affirmations ?? []).map(affirmation => {
             if (affirmation.id !== affirmationId) {return affirmation;}
             return { ...affirmation, completed };
           });
