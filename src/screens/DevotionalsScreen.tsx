@@ -799,7 +799,7 @@ const DevotionalsScreen = () => {
       </View>
 
       {/* Content area within BlueSheet for consistent blue background layout */}
-      <BlueSheet style={[styles.contentSheet, { paddingBottom: 70 }]}>
+      <BlueSheet style={styles.contentSheet}>
         {isInitialLoading ? (
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalSkeleton />
@@ -807,7 +807,7 @@ const DevotionalsScreen = () => {
         ) : (
           <SectionList
             ref={sectionListRef}
-            style={[styles.sectionList, { paddingBottom: 70 }]}
+            style={styles.sectionList}
             sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
@@ -829,7 +829,8 @@ const DevotionalsScreen = () => {
                     { paddingBottom: 70 },
                   ]
             }
-            ListFooterComponent={<View style={{ height: 70 }} />}
+            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) + 70 }} />}
+            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 16) + 70, left: 0, right: 0 }}
             ListEmptyComponent={renderFilterEmptyState}
             onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
