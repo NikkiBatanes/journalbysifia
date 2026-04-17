@@ -309,7 +309,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     scrollContent: {
       paddingHorizontal: 20,
-      paddingBottom: 64,
+      paddingBottom: 70,
       paddingTop: 0,
     },
     pageInner: {
