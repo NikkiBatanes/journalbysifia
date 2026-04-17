@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   pillTab: {
     flex: 1,
     height: 48,
-    borderRadius: 28,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
