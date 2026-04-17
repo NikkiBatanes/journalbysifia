@@ -1370,26 +1370,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Removed Weekly Insights and AI Insights */}
 
-          {/* Playbooks Section - Only show when user has playbooks */}
-          <View style={styles.newMomentCardContainer}>
-            <View style={styles.newMomentCardContent}>
-              <View style={styles.newMomentInnerCard}>
-                <ThemedText weight="medium" style={styles.newMomentPrompt}>What moment are you carrying right now?</ThemedText>
-                <TouchableOpacity
-                  style={styles.newMomentButton}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    navigation.navigate('UserInput', { autoFocus: true });
-                  }}
-                >
-                  <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
-                  <ThemedText weight="medium" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          <View style={styles.sectionGap} />
+          {/* Removed Start a New Moment card */}
           {hasContent && (
             <>
               {/* Collapsing Playbook label */}
