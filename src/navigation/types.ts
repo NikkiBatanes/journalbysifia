@@ -100,8 +100,8 @@ export type RootStackParamList = {
 };
 
 export type BottomTabParamList = {
-  Home: undefined;
-  Dashboard: undefined;
+  Reflect: undefined;
+  Overview: undefined;
   Playbooks: undefined;
   Devotionals: undefined;
   Journal: undefined;

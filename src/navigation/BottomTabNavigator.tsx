@@ -107,9 +107,9 @@ const CustomTabBarComponent = ({
           onTabPress(route.name);
 
           if (!event.defaultPrevented) {
-            if (route.name === 'Dashboard') {
-              // Always route Home tab to the DashboardHome screen
-              navigation.navigate('Dashboard', { screen: 'DashboardHome' });
+            if (route.name === 'Overview') {
+              // Always route Overview tab to the DashboardHome screen
+              navigation.navigate('Overview', { screen: 'DashboardHome' });
             } else {
               // Default behavior for other tabs
               navigation.navigate(route.name);
@@ -125,8 +125,8 @@ const CustomTabBarComponent = ({
 
         // Label map for tabs
         const labelMap: Record<string, string> = {
-          Home: 'Home',
-          Dashboard: 'Dashboard',
+          Reflect: 'Reflect',
+          Overview: 'Overview',
           Playbooks: 'Playbooks',
           Devotionals: 'Devotionals',
           Journal: 'Journal',
@@ -138,7 +138,7 @@ const CustomTabBarComponent = ({
             onPress={onPress}
             style={styles.tab}
           >
-            {route.name === 'Home' ? (
+            {route.name === 'Reflect' ? (
               <MaterialIcons
                 name={'home'}
                 size={28}
@@ -166,7 +166,7 @@ const CustomTabBarComponent = ({
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
-            ) : route.name === 'Dashboard' ? (
+            ) : route.name === 'Overview' ? (
               <MaterialIcons
                 name={'space-dashboard'}
                 size={28}
@@ -278,18 +278,18 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="Reflect"
         component={HomeStackNavigator}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: 'Reflect',
           headerShown: false,
         }}
       />
       <Tab.Screen
-        name="Dashboard"
+        name="Overview"
         component={HomeStackNavigator}
         options={{
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: 'Overview',
           headerShown: false,
         }}
       />
