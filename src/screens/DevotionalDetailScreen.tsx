@@ -1550,7 +1550,7 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   scrollViewContent: {
-    paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
+    paddingBottom: 70, // Add padding to bottom to prevent FAB overlap
     paddingTop: 80, // Set scrollable padding to 60px
   },
   reflectionContainer: {
