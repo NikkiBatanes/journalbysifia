@@ -1614,7 +1614,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.alertCoral,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     justifyContent: 'center',
