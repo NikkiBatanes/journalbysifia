@@ -497,7 +497,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   if (!userId || !isAuthenticated) {
 
     return (
-      <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['left','right']}>
         <View style={styles.container}>
           <View style={[styles.listContent, styles.pageInner]}>
             <PlaybookSkeleton />
@@ -512,7 +512,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   if (playbooks.length === 0 && !isLoading && userId) {
 
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right','bottom']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right']}>
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
           <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
             <View style={styles.pageInner}>
@@ -581,7 +581,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <View style={styles.container}>
         {/* Header on white background with tabs */}
         <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
@@ -992,7 +992,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 0, // Remove padding since pageInner handles it
-    paddingBottom: 20,
+    paddingBottom: 70,
   },
   // SectionList container and extra padding
   sectionList: {

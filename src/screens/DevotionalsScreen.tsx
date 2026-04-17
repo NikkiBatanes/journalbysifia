@@ -581,7 +581,7 @@ const DevotionalsScreen = () => {
     const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
 
     return (
-      <SafeAreaView style={[styles.container, styles.containerBlue]} edges={['left','right','bottom']}>
+      <SafeAreaView style={[styles.container, styles.containerBlue]} edges={['left','right']}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
           <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
@@ -750,7 +750,7 @@ const DevotionalsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right','bottom']}>
+    <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right']}>
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
       {/* Header */}
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 70,
   },
   sectionList: {
     flex: 1,
