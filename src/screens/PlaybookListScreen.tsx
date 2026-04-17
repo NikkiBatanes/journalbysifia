@@ -149,56 +149,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
     completed: new Animated.Value(1),
   });
 
-  // Floating Create a Playbook button animations (match Dashboard)
-  const buttonWidth = useRef(new Animated.Value(56)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const textWidth = textOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 180] });
-  const fabPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const fabPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        fabPan.setOffset({ x: (fabPan as any).x._value || 0, y: (fabPan as any).y._value || 0 });
-        fabPan.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: (_evt, gesture) => {
-        fabPan.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: () => {
-        fabPan.flattenOffset();
-      },
-      onPanResponderTerminate: () => {
-        fabPan.flattenOffset();
-      },
-    })
-  ).current;
-
-  const expandButton = useCallback(() => {
-    let animationCount = 0;
-    const maxAnimations = 2;
-    const runAnimation = () => {
-      if (animationCount >= maxAnimations) { return; }
-      animationCount++;
-      Animated.parallel([
-        Animated.timing(buttonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
-        Animated.timing(textOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
-      ]).start(() => {
-        setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(textOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
-            Animated.timing(buttonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
-          ]).start(() => {
-            if (animationCount < maxAnimations) {
-              setTimeout(() => { runAnimation(); }, 3000);
-            }
-          });
-        }, 2500);
-      });
-    };
-    runAnimation();
-  }, [buttonWidth, textOpacity]);
-
   const handleTabPressIn = useCallback((tab: 'all' | 'ongoing' | 'completed') => {
     try {
       Animated.spring(tabScales.current[tab], {
@@ -256,15 +206,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
       //   });
       // }
 
-      // Refetch and reset floating button animation
+      // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
+      // This prevents blocking the UI thread during screen transitions
       const timer = setTimeout(() => {
-        // Reset floating button animation immediately
-        buttonWidth.setValue(56);
-        textOpacity.setValue(0);
-        setTimeout(() => { expandButton(); }, 1000);
-
-        // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
-        // This prevents blocking the UI thread during screen transitions
         if (userId) {
           const focusTime = Date.now();
           console.log('[PlaybookListScreen] Screen focused at', focusTime);
@@ -287,7 +231,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return () => {
       unsubscribe();
     };
-  }, [navigation, playbooks.length, refetch, userId, buttonWidth, textOpacity, expandButton]);
+  }, [navigation, playbooks.length, refetch, userId]);
 
   // Additional effect to handle userId changes and ensure data loading
   useEffect(() => {
@@ -771,37 +715,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
             />
           )}
         </BlueSheet>
-        {/* Floating Create a Playbook button (same as Dashboard) */}
-        <Animated.View
-          style={[
-            styles.floatingButton,
-            { bottom: Math.max(110, bottomClearance + 70), right: Math.max(36, insets.right + 36) },
-            { transform: [{ translateX: fabPan.x }, { translateY: fabPan.y }] },
-          ]}
-          {...fabPanResponder.panHandlers}
-        >
-          <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
-            <TouchableOpacity
-              style={styles.expandableButtonTouchable}
-              onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-              activeOpacity={0.8}
-            >
-              <View style={styles.fabIconContainer}>
-                <Image
-                  source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
-                  style={styles.floatingButtonIcon}
-                  resizeMode="contain"
-                  accessibilityLabel="siFia"
-                />
-              </View>
-              <Animated.View style={{ opacity: textOpacity, width: textWidth }}>
-                <ThemedText weight="semiBold" style={styles.expandText} numberOfLines={1}>
-                  Create a Playbook
-                </ThemedText>
-              </Animated.View>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
       </View>
       {/* Devotional creation modal triggered by long-press on a playbook card */}
       <DevotionalModal
