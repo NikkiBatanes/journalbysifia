@@ -140,7 +140,7 @@ const CustomTabBarComponent = ({
           >
             {route.name === 'Home' ? (
               <MaterialIcons
-                name={'home-variant'}
+                name={'home'}
                 size={28}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
