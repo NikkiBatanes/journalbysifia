@@ -1161,7 +1161,7 @@ const UserInputScreen: React.FC = () => {
                     style={styles.navButton}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="ellipsis-horizontal-outline" size={20} color={Colors.hopeWhite} />
+                    <MaterialIcons name="auto-fix-high" size={20} color={Colors.hopeWhite} />
                   </TouchableOpacity>
                 </Animated.View>
               </Animated.View>
