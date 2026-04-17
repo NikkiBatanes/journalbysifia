@@ -12,6 +12,7 @@ import { JournalScreenRef } from '../screens/JournalScreen';
 
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
@@ -45,6 +46,8 @@ const CustomTabBarComponent = ({
 }: CustomTabBarProps) => {
   const { showTabBar } = useScroll();
   const theme = useTheme();
+  const currentFont = theme.currentFont || 'lexend';
+  const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
   const translateY = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(1)).current;
@@ -154,7 +157,7 @@ const CustomTabBarComponent = ({
             >
               {icon}
               {showLabels && (
-                <Text style={[styles.pillLabel, { color: iconColor }]}>
+                <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
                   {LABELS[route.name] ?? route.name}
                 </Text>
               )}
