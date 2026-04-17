@@ -700,6 +700,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 styles.listContent,
                 styles.pageInner,
                 styles.listContentPadding,
+                { paddingBottom: 70 },
               ]}
               ListFooterComponent={<View style={{ height: bottomClearance }} />}
               scrollIndicatorInsets={{ top: 0, bottom: bottomClearance, left: 0, right: 0 }}
