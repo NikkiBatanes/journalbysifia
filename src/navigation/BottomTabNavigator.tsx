@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-    borderRadius: 28,
+    borderRadius: 32,
     backgroundColor: PILL_BG,
     borderWidth: 1,
     borderColor: '#3d5e8d',
