@@ -68,36 +68,26 @@ const CustomTabBarComponent = ({
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
-  const selectorWidth = React.useRef(new Animated.Value(0)).current;
   const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
   const updateSelectorPosition = React.useCallback((index: number) => {
     if (tabLayouts.length === 0) return;
     const tab = tabLayouts[index];
-    Animated.parallel([
-      Animated.spring(selectorPosition, {
-        toValue: tab.x,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: true,
-      }),
-      Animated.spring(selectorWidth, {
-        toValue: tab.width,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  }, [selectorPosition, selectorWidth, tabLayouts]);
+    Animated.spring(selectorPosition, {
+      toValue: tab.x,
+      tension: 80,
+      friction: 12,
+      useNativeDriver: true,
+    }).start();
+  }, [selectorPosition, tabLayouts]);
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
-    const { x, width } = event.nativeEvent.layout;
-    tabLayouts[index] = { x, width };
+    const { x } = event.nativeEvent.layout;
+    tabLayouts[index] = { x, width: event.nativeEvent.layout.width };
     if (state.index === index) {
       selectorPosition.setValue(x);
-      selectorWidth.setValue(width);
     }
-  }, [state.index, selectorPosition, selectorWidth, tabLayouts]);
+  }, [state.index, selectorPosition, tabLayouts]);
 
   // ── Sync show-labels preference ────────────────────────────────────────────
   useEffect(() => {
@@ -193,7 +183,6 @@ const CustomTabBarComponent = ({
             styles.slidingSelector,
             {
               transform: [{ translateX: selectorPosition }],
-              width: selectorWidth,
             },
           ]}
         />
@@ -429,6 +418,7 @@ const styles = StyleSheet.create({
   slidingSelector: {
     position: 'absolute',
     height: 48,
+    width: '20%',
     borderRadius: 24,
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
