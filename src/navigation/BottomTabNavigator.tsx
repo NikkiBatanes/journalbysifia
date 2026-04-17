@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Octicons from 'react-native-vector-icons/Octicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, TouchableOpacity, Platform, Animated, NativeModules, Text } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
@@ -138,8 +139,8 @@ const CustomTabBarComponent = ({
             style={styles.tab}
           >
             {route.name === 'Home' ? (
-              <Ionicons
-                name={'home'}
+              <Octicons
+                name={'home-fill'}
                 size={28}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
