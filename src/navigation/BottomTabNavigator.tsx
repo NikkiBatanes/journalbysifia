@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   pillTabActive: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
   pillLabel: {
     fontSize: 9.5,
