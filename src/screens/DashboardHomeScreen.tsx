@@ -758,6 +758,26 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [rotationalMessage, setRotationalMessage] = useState(0);
+
+  const motivationalMessages = [
+    'Reflect, revisit, and keep going',
+    'Your saved truths are here',
+    'Return to what you\'re carrying with God',
+    'Stay rooted in what God shows',
+    'Keep going beyond this moment',
+    'A quiet place to keep walking',
+    'Take the next faithful step',
+    'Pick up where grace met you',
+  ];
+
+  // Rotate motivational messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRotationalMessage((prev) => (prev + 1) % motivationalMessages.length);
+    }, 5000); // Rotate every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Reset image load state when user changes
   useEffect(() => {
@@ -1336,9 +1356,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderGreeting = () => (
     <View style={styles.greetingSection}>
-      <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</ThemedText>
+      <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Welcome back, {firstName}</ThemedText>
       <ThemedText weight="semiBold" style={styles.motivationalText}>
-        What moment are you carrying right now?
+        {motivationalMessages[rotationalMessage]}
       </ThemedText>
     </View>
   );
