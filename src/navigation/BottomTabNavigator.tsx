@@ -20,6 +20,7 @@ import DevotionalsScreen from '../screens/DevotionalsScreen';
 // import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
+import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
 
@@ -279,7 +280,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
     >
       <Tab.Screen
         name="Reflect"
-        component={HomeStackNavigator}
+        component={UserInputScreen}
         options={{
           tabBarLabel: 'Reflect',
           headerShown: false,
