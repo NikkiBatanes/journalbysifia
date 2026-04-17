@@ -38,7 +38,15 @@ type CustomTabBarProps = {
 // R: 26*0.85+255*0.15=60  G: 60*0.85+255*0.15=89  B: 109*0.85+255*0.15=131
 const PILL_BG = '#264777';
 
-// Custom tab bar — floating centered pill, mirroring the UserInput expanded nav style
+const LABELS: Record<string, string> = {
+  Reflect: 'Reflect',
+  Overview: 'Home',
+  Playbooks: 'Playbooks',
+  Devotionals: 'Devotionals',
+  Journal: 'Journal',
+};
+
+// Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
 const CustomTabBarComponent = ({
   state,
   descriptors: _descriptors,
@@ -49,26 +57,31 @@ const CustomTabBarComponent = ({
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
-  const translateY = React.useRef(new Animated.Value(0)).current;
-  const opacity = React.useRef(new Animated.Value(1)).current;
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: showTabBar ? 0 : 120,
-        useNativeDriver: true,
-        bounciness: 0,
-      }),
-      Animated.timing(opacity, {
-        toValue: showTabBar ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [showTabBar, translateY, opacity]);
+  const currentRouteName = state.routes[state.index].name;
+  const isReflect = currentRouteName === 'Reflect';
 
-  // Sync showLabels with persisted preference and listen for live changes
+  // ── Pill visibility: fade + slide up/down ─────────────────────────────────
+  // Single value drives both: 0 = hidden below screen, 1 = visible in place.
+  const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
+
+  // ── Per-tab bounce on activation ──────────────────────────────────────────
+  // Indexed by route position — wrap the whole tab item so icon+bg both bounce.
+  const tabScaleAnims = React.useRef(
+    state.routes.map(() => new Animated.Value(1))
+  ).current;
+
+  const bounceTab = React.useCallback((index: number) => {
+    const anim = tabScaleAnims[index];
+    anim.stopAnimation();
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 1.12, tension: 200, friction: 12, useNativeDriver: true }),
+      Animated.spring(anim, { toValue: 1,    tension: 180, friction: 14, useNativeDriver: true }),
+    ]).start();
+  }, [tabScaleAnims]);
+
+  // ── Sync show-labels preference ────────────────────────────────────────────
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -78,39 +91,87 @@ const CustomTabBarComponent = ({
     const unsub = experiencePreferences.subscribe(() => {
       setShowLabels(experiencePreferences.showTabLabelsEnabled);
     });
-    return () => {
-      isMounted = false;
-      unsub();
-    };
+    return () => { isMounted = false; unsub(); };
   }, []);
+
+  // ── Scroll-driven hide/show (only when not on Reflect) ────────────────────
+  useEffect(() => {
+    if (isReflect) { return; }
+    Animated.spring(pillAnim, {
+      toValue: showTabBar ? 1 : 0,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 14,
+    }).start();
+  }, [showTabBar, isReflect, pillAnim]);
+
+  // ── Route-change animations ────────────────────────────────────────────────
+  const prevRouteRef = React.useRef<string>(currentRouteName);
+  const isFirstRenderRef = React.useRef(true);
+
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      prevRouteRef.current = currentRouteName;
+      return;
+    }
+
+    const prev = prevRouteRef.current;
+    prevRouteRef.current = currentRouteName;
+
+    if (isReflect) {
+      // Going TO Reflect — slide pill down and fade out
+      Animated.spring(pillAnim, {
+        toValue: 0,
+        tension: 70,
+        friction: 14,
+        useNativeDriver: true,
+      }).start();
+
+    } else if (prev === 'Reflect') {
+      // Coming FROM Reflect — delay, slide pill up + fade in, then bounce the landed tab.
+      // onPress won't fire for this case (navigation came from UserInput's own nav UI),
+      // so this is the only place that triggers the bounce for it.
+      pillAnim.setValue(0);
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.spring(pillAnim, {
+          toValue: 1,
+          tension: 55,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ]).start(() => bounceTab(state.index));
+    }
+    // Normal tab→tab: bounce fires directly in onPress (correct index, no stale closure).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.index]);
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  // Hide pill when Reflect (UserInput) tab is active — that screen has its own nav
-  const currentRouteName = state.routes[state.index].name;
-  if (currentRouteName === 'Reflect') {
-    return null;
-  }
+  // pillAnim 0→1 drives: opacity 0→1, translateY 28→0
+  const pillOpacity   = pillAnim;
+  const pillTranslateY = pillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [28, 0],
+  });
 
   return (
-    // Wrapper: full-width absolute anchor, transparent — centers the pill
     <Animated.View
       style={[
         styles.pillWrapper,
         {
-          // Sit flush at the safe-area boundary (home indicator edge).
-          // Math.max ensures at least 8pt gap on phones with no home indicator.
           bottom: Math.max(insets.bottom, 8),
-          transform: [{ translateY }],
-          opacity,
+          opacity: pillOpacity,
+          transform: [{ translateY: pillTranslateY }],
         },
       ]}
-      pointerEvents="box-none"
+      pointerEvents={isReflect ? 'none' : 'box-none'}
     >
       <View style={styles.pill}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
-          const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
+          const iconColor = isFocused ? theme.colors.alertCoral : 'rgba(255,255,255,0.55)';
 
           const onPress = () => {
             const event = navigation.emit({
@@ -118,6 +179,9 @@ const CustomTabBarComponent = ({
               target: route.key,
               canPreventDefault: true,
             });
+            // Fire bounce immediately at press time — index is captured from
+            // the map closure so it's always correct, no stale state.index risk.
+            bounceTab(index);
             onTabPress(route.name);
             if (!event.defaultPrevented) {
               if (route.name === 'Overview') {
@@ -126,14 +190,6 @@ const CustomTabBarComponent = ({
                 navigation.navigate(route.name);
               }
             }
-          };
-
-          const LABELS: Record<string, string> = {
-            Reflect: 'Reflect',
-            Overview: 'Home',
-            Playbooks: 'Playbooks',
-            Devotionals: 'Devotionals',
-            Journal: 'Journal',
           };
 
           const icon = (() => {
@@ -149,19 +205,29 @@ const CustomTabBarComponent = ({
           })();
 
           return (
-            <TouchableOpacity
+            // Animated.View wraps the whole tab item so scale bounces
+            // icon + label + active background together — not just the inner content.
+            <Animated.View
               key={route.key}
-              onPress={onPress}
-              activeOpacity={0.75}
-              style={[styles.pillTab, isFocused && styles.pillTabActive]}
+              style={[
+                styles.pillTab,
+                isFocused && styles.pillTabActive,
+                { transform: [{ scale: tabScaleAnims[index] }] },
+              ]}
             >
-              {icon}
-              {showLabels && (
-                <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
-                  {LABELS[route.name] ?? route.name}
-                </Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.8}
+                style={styles.pillTabTouchable}
+              >
+                {icon}
+                {showLabels && (
+                  <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
+                    {LABELS[route.name] ?? route.name}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
@@ -315,14 +381,21 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 16,
   },
-  // Each tab takes equal share — column layout for icon + label
+  // Each tab: Animated.View takes equal share, scale bounce applies here
   pillTab: {
     flex: 1,
     height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // TouchableOpacity fills the tab, lays out icon + label
+  pillTabTouchable: {
+    flex: 1,
+    width: '100%',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
     gap: 2,
   },
   pillTabActive: {
