@@ -141,49 +141,49 @@ const CustomTabBarComponent = ({
             {route.name === 'Reflect' ? (
               <MaterialIcons
                 name={'auto-fix-high'}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'Journal' ? (
               <MaterialCommunityIcons
                 name={'notebook-edit'}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'Devotionals' ? (
               <MaterialCommunityIcons
                 name={'book'}
-                size={30}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={[styles.icon, { transform: [{ translateY: 1 }] }]}
               />
             ) : route.name === 'Playbooks' ? (
               <MaterialCommunityIcons
                 name={'clipboard-text-play'}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'Overview' ? (
               <MaterialIcons
                 name={'space-dashboard'}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'AllScreens' ? (
               <MaterialCommunityIcons
                 name={'view-grid'}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : (
               <Ionicons
                 name={iconName}
-                size={28}
+                size={20}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
