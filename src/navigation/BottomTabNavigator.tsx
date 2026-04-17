@@ -140,7 +140,7 @@ const CustomTabBarComponent = ({
           >
             {route.name === 'Reflect' ? (
               <MaterialIcons
-                name={'home'}
+                name={'auto-fix-high'}
                 size={28}
                 color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
