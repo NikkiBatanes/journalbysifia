@@ -66,21 +66,38 @@ const CustomTabBarComponent = ({
   // Single value drives both: 0 = hidden below screen, 1 = visible in place.
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
 
-  // ── Per-tab bounce on activation ──────────────────────────────────────────
-  // Indexed by route position — wrap the whole tab item so icon+bg both bounce.
-  const tabScaleAnims = React.useRef(
-    state.routes.map(() => new Animated.Value(1))
-  ).current;
+  // ── Sliding selector position ───────────────────────────────────────────────
+  const selectorPosition = React.useRef(new Animated.Value(0)).current;
+  const selectorWidth = React.useRef(new Animated.Value(0)).current;
+  const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
-  const bounceTab = React.useCallback((index: number) => {
-    const anim = tabScaleAnims[index];
-    anim.stopAnimation();
-    Animated.sequence([
-      Animated.timing(anim, { toValue: 1.15, duration: 150, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-      Animated.timing(anim, { toValue: 0.95, duration: 100, easing: Easing.in(Easing.ease), useNativeDriver: true }),
-      Animated.timing(anim, { toValue: 1,    duration: 100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+  const updateSelectorPosition = React.useCallback((index: number) => {
+    if (tabLayouts.length === 0) return;
+    const tab = tabLayouts[index];
+    Animated.parallel([
+      Animated.spring(selectorPosition, {
+        toValue: tab.x,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.spring(selectorWidth, {
+        toValue: tab.width,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }),
     ]).start();
-  }, [tabScaleAnims]);
+  }, [selectorPosition, selectorWidth, tabLayouts]);
+
+  const handleTabLayout = React.useCallback((index: number) => (event: any) => {
+    const { x, width } = event.nativeEvent.layout;
+    tabLayouts[index] = { x, width };
+    if (state.index === index) {
+      selectorPosition.setValue(x);
+      selectorWidth.setValue(width);
+    }
+  }, [state.index, selectorPosition, selectorWidth, tabLayouts]);
 
   // ── Sync show-labels preference ────────────────────────────────────────────
   useEffect(() => {
@@ -130,9 +147,7 @@ const CustomTabBarComponent = ({
       }).start();
 
     } else if (prev === 'Reflect') {
-      // Coming FROM Reflect — delay, slide pill up + fade in, then bounce the landed tab.
-      // onPress won't fire for this case (navigation came from UserInput's own nav UI),
-      // so this is the only place that triggers the bounce for it.
+      // Coming FROM Reflect — delay, slide pill up + fade in, then move selector.
       pillAnim.setValue(0);
       Animated.sequence([
         Animated.delay(120),
@@ -142,11 +157,13 @@ const CustomTabBarComponent = ({
           friction: 12,
           useNativeDriver: true,
         }),
-      ]).start(() => bounceTab(state.index));
+      ]).start(() => updateSelectorPosition(state.index));
+    } else {
+      // Normal tab→tab: move selector smoothly
+      updateSelectorPosition(state.index);
     }
-    // Normal tab→tab: bounce fires directly in onPress (correct index, no stale closure).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.index]);
+  }, [state.index, updateSelectorPosition]);
 
   const { onTabPress } = React.useContext(TabPressContext);
 
@@ -170,6 +187,16 @@ const CustomTabBarComponent = ({
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
       <View style={styles.pill}>
+        {/* Sliding selector that moves smoothly between tabs */}
+        <Animated.View
+          style={[
+            styles.slidingSelector,
+            {
+              transform: [{ translateX: selectorPosition }],
+              width: selectorWidth,
+            },
+          ]}
+        />
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
@@ -180,9 +207,8 @@ const CustomTabBarComponent = ({
               target: route.key,
               canPreventDefault: true,
             });
-            // Fire bounce immediately at press time — index is captured from
-            // the map closure so it's always correct, no stale state.index risk.
-            bounceTab(index);
+            // Update selector position immediately at press time
+            updateSelectorPosition(index);
             onTabPress(route.name);
             if (!event.defaultPrevented) {
               if (route.name === 'Overview') {
@@ -206,15 +232,13 @@ const CustomTabBarComponent = ({
           })();
 
           return (
-            // Animated.View wraps the whole tab item so scale bounces
-            // icon + label + active background together — not just the inner content.
             <Animated.View
               key={route.key}
               style={[
                 styles.pillTab,
                 isFocused && styles.pillTabActive,
-                { transform: [{ scale: tabScaleAnims[index] }] },
               ]}
+              onLayout={handleTabLayout(index)}
             >
               <TouchableOpacity
                 onPress={onPress}
@@ -400,6 +424,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   pillTabActive: {
+    backgroundColor: 'transparent',
+  },
+  slidingSelector: {
+    position: 'absolute',
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
   pillLabel: {
