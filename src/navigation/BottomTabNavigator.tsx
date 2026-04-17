@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-    borderRadius: 36,
+    borderRadius: 24,
     backgroundColor: PILL_BG,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
