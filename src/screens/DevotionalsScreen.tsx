@@ -799,7 +799,7 @@ const DevotionalsScreen = () => {
       </View>
 
       {/* Content area within BlueSheet for consistent blue background layout */}
-      <BlueSheet style={[styles.contentSheet, { paddingBottom: 70 }]}>
+      <BlueSheet style={[styles.contentSheet, { paddingBottom: 90 }]}>
         {isInitialLoading ? (
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalSkeleton />
