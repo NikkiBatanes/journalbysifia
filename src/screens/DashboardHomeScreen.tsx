@@ -1371,6 +1371,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Removed Weekly Insights and AI Insights */}
 
           {/* Removed Start a New Moment card */}
+
+          <View style={styles.sectionGap} />
+
+          {/* Prayer Requests Section (hide when empty) */}
+          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
+            <>
+              {renderPrayerRequestsCard()}
+              <View style={styles.sectionGap} />
+            </>
+          )}
+
           {hasContent && (
             <>
               {/* Collapsing Playbook label */}
@@ -1403,14 +1414,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 }}
                 onEmpty={() => setHasContent(false)}
               />
-              <View style={styles.sectionGap} />
-            </>
-          )}
-
-          {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-            <>
-              {renderPrayerRequestsCard()}
               <View style={styles.sectionGap} />
             </>
           )}
