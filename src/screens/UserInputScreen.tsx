@@ -1184,7 +1184,7 @@ const UserInputScreen: React.FC = () => {
                   </TouchableOpacity>
                 </Animated.View>
                 <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.navigate('Journal')}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] })}>
                     <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
