@@ -34,8 +34,8 @@ type CustomTabBarProps = {
 };
 
 
-// Modern pill background - lighter, more balanced blue
-const PILL_BG = '#1e4270';
+// Glass morphism pill background - semi-transparent blue
+const PILL_BG = 'rgba(30, 66, 112, 0.6)';
 
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
@@ -396,6 +396,8 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 36,
     backgroundColor: PILL_BG,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
