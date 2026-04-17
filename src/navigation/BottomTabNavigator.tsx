@@ -51,9 +51,7 @@ const CustomTabBarComponent = ({
   const insets = useSafeAreaInsets();
   const translateY = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(1)).current;
-  const scaleX = React.useRef(new Animated.Value(1)).current;
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
-  const [previousRouteName, setPreviousRouteName] = React.useState<string>('');
 
   useEffect(() => {
     Animated.parallel([
@@ -69,25 +67,6 @@ const CustomTabBarComponent = ({
       }),
     ]).start();
   }, [showTabBar, translateY, opacity]);
-
-  // Animate horizontal expansion when coming from UserInput (Reflect) screen
-  useEffect(() => {
-    const currentRouteName = state.routes[state.index].name;
-    if (previousRouteName === 'Reflect' && currentRouteName !== 'Reflect') {
-      // Coming from Reflect, animate expand from left to right
-      scaleX.setValue(0);
-      Animated.spring(scaleX, {
-        toValue: 1,
-        useNativeDriver: true,
-        bounciness: 0,
-        speed: 12,
-      }).start();
-    } else if (currentRouteName === 'Reflect') {
-      // Going to Reflect, reset scaleX
-      scaleX.setValue(1);
-    }
-    setPreviousRouteName(currentRouteName);
-  }, [state.index, state.routes, scaleX, previousRouteName]);
 
   // Sync showLabels with persisted preference and listen for live changes
   useEffect(() => {
@@ -128,10 +107,10 @@ const CustomTabBarComponent = ({
       ]}
       pointerEvents="box-none"
     >
-      <Animated.View style={[styles.pill, { transform: [{ scaleX }] }]}>
+      <View style={styles.pill}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
-          const iconColor = isFocused ? theme.colors.alertCoral : 'rgba(255,255,255,0.55)';
+          const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -185,7 +164,7 @@ const CustomTabBarComponent = ({
             </TouchableOpacity>
           );
         })}
-      </Animated.View>
+      </View>
     </Animated.View>
   );
 };
