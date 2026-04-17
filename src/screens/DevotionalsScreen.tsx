@@ -807,7 +807,7 @@ const DevotionalsScreen = () => {
         ) : (
           <SectionList
             ref={sectionListRef}
-            style={styles.sectionList}
+            style={[styles.sectionList, { paddingBottom: 70 }]}
             sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
