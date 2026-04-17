@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-    borderRadius: 32,
+    borderRadius: 36,
     backgroundColor: PILL_BG,
     borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.22)',
