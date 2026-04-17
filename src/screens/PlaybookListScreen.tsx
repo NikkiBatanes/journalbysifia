@@ -3,7 +3,6 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {
   View,
   StyleSheet,
@@ -688,41 +687,33 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             </View>
           ) : (
-            <>
-              <SectionList
-                style={styles.sectionList}
-                key={`${filter}-${sections.length}`}
-                sections={sections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={({ section: { title } }) => (
-                  <View style={styles.sectionHeader}><ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText></View>
-                )}
-                contentContainerStyle={[
-                  styles.listContent,
-                  styles.pageInner,
-                  styles.listContentPadding,
-                  { paddingBottom: 70 },
-                ]}
-                ListFooterComponent={<View style={{ height: bottomClearance }} />}
-                scrollIndicatorInsets={{ top: 0, bottom: bottomClearance, left: 0, right: 0 }}
-                stickySectionHeadersEnabled
-                showsVerticalScrollIndicator={false}
-                bounces
-                alwaysBounceVertical
-                contentInsetAdjustmentBehavior="never"
-                overScrollMode="always"
-                removeClippedSubviews={false}
-                keyboardShouldPersistTaps="handled"
-                extraData={filter}
-              />
-              <LinearGradient
-                colors={['transparent', Colors.anchorBlue]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.bottomFadeGradient}
-              />
-            </>
+            <SectionList
+              style={styles.sectionList}
+              key={`${filter}-${sections.length}`}
+              sections={sections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={({ section: { title } }) => (
+                <View style={styles.sectionHeader}><ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText></View>
+              )}
+              contentContainerStyle={[
+                styles.listContent,
+                styles.pageInner,
+                styles.listContentPadding,
+                { paddingBottom: 70 },
+              ]}
+              ListFooterComponent={<View style={{ height: bottomClearance }} />}
+              scrollIndicatorInsets={{ top: 0, bottom: bottomClearance, left: 0, right: 0 }}
+              stickySectionHeadersEnabled
+              showsVerticalScrollIndicator={false}
+              bounces
+              alwaysBounceVertical
+              contentInsetAdjustmentBehavior="never"
+              overScrollMode="always"
+              removeClippedSubviews={false}
+              keyboardShouldPersistTaps="handled"
+              extraData={filter}
+            />
           )}
         </BlueSheet>
       </View>
@@ -1007,14 +998,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
   // SectionList container and extra padding
   sectionList: {
     flex: 1,
-  },
-  bottomFadeGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    pointerEvents: 'none',
   },
   listContentPadding: {
     paddingTop: 20,

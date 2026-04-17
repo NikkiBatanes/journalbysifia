@@ -3,7 +3,6 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {
   View,
   StyleSheet,
@@ -806,44 +805,36 @@ const DevotionalsScreen = () => {
             <DevotionalSkeleton />
           </View>
         ) : (
-          <>
-            <SectionList
-              ref={sectionListRef}
-              style={styles.sectionList}
-              sections={sections}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
-              renderSectionHeader={({ section: { title } }) => (
-                <View style={styles.sectionHeader}>
-                  <ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText>
-                </View>
-              )}
-              stickySectionHeadersEnabled
-              scrollEnabled={!isTrulyEmpty}
-              bounces={!isTrulyEmpty}
-              contentContainerStyle={
-                isTrulyEmpty
-                  ? styles.emptyListContent
-                  : [
-                      styles.listContent,
-                      styles.pageInner,
-                      styles.listContentPadding,
-                      { paddingBottom: 70 },
-                    ]
-              }
-              ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) + 70 }} />}
-              scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 16) + 70, left: 0, right: 0 }}
-              ListEmptyComponent={renderFilterEmptyState}
-              onViewableItemsChanged={onViewableItemsChanged}
-              showsVerticalScrollIndicator={false}
-            />
-            <LinearGradient
-              colors={['transparent', Colors.modalBlue]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.bottomFadeGradient}
-            />
-          </>
+          <SectionList
+            ref={sectionListRef}
+            style={styles.sectionList}
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
+            renderSectionHeader={({ section: { title } }) => (
+              <View style={styles.sectionHeader}>
+                <ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText>
+              </View>
+            )}
+            stickySectionHeadersEnabled
+            scrollEnabled={!isTrulyEmpty}
+            bounces={!isTrulyEmpty}
+            contentContainerStyle={
+              isTrulyEmpty
+                ? styles.emptyListContent
+                : [
+                    styles.listContent,
+                    styles.pageInner,
+                    styles.listContentPadding,
+                    { paddingBottom: 70 },
+                  ]
+            }
+            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) + 70 }} />}
+            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 16) + 70, left: 0, right: 0 }}
+            ListEmptyComponent={renderFilterEmptyState}
+            onViewableItemsChanged={onViewableItemsChanged}
+            showsVerticalScrollIndicator={false}
+          />
         )}
       </BlueSheet>
 
@@ -982,14 +973,6 @@ const styles = StyleSheet.create({
   },
   sectionList: {
     flex: 1,
-  },
-  bottomFadeGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    pointerEvents: 'none',
   },
   listContentPadding: {
     paddingTop: 20,

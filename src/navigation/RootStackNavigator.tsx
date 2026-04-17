@@ -37,7 +37,6 @@ import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOff
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
-import { TransitionPresets } from '@react-navigation/stack';
 
 // Header Components (commented out - unused)
 // interface BackButtonProps {
@@ -147,38 +146,6 @@ const PlaybookDetailScreenWithProvider: React.FC<any> = (props) => {
       <PlaybookDetailScreen {...props} />
     </ActionStepsProviderWrapper>
   );
-};
-
-// Custom transition for navigation from UserInputScreen
-const fromUserInputTransition = {
-  cardStyleInterpolator: ({ current, layouts }: any) => {
-    return {
-      cardStyle: {
-        transform: [
-          {
-            scale: current.progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.9, 1],
-            }),
-          },
-          {
-            translateX: current.progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [100, 0],
-            }),
-          },
-        ],
-        opacity: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 1],
-        }),
-      },
-    };
-  },
-  transitionSpec: {
-    open: { animation: 'timing', config: { duration: 400, easing: () => {} } },
-    close: { animation: 'timing', config: { duration: 300 } },
-  },
 };
 
 // Screen options functions
@@ -336,7 +303,7 @@ export default function RootStackNavigator({
             component={MainTabsScreen}
             options={{
               headerShown: false,
-              ...fromUserInputTransition,
+              animation: 'fade',
               gestureEnabled: false,
             }}
           />
@@ -409,10 +376,7 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="Journal"
             component={JournalScreen as React.ComponentType}
-            options={{
-              headerShown: true,
-              ...fromUserInputTransition,
-            }}
+            options={{ headerShown: true }}
           />
 
           {/* siFia AI Input Screen */}
