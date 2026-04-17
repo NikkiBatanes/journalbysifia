@@ -1,18 +1,17 @@
 // src/navigation/BottomTabNavigator.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Octicons from 'react-native-vector-icons/Octicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Platform, Animated, NativeModules, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
-import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
@@ -34,22 +33,27 @@ type CustomTabBarProps = {
 };
 
 
-// Custom tab bar component with proper TypeScript types
+// Solid-color equivalent of rgba(255,255,255,0.15) composited on anchorBlue #1a3c6d
+// R: 26*0.85+255*0.15=60  G: 60*0.85+255*0.15=89  B: 109*0.85+255*0.15=131
+const PILL_BG = '#264777';
+
+// Custom tab bar — floating centered pill, mirroring the UserInput expanded nav style
 const CustomTabBarComponent = ({
   state,
-  descriptors: _descriptors, // Prefix with underscore to indicate intentionally unused
+  descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
   const { showTabBar } = useScroll();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const translateY = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(1)).current;
-  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
 
   useEffect(() => {
     Animated.parallel([
       Animated.spring(translateY, {
-        toValue: showTabBar ? 0 : 80, // Slide down by 80px
+        toValue: showTabBar ? 0 : 120,
         useNativeDriver: true,
         bounciness: 0,
       }),
@@ -60,17 +64,13 @@ const CustomTabBarComponent = ({
       }),
     ]).start();
   }, [showTabBar, translateY, opacity]);
-  const { onTabPress } = React.useContext(TabPressContext);
 
-  // Subscribe to appearance preference for showing tab labels
+  // Sync showLabels with persisted preference and listen for live changes
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      try {
-        await experiencePreferences.loadOnce();
-        if (!isMounted) {return;}
-        setShowLabels(experiencePreferences.showTabLabelsEnabled);
-      } catch {}
+      await experiencePreferences.loadOnce();
+      if (isMounted) { setShowLabels(experiencePreferences.showTabLabelsEnabled); }
     })();
     const unsub = experiencePreferences.subscribe(() => {
       setShowLabels(experiencePreferences.showTabLabelsEnabled);
@@ -81,136 +81,87 @@ const CustomTabBarComponent = ({
     };
   }, []);
 
-  // Hide tab bar when Reflect tab is active
+  const { onTabPress } = React.useContext(TabPressContext);
+
+  // Hide pill when Reflect (UserInput) tab is active — that screen has its own nav
   const currentRouteName = state.routes[state.index].name;
   if (currentRouteName === 'Reflect') {
     return null;
   }
 
   return (
+    // Wrapper: full-width absolute anchor, transparent — centers the pill
     <Animated.View
       style={[
-        styles.tabBarContainer,
-        styles.animatedTabBar,
+        styles.pillWrapper,
         {
+          // Sit flush at the safe-area boundary (home indicator edge).
+          // Math.max ensures at least 8pt gap on phones with no home indicator.
+          bottom: Math.max(insets.bottom, 8),
           transform: [{ translateY }],
           opacity,
-          backgroundColor: theme.colors.anchorBlue,
-          borderTopColor: theme.colors.cardBorder,
         },
       ]}
+      pointerEvents="box-none"
     >
-      {state.routes.map((route, index) => {
-        const isFocused = state.index === index;
+      <View style={styles.pill}>
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+          const iconColor = isFocused ? theme.colors.alertCoral : 'rgba(255,255,255,0.55)';
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          // Notify parent component about tab press
-          onTabPress(route.name);
-
-          if (!event.defaultPrevented) {
-            if (route.name === 'Overview') {
-              // Always route Overview tab to the DashboardHome screen
-              navigation.navigate('Overview', { screen: 'DashboardHome' });
-            } else {
-              // Default behavior for other tabs
-              navigation.navigate(route.name);
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            onTabPress(route.name);
+            if (!event.defaultPrevented) {
+              if (route.name === 'Overview') {
+                navigation.navigate('Overview', { screen: 'DashboardHome' });
+              } else {
+                navigation.navigate(route.name);
+              }
             }
-          }
-        };
+          };
 
-        // No special handling needed for UserInput tab - it will be rendered like other tabs
+          const LABELS: Record<string, string> = {
+            Reflect: 'Reflect',
+            Overview: 'Home',
+            Playbooks: 'Playbooks',
+            Devotionals: 'Devotionals',
+            Journal: 'Journal',
+          };
 
-        const iconName = isFocused
-          ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
-          : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
+          const icon = (() => {
+            if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
+            if (route.name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={20} color={iconColor} />; }
+            if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
+            if (route.name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={20} color={iconColor} />; }
+            if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
+            const iconName = isFocused
+              ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
+              : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
+            return <Ionicons name={iconName} size={20} color={iconColor} />;
+          })();
 
-        // Label map for tabs
-        const labelMap: Record<string, string> = {
-          Reflect: 'Reflect',
-          Overview: 'Overview',
-          Playbooks: 'Playbooks',
-          Devotionals: 'Devotionals',
-          Journal: 'Journal',
-        };
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={onPress}
-            style={styles.tab}
-          >
-            {route.name === 'Reflect' ? (
-              <MaterialIcons
-                name={'auto-fix-high'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            ) : route.name === 'Journal' ? (
-              <MaterialCommunityIcons
-                name={'notebook-edit'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            ) : route.name === 'Devotionals' ? (
-              <MaterialCommunityIcons
-                name={'book'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={[styles.icon, { transform: [{ translateY: 1 }] }]}
-              />
-            ) : route.name === 'Playbooks' ? (
-              <MaterialCommunityIcons
-                name={'clipboard-text-play'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            ) : route.name === 'Overview' ? (
-              <MaterialIcons
-                name={'space-dashboard'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            ) : route.name === 'AllScreens' ? (
-              <MaterialCommunityIcons
-                name={'view-grid'}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            ) : (
-              <Ionicons
-                name={iconName}
-                size={20}
-                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
-                style={styles.icon}
-              />
-            )}
-            {showLabels && (
-              <Text
-                style={[
-                  styles.label,
-                  {
-                    color: isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight,
-                    fontFamily: getFontFamily(theme.currentFont || 'lexend', isFocused ? 'medium' : 'regular'),
-                  },
-                ]}
-              >
-                {labelMap[route.name] || route.name}
-              </Text>
-            )}
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              activeOpacity={0.75}
+              style={[styles.pillTab, isFocused && styles.pillTabActive]}
+            >
+              {icon}
+              {showLabels && (
+                <Text style={[styles.pillLabel, { color: iconColor }]}>
+                  {LABELS[route.name] ?? route.name}
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </Animated.View>
   );
 };
@@ -272,6 +223,11 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
   return (
     <Tab.Navigator
       tabBar={renderTabBar}
+      // anchorBlue scene container fills the full screen behind every tab screen,
+      // so scrollable content gaps and the safe-area floor never show white.
+      // tabBarStyle position:absolute stops RN from reserving space for the floating pill.
+      // @ts-ignore — sceneContainerStyle works at runtime; type added in a later @react-navigation/bottom-tabs version
+      sceneContainerStyle={{ backgroundColor: Colors.anchorBlue }}
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,
@@ -282,6 +238,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         headerTitleStyle: {
           color: theme.colors.hopeWhite,
         },
+        tabBarStyle: { position: 'absolute' },
       }}
     >
       <Tab.Screen
@@ -333,47 +290,44 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
 }
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
+  // Full-width absolute anchor with side margins
+  pillWrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+  },
+  // Floating pill — full width, taller to fit icon + label
+  pill: {
     flexDirection: 'row',
-    height: 80,  // Increased from 60 to 80
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    elevation: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    paddingHorizontal: 24,
-    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 15,  // Increased padding at the bottom
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: PILL_BG,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    elevation: 16,
   },
-  animatedTabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  tab: {
+  // Each tab takes equal share — column layout for icon + label
+  pillTab: {
     flex: 1,
+    height: 56,
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
+    borderRadius: 16,
+    gap: 2,
   },
-  // Removed middle tab floating button styles
-  label: {
-    fontSize: 11,  // Smaller font for compact labels
-    marginTop: 4,   // Slightly tighter spacing
-    color: Colors.trustGrey,
+  pillTabActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  icon: {
-    margin: 0,
-    fontSize: 30,  // Slightly larger icons for better visibility without labels
+  pillLabel: {
+    fontSize: 9.5,
+    fontWeight: '500',
+    letterSpacing: 0.1,
   },
-  // Removed profile header/logout button styles
 });
