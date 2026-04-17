@@ -124,6 +124,7 @@ const CustomTabBarComponent = ({
 
         // Label map for tabs
         const labelMap: Record<string, string> = {
+          Home: 'Home',
           Dashboard: 'Dashboard',
           Playbooks: 'Playbooks',
           Devotionals: 'Devotionals',
@@ -136,7 +137,14 @@ const CustomTabBarComponent = ({
             onPress={onPress}
             style={styles.tab}
           >
-            {route.name === 'Journal' ? (
+            {route.name === 'Home' ? (
+              <Ionicons
+                name={'home'}
+                size={28}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            ) : route.name === 'Journal' ? (
               <MaterialCommunityIcons
                 name={'notebook-edit'}
                 size={28}
@@ -269,10 +277,18 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       }}
     >
       <Tab.Screen
-        name="Dashboard"
+        name="Home"
         component={HomeStackNavigator}
         options={{
           tabBarLabel: 'Home',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Dashboard"
+        component={HomeStackNavigator}
+        options={{
+          tabBarLabel: 'Dashboard',
           headerShown: false,
         }}
       />

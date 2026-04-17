@@ -101,9 +101,10 @@ export type RootStackParamList = {
 
 export type BottomTabParamList = {
   Home: undefined;
+  Dashboard: undefined;
   Playbooks: undefined;
   Devotionals: undefined;
-  Profile: undefined;
+  Journal: undefined;
 };
 
 // This helps with type checking the navigation props
