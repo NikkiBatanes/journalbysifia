@@ -67,7 +67,8 @@ const CustomTabBarComponent = ({
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
-  const selectorScale = React.useRef(new Animated.Value(1)).current;
+  const selectorScaleX = React.useRef(new Animated.Value(1)).current;
+  const selectorScaleY = React.useRef(new Animated.Value(1)).current;
   const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
   const updateSelectorPosition = React.useCallback((index: number) => {
@@ -80,9 +81,19 @@ const CustomTabBarComponent = ({
         friction: 12,
         useNativeDriver: true,
       }),
-      Animated.spring(selectorScale, { toValue: 1.15, tension: 50, friction: 6, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.parallel([
+          Animated.spring(selectorScaleX, { toValue: 1.15, tension: 200, friction: 8, useNativeDriver: true }),
+          Animated.spring(selectorScaleY, { toValue: 1.05, tension: 200, friction: 8, useNativeDriver: true }),
+        ]),
+        Animated.delay(100),
+        Animated.parallel([
+          Animated.spring(selectorScaleX, { toValue: 1,    tension: 180, friction: 10, useNativeDriver: true }),
+          Animated.spring(selectorScaleY, { toValue: 1,    tension: 200, friction: 12, useNativeDriver: true }),
+        ]),
+      ]),
     ]).start();
-  }, [selectorPosition, selectorScale, tabLayouts]);
+  }, [selectorPosition, selectorScaleX, selectorScaleY, tabLayouts]);
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
     const { x } = event.nativeEvent.layout;
@@ -187,7 +198,8 @@ const CustomTabBarComponent = ({
             {
               transform: [
                 { translateX: selectorPosition },
-                { scale: selectorScale },
+                { scaleX: selectorScaleX },
+                { scaleY: selectorScaleY },
               ],
             },
           ]}
