@@ -284,6 +284,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         options={{
           tabBarLabel: 'Reflect',
           headerShown: false,
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
