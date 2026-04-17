@@ -560,13 +560,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     // Prayer Requests Card styles (moved from inline to satisfy linter)
     prayerRequestsContainer: {
-      backgroundColor: 'transparent',
-      borderRadius: 12,
+      backgroundColor: Colors.modalBlue,
+      borderRadius: 30,
       padding: 16,
       marginTop: 0,
       marginBottom: 16,
-      borderWidth: 0,
-      borderColor: 'transparent',
+      borderWidth: 1,
+      borderColor: Colors.cardBorder,
       minHeight: 120,
     },
     prayerRequestsHeaderRow: {
@@ -605,7 +605,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       backgroundColor: 'rgba(255,255,255,0.06)',
       borderRadius: 30,
       borderWidth: 1,
-      borderColor: Colors.cardBorder,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
       padding: 16,
     },
     prayerRequestItemSpacing: {
