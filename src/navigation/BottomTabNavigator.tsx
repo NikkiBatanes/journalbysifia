@@ -51,7 +51,7 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar } = useScroll();
+  const { showTabBar, isScrollingDown } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
@@ -64,6 +64,43 @@ const CustomTabBarComponent = ({
   // ── Pill visibility: fade + slide up/down ─────────────────────────────────
   // Single value drives both: 0 = hidden below screen, 1 = visible in place.
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
+
+  // ── Scroll-driven collapse animation ───────────────────────────────────────
+  // When scrolling down, collapse to circle and move to left corner
+  const scrollCollapseAnim = React.useRef(new Animated.Value(0)).current;
+  const scrollTranslateX = React.useRef(new Animated.Value(0)).current;
+  const scrollScale = React.useRef(new Animated.Value(1)).current;
+  const scrollOpacity = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isReflect) { return; }
+    Animated.parallel([
+      Animated.spring(scrollCollapseAnim, {
+        toValue: isScrollingDown ? 1 : 0,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scrollTranslateX, {
+        toValue: isScrollingDown ? 0 : 0,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scrollScale, {
+        toValue: isScrollingDown ? 0.4 : 1,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scrollOpacity, {
+        toValue: isScrollingDown ? 0 : 1,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isScrollingDown, isReflect, scrollCollapseAnim, scrollTranslateX, scrollScale, scrollOpacity]);
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
@@ -178,6 +215,13 @@ const CustomTabBarComponent = ({
     outputRange: [28, 0],
   });
 
+  // When collapsed (scrolling), move to left and scale down
+  const collapsedTranslateX = scrollCollapseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -150], // Move to left when collapsed
+  });
+  const collapsedScale = scrollScale;
+
   return (
     <Animated.View
       style={[
@@ -185,17 +229,22 @@ const CustomTabBarComponent = ({
         {
           bottom: Math.max(insets.bottom, 8),
           opacity: pillOpacity,
-          transform: [{ translateY: pillTranslateY }],
+          transform: [
+            { translateY: pillTranslateY },
+            { translateX: collapsedTranslateX },
+            { scale: collapsedScale },
+          ],
         },
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      <View style={styles.pill}>
+      <Animated.View style={[styles.pill, { borderRadius: scrollCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [32, 50] }) }]}>
         {/* Sliding selector that moves smoothly between tabs */}
         <Animated.View
           style={[
             styles.slidingSelector,
             {
+              opacity: scrollOpacity,
               transform: [
                 { translateX: selectorPosition },
                 { scaleX: selectorScaleX },
@@ -207,6 +256,9 @@ const CustomTabBarComponent = ({
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
+
+          // When collapsed, only show the active tab
+          const shouldShow = !isScrollingDown || isFocused;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -244,6 +296,9 @@ const CustomTabBarComponent = ({
               style={[
                 styles.pillTab,
                 isFocused && styles.pillTabActive,
+                {
+                  opacity: scrollOpacity.interpolate({ inputRange: [0, 1], outputRange: [1, shouldShow ? 1 : 0] }),
+                },
               ]}
               onLayout={handleTabLayout(index)}
             >
@@ -253,7 +308,7 @@ const CustomTabBarComponent = ({
                 style={styles.pillTabTouchable}
               >
                 {icon}
-                {showLabels && (
+                {showLabels && !isScrollingDown && (
                   <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
                     {LABELS[route.name] ?? route.name}
                   </Text>
@@ -262,7 +317,7 @@ const CustomTabBarComponent = ({
             </Animated.View>
           );
         })}
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 };
