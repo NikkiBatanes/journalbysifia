@@ -39,7 +39,7 @@ const PILL_BG = '#1e4270';
 
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
-  Overview: 'Home',
+  Overview: 'Overview',
   Playbooks: 'Playbooks',
   Devotionals: 'Devotionals',
   Journal: 'Journal',
