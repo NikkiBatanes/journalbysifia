@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
@@ -76,8 +76,9 @@ const CustomTabBarComponent = ({
     const anim = tabScaleAnims[index];
     anim.stopAnimation();
     Animated.sequence([
-      Animated.spring(anim, { toValue: 1.12, tension: 200, friction: 12, useNativeDriver: true }),
-      Animated.spring(anim, { toValue: 1,    tension: 180, friction: 14, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 1.15, duration: 150, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 0.95, duration: 100, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 1,    duration: 100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
     ]).start();
   }, [tabScaleAnims]);
 
