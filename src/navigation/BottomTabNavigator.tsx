@@ -35,7 +35,7 @@ type CustomTabBarProps = {
 
 
 // Glass-looking pill background - opaque blue with glass-like border
-const PILL_BG = '#1e4270';
+const PILL_BG = '#264777';
 
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
@@ -402,10 +402,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-    borderRadius: 28,
+    borderRadius: 22,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#3d5e8d',
     paddingHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
