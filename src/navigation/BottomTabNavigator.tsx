@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     backgroundColor: PILL_BG,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.22)',
     paddingHorizontal: 4,
     shadowColor: '#000',
