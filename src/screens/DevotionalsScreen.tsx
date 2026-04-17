@@ -826,7 +826,7 @@ const DevotionalsScreen = () => {
                     styles.listContent,
                     styles.pageInner,
                     styles.listContentPadding,
-                    { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+                    { paddingBottom: 70 },
                   ]
             }
             ListEmptyComponent={renderFilterEmptyState}
