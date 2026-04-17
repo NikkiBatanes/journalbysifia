@@ -272,6 +272,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
   return (
     <Tab.Navigator
       tabBar={renderTabBar}
+      initialRouteName="Reflect"
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,

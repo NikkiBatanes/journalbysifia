@@ -1169,7 +1169,7 @@ const UserInputScreen: React.FC = () => {
               {/* Navigation icons when expanded */}
               <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
                 <Animated.View style={{ opacity: navIconAnims[0], transform: [{ scale: navIconAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Reflect' }], index: 0 } }] })}>
+                  <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Reflect' }, { name: 'Overview' }], index: 1 } }] })}>
                     <MaterialIcons name="space-dashboard" size={24} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
@@ -1183,7 +1183,7 @@ const UserInputScreen: React.FC = () => {
                     <MaterialCommunityIcons name="book" size={26} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
                 </Animated.View>
-                <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }>
                   <TouchableOpacity style={styles.navIconItem} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] })}>
                     <MaterialCommunityIcons name="notebook-edit" size={24} color={theme.colors.anchorBlueLight} />
                   </TouchableOpacity>
