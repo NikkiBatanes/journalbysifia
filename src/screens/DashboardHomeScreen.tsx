@@ -17,6 +17,7 @@ import {
   Modal,
   useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -771,12 +772,30 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     'Pick up where grace met you',
   ];
 
-  // Rotate motivational messages
+  // Rotate motivational messages daily
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRotationalMessage((prev) => (prev + 1) % motivationalMessages.length);
-    }, 5000); // Rotate every 5 seconds
-    return () => clearInterval(interval);
+    const loadDailyMessage = async () => {
+      try {
+        const today = new Date().toDateString();
+        const storedDate = await AsyncStorage.getItem('motivationalMessageDate');
+        const storedIndex = await AsyncStorage.getItem('motivationalMessageIndex');
+
+        if (storedDate !== today) {
+          // New day, rotate to next message
+          const newIndex = storedIndex ? (parseInt(storedIndex) + 1) % motivationalMessages.length : 0;
+          await AsyncStorage.setItem('motivationalMessageDate', today);
+          await AsyncStorage.setItem('motivationalMessageIndex', newIndex.toString());
+          setRotationalMessage(newIndex);
+        } else if (storedIndex !== null) {
+          // Same day, use stored index
+          setRotationalMessage(parseInt(storedIndex));
+        }
+      } catch (error) {
+        console.error('Failed to load daily motivational message:', error);
+      }
+    };
+
+    loadDailyMessage();
   }, []);
 
   // Reset image load state when user changes
