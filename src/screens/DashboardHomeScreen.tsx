@@ -196,7 +196,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     playbookLabelContainer: {
       marginTop: 0,
-      marginBottom: 8,
+      marginBottom: 10,
       overflow: 'hidden',
     },
     playbookLabelClip: {
@@ -573,7 +573,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       position: 'relative' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
       minHeight: 24,
     },
     prayerRequestsHeaderTitle: {
