@@ -575,7 +575,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       position: 'relative' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 14,
+      marginBottom: 10,
       minHeight: 24,
     },
     prayerRequestsHeaderTitle: {
