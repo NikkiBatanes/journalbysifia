@@ -4,14 +4,16 @@
  * Shows streak animation, messaging, and weekly streak visual
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
+import { streakTrackingService } from '../services/streakTrackingService';
 
 interface RouteParams {
   playbookId?: string;
@@ -25,6 +27,13 @@ const StreakPlanScreen: React.FC = () => {
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
   const params = route.params as RouteParams;
+  const { user } = useAuth();
+
+  // State for streak data
+  const [streakData, setStreakData] = useState<any>(null);
+  const [streakCount, setStreakCount] = useState(1);
+  const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Sunday');
+  const [dayStates, setDayStates] = useState<DayState[]>([]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -32,6 +41,38 @@ const StreakPlanScreen: React.FC = () => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
+    // Fetch streak data
+    const fetchStreakData = async () => {
+      if (user?.id) {
+        try {
+          const streaks = await streakTrackingService.getUserStreaks(user.id);
+          if (streaks) {
+            setStreakData(streaks);
+            // Calculate highest streak count
+            const maxStreak = Math.max(
+              streaks.prayer_streak || 0,
+              streaks.devotional_streak || 0,
+              streaks.journal_streak || 0
+            );
+            setStreakCount(maxStreak > 0 ? maxStreak : 1);
+
+            // Get week start from user preferences
+            const metadata = (user as any)?.user_metadata;
+            const userWeekStart = metadata?.preferences?.weekStart || 'Sunday';
+            setWeekStart(userWeekStart);
+
+            // Calculate day states for last 7 days
+            const calculatedDayStates = calculateDayStates(streaks);
+            setDayStates(calculatedDayStates);
+          }
+        } catch (error) {
+          console.error('Failed to fetch streak data:', error);
+        }
+      }
+    };
+
+    fetchStreakData();
+
     // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -54,12 +95,44 @@ const StreakPlanScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [user?.id]);
 
-  // Mock streak data - in production, fetch from streak tracking service
-  const getDayStates = (): DayState[] => {
-    // For demo: show today as completed, some past days completed/missed
-    return ['completed', 'completed', 'missed', 'completed', 'completed', 'today', 'future'];
+  // Calculate day states for the last 7 days based on streak data
+  const calculateDayStates = (streaks: any): DayState[] => {
+    const dayStates: DayState[] = [];
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+
+    // Get last dates for each activity type
+    const prayerLastDate = streaks?.prayer_last_date || '';
+    const devotionalLastDate = streaks?.devotional_last_date || '';
+    const journalLastDate = streaks?.journal_last_date || '';
+
+    // Generate last 7 days (including today)
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+
+      if (dateString === todayString) {
+        dayStates.push('today');
+      } else if (
+        dateString === prayerLastDate ||
+        dateString === devotionalLastDate ||
+        dateString === journalLastDate
+      ) {
+        dayStates.push('completed');
+      } else {
+        // Check if this is a future date (shouldn't happen with the loop, but just in case)
+        if (date > today) {
+          dayStates.push('future');
+        } else {
+          dayStates.push('missed');
+        }
+      }
+    }
+
+    return dayStates;
   };
 
   const handleContinue = () => {
@@ -101,7 +174,7 @@ const StreakPlanScreen: React.FC = () => {
 
         {/* Hero text */}
         <Animated.View style={[styles.textContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-          <Text style={[styles.heroText, font]}>1 Day of Faithfulness</Text>
+          <Text style={[styles.heroText, font]}>{streakCount} Day{streakCount > 1 ? 's' : ''} of Faithfulness</Text>
           <Text style={[styles.subText, font]}>
             You took a faithful step today. Keep bringing your moments to God.
           </Text>
@@ -110,8 +183,8 @@ const StreakPlanScreen: React.FC = () => {
         {/* Weekly streak visual */}
         <Animated.View style={[styles.streakContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
           <WeeklyStreakRow
-            weekStart="Sunday" // In production, fetch from user preferences
-            dayStates={getDayStates()}
+            weekStart={weekStart}
+            dayStates={dayStates.length > 0 ? dayStates : ['completed', 'completed', 'missed', 'completed', 'completed', 'today', 'future']}
           />
         </Animated.View>
 
