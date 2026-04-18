@@ -412,6 +412,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     fullScreenModalContainer: {
       flex: 1,
       backgroundColor: Colors.anchorBlue,
+      zIndex: 1,
     },
     fullScreenPrayerModalContainer: {
       flex: 1,
@@ -536,7 +537,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       }),
     },
     combinedDivider: {
-      height: 0.2,
+      height: .5,
       backgroundColor: Colors.mediumOverlay,
     },
     prayerModalLabel: {
@@ -1097,10 +1098,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         user_id: user?.id || '',
       });
 
-      // Immediately show success modal and close editor to avoid any delay
+      // Immediately show success modal and close editor to ensure proper z-index layering
       setSuccessPersonName(modalPrayerName);
       setShowSuccessModal(true);
-      handleCancelModalPrayer();
+      setShowPrayerEditorModal(false);
 
       // Run remaining work in background (no awaiting) to avoid blocking UI
       try {
@@ -1722,15 +1723,24 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       </Modal>
 
       {/* Success Modal */}
-      <NewSuccessModal
-        visible={showSuccessModal}
-        config={{
-          title: `Prayed for ${successPersonName}`,
-          message: 'God hears. We’ve saved your prayer so you can keep them close.',
-          hideDoneButton: true,
-        }}
-        onDone={() => setShowSuccessModal(false)}
-      />
+      <View style={{ zIndex: 10000 }}>
+        <NewSuccessModal
+          visible={showSuccessModal}
+          config={{
+            title: `Prayed for ${successPersonName}`,
+            message: 'God hears. We’ve saved your prayer so you can keep them close.',
+            hideDoneButton: true,
+          }}
+          onDone={() => {
+            setShowSuccessModal(false);
+            // Reset prayer modal state to prevent flickering
+            setSelectedPrayerRequest(null);
+            setModalPrayerName('');
+            setModalPrayerRequest('');
+            setSavingModalPrayer(false);
+          }}
+        />
+      </View>
 
       {/* Journal Type Selector Tooltip */}
       <JournalTypeSelectorTooltip
