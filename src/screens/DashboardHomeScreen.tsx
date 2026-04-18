@@ -377,7 +377,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 0,
-      marginBottom: 10,
+      marginBottom: 0,
     },
     actionsHeaderTitle: {
       fontSize: 12,
@@ -575,7 +575,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       position: 'relative' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 10,
+      marginBottom: 12,
       minHeight: 24,
     },
     prayerRequestsHeaderTitle: {
@@ -612,9 +612,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     prayerRequestItemSpacing: {
       marginTop: 10,
-    },
-    prayerRequestItemsWrapper: {
-      paddingVertical: 0,
     },
     prayerRequestHeaderRow: {
       flexDirection: 'row' as const,
@@ -1146,12 +1143,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       ) : unprayedRequests.length === 0 ? (
         <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>
       ) : (
-        <View style={styles.prayerRequestItemsWrapper}>
-          {(showAllPrayerRequests ? unprayedRequests : unprayedRequests.slice(0, 2)).map((req: any, idx: number) => (
-            <View
-              key={req.id}
-              style={[styles.prayerRequestItem, idx !== 0 && styles.prayerRequestItemSpacing]}
-            >
+        (showAllPrayerRequests ? unprayedRequests : unprayedRequests.slice(0, 2)).map((req: any, idx: number) => (
+          <View
+            key={req.id}
+            style={[styles.prayerRequestItem, idx !== 0 && styles.prayerRequestItemSpacing]}
+          >
             {/* Header Badge */}
             <View style={styles.prayerRequestHeaderRow}>
               <Ionicons name="mail-unread" size={14} color={Colors.alertCoral} />
@@ -1181,8 +1177,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               </ThemedText>
             </TouchableOpacity>
           </View>
-        ))}
-        </View>
+        ))
       )}
       {unprayedRequests.length > 2 ? (
         <View style={styles.prayerPaginationContainer}>
