@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   streakContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 16,
     padding: 16,
   },
   buttonsContainer: {
