@@ -57,13 +57,45 @@ const CustomTabBarComponent = ({
   const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const currentRouteName = state.routes[state.index].name;
   const isReflect = currentRouteName === 'Reflect';
+  const isOverview = currentRouteName === 'Overview';
 
   // ── Pill visibility: fade + slide up/down ─────────────────────────────────
   // Single value drives both: 0 = hidden below screen, 1 = visible in place.
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
+
+  // ── Collapse/expand animation ───────────────────────────────────────────────
+  const collapseAnim = React.useRef(new Animated.Value(0)).current;
+  const pillWidthAnim = React.useRef(new Animated.Value(1)).current;
+  const pillTranslateXAnim = React.useRef(new Animated.Value(0)).current;
+
+  const toggleCollapse = React.useCallback(() => {
+    const toValue = isCollapsed ? 0 : 1;
+    setIsCollapsed(!isCollapsed);
+    Animated.parallel([
+      Animated.spring(collapseAnim, {
+        toValue,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.spring(pillWidthAnim, {
+        toValue: isCollapsed ? 1 : 0.15,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }),
+      Animated.spring(pillTranslateXAnim, {
+        toValue: isCollapsed ? 0 : -120,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isCollapsed, collapseAnim, pillWidthAnim, pillTranslateXAnim]);
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
@@ -185,17 +217,39 @@ const CustomTabBarComponent = ({
         {
           bottom: Math.max(insets.bottom, 8),
           opacity: pillOpacity,
-          transform: [{ translateY: pillTranslateY }],
+          transform: [
+            { translateY: pillTranslateY },
+            { translateX: pillTranslateXAnim },
+          ],
         },
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      <View style={styles.pill}>
+      <Animated.View style={[styles.pill, { width: pillWidthAnim.interpolate({ inputRange: [0.15, 1], outputRange: ['60px', '100%'] }) }]}>
+        {/* Collapsed circle view - only show when on Overview screen */}
+        {isOverview && (
+          <Animated.View style={{ opacity: collapseAnim, position: 'absolute', left: 0, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableOpacity onPress={toggleCollapse} activeOpacity={0.8}>
+              <MaterialIcons name="space-dashboard" size={24} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {/* Toggle button for expanded state - only show when on Overview screen */}
+        {isOverview && (
+          <Animated.View style={{ opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), position: 'absolute', left: 12, justifyContent: 'center', alignItems: 'center' }}>
+            <TouchableOpacity onPress={toggleCollapse} activeOpacity={0.8}>
+              <MaterialIcons name="chevron-left" size={20} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         {/* Sliding selector that moves smoothly between tabs */}
         <Animated.View
           style={[
             styles.slidingSelector,
             {
+              opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
               transform: [
                 { translateX: selectorPosition },
                 { scaleX: selectorScaleX },
@@ -204,65 +258,67 @@ const CustomTabBarComponent = ({
             },
           ]}
         />
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
-          const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
+        <Animated.View style={{ opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+          {state.routes.map((route, index) => {
+            const isFocused = state.index === index;
+            const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            // Update selector position immediately at press time
-            updateSelectorPosition(index);
-            onTabPress(route.name);
-            if (!event.defaultPrevented) {
-              if (route.name === 'Overview') {
-                navigation.navigate('Overview', { screen: 'DashboardHome' });
-              } else {
-                navigation.navigate(route.name);
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              // Update selector position immediately at press time
+              updateSelectorPosition(index);
+              onTabPress(route.name);
+              if (!event.defaultPrevented) {
+                if (route.name === 'Overview') {
+                  navigation.navigate('Overview', { screen: 'DashboardHome' });
+                } else {
+                  navigation.navigate(route.name);
+                }
               }
-            }
-          };
+            };
 
-          const icon = (() => {
-            if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
-            if (route.name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={20} color={iconColor} />; }
-            if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
-            if (route.name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={20} color={iconColor} />; }
-            if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
-            const iconName = isFocused
-              ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
-              : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
-            return <Ionicons name={iconName} size={20} color={iconColor} />;
-          })();
+            const icon = (() => {
+              if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
+              if (route.name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={20} color={iconColor} />; }
+              if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
+              if (route.name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={20} color={iconColor} />; }
+              if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
+              const iconName = isFocused
+                ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
+                : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
+              return <Ionicons name={iconName} size={20} color={iconColor} />;
+            })();
 
-          return (
-            <Animated.View
-              key={route.key}
-              style={[
-                styles.pillTab,
-                isFocused && styles.pillTabActive,
-              ]}
-              onLayout={handleTabLayout(index)}
-            >
-              <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.8}
-                style={styles.pillTabTouchable}
+            return (
+              <Animated.View
+                key={route.key}
+                style={[
+                  styles.pillTab,
+                  isFocused && styles.pillTabActive,
+                ]}
+                onLayout={handleTabLayout(index)}
               >
-                {icon}
-                {showLabels && (
-                  <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
-                    {LABELS[route.name] ?? route.name}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
-      </View>
+                <TouchableOpacity
+                  onPress={onPress}
+                  activeOpacity={0.8}
+                  style={styles.pillTabTouchable}
+                >
+                  {icon}
+                  {showLabels && (
+                    <Text style={[styles.pillLabel, { color: iconColor, fontFamily: fontRegular }]}>
+                      {LABELS[route.name] ?? route.name}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </Animated.View>
+      </Animated.View>
     </Animated.View>
   );
 };
