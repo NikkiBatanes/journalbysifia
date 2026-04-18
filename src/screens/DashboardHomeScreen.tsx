@@ -1425,25 +1425,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {hasContent && (
             <>
-              {/* Collapsing Playbook label */}
-              <View style={styles.playbookLabelContainer}>
-                <Animated.View
-                  style={[styles.playbookLabelClip, { width: playbookWidth }]}
-                >
-                  <ThemedText
-                    onLayout={(e) => {
-                      const w = e.nativeEvent.layout.width;
-                      if (w !== playbookMeasuredWidth) {
-                        setPlaybookMeasuredWidth(w);
-                      }
-                    }}
-                    style={styles.playbookLabel}
-                  >
-                    Continue Your Journey
-                  </ThemedText>
-                </Animated.View>
-              </View>
-
               <CombinedContentCarousel
                 onPlaybookPress={(playbook) => {
                   triggerLightHaptic();

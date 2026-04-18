@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   scrollContainer: {
-    paddingVertical: 4,
+    paddingVertical: 0,
     paddingRight: 0,
     overflow: 'visible',
     alignItems: 'flex-start',
