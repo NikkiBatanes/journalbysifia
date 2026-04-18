@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
   },
   // New carousel styles
   scrollContainer: {
-    paddingVertical: 4,
+    paddingVertical: 0,
     paddingRight: 0,
     // Don't center content - align to start
     justifyContent: 'flex-start',
