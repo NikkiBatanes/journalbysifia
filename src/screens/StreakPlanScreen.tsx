@@ -135,6 +135,40 @@ const StreakPlanScreen: React.FC = () => {
     return dayStates;
   };
 
+  // Get streak message based on milestone or rotation
+  const getStreakMessage = (streak: number): string => {
+    // Milestone messages
+    const milestoneMessages: Record<number, string> = {
+      1: 'You took a faithful step today.\nKeep bringing your moments to God.',
+      3: 'You\'re beginning to build a rhythm of returning.\nOne small step still matters.',
+      7: 'One week of returning to God in real moments.\nKeep coming back, one day at a time.',
+      14: 'Two weeks of coming back, one day at a time.\nThis steady return matters.',
+      30: 'One month of making space for God in real life.\nStay with what God is showing you.',
+      60: 'Two months of returning and staying with the journey.\nGod meets you in real moments too.',
+      90: 'Three months of bringing your moments to God.\nStay with what God is showing you.',
+      100: 'One hundred days of bringing real moments before God.\nKeep walking, one day at a time.',
+    };
+
+    // Check if it's a milestone day
+    if (milestoneMessages[streak]) {
+      return milestoneMessages[streak];
+    }
+
+    // Non-milestone rotating messages
+    const rotationMessages = [
+      'You took a faithful step today.\nKeep bringing your moments to God.',
+      'You came back for this moment today.\nOne small step still matters.',
+      'You made space to reflect today.\nGod meets you in real moments too.',
+      'You\'ve kept coming back, one day at a time.\nThis steady return matters.',
+      'You showed up for this moment today.\nStay with what God is showing you.',
+      'A steady rhythm is taking shape.\nKeep coming back, one day at a time.',
+    ];
+
+    // Use streak count to determine rotation (cycles through 6 options)
+    const rotationIndex = (streak - 1) % rotationMessages.length;
+    return rotationMessages[rotationIndex];
+  };
+
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
@@ -170,9 +204,9 @@ const StreakPlanScreen: React.FC = () => {
 
         {/* Hero text */}
         <Animated.View style={[styles.textContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-          <Text style={[styles.heroText, font]}>{streakCount} Day{streakCount > 1 ? 's' : ''} of Faithfulness</Text>
+          <Text style={[styles.heroText, font]}>{streakCount}-day of Faith in Action</Text>
           <Text style={[styles.subText, font]}>
-            You took a faithful step today. Keep bringing your moments to God.
+            {getStreakMessage(streakCount)}
           </Text>
         </Animated.View>
 
