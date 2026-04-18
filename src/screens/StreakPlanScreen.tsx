@@ -5,7 +5,8 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Share, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -14,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
 import { streakTrackingService } from '../services/streakTrackingService';
+import { supabase } from '../services/supabaseClient';
 
 interface RouteParams {
   playbookId?: string;
@@ -28,6 +30,7 @@ const StreakPlanScreen: React.FC = () => {
   const font = { fontFamily: theme.fontFamily };
   const params = route.params as RouteParams;
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // State for streak data
   const [streakData, setStreakData] = useState<any>(null);
@@ -39,8 +42,35 @@ const StreakPlanScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideUpAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const shareButtonAnim = useRef(new Animated.Value(0)).current;
+  const iconBgAnim = useRef(new Animated.Value(0)).current;
+  const iconAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Animate share button with spring animation
+    shareButtonAnim.setValue(0);
+    Animated.spring(shareButtonAnim, {
+      toValue: 1,
+      tension: 80,
+      friction: 8,
+      delay: 350,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate icon background first, then icon
+    Animated.sequence([
+      Animated.timing(iconBgAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(iconAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     // Fetch streak data
     const fetchStreakData = async () => {
       if (user?.id) {
@@ -54,7 +84,7 @@ const StreakPlanScreen: React.FC = () => {
               streaks.devotional_streak || 0,
               streaks.journal_streak || 0
             );
-            setStreakCount(maxStreak > 0 ? maxStreak : 1);
+            setStreakCount(maxStreak);
 
             // Get week start from user preferences
             const metadata = (user as any)?.user_metadata;
@@ -63,8 +93,8 @@ const StreakPlanScreen: React.FC = () => {
             const userWeekStart = userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
             setWeekStart(userWeekStart);
 
-            // Calculate day states for last 7 days
-            const calculatedDayStates = calculateDayStates(streaks);
+            // Calculate day states for the weekly streak
+            const calculatedDayStates = await calculateDayStates(streaks);
             setDayStates(calculatedDayStates);
           }
         } catch (error) {
@@ -99,16 +129,73 @@ const StreakPlanScreen: React.FC = () => {
     ]).start();
   }, [user?.id]);
 
-  // Calculate day states for the last 7 days based on streak data
-  const calculateDayStates = (streaks: any): DayState[] => {
+  // Calculate day states for the last 7 days based on actual activity data
+  const calculateDayStates = async (streaks: any): Promise<DayState[]> => {
     const dayStates: DayState[] = [];
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
 
-    // Get last dates for each activity type
-    const prayerLastDate = streaks?.prayer_last_date || '';
-    const devotionalLastDate = streaks?.devotional_last_date || '';
-    const journalLastDate = streaks?.journal_last_date || '';
+    // Collect all activity dates from the last 7 days
+    const activityDates = new Set<string>();
+
+    // Query prayer entries
+    const { data: prayerData } = await supabase
+      .from('prayer_entries')
+      .select('created_at')
+      .eq('user_id', user?.id)
+      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (prayerData) {
+      prayerData.forEach((entry: any) => {
+        const date = new Date(entry.created_at).toISOString().split('T')[0];
+        activityDates.add(date);
+      });
+    }
+
+    // Query devotional entries
+    const { data: devotionalData } = await supabase
+      .from('devotional_entries')
+      .select('created_at')
+      .eq('user_id', user?.id)
+      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (devotionalData) {
+      devotionalData.forEach((entry: any) => {
+        const date = new Date(entry.created_at).toISOString().split('T')[0];
+        activityDates.add(date);
+      });
+    }
+
+    // Query journal entries
+    const { data: journalData } = await supabase
+      .from('journal_entries')
+      .select('created_at')
+      .eq('user_id', user?.id)
+      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (journalData) {
+      journalData.forEach((entry: any) => {
+        const date = new Date(entry.created_at).toISOString().split('T')[0];
+        activityDates.add(date);
+      });
+    }
+
+    // Query playbook completions
+    const { data: playbookData } = await supabase
+      .from('user_playbook_progress')
+      .select('completed_at')
+      .eq('user_id', user?.id)
+      .not('completed_at', 'is', null)
+      .gte('completed_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (playbookData) {
+      playbookData.forEach((entry: any) => {
+        const date = new Date(entry.completed_at).toISOString().split('T')[0];
+        activityDates.add(date);
+      });
+    }
+
+    console.log('🔍 Activity Dates:', Array.from(activityDates));
 
     // Generate last 7 days (including today)
     for (let i = 6; i >= 0; i--) {
@@ -118,20 +205,13 @@ const StreakPlanScreen: React.FC = () => {
 
       if (dateString === todayString) {
         dayStates.push('today');
-      } else if (
-        dateString === prayerLastDate ||
-        dateString === devotionalLastDate ||
-        dateString === journalLastDate
-      ) {
+      } else if (activityDates.has(dateString)) {
         dayStates.push('completed');
       } else {
-        // Check if this is a future date (shouldn't happen with the loop, but just in case)
-        if (date > today) {
-          dayStates.push('future');
-        } else {
-          dayStates.push('missed');
-        }
+        dayStates.push('missed');
       }
+
+      console.log(`  ${dateString}: ${dayStates[dayStates.length - 1]}`);
     }
 
     return dayStates;
@@ -191,17 +271,59 @@ const StreakPlanScreen: React.FC = () => {
     (navigation as any).navigate('UserInput');
   };
 
+  const handleShare = async () => {
+    try {
+      triggerLightHaptic();
+      await Share.share({
+        message: `I'm on a ${streakCount}-day streak of bringing real moments to God on siFia. 🙏`,
+      });
+    } catch (_error) {
+      // User cancelled share — silent
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.anchorBlue }]}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      {/* Share button */}
+      <Animated.View
+        style={[
+          styles.closeButton,
+          { top: insets.top + 8 },
+          {
+            opacity: shareButtonAnim,
+            transform: [
+              {
+                scale: shareButtonAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.4, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={handleShare}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="share-outline" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </Animated.View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Streak animation / celebration icon */}
         <Animated.View style={[styles.iconContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="sparkles" size={48} color={Colors.faithGold} />
-          </View>
+          <Animated.View style={[styles.iconCircle, { opacity: iconBgAnim, transform: [{ scale: iconBgAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]}>
+            <Animated.View style={{ opacity: iconAnim, transform: [{ scale: iconAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+              <Ionicons name="sparkles" size={48} color={Colors.faithGold} />
+            </Animated.View>
+          </Animated.View>
         </Animated.View>
 
         {/* Hero text */}
@@ -210,14 +332,14 @@ const StreakPlanScreen: React.FC = () => {
           <Text style={[styles.subText, font]}>
             {getStreakMessage(streakCount)}
           </Text>
-        </Animated.View>
 
-        {/* Weekly streak visual */}
-        <Animated.View style={[styles.streakContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-          <WeeklyStreakRow
-            weekStart={weekStart}
-            dayStates={dayStates.length > 0 ? dayStates : ['completed', 'completed', 'missed', 'completed', 'completed', 'today', 'future']}
-          />
+          {/* Weekly streak visual */}
+          <View style={styles.streakRowWrapper}>
+            <WeeklyStreakRow
+              weekStart={weekStart}
+              dayStates={dayStates.length > 0 ? dayStates : ['completed', 'completed', 'missed', 'completed', 'completed', 'today', 'future']}
+            />
+          </View>
         </Animated.View>
 
         {/* Action buttons */}
@@ -246,6 +368,16 @@ const StreakPlanScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -289,11 +421,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  streakRowWrapper: {
+    width: '100%',
   },
   streakContainer: {
     width: '100%',
+    marginTop: 8,
     marginBottom: 16,
-    padding: 16,
+    padding: 0,
   },
   buttonsContainer: {
     width: '100%',

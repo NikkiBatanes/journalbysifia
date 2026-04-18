@@ -105,10 +105,11 @@ const getDayLabelStyle = (state: DayState) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     paddingVertical: 16,
+    gap: 12,
   },
   dayContainer: {
     alignItems: 'center',
@@ -122,23 +123,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completedCircle: {
-    backgroundColor: Colors.faithGold,
-    shadowColor: Colors.faithGold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: 'rgba(251, 191, 36, 0.6)',
   },
   missedCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   todayCircle: {
-    backgroundColor: Colors.faithGold,
-    shadowColor: Colors.faithGold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   futureCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
