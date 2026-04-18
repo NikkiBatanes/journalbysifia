@@ -40,6 +40,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
 import { updatePlaybookStatus } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
+import DevotionalModal from '../components/DevotionalModal';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
@@ -1282,6 +1283,7 @@ interface CompletionStepProps {
   closingText: string;
   onFinish: () => void;
   insets: { top: number };
+  onTurnIntoDevotional?: () => void;
 }
 
 const CompletionStep: React.FC<CompletionStepProps> = ({
@@ -1289,6 +1291,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   closingText,
   onFinish,
   insets,
+  onTurnIntoDevotional,
 }) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const headerAnim = useRef(new Animated.Value(40)).current;
@@ -1443,8 +1446,8 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           <TouchableOpacity
             style={[styles.secondaryButton, styles.devotionalButton]}
             onPress={() => {
-              // TODO: Navigate to devotional creation screen
-              console.log('Turn into devotional');
+              triggerLightHaptic();
+              onTurnIntoDevotional?.();
             }}
             activeOpacity={0.85}
           >
@@ -1468,6 +1471,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
@@ -1852,6 +1856,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasFloatingNext = stepIndex !== 6 && stepIndex !== 3;
 
   return (
+    <>
     <View style={styles.container}>
       {/* Step content */}
       <GestureDetector
@@ -1946,6 +1951,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 closingText={closingText}
                 onFinish={handleFinish}
                 insets={insets}
+                onTurnIntoDevotional={() => setShowDevotionalModal(true)}
               />
             )}
           </Animated.View>
@@ -2076,6 +2082,19 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       )}
     </View>
+
+    <DevotionalModal
+      visible={showDevotionalModal}
+      onClose={() => setShowDevotionalModal(false)}
+      playbookId={playbook?.id}
+      playbookInfo={playbook?.title}
+      userInput={playbook?.userInput}
+      onDevotionalCreated={(devotionalId) => {
+        setShowDevotionalModal(false);
+        navigation.navigate('DevotionalDetail', { devotionalId });
+      }}
+    />
+    </>
   );
 };
 
