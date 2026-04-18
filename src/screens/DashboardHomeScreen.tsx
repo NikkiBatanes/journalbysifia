@@ -377,7 +377,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 10,
     },
     actionsHeaderTitle: {
       fontSize: 12,
