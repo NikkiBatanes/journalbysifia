@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    marginBottom: 0,
+    marginBottom: 10,
   },
   sectionIcon: {
     alignSelf: 'center',
