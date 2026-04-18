@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   subtitleText: {
     fontSize: 12,
