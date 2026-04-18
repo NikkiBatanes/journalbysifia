@@ -21,6 +21,8 @@ import { format } from 'date-fns';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
+import { useScroll } from '../context/ScrollContext';
 
 import PlaybookCard from '../components/PlaybookCard';
 import DevotionalModal from '../components/DevotionalModal';
@@ -90,6 +92,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { setShowTabBar } = useScroll();
+  const tabBarCollapsedRef = useRef(false);
   // Visible bar height excluding safe area bottom, plus a small cushion
   const bottomClearance = Math.max(12, Math.max(0, tabBarHeight - insets.bottom) + 12);
 
@@ -101,6 +105,29 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const userId = user?.id || session?.user?.id;
 
   // Subtle haptic feedback, gated by user preference
+  // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
+  const lastScrollYRef = useRef(0);
+  const handleScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
+
+  // Always expand tab bar when returning to this screen
+  useFocusEffect(
+    useCallback(() => {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }, [setShowTabBar])
+  );
+
   const triggerLightHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
@@ -713,6 +740,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
               removeClippedSubviews={false}
               keyboardShouldPersistTaps="handled"
               extraData={filter}
+              onScroll={handleScroll}
+              scrollEventThrottle={100}
             />
           )}
         </BlueSheet>

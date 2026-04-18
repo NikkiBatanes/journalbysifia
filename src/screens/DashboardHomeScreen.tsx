@@ -21,6 +21,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useScroll } from '../context/ScrollContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
@@ -794,6 +795,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { user } = useAuth();
   const { subscription, usage, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
+  const { setShowTabBar } = useScroll();
+  const tabBarCollapsedRef = useRef(false);
   const { badgeCount, fetchBadgeCount } = useNotificationBadge();
 
   useFocusEffect(
@@ -921,6 +924,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', Colors.hopeWhite);
 
+  // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
+  const lastScrollYRef = useRef(0);
+  const handleScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
+
   // Subtle haptic feedback, gated by user preference
   const triggerLightHaptic = useCallback(() => {
     try {
@@ -990,6 +1008,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     useCallback(() => {
       // Always scroll to top when dashboard gains focus
       try { scrollRef.current?.scrollTo({ y: 0, animated: false }); } catch {}
+      // Ensure tab bar is expanded when returning to this screen
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
 
       // Refresh subscription data when screen comes into focus
       refreshSubscription();
@@ -1018,6 +1039,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       refreshSubscription,
       queryClient,
       user?.id,
+      setShowTabBar,
     ])
   );
 
@@ -1457,6 +1479,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={100}
         >
           <View style={styles.pageInner}>
           {/* Today’s Scripture removed */}

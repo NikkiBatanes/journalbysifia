@@ -179,6 +179,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       // Reset all carousels to their starting positions
       setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
       hasInitializedScroll.current = true;
+      // Always expand tab bar when returning to Journal
+      setShowTabBar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
@@ -255,7 +258,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Scroll tracking refs
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('');
-  const scrollTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Haptics while header week is actively scrolled and implied date changes
   const lastHeaderHapticDateKey = useRef<string | null>(null);
@@ -519,20 +521,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       setIsHeaderCollapsed(shouldBeCollapsed);
     }
 
-    // Show/hide tab bar based on scroll direction
-    clearTimeout(scrollTimeout.current);
-    if (scrollDirection.current === 'down' && y > 20) {
+    // Collapse on scroll down; expand only when scrolling back up to the very top
+    if (y > 60) {
       setShowTabBar(false);
-    } else if (scrollDirection.current === 'up') {
+    } else if (isScrollingUp && y <= 0) {
       setShowTabBar(true);
     }
-
-    // Auto-show tab bar when scrolling stops or near top
-    scrollTimeout.current = setTimeout(() => {
-      if (y < 20) {
-        setShowTabBar(true);
-      }
-    }, 1000);
   }, [isHeaderCollapsed, scrollY, setShowTabBar]);
 
   // Pull-to-refresh REMOVED - using skeleton loading instead to prevent logout issues

@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useScroll } from '../context/ScrollContext';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
@@ -49,6 +50,8 @@ const DevotionalsScreen = () => {
   const userId = user?.id;
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const { setShowTabBar } = useScroll();
+  const tabBarCollapsedRef = useRef(false);
   const [filter, setFilter] = useState<FilterType>('ongoing');
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
@@ -63,9 +66,28 @@ const DevotionalsScreen = () => {
   // Fetch user's playbooks to suggest creating devotionals
   const { data: playbooks = [], isLoading: isLoadingPlaybooks, refetch: refetchPlaybooks } = usePlaybooksData(userId || '');
 
+  // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
+  const lastScrollYRef = useRef(0);
+  const handleScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
+
   // Ensure latest playbooks are shown when returning to this screen
   useFocusEffect(
     useCallback(() => {
+      // Always expand tab bar when screen gains focus
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+
       const focusTime = Date.now();
       Logger.debug('[DevotionalsScreen] Screen focused', { component: 'DevotionalsScreen', focusTime });
 
@@ -79,7 +101,7 @@ const DevotionalsScreen = () => {
         refetchPlaybooks();
         Logger.debug('[DevotionalsScreen] Playbooks refetch triggered', { component: 'DevotionalsScreen' });
       });
-    }, [refetchPlaybooks])
+    }, [refetchPlaybooks, setShowTabBar])
   );
 
   // Subtle haptic feedback, gated by user preference
@@ -799,7 +821,7 @@ const DevotionalsScreen = () => {
       </View>
 
       {/* Content area within BlueSheet for consistent blue background layout */}
-      <BlueSheet style={[styles.contentSheet, { paddingBottom: 90 }]}>
+      <BlueSheet style={styles.contentSheet}>
         {isInitialLoading ? (
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalSkeleton />
@@ -826,14 +848,15 @@ const DevotionalsScreen = () => {
                     styles.listContent,
                     styles.pageInner,
                     styles.listContentPadding,
-                    { paddingBottom: 70 },
                   ]
             }
-            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) + 70 }} />}
-            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 16) + 70, left: 0, right: 0 }}
+            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 8) + 80 }} />}
+            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 8) + 80, left: 0, right: 0 }}
             ListEmptyComponent={renderFilterEmptyState}
             onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
           />
         )}
       </BlueSheet>

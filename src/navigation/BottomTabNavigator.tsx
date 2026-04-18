@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Easing } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Easing, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
@@ -37,6 +37,9 @@ type CustomTabBarProps = {
 // Glass-looking pill background - opaque blue with glass-like border
 const PILL_BG = '#264777';
 
+// Pill occupies screen width minus 16px margin on each side
+const PILL_WIDTH = Dimensions.get('window').width - 32;
+
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
   Overview: 'Overview',
@@ -51,7 +54,7 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar } = useScroll();
+  const { showTabBar, setShowTabBar } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
@@ -60,11 +63,14 @@ const CustomTabBarComponent = ({
 
   const currentRouteName = state.routes[state.index].name;
   const isReflect = currentRouteName === 'Reflect';
-  const isOverview = currentRouteName === 'Overview';
 
-  // ── Pill visibility: fade + slide up/down ─────────────────────────────────
-  // Single value drives both: 0 = hidden below screen, 1 = visible in place.
+  // ── Pill visibility: opacity + translateY ────────────────────────────────
+  // 0 = hidden below screen, 1 = visible in place
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
+
+  // ── Collapse-to-circle: 0 = full pill, 1 = collapsed circle ──────────────
+  // Starts collapsed if already on Reflect
+  const collapseAnim = React.useRef(new Animated.Value(isReflect ? 1 : 0)).current;
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
@@ -117,16 +123,32 @@ const CustomTabBarComponent = ({
     return () => { isMounted = false; unsub(); };
   }, []);
 
-  // ── Scroll-driven hide/show (only when not on Reflect) ────────────────────
+  // ── Scroll-driven collapse-to-circle (only when not on Reflect) ──────────
   useEffect(() => {
     if (isReflect) { return; }
-    Animated.spring(pillAnim, {
-      toValue: showTabBar ? 1 : 0,
-      useNativeDriver: true,
-      tension: 60,
-      friction: 14,
-    }).start();
-  }, [showTabBar, isReflect, pillAnim]);
+    if (!showTabBar) {
+      // Collapse: pill shape fades + contracts leftward. Selector stays in place
+      // (invisible because pillShapeOpacity → 0) — no separate slide animation.
+      Animated.spring(collapseAnim, {
+        toValue: 1,
+        tension: 55,
+        friction: 14,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Expand: snap selector to active tab BEFORE pill grows so it's already
+      // in place when it becomes visible — no sliding artifact.
+      const target = tabLayouts[state.index];
+      if (target) { selectorPosition.setValue(target.x); }
+      Animated.spring(collapseAnim, {
+        toValue: 0,
+        tension: 65,
+        friction: 13,
+        useNativeDriver: true,
+      }).start();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTabBar, isReflect]);
 
   // ── Route-change animations ────────────────────────────────────────────────
   const prevRouteRef = React.useRef<string>(currentRouteName);
@@ -143,26 +165,34 @@ const CustomTabBarComponent = ({
     prevRouteRef.current = currentRouteName;
 
     if (isReflect) {
-      // Going TO Reflect — slide pill down and fade out
-      Animated.spring(pillAnim, {
-        toValue: 0,
-        tension: 70,
-        friction: 14,
-        useNativeDriver: true,
-      }).start();
-
-    } else if (prev === 'Reflect') {
-      // Coming FROM Reflect — delay, slide pill up + fade in, then move selector.
-      pillAnim.setValue(0);
+      // Going TO Reflect — collapse to circle, then slide UP and fade out (mirrors entrance)
       Animated.sequence([
-        Animated.delay(120),
-        Animated.spring(pillAnim, {
+        Animated.spring(collapseAnim, {
           toValue: 1,
-          tension: 55,
-          friction: 12,
+          tension: 100,
+          friction: 10,
           useNativeDriver: true,
         }),
-      ]).start(() => updateSelectorPosition(state.index));
+        Animated.spring(pillAnim, { toValue: 0, tension: 55, friction: 14, useNativeDriver: true }),
+      ]).start();
+
+    } else if (prev === 'Reflect') {
+      // Coming FROM Reflect — slide circle up from below, then expand into full pill
+      collapseAnim.setValue(1);
+      pillAnim.setValue(0);
+      const target = tabLayouts[state.index];
+      if (target) { selectorPosition.setValue(target.x); }
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.spring(pillAnim, { toValue: 1, tension: 55, friction: 12, useNativeDriver: true }),
+      ]).start(() => {
+        Animated.spring(collapseAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 13,
+          useNativeDriver: true,
+        }).start();
+      });
     } else {
       // Normal tab→tab: move selector smoothly
       updateSelectorPosition(state.index);
@@ -172,12 +202,55 @@ const CustomTabBarComponent = ({
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  // pillAnim 0→1 drives: opacity 0→1, translateY 28→0
+  // pillAnim 0→1 drives: opacity 0→1 + translateY 28→0 (entrance/exit mirror)
   const pillOpacity   = pillAnim;
   const pillTranslateY = pillAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [28, 0],
   });
+
+  // collapseAnim 0→1: content fades early, pill shape fades+contracts, circle fades in late
+  const pillContentOpacity = collapseAnim.interpolate({
+    inputRange: [0, 0.35],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  // Pill shape (background/border) fades out as it collapses so no ghost remains
+  const pillShapeOpacity = collapseAnim.interpolate({
+    inputRange: [0, 0.7],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const circleOpacity = collapseAnim.interpolate({
+    inputRange: [0.5, 1],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  // Pill shape grows left→right on expand: scaleX from circle ratio → 1, pinned at left edge
+  const CIRCLE_RATIO = 56 / PILL_WIDTH;
+  const pillShapeScaleX = collapseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, CIRCLE_RATIO],
+    extrapolate: 'clamp',
+  });
+  // translateX compensation to pin the left edge during scale
+  const pillShapeTranslateX = collapseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -(PILL_WIDTH / 2) * (1 - CIRCLE_RATIO)],
+    extrapolate: 'clamp',
+  });
+
+  // Icon for the collapsed circle — active tab in inactive color
+  const INACTIVE_CIRCLE_COLOR = Colors.hopeWhite;
+  const circleIcon = (() => {
+    const name = state.routes[state.index].name;
+    if (name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
+  })();
 
   return (
     <Animated.View
@@ -191,21 +264,40 @@ const CustomTabBarComponent = ({
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      <View style={styles.pill}>
-        {/* Sliding selector that moves smoothly between tabs */}
-        <Animated.View
-          style={[
-            styles.slidingSelector,
-            {
-              transform: [
-                { translateX: selectorPosition },
-                { scaleX: selectorScaleX },
-                { scaleY: selectorScaleY },
-              ],
-            },
-          ]}
-        />
-        {state.routes.map((route, index) => {
+      {/* ── Full pill: shape scales left→right, content fades separately ─── */}
+      <Animated.View
+        style={[
+          styles.pill,
+          {
+            opacity: pillShapeOpacity,
+            transform: [
+              { translateX: pillShapeTranslateX },
+              { scaleX: pillShapeScaleX },
+            ],
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        {/* pillInner: shared coordinate system for selector + tabs.
+            Selector is absolute here; tabs fill the same space via absoluteFillObject.
+            Both use x=0 as origin → onLayout x values align with selector translateX. */}
+        <View style={styles.pillInner}>
+          {/* Sliding selector — absolute within pillInner */}
+          <Animated.View
+            style={[
+              styles.slidingSelector,
+              {
+                transform: [
+                  { translateX: selectorPosition },
+                  { scaleX: selectorScaleX },
+                  { scaleY: selectorScaleY },
+                ],
+              },
+            ]}
+          />
+          {/* Tabs overlay — same bounds as pillInner, fade independently */}
+          <Animated.View style={[StyleSheet.absoluteFillObject, { flexDirection: 'row', opacity: pillContentOpacity }]}>
+          {state.routes.map((route, index) => {
             const isFocused = state.index === index;
             const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
 
@@ -215,7 +307,6 @@ const CustomTabBarComponent = ({
                 target: route.key,
                 canPreventDefault: true,
               });
-              // Update selector position immediately at press time
               updateSelectorPosition(index);
               onTabPress(route.name);
               if (!event.defaultPrevented) {
@@ -242,10 +333,7 @@ const CustomTabBarComponent = ({
             return (
               <Animated.View
                 key={route.key}
-                style={[
-                  styles.pillTab,
-                  isFocused && styles.pillTabActive,
-                ]}
+                style={[styles.pillTab, isFocused && styles.pillTabActive]}
                 onLayout={handleTabLayout(index)}
               >
                 <TouchableOpacity
@@ -263,7 +351,22 @@ const CustomTabBarComponent = ({
               </Animated.View>
             );
           })}
+          </Animated.View>
         </View>
+      </Animated.View>
+
+      {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
+      <Animated.View
+        style={[styles.collapsedCircle, { opacity: circleOpacity }]}
+        pointerEvents={showTabBar ? 'none' : 'box-none'}
+      >
+        <TouchableOpacity
+          style={styles.collapsedCircleTouchable}
+          activeOpacity={0.8}
+          onPress={() => setShowTabBar(true)}
+        >
+          {circleIcon}
+        </TouchableOpacity>
       </Animated.View>
     </Animated.View>
   );
@@ -415,6 +518,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  // Shared container — selector and tabs both reference x=0 from here
+  pillInner: {
+    flex: 1,
+    height: 48,
+  },
   // Each tab: Animated.View takes equal share, scale bounce applies here
   pillTab: {
     flex: 1,
@@ -446,5 +554,30 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: '500',
     letterSpacing: 0.1,
+  },
+  // Collapsed circle — sits at left edge of pillWrapper
+  collapsedCircle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: PILL_BG,
+    borderWidth: 1,
+    borderColor: '#3d5e8d',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  collapsedCircleTouchable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
