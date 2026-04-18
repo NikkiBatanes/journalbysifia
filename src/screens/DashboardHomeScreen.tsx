@@ -1375,7 +1375,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderGreeting = () => (
     <View style={styles.greetingSection}>
-      <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Welcome back, {firstName}</ThemedText>
+      <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</ThemedText>
       <ThemedText weight="semiBold" style={styles.motivationalText}>
         {motivationalMessages[rotationalMessage]}
       </ThemedText>
