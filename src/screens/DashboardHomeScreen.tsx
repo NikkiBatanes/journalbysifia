@@ -563,7 +563,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerRequestsContainer: {
       backgroundColor: 'transparent',
       borderRadius: 30,
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingBottom: 16,
       marginTop: 0,
       marginBottom: 16,
       width: screenWidth >= 768 ? 384 : Math.round((width - 32) * 0.85),
@@ -616,7 +617,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerRequestHeaderRow: {
       flexDirection: 'row' as const,
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
       gap: 6,
     },
     prayerRequestBadge: {
