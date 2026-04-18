@@ -568,8 +568,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       marginBottom: 16,
       width: screenWidth >= 768 ? 384 : Math.round((width - 32) * 0.85),
       alignSelf: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     prayerRequestsHeaderRow: {
       position: 'relative' as const,

@@ -763,8 +763,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
     minHeight: 120,
   },
   header: {
