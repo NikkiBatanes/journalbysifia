@@ -200,7 +200,7 @@ const StreakPlanScreen: React.FC = () => {
         {/* Streak animation / celebration icon */}
         <Animated.View style={[styles.iconContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.iconCircle}>
-            <Ionicons name="flame" size={48} color={Colors.faithGold} />
+            <Ionicons name="sparkles" size={48} color={Colors.faithGold} />
           </View>
         </Animated.View>
 
