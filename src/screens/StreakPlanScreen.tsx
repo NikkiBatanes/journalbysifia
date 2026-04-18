@@ -58,7 +58,9 @@ const StreakPlanScreen: React.FC = () => {
 
             // Get week start from user preferences
             const metadata = (user as any)?.user_metadata;
-            const userWeekStart = metadata?.preferences?.weekStart || 'Sunday';
+            const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+            // Convert from lowercase (stored in DB) to capitalized (expected by WeeklyStreakRow)
+            const userWeekStart = userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
             setWeekStart(userWeekStart);
 
             // Calculate day states for last 7 days
