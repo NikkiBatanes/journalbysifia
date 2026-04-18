@@ -225,7 +225,7 @@ const CustomTabBarComponent = ({
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      <Animated.View style={[styles.pill, { width: pillWidthAnim.interpolate({ inputRange: [0.15, 1], outputRange: ['60px', '100%'] }) }]}>
+      <Animated.View style={[styles.pill, { width: pillWidthAnim.interpolate({ inputRange: [0.15, 1], outputRange: [60, 350] }) }]}>
         {/* Collapsed circle view - only show when on Overview screen */}
         {isOverview && (
           <Animated.View style={{ opacity: collapseAnim, position: 'absolute', left: 0, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
