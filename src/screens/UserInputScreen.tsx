@@ -78,6 +78,7 @@ const UserInputScreen: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setBarStyle('light-content', true);
+      StatusBar.setBackgroundColor(Colors.anchorBlue, true);
     }, [])
   );
 
@@ -1169,6 +1170,7 @@ const UserInputScreen: React.FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
