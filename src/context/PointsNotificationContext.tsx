@@ -141,8 +141,9 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
     <PointsNotificationContext.Provider value={{ showPointsNotification }}>
       {children}
 
+      {/* Hidden all faith points notifications per user request */}
       {/* Global overlay for notifications - render in a transparent Modal to sit above all content/modals */}
-      {notifications.length > 0 && (
+      {/* {notifications.length > 0 && (
         <Modal
           visible
           transparent
@@ -166,7 +167,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
             })}
           </View>
         </Modal>
-      )}
+      )} */}
     </PointsNotificationContext.Provider>
   );
 };
