@@ -1287,7 +1287,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           case 'growth':
             return 'siFia Growth';
           case 'transformation':
-            return 'siFia Transformation Usage';
+            return 'siFia Transformation';
           // POST-LAUNCH: case 'family':
           //   return 'siFia Family';
           case 'free_trial':
@@ -1303,6 +1303,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // If canceled, user effectively falls back to free tier presentation
       planLabel = subscription.status === 'canceled' ? 'siFia Seeker' : (branded || 'siFia Seeker');
+      
+      // Add "Usage" to the plan label
+      planLabel = `${planLabel} Usage`;
     }
     return (
       <ProfileHeader
