@@ -1716,29 +1716,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasRead = false;
     journalNudgeFired = false;
 
-    // Navigate to UserInputScreen if source was user_input, otherwise go to PlaybookList
+    // Navigate to StreakPlanScreen instead of directly to MainTabs
     const source = route.params?.source;
-    if (source === 'user_input') {
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Home' }], index: 0 },
-          },
-        ],
-      });
-    } else {
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Home' }, { name: 'PlaybookList' }], index: 1 },
-          },
-        ],
-      });
-    }
+    (navigation as any).navigate('StreakPlan', {
+      playbookId,
+      userId,
+      source,
+    });
   }, [navigation, playbookId, userId, queryClient, route.params?.source]);
 
   const goNext = useCallback(() => {

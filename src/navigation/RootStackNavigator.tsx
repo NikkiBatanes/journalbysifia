@@ -12,6 +12,7 @@ import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
+import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
@@ -387,6 +388,18 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'modal',
               animation: 'slide_from_bottom',
+            }}
+          />
+
+          {/* Streak Plan Screen - shown after completing playbook walkthrough */}
+          <Stack.Screen
+            name="StreakPlan"
+            component={StreakPlanScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'fade',
+              gestureEnabled: false,
             }}
           />
 
