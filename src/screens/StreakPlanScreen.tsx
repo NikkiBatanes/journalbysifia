@@ -65,29 +65,16 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
     
-    // Navigate to appropriate screen based on source
-    const source = params?.source;
-    if (source === 'user_input') {
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Home' }], index: 0 },
-          },
-        ],
-      });
-    } else {
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Home' }, { name: 'PlaybookList' }], index: 1 },
-          },
-        ],
-      });
-    }
+    // Navigate to dashboard home screen
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'MainTabs',
+          state: { routes: [{ name: 'Home' }], index: 0 },
+        },
+      ],
+    });
   };
 
   const handleProcessAnotherMoment = () => {
