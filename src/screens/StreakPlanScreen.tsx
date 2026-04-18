@@ -65,13 +65,13 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Navigate to DashboardHomeScreen
+    // Navigate to DashboardHomeScreen (Overview tab)
     (navigation as any).reset({
       index: 0,
       routes: [
         {
           name: 'MainTabs',
-          state: { routes: [{ name: 'Home' }], index: 0 },
+          state: { routes: [{ name: 'Overview' }], index: 0 },
         },
       ],
     });
@@ -79,7 +79,7 @@ const StreakPlanScreen: React.FC = () => {
 
   const handleProcessAnotherMoment = () => {
     try { triggerLightHaptic(); } catch {}
-    navigation.navigate('UserInputScreen' as never);
+    (navigation as any).navigate('UserInput');
   };
 
   return (
