@@ -609,6 +609,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.3)',
       padding: 16,
+      marginTop: 4,
     },
     prayerRequestItemSpacing: {
       marginTop: 10,

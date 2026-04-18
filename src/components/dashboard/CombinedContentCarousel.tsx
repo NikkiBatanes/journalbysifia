@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   scrollContainer: {
-    paddingVertical: 0,
+    paddingVertical: 4,
     paddingRight: 0,
     overflow: 'visible',
     alignItems: 'flex-start',
