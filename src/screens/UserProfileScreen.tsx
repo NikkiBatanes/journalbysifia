@@ -1828,7 +1828,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.modalInitialLetter, font]}>{initialLetter}</Text>
                 </View>
               )}
-              <TouchableOpacity
+              {/* Hidden edit avatar button per user request */}
+              {/* <TouchableOpacity
                 style={styles.modalEditAvatarButton}
                 onPress={handleEditAvatar}
                 accessibilityRole="button"
@@ -1836,7 +1837,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <LuPencil size={16} color={Colors.alertCoral} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 
