@@ -398,7 +398,7 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',
-              animation: 'fade',
+              animation: 'slide_from_bottom',
               gestureEnabled: false,
             }}
           />
