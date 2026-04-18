@@ -1205,51 +1205,51 @@ const UserInputScreen: React.FC = () => {
                 </Animated.View>
               </Animated.View>
 
-              {/* Navigation icons when expanded */}
-              <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
-                <Animated.View style={{ opacity: navIconAnims[0], transform: [{ scale: navIconAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity
-                    style={styles.navIconItem}
-                    onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }], index: 0 } }] }))}
-                    onPressIn={() => setPressedNavIcon(0)}
-                    onPressOut={() => setPressedNavIcon(null)}
-                  >
-                    <MaterialIcons name="space-dashboard" size={20} color={pressedNavIcon === 0 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
-                  </TouchableOpacity>
-                </Animated.View>
-                <Animated.View style={{ opacity: navIconAnims[1], transform: [{ scale: navIconAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity
-                    style={styles.navIconItem}
-                    onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Playbooks' }], index: 1 } }] }))}
-                    onPressIn={() => setPressedNavIcon(1)}
-                    onPressOut={() => setPressedNavIcon(null)}
-                  >
-                    <MaterialCommunityIcons name="clipboard-text-play" size={20} color={pressedNavIcon === 1 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
-                  </TouchableOpacity>
-                </Animated.View>
-                <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity
-                    style={styles.navIconItem}
-                    onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Devotionals' }], index: 1 } }] }))}
-                    onPressIn={() => setPressedNavIcon(2)}
-                    onPressOut={() => setPressedNavIcon(null)}
-                  >
-                    <MaterialCommunityIcons name="book" size={20} color={pressedNavIcon === 2 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
-                  </TouchableOpacity>
-                </Animated.View>
-                <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                  <TouchableOpacity
-                    style={styles.navIconItem}
-                    onPress={() => handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] }))}
-                    onPressIn={() => setPressedNavIcon(3)}
-                    onPressOut={() => setPressedNavIcon(null)}
-                  >
-                    <MaterialCommunityIcons name="notebook-edit" size={20} color={pressedNavIcon === 3 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
-                  </TouchableOpacity>
-                </Animated.View>
+            {/* Navigation icons when expanded */}
+            <Animated.View style={[styles.expandedNavContainer, { opacity: navButtonAnim, transform: [{ translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
+              <Animated.View style={{ opacity: navIconAnims[0], transform: [{ scale: navIconAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                <TouchableOpacity
+                  style={styles.navIconItem}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }], index: 0 } }] })); }}
+                  onPressIn={() => setPressedNavIcon(0)}
+                  onPressOut={() => setPressedNavIcon(null)}
+                >
+                  <MaterialIcons name="space-dashboard" size={20} color={pressedNavIcon === 0 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
               </Animated.View>
-            </>
-          )}
+              <Animated.View style={{ opacity: navIconAnims[1], transform: [{ scale: navIconAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                <TouchableOpacity
+                  style={styles.navIconItem}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Playbooks' }], index: 1 } }] })); }}
+                  onPressIn={() => setPressedNavIcon(1)}
+                  onPressOut={() => setPressedNavIcon(null)}
+                >
+                  <MaterialCommunityIcons name="clipboard-text-play" size={20} color={pressedNavIcon === 1 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                <TouchableOpacity
+                  style={styles.navIconItem}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Devotionals' }], index: 1 } }] })); }}
+                  onPressIn={() => setPressedNavIcon(2)}
+                  onPressOut={() => setPressedNavIcon(null)}
+                >
+                  <MaterialCommunityIcons name="book" size={20} color={pressedNavIcon === 2 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
+                <TouchableOpacity
+                  style={styles.navIconItem}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] })); }}
+                  onPressIn={() => setPressedNavIcon(3)}
+                  onPressOut={() => setPressedNavIcon(null)}
+                >
+                  <MaterialCommunityIcons name="notebook-edit" size={20} color={pressedNavIcon === 3 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
+                </TouchableOpacity>
+              </Animated.View>
+            </Animated.View>
+          </>
+        )}
 
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }] }]}>
             {!isGenerating && (
