@@ -65,13 +65,13 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
     
-    // Navigate to dashboard home screen
+    // Navigate to overview screen (PlaybookList)
     navigation.reset({
       index: 0,
       routes: [
         {
           name: 'MainTabs',
-          state: { routes: [{ name: 'Home' }], index: 0 },
+          state: { routes: [{ name: 'Home' }, { name: 'PlaybookList' }], index: 1 },
         },
       ],
     });
