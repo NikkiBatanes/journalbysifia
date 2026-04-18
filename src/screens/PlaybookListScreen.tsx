@@ -14,9 +14,24 @@ import {
   NativeModules,
   Image,
   PanResponder,
+  Dimensions,
+  ScrollView,
+  TextInput,
 } from 'react-native';
 
 import { format } from 'date-fns';
+
+const { width } = Dimensions.get('window');
+const CARD_HORIZONTAL_PADDING = 16;
+const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
+const isTablet = width >= 768;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
+const ITEM_SPACING = 8;
+const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+const SIDE_INSET = Math.max(
+  0,
+  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+);
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -85,6 +100,42 @@ const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
+// Helper function to determine category from playbook title/content
+const getCategory = (playbook: Playbook): string => {
+  const title = playbook.title?.toLowerCase() || '';
+  const userInput = playbook.userInput?.toLowerCase() || '';
+  const combined = `${title} ${userInput}`;
+
+  if (combined.includes('love') || combined.includes('relationship') || combined.includes('family') || combined.includes('friend')) {
+    return 'Relationships';
+  }
+  if (combined.includes('money') || combined.includes('finance') || combined.includes('financial') || combined.includes('debt')) {
+    return 'Finance';
+  }
+  if (combined.includes('faith') || combined.includes('trust') || combined.includes('believe') || combined.includes('god') || combined.includes('prayer')) {
+    return 'Faith';
+  }
+  if (combined.includes('peace') || combined.includes('anxiety') || combined.includes('worry') || combined.includes('stress')) {
+    return 'Peace';
+  }
+  if (combined.includes('hope') || combined.includes('encouragement') || combined.includes('strength')) {
+    return 'Hope';
+  }
+  if (combined.includes('wisdom') || combined.includes('decision') || combined.includes('guidance')) {
+    return 'Wisdom';
+  }
+  if (combined.includes('forgive')) {
+    return 'Forgiveness';
+  }
+  if (combined.includes('gratitude') || combined.includes('thank')) {
+    return 'Gratitude';
+  }
+  if (combined.includes('purpose') || combined.includes('calling') || combined.includes('mission')) {
+    return 'Purpose';
+  }
+  return 'Growth';
+};
+
 const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
@@ -94,6 +145,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const tabBarHeight = useBottomTabBarHeight();
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
+  const scrollX = useRef(new Animated.Value(0)).current;
   // Visible bar height excluding safe area bottom, plus a small cushion
   const bottomClearance = Math.max(12, Math.max(0, tabBarHeight - insets.bottom) + 12);
 
@@ -167,6 +219,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Set filter to 'all' by default to show all playbooks
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Subtle selection animation for filter tabs
   const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
@@ -300,7 +353,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
   }, [playbooks]);
 
-  // Filter and sort playbooks by completion status (optimized with cached progress)
+  // Filter and sort playbooks by completion status and search query (optimized with cached progress)
   const filteredPlaybooks = useMemo(() => {
     // Early return for empty playbooks
     if (playbooksWithProgress.length === 0) {
@@ -308,17 +361,30 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
 
     // Simple filtering logic using cached progress
-    const filtered = playbooksWithProgress.filter(({ isCompleted }) => {
+    const filtered = playbooksWithProgress.filter(({ isCompleted, playbook }) => {
+      // Filter by completion status
       switch (filter) {
         case 'all':
-          return true;
+          break;
         case 'ongoing':
-          return !isCompleted;
+          if (isCompleted) return false;
+          break;
         case 'completed':
-          return isCompleted;
+          if (!isCompleted) return false;
+          break;
         default:
           return false;
       }
+
+      // Filter by search query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const title = playbook.title?.toLowerCase() || '';
+        const userInput = playbook.userInput?.toLowerCase() || '';
+        return title.includes(query) || userInput.includes(query);
+      }
+
+      return true;
     });
 
     // Sort by most recent
@@ -329,7 +395,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
 
     return sorted.map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, filter]);
+  }, [playbooksWithProgress, filter, searchQuery]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
@@ -348,67 +414,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [filteredPlaybooks, userId, prefetchVisiblePlaybooks]);
 
   // (Remove any other filteredPlaybooks declarations below this point)
-
-  // Group playbooks by month/year (optimized)
-  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[]) => {
-    const groups: Record<string, Playbook[]> = {};
-
-    try {
-      if (!Array.isArray(playbooksList)) {
-        return [];
-      }
-
-      // Helper function to get the most relevant date for sorting
-      const getSortDate = (pb: Playbook) => {
-        if (filter === 'completed' && pb.completedAt) {
-          return new Date(pb.completedAt).getTime();
-        }
-        if (pb.updatedAt) {
-          return new Date(pb.updatedAt).getTime();
-        }
-        return new Date(pb.createdAt || 0).getTime();
-      };
-
-      // First, sort all playbooks by date (newest first)
-      const sortedPlaybooks = [...playbooksList]
-        .filter(pb => pb?.createdAt) // Filter out playbooks without createdAt
-        .sort((a, b) => getSortDate(b) - getSortDate(a)); // Sort by most recent first
-
-      // Group the sorted playbooks by month/year
-      for (const pb of sortedPlaybooks) {
-        const date = new Date(pb.createdAt!);
-        const key = formatDate(date);
-        if (!groups[key]) {
-          groups[key] = [];
-        }
-        groups[key].push(pb);
-      }
-
-      // Convert to array of sections and sort them by the most recent playbook in each section
-      return Object.entries(groups)
-        .map(([title, data]) => ({
-          title,
-          data,
-          // Get the most recent date in this section for sorting
-          latestDate: Math.max(...data.map(pb => getSortDate(pb))),
-        }))
-        .sort((a, b) => b.latestDate - a.latestDate) // Sort sections by most recent first
-        .map(({ title, data }) => ({ title, data })); // Remove the temporary latestDate property
-    } catch (err) {
-      Logger.error('Error in groupPlaybooksByMonth', err as Error, { component: 'PlaybookListScreen' });
-      return [];
-    }
-  }, [filter]);
-
-  const sections = useMemo(() => {
-    const grouped = groupPlaybooksByMonth(filteredPlaybooks);
-    return grouped
-      .map(group => ({
-        title: group.title,
-        data: group.data,
-      }))
-      .filter(section => section.data.length > 0);
-  }, [filteredPlaybooks, groupPlaybooksByMonth]);
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
@@ -474,49 +479,80 @@ const PlaybookListScreen = ({ navigation }: any) => {
     </RectButton>
   ), [handleDelete, styles.deleteButton, triggerLightHaptic]);
 
-  const renderItem = useCallback(({ item, index: _index }: { item: Playbook; index: number }) => {
+  const renderItem = useCallback(({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
     if (!item || typeof item !== 'object') {
       Logger.warn('Invalid item in renderItem', { component: 'PlaybookListScreen', data: item });
       return null;
     }
 
-    // Ensure a persistent ref for each row
-    if (item.id && !rowRefs.current[item.id]) {
-      rowRefs.current[item.id] = createRef();
-    }
+    const inputRange = [
+      (index - 1) * ITEM_SIZE,
+      index * ITEM_SIZE,
+      (index + 1) * ITEM_SIZE,
+    ];
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.96, 1, 0.96],
+      extrapolate: 'clamp',
+    });
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.9, 1, 0.9],
+      extrapolate: 'clamp',
+    });
+    const translateY = scrollX.interpolate({
+      inputRange,
+      outputRange: [2, 0, 2],
+      extrapolate: 'clamp',
+    });
 
-    // DISABLED: No entrance animations - instant display for better UX
-    // const currentAnimatedValue = Array.isArray(animatedValues.current) ? animatedValues.current[index] : null;
-    // const hasAnimation = currentAnimatedValue !== null && currentAnimatedValue !== undefined;
-    // const translateY = hasAnimation ? currentAnimatedValue.interpolate({
-    //   inputRange: [0, 1],
-    //   outputRange: [50, 0],
-    // }) : 0;
-    // const opacity = hasAnimation ? currentAnimatedValue : 1;
+    // Calculate progress
+    const { completed, total } = calculateTaskStats(item.actionSteps);
+    const progress = total > 0 ? (completed / total) * 100 : 0;
+    const category = getCategory(item);
 
     return (
-      <View style={styles.swipeableContainer}>
-        <Swipeable
-          ref={rowRefs.current[item.id]}
-          onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-          renderRightActions={renderRightActions(item.id)}
-          rightThreshold={40}
-          friction={2}
-          overshootRight={false}
-          enabled={true}
-          containerStyle={styles.swipeableContainer}
+      <TouchableOpacity
+        key={item.id}
+        style={styles.carouselCardTouch}
+        onPress={() => handleCardPress(item)}
+        onLongPress={() => handleCardLongPress(item)}
+        activeOpacity={0.85}
+      >
+        <Animated.View
+          style={[
+            styles.carouselCard,
+            { transform: [{ scale }, { translateY }], opacity },
+          ]}
         >
-          <PlaybookCard
-            playbook={item}
-            onPress={() => handleCardPress(item)}
-            onLongPress={() => handleCardLongPress(item)}
-            style={styles.card}
-          />
-        </Swipeable>
-      </View>
+          <View style={styles.gradientContainer}>
+            <View style={styles.gradientBubble} />
+            <View style={styles.gradientBubbleSmall} />
+            <View style={styles.categoryLabel}>
+              <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
+            </View>
+          </View>
+
+          {item.updatedAt && (
+            <ThemedText style={styles.carouselDate}>
+              {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+            </ThemedText>
+          )}
+
+          <ThemedText weight="semiBold" style={styles.carouselCardTitle}>
+            {item.title}
+          </ThemedText>
+
+          {item.userInput && (
+            <ThemedText style={styles.carouselCardDescription} numberOfLines={3}>
+              {item.userInput}
+            </ThemedText>
+          )}
+        </Animated.View>
+      </TouchableOpacity>
     );
-  }, [handleCardPress, handleCardLongPress, renderRightActions, styles, triggerLightHaptic]);
+  }, [handleCardPress, handleCardLongPress, scrollX]);
 
   // Logging for render states
 
@@ -614,6 +650,29 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
             <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
+            <View style={styles.searchBar}>
+              <Ionicons name="search-outline" size={18} color={Colors.textGray} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search playbooks..."
+                placeholderTextColor={Colors.textGray}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  style={styles.clearButton}
+                  accessibilityLabel="Clear search"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="close-circle" size={16} color={Colors.textGray} />
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
               {tabKeys.map((tab) => (
                 <Pressable
@@ -714,35 +773,23 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             </View>
           ) : (
-            <SectionList
-              style={styles.sectionList}
-              key={`${filter}-${sections.length}`}
-              sections={sections}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              renderSectionHeader={({ section: { title } }) => (
-                <View style={styles.sectionHeader}><ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText></View>
+            <Animated.ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
+              decelerationRate="fast"
+              snapToInterval={ITEM_SIZE}
+              snapToAlignment="center"
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: true }
               )}
-              contentContainerStyle={[
-                styles.listContent,
-                styles.pageInner,
-                styles.listContentPadding,
-                { paddingBottom: 70 },
-              ]}
-              ListFooterComponent={<View style={{ height: bottomClearance }} />}
-              scrollIndicatorInsets={{ top: 0, bottom: bottomClearance, left: 0, right: 0 }}
-              stickySectionHeadersEnabled
-              showsVerticalScrollIndicator={false}
-              bounces
-              alwaysBounceVertical
-              contentInsetAdjustmentBehavior="never"
-              overScrollMode="always"
+              scrollEventThrottle={16}
+              bounces={true}
               removeClippedSubviews={false}
-              keyboardShouldPersistTaps="handled"
-              extraData={filter}
-              onScroll={handleScroll}
-              scrollEventThrottle={100}
-            />
+            >
+              {filteredPlaybooks.map((playbook, index) => renderItem({ item: playbook, index }))}
+            </Animated.ScrollView>
           )}
         </BlueSheet>
       </View>
@@ -784,6 +831,165 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   cardTouchable: {
     width: '100%',
+  },
+  carouselCardTouch: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
+  },
+  carouselCard: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    minHeight: 200,
+  },
+  carouselTypeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  carouselTypeText: {
+    fontSize: 11,
+    letterSpacing: 0.5,
+    color: Colors.alertCoral,
+  },
+  carouselBadgeContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  carouselProgressBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  carouselProgressBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+  },
+  carouselCardTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  carouselDate: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 8,
+  },
+  carouselCardDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 16,
+  },
+  carouselProgressSection: {
+    marginBottom: 12,
+  },
+  carouselProgressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 2,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  carouselProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  carouselProgressText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  carouselStepInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  carouselStepText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  carouselScrollContainer: {
+    paddingVertical: 20,
+    flexGrow: 1,
+  },
+  gradientContainer: {
+    height: 88,
+    borderRadius: 22,
+    marginBottom: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
+  },
+  gradientRelationships: {
+    backgroundColor: 'linear-gradient(135deg, rgba(230, 237, 247, 0.2) 0%, rgba(213, 227, 245, 0.2) 50%, rgba(245, 235, 232, 0.2) 100%)',
+  },
+  gradientFinance: {
+    backgroundColor: 'linear-gradient(135deg, rgba(238, 244, 235, 0.2) 0%, rgba(223, 233, 220, 0.2) 50%, rgba(227, 237, 246, 0.2) 100%)',
+  },
+  gradientFaith: {
+    backgroundColor: 'linear-gradient(135deg, rgba(241, 238, 229, 0.2) 0%, rgba(232, 224, 210, 0.2) 45%, rgba(219, 230, 244, 0.2) 100%)',
+  },
+  gradientPeace: {
+    backgroundColor: 'linear-gradient(135deg, rgba(230, 237, 247, 0.2) 0%, rgba(213, 227, 245, 0.2) 50%, rgba(245, 235, 232, 0.2) 100%)',
+  },
+  gradientHope: {
+    backgroundColor: 'linear-gradient(135deg, rgba(238, 244, 235, 0.2) 0%, rgba(223, 233, 220, 0.2) 50%, rgba(227, 237, 246, 0.2) 100%)',
+  },
+  gradientWisdom: {
+    backgroundColor: 'linear-gradient(135deg, rgba(241, 238, 229, 0.2) 0%, rgba(232, 224, 210, 0.2) 45%, rgba(219, 230, 244, 0.2) 100%)',
+  },
+  gradientForgiveness: {
+    backgroundColor: 'linear-gradient(135deg, rgba(230, 237, 247, 0.2) 0%, rgba(213, 227, 245, 0.2) 50%, rgba(245, 235, 232, 0.2) 100%)',
+  },
+  gradientGratitude: {
+    backgroundColor: 'linear-gradient(135deg, rgba(238, 244, 235, 0.2) 0%, rgba(223, 233, 220, 0.2) 50%, rgba(227, 237, 246, 0.2) 100%)',
+  },
+  gradientPurpose: {
+    backgroundColor: 'linear-gradient(135deg, rgba(241, 238, 229, 0.2) 0%, rgba(232, 224, 210, 0.2) 45%, rgba(219, 230, 244, 0.2) 100%)',
+  },
+  gradientGrowth: {
+    backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
+  },
+  gradientBubble: {
+    position: 'absolute',
+    right: -18,
+    top: -18,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  gradientBubbleSmall: {
+    position: 'absolute',
+    right: 30,
+    top: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  categoryLabel: {
+    position: 'absolute',
+    left: 12,
+    bottom: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  categoryLabelText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.04,
+    textTransform: 'uppercase',
+    color: Colors.anchorBlue,
   },
   deleteButton: {
     width: 80,
@@ -830,6 +1036,31 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 8,
     marginTop: 10,
     letterSpacing: 0.5,
+  },
+  searchBar: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.anchorBlue,
+    paddingVertical: 0,
+    fontFamily: Fonts.regular,
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
   },
   // Additional layout styling applied on top of BlueSheet if needed
   contentSheet: {
