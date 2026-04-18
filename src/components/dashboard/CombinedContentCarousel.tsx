@@ -943,6 +943,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'visible',
     paddingHorizontal: 16,
+    paddingVertical: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 30,
