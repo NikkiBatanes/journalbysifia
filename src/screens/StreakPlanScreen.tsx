@@ -122,7 +122,7 @@ const StreakPlanScreen: React.FC = () => {
             onPress={handleContinue}
             activeOpacity={0.85}
           >
-            <Text style={[styles.primaryButtonText, font]}>Continue</Text>
+            <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>Continue</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -130,7 +130,7 @@ const StreakPlanScreen: React.FC = () => {
             onPress={handleProcessAnotherMoment}
             activeOpacity={0.85}
           >
-            <Text style={[styles.secondaryButtonText, font]}>Process Another Moment</Text>
+            <Text style={[styles.secondaryButtonText, font, { fontWeight: '600' }]}>Process Another Moment</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
