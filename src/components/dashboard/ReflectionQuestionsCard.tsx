@@ -799,6 +799,7 @@ const styles = StyleSheet.create({
   },
   // New carousel styles
   scrollContainer: {
+    paddingVertical: 0,
     paddingRight: 0,
     // Don't center content - align to start
     justifyContent: 'flex-start',
@@ -836,7 +837,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    marginBottom: 10,
+    marginBottom: 0,
   },
   sectionIcon: {
     alignSelf: 'center',
