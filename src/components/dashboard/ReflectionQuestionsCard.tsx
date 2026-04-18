@@ -759,7 +759,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.modalBlue,
+    backgroundColor: 'transparent',
     borderRadius: 30,
     padding: 16,
     marginBottom: 16,
