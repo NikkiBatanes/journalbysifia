@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   useWindowDimensions,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -99,6 +100,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
+  const font = React.useMemo(() => ({ fontFamily: fontRegular }), [fontRegular]);
 
   // Create styles using theme values
   const styles = StyleSheet.create({
@@ -407,6 +409,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // Remove extra horizontal padding to avoid layout width shifts when typing
       paddingHorizontal: 0,
     },
+    fullScreenModalContainer: {
+      flex: 1,
+      backgroundColor: Colors.anchorBlue,
+    },
+    fullScreenPrayerModalContainer: {
+      flex: 1,
+      padding: 20,
+      justifyContent: 'center',
+    },
     prayerModalContainer: {
       backgroundColor: Colors.anchorBlue,
       borderRadius: 30,
@@ -463,15 +474,26 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       opacity: 0.6,
     },
     prayerModalNameInput: {
-      backgroundColor: Colors.lightOverlay,
-      borderRadius: 8,
-      padding: 12,
-      color: Colors.hopeWhite,
-      fontSize: 16,
-      marginBottom: 12,
+      width: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: Colors.lightBorder,
-      fontFamily: fontRegular,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      padding: 16,
+      paddingBottom: 16,
+      color: Colors.hopeWhite,
+      fontSize: 18,
+      lineHeight: 24,
+      marginBottom: 12,
+      textAlignVertical: 'center',
+      ...Platform.select({
+        ios: {
+          paddingTop: 16,
+        },
+        android: {
+          paddingTop: 12,
+        },
+      }),
     },
     prayerModalTextArea: {
       backgroundColor: Colors.lightOverlay,
@@ -486,23 +508,35 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     // Combined prayer input + request display container
     combinedPrayerField: {
-      backgroundColor: Colors.lightOverlay,
-      borderRadius: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: Colors.lightBorder,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
       marginBottom: 12,
       overflow: 'hidden',
     },
     combinedPrayerInput: {
-      padding: 12,
+      width: '100%',
+      padding: 16,
+      paddingBottom: 0,
       color: Colors.hopeWhite,
-      fontSize: 16,
+      fontSize: 18,
+      lineHeight: 24,
       minHeight: 120,
+      maxHeight: 120,
       textAlignVertical: 'top' as const,
-      fontFamily: fontRegular,
+      backgroundColor: 'transparent',
+      ...Platform.select({
+        ios: {
+          paddingTop: 16,
+        },
+        android: {
+          paddingTop: 12,
+        },
+      }),
     },
     combinedDivider: {
-      height: 1,
+      height: 0.2,
       backgroundColor: Colors.mediumOverlay,
     },
     prayerModalLabel: {
@@ -522,22 +556,33 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       gap: 8,
     },
     prayerModalCancelButton: {
-      width: 24,
-      height: 24,
-      borderRadius: 20,
-      backgroundColor: Colors.mediumOverlay,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
+      position: 'absolute',
+      right: 20,
+      top: 8,
+      width: 42,
+      height: 42,
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.09)',
+      borderRadius: 999,
+      zIndex: 100,
     },
     prayerModalSaveButton: {
-      width: 24,
-      height: 24,
+      position: 'absolute',
+      right: 20,
+      bottom: 8,
+      width: 40,
+      height: 40,
       borderRadius: 20,
       backgroundColor: Colors.alertCoral,
       justifyContent: 'center',
       alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      zIndex: 100,
     },
     prayerModalReadOnlyField: {
       marginBottom: 16,
@@ -861,6 +906,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successPersonName, setSuccessPersonName] = useState('');
+
+  // Hide status bar when prayer editor modal is open
+  useEffect(() => {
+    if (showPrayerEditorModal) {
+      StatusBar.setHidden(true);
+      return () => StatusBar.setHidden(false);
+    }
+  }, [showPrayerEditorModal]);
   // Prayer Requests: show more/less toggle
   const [showAllPrayerRequests, setShowAllPrayerRequests] = useState(false);
 
@@ -1599,17 +1652,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {/* Prayer Editor Modal */}
       <Modal
         visible={showPrayerEditorModal}
-        transparent
         animationType="fade"
-        presentationStyle="overFullScreen"
+        presentationStyle="fullScreen"
         onRequestClose={handleCancelModalPrayer}
       >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalKeyboardContainer}
-          >
-            <View style={styles.prayerModalContainer}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreenModalContainer}
+        >
+          <View style={styles.fullScreenPrayerModalContainer}>
+              <TouchableOpacity
+                style={[styles.prayerModalCancelButton, { top: insets.top + 8 }]}
+                onPress={() => { triggerLightHaptic(); handleCancelModalPrayer(); }}
+                disabled={savingModalPrayer}
+              >
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+
               <View style={styles.prayerModalHeader}>
                 <View style={styles.prayerModalHeaderLeft}>
                   <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
@@ -1621,17 +1680,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
               {/* Name field - pre-filled and non-editable */}
               <TextInput
-                style={[styles.prayerModalNameInput]}
+                style={[styles.prayerModalNameInput, font]}
                 value={modalPrayerName}
                 onChangeText={setModalPrayerName}
                 placeholder="Name (optional)"
                 placeholderTextColor={Colors.placeholderText}
+                keyboardAppearance="dark"
+                editable={false}
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
               <View style={styles.combinedPrayerField}>
                 <TextInput
-                  style={styles.combinedPrayerInput}
+                  style={[styles.combinedPrayerInput, font]}
                   placeholder={`Write a prayer for ${modalPrayerName || 'them'}…`}
                   placeholderTextColor={Colors.placeholderText}
                   value={modalPrayerRequest}
@@ -1640,6 +1701,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   multiline
                   numberOfLines={6}
                   autoFocus
+                  keyboardAppearance="dark"
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>
@@ -1648,25 +1710,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 </View>
               </View>
 
-              <View style={styles.prayerModalActions}>
-                <TouchableOpacity
-                  style={styles.prayerModalCancelButton}
-                  onPress={() => { triggerLightHaptic(); handleCancelModalPrayer(); }}
-                  disabled={savingModalPrayer}
-                >
-                  <Ionicons name="close" size={14} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.prayerModalSaveButton}
-                  onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
-                  disabled={savingModalPrayer || !modalPrayerRequest.trim()}
-                >
-                  <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
+              <TouchableOpacity
+                style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
+                onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
+                disabled={savingModalPrayer || !modalPrayerRequest.trim()}
+              >
+                <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Success Modal */}
