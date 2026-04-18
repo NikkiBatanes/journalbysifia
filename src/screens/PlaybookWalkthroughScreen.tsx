@@ -1567,7 +1567,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       StatusBar.setHidden(true, 'slide');
-      return () => StatusBar.setHidden(false, 'slide');
+      StatusBar.setBarStyle('light-content');
+      return () => {
+        StatusBar.setHidden(false, 'slide');
+        StatusBar.setBarStyle('light-content');
+      };
     }, [])
   );
 
