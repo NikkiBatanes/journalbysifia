@@ -138,20 +138,16 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Navigate back to trigger slide down animation, then navigate to DashboardHomeScreen
-    (navigation as any).goBack();
-    // Small delay to allow slide down animation to complete
-    setTimeout(() => {
-      (navigation as any).reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Overview' }], index: 0 },
-          },
-        ],
-      });
-    }, 300);
+    // Navigate directly to DashboardHomeScreen
+    (navigation as any).reset({
+      index: 0,
+      routes: [
+        {
+          name: 'MainTabs',
+          state: { routes: [{ name: 'Overview' }], index: 0 },
+        },
+      ],
+    });
   };
 
   const handleProcessAnotherMoment = () => {
