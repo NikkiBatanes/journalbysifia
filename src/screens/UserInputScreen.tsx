@@ -382,15 +382,14 @@ const UserInputScreen: React.FC = () => {
   }, [route.params?.initialText]);
 
   useEffect(() => {
-    if (!route.params?.autoFocus) { return; }
     const focusInput = () => {
       if (inputRef.current) {
         inputRef.current.focus();
       }
     };
 
-    focusInput();
-    autoFocusTimer.current = setTimeout(focusInput, 120);
+    // Delay focus to allow screen animation to complete first
+    autoFocusTimer.current = setTimeout(focusInput, 1500);
 
     return () => {
       if (autoFocusTimer.current) {
@@ -398,7 +397,7 @@ const UserInputScreen: React.FC = () => {
         autoFocusTimer.current = null;
       }
     };
-  }, [route.params?.autoFocus]);
+  }, []);
 
   // Auto-save draft when user types (debounced)
   const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);
@@ -563,12 +562,39 @@ const UserInputScreen: React.FC = () => {
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
-  const headerTranslateY = useRef(new Animated.Value(isPad && isLandscape ? -50 : -16)).current; // Adjusted iPad landscape position
+  const headerTranslateY = useRef(new Animated.Value(0)).current; // Adjusted iPad landscape position
   const headerScale = useRef(new Animated.Value(0.45)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
   const autoFocusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyboardTranslateY = useRef(new Animated.Value(0)).current;
+
+  // Keyboard animation - sync input box with keyboard slide
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
+      Animated.spring(keyboardTranslateY, {
+        toValue: -e.endCoordinates.height + 70, // Adjust to match keyboardVerticalOffset of -70
+        tension: 50,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.spring(keyboardTranslateY, {
+        toValue: 0,
+        tension: 50,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, [keyboardTranslateY]);
 
   // Simple chat input - no complex height calculations needed
 
@@ -576,7 +602,7 @@ const UserInputScreen: React.FC = () => {
   useEffect(() => {
     // Skip animation if editing existing text - show immediately
     if (route.params?.initialText) {
-      headerTranslateY.setValue(isPad && isLandscape ? 20 : 0);
+      headerTranslateY.setValue(0);
       headerIntroOpacity.setValue(1);
       askBoxOpacity.setValue(1);
       askBoxTranslateY.setValue(0);
@@ -589,15 +615,15 @@ const UserInputScreen: React.FC = () => {
       Animated.parallel([
         Animated.timing(
           headerTranslateY,
-          { toValue: isPad && isLandscape ? 20 : 0, duration: 320, useNativeDriver: true }
+          { toValue: 0, duration: 320, useNativeDriver: true }
         ),
         // Keep opacity animation for smoothness, but start from 0.8 to 1
         Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
       ]),
       Animated.delay(100),
       Animated.parallel([
-        Animated.timing(askBoxOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
-        Animated.timing(askBoxTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
+        Animated.spring(askBoxOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+        Animated.spring(askBoxTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
       ]),
       Animated.spring(navIconEntranceAnim, {
         toValue: 1,
@@ -606,12 +632,12 @@ const UserInputScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, isLandscape, isPad, route.params?.initialText, navIconEntranceAnim]);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, route.params?.initialText, navIconEntranceAnim]);
   const handleFocus = () => {
     // Animate logo position when keyboard opens
     Animated.parallel([
       Animated.spring(headerTranslateY, {
-        toValue: isPad && isLandscape ? 45 : 25,
+        toValue: isPad && isLandscape ? -45 : -25,
         useNativeDriver: true,
         stiffness: 180,
         damping: 18,
@@ -1174,8 +1200,9 @@ const UserInputScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
+          keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
           style={{ flex: 1 }}
+          enabled={false}
         >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
@@ -1419,7 +1446,7 @@ const UserInputScreen: React.FC = () => {
         </View>
 
         {/* Fixed footer input anchored to safe area */}
-        <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] }) }, { scale: inputScaleAnim }] }]}>
+        <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.add(keyboardTranslateY, inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] })) }, { scale: inputScaleAnim }] }]}>
           <View style={styles.inputContainer}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <View style={styles.askWrapper}>
@@ -1829,13 +1856,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: 24,
+    paddingHorizontal: 12,
     paddingTop: 8,
   },
 
   inputContainer: {
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
+    paddingHorizontal: 0,
   },
   usageCounter: {
     flexDirection: 'row',
