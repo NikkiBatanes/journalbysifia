@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme/colors';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export type DayState = 'completed' | 'missed' | 'today' | 'future';
 
@@ -62,7 +63,7 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
           <View key={day} style={styles.dayContainer}>
             <View style={[styles.dayCircle, getDayCircleStyle(state)]}>
               {state === 'completed' && (
-                <View style={styles.completedInner} />
+                <Ionicons name="sparkle" size={12} color={Colors.hopeWhite} />
               )}
             </View>
             <Text style={[styles.dayLabel, font, getDayLabelStyle(state)]}>{label}</Text>
@@ -127,12 +128,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
-  },
-  completedInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.hopeWhite,
   },
   missedCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
