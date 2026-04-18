@@ -293,8 +293,6 @@ const styles = StyleSheet.create({
   streakContainer: {
     width: '100%',
     marginBottom: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
     padding: 16,
   },
   buttonsContainer: {
