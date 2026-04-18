@@ -759,12 +759,12 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 30,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 0,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     minHeight: 120,
   },
   header: {
