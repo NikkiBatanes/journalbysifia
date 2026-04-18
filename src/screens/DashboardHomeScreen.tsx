@@ -196,7 +196,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     playbookLabelContainer: {
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 8,
       overflow: 'hidden',
     },
     playbookLabelClip: {
