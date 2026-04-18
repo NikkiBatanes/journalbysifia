@@ -1170,12 +1170,13 @@ const UserInputScreen: React.FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
-        style={styles.container}
-      >
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.select({ ios: insets.bottom || 0, android: 0 })}
+          style={{ flex: 1 }}
+        >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
           {!isGenerating && (
@@ -1526,7 +1527,8 @@ const UserInputScreen: React.FC = () => {
             </Animated.View>
           </View>
         </Animated.View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </TouchableWithoutFeedback>
   );
 };
