@@ -22,7 +22,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
+import DashboardCombinedContentSkeleton from '../SkeletonLoader/DashboardCombinedContentSkeleton';
 import ThemedText from '../common/ThemedText';
 import DevotionalModal from '../DevotionalModal';
 
@@ -875,7 +875,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   );
 
   if (loading) {
-    return <DashboardPlaybookSkeleton />;
+    return <DashboardCombinedContentSkeleton />;
   }
 
   return (
