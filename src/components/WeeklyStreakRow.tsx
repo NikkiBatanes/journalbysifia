@@ -63,7 +63,7 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
           <View key={day} style={styles.dayContainer}>
             <View style={[styles.dayCircle, getDayCircleStyle(state)]}>
               {state === 'completed' && (
-                <Ionicons name="sparkle" size={12} color={Colors.hopeWhite} />
+                <Ionicons name="sparkles" size={12} color={Colors.hopeWhite} />
               )}
             </View>
             <Text style={[styles.dayLabel, font, getDayLabelStyle(state)]}>{label}</Text>
