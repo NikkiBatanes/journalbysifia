@@ -940,7 +940,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 16,
     overflow: 'visible',
     paddingHorizontal: 16,
     borderWidth: 1,

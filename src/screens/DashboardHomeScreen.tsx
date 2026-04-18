@@ -565,7 +565,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderRadius: 30,
       padding: 16,
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 16,
       width: screenWidth >= 768 ? 384 : Math.round((width - 32) * 0.85),
       alignSelf: 'center',
       borderWidth: 1,
@@ -1418,28 +1418,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <View style={styles.sectionGap} />
 
           {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-            <>
-              {renderPrayerRequestsCard()}
-              <View style={styles.sectionGap} />
-            </>
-          )}
+          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && renderPrayerRequestsCard()}
 
           {hasContent && (
-            <>
-              <CombinedContentCarousel
-                onPlaybookPress={(playbook) => {
-                  triggerLightHaptic();
-                  navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
-                }}
-                onDevotionalPress={(devotional) => {
-                  triggerLightHaptic();
-                  navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-                }}
-                onEmpty={() => setHasContent(false)}
-              />
-              <View style={styles.sectionGap} />
-            </>
+            <CombinedContentCarousel
+              onPlaybookPress={(playbook) => {
+                triggerLightHaptic();
+                navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
+              }}
+              onDevotionalPress={(devotional) => {
+                triggerLightHaptic();
+                navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+              }}
+              onEmpty={() => setHasContent(false)}
+            />
           )}
 
           {/* Reflection Questions Card */}
@@ -1471,7 +1463,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               navigation.navigate('Journal');
             }}
           />
-          <View style={styles.sectionGap} />
 
           {/* Today's Actions - Only show when there are unfinished steps */}
           {actionsCount > 0 && (
@@ -1493,7 +1484,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 }}
                 onCountChange={setActionsCount}
               />
-              <View style={styles.sectionGap} />
             </>
           )}
 
