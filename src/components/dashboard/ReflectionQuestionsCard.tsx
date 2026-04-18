@@ -744,7 +744,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     accessibilityLabel="Reflect on this question"
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
+                    <ThemedText weight="medium" style={styles.reflectButtonText}>Begin</ThemedText>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
