@@ -1287,7 +1287,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           case 'growth':
             return 'siFia Growth';
           case 'transformation':
-            return 'siFia Transformation';
+            return 'siFia Transformation Usage';
           // POST-LAUNCH: case 'family':
           //   return 'siFia Family';
           case 'free_trial':
