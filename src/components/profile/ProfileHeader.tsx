@@ -272,12 +272,13 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Text style={[styles.userEmail, font]} numberOfLines={1} ellipsizeMode="tail">{user.email}</Text>
           )}
 
-          <View style={styles.levelContainer}>
+          {/* Hidden level and progress bar per user request */}
+          {/* <View style={styles.levelContainer}>
             <Text style={[styles.levelText, font]}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
-          </View>
+          </View> */}
         </View>
 
         {/* Right-side edit pencil removed per request */}
