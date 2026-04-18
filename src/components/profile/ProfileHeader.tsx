@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   planAndUsageRow: {
     position: 'absolute',
-    top: 85,
+    top: 65,
     left: 0,
     right: 0,
     zIndex: 10,
