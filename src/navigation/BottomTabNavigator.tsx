@@ -57,7 +57,6 @@ const CustomTabBarComponent = ({
   const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const currentRouteName = state.routes[state.index].name;
   const isReflect = currentRouteName === 'Reflect';
@@ -66,36 +65,6 @@ const CustomTabBarComponent = ({
   // ── Pill visibility: fade + slide up/down ─────────────────────────────────
   // Single value drives both: 0 = hidden below screen, 1 = visible in place.
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
-
-  // ── Collapse/expand animation ───────────────────────────────────────────────
-  const collapseAnim = React.useRef(new Animated.Value(0)).current;
-  const pillWidthAnim = React.useRef(new Animated.Value(1)).current;
-  const pillTranslateXAnim = React.useRef(new Animated.Value(0)).current;
-
-  const toggleCollapse = React.useCallback(() => {
-    const toValue = isCollapsed ? 0 : 1;
-    setIsCollapsed(!isCollapsed);
-    Animated.parallel([
-      Animated.spring(collapseAnim, {
-        toValue,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: true,
-      }),
-      Animated.spring(pillWidthAnim, {
-        toValue: isCollapsed ? 1 : 0.15,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: false,
-      }),
-      Animated.spring(pillTranslateXAnim, {
-        toValue: isCollapsed ? 0 : -120,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isCollapsed, collapseAnim, pillWidthAnim, pillTranslateXAnim]);
 
   // ── Sliding selector position ───────────────────────────────────────────────
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
@@ -217,39 +186,17 @@ const CustomTabBarComponent = ({
         {
           bottom: Math.max(insets.bottom, 8),
           opacity: pillOpacity,
-          transform: [
-            { translateY: pillTranslateY },
-            { translateX: pillTranslateXAnim },
-          ],
+          transform: [{ translateY: pillTranslateY }],
         },
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      <Animated.View style={[styles.pill, { width: pillWidthAnim.interpolate({ inputRange: [0.15, 1], outputRange: [60, 350] }) }]}>
-        {/* Collapsed circle view - only show when on Overview screen */}
-        {isOverview && (
-          <Animated.View style={{ opacity: collapseAnim, position: 'absolute', left: 0, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableOpacity onPress={toggleCollapse} activeOpacity={0.8}>
-              <MaterialIcons name="space-dashboard" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-
-        {/* Toggle button for expanded state - only show when on Overview screen */}
-        {isOverview && (
-          <Animated.View style={{ opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), position: 'absolute', left: 12, justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableOpacity onPress={toggleCollapse} activeOpacity={0.8}>
-              <MaterialIcons name="chevron-left" size={20} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-
+      <View style={styles.pill}>
         {/* Sliding selector that moves smoothly between tabs */}
         <Animated.View
           style={[
             styles.slidingSelector,
             {
-              opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
               transform: [
                 { translateX: selectorPosition },
                 { scaleX: selectorScaleX },
@@ -258,8 +205,7 @@ const CustomTabBarComponent = ({
             },
           ]}
         />
-        <Animated.View style={{ opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-          {state.routes.map((route, index) => {
+        {state.routes.map((route, index) => {
             const isFocused = state.index === index;
             const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
 
@@ -317,7 +263,7 @@ const CustomTabBarComponent = ({
               </Animated.View>
             );
           })}
-        </Animated.View>
+        </View>
       </Animated.View>
     </Animated.View>
   );
