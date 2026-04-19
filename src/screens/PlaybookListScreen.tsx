@@ -1358,6 +1358,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
             <View style={styles.headerTopRow}>
               <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
               <View style={styles.headerActions}>
+                {contentView === 'all' && (
+                  <ThemedText weight="semiBold" style={styles.headerContinueLabel}>
+                    CONTINUE YOUR PLAYBOOK{filter === 'ongoing' && continuePlaybooks.length !== 1 ? 'S' : filter === 'completed' && completedPlaybooks.length !== 1 ? 'S' : ''}
+                  </ThemedText>
+                )}
                 {/* Status dropdown — shows current filter, tapping opens picker */}
                 <TouchableOpacity
                   style={[
@@ -1647,11 +1652,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ) : contentView === 'all' ? (
             /* ── ALL VIEW: Respects header filter ─────────────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-              <View style={styles.carouselTitleContainer}>
-                <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                  CONTINUE YOUR PLAYBOOK{filter === 'ongoing' && continuePlaybooks.length !== 1 ? 'S' : filter === 'completed' && completedPlaybooks.length !== 1 ? 'S' : ''}
-                </ThemedText>
-              </View>
               {filter === 'ongoing' ? (
                 continuePlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
@@ -2614,6 +2614,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.anchorBlue,
     letterSpacing: 0.5,
     flex: 1,
+  },
+  headerContinueLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+    marginRight: 8,
   },
   // Search row: bar + filter button side by side
   searchRow: {
