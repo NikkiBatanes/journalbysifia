@@ -1244,10 +1244,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
               style={[styles.tagChip, styles.tagChipDate, datePreset !== 'all' && styles.tagChipActive]}
               onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
             >
-              <MaterialCommunityIcons name="tune" size={12} color={datePreset !== 'all' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} style={{ marginRight: 4 }} />
-              <ThemedText style={[styles.tagChipText, datePreset !== 'all' && styles.tagChipTextActive]}>
-                {datePreset === 'all' ? 'Date' : DATE_PRESET_LABELS[datePreset]}
-              </ThemedText>
+              <MaterialCommunityIcons name="tune" size={12} color={datePreset !== 'all' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} />
+              {datePreset !== 'all' && (
+                <ThemedText style={[styles.tagChipText, styles.tagChipTextActive, { marginLeft: 4 }]}>
+                  {DATE_PRESET_LABELS[datePreset as Exclude<typeof datePreset, 'all'>]}
+                </ThemedText>
+              )}
               {datePreset !== 'all' && (
                 <TouchableOpacity
                   onPress={() => { triggerLightHaptic(); setDatePreset('all'); }}
