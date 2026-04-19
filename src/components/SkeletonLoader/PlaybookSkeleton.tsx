@@ -58,14 +58,16 @@ export const PlaybookSkeleton: React.FC = () => {
         {/* Description */}
         <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
 
-        {/* Progress section */}
-        <View style={styles.carouselProgressSection}>
-          <View style={styles.progressRow}>
-            <View style={styles.progressBarContainer}>
-              <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
+        {/* Sections container */}
+        <View style={styles.sectionsContainer}>
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <View key={item} style={styles.sectionItem}>
+              <Animated.View style={[styles.statusPillSkeleton, { opacity }]} />
+              <View style={styles.sectionContent}>
+                <Animated.View style={[styles.sectionLabelSkeleton, { opacity }]} />
+              </View>
             </View>
-            <Animated.View style={[styles.progressTextSkeleton, { opacity }]} />
-          </View>
+          ))}
         </View>
       </Animated.View>
     </View>
@@ -203,5 +205,39 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     width: 40,
+  },
+  sectionsContainer: {
+    marginTop: 10,
+  },
+  sectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statusPillSkeleton: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 6,
+  },
+  sectionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionLabelSkeleton: {
+    height: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    width: '50%',
   },
 });
