@@ -3248,6 +3248,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   pickerCategoryScroll: {
     marginTop: 4,
     marginBottom: 2,
+    height: 32,
   },
   pickerCategoryScrollContent: {
     flexDirection: 'row',
