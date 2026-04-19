@@ -3034,7 +3034,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingTop: 8,
+    paddingBottom: 4,
     alignItems: 'center',
   },
   pickerApplyButton: {
