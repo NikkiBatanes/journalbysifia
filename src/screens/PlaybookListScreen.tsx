@@ -2022,7 +2022,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 6,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
