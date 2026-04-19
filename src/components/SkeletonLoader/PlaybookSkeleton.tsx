@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, ScrollView } from 'react-native';
 
 export const PlaybookSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -28,35 +28,62 @@ export const PlaybookSkeleton: React.FC = () => {
     outputRange: [0.3, 0.7],
   });
 
-  return (
-    <View style={styles.container}>
-      {/* Section Header Skeleton */}
-      <View style={styles.sectionHeader} />
+  const CardSkeleton = () => (
+    <View style={styles.card}>
+      <View style={styles.cardContent}>
+        {/* Date skeleton */}
+        <Animated.View style={[styles.dateSkeleton, { opacity }]} />
 
-      {[1, 2, 3].map((item) => (
-        <View key={item} style={styles.card}>
-          <View style={styles.cardContent}>
-            {/* Date skeleton */}
-            <Animated.View style={[styles.dateSkeleton, { opacity }]} />
+        {/* Title skeleton */}
+        <Animated.View style={[styles.titleSkeleton, { opacity }]} />
 
-            {/* Title skeleton */}
-            <Animated.View style={[styles.titleSkeleton, { opacity }]} />
-
-            {/* Progress bar skeleton */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressRow}>
-                {/* Progress bar background */}
-                <View style={styles.progressBarContainer}>
-                  <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
-                </View>
-
-                {/* Tasks text skeleton */}
-                <Animated.View style={[styles.tasksSkeleton, { opacity }]} />
-              </View>
+        {/* Progress bar skeleton */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressRow}>
+            {/* Progress bar background */}
+            <View style={styles.progressBarContainer}>
+              <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
             </View>
+
+            {/* Tasks text skeleton */}
+            <Animated.View style={[styles.tasksSkeleton, { opacity }]} />
           </View>
         </View>
-      ))}
+      </View>
+    </View>
+  );
+
+  const SectionSkeleton = ({ title }: { title: string }) => (
+    <View style={styles.section}>
+      {/* Section Header */}
+      <View style={styles.sectionHeader}>
+        <Animated.View style={[styles.sectionHeaderText, { opacity }]} />
+      </View>
+
+      {/* Horizontal Carousel */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContent}
+      >
+        {[1, 2, 3].map((item) => (
+          <View key={item} style={styles.carouselCard}>
+            <CardSkeleton />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Continue Section (In Progress) */}
+      <SectionSkeleton title="CONTINUE YOUR PLAYBOOKS" />
+
+      {/* Category Sections (All View) */}
+      <SectionSkeleton title="SPIRITUAL GROWTH" />
+      <SectionSkeleton title="RELATIONSHIPS" />
+      <SectionSkeleton title="PERSONAL DEVELOPMENT" />
     </View>
   );
 };
@@ -66,6 +93,9 @@ const styles = StyleSheet.create({
     flex: 1,
     // No padding - skeleton is rendered inside PlaybookListScreen's padded container
   },
+  section: {
+    marginBottom: 24,
+  },
   sectionHeader: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 6,
@@ -73,6 +103,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 30, // Match PlaybookListScreen section header margin
     marginBottom: 10, // Match PlaybookListScreen spacing
+  },
+  sectionHeaderText: {
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light on blue
+    borderRadius: 4,
+    width: '40%',
+  },
+  carouselContent: {
+    paddingHorizontal: 12,
+    gap: 12,
+  },
+  carouselCard: {
+    width: 280, // Match actual card width in carousel
   },
   sectionHeaderSkeleton: {
     height: 12,
