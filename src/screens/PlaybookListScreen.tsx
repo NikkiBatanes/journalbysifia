@@ -1607,6 +1607,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
+          {/* ── CONTINUE YOUR PLAYBOOK/S label ─────────────── */}
+          {filter === 'ongoing' && (
+            <View style={styles.viewPillRow}>
+              <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
+              </ThemedText>
+            </View>
+          )}
+
           {isLoading ? (
             <View style={[styles.listContent, styles.pageInner]}>
               <PlaybookSkeleton />
