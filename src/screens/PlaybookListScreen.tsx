@@ -1121,21 +1121,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
             >
               <View style={styles.searchBar}>
                 <Ionicons name="search-outline" size={16} color={'rgba(3,32,61,0.4)'} style={styles.searchIcon} />
-                <TextInput
-                  ref={searchInputRef}
-                  style={[
-                    styles.searchInput,
-                    Platform.OS === 'ios' ? styles.searchInputIOS : styles.searchInputAndroid,
-                  ]}
-                  placeholder="Search all playbooks..."
-                  placeholderTextColor={'rgba(3,32,61,0.35)'}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="search"
-                  keyboardAppearance="dark"
-                />
+                <View style={styles.searchInputWrapper}>
+                  <TextInput
+                    ref={searchInputRef}
+                    style={styles.searchInput}
+                    placeholder="Search all playbooks..."
+                    placeholderTextColor={'rgba(3,32,61,0.35)'}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
+                    keyboardAppearance="dark"
+                  />
+                </View>
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <Ionicons name="close-circle" size={16} color={'rgba(3,32,61,0.3)'} />
@@ -2068,8 +2067,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
   searchIcon: {
     marginRight: 7,
   },
-  searchInput: {
+  searchInputWrapper: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  searchInput: {
+    width: '100%',
     fontSize: 14,
     color: Colors.anchorBlue,
     paddingVertical: 0,
@@ -2077,16 +2080,17 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingBottom: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
-  },
-  searchInputIOS: {
-    height: 22,
-    lineHeight: 22,
-    marginVertical: 0,
-  },
-  searchInputAndroid: {
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-    height: 42,
+    ...Platform.select({
+      ios: {
+        height: 22,
+        lineHeight: 22,
+      },
+      android: {
+        textAlignVertical: 'center',
+        includeFontPadding: false,
+        height: 42,
+      },
+    }),
   },
   clearButton: {
     marginLeft: 6,
