@@ -129,68 +129,76 @@ const StreakPlanScreen: React.FC = () => {
     ]).start();
   }, [user?.id]);
 
-  // Calculate day states for the last 7 days based on actual activity data
+  // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
+  const toLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  // Calculate day states for the current week based on actual activity data
   const calculateDayStates = async (streaks: any): Promise<DayState[]> => {
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = toLocalDate(today); // LOCAL date to match user's timezone
 
-    // Collect all activity dates from the last 7 days
+    // 8-day lookback window as ISO timestamp (UTC) for DB queries
+    const windowStart = new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    const windowStartDate = toLocalDate(new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000));
+
+    // Collect all activity LOCAL dates
     const activityDates = new Set<string>();
 
-    // Query prayer entries (extend window to 8 days to cover full week from any weekStart)
+    // prayers table uses `selected_date` (stored as YYYY-MM-DD local)
     const { data: prayerData } = await supabase
       .from('prayers')
-      .select('created_at')
+      .select('selected_date')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('selected_date', windowStartDate);
 
     if (prayerData) {
       prayerData.forEach((entry: any) => {
-        const date = new Date(entry.created_at).toISOString().split('T')[0];
-        activityDates.add(date);
+        if (entry.selected_date) { activityDates.add(entry.selected_date.split('T')[0]); }
       });
     }
 
-    // Query devotional entries
+    // devotional_progress table uses `date` field (stored as YYYY-MM-DD local) and `completed` boolean
     const { data: devotionalData } = await supabase
       .from('devotional_progress')
-      .select('created_at')
+      .select('date')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
+      .eq('completed', true)
+      .gte('date', windowStartDate);
 
     if (devotionalData) {
       devotionalData.forEach((entry: any) => {
-        const date = new Date(entry.created_at).toISOString().split('T')[0];
-        activityDates.add(date);
+        if (entry.date) { activityDates.add(entry.date.split('T')[0]); }
       });
     }
 
-    // Query journal entries
+    // journal_entries uses `created_at` (UTC timestamp) — convert to local date
     const { data: journalData } = await supabase
       .from('journal_entries')
       .select('created_at')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('created_at', windowStart);
 
     if (journalData) {
       journalData.forEach((entry: any) => {
-        const date = new Date(entry.created_at).toISOString().split('T')[0];
-        activityDates.add(date);
+        activityDates.add(toLocalDate(new Date(entry.created_at)));
       });
     }
 
-    // Query playbook completions
+    // playbooks — count creation (not only completion) as activity
     const { data: playbookData } = await supabase
       .from('playbooks')
-      .select('completed_at')
+      .select('created_at')
       .eq('user_id', user?.id)
-      .not('completed_at', 'is', null)
-      .gte('completed_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('created_at', windowStart);
 
     if (playbookData) {
       playbookData.forEach((entry: any) => {
-        const date = new Date(entry.completed_at).toISOString().split('T')[0];
-        activityDates.add(date);
+        activityDates.add(toLocalDate(new Date(entry.created_at)));
       });
     }
 
@@ -205,31 +213,28 @@ const StreakPlanScreen: React.FC = () => {
       Thursday: 4, Friday: 5, Saturday: 6,
     };
 
-    // Find the start date of the current week
+    // Find the LOCAL start date of the current week
     const weekStartDayNum = DAY_NUMBERS[userWeekStart];
-    const todayDayNum = today.getDay();
+    const todayDayNum = today.getDay(); // local day-of-week
     const daysSinceWeekStart = (todayDayNum - weekStartDayNum + 7) % 7;
     const weekStartDate = new Date(today);
     weekStartDate.setDate(today.getDate() - daysSinceWeekStart);
     weekStartDate.setHours(0, 0, 0, 0);
 
-    const todayMidnight = new Date(today);
-    todayMidnight.setHours(0, 0, 0, 0);
-
     console.log('🔍 Activity Dates:', Array.from(activityDates));
-    console.log('📅 Week start:', weekStartDate.toISOString().split('T')[0], '| Today:', todayString, '| UserWeekStart:', userWeekStart);
+    console.log('📅 Week start:', toLocalDate(weekStartDate), '| Today:', todayString, '| UserWeekStart:', userWeekStart);
 
     // Generate state for each day in the current week (weekStart + 0..6)
     const dayStates: DayState[] = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStartDate);
       date.setDate(weekStartDate.getDate() + i);
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = toLocalDate(date); // LOCAL date
 
       let state: DayState;
       if (dateString === todayString) {
         state = 'today';
-      } else if (date > todayMidnight) {
+      } else if (dateString > todayString) { // string compare works for YYYY-MM-DD
         state = 'future';
       } else if (activityDates.has(dateString)) {
         state = 'completed';
