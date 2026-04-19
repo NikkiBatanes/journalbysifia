@@ -1844,6 +1844,11 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     gap: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   completedSummaryText: {
     fontSize: 12,
