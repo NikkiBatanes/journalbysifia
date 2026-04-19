@@ -1490,14 +1490,21 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     '';
   const userId: string = user?.id || '';
 
-  // Detect if the route playbook is a lightweight list object (missing full content)
+  // Detect if the route playbook is a lightweight list object (missing full content).
+  // Lightweight mode includes truth_in_love but NOT bible_verse text, prayer, wordToSpeak, etc.
+  // So we check bibleVerse.text (empty string in lightweight, actual content in full).
+  // Also accept if prayer key is a string (only set in full fetches).
   const isFullPlaybook =
     routePlaybook &&
-    'truthInLove' in routePlaybook &&
-    routePlaybook.truthInLove &&
-    typeof routePlaybook.truthInLove === 'object' &&
-    (routePlaybook.truthInLove as any).text &&
-    (routePlaybook.truthInLove as any).text.length > 0;
+    (
+      (
+        routePlaybook.bibleVerse &&
+        typeof routePlaybook.bibleVerse === 'object' &&
+        (routePlaybook.bibleVerse as any).text &&
+        (routePlaybook.bibleVerse as any).text.length > 0
+      ) ||
+      typeof (routePlaybook as any).prayer === 'string'
+    );
 
   const playbookId = routePlaybook?.id;
   const shouldFetch = !isFullPlaybook && !!playbookId && !!userId;
