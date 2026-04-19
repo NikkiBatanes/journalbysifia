@@ -1446,7 +1446,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   carouselCard: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 24,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
@@ -1768,17 +1768,17 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontWeight: '600',
   },
   sectionsContainer: {
-    marginTop: 6,
+    marginTop: 10,
   },
   sectionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 2,
+    paddingVertical: 6,
   },
   sectionCheck: {
     marginRight: 8,
