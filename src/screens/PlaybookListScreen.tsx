@@ -2164,6 +2164,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    zIndex: 20,
   },
   viewPillWithIcon: {
     flexDirection: 'row',
