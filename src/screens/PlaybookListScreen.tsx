@@ -1383,11 +1383,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>
                     Categories
                   </ThemedText>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.pickerCategoryScrollContent}
-                  >
+                  <View style={styles.pickerPillRow}>
                     {availableCategories.map(cat => {
                       const isSelected = selectedCategories.includes(cat);
                       return (
@@ -1414,7 +1410,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                       );
                     })}
-                  </ScrollView>
+                  </View>
                 </>
               )}
 
