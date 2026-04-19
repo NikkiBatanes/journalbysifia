@@ -1453,7 +1453,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
         {/* Date view mode dropdown */}
         <Modal visible={showDateViewDropdown} transparent animationType="fade" onRequestClose={() => setShowDateViewDropdown(false)}>
-          <TouchableOpacity style={styles.statusPickerOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
+          <TouchableOpacity style={styles.dateViewDropdownOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
             <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
               {(['weekly', 'monthly', 'yearly'] as const).map(opt => (
                 <TouchableOpacity
@@ -2956,6 +2956,13 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'flex-end',
     paddingRight: 60,
+  },
+  dateViewDropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'flex-start',
+    paddingTop: 180,
+    paddingHorizontal: SIDE_INSET,
   },
   statusPickerContent: {
     backgroundColor: Colors.hopeWhite,
