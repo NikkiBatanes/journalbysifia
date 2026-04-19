@@ -63,5 +63,6 @@ export interface Playbook {
   createdAt?: string;
   updatedAt?: string;
   status?: string; // 'inProgress' | 'completed' or undefined for compatibility
+  tag?: string; // User-defined tag for categorization
 }
 

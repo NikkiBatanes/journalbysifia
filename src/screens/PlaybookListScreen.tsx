@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 
 import { format } from 'date-fns';
+import { supabase } from '../services/supabaseClient';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
@@ -35,6 +36,7 @@ const SIDE_INSET = Math.max(
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Modal } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { useScroll } from '../context/ScrollContext';
@@ -153,6 +155,33 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
 
+  // State for rename playbook
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<Playbook | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+
+  // State for tag playbook
+  const [tagModalVisible, setTagModalVisible] = useState(false);
+  const [selectedPlaybookForTag, setSelectedPlaybookForTag] = useState<Playbook | null>(null);
+  const [selectedTag, setSelectedTag] = useState('');
+  const [customTag, setCustomTag] = useState('');
+
+  // Predefined tags
+  const predefinedTags = [
+    'Relationships',
+    'Marriage',
+    'Family',
+    'Conflict',
+    'Peace',
+    'Career',
+    'Work',
+    'Finance',
+    'Growth',
+    'Health',
+    'Spiritual',
+    'Custom',
+  ];
+
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
 
@@ -217,9 +246,65 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
 
+  // Handle rename playbook
+  const handleRenamePlaybook = useCallback(async () => {
+    if (!selectedPlaybookForRename || !newTitle.trim()) return;
+
+    try {
+      triggerLightHaptic();
+      const { error } = await supabase
+        .from('playbooks')
+        .update({ title: newTitle.trim(), updated_at: new Date().toISOString() })
+        .eq('id', selectedPlaybookForRename.id);
+
+      if (error) throw error;
+
+      // Refetch to update data
+      refetch();
+
+      setRenameModalVisible(false);
+      setNewTitle('');
+      setSelectedPlaybookForRename(null);
+    } catch (err) {
+      Logger.error('Error renaming playbook', err as Error, { component: 'PlaybookListScreen' });
+      Alert.alert('Error', 'Failed to rename playbook. Please try again.');
+    }
+  }, [selectedPlaybookForRename, newTitle, triggerLightHaptic, refetch]);
+
+  // Handle tag playbook
+  const handleTagPlaybook = useCallback(async () => {
+    if (!selectedPlaybookForTag) return;
+
+    const finalTag = selectedTag === 'Custom' ? customTag.trim() : selectedTag;
+    if (!finalTag) return;
+
+    try {
+      triggerLightHaptic();
+      const { error } = await supabase
+        .from('playbooks')
+        .update({ tag: finalTag, updated_at: new Date().toISOString() })
+        .eq('id', selectedPlaybookForTag.id);
+
+      if (error) throw error;
+
+      // Refetch to update data
+      refetch();
+
+      setTagModalVisible(false);
+      setSelectedTag('');
+      setCustomTag('');
+      setSelectedPlaybookForTag(null);
+    } catch (err) {
+      Logger.error('Error tagging playbook', err as Error, { component: 'PlaybookListScreen' });
+      Alert.alert('Error', 'Failed to tag playbook. Please try again.');
+    }
+  }, [selectedPlaybookForTag, selectedTag, customTag, triggerLightHaptic, refetch]);
+
   // Set filter to 'all' by default to show all playbooks
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
+  const [menuVisible, setMenuVisible] = useState<string | null>(null);
 
   // Subtle selection animation for filter tabs
   const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
@@ -353,6 +438,35 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
   }, [playbooks]);
 
+  // Fetch devotionals count for each playbook
+  useEffect(() => {
+    if (!userId || playbooks.length === 0) return;
+
+    const fetchDevotionalsCount = async () => {
+      try {
+        const { data: devotionals, error } = await supabase
+          .from('devotionals')
+          .select('playbook_id')
+          .eq('user_id', userId);
+
+        if (error) throw error;
+
+        const counts: Record<string, number> = {};
+        devotionals?.forEach((devotional: any) => {
+          if (devotional.playbook_id) {
+            counts[devotional.playbook_id] = (counts[devotional.playbook_id] || 0) + 1;
+          }
+        });
+
+        setDevotionalsCount(counts);
+      } catch (err) {
+        Logger.error('Error fetching devotionals count', err as Error, { component: 'PlaybookListScreen' });
+      }
+    };
+
+    fetchDevotionalsCount();
+  }, [userId, playbooks]);
+
   // Filter and sort playbooks by completion status and search query (optimized with cached progress)
   const filteredPlaybooks = useMemo(() => {
     // Early return for empty playbooks
@@ -458,9 +572,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
+    // Don't navigate if menu is open for this card
+    if (menuVisible === playbook.id) {
+      setMenuVisible(null);
+      return;
+    }
     triggerLightHaptic();
     navigation.navigate('PlaybookWalkthrough', { playbook });
-  }, [navigation, triggerLightHaptic]);
+  }, [navigation, triggerLightHaptic, menuVisible]);
 
   const handleCardLongPress = useCallback((playbook: Playbook) => {
     try { triggerLightHaptic(); } catch {}
@@ -527,18 +646,98 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ]}
         >
           <View style={styles.gradientContainer}>
-            <View style={styles.gradientBubble} />
-            <View style={styles.gradientBubbleSmall} />
             <View style={styles.categoryLabel}>
               <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
             </View>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setMenuVisible(menuVisible === item.id ? null : item.id);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
+            </TouchableOpacity>
+            {menuVisible === item.id && (
+              <View style={styles.dropdownMenu}>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setMenuVisible(null);
+                    setSelectedPlaybookForRename(item);
+                    setRenameModalVisible(true);
+                  }}
+                >
+                  <ThemedText style={styles.dropdownItemText}>Rename</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setMenuVisible(null);
+                    setSelectedPlaybookForTag(item);
+                    setTagModalVisible(true);
+                  }}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <ThemedText style={styles.dropdownItemText}>Tag</ThemedText>
+                    {item.tag && (
+                      <View style={styles.dropdownBadge}>
+                        <ThemedText style={styles.dropdownBadgeText}>{item.tag}</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setMenuVisible(null);
+                    handleCardLongPress(item);
+                  }}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <ThemedText style={styles.dropdownItemText}>Turn into devotional</ThemedText>
+                    {devotionalsCount[item.id] > 0 && (
+                      <View style={styles.dropdownBadge}>
+                        <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
+                        {devotionalsCount[item.id] >= 2 && (
+                          <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[item.id]}</ThemedText>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setMenuVisible(null);
+                    handleDelete(item.id);
+                  }}
+                >
+                  <ThemedText style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
+            {menuVisible === item.id && (
+              <TouchableOpacity
+                style={styles.menuBackdrop}
+                onPress={() => setMenuVisible(null)}
+                activeOpacity={1}
+              />
+            )}
           </View>
 
-          {item.updatedAt && (
-            <ThemedText style={styles.carouselDate}>
-              {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
-            </ThemedText>
-          )}
+          <View style={styles.dateWithBadge}>
+            {item.updatedAt && (
+              <ThemedText style={styles.carouselDate}>
+                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+              </ThemedText>
+            )}
+          </View>
 
           <ThemedText weight="semiBold" style={styles.carouselCardTitle}>
             {item.title}
@@ -549,6 +748,43 @@ const PlaybookListScreen = ({ navigation }: any) => {
               {item.userInput}
             </ThemedText>
           )}
+
+          <View style={styles.sectionsContainer}>
+            {/* Truth in Love */}
+            <View style={styles.sectionItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
+              <ThemedText style={styles.sectionLabel}>Truth in Love</ThemedText>
+            </View>
+
+            {/* Scripture to Anchor */}
+            <View style={styles.sectionItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
+              <ThemedText style={styles.sectionLabel}>Scripture to Anchor</ThemedText>
+            </View>
+
+            {/* Faithful Actions - only show info if not all steps completed */}
+            <View style={styles.sectionItem}>
+              <Ionicons name={completed === total ? "checkmark-circle" : "ellipse-outline"} size={16} color={completed === total ? Colors.growthGreen : 'rgba(255, 255, 255, 0.4)'} style={styles.sectionCheck} />
+              <View style={styles.sectionContent}>
+                <ThemedText style={styles.sectionLabel}>Faithful Actions</ThemedText>
+                {completed < total && (
+                  <ThemedText style={styles.sectionInfo}>{completed} of {total} acted on</ThemedText>
+                )}
+              </View>
+            </View>
+
+            {/* Prayer */}
+            <View style={styles.sectionItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
+              <ThemedText style={styles.sectionLabel}>Prayer</ThemedText>
+            </View>
+
+            {/* Words to Speak */}
+            <View style={styles.sectionItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
+              <ThemedText style={styles.sectionLabel}>Words to Speak</ThemedText>
+            </View>
+          </View>
         </Animated.View>
       </TouchableOpacity>
     );
@@ -773,23 +1009,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             </View>
           ) : (
-            <Animated.ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
-              decelerationRate="fast"
-              snapToInterval={ITEM_SIZE}
-              snapToAlignment="center"
-              onScroll={Animated.event(
-                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                { useNativeDriver: true }
+            <>
+              {filter === 'ongoing' && (
+                <View style={styles.carouselTitleContainer}>
+                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                    CONTINUE YOUR {filteredPlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
+                  </ThemedText>
+                </View>
               )}
-              scrollEventThrottle={16}
-              bounces={true}
-              removeClippedSubviews={false}
-            >
-              {filteredPlaybooks.map((playbook, index) => renderItem({ item: playbook, index }))}
-            </Animated.ScrollView>
+              <Animated.ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
+                decelerationRate="fast"
+                snapToInterval={ITEM_SIZE}
+                snapToAlignment="center"
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: true }
+                )}
+                scrollEventThrottle={16}
+                bounces={true}
+                removeClippedSubviews={false}
+              >
+                {filteredPlaybooks.map((playbook, index) => renderItem({ item: playbook, index }))}
+              </Animated.ScrollView>
+            </>
           )}
         </BlueSheet>
       </View>
@@ -808,6 +1053,113 @@ const PlaybookListScreen = ({ navigation }: any) => {
           navigation.navigate('DevotionalDetail' as any, { devotionalId });
         }}
       />
+
+      {/* Rename modal */}
+      <Modal
+        visible={renameModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenameModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setRenameModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <ThemedText weight="bold" style={styles.modalTitle}>Rename Playbook</ThemedText>
+            <TextInput
+              style={styles.modalInput}
+              value={newTitle}
+              onChangeText={setNewTitle}
+              placeholder="Enter new title"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setRenameModalVisible(false)}
+              >
+                <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleRenamePlaybook}
+              >
+                <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Tag selection modal */}
+      <Modal
+        visible={tagModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTagModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setTagModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <ThemedText weight="bold" style={styles.modalTitle}>Select Tag</ThemedText>
+            <ScrollView style={styles.tagList} showsVerticalScrollIndicator={false}>
+              {predefinedTags.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={[
+                    styles.tagItem,
+                    selectedTag === tag && styles.tagItemSelected
+                  ]}
+                  onPress={() => {
+                    if (tag === 'Custom') {
+                      setSelectedTag('Custom');
+                    } else {
+                      setSelectedTag(tag);
+                      setCustomTag('');
+                    }
+                  }}
+                >
+                  <ThemedText style={[
+                    styles.tagItemText,
+                    selectedTag === tag && styles.tagItemTextSelected
+                  ]}>
+                    {tag}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {selectedTag === 'Custom' && (
+              <TextInput
+                style={styles.modalInput}
+                value={customTag}
+                onChangeText={setCustomTag}
+                placeholder="Enter custom tag"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              />
+            )}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setTagModalVisible(false)}
+              >
+                <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleTagPlaybook}
+              >
+                <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -879,7 +1231,29 @@ const createStyles = (_theme: any) => StyleSheet.create({
   carouselDate: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
+  },
+  dateWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  devotionalsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    marginLeft: 8,
+    minHeight: 20,
+  },
+  devotionalsBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginLeft: 3,
   },
   carouselCardDescription: {
     fontSize: 14,
@@ -917,15 +1291,26 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 20,
     flexGrow: 1,
   },
+  carouselTitleContainer: {
+    paddingHorizontal: SIDE_INSET,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  carouselTitle: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   gradientContainer: {
-    height: 88,
+    height: 70,
     borderRadius: 22,
     marginBottom: 12,
-    overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
+    overflow: 'visible',
   },
   gradientRelationships: {
     backgroundColor: 'linear-gradient(135deg, rgba(230, 237, 247, 0.2) 0%, rgba(213, 227, 245, 0.2) 50%, rgba(245, 235, 232, 0.2) 100%)',
@@ -990,6 +1375,173 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 0.04,
     textTransform: 'uppercase',
     color: Colors.anchorBlue,
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
+    zIndex: 20,
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minWidth: 180,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dropdownItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  dropdownItemTextDelete: {
+    color: '#f87171',
+  },
+  dropdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    marginLeft: 12,
+  },
+  dropdownBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginLeft: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalButtonCancel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalButtonConfirm: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  modalButtonTextCancel: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalButtonTextConfirm: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tagList: {
+    maxHeight: 200,
+    marginBottom: 16,
+  },
+  tagItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  tagItemSelected: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  tagItemText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+  },
+  tagItemTextSelected: {
+    fontWeight: '600',
+  },
+  sectionsContainer: {
+    marginTop: 12,
+  },
+  sectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  sectionCheck: {
+    marginRight: 8,
+  },
+  sectionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionLabel: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  sectionInfo: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   deleteButton: {
     width: 80,
