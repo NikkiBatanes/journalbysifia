@@ -1279,15 +1279,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
             <View style={styles.headerTopRow}>
               <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
               <View style={styles.headerActions}>
-                {/* Status dropdown — shows current filter, tapping opens picker */}
-                <TouchableOpacity
+                {/* Status pill — shows current filter, not clickable */}
+                <View
                   style={[
                     styles.statusDropdownBtn,
                     filter === 'ongoing' && styles.statusDropdownBtnOngoing,
                     filter === 'completed' && styles.statusDropdownBtnCompleted,
                   ]}
-                  onPress={() => { triggerLightHaptic(); setShowStatusPicker(true); }}
-                  activeOpacity={0.8}
                 >
                   <ThemedText weight="semiBold" style={[
                     styles.statusDropdownBtnText,
@@ -1296,12 +1294,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   ]}>
                     {filter === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? Colors.alertCoral : Colors.growthGreen} />
-                </TouchableOpacity>
+                </View>
 
-                {/* Date filter tune icon */}
+                {/* Tune icon — opens status picker */}
                 <TouchableOpacity
                   style={styles.dateFilterCircleButton}
+                  onPress={() => { triggerLightHaptic(); setShowStatusPicker(true); }}
                   activeOpacity={0.75}
                 >
                   <MaterialCommunityIcons name="tune" size={16} color={Colors.anchorBlue} />
