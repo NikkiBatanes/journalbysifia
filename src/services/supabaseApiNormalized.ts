@@ -13,6 +13,7 @@ interface PlaybookRow {
   user_id: string;
   title: string;
   user_input: string | null;
+  category: string | null;
   truth_in_love: any;
   bible_verse: any;
   bible_verse_reflection: string | null;
@@ -106,6 +107,7 @@ function transformPlaybookRow(
     user_id: playbookRow.user_id,
     title: playbookRow.title,
     userInput: playbookRow.user_input || '',
+    category: playbookRow.category || undefined,
     truthInLove: playbookRow.truth_in_love,
     bibleVerse: playbookRow.bible_verse,
     bibleVerseReflection: playbookRow.bible_verse_reflection || '',
@@ -141,6 +143,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         user_id,
         title,
         user_input,
+        category,
+        tag,
         truth_in_love,
         status,
         progress,
@@ -166,6 +170,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         user_id,
         title,
         user_input,
+        category,
+        tag,
         truth_in_love,
         bible_verse,
         direct_challenge,
@@ -262,6 +268,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         user_id: playbookRow.user_id,
         title: playbookRow.title,
         userInput: playbookRow.user_input || '',
+        category: playbookRow.category || undefined,
+        tag: playbookRow.tag || undefined,
         truthInLove: playbookRow.truth_in_love || { text: '', summary: '' },
         bibleVerse: lightweight ? { text: '', reference: '' } : (playbookRow.bible_verse || { text: '', reference: '' }),
         directChallenge: lightweight ? '' : (playbookRow.direct_challenge || ''),
