@@ -138,6 +138,27 @@ const getCategory = (playbook: Playbook): string => {
   return 'Growth';
 };
 
+// Estimate reading time for a block of text at ~200 wpm
+const estimateReadTime = (text: string): string => {
+  if (!text) { return ''; }
+  const words = text.trim().split(/\s+/).length;
+  const minutes = Math.max(1, Math.round(words / 200));
+  return `${minutes} min read`;
+};
+
+// Derive per-section state from walkthrough_progress
+// completed = Next was pressed on that step, viewed = user was there but didn't press Next,
+// unreached = never got there
+const getSectionState = (
+  sectionStep: number,
+  wp: number,
+): 'completed' | 'viewed' | 'unreached' => {
+  if (wp < 0) { return 'unreached'; } // not started — nothing is viewed or completed
+  if (wp >= sectionStep) { return 'completed'; }
+  if (wp + 1 === sectionStep) { return 'viewed'; }
+  return 'unreached';
+};
+
 const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
@@ -453,7 +474,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
       const { completed, total } = calculateTaskStats(playbook.actionSteps);
       const progress = total > 0 ? (completed / total) * 100 : 0;
-      const isCompleted = progress >= 100;
+      // Completion is driven by the status field (Save & Finish pressed), not action step math
+      const isCompleted = playbook.status === 'completed';
 
       return { playbook, progress, isCompleted };
     });
@@ -651,6 +673,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
     const { completed, total } = calculateTaskStats(item.actionSteps);
     const progress = total > 0 ? (completed / total) * 100 : 0;
     const category = getCategory(item);
+    const isCardCompleted = item.status === 'completed';
+    const wp = item.walkthroughProgress ?? -1; // -1 = not started, 0–5 = last completed step
+    const tilReadTime = estimateReadTime((item.truthInLove as any)?.text || '');
 
     return (
       <TouchableOpacity
@@ -753,11 +778,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.dateWithBadge}>
-            {item.updatedAt && (
+            {/* Completed cards show completion date; others show last updated date */}
+            {isCardCompleted && item.completedAt ? (
+              <ThemedText style={[styles.carouselDate, styles.completedDate]}>
+                Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+              </ThemedText>
+            ) : item.updatedAt ? (
               <ThemedText style={styles.carouselDate}>
                 {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
               </ThemedText>
-            )}
+            ) : null}
           </View>
 
           <ThemedText weight="semiBold" style={styles.carouselCardTitle}>
@@ -770,48 +800,59 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </ThemedText>
           )}
 
-          <View style={styles.sectionsContainer}>
-            {/* Intro */}
-            <View style={styles.sectionItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
-              <ThemedText style={styles.sectionLabel}>Intro</ThemedText>
+          {/* Completed card: hide step sections, show action count summary */}
+          {isCardCompleted ? (
+            <View style={styles.completedSummary}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+              <ThemedText style={styles.completedSummaryText}>
+                {completed} of {total} faithful actions acted on
+              </ThemedText>
             </View>
-
-            {/* Truth in Love */}
-            <View style={styles.sectionItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
-              <ThemedText style={styles.sectionLabel}>Truth in Love</ThemedText>
+          ) : (
+            /* All non-completed cards show sections — ✓/◐/○ based on walkthroughProgress */
+            <View style={styles.sectionsContainer}>
+              {([
+                { label: 'Intro',               step: 0 },
+                { label: 'Truth in Love',        step: 1, meta: tilReadTime },
+                { label: 'Scripture to Anchor',  step: 2 },
+                { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
+                { label: 'Prayer',               step: 4 },
+                { label: 'Words to Speak',       step: 5 },
+              ] as { label: string; step: number; meta?: string }[]).map(({ label, step, meta }) => {
+                const state = getSectionState(step, wp);
+                return (
+                  <View key={label} style={styles.sectionItem}>
+                    <View style={[
+                      styles.statusPill,
+                      state === 'completed' && styles.statusPillCompleted,
+                      state === 'viewed'    && styles.statusPillViewed,
+                      state === 'unreached' && styles.statusPillUnreached,
+                    ]}>
+                      <ThemedText style={[
+                        styles.statusPillText,
+                        state === 'completed' && styles.statusPillTextCompleted,
+                        state === 'viewed'    && styles.statusPillTextViewed,
+                        state === 'unreached' && styles.statusPillTextUnreached,
+                      ]}>
+                        {state === 'completed' ? '✓' : state === 'viewed' ? '◐' : '○'}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.sectionContent}>
+                      <ThemedText style={[
+                        styles.sectionLabel,
+                        state === 'unreached' && { color: 'rgba(255,255,255,0.35)' },
+                      ]}>
+                        {label}
+                      </ThemedText>
+                      {meta ? (
+                        <ThemedText style={styles.sectionInfo}>{meta}</ThemedText>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
-
-            {/* Scripture to Anchor */}
-            <View style={styles.sectionItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
-              <ThemedText style={styles.sectionLabel}>Scripture to Anchor</ThemedText>
-            </View>
-
-            {/* Faithful Actions - only show info if not all steps completed */}
-            <View style={styles.sectionItem}>
-              <Ionicons name={completed === total ? "checkmark-circle" : "ellipse-outline"} size={16} color={completed === total ? Colors.growthGreen : 'rgba(255, 255, 255, 0.4)'} style={styles.sectionCheck} />
-              <View style={styles.sectionContent}>
-                <ThemedText style={styles.sectionLabel}>Faithful Actions</ThemedText>
-                {completed < total && (
-                  <ThemedText style={styles.sectionInfo}>{completed} of {total} acted on</ThemedText>
-                )}
-              </View>
-            </View>
-
-            {/* Prayer */}
-            <View style={styles.sectionItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
-              <ThemedText style={styles.sectionLabel}>Prayer</ThemedText>
-            </View>
-
-            {/* Words to Speak */}
-            <View style={styles.sectionItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
-              <ThemedText style={styles.sectionLabel}>Words to Speak</ThemedText>
-            </View>
-          </View>
+          )}
         </Animated.View>
       </TouchableOpacity>
     );
@@ -1582,6 +1623,42 @@ const createStyles = (_theme: any) => StyleSheet.create({
   sectionCheck: {
     marginRight: 8,
   },
+  // Pill badge status icons
+  statusPill: {
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  statusPillCompleted: {
+    backgroundColor: '#ebf5ee',
+    borderColor: '#d8e8dc',
+  },
+  statusPillViewed: {
+    backgroundColor: '#fbf3e3',
+    borderColor: '#edd8aa',
+  },
+  statusPillUnreached: {
+    backgroundColor: '#f4f6f8',
+    borderColor: '#dfe6ec',
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 13,
+  },
+  statusPillTextCompleted: {
+    color: '#5f8a68',
+  },
+  statusPillTextViewed: {
+    color: '#c58c2b',
+  },
+  statusPillTextUnreached: {
+    color: '#708091',
+  },
   sectionContent: {
     flex: 1,
     flexDirection: 'row',
@@ -1595,6 +1672,25 @@ const createStyles = (_theme: any) => StyleSheet.create({
   sectionInfo: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
+  },
+  sectionViewedIcon: {
+    fontSize: 15,
+    color: Colors.faithGold,
+    lineHeight: 18,
+    marginRight: 0,
+  },
+  completedDate: {
+    color: Colors.growthGreen,
+  },
+  completedSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 6,
+  },
+  completedSummaryText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
   },
   deleteButton: {
     width: 80,

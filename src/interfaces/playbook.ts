@@ -41,6 +41,7 @@ export interface Affirmation {
 
 export interface Playbook {
   completedAt?: string | null; // ISO date string when playbook is completed
+  walkthroughProgress?: number; // -1 = not started, 0–5 = last step whose Next was pressed, DB col: walkthrough_progress
   id: string;
   title: string;
   userInput: string;
