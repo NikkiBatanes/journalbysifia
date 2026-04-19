@@ -1239,20 +1239,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
             style={styles.tagChipScrollView}
             contentContainerStyle={[styles.tagChipScrollContent, { paddingHorizontal: SIDE_INSET }]}
           >
-            {/* All */}
-            <Pressable
-              style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
-              onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
-            >
-              <ThemedText style={[styles.tagChipText, activeTag === 'all' && styles.tagChipTextActive]}>All</ThemedText>
-            </Pressable>
-
-            {/* Date — right beside All */}
+            {/* Date */}
             <Pressable
               style={[styles.tagChip, styles.tagChipDate, datePreset !== 'all' && styles.tagChipActive]}
               onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
             >
-              <Ionicons name="calendar-outline" size={12} color={datePreset !== 'all' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} style={{ marginRight: 4 }} />
+              <MaterialCommunityIcons name="tune" size={12} color={datePreset !== 'all' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} style={{ marginRight: 4 }} />
               <ThemedText style={[styles.tagChipText, datePreset !== 'all' && styles.tagChipTextActive]}>
                 {datePreset === 'all' ? 'Date' : DATE_PRESET_LABELS[datePreset]}
               </ThemedText>
@@ -1265,6 +1257,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   <Ionicons name="close-circle" size={12} color="rgba(255,255,255,0.7)" />
                 </TouchableOpacity>
               )}
+            </Pressable>
+
+            {/* All */}
+            <Pressable
+              style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
+              onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
+            >
+              <ThemedText style={[styles.tagChipText, activeTag === 'all' && styles.tagChipTextActive]}>All</ThemedText>
             </Pressable>
 
             {/* Category / tag chips */}
