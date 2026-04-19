@@ -131,7 +131,6 @@ const StreakPlanScreen: React.FC = () => {
 
   // Calculate day states for the last 7 days based on actual activity data
   const calculateDayStates = async (streaks: any): Promise<DayState[]> => {
-    const dayStates: DayState[] = [];
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
 
@@ -197,21 +196,60 @@ const StreakPlanScreen: React.FC = () => {
 
     console.log('🔍 Activity Dates:', Array.from(activityDates));
 
-    // Generate last 7 days (including today)
+    // Create a map of date -> state
+    const dateToState = new Map<string, DayState>();
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateString = date.toISOString().split('T')[0];
 
       if (dateString === todayString) {
-        dayStates.push('today');
+        dateToState.set(dateString, 'today');
       } else if (activityDates.has(dateString)) {
-        dayStates.push('completed');
+        dateToState.set(dateString, 'completed');
       } else {
-        dayStates.push('missed');
+        dateToState.set(dateString, 'missed');
+      }
+    }
+
+    // Get week start from user preferences
+    const metadata = (user as any)?.user_metadata;
+    const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+    const userWeekStart = userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+    // Week order mapping
+    const WEEK_ORDER: Record<string, string[]> = {
+      Sunday: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      Monday: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      Tuesday: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'],
+      Wednesday: ['Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday'],
+      Thursday: ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'],
+      Friday: ['Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
+      Saturday: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    };
+
+    const orderedDays = WEEK_ORDER[userWeekStart] || WEEK_ORDER.Sunday;
+
+    // Calculate day states in week order
+    const dayStates: DayState[] = [];
+    for (const dayName of orderedDays) {
+      const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
+      const todayDayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+      // Calculate the date for this day in the week
+      const date = new Date(today);
+      const daysDiff = dayIndex - todayDayIndex;
+      date.setDate(date.getDate() + daysDiff);
+      const dateString = date.toISOString().split('T')[0];
+
+      // Get state from map, or mark as future if date is in the future
+      if (date > today) {
+        dayStates.push('future');
+      } else {
+        dayStates.push(dateToState.get(dateString) || 'missed');
       }
 
-      console.log(`  ${dateString}: ${dayStates[dayStates.length - 1]}`);
+      console.log(`  ${dayName} (${dateString}): ${dayStates[dayStates.length - 1]}`);
     }
 
     return dayStates;
