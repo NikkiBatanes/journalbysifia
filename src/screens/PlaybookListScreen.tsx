@@ -28,6 +28,7 @@ const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
 const isTablet = width >= 768;
 const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
 const ITEM_SPACING = 8;
+
 const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
 const SIDE_INSET = Math.max(
   0,
@@ -816,9 +817,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 { label: 'Truth in Love',        step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
                 { label: 'Scripture to Anchor',  step: 2 },
                 { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconState: (item as any).hasPrayed },
-                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'volume-high', actionIconState: (item as any).hasRead },
-              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconState }) => {
+                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material' },
+                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
+              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons' }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType }) => {
                 const state = getSectionState(step, wp);
                 return (
                   <View key={label} style={styles.sectionItem}>
@@ -863,12 +864,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         </View>
                       )}
                       {actionIcon && !meta && (
-                        <MaterialCommunityIcons
-                          name={actionIcon as any}
-                          size={14}
-                          color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
-                          style={styles.sectionActionIcon}
-                        />
+                        actionIconType === 'ionicons' ? (
+                          <Ionicons
+                            name={actionIcon as any}
+                            size={14}
+                            color={'rgba(255,255,255,0.4)'}
+                            style={styles.sectionActionIcon}
+                          />
+                        ) : (
+                          <MaterialCommunityIcons
+                            name={actionIcon as any}
+                            size={14}
+                            color={'rgba(255,255,255,0.4)'}
+                            style={styles.sectionActionIcon}
+                          />
+                        )
                       )}
                     </View>
                   </View>
