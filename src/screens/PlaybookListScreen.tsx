@@ -19,7 +19,15 @@ import {
   ScrollView,
   TextInput,
   Easing,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 import { format } from 'date-fns';
 import { supabase } from '../services/supabaseClient';
@@ -449,7 +457,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const searchAnim = useRef(new Animated.Value(0)).current;
+  // Native-driver anim used only for the search icon button scale (not height)
+  const searchIconAnim = useRef(new Animated.Value(1)).current;
   const searchInputRef = useRef<TextInput>(null);
   // Category / tag sub-filter ('all' = no filter within the status group)
   const [activeTag, setActiveTag] = useState<string>('all');
@@ -466,21 +475,29 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
-    setShowSearch(opening);
-    Animated.timing(searchAnim, {
-      toValue: opening ? 1 : 0,
-      duration: 200,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start(() => {
-      if (opening) {
-        searchInputRef.current?.focus();
-      }
+
+    // LayoutAnimation runs on the native thread — no JS-thread jank for height changes
+    LayoutAnimation.configureNext({
+      duration: 260,
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
     });
+
+    setShowSearch(opening);
     if (!opening) {
       setSearchQuery('');
+    } else {
+      // Focus after layout settles
+      setTimeout(() => { searchInputRef.current?.focus(); }, 50);
     }
-  }, [showSearch, searchAnim]);
+
+    // Subtle native-driver press pop on the icon button
+    Animated.sequence([
+      Animated.timing(searchIconAnim, { toValue: 0.88, duration: 80, useNativeDriver: true, easing: Easing.out(Easing.ease) }),
+      Animated.spring(searchIconAnim, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }),
+    ]).start();
+  }, [showSearch, searchIconAnim]);
 
   // Filter modal animation
   useEffect(() => {
@@ -1184,14 +1201,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* Row 2: Animated search bar */}
-            <Animated.View
-              style={[styles.searchBarWrapper, {
-                height: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }),
-                opacity: searchAnim,
-              }]}
-              pointerEvents={showSearch ? 'auto' : 'none'}
-            >
+            {/* Row 2: Search bar — height animated by LayoutAnimation (native thread) */}
+            {showSearch && (
               <View style={styles.searchBar}>
                 <Ionicons name="search-outline" size={16} color={'rgba(3,32,61,0.4)'} style={styles.searchIcon} />
                 <View style={styles.searchInputWrapper}>
@@ -1214,7 +1225,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
                 )}
               </View>
-            </Animated.View>
+            )}
 
           </View>
         </View>
@@ -2151,10 +2162,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(3, 32, 61, 0.08)',
     paddingHorizontal: 12,
-    paddingVertical: 0,
-    marginTop: 6,
-    marginBottom: 2,
-    height: 42,
+    paddingVertical: 10,
+    marginTop: 4,
+    height: 54,
   },
   searchInputWrapper: {
     flex: 1,
