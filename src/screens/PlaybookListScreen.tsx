@@ -1482,7 +1482,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       maximumDate={customDateTo}
                       onChange={(_e, date) => { if (date) { setCustomDateFrom(date); } }}
                       style={styles.inlineDatePicker}
-                      accentColor={Colors.anchorBlue}
+                      accentColor={Colors.hopeWhite}
                     />
                   )}
                   {dateViewMode === 'custom' && showCustomToPicker && (
@@ -1494,7 +1494,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       maximumDate={new Date()}
                       onChange={(_e, date) => { if (date) { setCustomDateTo(date); } }}
                       style={styles.inlineDatePicker}
-                      accentColor={Colors.anchorBlue}
+                      accentColor={Colors.hopeWhite}
                     />
                   )}
                 </>
