@@ -38,7 +38,7 @@ import { toLocalDateString } from '../utils/date';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
-import { updatePlaybookStatus } from '../services/supabaseApiNormalized';
+import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepCompleted } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
 
@@ -426,6 +426,7 @@ interface FaithfulActionsStepProps {
   insets: { top: number };
   actionStepIndex: number;
   setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
+  onStepCommit?: (stepIndex: number) => void;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -480,6 +481,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   insets,
   actionStepIndex,
   setActionStepIndex,
+  onStepCommit,
 }) => {
   const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
@@ -734,6 +736,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     triggerMediumHaptic();
 
     if (nowCommitted) {
+      // Persist action step completion to DB so the list card reflects the count
+      onStepCommit?.(actionStepIndex);
       // Prayer step → save to prayers table
       if (isPrayerStep) {
         createPrayerMutation.mutate({
@@ -1468,7 +1472,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() => {
+    if (!routePlaybook || routePlaybook.status === 'completed') { return 0; }
+    const wp = routePlaybook.walkthroughProgress ?? -1;
+    if (wp < 0) { return 0; }
+    // wp = last step where Next was pressed → resume at wp + 1, capped at step 5 (never auto-land on completion)
+    return Math.min(wp + 1, TOTAL_STEPS - 2);
+  });
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
@@ -1708,7 +1718,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (playbookId) {
       updatePlaybookStatus(playbookId, 'completed').catch(() => {});
       // Optimistically update query cache so list reflects completion immediately
-      queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
+      queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
     }
 
     // Clear persisted state so re-opening the same playbook starts fresh
@@ -1732,6 +1742,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const goNext = useCallback(() => {
     triggerLightHaptic();
     if (stepIndex < TOTAL_STEPS - 1) {
+      // Record this step as completed (Next was pressed)
+      if (playbookId) {
+        updateWalkthroughProgress(playbookId, stepIndex).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
+      }
       // Animate next button out on scripture anchor step (step 2)
       if (stepIndex === 2) {
         Animated.parallel([
@@ -1753,7 +1768,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         animateStep(next, 'forward');
       }
     }
-  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim]);
+  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim, playbookId, userId, queryClient]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
@@ -1912,6 +1927,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 insets={insets}
                 actionStepIndex={actionStepIndex}
                 setActionStepIndex={setActionStepIndex}
+                onStepCommit={(stepIdx) => {
+                  const stepId = playbook?.actionSteps?.[stepIdx]?.id;
+                  if (!stepId) { return; }
+                  updateActionStepCompleted(stepId).catch(() => {});
+                  queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
+                }}
               />
             )}
 

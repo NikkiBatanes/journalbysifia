@@ -126,11 +126,15 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         id,
         user_id,
         title,
+        user_input,
+        truth_in_love,
         status,
         progress,
         total_tasks,
         created_at,
         updated_at,
+        walkthrough_progress,
+        completed_at,
         playbook_action_steps (
           id,
           completed,
@@ -157,6 +161,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         total_tasks,
         created_at,
         updated_at,
+        walkthrough_progress,
+        completed_at,
         playbook_action_steps (
           id,
           text,
@@ -241,8 +247,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         id: playbookRow.id,
         user_id: playbookRow.user_id,
         title: playbookRow.title,
-        userInput: lightweight ? '' : (playbookRow.user_input || ''),
-        truthInLove: lightweight ? { text: '', summary: '' } : (playbookRow.truth_in_love || { text: '', summary: '' }),
+        userInput: playbookRow.user_input || '',
+        truthInLove: playbookRow.truth_in_love || { text: '', summary: '' },
         bibleVerse: lightweight ? { text: '', reference: '' } : (playbookRow.bible_verse || { text: '', reference: '' }),
         directChallenge: lightweight ? '' : (playbookRow.direct_challenge || ''),
         challengeCTA: lightweight ? '' : (playbookRow.challenge_cta || ''),
@@ -253,6 +259,8 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         affirmations,
         createdAt: playbookRow.created_at,
         updatedAt: playbookRow.updated_at,
+        completedAt: playbookRow.completed_at ?? null,
+        walkthroughProgress: playbookRow.walkthrough_progress ?? -1,
       } as Playbook;
     });
 
@@ -756,15 +764,42 @@ export async function getPlaybookProgress(playbookId: string): Promise<{
 /**
  * Update playbook status
  */
+export async function updateWalkthroughProgress(
+  playbookId: string,
+  progress: number,
+): Promise<void> {
+  try {
+    await supabase
+      .from('playbooks')
+      .update({ walkthrough_progress: progress, updated_at: new Date().toISOString() })
+      .eq('id', playbookId);
+  } catch (_) {}
+}
+
+export async function updateActionStepCompleted(
+  actionStepId: string,
+): Promise<void> {
+  try {
+    await supabase
+      .from('playbook_action_steps')
+      .update({ completed: true, updated_at: new Date().toISOString() })
+      .eq('id', actionStepId);
+  } catch (_) {}
+}
+
 export async function updatePlaybookStatus(
   playbookId: string,
   status: 'ongoing' | 'completed' | 'paused'
 ): Promise<void> {
 
   try {
+    const patch: Record<string, any> = { status, updated_at: new Date().toISOString() };
+    if (status === 'completed') {
+      patch.completed_at = new Date().toISOString();
+    }
     const { error } = await supabase
       .from('playbooks')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', playbookId);
 
     if (error) {

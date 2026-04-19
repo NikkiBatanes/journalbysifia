@@ -1135,6 +1135,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       createdAt: item.created_at,
       updatedAt: item.updated_at,
       completedAt: item.completed_at,
+      walkthroughProgress: item.walkthrough_progress ?? -1,
       status: item.status,
     };
   });
