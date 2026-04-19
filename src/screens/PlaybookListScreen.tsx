@@ -104,42 +104,6 @@ const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
-// Helper function to determine category from playbook title/content
-const getCategory = (playbook: Playbook): string => {
-  const title = playbook.title?.toLowerCase() || '';
-  const userInput = playbook.userInput?.toLowerCase() || '';
-  const combined = `${title} ${userInput}`;
-
-  if (combined.includes('love') || combined.includes('relationship') || combined.includes('family') || combined.includes('friend')) {
-    return 'Relationships';
-  }
-  if (combined.includes('money') || combined.includes('finance') || combined.includes('financial') || combined.includes('debt')) {
-    return 'Finance';
-  }
-  if (combined.includes('faith') || combined.includes('trust') || combined.includes('believe') || combined.includes('god') || combined.includes('prayer')) {
-    return 'Faith';
-  }
-  if (combined.includes('peace') || combined.includes('anxiety') || combined.includes('worry') || combined.includes('stress')) {
-    return 'Peace';
-  }
-  if (combined.includes('hope') || combined.includes('encouragement') || combined.includes('strength')) {
-    return 'Hope';
-  }
-  if (combined.includes('wisdom') || combined.includes('decision') || combined.includes('guidance')) {
-    return 'Wisdom';
-  }
-  if (combined.includes('forgive')) {
-    return 'Forgiveness';
-  }
-  if (combined.includes('gratitude') || combined.includes('thank')) {
-    return 'Gratitude';
-  }
-  if (combined.includes('purpose') || combined.includes('calling') || combined.includes('mission')) {
-    return 'Purpose';
-  }
-  return 'Growth';
-};
-
 // Estimate reading time for a block of text at ~200 wpm
 const estimateReadTime = (text: string): string => {
   if (!text) { return ''; }
@@ -176,7 +140,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.9, 1, 0.9],   extrapolate: 'clamp' }), [scrollX, index]);
   const translateY = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [2, 0, 2],       extrapolate: 'clamp' }), [scrollX, index]);
   const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
-  const category    = useMemo(() => getCategory(item), [item.title, item.userInput]);
+  const category    = item.category || 'Growth';
   const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [item.truthInLove]);
   const isCardCompleted = item.status === 'completed';
   const wp = item.walkthroughProgress ?? -1;
@@ -775,7 +739,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     // Calculate progress
     const { completed, total } = calculateTaskStats(item.actionSteps);
     const progress = total > 0 ? (completed / total) * 100 : 0;
-    const category = getCategory(item);
+    const category = item.category || 'Growth';
     const isCardCompleted = item.status === 'completed';
     const wp = item.walkthroughProgress ?? -1; // -1 = not started, 0–5 = last completed step
     const tilReadTime = estimateReadTime((item.truthInLove as any)?.text || '');

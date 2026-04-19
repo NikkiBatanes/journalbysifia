@@ -44,6 +44,7 @@ interface Playbook {
   id: string;
   title: string;
   subtitle: string;
+  category: string;
   truthInLove: {
     summary: string;
     text: string;
@@ -186,10 +187,47 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   mainTitle = cleanMarkdown(mainTitle);
   subtitle = cleanMarkdown(subtitle);
 
+  // Parse CATEGORY
+  let category = 'Growth'; // Default fallback
+  const categoryMatch = content.match(/CATEGORY:\s*([\s\S]*?)(?=\n\nTRUTH SUMMARY:|\nTRUTH SUMMARY:)/i);
+  if (categoryMatch) {
+    category = categoryMatch[1].trim();
+    // Validate that the category is one of the allowed values
+    const allowedCategories = [
+      'Relationships',
+      'Family',
+      'Marriage',
+      'Singleness',
+      'Friendship',
+      'Work & Career',
+      'Calling & Purpose',
+      'Finance & Stewardship',
+      'Decision-Making',
+      'Conflict & Boundaries',
+      'Hurt & Forgiveness',
+      'Faith & Obedience',
+      'Church & Ministry',
+      'Parenting',
+      'Emotions & Inner Life',
+      'Anxiety & Peace',
+      'Fear & Trust',
+      'Waiting & Uncertainty',
+      'Grief & Loss',
+      'Shame & Guilt',
+    ];
+    if (!allowedCategories.includes(category)) {
+      console.warn(`[CATEGORY PARSER] Invalid category "${category}", defaulting to "Growth"`);
+      category = 'Growth';
+    }
+  } else {
+    console.warn('[CATEGORY PARSER] No CATEGORY section found in AI response, defaulting to "Growth"');
+  }
+
   const playbook: Playbook = {
     id: generateUUID(),
     title: mainTitle,
     subtitle,
+    category,
     truthInLove: {
       summary: '',
       text: '',
