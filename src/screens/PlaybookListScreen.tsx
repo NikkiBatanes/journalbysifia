@@ -1095,6 +1095,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   ]}>
                     {filter === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
+                  <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? Colors.anchorBlue : Colors.growthGreen} />
                 </TouchableOpacity>
 
                 {/* Search circle */}
@@ -1153,7 +1154,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   style={[styles.statusPickerOption, filter === status && styles.statusPickerOptionActive]}
                   onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusPicker(false); }}
                 >
-                  <View style={[styles.statusDot, status === 'ongoing' ? styles.statusDotOngoing : styles.statusDotCompleted, { marginRight: 10 }]} />
                   <ThemedText weight={filter === status ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
                     {status === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
