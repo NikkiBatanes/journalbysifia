@@ -47,89 +47,79 @@ const StreakPlanScreen: React.FC = () => {
   const iconAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animate share button with spring animation
+    // Share button and icon animations start immediately (decorative)
     shareButtonAnim.setValue(0);
     Animated.spring(shareButtonAnim, {
       toValue: 1,
       tension: 80,
       friction: 8,
-      delay: 350,
+      delay: 200,
       useNativeDriver: true,
     }).start();
 
-    // Animate icon background first, then icon
     Animated.sequence([
       Animated.timing(iconBgAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 350,
         useNativeDriver: true,
       }),
       Animated.timing(iconAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Fetch streak data
-    const fetchStreakData = async () => {
-      if (user?.id) {
-        try {
-          // Set week start from user preferences
-          const metadata = (user as any)?.user_metadata;
-          const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
-          const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
-          setWeekStart(userWeekStart);
+    // Fetch data first, then animate content in — prevents snapping/popping
+    const initialize = async () => {
+      if (!user?.id) return;
+      try {
+        const metadata = (user as any)?.user_metadata;
+        const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+        const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+        setWeekStart(userWeekStart);
 
-          // Calculate day states (also returns activity dates for streak calc)
-          const { dayStates: calculatedDayStates, activityDates } = await calculateDayStates();
-          setDayStates(calculatedDayStates);
+        const { dayStates: calculatedDayStates, activityDates } = await calculateDayStates();
+        setDayStates(calculatedDayStates);
 
-          // Calculate consecutive streak from actual activity data
-          const today = new Date();
-          let streak = 0;
-          const checkDate = new Date(today);
-          while (true) {
-            const dateStr = toLocalDate(checkDate);
-            if (activityDates.has(dateStr)) {
-              streak++;
-              checkDate.setDate(checkDate.getDate() - 1);
-            } else {
-              break;
-            }
-          }
-          setStreakCount(Math.max(streak, 1));
-
-        } catch (error) {
-          console.error('Failed to fetch streak data:', error);
+        const today = new Date();
+        let streak = 0;
+        const checkDate = new Date(today);
+        while (true) {
+          const dateStr = toLocalDate(checkDate);
+          if (activityDates.has(dateStr)) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else { break; }
         }
+        setStreakCount(Math.max(streak, 1));
+
+      } catch (error) {
+        console.error('Failed to fetch streak data:', error);
       }
+
+      // Animate content in after data is ready
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideUpAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ]).start();
     };
 
-    fetchStreakData();
-
-    // Entrance animations
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        delay: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideUpAnim, {
-        toValue: 0,
-        duration: 600,
-        delay: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        delay: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    initialize();
   }, [user?.id]);
 
   // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
