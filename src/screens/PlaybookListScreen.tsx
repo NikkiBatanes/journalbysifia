@@ -2164,7 +2164,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 0,
     marginTop: 6,
-    marginBottom: 2,
+    marginBottom: 12,
     height: 42,
   },
   searchInputWrapper: {
