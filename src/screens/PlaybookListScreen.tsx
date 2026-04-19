@@ -137,11 +137,13 @@ const DATE_PRESET_LABELS: Record<string, string> = {
   week: 'This Week',
   month: 'This Month',
   '3months': 'Last 3 Months',
-  year: 'This Year',
+  year: 'Last Year',
+  custom: 'Custom',
 };
 
-const getDateRangeStart = (preset: string): Date | null => {
+const getDateRangeStart = (preset: string, customStart?: Date | null): Date | null => {
   if (preset === 'all') { return null; }
+  if (preset === 'custom') { return customStart || null; }
   const now = new Date();
   if (preset === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
   if (preset === 'month') { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
@@ -452,7 +454,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Category / tag sub-filter ('all' = no filter within the status group)
   const [activeTag, setActiveTag] = useState<string>('all');
   // Date preset filter
-  const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year'>('all');
+  const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year' | 'custom'>('all');
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [showDateModal, setShowDateModal] = useState(false);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
@@ -591,7 +594,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const filteredPlaybooks = useMemo(() => {
     if (playbooksWithProgress.length === 0) { return []; }
     const hasSearch = searchQuery.trim().length > 0;
-    const dateStart = getDateRangeStart(datePreset);
+    const dateStart = getDateRangeStart(datePreset, customDateRange.start);
 
     const filtered = playbooksWithProgress.filter(({ isCompleted, playbook }) => {
       // Status filter — bypassed when user is actively searching (search crosses both statuses)
@@ -610,6 +613,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
       if (dateStart) {
         const pbDate = new Date(playbook.updatedAt || playbook.createdAt || 0);
         if (pbDate < dateStart) { return false; }
+      }
+
+      // Custom date range end date filter
+      if (datePreset === 'custom' && customDateRange.end) {
+        const pbDate = new Date(playbook.updatedAt || playbook.createdAt || 0);
+        if (pbDate > customDateRange.end) { return false; }
       }
 
       // Search
@@ -1194,7 +1203,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
 
               <ThemedText style={styles.dateModalSectionLabel}>DATE RANGE</ThemedText>
-              {(['all', 'week', 'month', '3months', 'year'] as const).map(preset => (
+              {(['all', 'week', 'month', '3months', 'year', 'custom'] as const).map(preset => (
                 <TouchableOpacity
                   key={preset}
                   style={[styles.dateOption, datePreset === preset && styles.dateOptionActive]}
@@ -1206,6 +1215,36 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   {datePreset === preset && <Ionicons name="checkmark-circle" size={18} color={Colors.anchorBlue} />}
                 </TouchableOpacity>
               ))}
+
+              {datePreset === 'custom' && (
+                <View style={styles.customDateRangeContainer}>
+                  <TouchableOpacity
+                    style={styles.customDateButton}
+                    onPress={() => {
+                      // TODO: Show date picker for start date
+                      triggerLightHaptic();
+                    }}
+                  >
+                    <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} />
+                    <ThemedText style={styles.customDateButtonText}>
+                      {customDateRange.start ? format(customDateRange.start, 'MMM d, yyyy') : 'Start Date'}
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <ThemedText style={styles.customDateRangeSeparator}>to</ThemedText>
+                  <TouchableOpacity
+                    style={styles.customDateButton}
+                    onPress={() => {
+                      // TODO: Show date picker for end date
+                      triggerLightHaptic();
+                    }}
+                  >
+                    <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} />
+                    <ThemedText style={styles.customDateButtonText}>
+                      {customDateRange.end ? format(customDateRange.end, 'MMM d, yyyy') : 'End Date'}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {uniqueFilterLabels.length > 0 && (
                 <>
@@ -2553,6 +2592,33 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
+  },
+  customDateRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  customDateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(3, 32, 61, 0.1)',
+  },
+  customDateButtonText: {
+    fontSize: 13,
+    color: Colors.anchorBlue,
+  },
+  customDateRangeSeparator: {
+    fontSize: 13,
+    color: 'rgba(3, 32, 61, 0.4)',
   },
   dateOption: {
     flexDirection: 'row',
