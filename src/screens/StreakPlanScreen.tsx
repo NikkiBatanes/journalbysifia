@@ -137,12 +137,12 @@ const StreakPlanScreen: React.FC = () => {
     // Collect all activity dates from the last 7 days
     const activityDates = new Set<string>();
 
-    // Query prayer entries
+    // Query prayer entries (extend window to 8 days to cover full week from any weekStart)
     const { data: prayerData } = await supabase
       .from('prayers')
       .select('created_at')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
 
     if (prayerData) {
       prayerData.forEach((entry: any) => {
@@ -156,7 +156,7 @@ const StreakPlanScreen: React.FC = () => {
       .from('devotional_progress')
       .select('created_at')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
 
     if (devotionalData) {
       devotionalData.forEach((entry: any) => {
@@ -170,7 +170,7 @@ const StreakPlanScreen: React.FC = () => {
       .from('journal_entries')
       .select('created_at')
       .eq('user_id', user?.id)
-      .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('created_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
 
     if (journalData) {
       journalData.forEach((entry: any) => {
@@ -185,7 +185,7 @@ const StreakPlanScreen: React.FC = () => {
       .select('completed_at')
       .eq('user_id', user?.id)
       .not('completed_at', 'is', null)
-      .gte('completed_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      .gte('completed_at', new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString());
 
     if (playbookData) {
       playbookData.forEach((entry: any) => {
@@ -194,62 +194,51 @@ const StreakPlanScreen: React.FC = () => {
       });
     }
 
-    console.log('🔍 Activity Dates:', Array.from(activityDates));
-
-    // Create a map of date -> state
-    const dateToState = new Map<string, DayState>();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateString = date.toISOString().split('T')[0];
-
-      if (dateString === todayString) {
-        dateToState.set(dateString, 'today');
-      } else if (activityDates.has(dateString)) {
-        dateToState.set(dateString, 'completed');
-      } else {
-        dateToState.set(dateString, 'missed');
-      }
-    }
-
     // Get week start from user preferences
     const metadata = (user as any)?.user_metadata;
     const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
-    const userWeekStart = userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+    const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as
+      'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
 
-    // Week order mapping
-    const WEEK_ORDER: Record<string, string[]> = {
-      Sunday: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-      Monday: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      Tuesday: ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'],
-      Wednesday: ['Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday'],
-      Thursday: ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'],
-      Friday: ['Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
-      Saturday: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    const DAY_NUMBERS: Record<string, number> = {
+      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+      Thursday: 4, Friday: 5, Saturday: 6,
     };
 
-    const orderedDays = WEEK_ORDER[userWeekStart] || WEEK_ORDER.Sunday;
+    // Find the start date of the current week
+    const weekStartDayNum = DAY_NUMBERS[userWeekStart];
+    const todayDayNum = today.getDay();
+    const daysSinceWeekStart = (todayDayNum - weekStartDayNum + 7) % 7;
+    const weekStartDate = new Date(today);
+    weekStartDate.setDate(today.getDate() - daysSinceWeekStart);
+    weekStartDate.setHours(0, 0, 0, 0);
 
-    // Calculate day states in week order
+    const todayMidnight = new Date(today);
+    todayMidnight.setHours(0, 0, 0, 0);
+
+    console.log('🔍 Activity Dates:', Array.from(activityDates));
+    console.log('📅 Week start:', weekStartDate.toISOString().split('T')[0], '| Today:', todayString, '| UserWeekStart:', userWeekStart);
+
+    // Generate state for each day in the current week (weekStart + 0..6)
     const dayStates: DayState[] = [];
-    for (const dayName of orderedDays) {
-      const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
-      const todayDayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-      // Calculate the date for this day in the week
-      const date = new Date(today);
-      const daysDiff = dayIndex - todayDayIndex;
-      date.setDate(date.getDate() + daysDiff);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStartDate);
+      date.setDate(weekStartDate.getDate() + i);
       const dateString = date.toISOString().split('T')[0];
 
-      // Get state from map, or mark as future if date is in the future
-      if (date > today) {
-        dayStates.push('future');
+      let state: DayState;
+      if (dateString === todayString) {
+        state = 'today';
+      } else if (date > todayMidnight) {
+        state = 'future';
+      } else if (activityDates.has(dateString)) {
+        state = 'completed';
       } else {
-        dayStates.push(dateToState.get(dateString) || 'missed');
+        state = 'missed';
       }
 
-      console.log(`  ${dayName} (${dateString}): ${dayStates[dayStates.length - 1]}`);
+      dayStates.push(state);
+      console.log(`  Day ${i} (${dateString}): ${state}`);
     }
 
     return dayStates;
@@ -375,7 +364,7 @@ const StreakPlanScreen: React.FC = () => {
           <View style={styles.streakRowWrapper}>
             <WeeklyStreakRow
               weekStart={weekStart}
-              dayStates={dayStates.length > 0 ? dayStates : ['completed', 'completed', 'missed', 'completed', 'completed', 'today', 'future']}
+              dayStates={dayStates}
             />
           </View>
         </Animated.View>

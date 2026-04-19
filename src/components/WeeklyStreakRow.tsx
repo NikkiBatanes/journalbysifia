@@ -53,6 +53,20 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
 
   const orderedDays = WEEK_ORDER[weekStart] || WEEK_ORDER.Sunday;
 
+  // Show placeholder circles while loading
+  if (!dayStates || dayStates.length === 0) {
+    return (
+      <View style={styles.container}>
+        {orderedDays.map((day) => (
+          <View key={day} style={styles.dayContainer}>
+            <View style={[styles.dayCircle, styles.futureCircle]} />
+            <Text style={[styles.dayLabel, font, styles.futureLabel]}>{FULL_DAY_LABELS[day]}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {orderedDays.map((day, index) => {
