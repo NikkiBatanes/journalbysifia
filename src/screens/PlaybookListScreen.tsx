@@ -130,6 +130,25 @@ const getSectionState = (
   return 'unreached';
 };
 
+// Date preset labels and range helper
+const DATE_PRESET_LABELS: Record<string, string> = {
+  all: 'All Time',
+  week: 'This Week',
+  month: 'This Month',
+  '3months': 'Last 3 Months',
+  year: 'This Year',
+};
+
+const getDateRangeStart = (preset: string): Date | null => {
+  if (preset === 'all') { return null; }
+  const now = new Date();
+  if (preset === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+  if (preset === 'month') { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
+  if (preset === '3months') { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
+  if (preset === 'year') { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
+  return null;
+};
+
 interface CarouselCardProps {
   item: Playbook; index: number; scrollX: Animated.Value;
   isMenuOpen: boolean; hasPrayed: boolean; hasRead: boolean; devotionalCount: number;
@@ -422,45 +441,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
   }, [selectedPlaybookForTag, selectedTag, customTag, triggerLightHaptic, refetch]);
 
-  // Set filter to 'all' by default to show all playbooks
+  // Status filter: 'all' = both, 'ongoing' = in-progress only, 'completed' = completed only
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const searchAnim = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
+  // Tag/category sub-filter
+  const [activeTag, setActiveTag] = useState<string>('all');
+  // Date preset filter
+  const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year'>('all');
+  const [showDateModal, setShowDateModal] = useState(false);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
-
-  // Subtle selection animation for filter tabs
-  const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
-  const tabScales = useRef<Record<'all' | 'ongoing' | 'completed', Animated.Value>>({
-    all: new Animated.Value(1),
-    ongoing: new Animated.Value(1),
-    completed: new Animated.Value(1),
-  });
-
-  const handleTabPressIn = useCallback((tab: 'all' | 'ongoing' | 'completed') => {
-    try {
-      Animated.spring(tabScales.current[tab], {
-        toValue: 0.96,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 0,
-      }).start();
-    } catch {}
-  }, []);
-
-  const handleTabPressOut = useCallback((tab: 'all' | 'ongoing' | 'completed') => {
-    try {
-      Animated.spring(tabScales.current[tab], {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 0,
-      }).start();
-    } catch {}
-  }, []);
 
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
@@ -579,49 +573,55 @@ const PlaybookListScreen = ({ navigation }: any) => {
     fetchDevotionalsCount();
   }, [userId, playbooks.length]);
 
-  // Filter and sort playbooks by completion status and search query (optimized with cached progress)
-  const filteredPlaybooks = useMemo(() => {
-    // Early return for empty playbooks
-    if (playbooksWithProgress.length === 0) {
-      return [];
-    }
+  // Unique tags derived from user's playbooks (for tag chip row)
+  const uniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    playbooks.forEach(p => { if (p.tag) { tags.add(p.tag); } });
+    return Array.from(tags).sort();
+  }, [playbooks]);
 
-    // Simple filtering logic using cached progress
+  // Filter and sort playbooks by completion status, tag, date, and search query
+  const filteredPlaybooks = useMemo(() => {
+    if (playbooksWithProgress.length === 0) { return []; }
+    const hasSearch = searchQuery.trim().length > 0;
+    const dateStart = getDateRangeStart(datePreset);
+
     const filtered = playbooksWithProgress.filter(({ isCompleted, playbook }) => {
-      // Filter by completion status
-      switch (filter) {
-        case 'all':
-          break;
-        case 'ongoing':
-          if (isCompleted) return false;
-          break;
-        case 'completed':
-          if (!isCompleted) return false;
-          break;
-        default:
-          return false;
+      // Status filter — bypassed when user is actively searching (search crosses all statuses)
+      if (!hasSearch) {
+        if (filter === 'ongoing' && isCompleted) { return false; }
+        if (filter === 'completed' && !isCompleted) { return false; }
       }
 
-      // Filter by search query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const title = playbook.title?.toLowerCase() || '';
-        const userInput = playbook.userInput?.toLowerCase() || '';
-        return title.includes(query) || userInput.includes(query);
+      // Tag/category sub-filter
+      if (activeTag !== 'all') {
+        if ((playbook as any).tag !== activeTag) { return false; }
+      }
+
+      // Date filter
+      if (dateStart) {
+        const pbDate = new Date((playbook.updatedAt || playbook.createdAt || 0));
+        if (pbDate < dateStart) { return false; }
+      }
+
+      // Search
+      if (hasSearch) {
+        const q = searchQuery.toLowerCase();
+        return (playbook.title?.toLowerCase() || '').includes(q) ||
+               (playbook.userInput?.toLowerCase() || '').includes(q);
       }
 
       return true;
     });
 
-    // Sort by most recent
-    const sorted = filtered.sort((a, b) => {
-      const dateA = new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime();
-      const dateB = new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime();
-      return dateB - dateA;
-    });
-
-    return sorted.map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, filter, searchQuery]);
+    return filtered
+      .sort((a, b) => {
+        const dateA = new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime();
+        const dateB = new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime();
+        return dateB - dateA;
+      })
+      .map(({ playbook }) => playbook);
+  }, [playbooksWithProgress, filter, activeTag, datePreset, searchQuery]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
@@ -1062,15 +1062,29 @@ const PlaybookListScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <View style={styles.container}>
-        {/* Header on white background with tabs */}
-        <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
+        {/* Header — title row, search bar, status toggles, tag + date chips */}
+        <View style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
-            <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
+
+            {/* Row 1: Title + search icon */}
+            <View style={styles.headerTopRow}>
+              <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
+              <TouchableOpacity
+                style={styles.searchCircleButton}
+                onPress={() => { triggerLightHaptic(); toggleSearch(); }}
+                activeOpacity={0.75}
+                accessibilityLabel={showSearch ? 'Close search' : 'Search playbooks'}
+              >
+                <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.anchorBlue} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 2: Search bar (animated reveal) */}
             <Animated.View
               style={[
                 styles.searchBarWrapper,
                 {
-                  height: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 68] }),
+                  height: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 52] }),
                   opacity: searchAnim,
                 },
               ]}
@@ -1081,7 +1095,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <TextInput
                   ref={searchInputRef}
                   style={styles.searchInput}
-                  placeholder="Search playbooks..."
+                  placeholder="Search all playbooks..."
                   placeholderTextColor={Colors.textGray}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -1090,68 +1104,112 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   returnKeyType="search"
                 />
                 {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchQuery('')}
-                    style={styles.clearButton}
-                    accessibilityLabel="Clear search"
-                    accessibilityRole="button"
-                  >
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
                     <Ionicons name="close-circle" size={16} color={Colors.textGray} />
                   </TouchableOpacity>
                 )}
               </View>
             </Animated.View>
-            <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
-              {tabKeys.map((tab) => (
+
+            {/* Row 3: Status toggle pills — In Progress | Completed. Tap active to deselect (= show all) */}
+            <View style={styles.statusPillRow}>
+              <Pressable
+                style={[styles.statusPillTab, filter === 'ongoing' && styles.statusPillTabOngoing]}
+                onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'all' : 'ongoing'); }}
+              >
+                <View style={[styles.statusDot, filter === 'ongoing' ? styles.statusDotOngoing : styles.statusDotInactive]} />
+                <ThemedText weight="semiBold" style={[styles.statusPillTabText, filter === 'ongoing' && styles.statusPillTabTextActive]}>
+                  In Progress
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                style={[styles.statusPillTab, filter === 'completed' && styles.statusPillTabCompleted]}
+                onPress={() => { triggerLightHaptic(); setFilter(filter === 'completed' ? 'all' : 'completed'); }}
+              >
+                <View style={[styles.statusDot, filter === 'completed' ? styles.statusDotCompleted : styles.statusDotInactive]} />
+                <ThemedText weight="semiBold" style={[styles.statusPillTabText, filter === 'completed' && styles.statusPillTabTextActive]}>
+                  Completed
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            {/* Row 4: Tag chips + Date chip (horizontal scroll) */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tagChipScrollView}
+              contentContainerStyle={styles.tagChipScrollContent}
+            >
+              {/* "All" chip — always first, resets tag filter */}
+              <Pressable
+                style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
+                onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
+              >
+                <ThemedText style={[styles.tagChipText, activeTag === 'all' && styles.tagChipTextActive]}>All</ThemedText>
+              </Pressable>
+
+              {/* Dynamic tag chips from user's playbooks */}
+              {uniqueTags.map(tag => (
                 <Pressable
-                  key={tab}
-                  style={[
-                    styles.filterTabOnWhite,
-                    filter === tab && (
-                      tab === 'completed'
-                        ? styles.filterTabActiveCompleted
-                        : tab === 'ongoing'
-                          ? styles.filterTabActiveOngoing
-                          : styles.filterTabActiveOnWhite
-                    ),
-                  ]}
-                  onPressIn={() => handleTabPressIn(tab)}
-                  onPressOut={() => handleTabPressOut(tab)}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    setFilter(tab);
-                  }}
+                  key={tag}
+                  style={[styles.tagChip, activeTag === tag && styles.tagChipActive]}
+                  onPress={() => { triggerLightHaptic(); setActiveTag(activeTag === tag ? 'all' : tag); }}
                 >
-                  <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
-                    <ThemedText
-                      weight="semiBold"
-                      style={[
-                        styles.filterTabTextOnWhite,
-                        filter === tab && styles.filterTabTextActiveOnWhite,
-                      ]}
-                    >
-                      {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
-                    </ThemedText>
-                  </Animated.View>
+                  <ThemedText style={[styles.tagChipText, activeTag === tag && styles.tagChipTextActive]}>{tag}</ThemedText>
                 </Pressable>
               ))}
-            </View>
+
+              {/* Date filter chip — always last */}
+              <Pressable
+                style={[styles.tagChip, styles.tagChipDate, datePreset !== 'all' && styles.tagChipActive]}
+                onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={12}
+                  color={datePreset !== 'all' ? Colors.hopeWhite : Colors.anchorBlue}
+                  style={{ marginRight: 4 }}
+                />
+                <ThemedText style={[styles.tagChipText, datePreset !== 'all' && styles.tagChipTextActive]}>
+                  {datePreset === 'all' ? 'Date' : DATE_PRESET_LABELS[datePreset]}
+                </ThemedText>
+                {datePreset !== 'all' && (
+                  <TouchableOpacity
+                    onPress={() => { triggerLightHaptic(); setDatePreset('all'); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                    style={{ marginLeft: 4 }}
+                  >
+                    <Ionicons name="close-circle" size={12} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                )}
+              </Pressable>
+            </ScrollView>
+
           </View>
-          {/* Search circle button — top right, inverted style for hopeWhite background */}
-          <TouchableOpacity
-            style={[styles.searchCircleButton, { top: insets.top + 10 }]}
-            onPress={() => { triggerLightHaptic(); toggleSearch(); }}
-            activeOpacity={0.75}
-            accessibilityLabel={showSearch ? 'Close search' : 'Search playbooks'}
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name={showSearch ? 'close' : 'search'}
-              size={17}
-              color={Colors.anchorBlue}
-            />
-          </TouchableOpacity>
         </View>
+
+        {/* Date filter modal */}
+        <Modal visible={showDateModal} transparent animationType="fade" onRequestClose={() => setShowDateModal(false)}>
+          <TouchableOpacity style={styles.dateModalOverlay} activeOpacity={1} onPress={() => setShowDateModal(false)}>
+            <View style={styles.dateModalContent}>
+              <ThemedText weight="semiBold" style={styles.dateModalTitle}>Filter by Date</ThemedText>
+              {(['all', 'week', 'month', '3months', 'year'] as const).map(preset => (
+                <TouchableOpacity
+                  key={preset}
+                  style={[styles.dateOption, datePreset === preset && styles.dateOptionActive]}
+                  onPress={() => { triggerLightHaptic(); setDatePreset(preset); setShowDateModal(false); }}
+                >
+                  <ThemedText style={[styles.dateOptionText, datePreset === preset && styles.dateOptionTextActive]}>
+                    {DATE_PRESET_LABELS[preset]}
+                  </ThemedText>
+                  {datePreset === preset && (
+                    <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Rounded content area standardized via BlueSheet (matches Journal) */}
         <BlueSheet style={styles.contentSheet}>
@@ -1896,9 +1954,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingTop: 0,
   },
   headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 0,
     paddingBottom: 0,
@@ -1908,34 +1963,38 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
-    marginBottom: 8,
+    marginBottom: 0,
     marginTop: 10,
     letterSpacing: 0.5,
+  },
+  // ── Header layout ────────────────────────────────────────────
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 0,
+  },
+  searchCircleButton: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 32, 61, 0.07)',
+    borderRadius: 999,
   },
   searchBarWrapper: {
     overflow: 'hidden',
   },
   searchBar: {
-    marginTop: 12,
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-    height: 44,
-  },
-  searchCircleButton: {
-    position: 'absolute',
-    right: 20,
-    width: 42,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.07)',
-    borderRadius: 999,
-    zIndex: 100,
+    paddingVertical: 0,
+    marginBottom: 2,
+    height: 40,
   },
   searchIcon: {
     marginRight: 8,
@@ -2185,7 +2244,145 @@ const createStyles = (_theme: any) => StyleSheet.create({
   filterTabTextActive: {
     color: Colors.hopeWhite,
   },
-  // Header (on-white) tab styles
+
+  // ── Status toggle pills (In Progress | Completed) ────────────
+  statusPillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 10,
+  },
+  statusPillTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(3, 32, 61, 0.12)',
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    gap: 6,
+  },
+  statusPillTabOngoing: {
+    backgroundColor: 'rgba(230, 90, 70, 0.08)',
+    borderColor: Colors.alertCoral,
+  },
+  statusPillTabCompleted: {
+    backgroundColor: 'rgba(95, 138, 104, 0.08)',
+    borderColor: Colors.growthGreen,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+  },
+  statusDotInactive: {
+    backgroundColor: 'rgba(3, 32, 61, 0.25)',
+  },
+  statusDotOngoing: {
+    backgroundColor: Colors.alertCoral,
+  },
+  statusDotCompleted: {
+    backgroundColor: Colors.growthGreen,
+  },
+  statusPillTabText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(3, 32, 61, 0.5)',
+    letterSpacing: 0.1,
+  },
+  statusPillTabTextActive: {
+    color: Colors.anchorBlue,
+  },
+
+  // ── Tag chip horizontal scroll row ───────────────────────────
+  tagChipScrollView: {
+    marginBottom: 14,
+    flexGrow: 0,
+  },
+  tagChipScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 6,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(3, 32, 61, 0.12)',
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+  },
+  tagChipDate: {
+    // slight visual distinction — same shape, just a bit more prominent when active
+  },
+  tagChipActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.anchorBlue,
+  },
+  tagChipText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: Colors.anchorBlue,
+    opacity: 0.65,
+  },
+  tagChipTextActive: {
+    color: Colors.hopeWhite,
+    opacity: 1,
+  },
+
+  // ── Date filter modal ─────────────────────────────────────────
+  dateModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+    paddingBottom: 32,
+    paddingHorizontal: 16,
+  },
+  dateModalContent: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+    overflow: 'hidden',
+  },
+  dateModalTitle: {
+    fontSize: 15,
+    color: Colors.anchorBlue,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.07)',
+    letterSpacing: 0.2,
+  },
+  dateOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.06)',
+  },
+  dateOptionActive: {
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+  },
+  dateOptionText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: Colors.anchorBlue,
+    opacity: 0.8,
+  },
+  dateOptionTextActive: {
+    fontFamily: Fonts.semiBold,
+    opacity: 1,
+  },
+
+  // ── Legacy on-white filter tab styles (kept for empty state) ─
   filterTabsOnWhite: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -2193,13 +2390,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     gap: 6,
-    flexWrap: 'wrap', // Allow tabs to wrap on smaller screens
   },
   filterTabOnWhite: {
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: 'rgba(3, 32, 61, 0.06)', // subtle anchor tint on white
+    backgroundColor: 'rgba(3, 32, 61, 0.06)',
   },
   filterTabActiveOnWhite: {
     backgroundColor: Colors.anchorBlue,
