@@ -213,7 +213,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           ) : null}
         </View>
         <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.title}</ThemedText>
-        {item.userInput && <ThemedText style={st.carouselCardDescription} numberOfLines={3}>{item.userInput}</ThemedText>}
+        {item.userInput && <ThemedText style={st.carouselCardDescription} numberOfLines={1}>{item.userInput}</ThemedText>}
         {isCardCompleted ? (
           <View style={st.completedSummary}><Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} /><ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText></View>
         ) : (
@@ -1446,10 +1446,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
   carouselCard: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 24,
-    padding: 20,
+    padding: 14,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    minHeight: 200,
   },
   carouselTypeIndicator: {
     flexDirection: 'row',
@@ -1478,10 +1477,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
   },
   carouselCardTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 20,
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   carouselDate: {
     fontSize: 12,
@@ -1491,7 +1490,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   dateWithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   devotionalsBadge: {
     flexDirection: 'row',
@@ -1511,10 +1510,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginLeft: 3,
   },
   carouselCardDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 16,
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 6,
   },
   carouselProgressSection: {
     marginBottom: 12,
@@ -1558,9 +1557,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   gradientContainer: {
-    height: 70,
-    borderRadius: 22,
-    marginBottom: 12,
+    height: 44,
+    borderRadius: 14,
+    marginBottom: 8,
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -1617,15 +1616,15 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   categoryLabel: {
     position: 'absolute',
-    left: 12,
-    bottom: 12,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
+    left: 10,
+    bottom: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.82)',
   },
   categoryLabelText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.04,
     textTransform: 'uppercase',
@@ -1633,8 +1632,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   menuButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 10,
     padding: 4,
     zIndex: 20,
   },
@@ -1769,30 +1768,27 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontWeight: '600',
   },
   sectionsContainer: {
-    marginTop: 12,
+    marginTop: 6,
   },
   sectionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    marginBottom: 3,
+    paddingHorizontal: 0,
+    paddingVertical: 2,
   },
   sectionCheck: {
     marginRight: 8,
   },
   // Pill badge status icons with green and faith gold colors
   statusPill: {
-    width: 20,
-    height: 20,
+    width: 16,
+    height: 16,
     borderRadius: 999,
     borderWidth: 0.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -1809,9 +1805,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   statusPillText: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 13,
     color: 'rgba(255, 255, 255, 0.4)',
   },
   statusPillTextCompleted: {
@@ -1824,8 +1820,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.3)',
   },
   statusPillFill: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     borderRadius: 999,
   },
   statusPillFillCompleted: {
@@ -1838,7 +1834,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 11,
     color: Colors.hopeWhite,
   },
   sectionLabelMuted: {
@@ -1853,7 +1849,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginRight: 0,
   },
   sectionInfo: {
-    fontSize: 12,
+    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.6)',
   },
   sectionInfoMuted: {
@@ -1874,11 +1870,11 @@ const createStyles = (_theme: any) => StyleSheet.create({
   completedSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 6,
+    marginTop: 8,
+    gap: 5,
   },
   completedSummaryText: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
   },
   deleteButton: {
