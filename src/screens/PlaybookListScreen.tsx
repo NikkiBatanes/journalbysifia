@@ -1226,6 +1226,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 )}
               </View>
             )}
+            {!showSearch && <View style={styles.searchBarCollapsedSpacer} />}
 
           </View>
         </View>
@@ -2174,6 +2175,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   searchIcon: {
     marginRight: 7,
+  },
+  searchBarCollapsedSpacer: {
+    height: 8,
   },
   searchInput: {
     flex: 1,
