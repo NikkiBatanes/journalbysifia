@@ -457,6 +457,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year' | 'custom'>('all');
   const [customDateRange, setCustomDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [showDateModal, setShowDateModal] = useState(false);
+  const dateModalTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const dateModalFadeAnim = useRef(new Animated.Value(0)).current;
+  const [dateModalVisible, setDateModalVisible] = useState(false);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -478,6 +481,57 @@ const PlaybookListScreen = ({ navigation }: any) => {
       setSearchQuery('');
     }
   }, [showSearch, searchAnim]);
+
+  // Filter modal animation
+  useEffect(() => {
+    let isMounted = true;
+    let animation: Animated.CompositeAnimation | null = null;
+
+    if (showDateModal) {
+      setDateModalVisible(true);
+      animation = Animated.parallel([
+        Animated.timing(dateModalFadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(dateModalTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+        }),
+      ]);
+      animation.start();
+    } else {
+      const slideDownDistance = Dimensions.get('window').height + 100;
+      animation = Animated.parallel([
+        Animated.timing(dateModalFadeAnim, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dateModalTranslateY, {
+          toValue: slideDownDistance,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.quad),
+        }),
+      ]);
+      animation.start(({ finished }) => {
+        if (finished && isMounted) {
+          setDateModalVisible(false);
+          dateModalTranslateY.setValue(Dimensions.get('window').height);
+        }
+      });
+    }
+
+    return () => {
+      isMounted = false;
+      if (animation) {
+        animation.stop();
+      }
+    };
+  }, [showDateModal, dateModalFadeAnim, dateModalTranslateY]);
 
   // Component renders with current state
 
@@ -1186,10 +1240,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
         </Modal>
 
         {/* Filter modal — date + clear all */}
-        <Modal visible={showDateModal} transparent animationType="slide" onRequestClose={() => setShowDateModal(false)}>
-          <TouchableOpacity style={styles.dateModalOverlay} activeOpacity={1} onPress={() => setShowDateModal(false)}>
-            <View style={styles.dateModalContent} onStartShouldSetResponder={() => true}>
-
+        <Modal visible={dateModalVisible} transparent animationType="none" onRequestClose={() => setShowDateModal(false)}>
+          <View style={styles.dateModalOverlay}>
+            <Animated.View style={[styles.dateModalBackdrop, { opacity: dateModalFadeAnim }]}>
+              <TouchableOpacity
+                style={StyleSheet.absoluteFill}
+                activeOpacity={1}
+                onPress={() => { triggerLightHaptic(); setShowDateModal(false); }}
+              />
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.dateModalContent,
+                { transform: [{ translateY: dateModalTranslateY }] },
+              ]}
+            >
               {/* Handle */}
               <View style={styles.dateModalHandle} />
 
@@ -1276,8 +1341,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <ThemedText weight="semiBold" style={styles.dateModalApplyText}>Apply</ThemedText>
               </TouchableOpacity>
 
-            </View>
-          </TouchableOpacity>
+            </Animated.View>
+          </View>
         </Modal>
 
         {/* ── BLUE SHEET: category/tag chips + date, then cards ─ */}
@@ -2498,10 +2563,11 @@ const createStyles = (_theme: any) => StyleSheet.create({
   // ── Date filter modal ─────────────────────────────────────────
   dateModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
-    paddingBottom: 32,
-    paddingHorizontal: 16,
+  },
+  dateModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   dateModalContent: {
     backgroundColor: Colors.hopeWhite,
