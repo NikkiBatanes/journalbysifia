@@ -2063,7 +2063,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   searchIcon: {
     marginRight: 7,
-    alignSelf: 'center',
+    marginTop: 2,
   },
   searchInput: {
     flex: 1,
