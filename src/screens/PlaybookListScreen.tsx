@@ -2073,7 +2073,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingBottom: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
-    height: 42,
+    alignSelf: 'center',
     includeFontPadding: false,
   },
   clearButton: {
