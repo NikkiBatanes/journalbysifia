@@ -1073,7 +1073,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <View style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
 
-            {/* Row 1: Title + status dropdown + search circle */}
+            {/* Row 1: Title left, actions right */}
             <View style={styles.headerTopRow}>
               <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
               <View style={styles.headerActions}>
@@ -1237,6 +1237,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
             style={styles.tagChipScrollView}
             contentContainerStyle={[styles.tagChipScrollContent, { paddingHorizontal: SIDE_INSET }]}
           >
+            {/* All */}
             <Pressable
               style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
               onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
@@ -1244,16 +1245,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               <ThemedText style={[styles.tagChipText, activeTag === 'all' && styles.tagChipTextActive]}>All</ThemedText>
             </Pressable>
 
-            {uniqueFilterLabels.map(label => (
-              <Pressable
-                key={label}
-                style={[styles.tagChip, activeTag === label && styles.tagChipActive]}
-                onPress={() => { triggerLightHaptic(); setActiveTag(activeTag === label ? 'all' : label); }}
-              >
-                <ThemedText style={[styles.tagChipText, activeTag === label && styles.tagChipTextActive]}>{label}</ThemedText>
-              </Pressable>
-            ))}
-
+            {/* Date — right beside All */}
             <Pressable
               style={[styles.tagChip, styles.tagChipDate, datePreset !== 'all' && styles.tagChipActive]}
               onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
@@ -1272,6 +1264,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
               )}
             </Pressable>
+
+            {/* Category / tag chips */}
+            {uniqueFilterLabels.map(label => (
+              <Pressable
+                key={label}
+                style={[styles.tagChip, activeTag === label && styles.tagChipActive]}
+                onPress={() => { triggerLightHaptic(); setActiveTag(activeTag === label ? 'all' : label); }}
+              >
+                <ThemedText style={[styles.tagChipText, activeTag === label && styles.tagChipTextActive]}>{label}</ThemedText>
+              </Pressable>
+            ))}
           </ScrollView>
 
           {isLoading ? (
@@ -2019,20 +2022,20 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: Colors.hopeWhite,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    marginBottom: 0,
-    marginTop: 10,
-    letterSpacing: 0.5,
-  },
   // ── Header layout ────────────────────────────────────────────
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 0,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+    flex: 1,
   },
   // Search row: bar + filter button side by side
   searchRow: {
