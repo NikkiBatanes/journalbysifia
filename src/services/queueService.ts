@@ -503,6 +503,7 @@ export class QueueService {
         id: result.id,
         title: result.title,
         userInput: item.user_input,
+        category: result.category || undefined,
         truthInLove: result.truthInLove,
         actionSteps: result.actionSteps || [],
         affirmations: result.affirmations || [],

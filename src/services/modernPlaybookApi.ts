@@ -629,6 +629,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         user_id: userId,
         title: truncatedTitle,
         user_input: playbook.userInput, // Use the actual user_input column
+        category: playbook.category || null,
         truth_in_love: playbook.truthInLove,
         bible_verse: bibleVerseToSave,
         direct_challenge: directChallengeToSave,

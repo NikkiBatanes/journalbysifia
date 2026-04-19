@@ -304,6 +304,7 @@ export class UnifiedGenerationService {
         id: result.id,
         title: result.title,
         userInput: request.userInput,
+        category: result.category || undefined,
         truthInLove: result.truthInLove,
         actionSteps: result.actionSteps || [],
         affirmations: result.affirmations || [],
