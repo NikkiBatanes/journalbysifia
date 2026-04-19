@@ -1599,6 +1599,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
                 {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
               </ThemedText>
+              <Ionicons name="chevron-down" size={13} color={contentView === 'date' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'} style={{ marginLeft: 4 }} />
             </Pressable>
           </View>
 
