@@ -44,7 +44,9 @@ export const PlaybookSkeleton: React.FC = () => {
       <Animated.View style={[styles.carouselCard, { opacity }]}>
         {/* Gradient container with category label */}
         <View style={styles.gradientContainer}>
-          <Animated.View style={[styles.categoryLabelSkeleton, { opacity }]} />
+          <View style={styles.categoryLabel}>
+            <Animated.View style={[styles.categoryLabelTextSkeleton, { opacity }]} />
+          </View>
         </View>
 
         {/* Date */}
@@ -150,6 +152,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 8,
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categoryLabel: {
+    position: 'absolute',
+    left: 10,
+    bottom: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  categoryLabelTextSkeleton: {
+    height: 10,
+    backgroundColor: 'rgba(3, 32, 61, 0.3)',
+    borderRadius: 4,
+    width: 60,
   },
   categoryLabelSkeleton: {
     height: 14,
