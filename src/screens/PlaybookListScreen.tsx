@@ -2344,17 +2344,13 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 999,
-    borderWidth: 1,
     backgroundColor: 'rgba(3, 32, 61, 0.05)',
-    borderColor: 'rgba(3, 32, 61, 0.1)',
   },
   statusDropdownBtnOngoing: {
     backgroundColor: 'rgba(3, 32, 61, 0.07)',
-    borderColor: 'rgba(3, 32, 61, 0.35)',
   },
   statusDropdownBtnCompleted: {
     backgroundColor: 'rgba(95, 138, 104, 0.07)',
-    borderColor: 'rgba(95, 138, 104, 0.35)',
   },
   statusDropdownBtnText: {
     fontSize: 13,
