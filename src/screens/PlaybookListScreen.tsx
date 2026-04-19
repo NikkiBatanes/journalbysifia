@@ -3049,10 +3049,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 10,
     marginBottom: 4,
-    backgroundColor: 'rgba(3,32,61,0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(3,32,61,0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     overflow: 'hidden',
   },
   customDateField: {
