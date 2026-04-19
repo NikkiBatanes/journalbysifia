@@ -150,11 +150,6 @@ const PlaybookSkeletonLoader = () => {
           <SkeletonBox width="88%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
         </View>
 
-        {/* Transition Line Divider - matches PlaybookWalkthroughScreen Step 0 */}
-        <View style={styles.transitionLineContainer}>
-          <SkeletonBox width="60%" height={16} backgroundColor={'rgba(255,255,255,0.12)'} />
-        </View>
-
         {/* Floating Action Button Skeleton - matches PlaybookWalkthroughScreen floating buttons */}
         <View style={styles.floatingButtonSkeleton}>
           <SkeletonBox width={120} height={44} style={{ borderRadius: 22 }} backgroundColor={'rgba(255,255,255,0.18)'} />
