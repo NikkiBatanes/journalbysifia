@@ -1380,7 +1380,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               {/* ── CATEGORY sub-section (only when Category is selected) ── */}
               {contentView === 'category' && availableCategories.length > 0 && (
                 <>
-                  <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>
+                  <ThemedText weight="semiBold" style={[styles.statusPickerSectionHeaderText, { marginTop: 14 }]}>
                     Categories
                   </ThemedText>
                   <View style={styles.pickerPillRow}>
