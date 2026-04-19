@@ -170,15 +170,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     width: 60,
   },
-  categoryLabelSkeleton: {
-    height: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
-    width: '30%',
-    position: 'absolute',
-    left: 12,
-    top: 15,
-  },
   dateWithBadge: {
     marginBottom: 4,
   },
@@ -201,29 +192,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginBottom: 6,
     width: '70%',
-  },
-  carouselProgressSection: {
-    marginBottom: 12,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBarContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  progressBarSkeleton: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    width: '100%',
-  },
-  progressTextSkeleton: {
-    height: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
-    width: 40,
   },
   sectionsContainer: {
     marginTop: 10,
