@@ -16,7 +16,15 @@ const SIDE_INSET = Math.max(
 export const PlaybookSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 
+  console.log('[PlaybookSkeleton] Component rendering');
+  console.log('[PlaybookSkeleton] Window width:', width);
+  console.log('[PlaybookSkeleton] ITEM_WIDTH:', ITEM_WIDTH);
+  console.log('[PlaybookSkeleton] ITEM_SPACING:', ITEM_SPACING);
+  console.log('[PlaybookSkeleton] SIDE_INSET:', SIDE_INSET);
+  console.log('[PlaybookSkeleton] isTablet:', isTablet);
+
   React.useEffect(() => {
+    console.log('[PlaybookSkeleton] Component mounted');
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(animatedValue, {
@@ -32,7 +40,10 @@ export const PlaybookSkeleton: React.FC = () => {
       ])
     );
     animation.start();
-    return () => animation.stop();
+    return () => {
+      console.log('[PlaybookSkeleton] Component unmounting');
+      animation.stop();
+    };
   }, [animatedValue]);
 
   const opacity = animatedValue.interpolate({

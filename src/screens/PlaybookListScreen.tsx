@@ -1483,9 +1483,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [handleCardPress, handleCardLongPress, scrollX, sessionStates, menuVisible, devotionalsCount, triggerLightHaptic, handleDelete]);
 
   // Logging for render states
+  React.useEffect(() => {
+    console.log('[PlaybookListScreen] Debug - isLoading:', isLoading);
+    console.log('[PlaybookListScreen] Debug - userId:', userId);
+    console.log('[PlaybookListScreen] Debug - isAuthenticated:', isAuthenticated);
+    console.log('[PlaybookListScreen] Debug - playbooks.length:', playbooks.length);
+  }, [isLoading, userId, isAuthenticated, playbooks.length]);
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
+    console.log('[PlaybookListScreen] Showing skeleton - auth loading state', { userId, isAuthenticated });
 
     return (
       <SafeAreaView style={styles.safeArea} edges={['left','right']}>
