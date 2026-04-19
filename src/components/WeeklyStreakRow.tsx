@@ -4,7 +4,7 @@
  * Respects user's week start preference and shows completion states
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme/colors';
@@ -53,13 +53,16 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
 
   const orderedDays = WEEK_ORDER[weekStart] || WEEK_ORDER.Sunday;
 
-  // Create animated values for each day
-  const scaleAnims = useRef(
-    orderedDays.map(() => new Animated.Value(0))
-  ).current;
+  // Create animated values for each day (stable across renders)
+  const scaleAnims = useMemo(
+    () => orderedDays.map(() => new Animated.Value(0)),
+    [weekStart]
+  );
 
-  // Trigger staggered spring animations on mount
+  // Trigger staggered spring animations when dayStates loads
   useEffect(() => {
+    if (!dayStates || dayStates.length === 0) return;
+
     scaleAnims.forEach((anim, index) => {
       anim.setValue(0);
       Animated.spring(anim, {
@@ -70,7 +73,7 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
         useNativeDriver: true,
       }).start();
     });
-  }, []);
+  }, [dayStates, scaleAnims]);
 
   // Show placeholder circles while loading
   if (!dayStates || dayStates.length === 0) {
