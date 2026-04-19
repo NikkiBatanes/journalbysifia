@@ -1774,7 +1774,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 3,
-    paddingHorizontal: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 2,
   },
   sectionCheck: {
