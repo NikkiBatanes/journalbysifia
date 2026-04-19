@@ -2136,7 +2136,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 6,
-    marginBottom: 6,
+    marginBottom: 0,
   },
   headerTitle: {
     fontSize: 24,
