@@ -532,7 +532,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [contentView, setContentView] = useState<'all' | 'category' | 'date'>('all');
   // Date view sub-mode
   const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
-  const [showDateViewDropdown, setShowDateViewDropdown] = useState(false);
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
   const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
@@ -1436,6 +1435,57 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
           <TouchableOpacity style={styles.statusPickerOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>
             <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
+              {/* View Filter section */}
+              <View style={styles.statusPickerSectionHeader}>
+                <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>View</ThemedText>
+              </View>
+              {(['all', 'category'] as const).map(view => (
+                <TouchableOpacity
+                  key={view}
+                  style={[styles.statusPickerOption, contentView === view && styles.statusPickerOptionActive]}
+                  onPress={() => { triggerLightHaptic(); setContentView(view); setShowStatusPicker(false); }}
+                >
+                  <ThemedText weight={contentView === view ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
+                    {view === 'all' ? 'All' : 'Category'}
+                  </ThemedText>
+                  {contentView === view && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.statusPickerOption, contentView === 'date' && styles.statusPickerOptionActive]}
+                onPress={() => { triggerLightHaptic(); setContentView('date'); setShowStatusPicker(false); }}
+              >
+                <ThemedText weight={contentView === 'date' ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
+                  Date
+                </ThemedText>
+                {contentView === 'date' && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
+              </TouchableOpacity>
+
+              {/* Date View Mode section (only shown when Date is selected) */}
+              {contentView === 'date' && (
+                <>
+                  <View style={[styles.statusPickerSectionHeader, styles.statusPickerSectionHeaderTop]}>
+                    <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Date View</ThemedText>
+                  </View>
+                  {(['weekly', 'monthly', 'yearly'] as const).map(mode => (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[styles.statusPickerOption, dateViewMode === mode && styles.statusPickerOptionActive]}
+                      onPress={() => { triggerLightHaptic(); setDateViewMode(mode); }}
+                    >
+                      <ThemedText weight={dateViewMode === mode ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
+                        {mode === 'weekly' ? 'Weekly' : mode === 'monthly' ? 'Monthly' : 'Yearly'}
+                      </ThemedText>
+                      {dateViewMode === mode && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
+
+              {/* Status Filter section */}
+              <View style={[styles.statusPickerSectionHeader, styles.statusPickerSectionHeaderTop]}>
+                <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Status</ThemedText>
+              </View>
               {(['ongoing', 'completed'] as const).map(status => (
                 <TouchableOpacity
                   key={status}
@@ -1446,26 +1496,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     {status === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
                   {filter === status && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
-
-        {/* Date view mode dropdown */}
-        <Modal visible={showDateViewDropdown} transparent animationType="fade" onRequestClose={() => setShowDateViewDropdown(false)}>
-          <TouchableOpacity style={styles.dateViewDropdownOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
-            <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
-              {(['weekly', 'monthly', 'yearly'] as const).map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.statusPickerOption, dateViewMode === opt && styles.statusPickerOptionActive]}
-                  onPress={() => { triggerLightHaptic(); setDateViewMode(opt); setShowDateViewDropdown(false); }}
-                >
-                  <ThemedText weight={dateViewMode === opt ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
-                    {opt === 'weekly' ? 'Weekly' : opt === 'monthly' ? 'Monthly' : 'Yearly'}
-                  </ThemedText>
-                  {dateViewMode === opt && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
                 </TouchableOpacity>
               ))}
             </View>
@@ -1579,56 +1609,53 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
         {/* ── BLUE SHEET ─────────────────────────────────────── */}
         <BlueSheet style={styles.contentSheet}>
-          <View style={styles.blueSheetContentContainer}>
-            {/* ── View pill filters: All · Category · Date (floating) ─── */}
-            <View style={styles.viewPillRowFloating}>
-              {(['all', 'category'] as const).map(v => (
-                <Pressable
-                  key={v}
-                  style={[styles.viewPill, contentView === v && styles.viewPillActive]}
-                  onPress={() => { triggerLightHaptic(); setContentView(v); }}
-                >
-                  <ThemedText style={[styles.viewPillText, contentView === v && styles.viewPillTextActive]}>
-                    {v === 'all' ? 'All' : 'Category'}
-                  </ThemedText>
-                </Pressable>
-              ))}
-              <Pressable
-                style={[styles.viewPill, contentView === 'date' && styles.viewPillActive, styles.viewPillWithIcon]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  setContentView('date');
-                  setShowDateViewDropdown(true);
-                }}
-              >
-                <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
-                  {contentView === 'date' ? (dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly') : 'Date'}
-                </ThemedText>
-                <Ionicons name="chevron-down" size={12} color={contentView === 'date' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'} style={{ marginLeft: 4 }} />
-              </Pressable>
+          {isLoading ? (
+            <View style={[styles.listContent, styles.pageInner]}>
+              <PlaybookSkeleton />
             </View>
-
-            {isLoading ? (
-              <View style={[styles.listContent, styles.pageInner]}>
-                <PlaybookSkeleton />
+          ) : searchQuery.trim().length > 0 ? (
+            /* ── SEARCH RESULTS ──────────────────────────── */
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+              <View style={styles.carouselTitleContainer}>
+                <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                  {filteredPlaybooks.length} RESULT{filteredPlaybooks.length !== 1 ? 'S' : ''}
+                </ThemedText>
               </View>
-
-            ) : searchQuery.trim().length > 0 ? (
-              /* ── SEARCH RESULTS ──────────────────────────── */
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 64, paddingBottom: tabBarHeight + 32 }}>
-                <View style={styles.carouselTitleContainer}>
-                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                    {filteredPlaybooks.length} RESULT{filteredPlaybooks.length !== 1 ? 'S' : ''}
-                  </ThemedText>
+              {filteredPlaybooks.length === 0 ? (
+                <View style={styles.continueEmptyContainer}>
+                  <ThemedText style={styles.continueEmptyText}>No playbooks match your search.</ThemedText>
                 </View>
-                {filteredPlaybooks.length === 0 ? (
+              ) : (
+                <CategoryCarouselRow
+                  category=""
+                  playbooks={filteredPlaybooks}
+                  cardStyles={styles}
+                  sessionStates={sessionStates}
+                  devotionalsCount={devotionalsCount}
+                  menuVisible={menuVisible}
+                  onPress={handleCardPress}
+                  onLongPress={handleCardLongPress}
+                  onMenuToggle={setMenuVisible}
+                  onDelete={handleDelete}
+                  onRenamePress={handleRenamePress}
+                  onTagPress={handleTagPress}
+                  onDevotionalPress={handleDevotionalPress}
+                  triggerHaptic={triggerLightHaptic}
+                />
+              )}
+            </ScrollView>
+          ) : contentView === 'all' ? (
+            /* ── ALL VIEW: Respects header filter ─────────────── */
+            <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+              {filter === 'ongoing' ? (
+                continuePlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
-                    <ThemedText style={styles.continueEmptyText}>No playbooks match your search.</ThemedText>
+                    <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
                   </View>
                 ) : (
                   <CategoryCarouselRow
-                    category=""
-                    playbooks={filteredPlaybooks}
+                    category={`CONTINUE YOUR PLAYBOOK${continuePlaybooks.length !== 1 ? 'S' : ''}`}
+                    playbooks={continuePlaybooks}
                     cardStyles={styles}
                     sessionStates={sessionStates}
                     devotionalsCount={devotionalsCount}
@@ -1642,101 +1669,40 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     onDevotionalPress={handleDevotionalPress}
                     triggerHaptic={triggerLightHaptic}
                   />
-                )}
-              </ScrollView>
-
-            ) : contentView === 'all' ? (
-              /* ── ALL VIEW: Respects header filter ─────────────── */
-              <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingTop: 64, paddingBottom: tabBarHeight + 32 }}>
-                {filter === 'ongoing' ? (
-                  continuePlaybooks.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
-                    </View>
-                  ) : (
-                    <CategoryCarouselRow
-                      category={`CONTINUE YOUR PLAYBOOK${continuePlaybooks.length !== 1 ? 'S' : ''}`}
-                      playbooks={continuePlaybooks}
-                      cardStyles={styles}
-                      sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
-                      menuVisible={menuVisible}
-                      onPress={handleCardPress}
-                      onLongPress={handleCardLongPress}
-                      onMenuToggle={setMenuVisible}
-                      onDelete={handleDelete}
-                      onRenamePress={handleRenamePress}
-                      onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
-                      triggerHaptic={triggerLightHaptic}
-                    />
-                  )
-                ) : (
-                  completedPlaybooks.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
-                    </View>
-                  ) : (
-                    <CategoryCarouselRow
-                      category={`REVISIT YOUR COMPLETED PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
-                      playbooks={completedPlaybooks}
-                      cardStyles={styles}
-                      sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
-                      menuVisible={menuVisible}
-                      onPress={handleCardPress}
-                      onLongPress={handleCardLongPress}
-                      onMenuToggle={setMenuVisible}
-                      onDelete={handleDelete}
-                      onRenamePress={handleRenamePress}
-                      onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
-                      triggerHaptic={triggerLightHaptic}
-                    />
-                  )
-                )}
-              </ScrollView>
-
-            ) : contentView === 'category' ? (
-              /* ── CATEGORY VIEW: per-category carousels ──────── */
-              categorySections.length === 0 ? (
-                <View style={styles.continueEmptyContainer}>
-                  <ThemedText style={styles.continueEmptyText}>No playbooks yet.</ThemedText>
-                </View>
+                )
               ) : (
-                <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingTop: 64, paddingBottom: tabBarHeight + 32 }}>
-                  {filter === 'ongoing' && (
-                    <View style={styles.carouselTitleContainer}>
-                      <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                        CONTINUE YOUR PLAYBOOKS
-                      </ThemedText>
-                    </View>
-                  )}
-                  {categorySections.map(({ category, playbooks: catPlaybooks }) => (
-                    <CategoryCarouselRow
-                      key={category}
-                      category={category}
-                      playbooks={catPlaybooks}
-                      cardStyles={styles}
-                      sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
-                      menuVisible={menuVisible}
-                      onPress={handleCardPress}
-                      onLongPress={handleCardLongPress}
-                      onMenuToggle={setMenuVisible}
-                      onDelete={handleDelete}
-                      onRenamePress={handleRenamePress}
-                      onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
-                      triggerHaptic={triggerLightHaptic}
-                    />
-                  ))}
-                </ScrollView>
-              )
-
+                completedPlaybooks.length === 0 ? (
+                  <View style={styles.continueEmptyContainer}>
+                    <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
+                  </View>
+                ) : (
+                  <CategoryCarouselRow
+                    category={`REVISIT YOUR COMPLETED PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
+                    playbooks={completedPlaybooks}
+                    cardStyles={styles}
+                    sessionStates={sessionStates}
+                    devotionalsCount={devotionalsCount}
+                    menuVisible={menuVisible}
+                    onPress={handleCardPress}
+                    onLongPress={handleCardLongPress}
+                    onMenuToggle={setMenuVisible}
+                    onDelete={handleDelete}
+                    onRenamePress={handleRenamePress}
+                    onTagPress={handleTagPress}
+                    onDevotionalPress={handleDevotionalPress}
+                    triggerHaptic={triggerLightHaptic}
+                  />
+                )
+              )}
+            </ScrollView>
+          ) : contentView === 'category' ? (
+            /* ── CATEGORY VIEW: per-category carousels ──────── */
+            categorySections.length === 0 ? (
+              <View style={styles.continueEmptyContainer}>
+                <ThemedText style={styles.continueEmptyText}>No playbooks yet.</ThemedText>
+              </View>
             ) : (
-              /* ── DATE VIEW: Weekly / Monthly / Yearly ─────── */
-              <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingTop: 64, paddingBottom: tabBarHeight + 32 }}>
+              <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
                 {filter === 'ongoing' && (
                   <View style={styles.carouselTitleContainer}>
                     <ThemedText weight="semiBold" style={styles.carouselTitle}>
@@ -1744,7 +1710,39 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     </ThemedText>
                   </View>
                 )}
-                {dateViewMode === 'weekly' && weeklySections.map(({ label, weekStart, playbooks: wPbs }) => (
+                {categorySections.map(({ category, playbooks: catPlaybooks }) => (
+                  <CategoryCarouselRow
+                    key={category}
+                    category={category}
+                    playbooks={catPlaybooks}
+                    cardStyles={styles}
+                    sessionStates={sessionStates}
+                    devotionalsCount={devotionalsCount}
+                    menuVisible={menuVisible}
+                    onPress={handleCardPress}
+                    onLongPress={handleCardLongPress}
+                    onMenuToggle={setMenuVisible}
+                    onDelete={handleDelete}
+                    onRenamePress={handleRenamePress}
+                    onTagPress={handleTagPress}
+                    onDevotionalPress={handleDevotionalPress}
+                    triggerHaptic={triggerLightHaptic}
+                  />
+                ))}
+              </ScrollView>
+            )
+          ) : (
+            /* ── DATE VIEW: Weekly / Monthly / Yearly ─────── */
+            <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+              {filter === 'ongoing' && (
+                <View style={styles.carouselTitleContainer}>
+                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                    CONTINUE YOUR PLAYBOOKS
+                  </ThemedText>
+                </View>
+              )}
+              {dateViewMode === 'weekly' && (
+                weeklySections.map(({ label, weekStart, playbooks: wPbs }) => (
                   <CategoryCarouselRow
                     key={weekStart.toISOString()}
                     category={label}
@@ -1762,42 +1760,42 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     onDevotionalPress={handleDevotionalPress}
                     triggerHaptic={triggerLightHaptic}
                   />
-                ))}
-
-                {dateViewMode === 'monthly' && (() => {
+                ))
+              )}
+              {dateViewMode === 'monthly' && (
+                monthlySections.map(({ label, year, month, playbooks: mPbs }) => {
                   let lastYear: number | null = null;
-                  return monthlySections.map(({ label, year, month, playbooks: mPbs }) => {
-                    const showYear = year !== currentYear && year !== lastYear;
-                    lastYear = year;
-                    return (
-                      <View key={`${year}-${month}`}>
-                        {showYear && (
-                          <View style={styles.dateSectionYearHeader}>
-                            <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{year}</ThemedText>
-                          </View>
-                        )}
-                        <CategoryCarouselRow
-                          category={label}
-                          playbooks={mPbs}
-                          cardStyles={styles}
-                          sessionStates={sessionStates}
-                          devotionalsCount={devotionalsCount}
-                          menuVisible={menuVisible}
-                          onPress={handleCardPress}
-                          onLongPress={handleCardLongPress}
-                          onMenuToggle={setMenuVisible}
-                          onDelete={handleDelete}
-                          onRenamePress={handleRenamePress}
-                          onTagPress={handleTagPress}
-                          onDevotionalPress={handleDevotionalPress}
-                          triggerHaptic={triggerLightHaptic}
-                        />
-                      </View>
-                    );
-                  });
-                })()}
-
-                {dateViewMode === 'yearly' && yearlySections.map(({ year, playbooks: yPbs }) => (
+                  const showYear = year !== currentYear && year !== lastYear;
+                  lastYear = year;
+                  return (
+                    <View key={`${year}-${month}`}>
+                      {showYear && (
+                        <View style={styles.dateSectionYearHeader}>
+                          <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{year}</ThemedText>
+                        </View>
+                      )}
+                      <CategoryCarouselRow
+                        category={label}
+                        playbooks={mPbs}
+                        cardStyles={styles}
+                        sessionStates={sessionStates}
+                        devotionalsCount={devotionalsCount}
+                        menuVisible={menuVisible}
+                        onPress={handleCardPress}
+                        onLongPress={handleCardLongPress}
+                        onMenuToggle={setMenuVisible}
+                        onDelete={handleDelete}
+                        onRenamePress={handleRenamePress}
+                        onTagPress={handleTagPress}
+                        onDevotionalPress={handleDevotionalPress}
+                        triggerHaptic={triggerLightHaptic}
+                      />
+                    </View>
+                  );
+                })
+              )}
+              {dateViewMode === 'yearly' && (
+                yearlySections.map(({ year, playbooks: yPbs }) => (
                   <CategoryCarouselRow
                     key={year}
                     category={String(year)}
@@ -1815,10 +1813,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     onDevotionalPress={handleDevotionalPress}
                     triggerHaptic={triggerLightHaptic}
                   />
-                ))}
-              </ScrollView>
-            )}
-          </View>
+                ))
+              )}
+            </ScrollView>
+          )}
         </BlueSheet>
       </View>
       {/* Devotional creation modal triggered by long-press on a playbook card */}
@@ -2137,22 +2135,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   // ── View pill filters row ─────────────────────────────────
-  blueSheetContentContainer: {
-    flex: 1,
-  },
-  viewPillRowFloating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SIDE_INSET,
-    paddingVertical: 12,
-    gap: 8,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.anchorBlue,
-    zIndex: 10,
-  },
   viewPillRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2989,13 +2971,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: 60,
   },
-  dateViewDropdownOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    justifyContent: 'flex-start',
-    paddingTop: 180,
-    paddingHorizontal: SIDE_INSET,
-  },
   statusPickerContent: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 14,
@@ -3006,6 +2981,22 @@ const createStyles = (_theme: any) => StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 8,
+  },
+  statusPickerSectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(3, 32, 61, 0.03)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.06)',
+  },
+  statusPickerSectionHeaderTop: {
+    marginTop: 0,
+  },
+  statusPickerSectionHeaderText: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: 'rgba(3, 32, 61, 0.5)',
   },
   statusPickerOption: {
     flexDirection: 'row',
