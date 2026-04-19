@@ -1075,7 +1075,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
             {/* Row 1: Title + status dropdown + search circle */}
             <View style={styles.headerTopRow}>
-              <View style={styles.headerLeftSpacer} />
               <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
               <View style={styles.headerActions}>
                 {/* Status dropdown — shows current filter, tapping opens picker */}
@@ -2035,9 +2034,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 0,
   },
-  headerLeftSpacer: {
-    width: 180,
-  },
   // Search row: bar + filter button side by side
   searchRow: {
     flexDirection: 'row',
@@ -2460,84 +2456,18 @@ const createStyles = (_theme: any) => StyleSheet.create({
   dateModalContent: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 20,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 8,
     overflow: 'hidden',
-  },
-  dateModalHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: 'rgba(3, 32, 61, 0.15)',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  dateModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(3, 32, 61, 0.07)',
   },
   dateModalTitle: {
     fontSize: 15,
     color: Colors.anchorBlue,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.07)',
     letterSpacing: 0.2,
-  },
-  dateModalClearAll: {
-    fontSize: 13,
-    color: Colors.alertCoral,
-    fontFamily: Fonts.semiBold,
-  },
-  dateModalSectionLabel: {
-    fontSize: 12,
-    color: 'rgba(3, 32, 61, 0.5)',
-    fontFamily: Fonts.semiBold,
-    letterSpacing: 0.8,
-    paddingHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  filterModalChips: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  filterModalChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(3, 32, 61, 0.12)',
-    backgroundColor: 'rgba(3, 32, 61, 0.04)',
-    marginRight: 8,
-  },
-  filterModalChipActive: {
-    backgroundColor: Colors.anchorBlue,
-    borderColor: Colors.anchorBlue,
-  },
-  filterModalChipText: {
-    fontSize: 13,
-    color: Colors.anchorBlue,
-    opacity: 0.7,
-  },
-  filterModalChipTextActive: {
-    color: Colors.hopeWhite,
-    opacity: 1,
-  },
-  dateModalApplyButton: {
-    margin: 16,
-    marginTop: 20,
-    paddingVertical: 12,
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  dateModalApplyText: {
-    fontSize: 15,
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   dateOption: {
     flexDirection: 'row',
