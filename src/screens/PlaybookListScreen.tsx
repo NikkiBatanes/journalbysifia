@@ -1519,7 +1519,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusPicker(false); }}
                       activeOpacity={0.75}
                     >
-                      <View style={[styles.pickerStatusDot, isOngoing ? styles.pickerStatusDotOngoing : styles.pickerStatusDotCompleted]} />
                       <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[
                         styles.pickerPillText,
                         isActive && (isOngoing ? styles.pickerPillTextOngoing : styles.pickerPillTextCompleted),
