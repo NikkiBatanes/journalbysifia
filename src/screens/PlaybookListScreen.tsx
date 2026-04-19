@@ -530,6 +530,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   // Time filter for "Continue your playbooks" section
   const [continueTimeFilter, setContinueTimeFilter] = useState<'latest' | 'week' | 'month' | 'year'>('latest');
+  const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   // Native-driver anim used only for the search icon button scale (not height)
@@ -1374,6 +1375,26 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </Modal>
 
+        {/* Continue time filter dropdown */}
+        <Modal visible={showContinueTimeDropdown} transparent animationType="fade" onRequestClose={() => setShowContinueTimeDropdown(false)}>
+          <TouchableOpacity style={styles.continueTimeDropdownOverlay} activeOpacity={1} onPress={() => setShowContinueTimeDropdown(false)}>
+            <View style={styles.continueTimeDropdownContent} onStartShouldSetResponder={() => true}>
+              {(['latest', 'week', 'month', 'year'] as const).map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.continueTimeDropdownOption, continueTimeFilter === opt && styles.continueTimeDropdownOptionActive]}
+                  onPress={() => { triggerLightHaptic(); setContinueTimeFilter(opt); setShowContinueTimeDropdown(false); }}
+                >
+                  <ThemedText style={[styles.continueTimeDropdownOptionText, continueTimeFilter === opt && styles.continueTimeDropdownOptionTextActive]}>
+                    {opt === 'latest' ? 'Latest' : opt === 'week' ? 'This Week' : opt === 'month' ? 'This Month' : 'This Year'}
+                  </ThemedText>
+                  {continueTimeFilter === opt && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         {/* Filter modal — date + clear all */}
         <Modal visible={dateModalVisible} transparent animationType="none" onRequestClose={() => setShowDateModal(false)}>
           <View style={styles.dateModalOverlay}>
@@ -1635,27 +1656,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <ThemedText weight="semiBold" style={styles.carouselTitle}>
                   CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
                 </ThemedText>
+                <TouchableOpacity
+                  style={styles.continueTimeDropdownButton}
+                  onPress={() => { triggerLightHaptic(); setShowContinueTimeDropdown(true); }}
+                >
+                  <ThemedText style={styles.continueTimeDropdownText}>
+                    {continueTimeFilter === 'latest' ? 'Latest' : continueTimeFilter === 'week' ? 'This Week' : continueTimeFilter === 'month' ? 'This Month' : 'This Year'}
+                  </ThemedText>
+                  <Ionicons name="chevron-down" size={14} color={Colors.hopeWhite} style={styles.continueTimeDropdownIcon} />
+                </TouchableOpacity>
               </View>
-
-              {/* Time filter chips: Latest · This Week · This Month · This Year */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.continueTimeFilterScroll}
-                contentContainerStyle={{ paddingHorizontal: SIDE_INSET, gap: 6, paddingBottom: 12 }}
-              >
-                {(['latest', 'week', 'month', 'year'] as const).map(opt => (
-                  <Pressable
-                    key={opt}
-                    style={[styles.continueTimeChip, continueTimeFilter === opt && styles.continueTimeChipActive]}
-                    onPress={() => { triggerLightHaptic(); setContinueTimeFilter(opt); }}
-                  >
-                    <ThemedText style={[styles.continueTimeChipText, continueTimeFilter === opt && styles.continueTimeChipTextActive]}>
-                      {opt === 'latest' ? 'Latest' : opt === 'week' ? 'This Week' : opt === 'month' ? 'This Month' : 'This Year'}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </ScrollView>
 
               {continuePlaybooks.length === 0 ? (
                 <View style={styles.continueEmptyContainer}>
@@ -1979,9 +1989,61 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flexGrow: 1,
   },
   carouselTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SIDE_INSET,
     paddingTop: 20,
     paddingBottom: 8,
+  },
+  continueTimeDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 4,
+  },
+  continueTimeDropdownText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
+  },
+  continueTimeDropdownIcon: {
+    marginLeft: 2,
+  },
+  continueTimeDropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  continueTimeDropdownContent: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 16,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  continueTimeDropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.08)',
+  },
+  continueTimeDropdownOptionActive: {
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+  },
+  continueTimeDropdownOptionText: {
+    fontSize: 15,
+    color: Colors.anchorBlue,
+  },
+  continueTimeDropdownOptionTextActive: {
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
   },
   carouselTitle: {
     fontSize: 12,
