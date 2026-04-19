@@ -2030,7 +2030,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 6,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -2058,7 +2058,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 0,
     marginTop: 6,
-    marginBottom: 6,
+    marginBottom: 2,
     height: 42,
   },
   searchIcon: {
