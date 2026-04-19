@@ -493,6 +493,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
+  const triggerScale = useRef(new Animated.Value(1)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
   const rowHeight = useRef(new Animated.Value(0)).current;
   const rowOpacity = useRef(new Animated.Value(0)).current;
@@ -510,11 +511,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setJournalExpanded(expanding);
     triggerLightHaptic();
 
-    Animated.timing(triggerRotation, {
-      toValue: expanding ? 1 : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(triggerRotation, {
+        toValue: expanding ? 1 : 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(triggerScale, {
+        toValue: expanding ? 1.15 : 1,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 7,
+      }),
+    ]).start();
 
     if (expanding) {
       Animated.parallel([
@@ -567,6 +576,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+        Animated.timing(triggerRotation, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(triggerScale, { toValue: 1.15, useNativeDriver: true, tension: 200, friction: 7 }),
       ]).start(() => {
         Animated.stagger(50, iconAnims.map(anim =>
           Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 180, friction: 10 })
@@ -578,6 +589,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             if (!journalExpandedRef.current) { return; } // user already closed it
             journalExpandedRef.current = false;
             setJournalExpanded(false);
+            Animated.parallel([
+              Animated.timing(triggerRotation, { toValue: 0, duration: 220, useNativeDriver: true }),
+              Animated.spring(triggerScale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 7 }),
+            ]).start();
             Animated.stagger(35, [...iconAnims].reverse().map(anim =>
               Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
             )).start(() => {
@@ -941,7 +956,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               onPress={toggleJournalIcons}
               activeOpacity={0.8}
             >
-              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }, { scale: triggerScale }] }}>
                 <MaterialCommunityIcons
                   name="pencil-plus-outline"
                   size={20}
