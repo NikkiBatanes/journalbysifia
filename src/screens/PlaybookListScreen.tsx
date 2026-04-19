@@ -816,9 +816,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 { label: 'Truth in Love',        step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
                 { label: 'Scripture to Anchor',  step: 2 },
                 { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline' },
-                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline' },
-              ] as { label: string; step: number; meta?: string; metaIcon?: string }[]).map(({ label, step, meta, metaIcon }) => {
+                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconState: (item as any).hasPrayed },
+                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'volume-high', actionIconState: (item as any).hasRead },
+              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconState }) => {
                 const state = getSectionState(step, wp);
                 return (
                   <View key={label} style={styles.sectionItem}>
@@ -861,6 +861,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
                             {meta}
                           </ThemedText>
                         </View>
+                      )}
+                      {actionIcon && !meta && (
+                        <MaterialCommunityIcons
+                          name={actionIcon as any}
+                          size={14}
+                          color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
+                          style={styles.sectionActionIcon}
+                        />
                       )}
                     </View>
                   </View>
@@ -1704,6 +1712,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   sectionInfoMuted: {
     color: 'rgba(255, 255, 255, 0.4)',
+  },
+  sectionActionIcon: {
+    marginRight: 0,
   },
   sectionViewedIcon: {
     fontSize: 15,
