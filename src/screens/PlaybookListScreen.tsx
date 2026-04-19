@@ -175,7 +175,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
         </View>
         <View style={st.dateWithBadge}>
-          {item.updatedAt ? (
+          {!isCardCompleted && item.updatedAt ? (
             <ThemedText style={st.carouselDate}>{format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
           ) : null}
         </View>
@@ -857,9 +857,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.dateWithBadge}>
-            <ThemedText style={styles.carouselDate}>
-              {item.updatedAt ? format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy') : ''}
-            </ThemedText>
+            {!isCardCompleted && item.updatedAt ? (
+              <ThemedText style={styles.carouselDate}>
+                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+              </ThemedText>
+            ) : null}
           </View>
 
           <ThemedText weight="semiBold" style={styles.carouselCardTitle}>{item.title}</ThemedText>
