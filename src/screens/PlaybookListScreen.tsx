@@ -2073,6 +2073,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
     height: 42,
+    lineHeight: 42,
+    textAlignVertical: 'center',
   },
   clearButton: {
     marginLeft: 6,
