@@ -18,6 +18,7 @@ import {
   Dimensions,
   ScrollView,
   TextInput,
+  Easing,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -460,10 +461,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
     setShowSearch(opening);
-    Animated.spring(searchAnim, {
+    Animated.timing(searchAnim, {
       toValue: opening ? 1 : 0,
-      tension: 65,
-      friction: 14,
+      duration: 200,
+      easing: Easing.out(Easing.ease),
       useNativeDriver: false,
     }).start(() => {
       if (opening) {
@@ -1129,6 +1130,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"
+                  keyboardAppearance="dark"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -2055,8 +2057,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: 'rgba(3, 32, 61, 0.08)',
     paddingHorizontal: 12,
     paddingVertical: 0,
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 6,
+    marginBottom: 12,
     height: 42,
   },
   searchIcon: {
@@ -2471,6 +2473,80 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(3, 32, 61, 0.07)',
     letterSpacing: 0.2,
+  },
+  dateModalHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: 'rgba(3, 32, 61, 0.15)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(3, 32, 61, 0.07)',
+  },
+  dateModalClearAll: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.alertCoral,
+  },
+  dateModalSectionLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(3, 32, 61, 0.4)',
+    letterSpacing: 0.5,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  filterModalChips: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  filterModalChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(3, 32, 61, 0.12)',
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    marginRight: 8,
+  },
+  filterModalChipActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.anchorBlue,
+  },
+  filterModalChipText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.anchorBlue,
+    opacity: 0.7,
+  },
+  filterModalChipTextActive: {
+    color: Colors.hopeWhite,
+    opacity: 1,
+  },
+  dateModalApplyButton: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+  },
+  dateModalApplyText: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
   },
   dateOption: {
     flexDirection: 'row',
