@@ -15,12 +15,19 @@ interface PlaybookRow {
   user_input: string | null;
   truth_in_love: any;
   bible_verse: any;
+  bible_verse_reflection: string | null;
   direct_challenge: any;
   challenge_cta: string | null;
   transition_line: string | null;
+  prayer: string | null;
+  word_to_speak: string | null;
+  faithful_actions_intro: string | null;
   status: 'ongoing' | 'completed' | 'paused';
   created_at: string;
   updated_at: string;
+  completed_at: string | null;
+  walkthrough_progress: number | null;
+  tag: string | null;
 }
 
 interface ActionStepRow {
@@ -101,14 +108,21 @@ function transformPlaybookRow(
     userInput: playbookRow.user_input || '',
     truthInLove: playbookRow.truth_in_love,
     bibleVerse: playbookRow.bible_verse,
+    bibleVerseReflection: playbookRow.bible_verse_reflection || '',
     directChallenge: playbookRow.direct_challenge,
     challengeCTA: playbookRow.challenge_cta ?? undefined,
     transitionLine: playbookRow.transition_line || '',
+    prayer: playbookRow.prayer || '',
+    wordToSpeak: playbookRow.word_to_speak || '',
+    faithfulActionsIntro: playbookRow.faithful_actions_intro || '',
     actionSteps: transformedActionSteps,
     affirmations: transformedAffirmations,
     status: playbookRow.status,
     createdAt: playbookRow.created_at,
     updatedAt: playbookRow.updated_at,
+    completedAt: playbookRow.completed_at ?? null,
+    walkthroughProgress: playbookRow.walkthrough_progress ?? -1,
+    tag: playbookRow.tag || undefined,
     progress: 0,
     totalTasks: transformedActionSteps.length,
   };
