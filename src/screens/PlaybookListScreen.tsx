@@ -2140,9 +2140,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SIDE_INSET,
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.anchorBlue,
   },
   viewPill: {
     paddingHorizontal: 18,
