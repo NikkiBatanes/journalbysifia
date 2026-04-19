@@ -1095,7 +1095,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   ]}>
                     {filter === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? Colors.anchorBlue : Colors.growthGreen} />
                 </TouchableOpacity>
 
                 {/* Search circle */}
