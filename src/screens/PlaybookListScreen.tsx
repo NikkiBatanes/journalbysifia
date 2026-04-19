@@ -857,14 +857,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       state === 'viewed'    && styles.statusPillViewed,
                       state === 'unreached' && styles.statusPillUnreached,
                     ]}>
-                      <ThemedText style={[
-                        styles.statusPillText,
-                        state === 'completed' && styles.statusPillTextCompleted,
-                        state === 'viewed'    && styles.statusPillTextViewed,
-                        state === 'unreached' && styles.statusPillTextUnreached,
-                      ]}>
-                        {state === 'completed' ? '●' : state === 'viewed' ? '◐' : '○'}
-                      </ThemedText>
+                      {state === 'completed' ? (
+                        <View style={[
+                          styles.statusPillFill,
+                          state === 'completed' && styles.statusPillFillCompleted,
+                        ]} />
+                      ) : (
+                        <ThemedText style={[
+                          styles.statusPillText,
+                          state === 'viewed'    && styles.statusPillTextViewed,
+                          state === 'unreached' && styles.statusPillTextUnreached,
+                        ]}>
+                          {state === 'viewed' ? '◐' : '○'}
+                        </ThemedText>
+                      )}
                     </View>
                     <View style={styles.sectionContent}>
                       <ThemedText style={[
@@ -1722,6 +1728,14 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   statusPillTextUnreached: {
     color: 'rgba(255, 255, 255, 0.3)',
+  },
+  statusPillFill: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
+  statusPillFillCompleted: {
+    backgroundColor: Colors.growthGreen,
   },
   sectionContent: {
     flex: 1,
