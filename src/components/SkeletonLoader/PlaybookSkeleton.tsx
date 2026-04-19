@@ -48,7 +48,7 @@ export const PlaybookSkeleton: React.FC = () => {
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
+    outputRange: [0.5, 0.9],
   });
 
   const CarouselCardSkeleton = () => (
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
   },
   categorySectionTitle: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 4,
     width: '40%',
   },
   categorySectionCount: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
     marginRight: ITEM_SPACING,
   },
   carouselCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   gradientContainer: {
     height: 44,
