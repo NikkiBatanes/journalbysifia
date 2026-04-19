@@ -812,6 +812,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // In-progress playbooks for "Continue" section — time-filtered, newest activity first
   const continuePlaybooks = useMemo(() => {
+    if (filter === 'completed') return [];
     let list = playbooksWithProgress
       .filter(({ isCompleted }) => !isCompleted)
       .sort((a, b) => {
@@ -830,12 +831,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
       );
     }
     return list.map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, continueTimeFilter]);
+  }, [playbooksWithProgress, continueTimeFilter, filter]);
 
   // All playbooks grouped by category — both statuses, newest first per group
   const categorySections = useMemo(() => {
     const map = new Map<string, Playbook[]>();
-    playbooksWithProgress.forEach(({ playbook }) => {
+    playbooksWithProgress.forEach(({ playbook, isCompleted }) => {
+      if (filter === 'ongoing' && isCompleted) return;
+      if (filter === 'completed' && !isCompleted) return;
       const cat = getCategory(playbook);
       if (!map.has(cat)) { map.set(cat, []); }
       map.get(cat)!.push(playbook);
@@ -856,23 +859,24 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return dateB - dateA;
     });
     return sections;
-  }, [playbooksWithProgress]);
+  }, [playbooksWithProgress, filter]);
 
   // All completed playbooks sorted by latest activity
-  const completedPlaybooks = useMemo(() =>
-    playbooksWithProgress
+  const completedPlaybooks = useMemo(() => {
+    if (filter === 'ongoing') return [];
+    return playbooksWithProgress
       .filter(({ isCompleted }) => isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
-      .map(({ playbook }) => playbook),
-    [playbooksWithProgress],
-  );
+      .map(({ playbook }) => playbook);
+  }, [playbooksWithProgress, filter]);
 
   // All playbooks sorted newest first (for date views)
   const allPlaybooksSorted = useMemo(() =>
     [...playbooksWithProgress]
+      .filter(({ isCompleted }) => filter === 'ongoing' ? !isCompleted : isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
       .map(({ playbook }) => playbook),
-    [playbooksWithProgress],
+    [playbooksWithProgress, filter],
   );
 
   // Weekly sections: group by year-week key, sorted newest first
@@ -1641,42 +1645,42 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </ScrollView>
 
           ) : contentView === 'all' ? (
-            /* ── ALL VIEW: In Progress + Completed ────────── */
+            /* ── ALL VIEW: Respects header filter ─────────────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
               <View style={styles.carouselTitleContainer}>
                 <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                  IN PROGRESS · {continuePlaybooks.length}
+                  {filter === 'ongoing' ? 'IN PROGRESS' : 'COMPLETED'} · {filter === 'ongoing' ? continuePlaybooks.length : completedPlaybooks.length}
                 </ThemedText>
               </View>
-              {continuePlaybooks.length === 0 ? (
-                <View style={styles.continueEmptyContainer}>
-                  <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
-                </View>
-              ) : (
-                <CategoryCarouselRow
-                  category=""
-                  playbooks={continuePlaybooks}
-                  cardStyles={styles}
-                  sessionStates={sessionStates}
-                  devotionalsCount={devotionalsCount}
-                  menuVisible={menuVisible}
-                  onPress={handleCardPress}
-                  onLongPress={handleCardLongPress}
-                  onMenuToggle={setMenuVisible}
-                  onDelete={handleDelete}
-                  onRenamePress={handleRenamePress}
-                  onTagPress={handleTagPress}
-                  onDevotionalPress={handleDevotionalPress}
-                  triggerHaptic={triggerLightHaptic}
-                />
-              )}
-              {completedPlaybooks.length > 0 && (
-                <>
-                  <View style={[styles.carouselTitleContainer, { marginTop: 8 }]}>
-                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                      COMPLETED · {completedPlaybooks.length}
-                    </ThemedText>
+              {filter === 'ongoing' ? (
+                continuePlaybooks.length === 0 ? (
+                  <View style={styles.continueEmptyContainer}>
+                    <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
                   </View>
+                ) : (
+                  <CategoryCarouselRow
+                    category=""
+                    playbooks={continuePlaybooks}
+                    cardStyles={styles}
+                    sessionStates={sessionStates}
+                    devotionalsCount={devotionalsCount}
+                    menuVisible={menuVisible}
+                    onPress={handleCardPress}
+                    onLongPress={handleCardLongPress}
+                    onMenuToggle={setMenuVisible}
+                    onDelete={handleDelete}
+                    onRenamePress={handleRenamePress}
+                    onTagPress={handleTagPress}
+                    onDevotionalPress={handleDevotionalPress}
+                    triggerHaptic={triggerLightHaptic}
+                  />
+                )
+              ) : (
+                completedPlaybooks.length === 0 ? (
+                  <View style={styles.continueEmptyContainer}>
+                    <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
+                  </View>
+                ) : (
                   <CategoryCarouselRow
                     category=""
                     playbooks={completedPlaybooks}
@@ -1693,7 +1697,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     onDevotionalPress={handleDevotionalPress}
                     triggerHaptic={triggerLightHaptic}
                   />
-                </>
+                )
               )}
             </ScrollView>
 
