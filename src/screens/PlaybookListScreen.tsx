@@ -1483,6 +1483,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onChange={(_e, date) => { if (date) { setCustomDateFrom(date); } }}
                       style={styles.inlineDatePicker}
                       accentColor={Colors.hopeWhite}
+                      themeVariant="dark"
                     />
                   )}
                   {dateViewMode === 'custom' && showCustomToPicker && (
@@ -1495,6 +1496,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onChange={(_e, date) => { if (date) { setCustomDateTo(date); } }}
                       style={styles.inlineDatePicker}
                       accentColor={Colors.hopeWhite}
+                      themeVariant="dark"
                     />
                   )}
                 </>
