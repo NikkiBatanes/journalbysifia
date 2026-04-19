@@ -1088,7 +1088,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onPress={() => { triggerLightHaptic(); setShowStatusPicker(true); }}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.statusDot, filter === 'ongoing' ? styles.statusDotOngoing : styles.statusDotCompleted]} />
                   <ThemedText weight="semiBold" style={[
                     styles.statusDropdownBtnText,
                     filter === 'ongoing' && styles.statusDropdownBtnTextOngoing,
@@ -1120,18 +1119,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
             >
               <View style={styles.searchBar}>
                 <Ionicons name="search-outline" size={16} color={'rgba(3,32,61,0.4)'} style={styles.searchIcon} />
-                <TextInput
-                  ref={searchInputRef}
-                  style={styles.searchInput}
-                  placeholder="Search all playbooks..."
-                  placeholderTextColor={'rgba(3,32,61,0.35)'}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="search"
-                  keyboardAppearance="dark"
-                />
+                <View style={styles.searchInputWrapper}>
+                  <TextInput
+                    ref={searchInputRef}
+                    style={styles.searchInput}
+                    placeholder="Search all playbooks..."
+                    placeholderTextColor={'rgba(3,32,61,0.35)'}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
+                    keyboardAppearance="dark"
+                  />
+                </View>
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <Ionicons name="close-circle" size={16} color={'rgba(3,32,61,0.3)'} />
@@ -2061,6 +2062,11 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 2,
     height: 42,
   },
+  searchInputWrapper: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+  },
   searchIcon: {
     marginRight: 7,
   },
@@ -2068,7 +2074,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.anchorBlue,
-    height: 42,
     paddingVertical: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
