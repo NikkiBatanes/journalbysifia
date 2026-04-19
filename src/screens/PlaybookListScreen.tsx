@@ -879,7 +879,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                             <Ionicons
                               name={metaIcon as any}
                               size={12}
-                              color={state === 'completed' ? Colors.hopeWhite : 'rgba(255,255,255,0.4)'}
+                              color={'rgba(255,255,255,0.4)'}
                               style={styles.sectionMetaIcon}
                             />
                           )}
