@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
+import { Colors } from '../../theme';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
@@ -141,11 +142,11 @@ const styles = StyleSheet.create({
     marginRight: ITEM_SPACING,
   },
   carouselCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.inputBackground,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.inputBorder,
   },
   gradientContainer: {
     height: 44,
