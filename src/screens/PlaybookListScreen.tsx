@@ -140,27 +140,6 @@ const getSectionState = (
   return 'unreached';
 };
 
-// Date preset labels and range helper
-const DATE_PRESET_LABELS: Record<string, string> = {
-  all: 'All Time',
-  week: 'This Week',
-  month: 'This Month',
-  '3months': 'Last 3 Months',
-  year: 'Last Year',
-  custom: 'Custom',
-};
-
-const getDateRangeStart = (preset: string, customStart?: Date | null): Date | null => {
-  if (preset === 'all') { return null; }
-  if (preset === 'custom') { return customStart || null; }
-  const now = new Date();
-  if (preset === 'week') { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
-  if (preset === 'month') { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
-  if (preset === '3months') { const d = new Date(now); d.setMonth(d.getMonth() - 3); return d; }
-  if (preset === 'year') { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
-  return null;
-};
-
 interface CarouselCardProps {
   item: Playbook; index: number; scrollX: Animated.Value;
   isMenuOpen: boolean; hasPrayed: boolean; hasRead: boolean; devotionalCount: number;
@@ -548,15 +527,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Native-driver anim used only for the search icon button scale (not height)
   const searchIconAnim = useRef(new Animated.Value(1)).current;
   const searchInputRef = useRef<TextInput>(null);
-  // Category / tag sub-filter ('all' = no filter within the status group)
-  const [activeTag, setActiveTag] = useState<string>('all');
-  // Date preset filter
-  const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year' | 'custom'>('all');
-  const [customDateRange, setCustomDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
-  const [showDateModal, setShowDateModal] = useState(false);
-  const dateModalTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const dateModalFadeAnim = useRef(new Animated.Value(0)).current;
-  const [dateModalVisible, setDateModalVisible] = useState(false);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -586,57 +556,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
       Animated.spring(searchIconAnim, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }),
     ]).start();
   }, [showSearch, searchIconAnim]);
-
-  // Filter modal animation
-  useEffect(() => {
-    let isMounted = true;
-    let animation: Animated.CompositeAnimation | null = null;
-
-    if (showDateModal) {
-      setDateModalVisible(true);
-      animation = Animated.parallel([
-        Animated.timing(dateModalFadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(dateModalTranslateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 20,
-        }),
-      ]);
-      animation.start();
-    } else {
-      const slideDownDistance = Dimensions.get('window').height + 100;
-      animation = Animated.parallel([
-        Animated.timing(dateModalFadeAnim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(dateModalTranslateY, {
-          toValue: slideDownDistance,
-          duration: 300,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.quad),
-        }),
-      ]);
-      animation.start(({ finished }) => {
-        if (finished && isMounted) {
-          setDateModalVisible(false);
-          dateModalTranslateY.setValue(Dimensions.get('window').height);
-        }
-      });
-    }
-
-    return () => {
-      isMounted = false;
-      if (animation) {
-        animation.stop();
-      }
-    };
-  }, [showDateModal, dateModalFadeAnim, dateModalTranslateY]);
 
   // Component renders with current state
 
@@ -737,23 +656,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
     fetchDevotionalsCount();
   }, [userId, playbooks.length]);
 
-  // Unique categories + tags from playbooks for the chip row.
-  // Uses AI-generated 'category' (always populated) + user-set 'tag' (sparse).
-  const uniqueFilterLabels = useMemo(() => {
-    const labels = new Set<string>();
-    playbooks.forEach(p => {
-      const cat = (p as any).category as string | undefined;
-      if (cat) { labels.add(cat); }
-      if (p.tag) { labels.add(p.tag); }
-    });
-    return Array.from(labels).sort();
-  }, [playbooks]);
-
-  // Filter and sort playbooks by status, category/tag, date, and search
+  // Filter and sort playbooks by status and search
   const filteredPlaybooks = useMemo(() => {
     if (playbooksWithProgress.length === 0) { return []; }
     const hasSearch = searchQuery.trim().length > 0;
-    const dateStart = getDateRangeStart(datePreset, customDateRange.start);
 
     const filtered = playbooksWithProgress.filter(({ isCompleted, playbook }) => {
       // Status filter — bypassed when user is actively searching (search crosses both statuses)
@@ -762,29 +668,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
         if (filter === 'completed' && !isCompleted) { return false; }
       }
 
-      // Category / tag sub-filter — match either AI category or user tag
-      if (activeTag !== 'all') {
-        const cat = (playbook as any).category as string | undefined;
-        if (cat !== activeTag && playbook.tag !== activeTag) { return false; }
-      }
-
-      // Date filter
-      if (dateStart) {
-        const pbDate = new Date(playbook.updatedAt || playbook.createdAt || 0);
-        if (pbDate < dateStart) { return false; }
-      }
-
-      // Custom date range end date filter
-      if (datePreset === 'custom' && customDateRange.end) {
-        const pbDate = new Date(playbook.updatedAt || playbook.createdAt || 0);
-        if (pbDate > customDateRange.end) { return false; }
-      }
-
-      // Search
+      // Search filter
       if (hasSearch) {
         const q = searchQuery.toLowerCase();
-        return (playbook.title?.toLowerCase() || '').includes(q) ||
-               (playbook.userInput?.toLowerCase() || '').includes(q);
+        const title = (playbook.title || '').toLowerCase();
+        const cat = ((playbook as any).category || '').toLowerCase();
+        const tag = (playbook.tag || '').toLowerCase();
+        if (!title.includes(q) && !cat.includes(q) && !tag.includes(q)) {
+          return false;
+        }
       }
 
       return true;
@@ -797,7 +689,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         return dateB - dateA;
       })
       .map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, filter, activeTag, datePreset, searchQuery]);
+  }, [playbooksWithProgress, filter, searchQuery]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
@@ -897,6 +789,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
     [playbooksWithProgress, filter],
   );
 
+  const currentYear = new Date().getFullYear();
+
   // Weekly sections: group by year-week key, sorted newest first
   const weeklySections = useMemo(() => {
     const map = new Map<string, { label: string; weekStart: Date; playbooks: Playbook[] }>();
@@ -955,8 +849,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return d >= fromStart.getTime() && d <= toEnd.getTime();
     });
   }, [allPlaybooksSorted, customDateFrom, customDateTo]);
-
-  const currentYear = new Date().getFullYear();
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
@@ -1409,11 +1301,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
                 {/* Date filter tune icon */}
                 <TouchableOpacity
-                  style={[
-                    styles.dateFilterCircleButton,
-                    datePreset !== 'all' && styles.dateFilterCircleButtonActive,
-                  ]}
-                  onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
+                  style={styles.dateFilterCircleButton}
                   activeOpacity={0.75}
                 >
                   <MaterialCommunityIcons name="tune" size={16} color={Colors.anchorBlue} />
@@ -1644,114 +1532,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   );
                 })}
               </View>
-
             </View>
           </TouchableOpacity>
-        </Modal>
-
-        {/* Filter modal — date + clear all */}
-        <Modal visible={dateModalVisible} transparent animationType="none" onRequestClose={() => setShowDateModal(false)}>
-          <View style={styles.dateModalOverlay}>
-            <Animated.View style={[styles.dateModalBackdrop, { opacity: dateModalFadeAnim }]}>
-              <TouchableOpacity
-                style={StyleSheet.absoluteFill}
-                activeOpacity={1}
-                onPress={() => { triggerLightHaptic(); setShowDateModal(false); }}
-              />
-            </Animated.View>
-            <Animated.View
-              style={[
-                styles.dateModalContent,
-                { transform: [{ translateY: dateModalTranslateY }] },
-              ]}
-            >
-              {/* Handle */}
-              <View style={styles.dateModalHandle} />
-
-              <View style={styles.dateModalHeader}>
-                <ThemedText weight="semiBold" style={styles.dateModalTitle}>Filters</ThemedText>
-                {(datePreset !== 'all' || activeTag !== 'all') && (
-                  <TouchableOpacity onPress={() => { triggerLightHaptic(); setDatePreset('all'); setActiveTag('all'); setShowDateModal(false); }}>
-                    <ThemedText style={styles.dateModalClearAll}>Clear all</ThemedText>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <ThemedText style={styles.dateModalSectionLabel}>DATE RANGE</ThemedText>
-              {(['all', 'week', 'month', '3months', 'year', 'custom'] as const).map(preset => (
-                <TouchableOpacity
-                  key={preset}
-                  style={[styles.dateOption, datePreset === preset && styles.dateOptionActive]}
-                  onPress={() => { triggerLightHaptic(); setDatePreset(preset); }}
-                >
-                  <ThemedText style={[styles.dateOptionText, datePreset === preset && styles.dateOptionTextActive]}>
-                    {DATE_PRESET_LABELS[preset]}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-
-              {datePreset === 'custom' && (
-                <View style={styles.customDateRangeContainer}>
-                  <TouchableOpacity
-                    style={styles.customDateButton}
-                    onPress={() => {
-                      // TODO: Show date picker for start date
-                      triggerLightHaptic();
-                    }}
-                  >
-                    <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />
-                    <ThemedText style={styles.customDateButtonText}>
-                      {customDateRange.start ? format(customDateRange.start, 'MMM d, yyyy') : 'Start Date'}
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <ThemedText style={styles.customDateRangeSeparator}>to</ThemedText>
-                  <TouchableOpacity
-                    style={styles.customDateButton}
-                    onPress={() => {
-                      // TODO: Show date picker for end date
-                      triggerLightHaptic();
-                    }}
-                  >
-                    <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />
-                    <ThemedText style={styles.customDateButtonText}>
-                      {customDateRange.end ? format(customDateRange.end, 'MMM d, yyyy') : 'End Date'}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {uniqueFilterLabels.length > 0 && (
-                <>
-                  <ThemedText style={[styles.dateModalSectionLabel, { marginTop: 16 }]}>CATEGORY</ThemedText>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterModalChips}>
-                    <TouchableOpacity
-                      style={[styles.filterModalChip, activeTag === 'all' && styles.filterModalChipActive]}
-                      onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
-                    >
-                      <ThemedText style={[styles.filterModalChipText, activeTag === 'all' && styles.filterModalChipTextActive]}>All</ThemedText>
-                    </TouchableOpacity>
-                    {uniqueFilterLabels.map(label => (
-                      <TouchableOpacity
-                        key={label}
-                        style={[styles.filterModalChip, activeTag === label && styles.filterModalChipActive]}
-                        onPress={() => { triggerLightHaptic(); setActiveTag(activeTag === label ? 'all' : label); }}
-                      >
-                        <ThemedText style={[styles.filterModalChipText, activeTag === label && styles.filterModalChipTextActive]}>{label}</ThemedText>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </>
-              )}
-
-              <TouchableOpacity
-                style={styles.dateModalApplyButton}
-                onPress={() => { triggerLightHaptic(); setShowDateModal(false); }}
-              >
-                <ThemedText weight="semiBold" style={styles.dateModalApplyText}>Apply</ThemedText>
-              </TouchableOpacity>
-
-            </Animated.View>
-          </View>
         </Modal>
 
         {/* ── BLUE SHEET ─────────────────────────────────────── */}
@@ -3396,143 +3178,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
   },
   tagChipTextActive: {
-    color: Colors.hopeWhite,
-  },
-
-  // ── Date filter modal ─────────────────────────────────────────
-  dateModalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  dateModalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  dateModalContent: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-  dateModalHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  dateModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  dateModalTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: Colors.hopeWhite,
-  },
-  dateModalClearAll: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-    color: Colors.alertCoral,
-  },
-  dateModalSectionLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: 'rgba(255, 255, 255, 0.6)',
-    letterSpacing: 0.5,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  filterModalChips: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  filterModalChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginRight: 8,
-  },
-  filterModalChipActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  filterModalChipText: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
-  },
-  filterModalChipTextActive: {
-    fontFamily: Fonts.semiBold,
-    color: Colors.hopeWhite,
-  },
-  dateModalApplyButton: {
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 24,
-    paddingVertical: 15,
-    paddingHorizontal: 28,
-    borderRadius: 50,
-    backgroundColor: Colors.alertCoral,
-    alignItems: 'center',
-  },
-  dateModalApplyText: {
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
-    color: Colors.hopeWhite,
-  },
-  customDateRangeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  customDateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  customDateButtonText: {
-    fontSize: 13,
-    color: Colors.hopeWhite,
-  },
-  customDateRangeSeparator: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  dateOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  dateOptionActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  dateOptionText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-  },
-  dateOptionTextActive: {
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
   },
 
