@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo, createRef, useDeferredValue } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -306,6 +306,285 @@ const CategoryCarouselRow = React.memo(({
   );
 });
 
+// ─── Picker Modal ─────────────────────────────────────────────────────────────
+// Extracted as React.memo so pill taps ONLY re-render this small component,
+// never the full PlaybookListScreen.
+type PickerModalProps = {
+  visible: boolean;
+  filter: 'ongoing' | 'completed';
+  initContentView: 'all' | 'category' | 'date';
+  initDateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom';
+  initSelectedCategories: string[];
+  initCustomDateFrom: Date;
+  initCustomDateTo: Date;
+  availableCategories: string[];
+  onClose: () => void;
+  onFilterChange: (f: 'ongoing' | 'completed') => void;
+  onApply: (
+    contentView: 'all' | 'category' | 'date',
+    dateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom',
+    selectedCategories: string[],
+    customDateFrom: Date,
+    customDateTo: Date,
+  ) => void;
+  onHaptic: () => void;
+};
+
+const PickerModal = React.memo(({
+  visible, filter, initContentView, initDateViewMode, initSelectedCategories,
+  initCustomDateFrom, initCustomDateTo, availableCategories,
+  onClose, onFilterChange, onApply, onHaptic,
+}: PickerModalProps) => {
+  const [localView, setLocalView] = useState<'all' | 'category' | 'date'>(initContentView);
+  const [localDateMode, setLocalDateMode] = useState<'weekly' | 'monthly' | 'yearly' | 'custom'>(initDateViewMode);
+  const [localCategories, setLocalCategories] = useState<string[]>(initSelectedCategories);
+  const [customFrom, setCustomFrom] = useState<Date>(initCustomDateFrom);
+  const [customTo, setCustomTo] = useState<Date>(initCustomDateTo);
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+
+  // Sync local state whenever the modal opens so it starts from current values
+  useEffect(() => {
+    if (visible) {
+      setLocalView(initContentView);
+      setLocalDateMode(initDateViewMode);
+      setLocalCategories(initSelectedCategories);
+      setCustomFrom(initCustomDateFrom);
+      setCustomTo(initCustomDateTo);
+      setShowFromPicker(false);
+      setShowToPicker(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const handleApplyAndClose = useCallback(() => {
+    onApply(localView, localDateMode, localCategories, customFrom, customTo);
+    onClose();
+  }, [localView, localDateMode, localCategories, customFrom, customTo, onApply, onClose]);
+
+  const pickerStyles = React.useMemo(() => StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.2)',
+      justifyContent: 'flex-start',
+      paddingTop: 112,
+      alignItems: 'flex-end',
+      paddingRight: 16,
+    },
+    card: {
+      backgroundColor: Colors.hopeWhite,
+      borderRadius: 18,
+      overflow: 'hidden',
+      minWidth: 220,
+      paddingTop: 14,
+      paddingBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    sectionLabel: {
+      fontSize: 10,
+      fontFamily: Fonts.semiBold,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 1,
+      color: 'rgba(3, 32, 61, 0.38)',
+      paddingHorizontal: 16,
+      paddingTop: 4,
+    },
+    pillRow: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 4,
+    },
+    pill: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(3,32,61,0.14)',
+      backgroundColor: 'rgba(3,32,61,0.04)',
+    },
+    pillActive: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
+    pillActiveOngoing: { backgroundColor: 'rgba(230,90,70,0.1)', borderColor: Colors.alertCoral },
+    pillActiveCompleted: { backgroundColor: 'rgba(95,138,104,0.1)', borderColor: Colors.growthGreen },
+    pillPressed: { transform: [{ scale: 0.93 }] as any, opacity: 0.75 },
+    pillText: { fontSize: 13, fontFamily: Fonts.regular, color: 'rgba(3,32,61,0.5)' },
+    pillTextActive: { color: Colors.hopeWhite },
+    pillTextOngoing: { color: Colors.alertCoral },
+    pillTextCompleted: { color: Colors.growthGreen },
+    divider: { height: 1, backgroundColor: 'rgba(3,32,61,0.08)', marginHorizontal: 16, marginVertical: 14 },
+    applyBtn: {
+      marginHorizontal: 16, marginTop: 12, marginBottom: 2,
+      paddingVertical: 10, borderRadius: 999,
+      backgroundColor: Colors.anchorBlue, alignItems: 'center' as const,
+    },
+    applyBtnText: { fontSize: 13, color: Colors.hopeWhite },
+    customDateRow: {
+      flexDirection: 'row' as const, alignItems: 'center' as const,
+      marginHorizontal: 16, marginTop: 10, marginBottom: 4,
+      backgroundColor: 'rgba(3,32,61,0.04)',
+      borderRadius: 12, borderWidth: 1, borderColor: 'rgba(3,32,61,0.1)', overflow: 'hidden' as const,
+    },
+    customDateField: { flex: 1, alignItems: 'center' as const, paddingVertical: 10, gap: 2 },
+    customDateSep: { width: 1, height: 32, backgroundColor: 'rgba(3,32,61,0.1)' },
+    customDateLabel: {
+      fontSize: 10, fontFamily: Fonts.regular,
+      color: 'rgba(3,32,61,0.38)', textTransform: 'uppercase' as const, letterSpacing: 0.8,
+    },
+    customDateValue: { fontSize: 13, fontFamily: Fonts.semiBold, color: Colors.anchorBlue },
+    inlinePicker: { marginHorizontal: 8, marginBottom: 4 },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []); // static — only computed once
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleApplyAndClose}>
+      <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
+        <Pressable style={pickerStyles.card}>
+
+          {/* VIEW */}
+          <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>View</ThemedText>
+          <View style={pickerStyles.pillRow}>
+            {(['all', 'category', 'date'] as const).map(v => {
+              const active = localView === v;
+              return (
+                <Pressable key={v}
+                  style={({ pressed }) => [pickerStyles.pill, active && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
+                  onPress={() => { onHaptic(); setLocalView(v); if (v === 'all') { setLocalCategories([]); handleApplyAndClose(); } }}
+                >
+                  <ThemedText weight={active ? 'semiBold' : 'regular'}
+                    style={[pickerStyles.pillText, active && pickerStyles.pillTextActive]}>
+                    {v === 'all' ? 'All' : v === 'category' ? 'Category' : 'Date'}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* CATEGORY sub-section */}
+          {localView === 'category' && availableCategories.length > 0 && (
+            <>
+              <ThemedText weight="semiBold" style={[pickerStyles.sectionLabel, { marginTop: 14 }]}>Categories</ThemedText>
+              <View style={pickerStyles.pillRow}>
+                {availableCategories.map(cat => {
+                  const sel = localCategories.includes(cat);
+                  return (
+                    <Pressable key={cat}
+                      style={({ pressed }) => [pickerStyles.pill, sel && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
+                      onPress={() => { onHaptic(); setLocalCategories(prev => sel ? prev.filter(c => c !== cat) : [...prev, cat]); }}
+                    >
+                      <ThemedText weight={sel ? 'semiBold' : 'regular'}
+                        style={[pickerStyles.pillText, sel && pickerStyles.pillTextActive]}>
+                        {cat}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
+                onPress={() => { onHaptic(); handleApplyAndClose(); }}>
+                <ThemedText weight="semiBold" style={pickerStyles.applyBtnText}>
+                  {localCategories.length === 0 ? 'View All' : `View ${localCategories.length} Categor${localCategories.length === 1 ? 'y' : 'ies'}`}
+                </ThemedText>
+              </Pressable>
+            </>
+          )}
+
+          {/* DATE VIEW sub-section */}
+          {localView === 'date' && (
+            <>
+              <ThemedText weight="semiBold" style={[pickerStyles.sectionLabel, { marginTop: 14 }]}>Date View</ThemedText>
+              <View style={pickerStyles.pillRow}>
+                {(['weekly', 'monthly', 'yearly', 'custom'] as const).map(m => {
+                  const active = localDateMode === m;
+                  const label = m === 'weekly' ? 'Weekly' : m === 'monthly' ? 'Monthly' : m === 'yearly' ? 'Yearly' : 'Custom';
+                  return (
+                    <Pressable key={m}
+                      style={({ pressed }) => [pickerStyles.pill, active && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
+                      onPress={() => { onHaptic(); setLocalDateMode(m); }}
+                    >
+                      <ThemedText weight={active ? 'semiBold' : 'regular'}
+                        style={[pickerStyles.pillText, active && pickerStyles.pillTextActive]}>
+                        {label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {localDateMode === 'custom' && (
+                <View style={pickerStyles.customDateRow}>
+                  <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
+                    onPress={() => { setShowFromPicker(p => !p); setShowToPicker(false); }}>
+                    <ThemedText weight="regular" style={pickerStyles.customDateLabel}>From</ThemedText>
+                    <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customFrom, 'MMM d, yyyy')}</ThemedText>
+                  </Pressable>
+                  <View style={pickerStyles.customDateSep} />
+                  <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
+                    onPress={() => { setShowToPicker(p => !p); setShowFromPicker(false); }}>
+                    <ThemedText weight="regular" style={pickerStyles.customDateLabel}>To</ThemedText>
+                    <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customTo, 'MMM d, yyyy')}</ThemedText>
+                  </Pressable>
+                </View>
+              )}
+              {localDateMode === 'custom' && showFromPicker && (
+                <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
+                  onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
+                  style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+              )}
+              {localDateMode === 'custom' && showToPicker && (
+                <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
+                  onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
+                  style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+              )}
+              <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
+                onPress={() => { onHaptic(); handleApplyAndClose(); }}>
+                <ThemedText weight="semiBold" style={pickerStyles.applyBtnText}>Apply</ThemedText>
+              </Pressable>
+            </>
+          )}
+
+          {/* DIVIDER */}
+          <View style={pickerStyles.divider} />
+
+          {/* STATUS */}
+          <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>Status</ThemedText>
+          <View style={pickerStyles.pillRow}>
+            {(['ongoing', 'completed'] as const).map(s => {
+              const active = filter === s;
+              const ongoing = s === 'ongoing';
+              return (
+                <Pressable key={s}
+                  style={({ pressed }) => [
+                    pickerStyles.pill,
+                    active && (ongoing ? pickerStyles.pillActiveOngoing : pickerStyles.pillActiveCompleted),
+                    pressed && pickerStyles.pillPressed,
+                  ]}
+                  onPress={() => { onHaptic(); onFilterChange(s); onClose(); }}
+                >
+                  <ThemedText weight={active ? 'semiBold' : 'regular'} style={[
+                    pickerStyles.pillText,
+                    active && (ongoing ? pickerStyles.pillTextOngoing : pickerStyles.pillTextCompleted),
+                  ]}>
+                    {ongoing ? 'In Progress' : 'Completed'}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+});
+
 const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
@@ -531,6 +810,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
+  // Deferred versions — memos use these so expensive re-computation is deferred
+  // while the modal pills update instantly using the original state values
+  const deferredFilter = useDeferredValue(filter);
+  const deferredSelectedCategories = useDeferredValue(selectedCategories);
+
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
 
@@ -556,6 +840,24 @@ const PlaybookListScreen = ({ navigation }: any) => {
       Animated.spring(searchIconAnim, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }),
     ]).start();
   }, [showSearch, searchIconAnim]);
+
+  // PickerModal callbacks — memoized so they never cause PickerModal to re-render
+  const handlePickerApply = useCallback((
+    cv: 'all' | 'category' | 'date',
+    dm: 'weekly' | 'monthly' | 'yearly' | 'custom',
+    cats: string[],
+    from: Date,
+    to: Date,
+  ) => {
+    setContentView(cv);
+    setDateViewMode(dm);
+    setSelectedCategories(cats);
+    setCustomDateFrom(from);
+    setCustomDateTo(to);
+  }, []);
+
+  const handlePickerClose = useCallback(() => setShowStatusPicker(false), []);
+  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed') => setFilter(f), []);
 
   // Component renders with current state
 
@@ -664,8 +966,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
     const filtered = playbooksWithProgress.filter(({ isCompleted, playbook }) => {
       // Status filter — bypassed when user is actively searching (search crosses both statuses)
       if (!hasSearch) {
-        if (filter === 'ongoing' && isCompleted) { return false; }
-        if (filter === 'completed' && !isCompleted) { return false; }
+        if (deferredFilter === 'ongoing' && isCompleted) { return false; }
+        if (deferredFilter === 'completed' && !isCompleted) { return false; }
       }
 
       // Search filter
@@ -689,7 +991,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         return dateB - dateA;
       })
       .map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, filter, searchQuery]);
+  }, [playbooksWithProgress, deferredFilter, searchQuery]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
   useEffect(() => {
@@ -711,7 +1013,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // In-progress playbooks for "Continue" section — time-filtered, newest activity first
   const continuePlaybooks = useMemo(() => {
-    if (filter === 'completed') return [];
+    if (deferredFilter === 'completed') return [];
     let list = playbooksWithProgress
       .filter(({ isCompleted }) => !isCompleted)
       .sort((a, b) => {
@@ -730,7 +1032,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       );
     }
     return list.map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, continueTimeFilter, filter]);
+  }, [playbooksWithProgress, continueTimeFilter, deferredFilter]);
 
   // All playbooks grouped by category — both statuses, newest first per group
   // All unique categories the user actually has playbooks for
@@ -745,11 +1047,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const categorySections = useMemo(() => {
     const map = new Map<string, Playbook[]>();
     playbooksWithProgress.forEach(({ playbook, isCompleted }) => {
-      if (filter === 'ongoing' && isCompleted) return;
-      if (filter === 'completed' && !isCompleted) return;
+      if (deferredFilter === 'ongoing' && isCompleted) return;
+      if (deferredFilter === 'completed' && !isCompleted) return;
       const cat = getCategory(playbook);
       // If specific categories are selected, skip others
-      if (selectedCategories.length > 0 && !selectedCategories.includes(cat)) return;
+      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) return;
       if (!map.has(cat)) { map.set(cat, []); }
       map.get(cat)!.push(playbook);
     });
@@ -769,24 +1071,24 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return dateB - dateA;
     });
     return sections;
-  }, [playbooksWithProgress, filter, selectedCategories]);
+  }, [playbooksWithProgress, deferredFilter, deferredSelectedCategories]);
 
   // All completed playbooks sorted by latest activity
   const completedPlaybooks = useMemo(() => {
-    if (filter === 'ongoing') return [];
+    if (deferredFilter === 'ongoing') return [];
     return playbooksWithProgress
       .filter(({ isCompleted }) => isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
       .map(({ playbook }) => playbook);
-  }, [playbooksWithProgress, filter]);
+  }, [playbooksWithProgress, deferredFilter]);
 
   // All playbooks sorted newest first (for date views)
   const allPlaybooksSorted = useMemo(() =>
     [...playbooksWithProgress]
-      .filter(({ isCompleted }) => filter === 'ongoing' ? !isCompleted : isCompleted)
+      .filter(({ isCompleted }) => deferredFilter === 'ongoing' ? !isCompleted : isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
       .map(({ playbook }) => playbook),
-    [playbooksWithProgress, filter],
+    [playbooksWithProgress, deferredFilter],
   );
 
   const currentYear = new Date().getFullYear();
@@ -1346,194 +1648,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Status picker modal */}
-        <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
-          <TouchableOpacity style={styles.statusPickerOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>
-            <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
-
-              {/* ── VIEW section ── */}
-              <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>View</ThemedText>
-              <View style={styles.pickerPillRow}>
-                {(['all', 'category', 'date'] as const).map(view => {
-                  const isActive = contentView === view;
-                  const label = view === 'all' ? 'All' : view === 'category' ? 'Category' : 'Date';
-                  return (
-                    <TouchableOpacity
-                      key={view}
-                      style={[styles.pickerPill, isActive && styles.pickerPillActive]}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        setContentView(view);
-                        // Close immediately only for "All"; keep open for Category/Date so sub-options show
-                        if (view === 'all') { setSelectedCategories([]); setShowStatusPicker(false); }
-                      }}
-                      activeOpacity={0.75}
-                    >
-                      <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[styles.pickerPillText, isActive && styles.pickerPillTextActive]}>
-                        {label}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* ── CATEGORY sub-section (only when Category is selected) ── */}
-              {contentView === 'category' && availableCategories.length > 0 && (
-                <>
-                  <ThemedText weight="semiBold" style={[styles.statusPickerSectionHeaderText, { marginTop: 14 }]}>
-                    Categories
-                  </ThemedText>
-                  <View style={styles.pickerPillRow}>
-                    {availableCategories.map(cat => {
-                      const isSelected = selectedCategories.includes(cat);
-                      return (
-                        <TouchableOpacity
-                          key={cat}
-                          style={[styles.pickerPill, isSelected && styles.pickerPillActive]}
-                          onPress={() => {
-                            triggerLightHaptic();
-                            setSelectedCategories(prev =>
-                              isSelected
-                                ? prev.filter(c => c !== cat)   // deselect
-                                : [...prev, cat]                // select
-                            );
-                          }}
-                          activeOpacity={0.75}
-                        >
-                          <ThemedText
-                            weight={isSelected ? 'semiBold' : 'regular'}
-                            style={[styles.pickerPillText, isSelected && styles.pickerPillTextActive]}
-                          >
-                            {cat}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  {/* Apply button to close modal */}
-                  <TouchableOpacity
-                    style={styles.pickerApplyButton}
-                    onPress={() => { triggerLightHaptic(); setShowStatusPicker(false); }}
-                    activeOpacity={0.8}
-                  >
-                    <ThemedText weight="semiBold" style={styles.pickerApplyButtonText}>
-                      {selectedCategories.length === 0 ? 'View All' : `View ${selectedCategories.length} Categor${selectedCategories.length === 1 ? 'y' : 'ies'}`}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {/* ── DATE VIEW sub-section (only when Date is selected) ── */}
-              {contentView === 'date' && (
-                <>
-                  <ThemedText weight="semiBold" style={[styles.statusPickerSectionHeaderText, { marginTop: 14 }]}>Date View</ThemedText>
-                  <View style={styles.pickerPillRow}>
-                    {(['weekly', 'monthly', 'yearly', 'custom'] as const).map(mode => {
-                      const isActive = dateViewMode === mode;
-                      const label = mode === 'weekly' ? 'Weekly' : mode === 'monthly' ? 'Monthly' : mode === 'yearly' ? 'Yearly' : 'Custom';
-                      return (
-                        <TouchableOpacity
-                          key={mode}
-                          style={[styles.pickerPill, isActive && styles.pickerPillActive]}
-                          onPress={() => { triggerLightHaptic(); setDateViewMode(mode); }}
-                          activeOpacity={0.75}
-                        >
-                          <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[styles.pickerPillText, isActive && styles.pickerPillTextActive]}>
-                            {label}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* Custom date range pickers */}
-                  {dateViewMode === 'custom' && (
-                    <View style={styles.customDateContainer}>
-                      {/* From */}
-                      <TouchableOpacity
-                        style={styles.customDateField}
-                        onPress={() => { setShowCustomFromPicker(p => !p); setShowCustomToPicker(false); }}
-                        activeOpacity={0.8}
-                      >
-                        <ThemedText weight="regular" style={styles.customDateLabel}>From</ThemedText>
-                        <ThemedText weight="semiBold" style={styles.customDateValue}>
-                          {format(customDateFrom, 'MMM d, yyyy')}
-                        </ThemedText>
-                      </TouchableOpacity>
-                      <View style={styles.customDateSep} />
-                      {/* To */}
-                      <TouchableOpacity
-                        style={styles.customDateField}
-                        onPress={() => { setShowCustomToPicker(p => !p); setShowCustomFromPicker(false); }}
-                        activeOpacity={0.8}
-                      >
-                        <ThemedText weight="regular" style={styles.customDateLabel}>To</ThemedText>
-                        <ThemedText weight="semiBold" style={styles.customDateValue}>
-                          {format(customDateTo, 'MMM d, yyyy')}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {dateViewMode === 'custom' && showCustomFromPicker && (
-                    <DateTimePicker
-                      value={customDateFrom}
-                      mode="date"
-                      display="inline"
-                      maximumDate={customDateTo}
-                      onChange={(_e, date) => { if (date) { setCustomDateFrom(date); } }}
-                      style={styles.inlineDatePicker}
-                      accentColor={Colors.hopeWhite}
-                      themeVariant="dark"
-                    />
-                  )}
-                  {dateViewMode === 'custom' && showCustomToPicker && (
-                    <DateTimePicker
-                      value={customDateTo}
-                      mode="date"
-                      display="inline"
-                      minimumDate={customDateFrom}
-                      maximumDate={new Date()}
-                      onChange={(_e, date) => { if (date) { setCustomDateTo(date); } }}
-                      style={styles.inlineDatePicker}
-                      accentColor={Colors.hopeWhite}
-                      themeVariant="dark"
-                    />
-                  )}
-                </>
-              )}
-
-              {/* ── DIVIDER ── */}
-              <View style={styles.pickerDivider} />
-
-              {/* ── STATUS section ── */}
-              <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Status</ThemedText>
-              <View style={styles.pickerPillRow}>
-                {(['ongoing', 'completed'] as const).map(status => {
-                  const isActive = filter === status;
-                  const isOngoing = status === 'ongoing';
-                  return (
-                    <TouchableOpacity
-                      key={status}
-                      style={[
-                        styles.pickerPill,
-                        isActive && (isOngoing ? styles.pickerPillActiveOngoing : styles.pickerPillActiveCompleted),
-                      ]}
-                      onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusPicker(false); }}
-                      activeOpacity={0.75}
-                    >
-                      <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[
-                        styles.pickerPillText,
-                        isActive && (isOngoing ? styles.pickerPillTextOngoing : styles.pickerPillTextCompleted),
-                      ]}>
-                        {isOngoing ? 'In Progress' : 'Completed'}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </TouchableOpacity>
-        </Modal>
+        {/* Status picker modal — extracted as React.memo to avoid re-rendering this screen on every pill tap */}
+        <PickerModal
+          visible={showStatusPicker}
+          filter={filter}
+          initContentView={contentView}
+          initDateViewMode={dateViewMode}
+          initSelectedCategories={selectedCategories}
+          initCustomDateFrom={customDateFrom}
+          initCustomDateTo={customDateTo}
+          availableCategories={availableCategories}
+          onClose={handlePickerClose}
+          onFilterChange={handlePickerFilterChange}
+          onApply={handlePickerApply}
+          onHaptic={triggerLightHaptic}
+        />
 
         {/* ── BLUE SHEET ─────────────────────────────────────── */}
         <BlueSheet style={styles.contentSheet}>
@@ -2982,6 +3111,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
   pickerPillActive: {
     backgroundColor: Colors.anchorBlue,
     borderColor: Colors.anchorBlue,
+  },
+  pickerPillPressed: {
+    transform: [{ scale: 0.93 }],
+    opacity: 0.75,
   },
   pickerPillActiveOngoing: {
     backgroundColor: Colors.anchorBlue,
