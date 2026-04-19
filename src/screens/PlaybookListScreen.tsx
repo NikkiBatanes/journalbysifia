@@ -1608,7 +1608,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
 
           {/* ── CONTINUE YOUR PLAYBOOK/S label ─────────────── */}
-          {contentView === 'all' && (
+          {filter === 'ongoing' && contentView === 'all' && (
             <View style={styles.viewPillRow}>
               <ThemedText weight="semiBold" style={styles.carouselTitle}>
                 CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
