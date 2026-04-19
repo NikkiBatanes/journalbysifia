@@ -533,8 +533,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Date view sub-mode
   const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [showDateViewDropdown, setShowDateViewDropdown] = useState(false);
-  // Track if Date pill has been tapped (to show "Date" initially, then "Monthly" on first tap)
-  const [datePillTapped, setDatePillTapped] = useState(false);
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
   const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
@@ -1598,24 +1596,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
               style={[styles.viewPill, contentView === 'date' && styles.viewPillActive, styles.viewPillWithIcon]}
               onPress={() => {
                 triggerLightHaptic();
-                if (!datePillTapped) {
-                  // First tap: switch to Date view with Monthly mode
-                  setDatePillTapped(true);
-                  setContentView('date');
-                  setDateViewMode('monthly');
-                } else if (contentView !== 'date') {
-                  // Switch to Date view
-                  setContentView('date');
-                } else {
-                  // Already on Date view: show dropdown
-                  setShowDateViewDropdown(true);
-                }
+                setContentView('date');
+                setShowDateViewDropdown(true);
               }}
             >
               <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
-                {!datePillTapped ? 'Date' : dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
+                {contentView === 'date' ? (dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly') : 'Date'}
               </ThemedText>
-              {datePillTapped && contentView === 'date' && <Ionicons name="chevron-down" size={12} color={Colors.hopeWhite} style={{ marginLeft: 4 }} />}
+              <Ionicons name="chevron-down" size={12} color={contentView === 'date' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'} style={{ marginLeft: 4 }} />
             </Pressable>
           </View>
 
