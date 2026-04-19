@@ -161,6 +161,92 @@ const getSectionState = (
   return 'unreached';
 };
 
+interface CarouselCardProps {
+  item: Playbook; index: number; scrollX: Animated.Value;
+  isMenuOpen: boolean; hasPrayed: boolean; hasRead: boolean; devotionalCount: number;
+  cardStyles: any;
+  onPress: (item: Playbook) => void; onLongPress: (item: Playbook) => void;
+  onMenuToggle: (id: string | null) => void; onDelete: (id: string) => void;
+  onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
+  onDevotionalPress: (item: Playbook) => void; triggerHaptic: () => void;
+}
+const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
+  const ir = [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE];
+  const scale      = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
+  const opacity    = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.9, 1, 0.9],   extrapolate: 'clamp' }), [scrollX, index]);
+  const translateY = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [2, 0, 2],       extrapolate: 'clamp' }), [scrollX, index]);
+  const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
+  const category    = useMemo(() => getCategory(item), [item.title, item.userInput]);
+  const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [item.truthInLove]);
+  const isCardCompleted = item.status === 'completed';
+  const wp = item.walkthroughProgress ?? -1;
+  return (
+    <TouchableOpacity style={st.carouselCardTouch} onPress={() => onPress(item)} onLongPress={() => onLongPress(item)} activeOpacity={0.85}>
+      <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
+        <View style={st.gradientContainer}>
+          <View style={st.categoryLabel}><ThemedText weight="bold" style={st.categoryLabelText}>{category}</ThemedText></View>
+          <TouchableOpacity style={st.menuButton} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(isMenuOpen ? null : item.id); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
+          </TouchableOpacity>
+          {isMenuOpen && (
+            <View style={st.dropdownMenu}>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onRenamePress(item); }}><ThemedText style={st.dropdownItemText}>Rename</ThemedText></TouchableOpacity>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onTagPress(item); }}>
+                <View style={st.dropdownItemContent}><ThemedText style={st.dropdownItemText}>Tag</ThemedText>{item.tag && <View style={st.dropdownBadge}><ThemedText style={st.dropdownBadgeText}>{item.tag}</ThemedText></View>}</View>
+              </TouchableOpacity>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onDevotionalPress(item); }}>
+                <View style={st.dropdownItemContent}>
+                  <ThemedText style={st.dropdownItemText}>Turn into devotional</ThemedText>
+                  {devotionalCount > 0 && <View style={st.dropdownBadge}><MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />{devotionalCount >= 2 && <ThemedText style={st.dropdownBadgeText}>{devotionalCount}</ThemedText>}</View>}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(null); onDelete(item.id); }}><ThemedText style={[st.dropdownItemText, st.dropdownItemTextDelete]}>Delete</ThemedText></TouchableOpacity>
+            </View>
+          )}
+          {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
+        </View>
+        <View style={st.dateWithBadge}>
+          {isCardCompleted && item.completedAt ? (
+            <ThemedText style={[st.carouselDate, st.completedDate]}>Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
+          ) : item.updatedAt ? (
+            <ThemedText style={st.carouselDate}>{format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
+          ) : null}
+        </View>
+        <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.title}</ThemedText>
+        {item.userInput && <ThemedText style={st.carouselCardDescription} numberOfLines={3}>{item.userInput}</ThemedText>}
+        {isCardCompleted ? (
+          <View style={st.completedSummary}><Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} /><ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText></View>
+        ) : (
+          <View style={st.sectionsContainer}>
+            {([
+              { label: 'Intro', step: 0 },
+              { label: 'Truth in Love', step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
+              { label: 'Scripture to Anchor', step: 2 },
+              { label: 'Faithful Actions', step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
+              { label: 'Prayer', step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: hasPrayed },
+              { label: 'Words to Speak', step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: hasRead },
+            ] as any[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
+              const state = getSectionState(step, wp);
+              return (
+                <View key={label} style={st.sectionItem}>
+                  <View style={[st.statusPill, state === 'completed' && st.statusPillCompleted, state === 'viewed' && st.statusPillViewed, state === 'unreached' && st.statusPillUnreached]}>
+                    {state === 'completed' ? <View style={[st.statusPillFill, st.statusPillFillCompleted]} /> : <ThemedText style={[st.statusPillText, state === 'viewed' && st.statusPillTextViewed, state === 'unreached' && st.statusPillTextUnreached]}>{state === 'viewed' ? '◐' : '○'}</ThemedText>}
+                  </View>
+                  <View style={st.sectionContent}>
+                    <ThemedText style={[st.sectionLabel, state === 'unreached' && st.sectionLabelMuted]}>{label}</ThemedText>
+                    {meta && <View style={st.sectionMetaContainer}>{metaIcon && <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={st.sectionMetaIcon} />}<ThemedText style={[st.sectionInfo, state !== 'completed' && st.sectionInfoMuted]}>{meta}</ThemedText></View>}
+                    {actionIcon && !meta && (actionIconType === 'ionicons' ? <Ionicons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={st.sectionActionIcon} /> : <MaterialCommunityIcons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={st.sectionActionIcon} />)}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+});
+
 const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
@@ -647,6 +733,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
       <Ionicons name="trash-outline" size={24} color="white" />
     </RectButton>
   ), [handleDelete, styles.deleteButton, triggerLightHaptic]);
+
+  const handleRenamePress = useCallback((item: Playbook) => {
+    setMenuVisible(null); setSelectedPlaybookForRename(item); setRenameModalVisible(true);
+  }, []);
+  const handleTagPress = useCallback((item: Playbook) => {
+    setMenuVisible(null); setSelectedPlaybookForTag(item); setTagModalVisible(true);
+  }, []);
+  const handleDevotionalPress = useCallback((pb: Playbook) => {
+    setMenuVisible(null); handleCardLongPress(pb);
+  }, [handleCardLongPress]);
 
   const renderItem = useCallback(({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
@@ -1171,7 +1267,27 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 bounces={true}
                 removeClippedSubviews={false}
               >
-                {filteredPlaybooks.map((playbook, index) => renderItem({ item: playbook, index }))}
+                {filteredPlaybooks.map((playbook, index) => (
+                <CarouselCard
+                  key={playbook.id}
+                  item={playbook}
+                  index={index}
+                  scrollX={scrollX}
+                  isMenuOpen={menuVisible === playbook.id}
+                  hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
+                  hasRead={sessionStates[playbook.id]?.hasRead ?? false}
+                  devotionalCount={devotionalsCount[playbook.id] ?? 0}
+                  cardStyles={styles}
+                  onPress={handleCardPress}
+                  onLongPress={handleCardLongPress}
+                  onMenuToggle={setMenuVisible}
+                  onDelete={handleDelete}
+                  onRenamePress={handleRenamePress}
+                  onTagPress={handleTagPress}
+                  onDevotionalPress={handleDevotionalPress}
+                  triggerHaptic={triggerLightHaptic}
+                />
+              ))}
               </Animated.ScrollView>
             </>
           )}
