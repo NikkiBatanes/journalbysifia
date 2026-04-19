@@ -253,6 +253,79 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   );
 });
 
+// ── Per-category horizontal carousel row ──────────────────────────────────
+interface CategoryCarouselRowProps {
+  category: string;
+  playbooks: Playbook[];
+  cardStyles: any;
+  sessionStates: Record<string, { hasPrayed: boolean; hasRead: boolean }>;
+  devotionalsCount: Record<string, number>;
+  menuVisible: string | null;
+  onPress: (item: Playbook) => void;
+  onLongPress: (item: Playbook) => void;
+  onMenuToggle: (id: string | null) => void;
+  onDelete: (id: string) => void;
+  onRenamePress: (item: Playbook) => void;
+  onTagPress: (item: Playbook) => void;
+  onDevotionalPress: (item: Playbook) => void;
+  triggerHaptic: () => void;
+}
+
+const CategoryCarouselRow = React.memo(({
+  category, playbooks, cardStyles: st, sessionStates, devotionalsCount,
+  menuVisible, onPress, onLongPress, onMenuToggle, onDelete,
+  onRenamePress, onTagPress, onDevotionalPress, triggerHaptic,
+}: CategoryCarouselRowProps) => {
+  const rowScrollX = useRef(new Animated.Value(0)).current;
+  return (
+    <View style={st.categorySection}>
+      <View style={st.categorySectionHeader}>
+        <ThemedText weight="semiBold" style={st.categorySectionTitle}>{category.toUpperCase()}</ThemedText>
+        <View style={st.categorySectionCount}>
+          <ThemedText style={st.categorySectionCountText}>{playbooks.length}</ThemedText>
+        </View>
+      </View>
+      <Animated.ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+        decelerationRate="fast"
+        snapToInterval={ITEM_SIZE}
+        snapToAlignment="center"
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: rowScrollX } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+        bounces={true}
+        removeClippedSubviews={false}
+      >
+        {playbooks.map((playbook, index) => (
+          <CarouselCard
+            key={playbook.id}
+            item={playbook}
+            index={index}
+            scrollX={rowScrollX}
+            isMenuOpen={menuVisible === playbook.id}
+            hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
+            hasRead={sessionStates[playbook.id]?.hasRead ?? false}
+            devotionalCount={devotionalsCount[playbook.id] ?? 0}
+            cardStyles={st}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            onMenuToggle={onMenuToggle}
+            onDelete={onDelete}
+            onRenamePress={onRenamePress}
+            onTagPress={onTagPress}
+            onDevotionalPress={onDevotionalPress}
+            triggerHaptic={triggerHaptic}
+          />
+        ))}
+      </Animated.ScrollView>
+    </View>
+  );
+});
+
 const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
@@ -455,6 +528,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Status filter: always one of 'ongoing' or 'completed'
   const [filter, setFilter] = useState<'ongoing' | 'completed'>('ongoing');
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  // Time filter for "Continue your playbooks" section
+  const [continueTimeFilter, setContinueTimeFilter] = useState<'latest' | 'week' | 'month' | 'year'>('latest');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   // Native-driver anim used only for the search icon button scale (not height)
@@ -728,6 +803,54 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [filteredPlaybooks, userId, prefetchVisiblePlaybooks]);
 
   // (Remove any other filteredPlaybooks declarations below this point)
+
+  // In-progress playbooks for "Continue" section — time-filtered, newest activity first
+  const continuePlaybooks = useMemo(() => {
+    let list = playbooksWithProgress
+      .filter(({ isCompleted }) => !isCompleted)
+      .sort((a, b) => {
+        const dateA = new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime();
+        const dateB = new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+    if (continueTimeFilter !== 'latest') {
+      const now = new Date();
+      const cutoff = new Date(now);
+      if (continueTimeFilter === 'week') { cutoff.setDate(now.getDate() - 7); }
+      else if (continueTimeFilter === 'month') { cutoff.setMonth(now.getMonth() - 1); }
+      else { cutoff.setFullYear(now.getFullYear() - 1); }
+      list = list.filter(({ playbook }) =>
+        new Date(playbook.updatedAt || playbook.createdAt || 0) >= cutoff,
+      );
+    }
+    return list.map(({ playbook }) => playbook);
+  }, [playbooksWithProgress, continueTimeFilter]);
+
+  // All playbooks grouped by category — both statuses, newest first per group
+  const categorySections = useMemo(() => {
+    const map = new Map<string, Playbook[]>();
+    playbooksWithProgress.forEach(({ playbook }) => {
+      const cat = getCategory(playbook);
+      if (!map.has(cat)) { map.set(cat, []); }
+      map.get(cat)!.push(playbook);
+    });
+    const sections: { category: string; playbooks: Playbook[] }[] = [];
+    map.forEach((pbs, category) => {
+      const sorted = [...pbs].sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+      sections.push({ category, playbooks: sorted });
+    });
+    // Sort sections by most recently active playbook in each group
+    sections.sort((a, b) => {
+      const dateA = new Date(a.playbooks[0]?.updatedAt || a.playbooks[0]?.createdAt || 0).getTime();
+      const dateB = new Date(b.playbooks[0]?.updatedAt || b.playbooks[0]?.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return sections;
+  }, [playbooksWithProgress]);
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
@@ -1356,7 +1479,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
         </Modal>
 
-        {/* ── BLUE SHEET: category/tag chips + date, then cards ─ */}
+        {/* ── BLUE SHEET ─────────────────────────────────────── */}
         <BlueSheet style={styles.contentSheet}>
 
           {/* Category / tag chip row — always visible at top of blue area */}
@@ -1366,15 +1489,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
             style={styles.tagChipScrollView}
             contentContainerStyle={[styles.tagChipScrollContent, { paddingHorizontal: SIDE_INSET }]}
           >
-            {/* All */}
             <Pressable
               style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
               onPress={() => { triggerLightHaptic(); setActiveTag('all'); }}
             >
               <ThemedText style={[styles.tagChipText, activeTag === 'all' && styles.tagChipTextActive]}>All</ThemedText>
             </Pressable>
-
-            {/* Category / tag chips */}
             {uniqueFilterLabels.map(label => (
               <Pressable
                 key={label}
@@ -1390,95 +1510,208 @@ const PlaybookListScreen = ({ navigation }: any) => {
             <View style={[styles.listContent, styles.pageInner]}>
               <PlaybookSkeleton />
             </View>
-          ) : filteredPlaybooks.length === 0 ? (
-            <View style={[styles.containerEmpty]}>
-              <View style={[styles.emptyStateContainer, styles.pageInner, styles.listContentPadding]}>
-                <View style={styles.emptyHeroContainer}>
-                  <View style={styles.heroCard}>
-                    {filter === 'ongoing' ? (
-                      <MaterialCommunityIcons
-                        name="clipboard-text-clock"
-                        size={32}
-                        color="rgba(255,255,255,0.8)"
-                        style={styles.heroIcon}
-                      />
-                    ) : (
-                      <MaterialCommunityIcons
-                        name="trophy-outline"
-                        size={32}
-                        color="rgba(255,255,255,0.8)"
-                        style={styles.heroIcon}
-                      />
-                    )}
-                    <ThemedText weight="semiBold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
-                    <ThemedText weight="semiBold" style={styles.heroTitle}>
-                      {filter === 'ongoing' ? 'All your playbooks are completed' : 'No completed playbooks yet'}
-                    </ThemedText>
-                    <ThemedText style={styles.heroSubtitle}>
-                      {filter === 'ongoing'
-                        ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
-                        : 'Keep going! Your finished playbooks will appear here.'}
-                    </ThemedText>
-                    {filter !== 'completed' && (
-                      <TouchableOpacity
-                        onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                        activeOpacity={0.85}
-                        style={styles.heroOutlineButton}
-                      >
-                        <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
-                          Create a Playbook
-                        </ThemedText>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
-                      activeOpacity={0.85}
-                      style={styles.heroTextButton}
-                    >
-                      <ThemedText style={styles.heroLinkText}>
-                        {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+
+          ) : searchQuery.trim().length > 0 ? (
+            /* ── SEARCH RESULTS across all statuses ─────────── */
+            <>
+              <View style={styles.carouselTitleContainer}>
+                <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                  {filteredPlaybooks.length} RESULT{filteredPlaybooks.length !== 1 ? 'S' : ''}
+                </ThemedText>
+              </View>
+              {filteredPlaybooks.length === 0 ? (
+                <View style={styles.continueEmptyContainer}>
+                  <ThemedText style={styles.continueEmptyText}>No playbooks match your search.</ThemedText>
+                </View>
+              ) : (
+                <Animated.ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
+                  decelerationRate="fast"
+                  snapToInterval={ITEM_SIZE}
+                  snapToAlignment="center"
+                  onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+                  scrollEventThrottle={16}
+                  bounces={true}
+                  removeClippedSubviews={false}
+                >
+                  {filteredPlaybooks.map((playbook, index) => (
+                    <CarouselCard
+                      key={playbook.id}
+                      item={playbook}
+                      index={index}
+                      scrollX={scrollX}
+                      isMenuOpen={menuVisible === playbook.id}
+                      hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
+                      hasRead={sessionStates[playbook.id]?.hasRead ?? false}
+                      devotionalCount={devotionalsCount[playbook.id] ?? 0}
+                      cardStyles={styles}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                      onMenuToggle={setMenuVisible}
+                      onDelete={handleDelete}
+                      onRenamePress={handleRenamePress}
+                      onTagPress={handleTagPress}
+                      onDevotionalPress={handleDevotionalPress}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  ))}
+                </Animated.ScrollView>
+              )}
+            </>
+
+          ) : activeTag !== 'all' ? (
+            /* ── CATEGORY FILTERED VIEW ──────────────────────── */
+            filteredPlaybooks.length === 0 ? (
+              <View style={styles.containerEmpty}>
+                <View style={[styles.emptyStateContainer, styles.pageInner, styles.listContentPadding]}>
+                  <View style={styles.emptyHeroContainer}>
+                    <View style={styles.heroCard}>
+                      <MaterialCommunityIcons name="clipboard-text-search" size={32} color="rgba(255,255,255,0.8)" style={styles.heroIcon} />
+                      <ThemedText weight="semiBold" style={styles.heroOverline}>{activeTag.toUpperCase()}</ThemedText>
+                      <ThemedText weight="semiBold" style={styles.heroTitle}>No playbooks here yet</ThemedText>
+                      <ThemedText style={styles.heroSubtitle}>
+                        No {filter === 'ongoing' ? 'in-progress' : 'completed'} playbooks in this category.
                       </ThemedText>
-                    </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
-          ) : (
-            <>
-              {filter === 'ongoing' && (
+            ) : (
+              <>
                 <View style={styles.carouselTitleContainer}>
                   <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                    CONTINUE YOUR {filteredPlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
+                    {activeTag.toUpperCase()} · {filteredPlaybooks.length}
                   </ThemedText>
                 </View>
-              )}
-              <Animated.ScrollView
+                <Animated.ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
+                  decelerationRate="fast"
+                  snapToInterval={ITEM_SIZE}
+                  snapToAlignment="center"
+                  onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+                  scrollEventThrottle={16}
+                  bounces={true}
+                  removeClippedSubviews={false}
+                >
+                  {filteredPlaybooks.map((playbook, index) => (
+                    <CarouselCard
+                      key={playbook.id}
+                      item={playbook}
+                      index={index}
+                      scrollX={scrollX}
+                      isMenuOpen={menuVisible === playbook.id}
+                      hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
+                      hasRead={sessionStates[playbook.id]?.hasRead ?? false}
+                      devotionalCount={devotionalsCount[playbook.id] ?? 0}
+                      cardStyles={styles}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                      onMenuToggle={setMenuVisible}
+                      onDelete={handleDelete}
+                      onRenamePress={handleRenamePress}
+                      onTagPress={handleTagPress}
+                      onDevotionalPress={handleDevotionalPress}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  ))}
+                </Animated.ScrollView>
+              </>
+            )
+
+          ) : (
+            /* ── DEFAULT "ALL" VIEWS LAYOUT ──────────────────── */
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}
+            >
+              {/* ── Continue your playbooks ─────────────────── */}
+              <View style={styles.carouselTitleContainer}>
+                <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                  CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
+                </ThemedText>
+              </View>
+
+              {/* Time filter chips: Latest · This Week · This Month · This Year */}
+              <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
-                decelerationRate="fast"
-                snapToInterval={ITEM_SIZE}
-                snapToAlignment="center"
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                  { useNativeDriver: true }
-                )}
-                scrollEventThrottle={16}
-                bounces={true}
-                removeClippedSubviews={false}
+                style={styles.continueTimeFilterScroll}
+                contentContainerStyle={{ paddingHorizontal: SIDE_INSET, gap: 6, paddingBottom: 12 }}
               >
-                {filteredPlaybooks.map((playbook, index) => (
-                <CarouselCard
-                  key={playbook.id}
-                  item={playbook}
-                  index={index}
-                  scrollX={scrollX}
-                  isMenuOpen={menuVisible === playbook.id}
-                  hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
-                  hasRead={sessionStates[playbook.id]?.hasRead ?? false}
-                  devotionalCount={devotionalsCount[playbook.id] ?? 0}
+                {(['latest', 'week', 'month', 'year'] as const).map(opt => (
+                  <Pressable
+                    key={opt}
+                    style={[styles.continueTimeChip, continueTimeFilter === opt && styles.continueTimeChipActive]}
+                    onPress={() => { triggerLightHaptic(); setContinueTimeFilter(opt); }}
+                  >
+                    <ThemedText style={[styles.continueTimeChipText, continueTimeFilter === opt && styles.continueTimeChipTextActive]}>
+                      {opt === 'latest' ? 'Latest' : opt === 'week' ? 'This Week' : opt === 'month' ? 'This Month' : 'This Year'}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              {continuePlaybooks.length === 0 ? (
+                <View style={styles.continueEmptyContainer}>
+                  <ThemedText style={styles.continueEmptyText}>
+                    {continueTimeFilter === 'latest'
+                      ? 'All your playbooks are completed.'
+                      : 'No in-progress playbooks in this period.'}
+                  </ThemedText>
+                </View>
+              ) : (
+                <Animated.ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[styles.carouselScrollContainer, { paddingHorizontal: SIDE_INSET }]}
+                  decelerationRate="fast"
+                  snapToInterval={ITEM_SIZE}
+                  snapToAlignment="center"
+                  onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+                  scrollEventThrottle={16}
+                  bounces={true}
+                  removeClippedSubviews={false}
+                >
+                  {continuePlaybooks.map((playbook, index) => (
+                    <CarouselCard
+                      key={playbook.id}
+                      item={playbook}
+                      index={index}
+                      scrollX={scrollX}
+                      isMenuOpen={menuVisible === playbook.id}
+                      hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
+                      hasRead={sessionStates[playbook.id]?.hasRead ?? false}
+                      devotionalCount={devotionalsCount[playbook.id] ?? 0}
+                      cardStyles={styles}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                      onMenuToggle={setMenuVisible}
+                      onDelete={handleDelete}
+                      onRenamePress={handleRenamePress}
+                      onTagPress={handleTagPress}
+                      onDevotionalPress={handleDevotionalPress}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  ))}
+                </Animated.ScrollView>
+              )}
+
+              {/* ── By Category ─────────────────────────────── */}
+              {categorySections.map(({ category, playbooks: catPlaybooks }) => (
+                <CategoryCarouselRow
+                  key={category}
+                  category={category}
+                  playbooks={catPlaybooks}
                   cardStyles={styles}
+                  sessionStates={sessionStates}
+                  devotionalsCount={devotionalsCount}
+                  menuVisible={menuVisible}
                   onPress={handleCardPress}
                   onLongPress={handleCardLongPress}
                   onMenuToggle={setMenuVisible}
@@ -1489,8 +1722,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   triggerHaptic={triggerLightHaptic}
                 />
               ))}
-              </Animated.ScrollView>
-            </>
+            </ScrollView>
           )}
         </BlueSheet>
       </View>
@@ -1756,6 +1988,65 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  // ── Continue your playbooks time filter chips ───────────────
+  continueTimeFilterScroll: {
+    marginTop: -4,
+  },
+  continueTimeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  continueTimeChipActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  continueTimeChipText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+  },
+  continueTimeChipTextActive: {
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
+  },
+  continueEmptyContainer: {
+    paddingHorizontal: SIDE_INSET,
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  continueEmptyText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  // ── Category section rows ─────────────────────────────────────
+  categorySection: {
+    marginTop: 24,
+  },
+  categorySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIDE_INSET,
+    paddingBottom: 12,
+  },
+  categorySectionTitle: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  categorySectionCount: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  categorySectionCountText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
   },
   gradientContainer: {
     height: 44,
