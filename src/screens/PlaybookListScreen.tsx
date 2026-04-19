@@ -3064,19 +3064,19 @@ const createStyles = (_theme: any) => StyleSheet.create({
   customDateSep: {
     width: 1,
     height: 32,
-    backgroundColor: 'rgba(3,32,61,0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   customDateLabel: {
     fontSize: 10,
     fontFamily: Fonts.regular,
-    color: 'rgba(3,32,61,0.38)',
+    color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   customDateValue: {
     fontSize: 13,
     fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   inlineDatePicker: {
     marginHorizontal: 8,
