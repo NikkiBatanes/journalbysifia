@@ -2069,9 +2069,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.anchorBlue,
-    paddingVertical: 10,
+    paddingVertical: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
+    height: 42,
   },
   clearButton: {
     marginLeft: 6,
