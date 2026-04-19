@@ -1107,7 +1107,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
                   activeOpacity={0.75}
                 >
-                  <MaterialCommunityIcons name="tune" size={16} color={datePreset !== 'all' ? Colors.anchorBlue : 'rgba(3, 32, 61, 0.4)'} />
+                  <MaterialCommunityIcons name="tune" size={16} color={Colors.anchorBlue} />
                 </TouchableOpacity>
 
                 {/* Search circle */}
