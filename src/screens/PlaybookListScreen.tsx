@@ -1397,7 +1397,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                                 ? prev.filter(c => c !== cat)   // deselect
                                 : [...prev, cat]                // select
                             );
-                            setShowStatusPicker(false);
                           }}
                           activeOpacity={0.75}
                         >
@@ -1411,6 +1410,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       );
                     })}
                   </View>
+                  {/* Apply button to close modal */}
+                  <TouchableOpacity
+                    style={styles.pickerApplyButton}
+                    onPress={() => { triggerLightHaptic(); setShowStatusPicker(false); }}
+                    activeOpacity={0.8}
+                  >
+                    <ThemedText weight="semiBold" style={styles.pickerApplyButtonText}>
+                      {selectedCategories.length === 0 ? 'View All' : `View ${selectedCategories.length} Categor${selectedCategories.length === 1 ? 'y' : 'ies'}`}
+                    </ThemedText>
+                  </TouchableOpacity>
                 </>
               )}
 
