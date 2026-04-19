@@ -809,7 +809,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </ThemedText>
             </View>
           ) : (
-            /* All non-completed cards show sections — simple dot indicators based on walkthroughProgress */
+            /* All non-completed cards show sections — ✓/◐/○ based on walkthroughProgress */
             <View style={styles.sectionsContainer}>
               {([
                 { label: 'Intro',               step: 0 },
@@ -823,11 +823,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[
-                      styles.statusDot,
-                      state === 'completed' && styles.statusDotCompleted,
-                      state === 'viewed'    && styles.statusDotViewed,
-                      state === 'unreached' && styles.statusDotUnreached,
-                    ]} />
+                      styles.statusPill,
+                      state === 'completed' && styles.statusPillCompleted,
+                      state === 'viewed'    && styles.statusPillViewed,
+                      state === 'unreached' && styles.statusPillUnreached,
+                    ]}>
+                      <ThemedText style={[
+                        styles.statusPillText,
+                        state === 'completed' && styles.statusPillTextCompleted,
+                        state === 'viewed'    && styles.statusPillTextViewed,
+                        state === 'unreached' && styles.statusPillTextUnreached,
+                      ]}>
+                        {state === 'completed' ? '✓' : state === 'viewed' ? '◐' : '○'}
+                      </ThemedText>
+                    </View>
                     <View style={styles.sectionContent}>
                       <ThemedText style={[
                         styles.sectionLabel,
@@ -1629,22 +1638,44 @@ const createStyles = (_theme: any) => StyleSheet.create({
   sectionCheck: {
     marginRight: 8,
   },
-  // Simple dot status indicators
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginRight: 12,
+  // Pill badge status icons with interface-appropriate colors
+  statusPill: {
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  statusDotCompleted: {
-    backgroundColor: Colors.hopeWhite,
+  statusPillCompleted: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  statusDotViewed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  statusPillViewed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
-  statusDotUnreached: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  statusPillUnreached: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  statusPillTextCompleted: {
+    color: Colors.hopeWhite,
+  },
+  statusPillTextViewed: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  statusPillTextUnreached: {
+    color: 'rgba(255, 255, 255, 0.3)',
   },
   sectionContent: {
     flex: 1,
