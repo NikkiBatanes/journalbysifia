@@ -1453,18 +1453,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
         {/* Date view mode dropdown */}
         <Modal visible={showDateViewDropdown} transparent animationType="fade" onRequestClose={() => setShowDateViewDropdown(false)}>
-          <TouchableOpacity style={styles.continueTimeDropdownOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
-            <View style={styles.continueTimeDropdownContent} onStartShouldSetResponder={() => true}>
+          <TouchableOpacity style={styles.statusPickerOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
+            <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
               {(['weekly', 'monthly', 'yearly'] as const).map(opt => (
                 <TouchableOpacity
                   key={opt}
-                  style={[styles.continueTimeDropdownOption, dateViewMode === opt && styles.continueTimeDropdownOptionActive]}
+                  style={[styles.statusPickerOption, dateViewMode === opt && styles.statusPickerOptionActive]}
                   onPress={() => { triggerLightHaptic(); setDateViewMode(opt); setShowDateViewDropdown(false); }}
                 >
-                  <ThemedText style={[styles.continueTimeDropdownOptionText, dateViewMode === opt && styles.continueTimeDropdownOptionTextActive]}>
+                  <ThemedText weight={dateViewMode === opt ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
                     {opt === 'weekly' ? 'Weekly' : opt === 'monthly' ? 'Monthly' : 'Yearly'}
                   </ThemedText>
-                  {dateViewMode === opt && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />}
+                  {dateViewMode === opt && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
                 </TouchableOpacity>
               ))}
             </View>
