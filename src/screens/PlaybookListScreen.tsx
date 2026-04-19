@@ -892,13 +892,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
       if (!map.has(key)) {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
-        const label = `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`;
+        const isCurrentYear = weekStart.getFullYear() === currentYear;
+        const label = `${format(weekStart, 'MMM d')} – ${format(weekEnd, isCurrentYear ? 'MMM d' : 'MMM d, yyyy')}`;
         map.set(key, { label, weekStart, playbooks: [] });
       }
       map.get(key)!.playbooks.push(pb);
     });
     return Array.from(map.values()).sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
-  }, [allPlaybooksSorted]);
+  }, [allPlaybooksSorted, currentYear]);
 
   // Monthly sections: group by year-month, sorted newest first
   const monthlySections = useMemo(() => {
