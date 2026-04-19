@@ -2923,7 +2923,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingRight: 16,
   },
   statusPickerContent: {
-    backgroundColor: 'rgba(0, 85, 150, 0.92)',
+    backgroundColor: 'rgba(180, 180, 180, 0.95)',
     borderRadius: 18,
     overflow: 'hidden',
     minWidth: 220,
@@ -2950,7 +2950,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontFamily: Fonts.semiBold,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(3, 32, 61, 0.38)',
     paddingHorizontal: 16,
     paddingTop: 4,
   },
@@ -2991,7 +2991,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   pickerPillText: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(3,32,61,0.5)',
   },
   pickerPillTextActive: {
     color: Colors.hopeWhite,
