@@ -1704,6 +1704,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+                {filter === 'ongoing' && (
+                  <View style={styles.carouselTitleContainer}>
+                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                      CONTINUE YOUR PLAYBOOKS
+                    </ThemedText>
+                  </View>
+                )}
                 {categorySections.map(({ category, playbooks: catPlaybooks }) => (
                   <CategoryCarouselRow
                     key={category}
@@ -1729,6 +1736,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ) : (
             /* ── DATE VIEW: Weekly / Monthly / Yearly ─────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+              {filter === 'ongoing' && (
+                <View style={styles.carouselTitleContainer}>
+                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                    CONTINUE YOUR PLAYBOOKS
+                  </ThemedText>
+                </View>
+              )}
               {dateViewMode === 'weekly' && weeklySections.map(({ label, weekStart, playbooks: wPbs }) => (
                 <CategoryCarouselRow
                   key={weekStart.toISOString()}
