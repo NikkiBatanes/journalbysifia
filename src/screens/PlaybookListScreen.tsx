@@ -879,6 +879,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
     [playbooksWithProgress, filter],
   );
 
+  const currentYear = new Date().getFullYear();
+
   // Weekly sections: group by year-week key, sorted newest first
   const weeklySections = useMemo(() => {
     const map = new Map<string, { label: string; weekStart: Date; playbooks: Playbook[] }>();
@@ -927,8 +929,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
     return Array.from(map.values()).sort((a, b) => b.year - a.year);
   }, [allPlaybooksSorted]);
-
-  const currentYear = new Date().getFullYear();
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
@@ -2142,6 +2142,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: SIDE_INSET,
     paddingVertical: 12,
     gap: 8,
+    backgroundColor: 'transparent',
   },
   viewPill: {
     paddingHorizontal: 18,
