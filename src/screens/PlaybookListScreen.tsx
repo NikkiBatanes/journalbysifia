@@ -771,6 +771,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
           )}
 
           <View style={styles.sectionsContainer}>
+            {/* Intro */}
+            <View style={styles.sectionItem}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
+              <ThemedText style={styles.sectionLabel}>Intro</ThemedText>
+            </View>
+
             {/* Truth in Love */}
             <View style={styles.sectionItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} style={styles.sectionCheck} />
