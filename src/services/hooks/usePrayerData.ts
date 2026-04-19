@@ -83,10 +83,10 @@ export const useUnprayedPrayerRequests = (userId: string) => {
   return useQuery({
     queryKey: queryKeys.prayers.unprayedRequests(userId),
     queryFn: () => PrayerApi.getUnprayedPrayerRequests(userId),
-    staleTime: 0, // Always refetch to ensure UI is up-to-date after marking as prayed
+    staleTime: 30 * 1000, // 30 seconds - refetch periodically to ensure UI is up-to-date after marking as prayed
     enabled: !!userId,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
-    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnMount: false, // Don't always refetch on mount to prevent skeleton loader from showing when no requests exist
   });
 };
 
