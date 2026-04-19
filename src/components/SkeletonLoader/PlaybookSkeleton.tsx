@@ -143,11 +143,11 @@ const styles = StyleSheet.create({
     marginRight: ITEM_SPACING,
   },
   carouselCard: {
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.inputBorder,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   gradientContainer: {
     height: 44,
