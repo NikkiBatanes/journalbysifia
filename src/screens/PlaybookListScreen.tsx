@@ -1677,7 +1677,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   </View>
                 ) : (
                   <CategoryCarouselRow
-                    category={`CONTINUE YOUR PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
+                    category={`REVISIT YOUR COMPLETED PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
                     playbooks={completedPlaybooks}
                     cardStyles={styles}
                     sessionStates={sessionStates}
