@@ -1735,7 +1735,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderRadius: 999,
   },
   statusPillFillCompleted: {
-    backgroundColor: 'rgba(95, 138, 104, 0.8)',
+    backgroundColor: Colors.growthGreen,
   },
   sectionContent: {
     flex: 1,
