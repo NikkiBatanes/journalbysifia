@@ -140,7 +140,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Query prayer entries
     const { data: prayerData } = await supabase
-      .from('prayer_entries')
+      .from('prayers')
       .select('created_at')
       .eq('user_id', user?.id)
       .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
@@ -154,7 +154,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Query devotional entries
     const { data: devotionalData } = await supabase
-      .from('devotional_entries')
+      .from('devotional_progress')
       .select('created_at')
       .eq('user_id', user?.id)
       .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
@@ -182,7 +182,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Query playbook completions
     const { data: playbookData } = await supabase
-      .from('user_playbook_progress')
+      .from('playbooks')
       .select('completed_at')
       .eq('user_id', user?.id)
       .not('completed_at', 'is', null)
