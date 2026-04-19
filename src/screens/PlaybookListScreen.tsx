@@ -1736,7 +1736,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   carouselTitleContainer: {
     paddingHorizontal: SIDE_INSET,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 8,
   },
   carouselTitle: {
