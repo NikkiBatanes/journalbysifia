@@ -1659,7 +1659,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   statusPillCompleted: {
-    backgroundColor: 'rgba(95, 138, 104, 0.15)',
+    backgroundColor: Colors.growthGreen,
     borderColor: Colors.growthGreen,
   },
   statusPillViewed: {
@@ -1677,7 +1677,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.4)',
   },
   statusPillTextCompleted: {
-    color: Colors.growthGreen,
+    color: Colors.hopeWhite,
   },
   statusPillTextViewed: {
     color: Colors.faithGold,
