@@ -1383,7 +1383,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>
                     Categories
                   </ThemedText>
-                  <View style={styles.pickerCategoryScrollContent}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.pickerCategoryScrollContent}
+                  >
                     {availableCategories.map(cat => {
                       const isSelected = selectedCategories.includes(cat);
                       return (
@@ -1409,7 +1413,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                       );
                     })}
-                  </View>
+                  </ScrollView>
                   {/* Apply button to close modal */}
                   <TouchableOpacity
                     style={styles.pickerApplyButton}
