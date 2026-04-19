@@ -1095,7 +1095,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   ]}>
                     {filter === 'ongoing' ? 'In Progress' : 'Completed'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? Colors.alertCoral : Colors.growthGreen} />
+                  <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? '#3B82F6' : Colors.growthGreen} />
                 </TouchableOpacity>
 
                 {/* Search circle */}
@@ -2349,8 +2349,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: 'rgba(3, 32, 61, 0.1)',
   },
   statusDropdownBtnOngoing: {
-    backgroundColor: 'rgba(230, 90, 70, 0.07)',
-    borderColor: 'rgba(230, 90, 70, 0.35)',
+    backgroundColor: 'rgba(59, 130, 246, 0.07)',
+    borderColor: 'rgba(59, 130, 246, 0.35)',
   },
   statusDropdownBtnCompleted: {
     backgroundColor: 'rgba(95, 138, 104, 0.07)',
@@ -2362,7 +2362,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: 'rgba(3, 32, 61, 0.5)',
   },
   statusDropdownBtnTextOngoing: {
-    color: Colors.alertCoral,
+    color: '#3B82F6',
   },
   statusDropdownBtnTextCompleted: {
     color: Colors.growthGreen,
