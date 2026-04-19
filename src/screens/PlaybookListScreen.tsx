@@ -1508,7 +1508,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       return (
                         <TouchableOpacity
                           key={cat}
-                          style={[styles.pickerPill, isSelected && styles.pickerPillActive]}
+                          style={[styles.pickerPill, styles.pickerPillCompact, isSelected && styles.pickerPillActive]}
                           onPress={() => {
                             triggerLightHaptic();
                             setSelectedCategories(prev =>
@@ -3199,6 +3199,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: 'rgba(3,32,61,0.14)',
     backgroundColor: 'rgba(3,32,61,0.04)',
   },
+  pickerPillCompact: {
+    paddingVertical: 3,
+  },
   pickerPillActive: {
     backgroundColor: Colors.anchorBlue,
     borderColor: Colors.anchorBlue,
@@ -3243,14 +3246,14 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginVertical: 14,
   },
   pickerCategoryScroll: {
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: 4,
+    marginBottom: 2,
   },
   pickerCategoryScrollContent: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 2,
+    paddingVertical: 0,
   },
   pickerApplyButton: {
     marginHorizontal: 16,
