@@ -2933,6 +2933,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     minWidth: 220,
+    maxWidth: 320,
     paddingTop: 14,
     paddingBottom: 16,
     shadowColor: '#000',
