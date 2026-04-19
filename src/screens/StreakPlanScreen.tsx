@@ -75,28 +75,31 @@ const StreakPlanScreen: React.FC = () => {
     const fetchStreakData = async () => {
       if (user?.id) {
         try {
-          const streaks = await streakTrackingService.getUserStreaks(user.id);
-          if (streaks) {
-            setStreakData(streaks);
-            // Calculate highest streak count
-            const maxStreak = Math.max(
-              streaks.prayer_streak || 0,
-              streaks.devotional_streak || 0,
-              streaks.journal_streak || 0
-            );
-            setStreakCount(maxStreak);
+          // Set week start from user preferences
+          const metadata = (user as any)?.user_metadata;
+          const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+          const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+          setWeekStart(userWeekStart);
 
-            // Get week start from user preferences
-            const metadata = (user as any)?.user_metadata;
-            const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
-            // Convert from lowercase (stored in DB) to capitalized (expected by WeeklyStreakRow)
-            const userWeekStart = userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
-            setWeekStart(userWeekStart);
+          // Calculate day states (also returns activity dates for streak calc)
+          const { dayStates: calculatedDayStates, activityDates } = await calculateDayStates();
+          setDayStates(calculatedDayStates);
 
-            // Calculate day states for the weekly streak
-            const calculatedDayStates = await calculateDayStates(streaks);
-            setDayStates(calculatedDayStates);
+          // Calculate consecutive streak from actual activity data
+          const today = new Date();
+          let streak = 0;
+          const checkDate = new Date(today);
+          while (true) {
+            const dateStr = toLocalDate(checkDate);
+            if (activityDates.has(dateStr)) {
+              streak++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+              break;
+            }
           }
+          setStreakCount(Math.max(streak, 1));
+
         } catch (error) {
           console.error('Failed to fetch streak data:', error);
         }
@@ -138,12 +141,12 @@ const StreakPlanScreen: React.FC = () => {
   };
 
   // Calculate day states for the current week based on actual activity data
-  const calculateDayStates = async (streaks: any): Promise<DayState[]> => {
+  const calculateDayStates = async (): Promise<{ dayStates: DayState[]; activityDates: Set<string> }> => {
     const today = new Date();
     const todayString = toLocalDate(today); // LOCAL date to match user's timezone
 
-    // 8-day lookback window as ISO timestamp (UTC) for DB queries
-    const windowStart = new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    // 100-day lookback for accurate streak calculation; 8 days covers any week layout
+    const windowStart = new Date(today.getTime() - 100 * 24 * 60 * 60 * 1000).toISOString();
     const windowStartDate = toLocalDate(new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000));
 
     // Collect all activity LOCAL dates
@@ -263,7 +266,7 @@ const StreakPlanScreen: React.FC = () => {
       console.log(`  Day ${i} (${dateString}): ${state}`);
     }
 
-    return dayStates;
+    return { dayStates, activityDates };
   };
 
   // Get streak message based on milestone or rotation
