@@ -30,6 +30,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 import { format } from 'date-fns';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../services/supabaseClient';
 
 const { width } = Dimensions.get('window');
@@ -531,7 +532,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Main content view pill filter
   const [contentView, setContentView] = useState<'all' | 'category' | 'date'>('all');
   // Date view sub-mode
-  const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly' | 'custom'>('monthly');
+  // Custom date range for 'custom' date view
+  const [customDateFrom, setCustomDateFrom] = useState<Date>(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d; });
+  const [customDateTo, setCustomDateTo] = useState<Date>(new Date());
+  const [showCustomFromPicker, setShowCustomFromPicker] = useState(false);
+  const [showCustomToPicker, setShowCustomToPicker] = useState(false);
+  // Selected categories for category view (empty = All)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
   const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
@@ -833,12 +841,23 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [playbooksWithProgress, continueTimeFilter, filter]);
 
   // All playbooks grouped by category — both statuses, newest first per group
+  // All unique categories the user actually has playbooks for
+  const availableCategories = useMemo(() => {
+    const seen = new Set<string>();
+    playbooksWithProgress.forEach(({ playbook }) => {
+      seen.add(getCategory(playbook));
+    });
+    return Array.from(seen).sort();
+  }, [playbooksWithProgress]);
+
   const categorySections = useMemo(() => {
     const map = new Map<string, Playbook[]>();
     playbooksWithProgress.forEach(({ playbook, isCompleted }) => {
       if (filter === 'ongoing' && isCompleted) return;
       if (filter === 'completed' && !isCompleted) return;
       const cat = getCategory(playbook);
+      // If specific categories are selected, skip others
+      if (selectedCategories.length > 0 && !selectedCategories.includes(cat)) return;
       if (!map.has(cat)) { map.set(cat, []); }
       map.get(cat)!.push(playbook);
     });
@@ -858,7 +877,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return dateB - dateA;
     });
     return sections;
-  }, [playbooksWithProgress, filter]);
+  }, [playbooksWithProgress, filter, selectedCategories]);
 
   // All completed playbooks sorted by latest activity
   const completedPlaybooks = useMemo(() => {
@@ -926,6 +945,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
     return Array.from(map.values()).sort((a, b) => b.year - a.year);
   }, [allPlaybooksSorted]);
+
+  // Custom date range filtered playbooks
+  const customDatePlaybooks = useMemo(() => {
+    const fromStart = new Date(customDateFrom); fromStart.setHours(0, 0, 0, 0);
+    const toEnd = new Date(customDateTo); toEnd.setHours(23, 59, 59, 999);
+    return allPlaybooksSorted.filter(pb => {
+      const d = new Date(pb.updatedAt || pb.createdAt || 0).getTime();
+      return d >= fromStart.getTime() && d <= toEnd.getTime();
+    });
+  }, [allPlaybooksSorted, customDateFrom, customDateTo]);
 
   const currentYear = new Date().getFullYear();
 
@@ -1435,69 +1464,192 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
           <TouchableOpacity style={styles.statusPickerOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>
             <View style={styles.statusPickerContent} onStartShouldSetResponder={() => true}>
-              {/* View Filter section */}
-              <View style={styles.statusPickerSectionHeader}>
-                <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>View</ThemedText>
-              </View>
-              {(['all', 'category'] as const).map(view => (
-                <TouchableOpacity
-                  key={view}
-                  style={[styles.statusPickerOption, contentView === view && styles.statusPickerOptionActive]}
-                  onPress={() => { triggerLightHaptic(); setContentView(view); setShowStatusPicker(false); }}
-                >
-                  <ThemedText weight={contentView === view ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
-                    {view === 'all' ? 'All' : 'Category'}
-                  </ThemedText>
-                  {contentView === view && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={[styles.statusPickerOption, contentView === 'date' && styles.statusPickerOptionActive]}
-                onPress={() => { triggerLightHaptic(); setContentView('date'); setShowStatusPicker(false); }}
-              >
-                <ThemedText weight={contentView === 'date' ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
-                  Date
-                </ThemedText>
-                {contentView === 'date' && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
-              </TouchableOpacity>
 
-              {/* Date View Mode section (only shown when Date is selected) */}
-              {contentView === 'date' && (
-                <>
-                  <View style={[styles.statusPickerSectionHeader, styles.statusPickerSectionHeaderTop]}>
-                    <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Date View</ThemedText>
-                  </View>
-                  {(['weekly', 'monthly', 'yearly'] as const).map(mode => (
+              {/* ── VIEW section ── */}
+              <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>View</ThemedText>
+              <View style={styles.pickerPillRow}>
+                {(['all', 'category', 'date'] as const).map(view => {
+                  const isActive = contentView === view;
+                  const label = view === 'all' ? 'All' : view === 'category' ? 'Category' : 'Date';
+                  return (
                     <TouchableOpacity
-                      key={mode}
-                      style={[styles.statusPickerOption, dateViewMode === mode && styles.statusPickerOptionActive]}
-                      onPress={() => { triggerLightHaptic(); setDateViewMode(mode); }}
+                      key={view}
+                      style={[styles.pickerPill, isActive && styles.pickerPillActive]}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setContentView(view);
+                        // Close immediately only for "All"; keep open for Category/Date so sub-options show
+                        if (view === 'all') { setSelectedCategories([]); setShowStatusPicker(false); }
+                      }}
+                      activeOpacity={0.75}
                     >
-                      <ThemedText weight={dateViewMode === mode ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
-                        {mode === 'weekly' ? 'Weekly' : mode === 'monthly' ? 'Monthly' : 'Yearly'}
+                      <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[styles.pickerPillText, isActive && styles.pickerPillTextActive]}>
+                        {label}
                       </ThemedText>
-                      {dateViewMode === mode && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
                     </TouchableOpacity>
-                  ))}
+                  );
+                })}
+              </View>
+
+              {/* ── CATEGORY sub-section (only when Category is selected) ── */}
+              {contentView === 'category' && availableCategories.length > 0 && (
+                <>
+                  <ThemedText weight="semiBold" style={[styles.statusPickerSectionHeaderText, { marginTop: 14 }]}>
+                    Categories
+                  </ThemedText>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.pickerCategoryScrollContent}
+                    style={styles.pickerCategoryScroll}
+                  >
+                    {availableCategories.map(cat => {
+                      const isSelected = selectedCategories.includes(cat);
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[styles.pickerPill, isSelected && styles.pickerPillActive]}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setSelectedCategories(prev =>
+                              isSelected
+                                ? prev.filter(c => c !== cat)   // deselect
+                                : [...prev, cat]                // select
+                            );
+                          }}
+                          activeOpacity={0.75}
+                        >
+                          <ThemedText
+                            weight={isSelected ? 'semiBold' : 'regular'}
+                            style={[styles.pickerPillText, isSelected && styles.pickerPillTextActive]}
+                          >
+                            {cat}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  {/* Apply button to close modal */}
+                  <TouchableOpacity
+                    style={styles.pickerApplyButton}
+                    onPress={() => { triggerLightHaptic(); setShowStatusPicker(false); }}
+                    activeOpacity={0.8}
+                  >
+                    <ThemedText weight="semiBold" style={styles.pickerApplyButtonText}>
+                      {selectedCategories.length === 0 ? 'View All' : `View ${selectedCategories.length} Categor${selectedCategories.length === 1 ? 'y' : 'ies'}`}
+                    </ThemedText>
+                  </TouchableOpacity>
                 </>
               )}
 
-              {/* Status Filter section */}
-              <View style={[styles.statusPickerSectionHeader, styles.statusPickerSectionHeaderTop]}>
-                <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Status</ThemedText>
+              {/* ── DATE VIEW sub-section (only when Date is selected) ── */}
+              {contentView === 'date' && (
+                <>
+                  <ThemedText weight="semiBold" style={[styles.statusPickerSectionHeaderText, { marginTop: 14 }]}>Date View</ThemedText>
+                  <View style={styles.pickerPillRow}>
+                    {(['weekly', 'monthly', 'yearly', 'custom'] as const).map(mode => {
+                      const isActive = dateViewMode === mode;
+                      const label = mode === 'weekly' ? 'Weekly' : mode === 'monthly' ? 'Monthly' : mode === 'yearly' ? 'Yearly' : 'Custom';
+                      return (
+                        <TouchableOpacity
+                          key={mode}
+                          style={[styles.pickerPill, isActive && styles.pickerPillActive]}
+                          onPress={() => { triggerLightHaptic(); setDateViewMode(mode); }}
+                          activeOpacity={0.75}
+                        >
+                          <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[styles.pickerPillText, isActive && styles.pickerPillTextActive]}>
+                            {label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Custom date range pickers */}
+                  {dateViewMode === 'custom' && (
+                    <View style={styles.customDateContainer}>
+                      {/* From */}
+                      <TouchableOpacity
+                        style={styles.customDateField}
+                        onPress={() => { setShowCustomFromPicker(p => !p); setShowCustomToPicker(false); }}
+                        activeOpacity={0.8}
+                      >
+                        <ThemedText weight="regular" style={styles.customDateLabel}>From</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.customDateValue}>
+                          {format(customDateFrom, 'MMM d, yyyy')}
+                        </ThemedText>
+                      </TouchableOpacity>
+                      <View style={styles.customDateSep} />
+                      {/* To */}
+                      <TouchableOpacity
+                        style={styles.customDateField}
+                        onPress={() => { setShowCustomToPicker(p => !p); setShowCustomFromPicker(false); }}
+                        activeOpacity={0.8}
+                      >
+                        <ThemedText weight="regular" style={styles.customDateLabel}>To</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.customDateValue}>
+                          {format(customDateTo, 'MMM d, yyyy')}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {dateViewMode === 'custom' && showCustomFromPicker && (
+                    <DateTimePicker
+                      value={customDateFrom}
+                      mode="date"
+                      display="inline"
+                      maximumDate={customDateTo}
+                      onChange={(_e, date) => { if (date) { setCustomDateFrom(date); } }}
+                      style={styles.inlineDatePicker}
+                      accentColor={Colors.anchorBlue}
+                    />
+                  )}
+                  {dateViewMode === 'custom' && showCustomToPicker && (
+                    <DateTimePicker
+                      value={customDateTo}
+                      mode="date"
+                      display="inline"
+                      minimumDate={customDateFrom}
+                      maximumDate={new Date()}
+                      onChange={(_e, date) => { if (date) { setCustomDateTo(date); } }}
+                      style={styles.inlineDatePicker}
+                      accentColor={Colors.anchorBlue}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* ── DIVIDER ── */}
+              <View style={styles.pickerDivider} />
+
+              {/* ── STATUS section ── */}
+              <ThemedText weight="semiBold" style={styles.statusPickerSectionHeaderText}>Status</ThemedText>
+              <View style={styles.pickerPillRow}>
+                {(['ongoing', 'completed'] as const).map(status => {
+                  const isActive = filter === status;
+                  const isOngoing = status === 'ongoing';
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      style={[
+                        styles.pickerPill,
+                        isActive && (isOngoing ? styles.pickerPillActiveOngoing : styles.pickerPillActiveCompleted),
+                      ]}
+                      onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusPicker(false); }}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.pickerStatusDot, isOngoing ? styles.pickerStatusDotOngoing : styles.pickerStatusDotCompleted]} />
+                      <ThemedText weight={isActive ? 'semiBold' : 'regular'} style={[
+                        styles.pickerPillText,
+                        isActive && (isOngoing ? styles.pickerPillTextOngoing : styles.pickerPillTextCompleted),
+                      ]}>
+                        {isOngoing ? 'In Progress' : 'Completed'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              {(['ongoing', 'completed'] as const).map(status => (
-                <TouchableOpacity
-                  key={status}
-                  style={[styles.statusPickerOption, filter === status && styles.statusPickerOptionActive]}
-                  onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusPicker(false); }}
-                >
-                  <ThemedText weight={filter === status ? 'semiBold' : 'regular'} style={styles.statusPickerOptionText}>
-                    {status === 'ongoing' ? 'In Progress' : 'Completed'}
-                  </ThemedText>
-                  {filter === status && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} style={{ marginLeft: 'auto' }} />}
-                </TouchableOpacity>
-              ))}
+
             </View>
           </TouchableOpacity>
         </Modal>
@@ -1814,6 +1966,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     triggerHaptic={triggerLightHaptic}
                   />
                 ))
+              )}
+              {dateViewMode === 'custom' && (
+                customDatePlaybooks.length === 0 ? (
+                  <View style={styles.continueEmptyContainer}>
+                    <ThemedText style={styles.continueEmptyText}>
+                      No playbooks in this date range.
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <CategoryCarouselRow
+                    category={`${format(customDateFrom, 'MMM d')} – ${format(customDateTo, 'MMM d, yyyy')}`}
+                    playbooks={customDatePlaybooks}
+                    cardStyles={styles}
+                    sessionStates={sessionStates}
+                    devotionalsCount={devotionalsCount}
+                    menuVisible={menuVisible}
+                    onPress={handleCardPress}
+                    onLongPress={handleCardLongPress}
+                    onMenuToggle={setMenuVisible}
+                    onDelete={handleDelete}
+                    onRenamePress={handleRenamePress}
+                    onTagPress={handleTagPress}
+                    onDevotionalPress={handleDevotionalPress}
+                    triggerHaptic={triggerLightHaptic}
+                  />
+                )
               )}
             </ScrollView>
           )}
@@ -2961,58 +3139,212 @@ const createStyles = (_theme: any) => StyleSheet.create({
   statusDropdownBtnTextCompleted: {
     color: Colors.growthGreen,
   },
-  // Status picker modal (small dropdown-style)
+  // Status picker modal
   statusPickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'flex-start',
-    paddingTop: 120,
-    paddingHorizontal: 16,
+    paddingTop: 112,
     alignItems: 'flex-end',
-    paddingRight: 60,
+    paddingRight: 16,
   },
   statusPickerContent: {
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: 'hidden',
-    minWidth: 160,
+    minWidth: 220,
+    paddingTop: 14,
+    paddingBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
   statusPickerSectionHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(3, 32, 61, 0.03)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(3, 32, 61, 0.06)',
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   statusPickerSectionHeaderTop: {
-    marginTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(3, 32, 61, 0.07)',
+    marginTop: 4,
   },
   statusPickerSectionHeaderText: {
-    fontSize: 11,
+    fontSize: 10,
+    fontFamily: Fonts.semiBold,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(3, 32, 61, 0.38)',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  pickerPillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  pickerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(3,32,61,0.14)',
+    backgroundColor: 'rgba(3,32,61,0.04)',
+  },
+  pickerPillActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.anchorBlue,
+  },
+  pickerPillActiveOngoing: {
+    backgroundColor: 'rgba(230,90,70,0.1)',
+    borderColor: Colors.alertCoral,
+  },
+  pickerPillActiveCompleted: {
+    backgroundColor: 'rgba(95,138,104,0.1)',
+    borderColor: Colors.growthGreen,
+  },
+  pickerPillText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: 'rgba(3,32,61,0.5)',
+  },
+  pickerPillTextActive: {
+    color: Colors.hopeWhite,
+  },
+  pickerPillTextOngoing: {
+    color: Colors.alertCoral,
+  },
+  pickerPillTextCompleted: {
+    color: Colors.growthGreen,
+  },
+  pickerStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+  },
+  pickerStatusDotOngoing: {
+    backgroundColor: Colors.alertCoral,
+  },
+  pickerStatusDotCompleted: {
+    backgroundColor: Colors.growthGreen,
+  },
+  pickerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(3,32,61,0.08)',
+    marginHorizontal: 16,
+    marginVertical: 14,
+  },
+  pickerCategoryScroll: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  pickerCategoryScrollContent: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+  },
+  pickerApplyButton: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 2,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+  },
+  pickerApplyButtonText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  customDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: 'rgba(3,32,61,0.04)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(3,32,61,0.1)',
+    overflow: 'hidden',
+  },
+  customDateField: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 2,
+  },
+  customDateSep: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(3,32,61,0.1)',
+  },
+  customDateLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+    color: 'rgba(3,32,61,0.38)',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: 'rgba(3, 32, 61, 0.5)',
+  },
+  customDateValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+  },
+  inlineDatePicker: {
+    marginHorizontal: 8,
+    marginBottom: 4,
   },
   statusPickerOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(3, 32, 61, 0.07)',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    marginBottom: 2,
+    borderRadius: 10,
   },
   statusPickerOptionActive: {
-    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    backgroundColor: 'rgba(3, 32, 61, 0.05)',
   },
   statusPickerOptionText: {
     fontSize: 14,
-    color: Colors.anchorBlue,
+    fontFamily: Fonts.regular,
+    color: 'rgba(3, 32, 61, 0.5)',
     flex: 1,
+  },
+  statusPickerOptionTextActive: {
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+  },
+  statusPickerOptionTextOngoing: {
+    fontFamily: Fonts.semiBold,
+    color: Colors.alertCoral,
+  },
+  statusPickerOptionTextCompleted: {
+    fontFamily: Fonts.semiBold,
+    color: Colors.growthGreen,
+  },
+  statusPickerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  statusPickerDotOngoing: {
+    backgroundColor: Colors.alertCoral,
+  },
+  statusPickerDotCompleted: {
+    backgroundColor: Colors.growthGreen,
   },
   // Shared status dot
   statusDot: {
