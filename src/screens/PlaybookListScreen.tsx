@@ -3,6 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   StyleSheet,
@@ -268,6 +269,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
 
+  // Load session states (hasPrayed, hasRead) for all playbooks when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (playbooks.length === 0) { return; }
+      const loadAll = async () => {
+        const entries: Record<string, { hasPrayed: boolean; hasRead: boolean }> = {};
+        await Promise.all(
+          playbooks.map(async (p) => {
+            try {
+              const raw = await AsyncStorage.getItem(`playbook_session_${p.id}`);
+              if (raw) {
+                const session = JSON.parse(raw);
+                entries[p.id] = {
+                  hasPrayed: session.hasPrayed ?? false,
+                  hasRead: session.hasRead ?? false,
+                };
+              }
+            } catch (_) {}
+          })
+        );
+        setSessionStates(entries);
+      };
+      loadAll();
+    }, [playbooks])
+  );
+
   // Handle rename playbook
   const handleRenamePlaybook = useCallback(async () => {
     if (!selectedPlaybookForRename || !newTitle.trim()) return;
@@ -330,6 +357,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const searchInputRef = useRef<TextInput>(null);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
   // Subtle selection animation for filter tabs
   const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
@@ -817,9 +845,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 { label: 'Truth in Love',        step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
                 { label: 'Scripture to Anchor',  step: 2 },
                 { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material' },
-                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
-              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons' }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType }) => {
+                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: sessionStates[item.id]?.hasPrayed },
+                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: sessionStates[item.id]?.hasRead },
+              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons'; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
                 const state = getSectionState(step, wp);
                 return (
                   <View key={label} style={styles.sectionItem}>
@@ -868,14 +896,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
                           <Ionicons
                             name={actionIcon as any}
                             size={14}
-                            color={'rgba(255,255,255,0.4)'}
+                            color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
                             style={styles.sectionActionIcon}
                           />
                         ) : (
                           <MaterialCommunityIcons
                             name={actionIcon as any}
                             size={14}
-                            color={'rgba(255,255,255,0.4)'}
+                            color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
                             style={styles.sectionActionIcon}
                           />
                         )
@@ -889,7 +917,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         </Animated.View>
       </TouchableOpacity>
     );
-  }, [handleCardPress, handleCardLongPress, scrollX]);
+  }, [handleCardPress, handleCardLongPress, scrollX, sessionStates, menuVisible, devotionalsCount, triggerLightHaptic, handleDelete]);
 
   // Logging for render states
 
