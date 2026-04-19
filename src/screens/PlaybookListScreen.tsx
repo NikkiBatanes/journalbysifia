@@ -2079,13 +2079,14 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 0.1,
   },
   searchInputIOS: {
-    height: 42,
-    lineHeight: 42,
+    height: 22,
+    lineHeight: 22,
+    marginVertical: 0,
   },
   searchInputAndroid: {
     textAlignVertical: 'center',
     includeFontPadding: false,
-    minHeight: 42,
+    height: 42,
   },
   clearButton: {
     marginLeft: 6,
