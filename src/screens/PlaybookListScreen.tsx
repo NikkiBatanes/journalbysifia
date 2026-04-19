@@ -834,7 +834,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         state === 'viewed'    && styles.statusPillTextViewed,
                         state === 'unreached' && styles.statusPillTextUnreached,
                       ]}>
-                        {state === 'completed' ? '✓' : state === 'viewed' ? '◐' : '○'}
+                        {state === 'completed' ? '●' : state === 'viewed' ? '◐' : '○'}
                       </ThemedText>
                     </View>
                     <View style={styles.sectionContent}>
@@ -1638,7 +1638,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   sectionCheck: {
     marginRight: 8,
   },
-  // Pill badge status icons with interface-appropriate colors
+  // Pill badge status icons with green and faith gold colors
   statusPill: {
     width: 20,
     height: 20,
@@ -1647,16 +1647,16 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   statusPillCompleted: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(95, 138, 104, 0.15)',
+    borderColor: Colors.growthGreen,
   },
   statusPillViewed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(197, 140, 43, 0.1)',
+    borderColor: Colors.faithGold,
   },
   statusPillUnreached: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1669,10 +1669,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.4)',
   },
   statusPillTextCompleted: {
-    color: Colors.hopeWhite,
+    color: Colors.growthGreen,
   },
   statusPillTextViewed: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.faithGold,
   },
   statusPillTextUnreached: {
     color: 'rgba(255, 255, 255, 0.3)',
