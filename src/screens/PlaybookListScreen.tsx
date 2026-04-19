@@ -175,16 +175,23 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
         </View>
         <View style={st.dateWithBadge}>
-          {isCardCompleted && item.completedAt ? (
-            <ThemedText style={[st.carouselDate, st.completedDate]}>Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
-          ) : item.updatedAt ? (
+          {item.updatedAt ? (
             <ThemedText style={st.carouselDate}>{format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
           ) : null}
         </View>
         <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.title}</ThemedText>
         {item.userInput && <ThemedText style={st.carouselCardDescription} numberOfLines={1}>{item.userInput}</ThemedText>}
         {isCardCompleted ? (
-          <View style={st.completedSummary}><Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} /><ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText></View>
+          <View style={st.completedSummary}>
+            <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+            <ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText>
+            {item.completedAt && (
+              <>
+                <View style={st.completedSummaryDivider} />
+                <ThemedText style={st.completedDateText}>{format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
+              </>
+            )}
+          </View>
         ) : (
           <View style={st.sectionsContainer}>
             {([
@@ -850,35 +857,28 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.dateWithBadge}>
-            {/* Completed cards show completion date; others show last updated date */}
-            {isCardCompleted && item.completedAt ? (
-              <ThemedText style={[styles.carouselDate, styles.completedDate]}>
-                Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
-              </ThemedText>
-            ) : item.updatedAt ? (
-              <ThemedText style={styles.carouselDate}>
-                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
-              </ThemedText>
-            ) : null}
+            <ThemedText style={styles.carouselDate}>
+              {item.updatedAt ? format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy') : ''}
+            </ThemedText>
           </View>
 
-          <ThemedText weight="semiBold" style={styles.carouselCardTitle}>
-            {item.title}
-          </ThemedText>
-
-          {item.userInput && (
-            <ThemedText style={styles.carouselCardDescription} numberOfLines={3}>
-              {item.userInput}
-            </ThemedText>
-          )}
-
-          {/* Completed card: hide step sections, show action count summary */}
+          <ThemedText weight="semiBold" style={styles.carouselCardTitle}>{item.title}</ThemedText>
+          {item.userInput && <ThemedText style={styles.carouselCardDescription} numberOfLines={3}>{item.userInput}</ThemedText>}
+          {/* Completed card: hide step sections, show action count summary with date */}
           {isCardCompleted ? (
             <View style={styles.completedSummary}>
               <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
               <ThemedText style={styles.completedSummaryText}>
                 {completed} of {total} faithful actions acted on
               </ThemedText>
+              {item.completedAt && (
+                <>
+                  <View style={styles.completedSummaryDivider} />
+                  <ThemedText style={styles.completedDateText}>
+                    {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+                  </ThemedText>
+                </>
+              )}
             </View>
           ) : (
             /* All non-completed cards show sections — ✓/◐/○ based on walkthroughProgress */
@@ -1838,6 +1838,16 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   completedDate: {
     color: Colors.growthGreen,
+  },
+  completedSummaryDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 8,
+  },
+  completedDateText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   completedSummary: {
     flexDirection: 'row',
