@@ -2923,7 +2923,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingRight: 16,
   },
   statusPickerContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(0, 85, 150, 0.92)',
     borderRadius: 18,
     overflow: 'hidden',
     minWidth: 220,
