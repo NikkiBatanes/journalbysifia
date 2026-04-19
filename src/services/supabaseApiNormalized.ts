@@ -397,6 +397,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
         user_id: playbook.user_id,
         title: playbook.title,
         user_input: playbook.userInput || '',
+        category: playbook.category || null,
         truth_in_love: playbook.truthInLove,
         bible_verse: playbook.bibleVerse,
         direct_challenge: playbook.directChallenge,
