@@ -303,6 +303,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Set filter to 'all' by default to show all playbooks
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const searchInputRef = useRef<TextInput>(null);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
 
@@ -335,6 +338,24 @@ const PlaybookListScreen = ({ navigation }: any) => {
       }).start();
     } catch {}
   }, []);
+
+  const toggleSearch = useCallback(() => {
+    const opening = !showSearch;
+    setShowSearch(opening);
+    Animated.spring(searchAnim, {
+      toValue: opening ? 1 : 0,
+      tension: 65,
+      friction: 14,
+      useNativeDriver: false,
+    }).start(() => {
+      if (opening) {
+        searchInputRef.current?.focus();
+      }
+    });
+    if (!opening) {
+      setSearchQuery('');
+    }
+  }, [showSearch, searchAnim]);
 
   // Component renders with current state
 
@@ -886,29 +907,41 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
             <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
-            <View style={styles.searchBar}>
-              <Ionicons name="search-outline" size={18} color={Colors.textGray} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search playbooks..."
-                placeholderTextColor={Colors.textGray}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
-                  style={styles.clearButton}
-                  accessibilityLabel="Clear search"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="close-circle" size={16} color={Colors.textGray} />
-                </TouchableOpacity>
-              )}
-            </View>
+            <Animated.View
+              style={[
+                styles.searchBarWrapper,
+                {
+                  height: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 68] }),
+                  opacity: searchAnim,
+                },
+              ]}
+              pointerEvents={showSearch ? 'auto' : 'none'}
+            >
+              <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={18} color={Colors.textGray} style={styles.searchIcon} />
+                <TextInput
+                  ref={searchInputRef}
+                  style={styles.searchInput}
+                  placeholder="Search playbooks..."
+                  placeholderTextColor={Colors.textGray}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    style={styles.clearButton}
+                    accessibilityLabel="Clear search"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="close-circle" size={16} color={Colors.textGray} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animated.View>
             <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
               {tabKeys.map((tab) => (
                 <Pressable
@@ -945,6 +978,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
               ))}
             </View>
           </View>
+          {/* Search circle button — top right, inverted style for hopeWhite background */}
+          <TouchableOpacity
+            style={[styles.searchCircleButton, { top: insets.top + 10 }]}
+            onPress={() => { triggerLightHaptic(); toggleSearch(); }}
+            activeOpacity={0.75}
+            accessibilityLabel={showSearch ? 'Close search' : 'Search playbooks'}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={showSearch ? 'close' : 'search'}
+              size={17}
+              color={Colors.anchorBlue}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Rounded content area standardized via BlueSheet (matches Journal) */}
@@ -1589,6 +1636,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginTop: 10,
     letterSpacing: 0.5,
   },
+  searchBarWrapper: {
+    overflow: 'hidden',
+  },
   searchBar: {
     marginTop: 12,
     flexDirection: 'row',
@@ -1599,6 +1649,17 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 12,
     height: 44,
+  },
+  searchCircleButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.07)',
+    borderRadius: 999,
+    zIndex: 100,
   },
   searchIcon: {
     marginRight: 8,

@@ -85,6 +85,10 @@ const UserInputScreen: React.FC = () => {
   // No scrolling needed; content is static and footer is fixed
 
   const [userInput, setUserInput] = useState('');
+  // Dynamic input height — starts at single-line size, grows to MAX then scrolls
+  const MIN_INPUT_HEIGHT = 44;
+  const MAX_INPUT_HEIGHT = 150;
+  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   // Typing, cycling placeholder for guided, non-chat input
   const [placeholderText, setPlaceholderText] = useState('What happened?');
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -721,6 +725,18 @@ const UserInputScreen: React.FC = () => {
       text = text.slice(0, MAX_USER_INPUT_LENGTH);
     }
     setUserInput(text);
+    // When text is cleared, reset height immediately — onContentSizeChange
+    // doesn't reliably fire on iOS when deleting back to empty.
+    if (!text) {
+      setInputHeight(MIN_INPUT_HEIGHT);
+    }
+  };
+
+  const handleContentSizeChange = (event: any) => {
+    const contentHeight = event.nativeEvent.contentSize.height;
+    // iOS contentSize already includes padding — clamp between min and max.
+    // At MAX_INPUT_HEIGHT, scrollEnabled flips to true so text scrolls instead of clipping.
+    setInputHeight(Math.max(MIN_INPUT_HEIGHT, Math.min(contentHeight, MAX_INPUT_HEIGHT)));
   };
 
   const handleGenerationFlow = async () => {
@@ -1453,14 +1469,21 @@ const UserInputScreen: React.FC = () => {
                 <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]}>
                   <TextInput
                     ref={inputRef}
-                    style={[styles.askInput, font]}
+                    style={[
+                      styles.askInput,
+                      inputHeight >= MAX_INPUT_HEIGHT
+                        ? { height: MAX_INPUT_HEIGHT }   // locked — scroll kicks in
+                        : { minHeight: MIN_INPUT_HEIGHT }, // growing — let iOS size it
+                      font,
+                    ]}
                     placeholder="Share what happened..."
                     placeholderTextColor={'rgba(255,255,255,0.7)'}
                     value={userInput}
                     onChangeText={handleInputChange}
+                    onContentSizeChange={handleContentSizeChange}
                     multiline
                     textAlignVertical="top"
-                    scrollEnabled={true}
+                    scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
                     autoCapitalize="sentences"
                     keyboardAppearance="dark"
                     underlineColorAndroid="transparent"
@@ -1907,7 +1930,6 @@ const styles = StyleSheet.create({
     padding: 0, // Remove padding to allow seamless scrolling
     paddingBottom: 60, // Space for overlay icons
     width: '100%',
-    minHeight: 60,
     position: 'relative',
     overflow: 'hidden', // Clip content at container edges
   },
@@ -1957,8 +1979,6 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: 'transparent',
     textAlignVertical: 'top',
-    minHeight: 120,
-    maxHeight: 120,
     ...Platform.select({
       ios: {
         paddingTop: 16,
