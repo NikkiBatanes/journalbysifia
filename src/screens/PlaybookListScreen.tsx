@@ -2068,7 +2068,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.anchorBlue,
-    paddingVertical: 0,
+    paddingVertical: 10,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
   },
