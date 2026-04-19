@@ -121,38 +121,81 @@ const PlaybookSkeletonLoader = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* PLAYBOOK Label with Chevron - matches PlaybookWalkthroughScreen */}
-        <View style={styles.playbookLabelContainer}>
-          <SkeletonBox width="25%" height={12} backgroundColor={'rgba(255,255,255,0.22)'} />
-          <View style={styles.chevronSkeleton} />
+        {/* Continue Section Skeleton */}
+        <View style={styles.carouselTitleContainer}>
+          <SkeletonBox width="30%" height={20} backgroundColor={'rgba(255,255,255,0.22)'} />
+        </View>
+        <View style={styles.carouselRow}>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="70%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="50%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="65%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="45%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="75%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="55%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
         </View>
 
-        {/* Title Skeleton - below PLAYBOOK label */}
-        <View style={styles.titleSkeletonContainer}>
-          <SkeletonBox width="70%" height={28} backgroundColor={'rgba(255,255,255,0.24)'} />
+        {/* Category Section Skeleton */}
+        <View style={styles.carouselTitleContainer}>
+          <SkeletonBox width="25%" height={20} backgroundColor={'rgba(255,255,255,0.22)'} />
+        </View>
+        <View style={styles.carouselRow}>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="40%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="70%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="50%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
         </View>
 
-        {/* Step Label Row - matches PlaybookWalkthroughScreen */}
-        <View style={styles.stepLabelRow}>
-          <View style={[styles.iconSkeleton, styles.stepIconSkeleton]} />
-          <SkeletonBox width="35%" height={14} backgroundColor={'rgba(255,255,255,0.22)'} />
+        {/* Another Category Section Skeleton */}
+        <View style={styles.carouselTitleContainer}>
+          <SkeletonBox width="20%" height={20} backgroundColor={'rgba(255,255,255,0.22)'} />
         </View>
-
-        {/* Text Block Skeleton - matches PlaybookWalkthroughScreen text blocks */}
-        <View style={styles.textBlock}>
-          <SkeletonBox width="100%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="95%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="98%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="92%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="96%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="85%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-          <SkeletonBox width="90%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.16)'} />
-          <SkeletonBox width="88%" height={22} style={styles.textLine} backgroundColor={'rgba(255,255,255,0.14)'} />
-        </View>
-
-        {/* Transition Line Divider - matches PlaybookWalkthroughScreen Step 0 */}
-        <View style={styles.transitionLineContainer}>
-          <SkeletonBox width="60%" height={16} backgroundColor={'rgba(255,255,255,0.12)'} />
+        <View style={styles.carouselRow}>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="65%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="45%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="55%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="35%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
+          <View style={styles.carouselCardSkeleton}>
+            <SkeletonBox width="100%" height={120} backgroundColor={'rgba(255,255,255,0.12)'} />
+            <View style={styles.cardContentSkeleton}>
+              <SkeletonBox width="60%" height={16} style={styles.cardTitleSkeleton} backgroundColor={'rgba(255,255,255,0.18)'} />
+              <SkeletonBox width="40%" height={12} style={styles.cardSubtitleSkeleton} backgroundColor={'rgba(255,255,255,0.14)'} />
+            </View>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -167,6 +210,29 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 16,
+  },
+  carouselTitleContainer: {
+    marginBottom: 12,
+  },
+  carouselRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  carouselCardSkeleton: {
+    width: 140,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cardContentSkeleton: {
+    padding: 12,
+    gap: 4,
+  },
+  cardTitleSkeleton: {
+    marginBottom: 2,
+  },
+  cardSubtitleSkeleton: {
+    marginBottom: 0,
   },
   playbookLabelContainer: {
     flexDirection: 'row',
