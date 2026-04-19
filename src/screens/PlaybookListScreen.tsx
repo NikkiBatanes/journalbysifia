@@ -2920,7 +2920,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'flex-start',
-    paddingTop: 95,
+    paddingTop: 110,
     alignItems: 'flex-end',
     paddingRight: 16,
   },
