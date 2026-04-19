@@ -460,6 +460,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const dateModalTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const dateModalFadeAnim = useRef(new Animated.Value(0)).current;
   const [dateModalVisible, setDateModalVisible] = useState(false);
+  const dateModalPanY = useRef(new Animated.Value(0)).current;
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -532,6 +533,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
       }
     };
   }, [showDateModal, dateModalFadeAnim, dateModalTranslateY]);
+
+  // PanResponder for swipe-down to dismiss filter modal
+  const dateModalPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 0 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          dateModalPanY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          // Swipe down threshold - dismiss modal
+          setShowDateModal(false);
+        } else {
+          // Snap back
+          Animated.spring(dateModalPanY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // Component renders with current state
 
@@ -1252,8 +1279,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
             <Animated.View
               style={[
                 styles.dateModalContent,
-                { transform: [{ translateY: dateModalTranslateY }] },
+                {
+                  transform: [
+                    {
+                      translateY: Animated.add(
+                        dateModalTranslateY,
+                        dateModalPanY
+                      ),
+                    },
+                  ],
+                },
               ]}
+              {...dateModalPanResponder.panHandlers}
             >
               {/* Handle */}
               <View style={styles.dateModalHandle} />
