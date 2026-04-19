@@ -275,11 +275,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
     playbookIdsRef.current = playbooks.map(p => p.id);
   }, [playbooks]);
 
-  // Load session states (hasPrayed, hasRead) for all playbooks when screen comes into focus
+  // Throttle session state loads — only reload if >5s have passed (avoids N AsyncStorage reads on every tab press)
+  const lastSessionLoadRef = useRef(0);
   useFocusEffect(
     useCallback(() => {
+      const now = Date.now();
+      if (now - lastSessionLoadRef.current < 5000) { return; }
       const ids = playbookIdsRef.current;
       if (ids.length === 0) { return; }
+      lastSessionLoadRef.current = now;
       const loadAll = async () => {
         const entries: Record<string, { hasPrayed: boolean; hasRead: boolean }> = {};
         await Promise.all(
@@ -432,49 +436,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
   //   }
   // }, [playbooks.length]);
 
-  // Reset animations when screen comes into focus and set to In Progress tab
+  // Set to In Progress tab on focus; React Query staleTime handles background refetching automatically
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-
-      // Always reset to 'ongoing' (In Progress) tab when navigating to this screen
-
-      setFilter('ongoing');
-
-      // DISABLED: No need to reset entrance animations since they're disabled
-      // if (animatedValues.current && Array.isArray(animatedValues.current)) {
-      //   animatedValues.current.forEach(value => {
-      //     if (value && typeof value.setValue === 'function') {
-      //       value.setValue(0);
-      //     }
-      //   });
-      // }
-
-      // ENTERPRISE-GRADE: Defer refetch to after navigation transition completes
-      // This prevents blocking the UI thread during screen transitions
-      const timer = setTimeout(() => {
-        if (userId) {
-          const focusTime = Date.now();
-          console.log('[PlaybookListScreen] Screen focused at', focusTime);
-
-          // CRITICAL: Use InteractionManager for 1-day devotional freeze fix
-          // requestAnimationFrame doesn't wait for navigation animations to complete
-          const { InteractionManager } = require('react-native');
-          InteractionManager.runAfterInteractions(() => {
-            const interactionTime = Date.now();
-            console.log('[PlaybookListScreen] InteractionManager fired, refetching playbooks', { delay: interactionTime - focusTime });
-            refetch();
-            console.log('[PlaybookListScreen] Playbooks refetch triggered');
-          });
-        }
-      }, 150);
-
-      return () => clearTimeout(timer);
+      setFilter('ongoing'); // React bails out (no re-render) when value is already 'ongoing'
     });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [navigation, refetch, userId]);
+    return () => { unsubscribe(); };
+  }, [navigation]);
 
   // Additional effect to handle userId changes and ensure data loading
   useEffect(() => {
