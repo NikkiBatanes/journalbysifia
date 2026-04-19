@@ -2970,8 +2970,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(3,32,61,0.14)',
-    backgroundColor: 'rgba(3,32,61,0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   pickerPillCompact: {
     paddingVertical: 3,
