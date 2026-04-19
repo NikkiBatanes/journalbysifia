@@ -1607,6 +1607,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
+          {/* ── CONTINUE YOUR PLAYBOOK/S label ─────────────── */}
+          {contentView === 'all' && (
+            <View style={styles.viewPillRow}>
+              <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
+              </ThemedText>
+            </View>
+          )}
+
           {isLoading ? (
             <View style={[styles.listContent, styles.pageInner]}>
               <PlaybookSkeleton />
@@ -1647,13 +1656,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ) : contentView === 'all' ? (
             /* ── ALL VIEW: Respects header filter ─────────────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-              {filter === 'ongoing' && (
-                <View style={styles.carouselTitleContainer}>
-                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                    CONTINUE YOUR {continuePlaybooks.length === 1 ? 'PLAYBOOK' : 'PLAYBOOKS'}
-                  </ThemedText>
-                </View>
-              )}
               {filter === 'ongoing' ? (
                 continuePlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
