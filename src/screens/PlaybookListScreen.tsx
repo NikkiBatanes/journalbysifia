@@ -3248,19 +3248,19 @@ const createStyles = (_theme: any) => StyleSheet.create({
   pickerCategoryScroll: {
     marginTop: 4,
     marginBottom: 2,
-    height: 32,
   },
   pickerCategoryScrollContent: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 0,
+    paddingVertical: 4,
+    alignItems: 'center',
   },
   pickerApplyButton: {
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     marginBottom: 2,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
