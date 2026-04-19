@@ -532,6 +532,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [contentView, setContentView] = useState<'all' | 'category' | 'date'>('all');
   // Date view sub-mode
   const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [showDateViewDropdown, setShowDateViewDropdown] = useState(false);
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
   const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
@@ -1446,6 +1447,26 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </Modal>
 
+        {/* Date view mode dropdown */}
+        <Modal visible={showDateViewDropdown} transparent animationType="fade" onRequestClose={() => setShowDateViewDropdown(false)}>
+          <TouchableOpacity style={styles.continueTimeDropdownOverlay} activeOpacity={1} onPress={() => setShowDateViewDropdown(false)}>
+            <View style={styles.continueTimeDropdownContent} onStartShouldSetResponder={() => true}>
+              {(['weekly', 'monthly', 'yearly'] as const).map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.continueTimeDropdownOption, dateViewMode === opt && styles.continueTimeDropdownOptionActive]}
+                  onPress={() => { triggerLightHaptic(); setDateViewMode(opt); setShowDateViewDropdown(false); }}
+                >
+                  <ThemedText style={[styles.continueTimeDropdownOptionText, dateViewMode === opt && styles.continueTimeDropdownOptionTextActive]}>
+                    {opt === 'weekly' ? 'Weekly' : opt === 'monthly' ? 'Monthly' : 'Yearly'}
+                  </ThemedText>
+                  {dateViewMode === opt && <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         {/* Filter modal — date + clear all */}
         <Modal visible={dateModalVisible} transparent animationType="none" onRequestClose={() => setShowDateModal(false)}>
           <View style={styles.dateModalOverlay}>
@@ -1569,21 +1590,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
             ))}
             <Pressable
               style={[styles.viewPill, contentView === 'date' && styles.viewPillActive]}
-              onPress={() => {
-                triggerLightHaptic();
-                setContentView('date');
-                // Cycle through modes when already on date view
-                if (contentView === 'date') {
-                  const modes: ('weekly' | 'monthly' | 'yearly')[] = ['weekly', 'monthly', 'yearly'];
-                  const idx = modes.indexOf(dateViewMode);
-                  setDateViewMode(modes[(idx + 1) % modes.length]);
-                }
-              }}
+              onPress={() => { triggerLightHaptic(); setContentView('date'); }}
             >
-              <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
-                {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
-              </ThemedText>
+              <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>Date</ThemedText>
             </Pressable>
+            {contentView === 'date' && (
+              <TouchableOpacity
+                style={styles.continueTimeDropdownButton}
+                onPress={() => { triggerLightHaptic(); setShowDateViewDropdown(true); }}
+              >
+                <ThemedText style={styles.continueTimeDropdownText}>
+                  {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
+                </ThemedText>
+                <Ionicons name="chevron-down" size={13} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {isLoading ? (
