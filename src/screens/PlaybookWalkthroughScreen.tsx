@@ -1751,7 +1751,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       // Record this step as completed (Next was pressed)
       if (playbookId) {
         updateWalkthroughProgress(playbookId, stepIndex).catch(() => {});
-        queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
       }
       // Animate next button out on scripture anchor step (step 2)
       if (stepIndex === 2) {
@@ -1774,7 +1773,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         animateStep(next, 'forward');
       }
     }
-  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim, playbookId, userId, queryClient]);
+  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim, playbookId]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
