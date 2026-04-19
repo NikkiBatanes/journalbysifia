@@ -386,7 +386,7 @@ const TabPressContext = React.createContext<{
 export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
   const theme = useTheme();
   const { user } = useAuth();
-  const [currentTab, setCurrentTab] = React.useState<string>('UserInput');
+  const currentTabRef = React.useRef<string>('UserInput');
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
   // Subtle haptic feedback, gated by user preference
@@ -405,16 +405,15 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
     } catch {}
   }, [user]);
 
-  // Handle tab press
+  // Handle tab press — uses ref for currentTab so handleTabPress stays stable and
+  // renderTabBar never gets a new reference on every press (prevents full navigator re-render)
   const handleTabPress = React.useCallback((tabName: string) => {
-    // Fire subtle haptic on any tab press (if enabled)
     triggerLightHaptic();
-    if (tabName === 'Journal' && currentTab === 'Journal' && journalScreenRef.current) {
-      // Toggle between current date and last selected date
+    if (tabName === 'Journal' && currentTabRef.current === 'Journal' && journalScreenRef.current) {
       journalScreenRef.current.resetToCurrentDate();
     }
-    setCurrentTab(tabName);
-  }, [currentTab, triggerLightHaptic]);
+    currentTabRef.current = tabName;
+  }, [triggerLightHaptic]);
 
   // Move tabBar render function outside
   const renderTabBar = React.useCallback(
