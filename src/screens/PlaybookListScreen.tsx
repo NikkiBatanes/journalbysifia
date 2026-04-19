@@ -1277,7 +1277,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   <ThemedText style={[styles.dateOptionText, datePreset === preset && styles.dateOptionTextActive]}>
                     {DATE_PRESET_LABELS[preset]}
                   </ThemedText>
-                  {datePreset === preset && <Ionicons name="checkmark-circle" size={18} color={Colors.anchorBlue} />}
                 </TouchableOpacity>
               ))}
 
@@ -1290,7 +1289,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       triggerLightHaptic();
                     }}
                   >
-                    <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} />
+                    <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />
                     <ThemedText style={styles.customDateButtonText}>
                       {customDateRange.start ? format(customDateRange.start, 'MMM d, yyyy') : 'Start Date'}
                     </ThemedText>
@@ -1303,7 +1302,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       triggerLightHaptic();
                     }}
                   >
-                    <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} />
+                    <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />
                     <ThemedText style={styles.customDateButtonText}>
                       {customDateRange.end ? format(customDateRange.end, 'MMM d, yyyy') : 'End Date'}
                     </ThemedText>
