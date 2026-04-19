@@ -1647,11 +1647,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ) : contentView === 'all' ? (
             /* ── ALL VIEW: Respects header filter ─────────────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-              <View style={styles.carouselTitleContainer}>
-                <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                  {filter === 'ongoing' ? 'IN PROGRESS' : 'COMPLETED'} · {filter === 'ongoing' ? continuePlaybooks.length : completedPlaybooks.length}
-                </ThemedText>
-              </View>
               {filter === 'ongoing' ? (
                 continuePlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
