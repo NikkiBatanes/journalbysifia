@@ -1589,7 +1589,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </Pressable>
             ))}
             <Pressable
-              style={[styles.viewPill, contentView === 'date' && styles.viewPillActive]}
+              style={[styles.viewPill, contentView === 'date' && styles.viewPillActive, styles.viewPillWithIcon]}
               onPress={() => {
                 triggerLightHaptic();
                 setContentView('date');
@@ -1599,7 +1599,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
                 {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
               </ThemedText>
-              <Ionicons name="chevron-down" size={13} color={contentView === 'date' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'} style={{ marginLeft: 4 }} />
+              <Ionicons name="chevron-down" size={12} color={contentView === 'date' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'} style={{ marginLeft: 4 }} />
             </Pressable>
           </View>
 
@@ -2134,6 +2134,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  viewPillWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   viewPillActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
