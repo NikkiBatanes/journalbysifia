@@ -1389,7 +1389,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       return (
                         <TouchableOpacity
                           key={cat}
-                          style={[styles.pickerPill, styles.pickerPillCompact, isSelected && styles.pickerPillActive]}
+                          style={[styles.pickerPill, isSelected && styles.pickerPillActive]}
                           onPress={() => {
                             triggerLightHaptic();
                             setSelectedCategories(prev =>
@@ -2920,7 +2920,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'flex-start',
-    paddingTop: 110,
+    paddingTop: 112,
     alignItems: 'flex-end',
     paddingRight: 16,
   },
