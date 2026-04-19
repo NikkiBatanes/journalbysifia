@@ -1076,7 +1076,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onPress={() => { triggerLightHaptic(); setShowStatusDropdown(!showStatusDropdown); }}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name="filter" size={16} color={Colors.anchorBlue} />
+                  <Ionicons name="funnel" size={16} color={Colors.anchorBlue} />
                   <ThemedText style={styles.statusDropdownButtonText}>{filter === 'all' ? 'All' : filter === 'ongoing' ? 'In Progress' : 'Completed'}</ThemedText>
                   <Ionicons name="chevron-down" size={12} color={Colors.anchorBlue} />
                 </TouchableOpacity>
