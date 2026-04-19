@@ -130,7 +130,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   onContinue: _onContinue,
   insets,
 }) => {
-  console.log('[EnterMomentStep] transitionLine:', transitionLine);
   const [showUserInput, setShowUserInput] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
 
@@ -1516,9 +1515,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       return result;
     },
     enabled: shouldFetch,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     retry: 2,
   });

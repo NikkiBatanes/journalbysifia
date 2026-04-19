@@ -165,7 +165,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
   const theme = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { setShowTabBar } = useScroll();
@@ -269,21 +269,28 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
 
+  // Stable ref for playbook IDs to avoid recreating callback on every query update
+  const playbookIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    playbookIdsRef.current = playbooks.map(p => p.id);
+  }, [playbooks]);
+
   // Load session states (hasPrayed, hasRead) for all playbooks when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      if (playbooks.length === 0) { return; }
+      const ids = playbookIdsRef.current;
+      if (ids.length === 0) { return; }
       const loadAll = async () => {
         const entries: Record<string, { hasPrayed: boolean; hasRead: boolean }> = {};
         await Promise.all(
-          playbooks.map(async (p) => {
+          ids.map(async (id) => {
             try {
-              const raw = await AsyncStorage.getItem(`playbook_session_${p.id}`);
+              const raw = await AsyncStorage.getItem(`playbook_session_${id}`);
               if (raw) {
-                const session = JSON.parse(raw);
-                entries[p.id] = {
-                  hasPrayed: session.hasPrayed ?? false,
-                  hasRead: session.hasRead ?? false,
+                const sess = JSON.parse(raw);
+                entries[id] = {
+                  hasPrayed: sess.hasPrayed ?? false,
+                  hasRead: sess.hasRead ?? false,
                 };
               }
             } catch (_) {}
@@ -292,7 +299,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         setSessionStates(entries);
       };
       loadAll();
-    }, [playbooks])
+    }, [])
   );
 
   // Handle rename playbook
@@ -467,7 +474,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return () => {
       unsubscribe();
     };
-  }, [navigation, playbooks.length, refetch, userId]);
+  }, [navigation, refetch, userId]);
 
   // Additional effect to handle userId changes and ensure data loading
   useEffect(() => {
@@ -510,9 +517,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
     });
   }, [playbooks]);
 
-  // Fetch devotionals count for each playbook
+  // Fetch devotionals count for each playbook — stable dep: playbooks.length, not the full array ref
+  const playbooksLengthRef = useRef(0);
   useEffect(() => {
     if (!userId || playbooks.length === 0) return;
+    if (playbooks.length === playbooksLengthRef.current && Object.keys(devotionalsCount).length > 0) return;
+    playbooksLengthRef.current = playbooks.length;
 
     const fetchDevotionalsCount = async () => {
       try {
@@ -537,7 +547,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     };
 
     fetchDevotionalsCount();
-  }, [userId, playbooks]);
+  }, [userId, playbooks.length]);
 
   // Filter and sort playbooks by completion status and search query (optimized with cached progress)
   const filteredPlaybooks = useMemo(() => {
