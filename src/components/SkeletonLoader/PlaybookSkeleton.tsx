@@ -48,6 +48,7 @@ export const PlaybookSkeleton: React.FC = () => {
           <View style={styles.categoryLabel}>
             <Animated.View style={[styles.categoryLabelTextSkeleton, { opacity }]} />
           </View>
+          <Animated.View style={[styles.menuButtonSkeleton, { opacity }]} />
         </View>
 
         {/* Date */}
@@ -153,8 +154,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 8,
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   categoryLabel: {
     position: 'absolute',
@@ -170,6 +169,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(3, 32, 61, 0.3)',
     borderRadius: 4,
     width: 60,
+  },
+  menuButtonSkeleton: {
+    position: 'absolute',
+    right: 10,
+    top: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   dateWithBadge: {
     marginBottom: 4,
