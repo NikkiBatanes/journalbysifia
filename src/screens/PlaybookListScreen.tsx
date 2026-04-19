@@ -1401,6 +1401,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                                 ? prev.filter(c => c !== cat)   // deselect
                                 : [...prev, cat]                // select
                             );
+                            setShowStatusPicker(false);
                           }}
                           activeOpacity={0.75}
                         >
@@ -1414,16 +1415,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       );
                     })}
                   </ScrollView>
-                  {/* Apply button to close modal */}
-                  <TouchableOpacity
-                    style={styles.pickerApplyButton}
-                    onPress={() => { triggerLightHaptic(); setShowStatusPicker(false); }}
-                    activeOpacity={0.8}
-                  >
-                    <ThemedText weight="semiBold" style={styles.pickerApplyButtonText}>
-                      {selectedCategories.length === 0 ? 'View All' : `View ${selectedCategories.length} Categor${selectedCategories.length === 1 ? 'y' : 'ies'}`}
-                    </ThemedText>
-                  </TouchableOpacity>
                 </>
               )}
 
@@ -2959,7 +2950,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 1,
     color: 'rgba(255, 255, 255, 0.5)',
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 0,
   },
   pickerPillRow: {
     flexDirection: 'row',
@@ -3040,12 +3031,13 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   pickerApplyButton: {
     marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 2,
+    marginTop: 4,
+    marginBottom: 0,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   pickerApplyButtonText: {
     fontSize: 13,
