@@ -4,8 +4,8 @@
  * Respects user's week start preference and shows completion states
  */
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -53,6 +53,25 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
 
   const orderedDays = WEEK_ORDER[weekStart] || WEEK_ORDER.Sunday;
 
+  // Create animated values for each day
+  const scaleAnims = useRef(
+    orderedDays.map(() => new Animated.Value(0))
+  ).current;
+
+  // Trigger staggered spring animations on mount
+  useEffect(() => {
+    scaleAnims.forEach((anim, index) => {
+      anim.setValue(0);
+      Animated.spring(anim, {
+        toValue: 1,
+        tension: 80,
+        friction: 6,
+        delay: index * 50, // 50ms stagger from left to right
+        useNativeDriver: true,
+      }).start();
+    });
+  }, []);
+
   // Show placeholder circles while loading
   if (!dayStates || dayStates.length === 0) {
     return (
@@ -74,14 +93,29 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
         const label = FULL_DAY_LABELS[day] || DAY_LABELS[day];
 
         return (
-          <View key={day} style={styles.dayContainer}>
-            <View style={[styles.dayCircle, getDayCircleStyle(state)]}>
+          <Animated.View key={day} style={styles.dayContainer}>
+            <Animated.View
+              style={[
+                styles.dayCircle,
+                getDayCircleStyle(state),
+                {
+                  transform: [
+                    {
+                      scale: scaleAnims[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.4, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               {state === 'completed' && (
                 <Ionicons name="sparkles" size={12} color={Colors.hopeWhite} />
               )}
-            </View>
+            </Animated.View>
             <Text style={[styles.dayLabel, font, getDayLabelStyle(state)]}>{label}</Text>
-          </View>
+          </Animated.View>
         );
       })}
     </View>
