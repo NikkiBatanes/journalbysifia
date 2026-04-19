@@ -2063,6 +2063,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   searchIcon: {
     marginRight: 7,
+    marginTop: 3,
   },
   searchInput: {
     flex: 1,
@@ -2075,6 +2076,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     letterSpacing: 0.1,
     height: 42,
     includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   clearButton: {
     marginLeft: 6,
