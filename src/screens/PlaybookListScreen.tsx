@@ -2981,12 +2981,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderColor: Colors.anchorBlue,
   },
   pickerPillActiveOngoing: {
-    backgroundColor: 'rgba(230,90,70,0.1)',
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.anchorBlue,
   },
   pickerPillActiveCompleted: {
-    backgroundColor: 'rgba(95,138,104,0.1)',
-    borderColor: Colors.growthGreen,
+    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.anchorBlue,
   },
   pickerPillText: {
     fontSize: 13,
@@ -2997,10 +2997,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
   },
   pickerPillTextOngoing: {
-    color: Colors.alertCoral,
+    color: Colors.hopeWhite,
   },
   pickerPillTextCompleted: {
-    color: Colors.growthGreen,
+    color: Colors.hopeWhite,
   },
   pickerStatusDot: {
     width: 7,
