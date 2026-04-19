@@ -1590,21 +1590,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
             ))}
             <Pressable
               style={[styles.viewPill, contentView === 'date' && styles.viewPillActive]}
-              onPress={() => { triggerLightHaptic(); setContentView('date'); }}
+              onPress={() => {
+                triggerLightHaptic();
+                setContentView('date');
+                setShowDateViewDropdown(true);
+              }}
             >
-              <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>Date</ThemedText>
+              <ThemedText style={[styles.viewPillText, contentView === 'date' && styles.viewPillTextActive]}>
+                {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
+              </ThemedText>
             </Pressable>
-            {contentView === 'date' && (
-              <TouchableOpacity
-                style={styles.continueTimeDropdownButton}
-                onPress={() => { triggerLightHaptic(); setShowDateViewDropdown(true); }}
-              >
-                <ThemedText style={styles.continueTimeDropdownText}>
-                  {dateViewMode === 'weekly' ? 'Weekly' : dateViewMode === 'monthly' ? 'Monthly' : 'Yearly'}
-                </ThemedText>
-                <Ionicons name="chevron-down" size={13} color={Colors.hopeWhite} />
-              </TouchableOpacity>
-            )}
           </View>
 
           {isLoading ? (
