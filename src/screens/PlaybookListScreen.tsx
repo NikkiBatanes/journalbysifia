@@ -452,6 +452,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Date preset filter
   const [datePreset, setDatePreset] = useState<'all' | 'week' | 'month' | '3months' | 'year'>('all');
   const [showDateModal, setShowDateModal] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -1066,17 +1067,28 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <View style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
 
-            {/* Row 1: Title + search icon */}
+            {/* Row 1: Title + search icon + status dropdown */}
             <View style={styles.headerTopRow}>
               <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
-              <TouchableOpacity
-                style={styles.searchCircleButton}
-                onPress={() => { triggerLightHaptic(); toggleSearch(); }}
-                activeOpacity={0.75}
-                accessibilityLabel={showSearch ? 'Close search' : 'Search playbooks'}
-              >
-                <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.anchorBlue} />
-              </TouchableOpacity>
+              <View style={styles.headerButtonsRow}>
+                <TouchableOpacity
+                  style={styles.statusDropdownButton}
+                  onPress={() => { triggerLightHaptic(); setShowStatusDropdown(!showStatusDropdown); }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="filter" size={16} color={Colors.anchorBlue} />
+                  <ThemedText style={styles.statusDropdownButtonText}>{filter === 'all' ? 'All' : filter === 'ongoing' ? 'In Progress' : 'Completed'}</ThemedText>
+                  <Ionicons name="chevron-down" size={12} color={Colors.anchorBlue} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.searchCircleButton}
+                  onPress={() => { triggerLightHaptic(); toggleSearch(); }}
+                  activeOpacity={0.75}
+                  accessibilityLabel={showSearch ? 'Close search' : 'Search playbooks'}
+                >
+                  <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.anchorBlue} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Row 2: Search bar (animated reveal) */}
@@ -1111,29 +1123,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             </Animated.View>
 
-            {/* Row 3: Status toggle pills — In Progress | Completed. Tap active to deselect (= show all) */}
-            <View style={styles.statusPillRow}>
-              <Pressable
-                style={[styles.statusPillTab, filter === 'ongoing' && styles.statusPillTabOngoing]}
-                onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'all' : 'ongoing'); }}
-              >
-                <View style={[styles.statusDot, filter === 'ongoing' ? styles.statusDotOngoing : styles.statusDotInactive]} />
-                <ThemedText weight="semiBold" style={[styles.statusPillTabText, filter === 'ongoing' && styles.statusPillTabTextActive]}>
-                  In Progress
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                style={[styles.statusPillTab, filter === 'completed' && styles.statusPillTabCompleted]}
-                onPress={() => { triggerLightHaptic(); setFilter(filter === 'completed' ? 'all' : 'completed'); }}
-              >
-                <View style={[styles.statusDot, filter === 'completed' ? styles.statusDotCompleted : styles.statusDotInactive]} />
-                <ThemedText weight="semiBold" style={[styles.statusPillTabText, filter === 'completed' && styles.statusPillTabTextActive]}>
-                  Completed
-                </ThemedText>
-              </Pressable>
-            </View>
-
-            {/* Row 4: Tag chips + Date chip (horizontal scroll) */}
+            {/* Row 3: Tag chips + Date chip (horizontal scroll) */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1203,6 +1193,28 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     {DATE_PRESET_LABELS[preset]}
                   </ThemedText>
                   {datePreset === preset && (
+                    <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Status filter dropdown */}
+        <Modal visible={showStatusDropdown} transparent animationType="fade" onRequestClose={() => setShowStatusDropdown(false)}>
+          <TouchableOpacity style={styles.statusDropdownOverlay} activeOpacity={1} onPress={() => setShowStatusDropdown(false)}>
+            <View style={styles.statusDropdownContent}>
+              {(['all', 'ongoing', 'completed'] as const).map(status => (
+                <TouchableOpacity
+                  key={status}
+                  style={[styles.statusDropdownOption, filter === status && styles.statusDropdownOptionActive]}
+                  onPress={() => { triggerLightHaptic(); setFilter(status); setShowStatusDropdown(false); }}
+                >
+                  <ThemedText style={[styles.statusDropdownOptionText, filter === status && styles.statusDropdownOptionTextActive]}>
+                    {status === 'all' ? 'All Playbooks' : status === 'ongoing' ? 'In Progress' : 'Completed'}
+                  </ThemedText>
+                  {filter === status && (
                     <Ionicons name="checkmark" size={16} color={Colors.anchorBlue} />
                   )}
                 </TouchableOpacity>
@@ -1974,6 +1986,25 @@ const createStyles = (_theme: any) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 0,
   },
+  headerButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(3, 32, 61, 0.07)',
+    borderRadius: 999,
+    gap: 4,
+  },
+  statusDropdownButtonText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+  },
   searchCircleButton: {
     width: 38,
     height: 38,
@@ -2378,6 +2409,42 @@ const createStyles = (_theme: any) => StyleSheet.create({
     opacity: 0.8,
   },
   dateOptionTextActive: {
+    fontFamily: Fonts.semiBold,
+    opacity: 1,
+  },
+
+  // ── Status dropdown modal ───────────────────────────────────────
+  statusDropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+    paddingBottom: 32,
+    paddingHorizontal: 16,
+  },
+  statusDropdownContent: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+    overflow: 'hidden',
+  },
+  statusDropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  statusDropdownOptionActive: {
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+  },
+  statusDropdownOptionText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: Colors.anchorBlue,
+    opacity: 0.8,
+  },
+  statusDropdownOptionTextActive: {
     fontFamily: Fonts.semiBold,
     opacity: 1,
   },
