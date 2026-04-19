@@ -1098,6 +1098,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   <Ionicons name="chevron-down" size={13} color={filter === 'ongoing' ? Colors.alertCoral : Colors.growthGreen} />
                 </TouchableOpacity>
 
+                {/* Date filter tune icon */}
+                <TouchableOpacity
+                  style={[
+                    styles.dateFilterCircleButton,
+                    datePreset !== 'all' && styles.dateFilterCircleButtonActive,
+                  ]}
+                  onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
+                  activeOpacity={0.75}
+                >
+                  <MaterialCommunityIcons name="tune" size={16} color={datePreset !== 'all' ? Colors.anchorBlue : 'rgba(3, 32, 61, 0.4)'} />
+                </TouchableOpacity>
+
                 {/* Search circle */}
                 <TouchableOpacity
                   style={styles.searchCircleButton}
@@ -1232,35 +1244,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
         {/* ── BLUE SHEET: category/tag chips + date, then cards ─ */}
         <BlueSheet style={styles.contentSheet}>
 
-          {/* Category / tag + date chip row — always visible at top of blue area */}
+          {/* Category / tag chip row — always visible at top of blue area */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.tagChipScrollView}
             contentContainerStyle={[styles.tagChipScrollContent, { paddingHorizontal: SIDE_INSET }]}
           >
-            {/* Date */}
-            <Pressable
-              style={[styles.tagChip, styles.tagChipDate, datePreset !== 'all' && styles.tagChipActive]}
-              onPress={() => { triggerLightHaptic(); setShowDateModal(true); }}
-            >
-              <MaterialCommunityIcons name="tune" size={12} color={datePreset !== 'all' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} />
-              {datePreset !== 'all' && (
-                <ThemedText style={[styles.tagChipText, styles.tagChipTextActive, { marginLeft: 4 }]}>
-                  {DATE_PRESET_LABELS[datePreset as Exclude<typeof datePreset, 'all'>]}
-                </ThemedText>
-              )}
-              {datePreset !== 'all' && (
-                <TouchableOpacity
-                  onPress={() => { triggerLightHaptic(); setDatePreset('all'); }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
-                  style={{ marginLeft: 4 }}
-                >
-                  <Ionicons name="close-circle" size={12} color="rgba(255,255,255,0.7)" />
-                </TouchableOpacity>
-              )}
-            </Pressable>
-
             {/* All */}
             <Pressable
               style={[styles.tagChip, activeTag === 'all' && styles.tagChipActive]}
@@ -2092,6 +2082,17 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(3, 32, 61, 0.07)',
     borderRadius: 999,
+  },
+  dateFilterCircleButton: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 32, 61, 0.07)',
+    borderRadius: 999,
+  },
+  dateFilterCircleButtonActive: {
+    backgroundColor: 'rgba(3, 32, 61, 0.12)',
   },
   searchBarWrapper: {
     overflow: 'hidden',
