@@ -2150,6 +2150,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    backgroundColor: Colors.anchorBlue,
     zIndex: 10,
   },
   viewPillRow: {
