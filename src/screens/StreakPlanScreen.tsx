@@ -189,16 +189,33 @@ const StreakPlanScreen: React.FC = () => {
       });
     }
 
-    // playbooks — count creation (not only completion) as activity
+    // playbooks — count both creation AND completion dates as activity
     const { data: playbookData } = await supabase
       .from('playbooks')
-      .select('created_at')
+      .select('created_at, completed_at')
       .eq('user_id', user?.id)
       .gte('created_at', windowStart);
 
     if (playbookData) {
       playbookData.forEach((entry: any) => {
         activityDates.add(toLocalDate(new Date(entry.created_at)));
+        if (entry.completed_at) {
+          activityDates.add(toLocalDate(new Date(entry.completed_at)));
+        }
+      });
+    }
+
+    // Also catch completions that happened within window but were created earlier
+    const { data: completedPlaybooks } = await supabase
+      .from('playbooks')
+      .select('completed_at')
+      .eq('user_id', user?.id)
+      .not('completed_at', 'is', null)
+      .gte('completed_at', windowStart);
+
+    if (completedPlaybooks) {
+      completedPlaybooks.forEach((entry: any) => {
+        activityDates.add(toLocalDate(new Date(entry.completed_at)));
       });
     }
 
@@ -232,12 +249,12 @@ const StreakPlanScreen: React.FC = () => {
       const dateString = toLocalDate(date); // LOCAL date
 
       let state: DayState;
-      if (dateString === todayString) {
-        state = 'today';
-      } else if (dateString > todayString) { // string compare works for YYYY-MM-DD
+      if (dateString > todayString) {
         state = 'future';
       } else if (activityDates.has(dateString)) {
-        state = 'completed';
+        state = 'completed'; // includes today if user has activity
+      } else if (dateString === todayString) {
+        state = 'today'; // today but no activity yet
       } else {
         state = 'missed';
       }
