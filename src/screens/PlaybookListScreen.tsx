@@ -809,44 +809,50 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </ThemedText>
             </View>
           ) : (
-            /* All non-completed cards show sections — ✓/◐/○ based on walkthroughProgress */
+            /* All non-completed cards show sections — simple dot indicators based on walkthroughProgress */
             <View style={styles.sectionsContainer}>
               {([
                 { label: 'Intro',               step: 0 },
-                { label: 'Truth in Love',        step: 1, meta: tilReadTime },
+                { label: 'Truth in Love',        step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
                 { label: 'Scripture to Anchor',  step: 2 },
                 { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-                { label: 'Prayer',               step: 4 },
-                { label: 'Words to Speak',       step: 5 },
-              ] as { label: string; step: number; meta?: string }[]).map(({ label, step, meta }) => {
+                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline' },
+                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline' },
+              ] as { label: string; step: number; meta?: string; metaIcon?: string }[]).map(({ label, step, meta, metaIcon }) => {
                 const state = getSectionState(step, wp);
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[
-                      styles.statusPill,
-                      state === 'completed' && styles.statusPillCompleted,
-                      state === 'viewed'    && styles.statusPillViewed,
-                      state === 'unreached' && styles.statusPillUnreached,
-                    ]}>
-                      <ThemedText style={[
-                        styles.statusPillText,
-                        state === 'completed' && styles.statusPillTextCompleted,
-                        state === 'viewed'    && styles.statusPillTextViewed,
-                        state === 'unreached' && styles.statusPillTextUnreached,
-                      ]}>
-                        {state === 'completed' ? '✓' : state === 'viewed' ? '◐' : '○'}
-                      </ThemedText>
-                    </View>
+                      styles.statusDot,
+                      state === 'completed' && styles.statusDotCompleted,
+                      state === 'viewed'    && styles.statusDotViewed,
+                      state === 'unreached' && styles.statusDotUnreached,
+                    ]} />
                     <View style={styles.sectionContent}>
                       <ThemedText style={[
                         styles.sectionLabel,
-                        state === 'unreached' && { color: 'rgba(255,255,255,0.35)' },
+                        state === 'unreached' && styles.sectionLabelMuted,
                       ]}>
                         {label}
                       </ThemedText>
-                      {meta ? (
-                        <ThemedText style={styles.sectionInfo}>{meta}</ThemedText>
-                      ) : null}
+                      {meta && (
+                        <View style={styles.sectionMetaContainer}>
+                          {metaIcon && (
+                            <Ionicons
+                              name={metaIcon as any}
+                              size={12}
+                              color={state === 'completed' ? Colors.hopeWhite : 'rgba(255,255,255,0.4)'}
+                              style={styles.sectionMetaIcon}
+                            />
+                          )}
+                          <ThemedText style={[
+                            styles.sectionInfo,
+                            state !== 'completed' && styles.sectionInfoMuted,
+                          ]}>
+                            {meta}
+                          </ThemedText>
+                        </View>
+                      )}
                     </View>
                   </View>
                 );
@@ -1623,41 +1629,22 @@ const createStyles = (_theme: any) => StyleSheet.create({
   sectionCheck: {
     marginRight: 8,
   },
-  // Pill badge status icons
-  statusPill: {
-    width: 20,
-    height: 20,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
+  // Simple dot status indicators
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginRight: 12,
   },
-  statusPillCompleted: {
-    backgroundColor: '#ebf5ee',
-    borderColor: '#d8e8dc',
+  statusDotCompleted: {
+    backgroundColor: Colors.hopeWhite,
   },
-  statusPillViewed: {
-    backgroundColor: '#fbf3e3',
-    borderColor: '#edd8aa',
+  statusDotViewed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
   },
-  statusPillUnreached: {
-    backgroundColor: '#f4f6f8',
-    borderColor: '#dfe6ec',
-  },
-  statusPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 13,
-  },
-  statusPillTextCompleted: {
-    color: '#5f8a68',
-  },
-  statusPillTextViewed: {
-    color: '#c58c2b',
-  },
-  statusPillTextUnreached: {
-    color: '#708091',
+  statusDotUnreached: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   sectionContent: {
     flex: 1,
@@ -1669,9 +1656,23 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 13,
     color: Colors.hopeWhite,
   },
+  sectionLabelMuted: {
+    color: 'rgba(255, 255, 255, 0.35)',
+  },
+  sectionMetaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sectionMetaIcon: {
+    marginRight: 0,
+  },
   sectionInfo: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
+  },
+  sectionInfoMuted: {
+    color: 'rgba(255, 255, 255, 0.4)',
   },
   sectionViewedIcon: {
     fontSize: 15,
