@@ -1,5 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, Animated, ScrollView } from 'react-native';
+import { View, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const CARD_HORIZONTAL_PADDING = 16;
+const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
+const isTablet = width >= 768;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
+const ITEM_SPACING = 8;
+const SIDE_INSET = Math.max(
+  0,
+  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+);
 
 export const PlaybookSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -28,48 +39,54 @@ export const PlaybookSkeleton: React.FC = () => {
     outputRange: [0.3, 0.7],
   });
 
-  const CardSkeleton = () => (
-    <View style={styles.card}>
-      <View style={styles.cardContent}>
-        {/* Date skeleton */}
-        <Animated.View style={[styles.dateSkeleton, { opacity }]} />
+  const CarouselCardSkeleton = () => (
+    <View style={styles.carouselCardTouch}>
+      <Animated.View style={[styles.carouselCard, { opacity }]}>
+        {/* Gradient container with category label */}
+        <View style={styles.gradientContainer}>
+          <Animated.View style={[styles.categoryLabelSkeleton, { opacity }]} />
+        </View>
 
-        {/* Title skeleton */}
+        {/* Date */}
+        <View style={styles.dateWithBadge}>
+          <Animated.View style={[styles.dateSkeleton, { opacity }]} />
+        </View>
+
+        {/* Title */}
         <Animated.View style={[styles.titleSkeleton, { opacity }]} />
 
-        {/* Progress bar skeleton */}
-        <View style={styles.progressContainer}>
+        {/* Description */}
+        <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
+
+        {/* Progress section */}
+        <View style={styles.carouselProgressSection}>
           <View style={styles.progressRow}>
-            {/* Progress bar background */}
             <View style={styles.progressBarContainer}>
               <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
             </View>
-
-            {/* Tasks text skeleton */}
-            <Animated.View style={[styles.tasksSkeleton, { opacity }]} />
+            <Animated.View style={[styles.progressTextSkeleton, { opacity }]} />
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 
-  const SectionSkeleton = ({ title }: { title: string }) => (
-    <View style={styles.section}>
+  const SectionSkeleton = () => (
+    <View style={styles.categorySection}>
       {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <Animated.View style={[styles.sectionHeaderText, { opacity }]} />
+      <View style={styles.categorySectionHeader}>
+        <Animated.View style={[styles.categorySectionTitle, { opacity }]} />
+        <Animated.View style={[styles.categorySectionCount, { opacity }]} />
       </View>
 
       {/* Horizontal Carousel */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContent}
+        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
       >
         {[1, 2, 3].map((item) => (
-          <View key={item} style={styles.carouselCard}>
-            <CardSkeleton />
-          </View>
+          <CarouselCardSkeleton key={item} />
         ))}
       </ScrollView>
     </View>
@@ -77,13 +94,12 @@ export const PlaybookSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Continue Section (In Progress) */}
-      <SectionSkeleton title="CONTINUE YOUR PLAYBOOKS" />
+      {/* Continue Section */}
+      <SectionSkeleton />
 
-      {/* Category Sections (All View) */}
-      <SectionSkeleton title="SPIRITUAL GROWTH" />
-      <SectionSkeleton title="RELATIONSHIPS" />
-      <SectionSkeleton title="PERSONAL DEVELOPMENT" />
+      {/* Category Sections */}
+      <SectionSkeleton />
+      <SectionSkeleton />
     </View>
   );
 };
@@ -91,91 +107,101 @@ export const PlaybookSkeleton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // No padding - skeleton is rendered inside PlaybookListScreen's padded container
   },
-  section: {
-    marginBottom: 24,
+  categorySection: {
+    marginTop: 24,
   },
-  sectionHeader: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginTop: 30, // Match PlaybookListScreen section header margin
-    marginBottom: 10, // Match PlaybookListScreen spacing
+  categorySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SIDE_INSET,
+    paddingBottom: 12,
   },
-  sectionHeaderText: {
+  categorySectionTitle: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light on blue
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     width: '40%',
   },
-  carouselContent: {
-    paddingHorizontal: 12,
-    gap: 12,
+  categorySectionCount: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    width: 24,
+    height: 16,
+  },
+  carouselCardTouch: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
   },
   carouselCard: {
-    width: 280, // Match actual card width in carousel
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  sectionHeaderSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light on blue
+  gradientContainer: {
+    height: 44,
+    borderRadius: 14,
+    marginBottom: 8,
+    position: 'relative',
+  },
+  categoryLabelSkeleton: {
+    height: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
-    width: '30%', // Increased width to better match "JULY 2025"
+    width: '30%',
+    position: 'absolute',
+    left: 12,
+    top: 15,
   },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.08)', // Match actual card surface on BlueSheet
-    borderRadius: 20,
-    padding: 12,
-    width: '100%',
-    height: 88, // Match the actual card height
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  cardContent: {
-    flex: 1,
+  dateWithBadge: {
+    marginBottom: 4,
   },
   dateSkeleton: {
-    height: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
-    marginBottom: 4,
-    width: '70%', // Increased width to better match "MONDAY, JULY 28, 2025"
+    width: '40%',
   },
   titleSkeleton: {
-    height: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
+    height: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
-    marginBottom: 8,
-    marginTop: 1,
-    width: '90%', // Increased width to better match title
+    marginBottom: 4,
+    width: '90%',
   },
-  progressContainer: {
-    marginTop: 'auto', // Push to bottom like the real progress bar
+  descriptionSkeleton: {
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    marginBottom: 6,
+    width: '70%',
+  },
+  carouselProgressSection: {
+    marginBottom: 12,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   progressBarContainer: {
     flex: 1,
     marginRight: 12,
   },
   progressBarSkeleton: {
-    height: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
-    borderRadius: 4,
-    width: '97%',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    width: '100%',
   },
-  tasksSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
+  progressTextSkeleton: {
+    height: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
-    width: 60, // Increased width to better match "0/5 Tasks"
+    width: 40,
   },
 });
