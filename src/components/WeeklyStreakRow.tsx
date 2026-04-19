@@ -124,6 +124,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 16,
     gap: 12,
+    backgroundColor: 'rgba(250, 190, 88, 0.15)',
+    borderRadius: 12,
   },
   dayContainer: {
     alignItems: 'center',
