@@ -108,6 +108,7 @@ const PLAYBOOK_JSON_SCHEMA = {
           'Church & Ministry',
           'Parenting',
           'Emotions & Inner Life',
+          'Health & Wellness',
           'Anxiety & Peace',
           'Fear & Trust',
           'Waiting & Uncertainty',
