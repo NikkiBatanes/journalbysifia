@@ -104,6 +104,11 @@ const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
+// Helper function to get category from playbook (AI-generated, with fallback)
+const getCategory = (playbook: Playbook): string => {
+  return playbook.category || 'Growth';
+};
+
 // Estimate reading time for a block of text at ~200 wpm
 const estimateReadTime = (text: string): string => {
   if (!text) { return ''; }
@@ -140,7 +145,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.9, 1, 0.9],   extrapolate: 'clamp' }), [scrollX, index]);
   const translateY = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [2, 0, 2],       extrapolate: 'clamp' }), [scrollX, index]);
   const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
-  const category    = item.category || 'Growth';
+  const category    = useMemo(() => getCategory(item), [item.title, item.userInput]);
   const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [item.truthInLove]);
   const isCardCompleted = item.status === 'completed';
   const wp = item.walkthroughProgress ?? -1;
@@ -739,7 +744,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     // Calculate progress
     const { completed, total } = calculateTaskStats(item.actionSteps);
     const progress = total > 0 ? (completed / total) * 100 : 0;
-    const category = item.category || 'Growth';
+    const category = getCategory(item);
     const isCardCompleted = item.status === 'completed';
     const wp = item.walkthroughProgress ?? -1; // -1 = not started, 0–5 = last completed step
     const tilReadTime = estimateReadTime((item.truthInLove as any)?.text || '');

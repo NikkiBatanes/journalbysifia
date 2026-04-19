@@ -45,7 +45,7 @@ export interface Playbook {
   id: string;
   title: string;
   userInput: string;
-  category?: string; // AI-generated category from the approved list
+  category?: string; // AI-generated category from predefined list
   truthInLove: TruthInLove;
   actionSteps: ActionStep[];
   affirmations?: Affirmation[]; // @deprecated - replaced by wordsToSpeak array

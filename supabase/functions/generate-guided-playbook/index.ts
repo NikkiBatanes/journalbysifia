@@ -44,6 +44,7 @@ interface Playbook {
   id: string;
   title: string;
   subtitle: string;
+  category?: string;
   truthInLove: {
     summary: string;
     text: string;
@@ -89,6 +90,31 @@ const PLAYBOOK_JSON_SCHEMA = {
     type: 'object',
     properties: {
       playbook_title: { type: 'string' },
+      category: {
+        type: 'string',
+        enum: [
+          'Relationships',
+          'Family',
+          'Marriage',
+          'Singleness',
+          'Friendship',
+          'Work & Career',
+          'Calling & Purpose',
+          'Finance & Stewardship',
+          'Decision-Making',
+          'Conflict & Boundaries',
+          'Hurt & Forgiveness',
+          'Faith & Obedience',
+          'Church & Ministry',
+          'Parenting',
+          'Emotions & Inner Life',
+          'Anxiety & Peace',
+          'Fear & Trust',
+          'Waiting & Uncertainty',
+          'Grief & Loss',
+          'Shame & Guilt',
+        ],
+      },
       truth_summary: { type: 'string' },
       truth_in_love: { type: 'string' },
       transition_line: { type: 'string' },
@@ -143,6 +169,7 @@ const PLAYBOOK_JSON_SCHEMA = {
     },
     required: [
       'playbook_title',
+      'category',
       'truth_summary',
       'truth_in_love',
       'transition_line',
@@ -382,6 +409,7 @@ function parseJsonPlaybook(
     id: generateUUID(),
     title: cleanMarkdown(json.playbook_title || ''),
     subtitle: '',
+    category: json.category || 'Growth',
     truthInLove: {
       summary: json.truth_summary || '',
       text: json.truth_in_love || '',
