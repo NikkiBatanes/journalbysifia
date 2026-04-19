@@ -19,6 +19,7 @@ import {
   ScrollView,
   TextInput,
   Easing,
+  Platform,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -1122,7 +1123,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <Ionicons name="search-outline" size={16} color={'rgba(3,32,61,0.4)'} style={styles.searchIcon} />
                 <TextInput
                   ref={searchInputRef}
-                  style={styles.searchInput}
+                  style={[
+                    styles.searchInput,
+                    Platform.OS === 'ios' ? styles.searchInputIOS : styles.searchInputAndroid,
+                  ]}
                   placeholder="Search all playbooks..."
                   placeholderTextColor={'rgba(3,32,61,0.35)'}
                   value={searchQuery}
@@ -2073,8 +2077,15 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingBottom: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
-    alignSelf: 'center',
+  },
+  searchInputIOS: {
+    height: 42,
+    lineHeight: 42,
+  },
+  searchInputAndroid: {
+    textAlignVertical: 'center',
     includeFontPadding: false,
+    minHeight: 42,
   },
   clearButton: {
     marginLeft: 6,
