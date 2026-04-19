@@ -2136,7 +2136,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 6,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   headerTitle: {
     fontSize: 24,
@@ -2162,9 +2162,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(3, 32, 61, 0.08)',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 4,
-    height: 54,
+    paddingVertical: 0,
+    marginTop: 6,
+    marginBottom: 2,
+    height: 42,
   },
   searchInputWrapper: {
     flex: 1,
