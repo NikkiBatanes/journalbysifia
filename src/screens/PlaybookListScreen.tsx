@@ -427,6 +427,9 @@ const PickerModal = React.memo(({
       shadowRadius: 20,
       elevation: 10,
     },
+    cardScroll: {
+      maxHeight: 500,
+    },
     sectionLabel: {
       fontSize: 10,
       fontFamily: Fonts.semiBold,
@@ -493,7 +496,7 @@ const PickerModal = React.memo(({
       {/* Backdrop — tap to apply current local state and close */}
       <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
         <Pressable style={pickerStyles.card}>
-
+        <ScrollView style={pickerStyles.cardScroll} showsVerticalScrollIndicator={false}>
           {/* ── VIEW ──────────────────────────────────── */}
           <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>View</ThemedText>
           <View style={pickerStyles.pillRow}>
@@ -652,7 +655,7 @@ const PickerModal = React.memo(({
               );
             })}
           </View>
-
+        </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
