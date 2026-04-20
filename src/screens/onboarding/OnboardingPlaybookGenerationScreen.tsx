@@ -437,6 +437,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     wordToSpeak: playbook.wordToSpeak || '',
                     prayer: playbook.prayer || '',
                     userInput: params.userInput || '',
+                    bibleVerseReflection: playbook.bibleVerseReflection || '',
                   };
 
                   // DEBUG: Log what we're passing to the ready screen
@@ -607,6 +608,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         wordToSpeak: completePlaybook.wordToSpeak || '',
                         prayer: completePlaybook.prayer || '',
                         userInput: params.userInput || '',
+                        bibleVerseReflection: completePlaybook.bibleVerseReflection || '',
                       };
 
                       // Animate progress to 100% and navigate
