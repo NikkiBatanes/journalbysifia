@@ -154,15 +154,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Handle navigation after animation completes
   useEffect(() => {
     if (shouldNavigate && navigationData) {
-
-      (navigation as any).replace('OnboardingPlaybookReady', {
+      // Navigate to PlaybookWalkthrough instead of OnboardingPlaybookReady
+      (navigation as any).replace('PlaybookWalkthrough', {
         playbook: navigationData,
-        challengeCategory: params.challengeCategory,
-        specificChallenge: params.specificChallenge,
-        userInput: params.userInput,
+        source: 'onboarding',
       });
     }
-  }, [shouldNavigate, navigationData, navigation, params]);
+  }, [shouldNavigate, navigationData, navigation]);
 
   // Helper to determine error type (network vs AI generation failure)
   const determineErrorType = useCallback((error: any): 'network' | 'ai' => {

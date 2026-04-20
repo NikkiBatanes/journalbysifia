@@ -1483,6 +1483,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
 const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const routePlaybook = route.params?.playbook;
+  const source = route.params?.source;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1751,14 +1752,22 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasRead = false;
     journalNudgeFired = false;
 
-    // Navigate to StreakPlanScreen instead of directly to MainTabs
-    const source = route.params?.source;
-    (navigation as any).navigate('StreakPlan', {
-      playbookId,
-      userId,
-      source,
-    });
-  }, [navigation, playbookId, userId, queryClient, route.params?.source]);
+    // Navigate based on source
+    if (source === 'onboarding') {
+      // Onboarding flow: go to trial offer
+      (navigation as any).replace('OnboardingTrialOffer', {
+        source: 'onboarding',
+        skipNotificationPreference: true,
+      });
+    } else {
+      // Normal flow: navigate to StreakPlanScreen
+      (navigation as any).navigate('StreakPlan', {
+        playbookId,
+        userId,
+        source,
+      });
+    }
+  }, [navigation, playbookId, userId, queryClient, source]);
 
   const goNext = useCallback(() => {
     triggerLightHaptic();
@@ -1814,6 +1823,20 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       goBack();
     }
   }, [actionStepIndex, goBack]);
+
+  const handleSkipWalkthrough = useCallback(() => {
+    if (source === 'onboarding') {
+      triggerLightHaptic();
+      // Skip walkthrough and go directly to trial offer
+      (navigation as any).replace('OnboardingTrialOffer', {
+        source: 'onboarding',
+        skipNotificationPreference: true,
+      });
+    } else {
+      // Normal flow: go back
+      navigation.goBack();
+    }
+  }, [source, navigation]);
 
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
@@ -2007,14 +2030,34 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
+            onPress={source === 'onboarding' ? handleSkipWalkthrough : () => { triggerLightHaptic(); navigation.goBack(); }}
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            <Ionicons name={source === 'onboarding' ? 'close-outline' : 'close'} size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
         </Animated.View>
+      )}
+
+      {/* Onboarding-specific: Skip button and progress indicator */}
+      {source === 'onboarding' && stepIndex !== 6 && (
+        <View style={[styles.onboardingTopBar, { top: insets.top + 8 }]}>
+          {/* Skip button */}
+          <TouchableOpacity
+            onPress={handleSkipWalkthrough}
+            style={styles.skipButton}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={styles.skipButtonText}>Skip</ThemedText>
+          </TouchableOpacity>
+          {/* Progress indicator */}
+          <View style={styles.progressIndicator}>
+            <ThemedText style={styles.progressText}>
+              Step {stepIndex + 1} of {TOTAL_STEPS}
+            </ThemedText>
+          </View>
+        </View>
       )}
 
       {/* Animated share button — top left, completion page only */}
@@ -2163,6 +2206,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
     borderRadius: 999,
     zIndex: 100,
+  },
+  // Onboarding-specific UI
+  onboardingTopBar: {
+    position: 'absolute',
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 100,
+  },
+  skipButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+  },
+  skipButtonText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+  },
+  progressIndicator: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderRadius: 20,
+  },
+  progressText: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontWeight: '600',
   },
   // Next — matches original: absolute, bottom-right, coral circle
   nextButton: {
@@ -2574,19 +2648,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
-  },
-  skipButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 22,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  skipButtonText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.55)',
   },
 
   // Outer container for Prayer + Word to Speak — flex column so content can center
