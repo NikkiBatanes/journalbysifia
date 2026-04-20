@@ -1593,7 +1593,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </TouchableOpacity>
             <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
               <TouchableOpacity
-                style={[styles.askSendButtonInner, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
+                style={[(!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, styles.askSendButtonInner]}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
               >
@@ -2434,10 +2434,10 @@ const styles = StyleSheet.create({
     minWidth: 36,
   },
   askSendButtonInner: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
+    height: 36,
+    width: '100%',
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
