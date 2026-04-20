@@ -1019,6 +1019,23 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
 
+  // Button expansion animation - starts as arrow icon, expands to text when typing
+  const buttonWidthAnim = useRef(new Animated.Value(36)).current;
+  const buttonHasText = useRef(false);
+
+  useEffect(() => {
+    const hasText = challengeDetails && challengeDetails.trim().length > 0;
+    const hasTextBoolean = !!hasText;
+    if (hasTextBoolean !== buttonHasText.current) {
+      buttonHasText.current = hasTextBoolean;
+      Animated.timing(buttonWidthAnim, {
+        toValue: hasTextBoolean ? 180 : 36,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [challengeDetails, buttonWidthAnim]);
+
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
     if (!showTooltip) {
@@ -1575,11 +1592,15 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.askSendButton, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
+              style={[styles.askSendButton, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, { width: buttonWidthAnim }]}
               onPress={handleContinue}
               disabled={!challengeDetails || !challengeDetails.trim()}
             >
-              <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+              {challengeDetails && challengeDetails.trim().length > 0 ? (
+                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+              ) : (
+                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+              )}
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -2403,11 +2424,11 @@ const styles = StyleSheet.create({
     // positioned in actionsOverlay
   },
   askSendButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
