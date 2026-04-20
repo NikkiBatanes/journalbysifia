@@ -1770,10 +1770,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Navigate based on source
     if (source === 'onboarding') {
-      // Onboarding flow: go to trial offer
-      (navigation as any).replace('OnboardingTrialOffer', {
-        source: 'onboarding',
-        skipNotificationPreference: true,
+      // Onboarding flow: go to StreakPlanScreen with onboarding flag
+      (navigation as any).navigate('StreakPlan', {
+        playbookId,
+        userId,
+        source,
+        onboarding: true,
       });
     } else {
       // Normal flow: navigate to StreakPlanScreen

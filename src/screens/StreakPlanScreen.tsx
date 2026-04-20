@@ -21,6 +21,7 @@ interface RouteParams {
   playbookId?: string;
   userId?: string;
   source?: string;
+  onboarding?: boolean;
 }
 
 const StreakPlanScreen: React.FC = () => {
@@ -296,16 +297,22 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Navigate directly to DashboardHomeScreen
-    (navigation as any).reset({
-      index: 0,
-      routes: [
-        {
-          name: 'MainTabs',
-          state: { routes: [{ name: 'Overview' }], index: 0 },
-        },
-      ],
-    });
+    // Navigate to sales offer screen if in onboarding flow, otherwise to dashboard
+    if (params.onboarding) {
+      (navigation as any).navigate('OnboardingSalesOffer', {
+        source: 'onboarding',
+      });
+    } else {
+      (navigation as any).reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            state: { routes: [{ name: 'Overview' }], index: 0 },
+          },
+        ],
+      });
+    }
   };
 
   const handleProcessAnotherMoment = () => {
@@ -391,16 +398,20 @@ const StreakPlanScreen: React.FC = () => {
             onPress={handleContinue}
             activeOpacity={0.85}
           >
-            <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>Continue</Text>
+            <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>
+              {params.onboarding ? 'Continue My Journey' : 'Continue'}
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.secondaryButton]}
-            onPress={handleProcessAnotherMoment}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.secondaryButtonText, font, { fontWeight: '600' }]}>Process Another Moment</Text>
-          </TouchableOpacity>
+          {!params.onboarding && (
+            <TouchableOpacity
+              style={[styles.secondaryButton]}
+              onPress={handleProcessAnotherMoment}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.secondaryButtonText, font, { fontWeight: '600' }]}>Process Another Moment</Text>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

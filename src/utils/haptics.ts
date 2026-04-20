@@ -1,12 +1,8 @@
-import { NativeModules } from 'react-native';
 import { isHapticsEnabled } from '../services/experiencePreferences';
 
 // Safe haptic triggers (no-op if module not linked)
 const getTriggerFn = () => {
   try {
-    const { RNHapticFeedback } = NativeModules as any;
-    if (!RNHapticFeedback) {return null;}
-
     const Haptic = require('react-native-haptic-feedback');
     return Haptic?.default?.trigger || Haptic?.trigger || null;
   } catch {

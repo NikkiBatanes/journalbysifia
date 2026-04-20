@@ -52,6 +52,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {queryClient} from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import {initializeLogger} from './src/config/logging.config';
+import { experiencePreferences } from './src/services/experiencePreferences';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -67,6 +68,11 @@ initializeLogger();
 function App(): React.JSX.Element {
   const [fontsLoaded] = useState(true); // Fonts are auto-linked via RNVectorIcons pod
   const [playbook] = useState<{actionSteps: any[]}>({actionSteps: []});
+
+  // Load experience preferences on app startup
+  useEffect(() => {
+    experiencePreferences.loadOnce();
+  }, []);
 
   // Vector icon fonts are automatically bundled by RNVectorIcons pod
   // No manual loading required in modern React Native
