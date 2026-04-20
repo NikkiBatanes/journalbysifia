@@ -1029,7 +1029,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (hasTextBoolean !== buttonHasText.current) {
       buttonHasText.current = hasTextBoolean;
       Animated.timing(buttonWidthAnim, {
-        toValue: hasTextBoolean ? 180 : 36,
+        toValue: hasTextBoolean ? 200 : 36,
         duration: 250,
         useNativeDriver: false,
       }).start();
@@ -1593,7 +1593,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </TouchableOpacity>
             <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
               <TouchableOpacity
-                style={[(!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}
+                style={[styles.askSendButtonInner, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
               >
@@ -2433,15 +2433,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     minWidth: 36,
   },
+  askSendButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
   },
   askSendButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
-    lineHeight: 20,
+    lineHeight: 18,
     textAlign: 'center',
   },
   tooltip: {
