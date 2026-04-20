@@ -1584,11 +1584,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               onPress={handleContinue}
               disabled={!challengeDetails || !challengeDetails.trim()}
             >
-              <Ionicons
-                name="arrow-up"
-                size={20}
-                color={Colors.hopeWhite}
-              />
+              <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -2435,14 +2431,20 @@ const styles = StyleSheet.create({
     // positioned in actionsOverlay
   },
   askSendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
+  },
+  askSendButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   tooltip: {
     position: 'absolute',
@@ -2582,9 +2584,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.25)',
-    borderRadius: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 107, 107, 0.2)',
