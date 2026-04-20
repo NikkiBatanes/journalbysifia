@@ -1497,6 +1497,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [showOnboardingWelcome, setShowOnboardingWelcome] = useState(false);
   const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
@@ -1841,6 +1842,40 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
     return <PlaybookSkeletonLoader />;
+  }
+
+  // Show onboarding welcome prompt when source is onboarding
+  if (source === 'onboarding' && !showOnboardingWelcome) {
+    return (
+      <View style={[styles.container, styles.onboardingWelcomeContainer]}>
+        <View style={styles.onboardingWelcomeContent}>
+          <StepFadeIn delay={0}>
+            <ThemedText weight="semiBold" style={styles.onboardingWelcomeTitle}>
+              Your playbook is ready
+            </ThemedText>
+          </StepFadeIn>
+          <StepFadeIn delay={200}>
+            <ThemedText style={styles.onboardingWelcomeSubtitle}>
+              Open my playbook
+            </ThemedText>
+          </StepFadeIn>
+          <StepFadeIn delay={400}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                setShowOnboardingWelcome(true);
+              }}
+              style={styles.onboardingWelcomeButton}
+              activeOpacity={0.8}
+            >
+              <ThemedText weight="semiBold" style={styles.onboardingWelcomeButtonText}>
+                Open
+              </ThemedText>
+            </TouchableOpacity>
+          </StepFadeIn>
+        </View>
+      </View>
+    );
   }
 
   if (!playbook) {
@@ -2237,6 +2272,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.alertCoral,
     fontWeight: '600',
+  },
+  // Onboarding welcome prompt
+  onboardingWelcomeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  onboardingWelcomeContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  onboardingWelcomeTitle: {
+    fontSize: 28,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  onboardingWelcomeSubtitle: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  onboardingWelcomeButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 48,
+    paddingVertical: 16,
+    borderRadius: 30,
+    minWidth: 200,
+  },
+  onboardingWelcomeButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
   },
   // Next — matches original: absolute, bottom-right, coral circle
   nextButton: {

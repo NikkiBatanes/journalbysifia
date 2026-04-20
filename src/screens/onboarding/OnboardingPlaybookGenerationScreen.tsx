@@ -610,11 +610,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
-                          (navigation as any).replace('OnboardingPlaybookReady', {
+                          (navigation as any).replace('PlaybookWalkthrough', {
                             playbook: realGeneratedPlaybook,
-                            challengeCategory: params.challengeCategory,
-                            specificChallenge: params.specificChallenge,
-                            userInput: params.userInput,
+                            source: 'onboarding',
                           });
                         }, 500);
                       });
