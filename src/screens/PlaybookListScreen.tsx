@@ -359,9 +359,9 @@ type PickerModalProps = {
   onHaptic: () => void;
 };
 
-// iOS inline DateTimePicker always renders at ~320pt regardless of layout.
+// iOS inline DateTimePicker always renders at ~340pt regardless of layout.
 // When it's open, we expand the card to match rather than cropping or scaling.
-const IOS_PICKER_NATIVE_WIDTH = 320;
+const IOS_PICKER_NATIVE_WIDTH = 340;
 
 const PickerModal = React.memo(({
   visible, filter, initContentView, initDateViewMode, initSelectedCategories,
@@ -422,7 +422,7 @@ const PickerModal = React.memo(({
       borderRadius: 18,
       overflow: 'hidden',
       minWidth: 220,
-      maxWidth: 320,
+      maxWidth: 340,
       paddingTop: 14,
       paddingBottom: 16,
       shadowColor: '#000',
@@ -613,11 +613,23 @@ const PickerModal = React.memo(({
                   {showFromPicker && (
                     <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
                       onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
+                      style={{
+                        // Explicit dimensions tell RN layout how much space to allocate —
+                        // without these the card never gets the signal to expand.
+                        // Height 390 covers both the month-calendar view and the
+                        // month+year scroll wheel that appears when the header is tapped.
+                        width: Math.min(IOS_PICKER_NATIVE_WIDTH, width - 32),
+                        height: 390,
+                      }}
                       accentColor={Colors.hopeWhite} themeVariant="dark" />
                   )}
                   {showToPicker && (
                     <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
                       onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
+                      style={{
+                        width: Math.min(IOS_PICKER_NATIVE_WIDTH, width - 32),
+                        height: 390,
+                      }}
                       accentColor={Colors.hopeWhite} themeVariant="dark" />
                   )}
                   {/* Apply only needed for Custom since date selection requires confirmation */}
