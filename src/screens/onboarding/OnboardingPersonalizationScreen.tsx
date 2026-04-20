@@ -1029,7 +1029,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (hasTextBoolean !== buttonHasText.current) {
       buttonHasText.current = hasTextBoolean;
       Animated.timing(buttonWidthAnim, {
-        toValue: hasTextBoolean ? 200 : 36,
+        toValue: hasTextBoolean ? 220 : 36,
         duration: 250,
         useNativeDriver: false,
       }).start();
@@ -2438,6 +2438,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
@@ -2543,8 +2545,7 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
-    borderRadius: 20,
-    padding: 0,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   askInput: {
