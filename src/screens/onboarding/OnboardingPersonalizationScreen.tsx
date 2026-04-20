@@ -553,6 +553,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [tooltipAnchor, setTooltipAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+  const [showHelperSelector, setShowHelperSelector] = useState(false);
 
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -1614,76 +1615,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </View>
           </View>
         </Animated.View>
-        {detailsOnlyFlow ? (
-          <View style={styles.optionalHelperContainer}>
-            <TouchableOpacity
-              style={styles.optionalHelperToggle}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setShowOptionalHelper(prev => !prev);
-              }}
-              activeOpacity={0.9}
-            >
-              <Ionicons
-                name={showOptionalHelper ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={'rgba(255, 255, 255, 0.75)'}
-              />
-            </TouchableOpacity>
-
-            {showOptionalHelper ? (
-              <View style={styles.optionalHelperList}>
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('We talked and now I feel unsettled.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'We talked and now I feel unsettled.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I reacted quickly and regret it.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I reacted quickly and regret it.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I feel guilty but don\'t know why.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I feel guilty but don\'t know why.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I’m afraid of making the wrong decision.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I’m afraid of making the wrong decision.'}</ThemedText>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -2006,7 +1937,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               </View>
               <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
               <TouchableOpacity
-                onPress={onPressHint}
+                onPress={() => {
+                  setShowTooltip(false);
+                  setShowHelperSelector(true);
+                }}
                 style={styles.tooltipHelpButton}
                 activeOpacity={0.8}
               >
@@ -2014,6 +1948,71 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               </TouchableOpacity>
               <View style={styles.tooltipCaret} />
             </Animated.View>
+          </TouchableOpacity>
+        </Modal>
+        <Modal
+          visible={showHelperSelector}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowHelperSelector(false)}
+        >
+          <TouchableOpacity
+            style={styles.helperSelectorOverlay}
+            activeOpacity={1}
+            onPress={() => setShowHelperSelector(false)}
+          >
+            <View style={styles.helperSelectorContainer}>
+              <ThemedText style={styles.helperSelectorTitle}>Need help putting words to it?</ThemedText>
+              <View style={styles.helperSelectorList}>
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    setChallengeDetails('We talked and now I feel unsettled.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>We talked and now I feel unsettled.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    setChallengeDetails('I reacted quickly and regret it.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I reacted quickly and regret it.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    setChallengeDetails('I feel guilty but don\'t know why.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I feel guilty but don't know why.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    setChallengeDetails('I\'m afraid of making the wrong decision.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I'm afraid of making the wrong decision.</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
           </TouchableOpacity>
         </Modal>
     </KeyboardAvoidingView>
@@ -2586,6 +2585,42 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 13,
     fontWeight: '600',
+  },
+  helperSelectorOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  helperSelectorContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  helperSelectorTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  helperSelectorList: {
+    gap: 12,
+  },
+  helperSelectorOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 14,
+  },
+  helperSelectorOptionText: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    fontWeight: '500',
   },
   tooltipCaret: {
     position: 'absolute',
