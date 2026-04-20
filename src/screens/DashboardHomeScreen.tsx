@@ -1493,6 +1493,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Prayer Requests Section (hide when empty) */}
           {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && renderPrayerRequestsCard()}
 
+          <View style={styles.sectionGap} />
+
           {hasContent && (
             <CombinedContentCarousel
               onPlaybookPress={(playbook) => {
