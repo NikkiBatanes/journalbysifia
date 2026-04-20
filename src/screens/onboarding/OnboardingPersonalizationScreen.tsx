@@ -1591,19 +1591,25 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 />
               </Animated.View>
             </TouchableOpacity>
-            <Animated.View style={[styles.askSendButton, challengeDetails.trim() && styles.askSendButtonActive, { width: buttonWidthAnim }]}>
+            {challengeDetails && challengeDetails.trim().length > 0 ? (
               <TouchableOpacity
-                style={styles.askSendButtonInner}
+                style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
+                activeOpacity={0.8}
               >
-                {challengeDetails && challengeDetails.trim().length > 0 ? (
-                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
-                ) : (
-                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-                )}
+                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
               </TouchableOpacity>
-            </Animated.View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                onPress={handleContinue}
+                disabled={!challengeDetails || !challengeDetails.trim()}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
         {detailsOnlyFlow ? (
@@ -2433,12 +2439,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     minWidth: 36,
   },
+  askSendButtonCircular: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askSendButtonExpanded: {
+    width: 240,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   askSendButtonInner: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 36,
-    width: '100%',
-    backgroundColor: 'transparent',
+    padding: 0,
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
