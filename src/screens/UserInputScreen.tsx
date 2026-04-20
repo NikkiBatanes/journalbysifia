@@ -1581,9 +1581,11 @@ const UserInputScreen: React.FC = () => {
                                 ? 'No Playbooks Remaining'
                                 : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
                         </Text>
-                        <Text style={[styles.tierBadgeInline, font]} numberOfLines={1} ellipsizeMode="tail">
-                          {getTierDisplayName(subscriptionData.subscription)}
-                        </Text>
+                        <View style={styles.charCounterWrapperSmall}>
+                          <Text style={[styles.charCounterText, font]} numberOfLines={1} ellipsizeMode="tail">
+                            {getTierDisplayName(subscriptionData.subscription)}
+                          </Text>
+                        </View>
                       </View>
                     )}
                     <View style={styles.actionsRight}>
@@ -1684,34 +1686,35 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255,255,255,0.1)',
     flexShrink: 1,
     maxWidth: '75%',
     minWidth: 80,
     overflow: 'hidden',
   },
   statusText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 11,
     fontWeight: '600',
     flexShrink: 1,
     maxWidth: '100%',
   },
   tierBadgeInline: {
-    color: Colors.hopeWhite,
-    fontSize: 9,
-    fontWeight: '800',
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 9,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
     overflow: 'hidden',
     textAlign: 'center',
     maxWidth: 120,
-    flexShrink: 0,
   },
   askHintButtonInline: {
     opacity: 1,
@@ -2071,6 +2074,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+  },
+  charCounterWrapperSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   charCounterText: {
     color: 'rgba(255,255,255,0.6)',

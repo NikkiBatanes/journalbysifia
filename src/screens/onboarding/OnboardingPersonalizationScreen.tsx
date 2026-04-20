@@ -557,6 +557,15 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     setInputHeight(Math.max(MIN_INPUT_HEIGHT, Math.min(contentHeight, MAX_INPUT_HEIGHT)));
   };
 
+  const handleChallengeDetailsChange = (text: string) => {
+    if (text.length < (challengeDetails || '').length) {
+      // Text was deleted — reset height so onContentSizeChange can re-measure correctly
+      // (iOS does not reliably fire onContentSizeChange when text shrinks)
+      setInputHeight(MIN_INPUT_HEIGHT);
+    }
+    setChallengeDetails(text);
+  };
+
   // Tooltip state
   const hintButtonRef = useRef<View>(null);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -577,6 +586,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const keyboardTranslateY = useRef(new Animated.Value(0)).current;
   // Content entry animation: 0 = off-screen / header centered, 1 = content visible
   const contentEntryAnim = useRef(new Animated.Value(0)).current;
+  // Stable offset for detailsOnly header position (must not be inline — recreating
+  // Animated.Value every render gives the native driver a new node graph each time)
+  const headerDetailsOffset = useRef(new Animated.Value(0)).current;
 
   // Header Y that combines headerTranslateY + initial centering offset so the block
   // starts in the TRUE vertical center of the screen and settles upward as step
@@ -1129,21 +1141,23 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [currentStep, detailsOnlyFlow]);
 
   const handleFocus = () => {
-    // Animate logo position when keyboard opens
-    Animated.parallel([
-      Animated.spring(headerTranslateY, {
-        toValue: -25,
-        useNativeDriver: true,
-        stiffness: 180,
-        damping: 18,
-        mass: 0.9,
-      }),
-      Animated.timing(headerScale, {
-        toValue: 0.45,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // For detailsOnlyFlow, keyboardWillShow handles header movement with exact keyboard height
+    if (!detailsOnlyFlow) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: -25,
+          useNativeDriver: true,
+          stiffness: 180,
+          damping: 18,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 0.45,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
     if (showTooltip) {
       Animated.parallel([
         Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
@@ -1154,20 +1168,24 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const handleBlur = () => {
     // Return logo to original position when keyboard closes
-    Animated.parallel([
-      Animated.spring(headerTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 200,
-        damping: 20,
-        mass: 0.9,
-      }),
-      Animated.timing(headerScale, {
-        toValue: 0.45,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // For detailsOnlyFlow, keyboardWillHide handles the header reset
+    if (!detailsOnlyFlow) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          stiffness: 200,
+          damping: 20,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 0.45,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    setKeyboardVisible(false);
   };
 
   // When the user changes challenge, clear details so the new placeholder is visible
@@ -1196,31 +1214,59 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     return () => clearTimeout(id);
   }, [currentStep]);
 
-  // Keyboard animation - sync input box with keyboard slide
+  // Keyboard animation - sync input box and header with keyboard slide
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
-      Animated.spring(keyboardTranslateY, {
-        toValue: -e.endCoordinates.height + 70, // Adjust to match keyboardVerticalOffset of -70
-        tension: 50,
-        friction: 12,
-        useNativeDriver: true,
-      }).start();
+      const kbHeight = e.endCoordinates.height;
+      const animations: Animated.CompositeAnimation[] = [
+        Animated.spring(keyboardTranslateY, {
+          toValue: -kbHeight + 70,
+          tension: 50,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ];
+      if (detailsOnlyFlow) {
+        // Move header up proportionally so it stays comfortably above the rising footer
+        animations.push(
+          Animated.spring(headerTranslateY, {
+            toValue: -(kbHeight * 0.3),
+            tension: 50,
+            friction: 12,
+            useNativeDriver: true,
+          })
+        );
+      }
+      Animated.parallel(animations).start();
     });
 
     const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
-      Animated.spring(keyboardTranslateY, {
-        toValue: 0,
-        tension: 50,
-        friction: 12,
-        useNativeDriver: true,
-      }).start();
+      const animations: Animated.CompositeAnimation[] = [
+        Animated.spring(keyboardTranslateY, {
+          toValue: 0,
+          tension: 50,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ];
+      if (detailsOnlyFlow) {
+        animations.push(
+          Animated.spring(headerTranslateY, {
+            toValue: 0,
+            tension: 50,
+            friction: 12,
+            useNativeDriver: true,
+          })
+        );
+      }
+      Animated.parallel(animations).start();
     });
 
     return () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [keyboardTranslateY]);
+  }, [keyboardTranslateY, headerTranslateY, detailsOnlyFlow]);
 
   // Intro animation when screen first opens
   useEffect(() => {
@@ -1725,7 +1771,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     : { minHeight: MIN_INPUT_HEIGHT },
                 ]}
                 value={challengeDetails}
-                onChangeText={setChallengeDetails}
+                onChangeText={handleChallengeDetailsChange}
                 multiline={true}
                 placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
                 placeholder={(() => {
@@ -1823,7 +1869,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <View style={styles.content}>
       {/* Header with logo and title - animated and centered */}
       {!isGenerating && (
-        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? Animated.add(headerTranslateY, new Animated.Value(-60)) : combinedHeaderY }] }]}>
+        <TouchableOpacity activeOpacity={1} onPress={() => Keyboard.dismiss()} style={{ alignSelf: 'center', width: '100%' }}>
+        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? Animated.add(headerTranslateY, headerDetailsOffset) : combinedHeaderY }] }]}>
           <Animated.Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
             style={[
@@ -1861,6 +1908,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             )}
           </Animated.View>
         </Animated.View>
+        </TouchableOpacity>
       )}
 
       {/* "Building a playbook..." overlay */}
