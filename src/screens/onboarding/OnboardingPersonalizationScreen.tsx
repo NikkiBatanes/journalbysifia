@@ -1029,7 +1029,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (hasTextBoolean !== buttonHasText.current) {
       buttonHasText.current = hasTextBoolean;
       Animated.timing(buttonWidthAnim, {
-        toValue: hasTextBoolean ? 220 : 36,
+        toValue: hasTextBoolean ? 240 : 36,
         duration: 250,
         useNativeDriver: false,
       }).start();
@@ -1591,9 +1591,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 />
               </Animated.View>
             </TouchableOpacity>
-            <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
+            <Animated.View style={[styles.askSendButton, challengeDetails.trim() && styles.askSendButtonActive, { width: buttonWidthAnim }]}>
               <TouchableOpacity
-                style={[(!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, styles.askSendButtonInner]}
+                style={styles.askSendButtonInner}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
               >
@@ -2438,8 +2438,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 36,
     width: '100%',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    backgroundColor: 'transparent',
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
