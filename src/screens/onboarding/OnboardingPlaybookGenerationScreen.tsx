@@ -154,13 +154,18 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Handle navigation after animation completes
   useEffect(() => {
     if (shouldNavigate && navigationData) {
-      // Navigate to PlaybookWalkthrough instead of OnboardingPlaybookReady
-      (navigation as any).replace('PlaybookWalkthrough', {
+      // Navigate to OnboardingPlaybookReady with the old carousel design
+      (navigation as any).replace('OnboardingPlaybookReady', {
         playbook: navigationData,
-        source: 'onboarding',
+        onboardingData: {
+          name: params.userName || 'Friend',
+          ageGroup: '',
+          faithJourney: '',
+          challengeDetails: params.userInput || '',
+        },
       });
     }
-  }, [shouldNavigate, navigationData, navigation]);
+  }, [shouldNavigate, navigationData, navigation, params]);
 
   // Helper to determine error type (network vs AI generation failure)
   const determineErrorType = useCallback((error: any): 'network' | 'ai' => {
@@ -618,9 +623,14 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
-                          (navigation as any).replace('PlaybookWalkthrough', {
+                          (navigation as any).replace('OnboardingPlaybookReady', {
                             playbook: realGeneratedPlaybook,
-                            source: 'onboarding',
+                            onboardingData: {
+                              name: params.userName || 'Friend',
+                              ageGroup: '',
+                              faithJourney: '',
+                              challengeDetails: params.userInput || '',
+                            },
                           });
                         }, 500);
                       });

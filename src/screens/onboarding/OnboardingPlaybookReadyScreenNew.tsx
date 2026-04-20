@@ -432,13 +432,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
 
     }
-    // Navigate directly to sales offer (notification setup comes after purchase)
-    navigation.navigate('OnboardingSalesOffer' as any, {
-      onboardingFlow: true,
-      skipNotificationPreference: false,
-      selectedTier: 'spark',
+    // Navigate to PlaybookWalkthrough with onboarding source
+    navigation.navigate('PlaybookWalkthrough' as any, {
+      playbook: playbook,
+      source: 'onboarding',
     });
-  }, [navigation]);
+  }, [navigation, playbook]);
 
   const toggleUserInput = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
@@ -1403,9 +1402,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
             >
-              <ThemedText weight="bold" style={styles.continueButtonText}>Continue with this moment</ThemedText>
+              <ThemedText weight="bold" style={styles.continueButtonText}>Open my playbook</ThemedText>
             </TouchableOpacity>
-            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Guided playbooks and devotionals are available next</ThemedText>
+            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Start your guided walkthrough</ThemedText>
           </>
           </View>
         </View>

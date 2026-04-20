@@ -13,7 +13,6 @@ import {
   TextInput,
   Alert,
   Share,
-  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1498,7 +1497,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [showOnboardingWelcome, setShowOnboardingWelcome] = useState(false);
   const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
@@ -1843,52 +1841,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
     return <PlaybookSkeletonLoader />;
-  }
-
-  // Show onboarding welcome prompt when source is onboarding
-  if (source === 'onboarding' && !showOnboardingWelcome) {
-    return (
-      <Modal
-        visible={true}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => {}}
-      >
-        <View style={styles.onboardingModalOverlay}>
-          <View style={styles.onboardingModalContent}>
-            <StepFadeIn delay={0}>
-              <ThemedText weight="semiBold" style={styles.onboardingModalTitle}>
-                Your playbook is ready
-              </ThemedText>
-            </StepFadeIn>
-            <StepFadeIn delay={200}>
-              <ThemedText style={styles.onboardingModalText}>
-                This is a space to slow down and reflect with God. Not everything...
-              </ThemedText>
-            </StepFadeIn>
-            <StepFadeIn delay={300}>
-              <ThemedText style={styles.onboardingModalText}>
-                The next time something unsettles you, return here.
-              </ThemedText>
-            </StepFadeIn>
-            <StepFadeIn delay={400}>
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  setShowOnboardingWelcome(true);
-                }}
-                style={styles.onboardingModalButton}
-                activeOpacity={0.8}
-              >
-                <ThemedText weight="semiBold" style={styles.onboardingModalButtonText}>
-                  Open my playbook
-                </ThemedText>
-              </TouchableOpacity>
-            </StepFadeIn>
-          </View>
-        </View>
-      </Modal>
-    );
   }
 
   if (!playbook) {
@@ -2285,47 +2237,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.alertCoral,
     fontWeight: '600',
-  },
-  // Onboarding welcome modal
-  onboardingModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  onboardingModalContent: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    gap: 16,
-    maxWidth: 340,
-  },
-  onboardingModalTitle: {
-    fontSize: 24,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  onboardingModalText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  onboardingModalButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 30,
-    minWidth: 200,
-    marginTop: 16,
-  },
-  onboardingModalButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
   },
   // Next — matches original: absolute, bottom-right, coral circle
   nextButton: {
