@@ -1609,7 +1609,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   disabled={!challengeDetails || !challengeDetails.trim()}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="arrow-up" size={18} color={Colors.hopeWhite} />
+                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
                 </TouchableOpacity>
               )}
             </View>
@@ -2456,9 +2456,9 @@ const styles = StyleSheet.create({
     minWidth: 36,
   },
   askSendButtonCircular: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 0,
