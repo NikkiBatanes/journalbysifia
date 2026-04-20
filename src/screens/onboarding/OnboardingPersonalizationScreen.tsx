@@ -2462,6 +2462,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 0,
   },
   askSendButtonExpanded: {
     width: 240,
