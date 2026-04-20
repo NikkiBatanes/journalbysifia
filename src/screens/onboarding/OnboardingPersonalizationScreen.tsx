@@ -1591,17 +1591,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 />
               </Animated.View>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.askSendButton, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, { width: buttonWidthAnim }]}
-              onPress={handleContinue}
-              disabled={!challengeDetails || !challengeDetails.trim()}
-            >
-              {challengeDetails && challengeDetails.trim().length > 0 ? (
-                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
-              ) : (
-                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-              )}
-            </TouchableOpacity>
+            <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
+              <TouchableOpacity
+                style={[(!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}
+                onPress={handleContinue}
+                disabled={!challengeDetails || !challengeDetails.trim()}
+              >
+                {challengeDetails && challengeDetails.trim().length > 0 ? (
+                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                ) : (
+                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         </Animated.View>
         {detailsOnlyFlow ? (
