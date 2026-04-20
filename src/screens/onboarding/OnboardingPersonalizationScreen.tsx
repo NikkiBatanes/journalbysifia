@@ -1605,7 +1605,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                       color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
                     />
                   </Animated.View>
-                  <ThemedText style={styles.hintButtonText}>Need help putting words to it?</ThemedText>
                 </TouchableOpacity>
               </Animated.View>
               {challengeDetails && challengeDetails.trim().length > 0 ? (
