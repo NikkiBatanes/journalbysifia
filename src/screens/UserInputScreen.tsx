@@ -390,15 +390,8 @@ const UserInputScreen: React.FC = () => {
   }, [route.params?.initialText]);
 
   useEffect(() => {
-    const focusInput = () => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    };
-
-    // Delay focus to allow screen animation to complete first
-    autoFocusTimer.current = setTimeout(focusInput, 1500);
-
+    // Removed automatic focus to prevent keyboard from appearing while iOS password alert is showing
+    // User can manually tap the input to focus when ready
     return () => {
       if (autoFocusTimer.current) {
         clearTimeout(autoFocusTimer.current);
