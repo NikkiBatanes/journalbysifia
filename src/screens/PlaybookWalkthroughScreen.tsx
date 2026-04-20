@@ -41,6 +41,7 @@ import { getPlaybook } from '../services/apiIntegration';
 import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepCompleted } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
+import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
@@ -1497,6 +1498,30 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+
+  // ── Onboarding "playbook ready" overlay — shown once via AsyncStorage gate ──
+  const OVERLAY_STORAGE_KEY = '@siFia:hasSeenPlaybookReadyOverlay';
+  const [showReadyOverlay, setShowReadyOverlay] = useState(false);
+
+  useEffect(() => {
+    if (source !== 'onboarding') { return; }
+    AsyncStorage.getItem(OVERLAY_STORAGE_KEY)
+      .then(seen => {
+        if (!seen) {
+          setShowReadyOverlay(true);
+        }
+      })
+      .catch(() => {
+        // If storage fails, skip overlay rather than block the user
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+
+  const handleDismissReadyOverlay = useCallback(() => {
+    setShowReadyOverlay(false);
+    AsyncStorage.setItem(OVERLAY_STORAGE_KEY, 'true').catch(() => {});
+  }, []);
+
   const backButtonAnim = useRef(new Animated.Value(0)).current;
 
   const userName: string =
@@ -2165,6 +2190,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         setShowDevotionalModal(false);
         navigation.navigate('DevotionalDetail', { devotionalId });
       }}
+    />
+
+    {/* Onboarding-only "Your playbook is ready" overlay — appears once */}
+    <PlaybookReadyOverlay
+      visible={showReadyOverlay}
+      onDismiss={handleDismissReadyOverlay}
     />
     </>
   );

@@ -154,15 +154,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Handle navigation after animation completes
   useEffect(() => {
     if (shouldNavigate && navigationData) {
-      // Navigate to OnboardingPlaybookReady with the old carousel design
-      (navigation as any).replace('OnboardingPlaybookReady', {
+      // Navigate directly to PlaybookWalkthrough — popup overlay handled there
+      (navigation as any).replace('PlaybookWalkthrough', {
         playbook: navigationData,
-        onboardingData: {
-          name: params.userName || 'Friend',
-          ageGroup: '',
-          faithJourney: '',
-          challengeDetails: params.userInput || '',
-        },
+        source: 'onboarding',
       });
     }
   }, [shouldNavigate, navigationData, navigation, params]);
@@ -623,14 +618,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
-                          (navigation as any).replace('OnboardingPlaybookReady', {
+                          (navigation as any).replace('PlaybookWalkthrough', {
                             playbook: realGeneratedPlaybook,
-                            onboardingData: {
-                              name: params.userName || 'Friend',
-                              ageGroup: '',
-                              faithJourney: '',
-                              challengeDetails: params.userInput || '',
-                            },
+                            source: 'onboarding',
                           });
                         }, 500);
                       });
