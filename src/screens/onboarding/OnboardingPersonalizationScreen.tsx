@@ -1913,8 +1913,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             )}
           </ScrollView>
 
-          {/* Continue button - hide on page 4 since button is now inside input field */}
-          {currentStep !== 4 && (
+          {/* Continue button - only show for steps 1-3, not step 4 */}
+          {currentStep < 4 && (
             <View
               style={[
                 styles.continueButtonContainer,
