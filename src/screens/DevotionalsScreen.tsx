@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -8,12 +8,16 @@ import {
   StyleSheet,
   SectionList,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
   NativeModules,
   Alert,
   Animated,
+  TextInput,
+  LayoutAnimation,
+  Easing,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -37,12 +41,13 @@ import 'react-native-gesture-handler';
 import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
+import PickerModal from '../components/PickerModal';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
-type FilterType = 'all' | 'ongoing' | 'completed';
+type FilterType = 'ongoing' | 'completed';
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
@@ -52,7 +57,98 @@ const DevotionalsScreen = () => {
   const queryClient = useQueryClient();
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
+
+  // Status filter
   const [filter, setFilter] = useState<FilterType>('ongoing');
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+
+  // All picker/view state batched into one object — 
+  // Picker state for advanced filtering
+  // This state manages the advanced filter modal configuration:
+  // - contentView: Determines what filter type is active (all/category/date)
+  // - dateViewMode: Date range mode when contentView is 'date'
+  // - selectedCategories: Array of selected category names
+  // - customDateFrom/To: Custom date range boundaries
+  const [pickerState, setPickerState] = useState<{
+    contentView: 'all' | 'category' | 'date';
+    dateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom';
+    selectedCategories: string[];
+    customDateFrom: Date;
+    customDateTo: Date;
+  }>({
+    contentView: 'all',
+    dateViewMode: 'monthly',
+    selectedCategories: [],
+    customDateFrom: (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d; })(),
+    customDateTo: new Date(),
+  });
+  const { contentView, dateViewMode, selectedCategories, customDateFrom, customDateTo } = pickerState;
+
+  // Deferred versions — content rendering uses these so expensive work is deferred
+  // while pill visuals / modal state update instantly from the originals
+  const deferredFilter = useDeferredValue(filter);
+  const deferredSelectedCategories = useDeferredValue(selectedCategories);
+  const deferredContentView = useDeferredValue(contentView);
+  const deferredDateViewMode = useDeferredValue(dateViewMode);
+
+  // Memoized style objects — prevents ScrollView layout recalculation on every render
+  const scrollContentStyle = useMemo(() => ({ paddingBottom: 80 }), []);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
+  const searchIconAnim = useRef(new Animated.Value(1)).current;
+
+  // Search toggle callback
+  const toggleSearch = useCallback(() => {
+    const opening = !showSearch;
+
+    // LayoutAnimation runs on the native thread — no JS-thread jank for height changes
+    LayoutAnimation.configureNext({
+      duration: 260,
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+
+    setShowSearch(opening);
+    if (!opening) {
+      setSearchQuery('');
+    } else {
+      // Focus after layout settles
+      setTimeout(() => { searchInputRef.current?.focus(); }, 50);
+    }
+
+    // Subtle native-driver press pop on the icon button
+    Animated.sequence([
+      Animated.timing(searchIconAnim, { toValue: 0.88, duration: 80, useNativeDriver: true, easing: Easing.out(Easing.ease) }),
+      Animated.spring(searchIconAnim, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }),
+    ]).start();
+  }, [showSearch, searchIconAnim]);
+
+  // PickerModal callbacks — close modal immediately, defer heavy state update until after fade animation
+  const handlePickerApply = useCallback((
+    cv: 'all' | 'category' | 'date',
+    dm: 'weekly' | 'monthly' | 'yearly' | 'custom',
+    cats: string[],
+    from: Date,
+    to: Date,
+  ) => {
+    // Close modal right away so fade animation isn't competing with re-render work
+    setShowStatusPicker(false);
+    // Wait for Modal's fade-out to finish (~250ms) before the heavy state update.
+    // InteractionManager alone is unreliable here — Modal's animation isn't always
+    // registered as an interaction, so it can fire immediately.
+    setTimeout(() => {
+      setPickerState({ contentView: cv, dateViewMode: dm, selectedCategories: cats, customDateFrom: from, customDateTo: to });
+    }, 260);
+  }, []);
+
+  const handlePickerClose = useCallback(() => setShowStatusPicker(false), []);
+  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed') => setFilter(f), []);
+
+  // Devotional modal state
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [selectedPlaybookInfo, setSelectedPlaybookInfo] = useState<string | null>(null);
@@ -434,18 +530,98 @@ const DevotionalsScreen = () => {
     return null; // Should never reach here since empty state is handled above
   }, [devotionals, filter, isLoading, triggerLightHaptic]);
 
-  // Filtering
+  // Extract available categories from devotionals
+  const availableCategories = useMemo(() => {
+    if (!Array.isArray(devotionals)) { return []; }
+    const categories = new Set<string>();
+    devotionals.forEach(d => {
+      if (d.category) {
+        categories.add(d.category);
+      }
+    });
+    return Array.from(categories).sort();
+  }, [devotionals]);
+
+  // Filtering - respects status, content view, date view, categories, and search
+  // This is the core filtering logic that combines multiple filter criteria:
+  // 1. Status filter: ongoing vs completed devotionals
+  // 2. Search filter: matches title or category (case-insensitive)
+  // 3. Content view filter: category-based filtering
+  // 4. Date view filter: weekly/monthly/yearly/custom date ranges
   const filteredDevotionals = useMemo(() => {
     if (!Array.isArray(devotionals)) {return [];}
+
+    let result = devotionals;
+
+    // Status filter - separates ongoing from completed devotionals
     switch (filter) {
       case 'ongoing':
-        return devotionals.filter(d => !d.completed);
+        result = result.filter(d => !d.completed);
+        break;
       case 'completed':
-        return devotionals.filter(d => d.completed);
-      default:
-        return devotionals;
+        result = result.filter(d => d.completed);
+        break;
     }
-  }, [devotionals, filter]);
+
+    // Search filter - searches in title and category fields
+    // Case-insensitive partial matching for better UX
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(d => {
+        const title = d.title?.toLowerCase() || '';
+        const category = d.category?.toLowerCase() || '';
+        return title.includes(query) || category.includes(query);
+      });
+    }
+
+    // Content view filter - category-based filtering
+    // Only applies when contentView is 'category' and categories are selected
+    if (contentView === 'category' && selectedCategories.length > 0) {
+      result = result.filter(d => d.category && selectedCategories.includes(d.category));
+    }
+
+    // Date view filter - time-based filtering
+    // Supports multiple date ranges: weekly, monthly, yearly, custom
+    if (contentView === 'date') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      switch (dateViewMode) {
+        case 'weekly': {
+          // Last 7 days from today
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          result = result.filter(d => d.createdAt && new Date(d.createdAt) >= weekAgo);
+          break;
+        }
+        case 'monthly': {
+          // Last 30 days from today
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          result = result.filter(d => d.createdAt && new Date(d.createdAt) >= monthAgo);
+          break;
+        }
+        case 'yearly': {
+          // Last 365 days from today
+          const yearAgo = new Date(today);
+          yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+          result = result.filter(d => d.createdAt && new Date(d.createdAt) >= yearAgo);
+          break;
+        }
+        case 'custom': {
+          // User-defined date range
+          result = result.filter(d => {
+            if (!d.createdAt) return false;
+            const date = new Date(d.createdAt);
+            return date >= customDateFrom && date <= customDateTo;
+          });
+          break;
+        }
+      }
+    }
+
+    return result;
+  }, [devotionals, filter, searchQuery, contentView, selectedCategories, dateViewMode, customDateFrom, customDateTo]);
 
   // Sorting by updatedAt desc (fallback createdAt)
   const sortedDevotionals = useMemo(() => {
@@ -776,46 +952,81 @@ const DevotionalsScreen = () => {
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
       {/* Header */}
-      {/* Header on white background with tabs - matching PlaybookListScreen */}
+      {/* Header on white background - matching PlaybookListScreen structure */}
       <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
         <View style={styles.pageInner}>
           {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
           ) : (
-            <ThemedText weight="bold" style={styles.headerTitle}>Devotionals</ThemedText>
-          )}
-          {/* Filters - positioned like PlaybookListScreen */}
-          {!isTrulyEmpty && (
-            <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
-              {([
-                { key: 'all', label: 'All' },
-                { key: 'ongoing', label: 'In Progress' },
-                { key: 'completed', label: 'Completed' },
-              ] as const).map(tab => (
-                <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setFilter(tab.key);
-                  }}
-                  style={[
-                    styles.filterTabOnWhite,
-                    filter === tab.key && (
-                      tab.key === 'completed'
-                        ? styles.filterTabActiveCompletedOnWhite
-                        : tab.key === 'ongoing'
-                        ? styles.filterTabActiveOngoingOnWhite
-                        : styles.filterTabActiveOnWhite
-                    ),
-                  ]}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText weight="semiBold" style={[styles.filterTabTextOnWhite, filter === tab.key && styles.filterTabTextActiveOnWhite]}>
-                    {tab.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <>
+              {/* Row 1: Title left, actions right */}
+              <View style={styles.headerTopRow}>
+                <ThemedText weight="bold" style={styles.headerTitle}>Devotionals</ThemedText>
+                <View style={styles.headerActions}>
+                  {/* Status pill — shows current filter, not clickable */}
+                  <View
+                    style={[
+                      styles.statusDropdownBtn,
+                      filter === 'ongoing' && styles.statusDropdownBtnOngoing,
+                      filter === 'completed' && styles.statusDropdownBtnCompleted,
+                    ]}
+                  >
+                    <ThemedText weight="semiBold" style={[
+                      styles.statusDropdownBtnText,
+                      filter === 'ongoing' && styles.statusDropdownBtnTextOngoing,
+                      filter === 'completed' && styles.statusDropdownBtnTextCompleted,
+                    ]}>
+                      {filter === 'ongoing' ? 'In Progress' : 'Completed'}
+                    </ThemedText>
+                  </View>
+
+                  {/* Tune icon — opens status picker */}
+                  <TouchableOpacity
+                    style={styles.dateFilterCircleButton}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} setShowStatusPicker(true); }}
+                    activeOpacity={0.75}
+                  >
+                    <MaterialCommunityIcons name="tune" size={16} color={Colors.anchorBlue} />
+                  </TouchableOpacity>
+
+                  {/* Search circle */}
+                  <TouchableOpacity
+                    style={styles.searchCircleButton}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} toggleSearch(); }}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.anchorBlue} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Row 2: Search bar — height animated by LayoutAnimation (native thread) */}
+              {showSearch && (
+                <View style={styles.searchBar}>
+                  <Ionicons name="search-outline" size={16} color={'rgba(3,32,61,0.4)'} style={styles.searchIcon} />
+                  <View style={styles.searchInputWrapper}>
+                    <TextInput
+                      ref={searchInputRef}
+                      style={styles.searchInput}
+                      placeholder="Search all devotionals..."
+                      placeholderTextColor={'rgba(3,32,61,0.35)'}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="search"
+                      keyboardAppearance="dark"
+                    />
+                  </View>
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close-circle" size={16} color={'rgba(3,32,61,0.3)'} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+              {!showSearch && <View style={styles.searchBarCollapsedSpacer} />}
+            </>
           )}
         </View>
       </View>
@@ -826,7 +1037,8 @@ const DevotionalsScreen = () => {
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalSkeleton />
           </View>
-        ) : (
+        ) : contentView === 'all' ? (
+          // All view: SectionList grouped by month/year
           <SectionList
             ref={sectionListRef}
             style={styles.sectionList}
@@ -858,6 +1070,70 @@ const DevotionalsScreen = () => {
             onScroll={handleScroll}
             scrollEventThrottle={100}
           />
+        ) : contentView === 'category' ? (
+          // Category view: Horizontal carousels per category
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.listContent, styles.pageInner, styles.listContentPadding]}
+            scrollEnabled={!isTrulyEmpty}
+            bounces={!isTrulyEmpty}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
+          >
+            {sortedDevotionals.length > 0 ? (
+              availableCategories.map(category => {
+                const categoryDevotionals = sortedDevotionals.filter(d => d.category === category);
+                if (categoryDevotionals.length === 0) return null;
+                return (
+                  <View key={category} style={styles.categorySection}>
+                    <View style={styles.categorySectionHeader}>
+                      <ThemedText weight="semiBold" style={styles.categorySectionTitle}>{category.toUpperCase()}</ThemedText>
+                      <View style={styles.categorySectionCount}>
+                        <ThemedText style={styles.categorySectionCountText}>{categoryDevotionals.length}</ThemedText>
+                      </View>
+                    </View>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.categoryCarouselContent}
+                    >
+                      {categoryDevotionals.map((devotional) => renderDevotionalItem({ item: devotional }))}
+                    </ScrollView>
+                  </View>
+                );
+              })
+            ) : (
+              renderFilterEmptyState()
+            )}
+            <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
+          </ScrollView>
+        ) : (
+          // Date view: FlatList
+          <FlatList
+            data={sortedDevotionals}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
+            contentContainerStyle={[
+              styles.listContent,
+              styles.pageInner,
+              styles.listContentPadding,
+            ]}
+            scrollEnabled={!isTrulyEmpty}
+            bounces={!isTrulyEmpty}
+            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 8) + 80 }} />}
+            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 8) + 80, left: 0, right: 0 }}
+            ListEmptyComponent={renderFilterEmptyState}
+            onViewableItemsChanged={onViewableItemsChanged}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
+            // Performance optimizations
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={10}
+            removeClippedSubviews={true}
+          />
         )}
       </BlueSheet>
 
@@ -872,6 +1148,22 @@ const DevotionalsScreen = () => {
           // Navigate straight to the newly created devotional
           navigation.navigate('DevotionalDetail', { devotionalId });
         }}
+      />
+
+      {/* Status picker modal */}
+      <PickerModal
+        visible={showStatusPicker}
+        filter={filter}
+        initContentView={contentView}
+        initDateViewMode={dateViewMode}
+        initSelectedCategories={selectedCategories}
+        initCustomDateFrom={customDateFrom}
+        initCustomDateTo={customDateTo}
+        availableCategories={availableCategories}
+        onClose={handlePickerClose}
+        onFilterChange={handlePickerFilterChange}
+        onApply={handlePickerApply}
+        onHaptic={triggerLightHaptic}
       />
     </SafeAreaView>
   );
@@ -919,6 +1211,150 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: Colors.hopeWhite,
   },
+  // ── Header layout ────────────────────────────────────────────
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 0,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  // ── Header action buttons ─────────────────────────────────────
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  // Status dropdown pill beside search icon
+  statusDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(3, 32, 61, 0.05)',
+  },
+  statusDropdownBtnOngoing: {
+    backgroundColor: 'rgba(230, 90, 70, 0.07)',
+  },
+  statusDropdownBtnCompleted: {
+    backgroundColor: 'rgba(95, 138, 104, 0.07)',
+  },
+  statusDropdownBtnText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(3, 32, 61, 0.5)',
+  },
+  statusDropdownBtnTextOngoing: {
+    color: Colors.alertCoral,
+  },
+  statusDropdownBtnTextCompleted: {
+    color: Colors.growthGreen,
+  },
+  // Circle buttons for tune and search
+  dateFilterCircleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchCircleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(3, 32, 61, 0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Search row: bar + filter button side by side
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  // Animated search bar (inside searchBarWrapper)
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 32, 61, 0.055)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(3, 32, 61, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    marginTop: 6,
+    marginBottom: 8,
+    height: 42,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  searchIcon: {
+    marginRight: 7,
+  },
+  searchBarCollapsedSpacer: {
+    height: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.anchorBlue,
+    paddingVertical: 0,
+    fontFamily: Fonts.regular,
+    letterSpacing: 0.1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  clearButton: {
+    marginLeft: 6,
+    padding: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  categorySection: {
+    marginBottom: 24,
+  },
+  categorySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  categorySectionTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+  },
+  categorySectionCount: {
+    backgroundColor: 'rgba(3, 32, 61, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categorySectionCountText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+  },
+  categoryCarouselContent: {
+    paddingHorizontal: 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -929,55 +1365,11 @@ const styles = StyleSheet.create({
   headerBlue: {
     backgroundColor: Colors.anchorBlue,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    marginBottom: 8,
-    marginTop: 10,
-    letterSpacing: 0.5,
-    fontWeight: '800',
-  },
   headerSpacer: {
     // keeps content pushed down similarly to when headerTitle is visible
     height: 44,
     marginTop: 10,
     marginBottom: 10,
-  },
-  // Match Playbook header-on-white tabs
-  filterTabsOnWhite: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginTop: 6,
-    marginBottom: 16,
-    gap: 6,
-  },
-  filterTabOnWhite: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    backgroundColor: Colors.restfulShadow,
-  },
-  filterTabActiveOnWhite: {
-    backgroundColor: Colors.anchorBlue,
-  },
-  filterTabTextOnWhite: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 13,
-    color: Colors.anchorBlue,
-    letterSpacing: 0.2,
-    fontWeight: '400',
-  },
-  filterTabTextActiveOnWhite: {
-    color: Colors.hopeWhite,
-  },
-  // Per-tab active colors on white header
-  filterTabActiveCompletedOnWhite: {
-    backgroundColor: Colors.growthGreen,
-  },
-  filterTabActiveOngoingOnWhite: {
-    backgroundColor: Colors.alertCoral,
   },
   pageInner: {
     width: '100%',
