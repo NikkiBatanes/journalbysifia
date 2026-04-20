@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   SectionList,
+  FlatList,
   Animated,
   Pressable,
   TouchableOpacity,
@@ -140,6 +141,16 @@ const getSectionState = (
   return 'unreached';
 };
 
+// Static — defined once at module level, never recreated on render
+const CARD_SECTIONS = [
+  { label: 'Intro',                step: 0 },
+  { label: 'Truth in Love',        step: 1, metaIcon: 'time-outline' },
+  { label: 'Scripture to Anchor',  step: 2 },
+  { label: 'Faithful Actions',     step: 3 },
+  { label: 'Prayer',               step: 4, metaIcon: 'pray-outline',        actionIcon: 'hands-pray',             actionIconType: 'material' },
+  { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
+] as const;
+
 interface CarouselCardProps {
   item: Playbook; index: number; scrollX: Animated.Value;
   isMenuOpen: boolean; hasPrayed: boolean; hasRead: boolean; devotionalCount: number;
@@ -149,16 +160,34 @@ interface CarouselCardProps {
   onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
   onDevotionalPress: (item: Playbook) => void; triggerHaptic: () => void;
 }
+const CURRENT_YEAR = new Date().getFullYear();
+const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
+
 const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
-  const ir = [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE];
-  const scale      = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
-  const opacity    = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [0.9, 1, 0.9],   extrapolate: 'clamp' }), [scrollX, index]);
-  const translateY = useMemo(() => scrollX.interpolate({ inputRange: ir, outputRange: [2, 0, 2],       extrapolate: 'clamp' }), [scrollX, index]);
+  // Interpolation input range depends only on index — stable dep
+  const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
+  const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
+  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [2,    0,   2],    extrapolate: 'clamp' }), [scrollX, index]);
+
   const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
-  const category    = useMemo(() => getCategory(item), [item.title, item.userInput]);
-  const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [item.truthInLove]);
+  const category = useMemo(() => getCategory(item), [item.id]);
+  const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [(item.truthInLove as any)?.text]);
+
+  // Memoize formatted dates — avoids 6 Date allocations per render
+  const updatedDateStr = useMemo(() => {
+    if (!item.updatedAt) return null;
+    const d = new Date(item.updatedAt);
+    return format(d, d.getFullYear() === CURRENT_YEAR ? 'MMM d' : 'MMM d, yyyy');
+  }, [item.updatedAt]);
+  const completedDateStr = useMemo(() => {
+    if (!item.completedAt) return null;
+    const d = new Date(item.completedAt);
+    return format(d, d.getFullYear() === CURRENT_YEAR ? 'MMM d' : 'MMM d, yyyy');
+  }, [item.completedAt]);
+
   const isCardCompleted = item.status === 'completed';
   const wp = item.walkthroughProgress ?? -1;
+
   return (
     <TouchableOpacity style={st.carouselCardTouch} onPress={() => onPress(item)} onLongPress={() => onLongPress(item)} activeOpacity={0.85}>
       <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
@@ -185,8 +214,8 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
         </View>
         <View style={st.dateWithBadge}>
-          {!isCardCompleted && item.updatedAt ? (
-            <ThemedText style={st.carouselDate}>{format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
+          {!isCardCompleted && updatedDateStr ? (
+            <ThemedText style={st.carouselDate}>{updatedDateStr}</ThemedText>
           ) : null}
         </View>
         <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.title}</ThemedText>
@@ -195,24 +224,22 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           <View style={st.completedSummary}>
             <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
             <ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText>
-            {item.completedAt && (
+            {completedDateStr && (
               <>
                 <View style={st.completedSummaryDivider} />
-                <ThemedText style={st.completedDateText}>{format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}</ThemedText>
+                <ThemedText style={st.completedDateText}>{completedDateStr}</ThemedText>
               </>
             )}
           </View>
         ) : (
           <View style={st.sectionsContainer}>
-            {([
-              { label: 'Intro', step: 0 },
-              { label: 'Truth in Love', step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
-              { label: 'Scripture to Anchor', step: 2 },
-              { label: 'Faithful Actions', step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-              { label: 'Prayer', step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: hasPrayed },
-              { label: 'Words to Speak', step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: hasRead },
-            ] as any[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
+            {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
               const state = getSectionState(step, wp);
+              // Derive dynamic values per section
+              const meta = step === 1 ? tilReadTime
+                         : step === 3 && total > 0 ? `${completed} of ${total} acted on`
+                         : undefined;
+              const actionIconState = step === 4 ? hasPrayed : step === 5 ? hasRead : false;
               return (
                 <View key={label} style={st.sectionItem}>
                   <View style={[st.statusPill, state === 'completed' && st.statusPillCompleted, state === 'viewed' && st.statusPillViewed, state === 'unreached' && st.statusPillUnreached]}>
@@ -268,7 +295,7 @@ const CategoryCarouselRow = React.memo(({
       <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+        contentContainerStyle={CAROUSEL_CONTENT_STYLE}
         decelerationRate="fast"
         snapToInterval={ITEM_SIZE}
         snapToAlignment="center"
@@ -277,8 +304,10 @@ const CategoryCarouselRow = React.memo(({
           { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
-        bounces={true}
-        removeClippedSubviews={false}
+        directionalLockEnabled={true}
+        disableIntervalMomentum={false}
+        bounces={false}
+        removeClippedSubviews={true}
       >
         {playbooks.map((playbook, index) => (
           <CarouselCard
@@ -357,10 +386,23 @@ const PickerModal = React.memo(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  // Close + flush whatever local state is current
   const handleApplyAndClose = useCallback(() => {
     onApply(localView, localDateMode, localCategories, customFrom, customTo);
     onClose();
   }, [localView, localDateMode, localCategories, customFrom, customTo, onApply, onClose]);
+
+  // Immediate apply helpers — used for auto-apply-and-close interactions
+  const applyAndClose = useCallback((
+    view: 'all' | 'category' | 'date',
+    mode: 'weekly' | 'monthly' | 'yearly' | 'custom',
+    cats: string[],
+    from: Date,
+    to: Date,
+  ) => {
+    onApply(view, mode, cats, from, to);
+    onClose();
+  }, [onApply, onClose]);
 
   const pickerStyles = React.useMemo(() => StyleSheet.create({
     overlay: {
@@ -447,10 +489,11 @@ const PickerModal = React.memo(({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleApplyAndClose}>
+      {/* Backdrop — tap to apply current local state and close */}
       <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
         <Pressable style={pickerStyles.card}>
 
-          {/* VIEW */}
+          {/* ── VIEW ──────────────────────────────────── */}
           <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>View</ThemedText>
           <View style={pickerStyles.pillRow}>
             {(['all', 'category', 'date'] as const).map(v => {
@@ -458,7 +501,16 @@ const PickerModal = React.memo(({
               return (
                 <Pressable key={v}
                   style={({ pressed }) => [pickerStyles.pill, active && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
-                  onPress={() => { onHaptic(); setLocalView(v); if (v === 'all') { setLocalCategories([]); handleApplyAndClose(); } }}
+                  onPress={() => {
+                    onHaptic();
+                    if (v === 'all') {
+                      // All: immediate apply + close
+                      applyAndClose('all', localDateMode, [], customFrom, customTo);
+                    } else {
+                      // Category / Date: switch sub-section, modal stays open
+                      setLocalView(v);
+                    }
+                  }}
                 >
                   <ThemedText weight={active ? 'semiBold' : 'regular'}
                     style={[pickerStyles.pillText, active && pickerStyles.pillTextActive]}>
@@ -469,7 +521,7 @@ const PickerModal = React.memo(({
             })}
           </View>
 
-          {/* CATEGORY sub-section */}
+          {/* ── CATEGORY sub-section ─────────────────── */}
           {localView === 'category' && availableCategories.length > 0 && (
             <>
               <ThemedText weight="semiBold" style={[pickerStyles.sectionLabel, { marginTop: 14 }]}>Categories</ThemedText>
@@ -479,7 +531,15 @@ const PickerModal = React.memo(({
                   return (
                     <Pressable key={cat}
                       style={({ pressed }) => [pickerStyles.pill, sel && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
-                      onPress={() => { onHaptic(); setLocalCategories(prev => sel ? prev.filter(c => c !== cat) : [...prev, cat]); }}
+                      onPress={() => {
+                        onHaptic();
+                        // Toggle and immediately apply — no button needed
+                        const next = sel
+                          ? localCategories.filter(c => c !== cat)
+                          : [...localCategories, cat];
+                        setLocalCategories(next);
+                        applyAndClose('category', localDateMode, next, customFrom, customTo);
+                      }}
                     >
                       <ThemedText weight={sel ? 'semiBold' : 'regular'}
                         style={[pickerStyles.pillText, sel && pickerStyles.pillTextActive]}>
@@ -489,16 +549,11 @@ const PickerModal = React.memo(({
                   );
                 })}
               </View>
-              <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
-                onPress={() => { onHaptic(); handleApplyAndClose(); }}>
-                <ThemedText weight="semiBold" style={pickerStyles.applyBtnText}>
-                  {localCategories.length === 0 ? 'View All' : `View ${localCategories.length} Categor${localCategories.length === 1 ? 'y' : 'ies'}`}
-                </ThemedText>
-              </Pressable>
+              {/* No Apply button — tap a category to select, backdrop to close */}
             </>
           )}
 
-          {/* DATE VIEW sub-section */}
+          {/* ── DATE VIEW sub-section ────────────────── */}
           {localView === 'date' && (
             <>
               <ThemedText weight="semiBold" style={[pickerStyles.sectionLabel, { marginTop: 14 }]}>Date View</ThemedText>
@@ -509,7 +564,15 @@ const PickerModal = React.memo(({
                   return (
                     <Pressable key={m}
                       style={({ pressed }) => [pickerStyles.pill, active && pickerStyles.pillActive, pressed && pickerStyles.pillPressed]}
-                      onPress={() => { onHaptic(); setLocalDateMode(m); }}
+                      onPress={() => {
+                        onHaptic();
+                        setLocalDateMode(m);
+                        if (m !== 'custom') {
+                          // Weekly / Monthly / Yearly: immediate apply + close
+                          applyAndClose('date', m, localCategories, customFrom, customTo);
+                        }
+                        // Custom: stay open to pick date range
+                      }}
                     >
                       <ThemedText weight={active ? 'semiBold' : 'regular'}
                         style={[pickerStyles.pillText, active && pickerStyles.pillTextActive]}>
@@ -519,42 +582,47 @@ const PickerModal = React.memo(({
                   );
                 })}
               </View>
+
+              {/* Custom only: date range pickers + Apply button */}
               {localDateMode === 'custom' && (
-                <View style={pickerStyles.customDateRow}>
-                  <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
-                    onPress={() => { setShowFromPicker(p => !p); setShowToPicker(false); }}>
-                    <ThemedText weight="regular" style={pickerStyles.customDateLabel}>From</ThemedText>
-                    <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customFrom, 'MMM d, yyyy')}</ThemedText>
+                <>
+                  <View style={pickerStyles.customDateRow}>
+                    <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
+                      onPress={() => { setShowFromPicker(p => !p); setShowToPicker(false); }}>
+                      <ThemedText weight="regular" style={pickerStyles.customDateLabel}>From</ThemedText>
+                      <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customFrom, 'MMM d, yyyy')}</ThemedText>
+                    </Pressable>
+                    <View style={pickerStyles.customDateSep} />
+                    <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
+                      onPress={() => { setShowToPicker(p => !p); setShowFromPicker(false); }}>
+                      <ThemedText weight="regular" style={pickerStyles.customDateLabel}>To</ThemedText>
+                      <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customTo, 'MMM d, yyyy')}</ThemedText>
+                    </Pressable>
+                  </View>
+                  {showFromPicker && (
+                    <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
+                      onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
+                      style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+                  )}
+                  {showToPicker && (
+                    <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
+                      onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
+                      style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+                  )}
+                  {/* Apply only needed for Custom since date selection requires confirmation */}
+                  <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
+                    onPress={() => { onHaptic(); applyAndClose('date', 'custom', localCategories, customFrom, customTo); }}>
+                    <ThemedText weight="semiBold" style={pickerStyles.applyBtnText}>Apply</ThemedText>
                   </Pressable>
-                  <View style={pickerStyles.customDateSep} />
-                  <Pressable style={({ pressed }) => [pickerStyles.customDateField, pressed && { opacity: 0.7 }]}
-                    onPress={() => { setShowToPicker(p => !p); setShowFromPicker(false); }}>
-                    <ThemedText weight="regular" style={pickerStyles.customDateLabel}>To</ThemedText>
-                    <ThemedText weight="semiBold" style={pickerStyles.customDateValue}>{format(customTo, 'MMM d, yyyy')}</ThemedText>
-                  </Pressable>
-                </View>
+                </>
               )}
-              {localDateMode === 'custom' && showFromPicker && (
-                <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
-                  onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
-                  style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
-              )}
-              {localDateMode === 'custom' && showToPicker && (
-                <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
-                  onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
-                  style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
-              )}
-              <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
-                onPress={() => { onHaptic(); handleApplyAndClose(); }}>
-                <ThemedText weight="semiBold" style={pickerStyles.applyBtnText}>Apply</ThemedText>
-              </Pressable>
             </>
           )}
 
-          {/* DIVIDER */}
+          {/* ── DIVIDER ──────────────────────────────── */}
           <View style={pickerStyles.divider} />
 
-          {/* STATUS */}
+          {/* ── STATUS ───────────────────────────────── */}
           <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>Status</ThemedText>
           <View style={pickerStyles.pillRow}>
             {(['ongoing', 'completed'] as const).map(s => {
@@ -657,14 +725,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }, [setShowTabBar])
   );
 
+  const hapticModuleRef = useRef<any>(null);
   const triggerLightHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) {return;}
+      if (!RNHapticFeedback) { return; }
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) {return;}
-      const Haptic = require('react-native-haptic-feedback');
-      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (hapticsPref === false) { return; }
+      if (!hapticModuleRef.current) {
+        hapticModuleRef.current = require('react-native-haptic-feedback');
+      }
+      const triggerFn = hapticModuleRef.current?.default?.trigger || hapticModuleRef.current?.trigger;
       if (typeof triggerFn === 'function') {
         triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
       }
@@ -785,20 +856,25 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
   }, [selectedPlaybookForTag, selectedTag, customTag, triggerLightHaptic, refetch]);
 
-  // Status filter: always one of 'ongoing' or 'completed'
+  // Status filter
   const [filter, setFilter] = useState<'ongoing' | 'completed'>('ongoing');
   const [showStatusPicker, setShowStatusPicker] = useState(false);
-  // Main content view pill filter
-  const [contentView, setContentView] = useState<'all' | 'category' | 'date'>('all');
-  // Date view sub-mode
-  const [dateViewMode, setDateViewMode] = useState<'weekly' | 'monthly' | 'yearly' | 'custom'>('monthly');
-  // Custom date range for 'custom' date view
-  const [customDateFrom, setCustomDateFrom] = useState<Date>(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d; });
-  const [customDateTo, setCustomDateTo] = useState<Date>(new Date());
-  const [showCustomFromPicker, setShowCustomFromPicker] = useState(false);
-  const [showCustomToPicker, setShowCustomToPicker] = useState(false);
-  // Selected categories for category view (empty = All)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // All picker/view state batched into one object — a single setState = a single re-render
+  const [pickerState, setPickerState] = useState<{
+    contentView: 'all' | 'category' | 'date';
+    dateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom';
+    selectedCategories: string[];
+    customDateFrom: Date;
+    customDateTo: Date;
+  }>({
+    contentView: 'all',
+    dateViewMode: 'monthly',
+    selectedCategories: [],
+    customDateFrom: (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d; })(),
+    customDateTo: new Date(),
+  });
+  const { contentView, dateViewMode, selectedCategories, customDateFrom, customDateTo } = pickerState;
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
   const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
@@ -811,10 +887,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
-  // Deferred versions — memos use these so expensive re-computation is deferred
-  // while the modal pills update instantly using the original state values
+  // Deferred versions — content rendering uses these so expensive work is deferred
+  // while pill visuals / modal state update instantly from the originals
   const deferredFilter = useDeferredValue(filter);
   const deferredSelectedCategories = useDeferredValue(selectedCategories);
+  const deferredContentView = useDeferredValue(contentView);
+  const deferredDateViewMode = useDeferredValue(dateViewMode);
+
+  // Memoized style objects — prevents ScrollView layout recalculation on every render
+  const scrollContentStyle = useMemo(() => ({ paddingBottom: tabBarHeight + 32 }), [tabBarHeight]);
 
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
@@ -842,7 +923,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     ]).start();
   }, [showSearch, searchIconAnim]);
 
-  // PickerModal callbacks — memoized so they never cause PickerModal to re-render
+  // PickerModal callbacks — close modal immediately, defer heavy state update until after fade animation
   const handlePickerApply = useCallback((
     cv: 'all' | 'category' | 'date',
     dm: 'weekly' | 'monthly' | 'yearly' | 'custom',
@@ -850,11 +931,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
     from: Date,
     to: Date,
   ) => {
-    setContentView(cv);
-    setDateViewMode(dm);
-    setSelectedCategories(cats);
-    setCustomDateFrom(from);
-    setCustomDateTo(to);
+    // Close modal right away so fade animation isn't competing with re-render work
+    setShowStatusPicker(false);
+    // Wait for Modal's fade-out to finish (~250ms) before the heavy state update.
+    // InteractionManager alone is unreliable here — Modal's animation isn't always
+    // registered as an interaction, so it can fire immediately.
+    setTimeout(() => {
+      setPickerState({ contentView: cv, dateViewMode: dm, selectedCategories: cats, customDateFrom: from, customDateTo: to });
+    }, 260);
   }, []);
 
   const handlePickerClose = useCallback(() => setShowStatusPicker(false), []);
@@ -1116,7 +1200,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return Array.from(map.values()).sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
   }, [allPlaybooksSorted, currentYear]);
 
-  // Monthly sections: group by year-month, sorted newest first
+  // Monthly sections: group by year-month, sorted newest first; showYear flags year-change rows
   const monthlySections = useMemo(() => {
     const map = new Map<string, { label: string; year: number; month: number; playbooks: Playbook[] }>();
     allPlaybooksSorted.forEach(pb => {
@@ -1129,8 +1213,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
       }
       map.get(key)!.playbooks.push(pb);
     });
-    return Array.from(map.values()).sort((a, b) => (b.year * 12 + b.month) - (a.year * 12 + a.month));
-  }, [allPlaybooksSorted]);
+    const sorted = Array.from(map.values()).sort((a, b) => (b.year * 12 + b.month) - (a.year * 12 + a.month));
+    // Compute showYear once per item so renderItem in FlatList doesn't need local state
+    let lastSeenYear: number | null = null;
+    return sorted.map(item => {
+      const showYear = item.year !== currentYear && item.year !== lastSeenYear;
+      if (item.year !== currentYear) { lastSeenYear = item.year; }
+      return { ...item, showYear };
+    });
+  }, [allPlaybooksSorted, currentYear]);
 
   // Yearly sections: group by year, sorted newest first
   const yearlySections = useMemo(() => {
@@ -1152,6 +1243,56 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return d >= fromStart.getTime() && d <= toEnd.getTime();
     });
   }, [allPlaybooksSorted, customDateFrom, customDateTo]);
+
+  // Unified data array for the date-view FlatList — computed from the active mode.
+  // Defining this as a memo means FlatList data reference only changes when the sections change,
+  // not on every unrelated render.
+  type DateSectionItem = {
+    key: string;
+    category: string;
+    playbooks: Playbook[];
+    showYear: boolean;
+    year?: number;
+    isEmpty?: boolean;
+  };
+  const dateSectionItems = useMemo((): DateSectionItem[] => {
+    switch (deferredDateViewMode) {
+      case 'weekly':
+        return weeklySections.map(s => ({
+          key: s.weekStart.toISOString(),
+          category: s.label,
+          playbooks: s.playbooks,
+          showYear: false,
+        }));
+      case 'monthly':
+        return monthlySections.map(s => ({
+          key: `${s.year}-${s.month}`,
+          category: s.label,
+          playbooks: s.playbooks,
+          showYear: s.showYear,
+          year: s.year,
+        }));
+      case 'yearly':
+        return yearlySections.map(s => ({
+          key: String(s.year),
+          category: String(s.year),
+          playbooks: s.playbooks,
+          showYear: false,
+        }));
+      case 'custom':
+        if (customDatePlaybooks.length === 0) {
+          return [{ key: 'custom-empty', category: '', playbooks: [], showYear: false, isEmpty: true }];
+        }
+        return [{
+          key: 'custom',
+          category: `${format(customDateFrom, 'MMM d')} – ${format(customDateTo, 'MMM d, yyyy')}`,
+          playbooks: customDatePlaybooks,
+          showYear: false,
+        }];
+      default:
+        return [];
+    }
+  }, [deferredDateViewMode, weeklySections, monthlySections, yearlySections, customDatePlaybooks, customDateFrom, customDateTo]);
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
@@ -1568,6 +1709,47 @@ const PlaybookListScreen = ({ navigation }: any) => {
     );
   }
 
+  // Stable renderItem for the date-view FlatList.
+  // Defined with useCallback so its reference only changes when actual data/handlers change —
+  // not on every parent render. Without this, FlatList re-renders ALL visible items on each
+  // unrelated state change (e.g. menuVisible toggle, searchQuery keystroke).
+  const renderDateSectionItem = useCallback(({ item }: { item: DateSectionItem }) => {
+    if (item.isEmpty) {
+      return (
+        <View style={styles.continueEmptyContainer}>
+          <ThemedText style={styles.continueEmptyText}>
+            No playbooks in this date range.
+          </ThemedText>
+        </View>
+      );
+    }
+    return (
+      <View>
+        {item.showYear && item.year != null && (
+          <View style={styles.dateSectionYearHeader}>
+            <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{item.year}</ThemedText>
+          </View>
+        )}
+        <CategoryCarouselRow
+          category={item.category}
+          playbooks={item.playbooks}
+          cardStyles={styles}
+          sessionStates={sessionStates}
+          devotionalsCount={devotionalsCount}
+          menuVisible={menuVisible}
+          onPress={handleCardPress}
+          onLongPress={handleCardLongPress}
+          onMenuToggle={setMenuVisible}
+          onDelete={handleDelete}
+          onRenamePress={handleRenamePress}
+          onTagPress={handleTagPress}
+          onDevotionalPress={handleDevotionalPress}
+          triggerHaptic={triggerLightHaptic}
+        />
+      </View>
+    );
+  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, triggerLightHaptic]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <View style={styles.container}>
@@ -1670,7 +1852,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </View>
           ) : searchQuery.trim().length > 0 ? (
             /* ── SEARCH RESULTS ──────────────────────────── */
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={scrollContentStyle}>
               <View style={styles.carouselTitleContainer}>
                 <ThemedText weight="semiBold" style={styles.carouselTitle}>
                   {filteredPlaybooks.length} RESULT{filteredPlaybooks.length !== 1 ? 'S' : ''}
@@ -1699,10 +1881,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 />
               )}
             </ScrollView>
-          ) : contentView === 'all' ? (
+          ) : deferredContentView === 'all' ? (
             /* ── ALL VIEW: Respects header filter ─────────────── */
-            <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-              {filter === 'ongoing' ? (
+            <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
+              {deferredFilter === 'ongoing' ? (
                 continuePlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
                     <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
@@ -1750,15 +1932,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 )
               )}
             </ScrollView>
-          ) : contentView === 'category' ? (
+          ) : deferredContentView === 'category' ? (
             /* ── CATEGORY VIEW: per-category carousels ──────── */
             categorySections.length === 0 ? (
               <View style={styles.continueEmptyContainer}>
                 <ThemedText style={styles.continueEmptyText}>No playbooks yet.</ThemedText>
               </View>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-                {filter === 'ongoing' && (
+              <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
+                {deferredFilter === 'ongoing' && (
                   <View style={styles.carouselTitleContainer}>
                     <ThemedText weight="semiBold" style={styles.carouselTitle}>
                       CONTINUE YOUR PLAYBOOKS
@@ -1787,116 +1969,30 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </ScrollView>
             )
           ) : (
-            /* ── DATE VIEW: Weekly / Monthly / Yearly ─────── */
-            <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: tabBarHeight + 32 }}>
-              {filter === 'ongoing' && (
-                <View style={styles.carouselTitleContainer}>
-                  <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                    CONTINUE YOUR PLAYBOOKS
-                  </ThemedText>
-                </View>
-              )}
-              {dateViewMode === 'weekly' && (
-                weeklySections.map(({ label, weekStart, playbooks: wPbs }) => (
-                  <CategoryCarouselRow
-                    key={weekStart.toISOString()}
-                    category={label}
-                    playbooks={wPbs}
-                    cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
-                    triggerHaptic={triggerLightHaptic}
-                  />
-                ))
-              )}
-              {dateViewMode === 'monthly' && (
-                monthlySections.map(({ label, year, month, playbooks: mPbs }) => {
-                  let lastYear: number | null = null;
-                  const showYear = year !== currentYear && year !== lastYear;
-                  lastYear = year;
-                  return (
-                    <View key={`${year}-${month}`}>
-                      {showYear && (
-                        <View style={styles.dateSectionYearHeader}>
-                          <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{year}</ThemedText>
-                        </View>
-                      )}
-                      <CategoryCarouselRow
-                        category={label}
-                        playbooks={mPbs}
-                        cardStyles={styles}
-                        sessionStates={sessionStates}
-                        devotionalsCount={devotionalsCount}
-                        menuVisible={menuVisible}
-                        onPress={handleCardPress}
-                        onLongPress={handleCardLongPress}
-                        onMenuToggle={setMenuVisible}
-                        onDelete={handleDelete}
-                        onRenamePress={handleRenamePress}
-                        onTagPress={handleTagPress}
-                        onDevotionalPress={handleDevotionalPress}
-                        triggerHaptic={triggerLightHaptic}
-                      />
-                    </View>
-                  );
-                })
-              )}
-              {dateViewMode === 'yearly' && (
-                yearlySections.map(({ year, playbooks: yPbs }) => (
-                  <CategoryCarouselRow
-                    key={year}
-                    category={String(year)}
-                    playbooks={yPbs}
-                    cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
-                    triggerHaptic={triggerLightHaptic}
-                  />
-                ))
-              )}
-              {dateViewMode === 'custom' && (
-                customDatePlaybooks.length === 0 ? (
-                  <View style={styles.continueEmptyContainer}>
-                    <ThemedText style={styles.continueEmptyText}>
-                      No playbooks in this date range.
+            /* ── DATE VIEW: Weekly / Monthly / Yearly / Custom — virtualized ─── */
+            <FlatList
+              data={dateSectionItems}
+              keyExtractor={item => item.key}
+              renderItem={renderDateSectionItem}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={100}
+              contentContainerStyle={scrollContentStyle}
+              initialNumToRender={2}
+              maxToRenderPerBatch={1}
+              updateCellsBatchingPeriod={100}
+              windowSize={3}
+              removeClippedSubviews={true}
+              ListHeaderComponent={
+                deferredFilter === 'ongoing' ? (
+                  <View style={styles.carouselTitleContainer}>
+                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                      CONTINUE YOUR PLAYBOOKS
                     </ThemedText>
                   </View>
-                ) : (
-                  <CategoryCarouselRow
-                    category={`${format(customDateFrom, 'MMM d')} – ${format(customDateTo, 'MMM d, yyyy')}`}
-                    playbooks={customDatePlaybooks}
-                    cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
-                    triggerHaptic={triggerLightHaptic}
-                  />
-                )
-              )}
-            </ScrollView>
+                ) : null
+              }
+            />
           )}
         </BlueSheet>
       </View>

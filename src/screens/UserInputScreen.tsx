@@ -78,7 +78,10 @@ const UserInputScreen: React.FC = () => {
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setBarStyle('light-content', true);
-      StatusBar.setBackgroundColor(Colors.anchorBlue, true);
+      // setBackgroundColor is Android-only — skip on iOS
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(Colors.anchorBlue, true);
+      }
     }, [])
   );
 
