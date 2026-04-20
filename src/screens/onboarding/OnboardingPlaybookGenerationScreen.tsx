@@ -153,7 +153,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   // Handle navigation after animation completes
   useEffect(() => {
+    logger.debug('OnboardingGeneration: Navigation useEffect', { shouldNavigate, hasNavigationData: !!navigationData });
     if (shouldNavigate && navigationData) {
+      logger.debug('OnboardingGeneration: Navigating to PlaybookWalkthrough');
       // Navigate to PlaybookWalkthrough with onboarding source
       (navigation as any).replace('PlaybookWalkthrough', {
         playbook: navigationData,
@@ -452,6 +454,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       useNativeDriver: false,
                     }).start(() => {
                       try { triggerLightHaptic(); } catch {}
+                      logger.debug('OnboardingGeneration: Setting navigation data and shouldNavigate=true');
                       // Keep isGenerating true to avoid blank state, set navigation data
                       setGeneratedPlaybook(realGeneratedPlaybook);
                       setNavigationData(realGeneratedPlaybook);
