@@ -15,6 +15,7 @@ import {
   Platform,
   StyleSheet,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -564,6 +565,7 @@ const UserInputScreen: React.FC = () => {
   // const userId = user?.id; // Unused, commented out
   const fullName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
   const userName = fullName.split(' ')[0] || 'User';
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
@@ -1294,6 +1296,75 @@ const UserInputScreen: React.FC = () => {
                 </TouchableOpacity>
               </Animated.View>
             </Animated.View>
+
+            {/* Profile button in upper right corner - appears when navigation is expanded */}
+            <Animated.View
+              style={[
+                styles.profileButtonContainer,
+                {
+                  opacity: navButtonAnim,
+                  transform: [
+                    { scale: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.1] }) },
+                    { translateX: navButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) },
+                  ],
+                },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  handleNavigationWithCollapse(() => {
+                    (navigation as any).reset({
+                      index: 0,
+                      routes: [
+                        { name: 'MainTabs', state: { routes: [{ name: 'Overview' }], index: 0 } },
+                      ],
+                    });
+                    setTimeout(() => {
+                      (navigation as any).navigate('UserProfileModal');
+                    }, 300);
+                  });
+                }}
+                onPressIn={() => {
+                  try {
+                    triggerLightHaptic();
+                  } catch {}
+                }}
+                onPressOut={() => {
+                  try {
+                    triggerLightHaptic();
+                  } catch {}
+                }}
+                style={styles.profileButton}
+                activeOpacity={0.8}
+              >
+                {(() => {
+                  const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+                  const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;
+
+                  return safeAvatarUrl && !imageLoadFailed ? (
+                    <Image
+                      source={{ uri: safeAvatarUrl }}
+                      style={styles.profileImage}
+                      onError={() => setImageLoadFailed(true)}
+                      onLoad={() => setImageLoadFailed(false)}
+                    />
+                  ) : (
+                    <View style={styles.initialAvatar}>
+                      <Text style={styles.initialLetter}>
+                        {((user as any)?.displayName ||
+                          (user as any)?.user_metadata?.full_name ||
+                          (user as any)?.user_metadata?.name ||
+                          [((user as any)?.user_metadata?.first_name), ((user as any)?.user_metadata?.last_name)]
+                            .filter(Boolean).join(' ').trim() ||
+                          (user as any)?.email ||
+                          'U').trim().charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </TouchableOpacity>
+            </Animated.View>
           </>
         )}
 
@@ -1687,6 +1758,39 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     left: 24,
+  },
+  profileButtonContainer: {
+    position: 'absolute',
+    top: 64,
+    right: 24,
+  },
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.inputBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    resizeMode: 'cover',
+  },
+  initialAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialLetter: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
   },
   navButton: {
     width: 44,

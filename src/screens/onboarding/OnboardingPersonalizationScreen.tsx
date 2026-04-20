@@ -13,6 +13,12 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { unifiedGenerationService } from '../../services/unifiedGenerationService';
+import { faithPointsService } from '../../services/faithPointsService';
+import { subscriptionService } from '../../services/subscriptionService';
+import type { Playbook } from '../../interfaces/playbook';
+import { Alert } from 'react-native';
+import { triggerSuccessHaptic, triggerErrorHaptic } from '../../utils/haptics';
 import {
   View,
   StyleSheet,
@@ -28,6 +34,7 @@ import {
   Keyboard,
   Dimensions,
   Modal,
+  Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -538,6 +545,163 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const [showOptionalHelper, setShowOptionalHelper] = useState(false);
   const askBoxYRef = useRef(0);
+
+  // Transition animations for "Building a playbook..." state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [buildingDots, setBuildingDots] = useState('');
+  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
+  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
+  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
+  const generatingScaleAnim = useRef(new Animated.Value(0.92)).current;
+  const inputScaleAnim = useRef(new Animated.Value(1)).current;
+  const headerIntroOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxTranslateY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const headerScale = useRef(new Animated.Value(1)).current;
+  const genLogoEntryAnim = useRef(new Animated.Value(0)).current;
+  const genCardEntryAnim = useRef(new Animated.Value(0)).current;
+  const genHeadingEntryAnim = useRef(new Animated.Value(0)).current;
+  const genStepsEntryAnim = useRef(new Animated.Value(0)).current;
+  const genProgressEntryAnim = useRef(new Animated.Value(0)).current;
+
+  // Progress animation system
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const PHASE_PROGRESS_TARGETS = [25, 50, 75, 95];
+  const currentPhaseRef = useRef(0);
+  const trickleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generationAbortRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  // Generation steps tracking (like UserInputScreen)
+  interface GenerationStep {
+    id: number;
+    label: string;
+    status: 'active' | 'completed' | 'inactive';
+  }
+
+  const [generationCurrentStep, setGenerationCurrentStep] = useState(1);
+  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>([
+    { id: 1, label: 'Seeing this moment clearly', status: 'active' },
+    { id: 2, label: 'Naming what matters most', status: 'inactive' },
+    { id: 3, label: 'Shaping faithful next steps', status: 'inactive' },
+    { id: 4, label: 'Preparing your playbook', status: 'inactive' },
+  ]);
+
+  const checkIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  const animateProgressTo = (target: number, duration = 800) =>
+    new Promise<void>((resolve) => {
+      Animated.timing(progressAnim, {
+        toValue: target,
+        duration,
+        useNativeDriver: false,
+      }).start(() => resolve());
+    });
+
+  const completeProgress = async () => {
+    // Mark all steps as completed and animate check icons
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        // Animate check icon for each completed step
+        Animated.spring(checkIconAnims[index], {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+        return { ...step, status: 'completed' };
+      })
+    );
+    setGenerationCurrentStep(4);
+    await animateProgressTo(100, 600);
+  };
+
+  const updateStepStatus = (stepIndex: number) => {
+    // Raise trickle ceiling so the bar is now allowed to approach this phase's target
+    currentPhaseRef.current = stepIndex;
+
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        if (index < stepIndex) {
+          // Animate check icon for completed steps
+          Animated.spring(checkIconAnims[index], {
+            toValue: 1,
+            tension: 80,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+          return { ...step, status: 'completed' };
+        }
+        if (index === stepIndex) {
+          return { ...step, status: 'active' };
+        }
+        return { ...step, status: 'inactive' };
+      })
+    );
+    setGenerationCurrentStep(Math.min(stepIndex + 1, 4));
+
+    // Floor guarantee: when a phase completes, the bar must be at least at the
+    // PREVIOUS phase's target so there's no backward drift between label and bar.
+    if (stepIndex > 0) {
+      const prevTarget = PHASE_PROGRESS_TARGETS[stepIndex - 1];
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < prevTarget) {
+        animateProgressTo(prevTarget, 500);
+      }
+    }
+  };
+
+  const resetGenerationSteps = () => {
+    setGenerationSteps([
+      { id: 1, label: 'Seeing this moment clearly', status: 'active' },
+      { id: 2, label: 'Naming what matters most', status: 'inactive' },
+      { id: 3, label: 'Shaping faithful next steps', status: 'inactive' },
+      { id: 4, label: 'Preparing your playbook', status: 'inactive' },
+    ]);
+    setGenerationCurrentStep(1);
+    checkIconAnims.forEach((anim) => anim.setValue(0));
+    progressAnim.setValue(0);
+    currentPhaseRef.current = 0;
+  };
+
+  const startProgressTrickle = () => {
+    const TICK_MS = 300;
+    let elapsed = 0;
+    const tick = () => {
+      elapsed += TICK_MS;
+      const phaseCeiling = (PHASE_PROGRESS_TARGETS[currentPhaseRef.current] ?? 95) - 1;
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < phaseCeiling) {
+        const remaining = phaseCeiling - current;
+        const step = Math.max(0.3, remaining * 0.05);
+        Animated.timing(progressAnim, {
+          toValue: Math.min(current + step, phaseCeiling),
+          duration: TICK_MS + 80,
+          useNativeDriver: false,
+        }).start();
+      }
+      if (elapsed < 120000) {
+        trickleRef.current = setTimeout(tick, TICK_MS);
+      }
+    };
+    trickleRef.current = setTimeout(tick, TICK_MS);
+  };
+
+  const stopProgressTrickle = () => {
+    if (trickleRef.current) {
+      clearTimeout(trickleRef.current);
+      trickleRef.current = null;
+    }
+  };
+
+  // Cleanup progress trickle on unmount
+  useEffect(() => {
+    return () => {
+      stopProgressTrickle();
+    };
+  }, []);
+
   // Animate the rounded-top container when keyboard opens (details step only)
   const containerTranslateY = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -552,6 +716,46 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
+
+  // Animated dots + text-opacity shimmer on "Building your playbook..."
+  useEffect(() => {
+    if (!isGenerating) {
+      setBuildingDots('');
+      buildingTextOpacity.setValue(0.55);
+      return;
+    }
+
+    // Cycling dots: '' → '.' → '..' → '...'
+    const dotStates = ['', '.', '..', '...'];
+    let di = 0;
+    const dotInterval = setInterval(() => {
+      di = (di + 1) % dotStates.length;
+      setBuildingDots(dotStates[di]);
+    }, 420);
+
+    // Shimmer = the letters themselves breathing bright → dim → bright
+    buildingTextOpacity.setValue(0.55);
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buildingTextOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.55,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    return () => {
+      clearInterval(dotInterval);
+      shimmerLoop.stop();
+    };
+  }, [isGenerating]);
 
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
@@ -787,15 +991,93 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         const faithJourneyForNavigation = selectedFaithJourney || 'growing';
         const challengeForNavigation = selectedChallenge || 'relationships';
 
-        (navigation as any).navigate('OnboardingPlaybookGeneration', {
-          userName: name || 'Friend',
-          userInput,
-          onboardingData: {
-            ageGroup: ageGroupForNavigation,
-            faithJourney: faithJourneyForNavigation,
-            challenge: challengeForNavigation,
-            challengeDetails,
-          },
+        // Trigger transition animation before navigation
+        Keyboard.dismiss();
+
+        // Phase 1: footer shrinks + header content fades (0–260ms)
+        generatingFadeAnim.setValue(0);
+        generatingScaleAnim.setValue(0.92);
+        genLogoEntryAnim.setValue(0);
+        genCardEntryAnim.setValue(0);
+        genHeadingEntryAnim.setValue(0);
+        genStepsEntryAnim.setValue(0);
+        genProgressEntryAnim.setValue(0);
+
+        Animated.parallel([
+          Animated.timing(inputCollapseAnim, {
+            toValue: 1,
+            duration: 260,
+            useNativeDriver: true,
+          }),
+          Animated.timing(inputScaleAnim, {
+            toValue: 0.88,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(headerIntroOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(askBoxOpacity, {
+            toValue: 0,
+            duration: 160,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Phase 2: switch to generating mode; each element bounces in
+          setIsGenerating(true);
+
+          requestAnimationFrame(() => {
+            // Container fades + scales in with spring bounce
+            Animated.parallel([
+              Animated.timing(generatingFadeAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.spring(generatingScaleAnim, {
+                toValue: 1,
+                tension: 45,
+                friction: 7,
+                useNativeDriver: true,
+              }),
+            ]).start();
+
+            // Staggered element entrance — each springs up with its own delay
+            const springConfig = { tension: 55, friction: 8, useNativeDriver: true as const };
+            const entries: [Animated.Value, number][] = [
+              [genLogoEntryAnim, 0],
+              [genCardEntryAnim, 90],
+              [genHeadingEntryAnim, 190],
+              [genStepsEntryAnim, 300],
+              [genProgressEntryAnim, 430],
+            ];
+            entries.forEach(([anim, delay]) => {
+              setTimeout(() => {
+                Animated.spring(anim, { toValue: 1, ...springConfig }).start();
+              }, delay);
+            });
+
+            // Start progress trickle animation
+            startProgressTrickle();
+
+            // Wait for progress to complete, then navigate
+            setTimeout(async () => {
+              await completeProgress();
+              stopProgressTrickle();
+              (navigation as any).navigate('OnboardingPlaybookGeneration', {
+                userName: name || 'Friend',
+                userInput: challengeDetails,
+                onboardingData: {
+                  ageGroup: ageGroupForNavigation,
+                  faithJourney: faithJourneyForNavigation,
+                  challenge: challengeForNavigation,
+                  challengeDetails,
+                },
+              });
+            }, 2000);
+          });
         });
       } catch (error) {
         logger.error('Error in handleContinue:', error as Error);
@@ -1074,6 +1356,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             })()}
             autoFocus={false}
             scrollEnabled={true}
+            keyboardAppearance="dark"
           />
           <View style={styles.actionsOverlay}>
             <TouchableOpacity
@@ -1186,133 +1469,281 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={[OnboardingStyles.innerContainer, { width: contentWidth }, styles.innerContainerCentered]}>
-      <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
-        <View style={styles.logoContainer}>
-          <Image
+      {/* Header with logo - animated during transition */}
+      {!isGenerating && (
+        <Animated.View style={[styles.header, { opacity: headerIntroOpacity, transform: [{ scale: headerScale }] }]}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../../assets/icons/siFia-logo-white.png')}
+              style={[OnboardingStyles.logoImage, dynamicStyles.logoImage]}
+              resizeMode="contain"
+            />
+          </View>
+        </Animated.View>
+      )}
+
+      {/* "Building a playbook..." overlay */}
+      {isGenerating && (
+        <Animated.View style={[
+          styles.generatingContainer,
+          {
+            opacity: generatingFadeAnim,
+            transform: [{ scale: generatingScaleAnim }],
+          },
+        ]}>
+          {/* Logo in generating state */}
+          <Animated.Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
-            style={[OnboardingStyles.logoImage, dynamicStyles.logoImage]}
+            style={[
+              styles.generatingLogo,
+              {
+                opacity: genLogoEntryAnim,
+                transform: [{
+                  translateX: genLogoEntryAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-24, 0],
+                  }),
+                }],
+              },
+            ]}
             resizeMode="contain"
           />
-        </View>
-      </View>
 
-      <View style={[
-        dynamicStyles.titleContainer,
-        // Condense header further when keyboard is visible on details step to free vertical space
-        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
-      ]}>
-        {greetingName ? (
-          <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
-        ) : null}
-        {detailsOnlyFlow ? (
-          <>
-            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
-            <ThemedText style={OnboardingStyles.subtitle}>
-              {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
-            </ThemedText>
-          </>
-        ) : (
-          <>
-            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
-            <ThemedText style={OnboardingStyles.subtitle}>
-              {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
-            </ThemedText>
-          </>
-        )}
-      </View>
+          {/* Situation card showing what user shared */}
+          <Animated.View style={{
+            opacity: genCardEntryAnim,
+            transform: [{
+              translateY: genCardEntryAnim.interpolate({
+                inputRange: [0, 1], outputRange: [22, 0],
+              }),
+            }],
+          }}>
+            <View style={styles.situationCard}>
+              <Text style={styles.situationLabel}>WHAT YOU'VE SHARED</Text>
+              <Text style={styles.situationText} numberOfLines={3}>"{challengeDetails.length > 100 ? challengeDetails.slice(0, 100) + '…"' : challengeDetails + '"'}</Text>
+            </View>
+          </Animated.View>
 
-      <Animated.View style={[
-        styles.contentContainer,
-        // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.nudgeUpward,
-      ]}>
-        {!detailsOnlyFlow ? (
-          <View style={styles.modalHeader} pointerEvents="box-none">
-            <TouchableOpacity
-              style={styles.modalBackButton}
-              onPress={handleBack}
-              disabled={currentStep === 1} // Age group is now step 1
-            >
-              <Ionicons
-                name="chevron-back"
-                size={24}
-                color={currentStep === 1 ? 'transparent' : Colors.white}
-              />
-            </TouchableOpacity>
-            <View style={styles.progressContainer}>
-              {/* Welcome-style dot pagination */}
-              <View style={styles.dotsContainer}>
-                {Array.from({ length: totalSteps }, (_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.dot,
-                      (index + 1) === currentStep && styles.activeDotGreen,
-                    ]}
-                  />
-                ))}
+          {/* "Building your playbook..." heading */}
+          <Animated.View style={{
+            opacity: genHeadingEntryAnim,
+            transform: [{
+              translateY: genHeadingEntryAnim.interpolate({
+                inputRange: [0, 1], outputRange: [20, 0],
+              }),
+            }],
+          }}>
+            <Animated.Text style={[styles.buildingHeading, { opacity: buildingTextOpacity }]}>
+              {'Building your playbook' + buildingDots}
+            </Animated.Text>
+            <Text style={styles.buildingSubtext}>Grounding this moment in Scripture and faithful next steps.</Text>
+          </Animated.View>
+
+          {/* Step indicators */}
+          <Animated.View style={[
+            styles.stepsContainer,
+            {
+              opacity: genStepsEntryAnim,
+              transform: [{
+                translateY: genStepsEntryAnim.interpolate({
+                  inputRange: [0, 1], outputRange: [18, 0],
+                }),
+              }],
+            },
+          ]}>
+            <View style={styles.stepCard}>
+              <View style={styles.stepRow}>
+                <View style={[styles.stepCircle, styles.stepActive]}>
+                  <View style={styles.pulsingDot} />
+                </View>
+                <Text style={[styles.stepText, styles.stepTextActive]}>
+                  Seeing this moment clearly
+                </Text>
               </View>
             </View>
+            <View style={styles.stepCard}>
+              <View style={styles.stepRow}>
+                <View style={[styles.stepCircle, styles.stepInactive]}>
+                  <View style={styles.staticDot} />
+                </View>
+                <Text style={[styles.stepText, styles.stepTextInactive]}>
+                  Naming what matters most
+                </Text>
+              </View>
+            </View>
+            <View style={styles.stepCard}>
+              <View style={styles.stepRow}>
+                <View style={[styles.stepCircle, styles.stepInactive]}>
+                  <View style={styles.staticDot} />
+                </View>
+                <Text style={[styles.stepText, styles.stepTextInactive]}>
+                  Shaping faithful next steps
+                </Text>
+              </View>
+            </View>
+            <View style={styles.stepCard}>
+              <View style={styles.stepRow}>
+                <View style={[styles.stepCircle, styles.stepInactive]}>
+                  <View style={styles.staticDot} />
+                </View>
+                <Text style={[styles.stepText, styles.stepTextInactive]}>
+                  Preparing your playbook
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
 
-            <View style={styles.spacer} />
-          </View>
-        ) : null}
+          {/* Progress bar */}
+          <Animated.View style={[
+            styles.progressContainer,
+            {
+              opacity: genProgressEntryAnim,
+              transform: [{
+                translateY: genProgressEntryAnim.interpolate({
+                  inputRange: [0, 1], outputRange: [14, 0],
+                }),
+              }],
+            },
+          ]}>
+            <View style={styles.progressBarBackground}>
+              <Animated.View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressLabel}>Phase 1 of 4</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
 
-        <ScrollView
-          ref={scrollViewRef}
-          style={dynamicStyles.scrollContainer}
-          contentContainerStyle={styles.reducedPaddingBottom}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-        >
+      {!isGenerating && (
+        <>
+        <View style={[
+          dynamicStyles.titleContainer,
+          // Condense header further when keyboard is visible on details step to free vertical space
+          ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
+        ]}>
+          {greetingName ? (
+            <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
+          ) : null}
           {detailsOnlyFlow ? (
-            renderChallengeDetailsStep()
+            <>
+              <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
+              <ThemedText style={OnboardingStyles.subtitle}>
+                {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
+              </ThemedText>
+            </>
           ) : (
             <>
-              {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
-              {currentStep === 1 && renderAgeStep()}
-              {currentStep === 2 && renderFaithJourneyStep()}
-              {currentStep === 3 && renderChallengeStep()}
-              {currentStep === 4 && renderChallengeDetailsStep()}
+              <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
+              <ThemedText style={OnboardingStyles.subtitle}>
+                {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
+              </ThemedText>
             </>
           )}
-        </ScrollView>
-
-        <View
-          style={[
-            styles.continueButtonContainer,
-            // Add safe-area-aware bottom padding for better spacing above home indicator
-            keyboardVisible
-              ? (currentStep === totalSteps
-                  // Final step: "Create My Playbook" — minimal padding, safe-area only
-                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
-                  // Other steps: slightly reduced padding
-                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
-              : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
-            onPress={handleContinue}
-            disabled={!canContinue()}
-          >
-            <ThemedText weight="medium" style={styles.continueButtonText}>
-              {(() => {
-                // Safeguard to always show button text
-                if (currentStep === totalSteps) {
-                  return detailsOnlyFlow ? 'Create My First Playbook' : 'Create My Playbook';
-                } else if (currentStep > 0 && currentStep <= totalSteps) {
-                  return 'Continue';
-                } else {
-                  return 'Continue'; // Fallback
-                }
-              })()}
-            </ThemedText>
-          </TouchableOpacity>
         </View>
-      </Animated.View>
+
+        <Animated.View style={[
+          styles.contentContainer,
+          // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
+          ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.nudgeUpward,
+        ]}>
+          {!detailsOnlyFlow ? (
+            <View style={styles.modalHeader} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.modalBackButton}
+                onPress={handleBack}
+                disabled={currentStep === 1} // Age group is now step 1
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={24}
+                  color={currentStep === 1 ? 'transparent' : Colors.white}
+                />
+              </TouchableOpacity>
+              <View style={styles.progressContainer}>
+                {/* Welcome-style dot pagination */}
+                <View style={styles.dotsContainer}>
+                  {Array.from({ length: totalSteps }, (_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        (index + 1) === currentStep && styles.activeDotGreen,
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.spacer} />
+            </View>
+          ) : null}
+
+          <ScrollView
+            ref={scrollViewRef}
+            style={dynamicStyles.scrollContainer}
+            contentContainerStyle={styles.reducedPaddingBottom}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+          >
+            {detailsOnlyFlow ? (
+              renderChallengeDetailsStep()
+            ) : (
+              <>
+                {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
+                {currentStep === 1 && renderAgeStep()}
+                {currentStep === 2 && renderFaithJourneyStep()}
+                {currentStep === 3 && renderChallengeStep()}
+                {currentStep === 4 && renderChallengeDetailsStep()}
+              </>
+            )}
+          </ScrollView>
+
+          <View
+            style={[
+              styles.continueButtonContainer,
+              // Add safe-area-aware bottom padding for better spacing above home indicator
+              keyboardVisible
+                ? (currentStep === totalSteps
+                    // Final step: "Create My Playbook" — minimal padding, safe-area only
+                    ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
+                    // Other steps: slightly reduced padding
+                    : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
+                : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
+            ]}
+          >
+            <TouchableOpacity
+              style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
+              onPress={handleContinue}
+              disabled={!canContinue()}
+            >
+              <ThemedText weight="medium" style={styles.continueButtonText}>
+                {(() => {
+                  // Safeguard to always show button text
+                  if (currentStep === totalSteps) {
+                    return detailsOnlyFlow ? 'Create My First Playbook' : 'Create My Playbook';
+                  } else if (currentStep > 0 && currentStep <= totalSteps) {
+                    return 'Continue';
+                  } else {
+                    return 'Continue'; // Fallback
+                  }
+                })()}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+        </>
+      )}
       </View>
 
         <Modal
@@ -1484,9 +1915,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: Colors.modalBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    backgroundColor: Colors.anchorBlue,
     paddingTop: 0,
   },
   scrollContainer: {
@@ -1535,12 +1964,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ageOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     minWidth: 80,
     alignItems: 'center',
   },
@@ -1569,11 +1998,11 @@ const styles = StyleSheet.create({
   faithOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     alignSelf: 'center',
     width: '100%',
     minHeight: 56,
@@ -1613,11 +2042,11 @@ const styles = StyleSheet.create({
   challengeOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     alignSelf: 'center',
     width: '100%',
     minHeight: 56,
@@ -1737,16 +2166,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   askBox: {
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 32,
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 0, // Remove padding to allow seamless scrolling
+    borderColor: Colors.inputBorder,
+    padding: 0,
     paddingBottom: 60, // Space for overlay icon
     width: '100%',
     minHeight: 150,
     position: 'relative',
-    overflow: 'hidden', // Clip content at container edges
+    overflow: 'hidden',
   },
   askWrapper: {
     position: 'relative',
@@ -1930,13 +2359,17 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   continueButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.3)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.25)',
+    borderRadius: 32,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.2)',
   },
   continueButtonActive: {
     backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
   },
   continueButtonText: {
     fontSize: 16,
@@ -1950,6 +2383,134 @@ const styles = StyleSheet.create({
   },
   innerContainerCentered: {
     alignSelf: 'center',
+  },
+  // Styles for "Building a playbook..." overlay
+  generatingContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 210,
+    paddingBottom: 40,
+  },
+  generatingLogo: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    width: 60,
+    height: 60,
+    zIndex: 10,
+  },
+  situationCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  situationLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 8,
+    fontFamily: Fonts.semiBold,
+  },
+  situationText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: Colors.white,
+    lineHeight: 24,
+    fontFamily: Fonts.regular,
+  },
+  buildingHeading: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 8,
+    fontFamily: Fonts.bold,
+  },
+  buildingSubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 32,
+    fontFamily: Fonts.regular,
+  },
+  stepsContainer: {
+    marginBottom: 32,
+  },
+  stepCard: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  stepInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  pulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.hopeWhite,
+  },
+  staticDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  stepText: {
+    fontSize: 16,
+    fontWeight: '400',
+    fontFamily: Fonts.regular,
+  },
+  stepTextActive: {
+    color: Colors.white,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+  },
+  stepTextInactive: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: Fonts.regular,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    fontFamily: Fonts.regular,
   },
 });
 

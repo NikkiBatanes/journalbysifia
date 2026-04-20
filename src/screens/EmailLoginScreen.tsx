@@ -208,6 +208,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
             </View>
 
@@ -225,6 +226,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -245,14 +247,14 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.primaryButton, styles.finishButton]}
               onPress={handleLogin}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="#274673" />
               ) : (
-                <ThemedText weight="bold" style={styles.loginButtonText}>Login</ThemedText>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>Login</ThemedText>
               )}
             </TouchableOpacity>
           </View>
@@ -344,13 +346,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 50,
     marginBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 28,
     height: 56,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   inputIcon: {
     marginRight: 12,
@@ -399,6 +401,25 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
     color: '#fff',
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 32,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   signUpContainer: {
     flexDirection: 'row',

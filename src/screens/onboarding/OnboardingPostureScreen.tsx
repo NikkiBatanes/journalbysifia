@@ -209,17 +209,15 @@ const OnboardingPostureScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={[
-                  OnboardingStyles.primaryButton,
-                  styles.startButton,
-                  styles.startButtonFullWidth,
-                  !isTablet && styles.startButtonPhone,
+                  styles.primaryButton,
+                  styles.finishButton,
                   !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
                   isLoading && OnboardingStyles.buttonDisabled,
                 ]}
                 onPress={handleContinue}
                 disabled={isLoading}
               >
-                <ThemedText weight="bold" style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>
                   {isLoading ? 'Continuing...' : 'Continue'}
                 </ThemedText>
               </TouchableOpacity>
@@ -267,6 +265,25 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   startButtonText: {},
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 32,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
   titleLeftAlign: {
     textAlign: 'left',
     width: '100%',
