@@ -13,6 +13,7 @@ import {
   TextInput,
   Alert,
   Share,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1847,34 +1848,46 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Show onboarding welcome prompt when source is onboarding
   if (source === 'onboarding' && !showOnboardingWelcome) {
     return (
-      <View style={[styles.container, styles.onboardingWelcomeContainer]}>
-        <View style={styles.onboardingWelcomeContent}>
-          <StepFadeIn delay={0}>
-            <ThemedText weight="semiBold" style={styles.onboardingWelcomeTitle}>
-              Your playbook is ready
-            </ThemedText>
-          </StepFadeIn>
-          <StepFadeIn delay={200}>
-            <ThemedText style={styles.onboardingWelcomeSubtitle}>
-              Open my playbook
-            </ThemedText>
-          </StepFadeIn>
-          <StepFadeIn delay={400}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                setShowOnboardingWelcome(true);
-              }}
-              style={styles.onboardingWelcomeButton}
-              activeOpacity={0.8}
-            >
-              <ThemedText weight="semiBold" style={styles.onboardingWelcomeButtonText}>
-                Open
+      <Modal
+        visible={true}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.onboardingModalOverlay}>
+          <View style={styles.onboardingModalContent}>
+            <StepFadeIn delay={0}>
+              <ThemedText weight="semiBold" style={styles.onboardingModalTitle}>
+                Your playbook is ready
               </ThemedText>
-            </TouchableOpacity>
-          </StepFadeIn>
+            </StepFadeIn>
+            <StepFadeIn delay={200}>
+              <ThemedText style={styles.onboardingModalText}>
+                This is a space to slow down and reflect with God. Not everything...
+              </ThemedText>
+            </StepFadeIn>
+            <StepFadeIn delay={300}>
+              <ThemedText style={styles.onboardingModalText}>
+                The next time something unsettles you, return here.
+              </ThemedText>
+            </StepFadeIn>
+            <StepFadeIn delay={400}>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowOnboardingWelcome(true);
+                }}
+                style={styles.onboardingModalButton}
+                activeOpacity={0.8}
+              >
+                <ThemedText weight="semiBold" style={styles.onboardingModalButtonText}>
+                  Open my playbook
+                </ThemedText>
+              </TouchableOpacity>
+            </StepFadeIn>
+          </View>
         </View>
-      </View>
+      </Modal>
     );
   }
 
@@ -2273,37 +2286,43 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
     fontWeight: '600',
   },
-  // Onboarding welcome prompt
-  onboardingWelcomeContainer: {
+  // Onboarding welcome modal
+  onboardingModalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  onboardingWelcomeContent: {
+  onboardingModalContent: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 24,
+    padding: 32,
     alignItems: 'center',
     gap: 16,
+    maxWidth: 340,
   },
-  onboardingWelcomeTitle: {
-    fontSize: 28,
+  onboardingModalTitle: {
+    fontSize: 24,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
   },
-  onboardingWelcomeSubtitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
+  onboardingModalText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    marginBottom: 32,
+    lineHeight: 24,
   },
-  onboardingWelcomeButton: {
+  onboardingModalButton: {
     backgroundColor: Colors.alertCoral,
     paddingHorizontal: 48,
     paddingVertical: 16,
     borderRadius: 30,
     minWidth: 200,
+    marginTop: 16,
   },
-  onboardingWelcomeButtonText: {
+  onboardingModalButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
     textAlign: 'center',
