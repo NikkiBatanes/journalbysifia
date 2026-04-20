@@ -617,8 +617,12 @@ const UserInputScreen: React.FC = () => {
     Animated.sequence([
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
-        Animated.spring(headerTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
-        Animated.spring(headerIntroOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+        Animated.timing(
+          headerTranslateY,
+          { toValue: 0, duration: 320, useNativeDriver: true }
+        ),
+        // Keep opacity animation for smoothness, but start from 0.8 to 1
+        Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
       ]),
       Animated.delay(100),
       Animated.parallel([
