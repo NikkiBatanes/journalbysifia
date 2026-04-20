@@ -185,12 +185,12 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   const updatedDateStr = useMemo(() => {
     if (!item.updatedAt) return null;
     const d = new Date(item.updatedAt);
-    return format(d, d.getFullYear() === CURRENT_YEAR ? 'MMM d' : 'MMM d, yyyy');
+    return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   }, [item.updatedAt]);
   const completedDateStr = useMemo(() => {
     if (!item.completedAt) return null;
     const d = new Date(item.completedAt);
-    return format(d, d.getFullYear() === CURRENT_YEAR ? 'MMM d' : 'MMM d, yyyy');
+    return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   }, [item.completedAt]);
 
   const isCardCompleted = item.status === 'completed';
@@ -206,17 +206,22 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           </TouchableOpacity>
           {isMenuOpen && (
             <View style={st.dropdownMenu}>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onRenamePress(item); }}><ThemedText style={st.dropdownItemText}>Rename</ThemedText></TouchableOpacity>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onTagPress(item); }}>
-                <View style={st.dropdownItemContent}><ThemedText style={st.dropdownItemText}>Tag</ThemedText>{item.tag && <View style={st.dropdownBadge}><ThemedText style={st.dropdownBadgeText}>{item.tag}</ThemedText></View>}</View>
-              </TouchableOpacity>
               <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onDevotionalPress(item); }}>
                 <View style={st.dropdownItemContent}>
-                  <ThemedText style={st.dropdownItemText}>Turn into devotional</ThemedText>
+                  <ThemedText weight="medium" style={st.dropdownItemText}>Turn into devotional</ThemedText>
                   {devotionalCount > 0 && <View style={st.dropdownBadge}><MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />{devotionalCount >= 2 && <ThemedText style={st.dropdownBadgeText}>{devotionalCount}</ThemedText>}</View>}
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(null); onDelete(item.id); }}><ThemedText style={[st.dropdownItemText, st.dropdownItemTextDelete]}>Delete</ThemedText></TouchableOpacity>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onRenamePress(item); }}><ThemedText weight="medium" style={st.dropdownItemText}>Rename</ThemedText></TouchableOpacity>
+              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onTagPress(item); }}>
+                <View style={st.dropdownItemContent}><ThemedText weight="medium" style={st.dropdownItemText}>Tag</ThemedText>{item.tag && <View style={st.dropdownBadge}><ThemedText style={st.dropdownBadgeText}>{item.tag}</ThemedText></View>}</View>
+              </TouchableOpacity>
+              <TouchableOpacity style={[st.dropdownItem, st.dropdownItemLast]} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(null); onDelete(item.id); }}>
+                <View style={st.dropdownItemContent}>
+                  <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                  <ThemedText weight="medium" style={[st.dropdownItemText, st.dropdownItemTextDelete]}>Delete</ThemedText>
+                </View>
+              </TouchableOpacity>
             </View>
           )}
           {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
@@ -918,6 +923,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
+  // Auto-close dropdown menu when navigating away
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setMenuVisible(null);
+      };
+    }, [])
+  );
+
   // Deferred versions — content rendering uses these so expensive work is deferred
   // while pill visuals / modal state update instantly from the originals
   const deferredFilter = useDeferredValue(filter);
@@ -1520,14 +1534,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.dropdownItem}
+                  style={[styles.dropdownItem, styles.dropdownItemLast]}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
                     setMenuVisible(null);
                     handleDelete(item.id);
                   }}
                 >
-                  <ThemedText style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                  <View style={styles.dropdownItemContent}>
+                    <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                    <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -1543,7 +1560,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           <View style={styles.dateWithBadge}>
             {!isCardCompleted && item.updatedAt ? (
               <ThemedText style={styles.carouselDate}>
-                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
               </ThemedText>
             ) : null}
           </View>
@@ -1561,7 +1578,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <>
                   <View style={styles.completedSummaryDivider} />
                   <ThemedText style={styles.completedDateText}>
-                    {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy')}
+                    {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
                   </ThemedText>
                 </>
               )}
@@ -2541,16 +2558,15 @@ const createStyles = (_theme: any) => StyleSheet.create({
     top: 40,
     right: 8,
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
     minWidth: 180,
     zIndex: 100,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 20,
+    elevation: 10,
+    paddingVertical: 8,
   },
   dropdownItem: {
     paddingHorizontal: 16,
@@ -2558,17 +2574,21 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
   dropdownItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   dropdownItemText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
   },
   dropdownItemTextDelete: {
-    color: '#f87171',
+    color: Colors.alertCoral,
   },
   dropdownBadge: {
     flexDirection: 'row',

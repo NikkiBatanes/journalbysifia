@@ -101,6 +101,15 @@ const DevotionalsScreen = () => {
   const searchInputRef = useRef<TextInput>(null);
   const searchIconAnim = useRef(new Animated.Value(1)).current;
 
+  // Auto-close dropdown menu when navigating away
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setMenuVisible(null);
+      };
+    }, [])
+  );
+
   // Search toggle callback
   const toggleSearch = useCallback(() => {
     const opening = !showSearch;
@@ -153,6 +162,7 @@ const DevotionalsScreen = () => {
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [selectedPlaybookInfo, setSelectedPlaybookInfo] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const {
     devotionals,
     deleteDevotional,
@@ -300,8 +310,8 @@ const DevotionalsScreen = () => {
     const date = new Date(dateString);
     const currentYear = new Date().getFullYear();
     const year = date.getFullYear();
-    const formatString = year === currentYear ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy';
-    return format(date, formatString).toUpperCase();
+    const formatString = year === currentYear ? 'EEE, MMM d' : 'EEE, MMM d, yyyy';
+    return format(date, formatString);
   };
 
   // Animation values map (declared early so render function can use it)
@@ -372,11 +382,66 @@ const DevotionalsScreen = () => {
             activeOpacity={1}
           >
             <View style={styles.cardContent}>
+              {/* Gradient Container with Category, Tag, From Playbook, and Menu */}
+              <View style={styles.gradientContainer}>
+                <View style={styles.gradientTagRow}>
+                  <View style={styles.categoryLabel}>
+                    <ThemedText weight="bold" style={styles.categoryLabelText}>{item.category || 'Devotional'}</ThemedText>
+                  </View>
+                  {item.playbookId && (
+                    <TouchableOpacity
+                      style={styles.gradientPlaybookBadge}
+                      onPress={() => handlePlaybookPress(item.playbookId!)}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="clipboard-text-play" size={10} color="rgba(255, 255, 255, 0.6)" style={styles.gradientPlaybookIcon} />
+                      <ThemedText weight="medium" style={styles.gradientPlaybookText}>from Playbook</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setMenuVisible(menuVisible === item.id ? null : item.id);
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
+                </TouchableOpacity>
+                {menuVisible === item.id && (
+                  <View style={styles.dropdownMenu}>
+                    <TouchableOpacity
+                      style={[styles.dropdownItem, styles.dropdownItemLast]}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setMenuVisible(null);
+                        handleDeleteDevotional(item.id);
+                      }}
+                    >
+                      <View style={styles.dropdownItemContent}>
+                        <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                        <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {menuVisible === item.id && (
+                  <TouchableOpacity
+                    style={styles.menuBackdrop}
+                    onPress={() => setMenuVisible(null)}
+                    activeOpacity={1}
+                  />
+                )}
+              </View>
+
               {/* Date */}
-              <ThemedText weight="medium" style={styles.date}>{formattedDate}</ThemedText>
+              <View style={styles.dateWithBadge}>
+                <ThemedText weight="medium" style={styles.date}>{formattedDate}</ThemedText>
+              </View>
 
               {/* Series Title or Devotional Title */}
-              <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={1}>{cleanTitle}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>{cleanTitle}</ThemedText>
 
               {/* Description */}
               {item.description && (
@@ -385,28 +450,6 @@ const DevotionalsScreen = () => {
                 </ThemedText>
               )}
 
-              {/* Categories + From Playbook Buttons */}
-              <View style={styles.tagRow}>
-                <View style={styles.tagList}>
-                  {item.category && (
-                    <View style={item.playbookId ? styles.categoryBadgeWithPlaybook : styles.categoryBadge}>
-                      <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
-                      <ThemedText weight="medium" style={styles.categoryText}>{item.category}</ThemedText>
-                    </View>
-                  )}
-                  {item.playbookId && (
-                    <TouchableOpacity
-                      style={styles.playbookBadge}
-                      onPress={() => handlePlaybookPress(item.playbookId!)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="book-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
-                      <ThemedText weight="medium" style={styles.playbookText}>From Playbook</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressHeader}>
                   <View style={styles.progressLabel}>
@@ -414,7 +457,7 @@ const DevotionalsScreen = () => {
                     <ThemedText weight="semiBold" style={styles.progressLabelText}>Progress</ThemedText>
                   </View>
                   <ThemedText weight="medium" style={styles.dayCounter}>
-                    {completedDays}/{item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'} Completed
+                    {completedDays} of {item.totalDays} days completed
                   </ThemedText>
                 </View>
                 <View style={styles.progressBarRow}>
@@ -430,9 +473,10 @@ const DevotionalsScreen = () => {
                     const nextIdx = item.days.findIndex(day => !day.completed);
                     if (nextIdx !== -1) {
                       return (
-                        <ThemedText weight="semiBold" style={styles.nextDayText}>
-                          NEXT: Day {nextIdx + 1}
-                        </ThemedText>
+                        <View style={styles.nextDayTextContainer}>
+                          <ThemedText weight="bold" style={styles.nextDayLabel}>Next:</ThemedText>
+                          <ThemedText weight="medium" style={styles.nextDayValue}> Day {nextIdx + 1}</ThemedText>
+                        </View>
                       );
                     }
                     return null;
@@ -1583,6 +1627,104 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
   },
+  gradientContainer: {
+    height: 52,
+    borderRadius: 14,
+    marginBottom: 8,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
+    overflow: 'visible',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  categoryLabel: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  categoryLabelText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.04,
+    textTransform: 'uppercase',
+    color: Colors.anchorBlue,
+  },
+  menuButton: {
+    padding: 4,
+    zIndex: 20,
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 48,
+    right: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 18,
+    minWidth: 180,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    paddingVertical: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
+  },
+  dropdownItemTextDelete: {
+    color: Colors.alertCoral,
+  },
+  gradientTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gradientPlaybookBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  gradientPlaybookIcon: {
+    marginRight: 4,
+  },
+  gradientPlaybookText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1648,28 +1790,26 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   date: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    color: Colors.secondaryText,
-    letterSpacing: 0.8,
-    lineHeight: 14,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
+  },
+  dateWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
-    textTransform: 'uppercase',
   },
   devotionalTitle: {
-    fontSize: 22, // Larger font size for consistency
-    fontFamily: Fonts.bold,
+    fontSize: 15,
+    lineHeight: 20,
     color: Colors.hopeWhite,
-    lineHeight: 28, // Increased line height
-    paddingVertical: 2,
-    fontWeight: '700',
-    marginBottom: 8, // Increased margin
+    marginBottom: 4,
   },
   description: {
-    fontSize: 14,
-    color: Colors.holyGlow,
-    marginBottom: 8,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 6,
   },
   progressBarContainer: {
     width: '100%',
@@ -1711,6 +1851,20 @@ const styles = StyleSheet.create({
   nextDayContainer: {
     marginTop: 6,
     alignItems: 'flex-start',
+  },
+  nextDayTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nextDayLabel: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontWeight: 'bold',
+  },
+  nextDayValue: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontWeight: 'medium',
   },
   nextDayText: {
     fontSize: 13,
