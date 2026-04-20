@@ -47,7 +47,6 @@ const SIDE_INSET = Math.max(
   isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
 
-import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -1397,17 +1396,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
     setDevotionalModalVisible(true);
   }, [triggerLightHaptic]);
 
-  // OPTIMIZED: Memoize renderRightActions to avoid recreation
-  // eslint-disable-next-line react/no-unstable-nested-components
-  const renderRightActions = useCallback((itemId: string) => () => (
-    <RectButton
-      style={styles.deleteButton}
-      onPress={() => { try { triggerLightHaptic(); } catch {} handleDelete(itemId); }}
-    >
-      <Ionicons name="trash-outline" size={24} color="white" />
-    </RectButton>
-  ), [handleDelete, styles.deleteButton, triggerLightHaptic]);
-
   const handleRenamePress = useCallback((item: Playbook) => {
     setMenuVisible(null); setSelectedPlaybookForRename(item); setRenameModalVisible(true);
   }, []);
@@ -2185,14 +2173,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  swipeableContainer: {
-    width: '100%',
-    marginBottom: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-    height: 88, // Fixed height to match card
-    backgroundColor: 'transparent', // Let page background show when swiping
-  },
   cardTouchable: {
     width: '100%',
   },
@@ -2202,7 +2182,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   carouselCard: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 16,
   },
   carouselTypeIndicator: {
@@ -2805,16 +2785,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
   completedSummaryText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
-  },
-  deleteButton: {
-    width: 80,
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    height: '100%',
-    borderRadius: 16, // Match Devotionals style
-    marginLeft: 8,
   },
   safeArea: {
     flex: 1,

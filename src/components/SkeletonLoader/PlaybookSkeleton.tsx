@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categorySection: {
-    marginTop: 24,
+    marginTop: 32,
   },
   categorySectionHeader: {
     flexDirection: 'row',

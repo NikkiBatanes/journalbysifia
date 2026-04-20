@@ -34,11 +34,9 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
-import { Swipeable, RectButton } from 'react-native-gesture-handler';
 
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
-import 'react-native-gesture-handler';
 import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
@@ -255,56 +253,34 @@ const DevotionalsScreen = () => {
     try {
       // Perform the deletion
       await deleteDevotional(devotionalId);
-
-      // Remove the row reference after successful deletion
-      delete rowRefs.current[devotionalId];
     } catch (error) {
       Logger.error('Error deleting devotional', error as Error, { component: 'DevotionalsScreen' });
     }
   }, [deleteDevotional]);
 
-  // Use any type for rowRefs to avoid TypeScript errors with Swipeable
-  const rowRefs = useRef<{ [key: string]: any }>({});
+  const showDeleteConfirm = useCallback((devotionalId: string) => {
+    setMenuVisible(null);
+    Alert.alert(
+      'Delete Devotional',
+      'Are you sure you want to delete this devotional?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDeleteDevotional(devotionalId),
+        },
+      ]
+    );
+  }, [handleDeleteDevotional]);
+
   // Ref for SectionList to allow programmatic scrolling to top
   const sectionListRef = useRef<SectionList<any>>(null);
 
   // Reset logic moved below after 'sections' is declared
-
-  const renderRightActions = useCallback((devotionalId: string) => {
-    return (
-      <RectButton
-        style={styles.deleteButton}
-        onPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          Alert.alert(
-            'Delete Devotional',
-            'Are you sure you want to delete this devotional?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                  try { triggerLightHaptic(); } catch {}
-
-                  // Close the swipeable row immediately for better UX
-                  const rowRef = rowRefs.current[devotionalId];
-                  if (rowRef && typeof rowRef.close === 'function') {
-                    rowRef.close();
-                  }
-
-                  // Perform the deletion
-                  await handleDeleteDevotional(devotionalId);
-                },
-              },
-            ]
-          );
-        }}
-      >
-        <Ionicons name="trash-outline" size={24} color="white" />
-      </RectButton>
-    );
-  }, [triggerLightHaptic, handleDeleteDevotional]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -357,30 +333,18 @@ const DevotionalsScreen = () => {
     return (
       <Animated.View
         style={[
-          styles.swipeableContainer,
+          styles.devotionalCardContainer,
           {
             opacity: anim,
             transform: [{ translateY }],
           },
         ]}
       >
-        <Swipeable
-          ref={(ref) => {
-            if (ref) {rowRefs.current[item.id] = ref;}
-          }}
-          onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-          renderRightActions={() => renderRightActions(item.id)}
-          rightThreshold={40}
-          friction={2}
-          overshootRight={false}
-          containerStyle={styles.swipeableInner}
-          enabled={contentView === 'all' || contentView === 'date'}
+        <TouchableOpacity
+          style={styles.devotionalCard}
+          onPress={() => handleDevotionalPress(item)}
+          activeOpacity={1}
         >
-          <TouchableOpacity
-            style={styles.devotionalCard}
-            onPress={() => handleDevotionalPress(item)}
-            activeOpacity={1}
-          >
             <View style={styles.cardContent}>
               {/* Gradient Container with Category, Tag, From Playbook, and Menu */}
               <View style={styles.gradientContainer}>
@@ -415,8 +379,7 @@ const DevotionalsScreen = () => {
                       style={[styles.dropdownItem, styles.dropdownItemLast]}
                       onPress={() => {
                         try { triggerLightHaptic(); } catch {}
-                        setMenuVisible(null);
-                        handleDeleteDevotional(item.id);
+                        showDeleteConfirm(item.id);
                       }}
                     >
                       <View style={styles.dropdownItemContent}>
@@ -508,10 +471,9 @@ const DevotionalsScreen = () => {
               )}
             </View>
           </TouchableOpacity>
-        </Swipeable>
       </Animated.View>
     );
-  }, [triggerLightHaptic, renderRightActions, handleDevotionalPress, handlePlaybookPress, filter]);
+  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, filter]);
 
   // Filter-specific empty state component
   const renderFilterEmptyState = useCallback(() => {
@@ -882,12 +844,6 @@ const DevotionalsScreen = () => {
       } else {
         sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
       }
-    } catch {}
-    // Close swipeables
-    try {
-      Object.values(rowRefs.current || {}).forEach((ref: any) => {
-        if (ref && typeof ref.close === 'function') { ref.close(); }
-      });
     } catch {}
     // Reset UI filter and modal
     setFilter('ongoing');
@@ -1377,18 +1333,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
   },
-  swipeableContainer: {
+  devotionalCardContainer: {
     width: '100%',
     marginBottom: 12,
-    borderRadius: 26, // Increased border radius to 26
+    borderRadius: 26,
     overflow: 'hidden',
-    minHeight: 200, // Minimum height
-    backgroundColor: 'transparent', // Keep background clean on BlueSheet
-  },
-  swipeableInner: {
-    width: '100%',
-    borderRadius: 26, // Increased border radius to 26
-    overflow: 'hidden',
+    minHeight: 200,
+    backgroundColor: 'transparent',
   },
   headerBar: {
     flexDirection: 'row',
@@ -1628,7 +1579,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradientContainer: {
-    height: 52,
+    height: 44,
     borderRadius: 14,
     marginBottom: 8,
     position: 'relative',
@@ -1640,7 +1591,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 8,
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   categoryLabel: {
     paddingHorizontal: 7,
@@ -1779,15 +1730,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 12,
     fontWeight: '500',
-  },
-  deleteButton: {
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    borderRadius: 26, // Increased border radius to 26
-    marginLeft: 8,
-    height: '100%',
   },
   date: {
     fontSize: 12,

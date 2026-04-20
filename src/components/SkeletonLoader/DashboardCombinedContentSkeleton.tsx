@@ -76,6 +76,10 @@ const DashboardCombinedContentSkeleton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
+    overflow: 'visible',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 30,
   },
   header: {
     width: '100%',

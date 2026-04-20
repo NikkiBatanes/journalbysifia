@@ -53,7 +53,6 @@ import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTy
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
-import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -1212,9 +1211,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </View>
         </View>
       </View>
-      {loadingRequests ? (
-        <DashboardPrayerSkeleton />
-      ) : unprayedRequests.length === 0 ? (
+      {unprayedRequests.length === 0 ? (
         <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>
       ) : (
         (showAllPrayerRequests ? unprayedRequests : unprayedRequests.slice(0, 2)).map((req: any, idx: number) => (
