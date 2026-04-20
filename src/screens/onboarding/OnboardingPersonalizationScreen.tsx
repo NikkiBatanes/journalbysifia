@@ -542,10 +542,20 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
   const detailsInputRef = useRef<TextInput>(null);
+  
+  // Dynamic input height
+  const MIN_INPUT_HEIGHT = 44;
+  const MAX_INPUT_HEIGHT = 150;
+  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [scrollY, setScrollY] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const [showOptionalHelper, setShowOptionalHelper] = useState(false);
   const askBoxYRef = useRef(0);
+
+  const handleContentSizeChange = (event: any) => {
+    const contentHeight = event.nativeEvent.contentSize.height;
+    setInputHeight(Math.max(MIN_INPUT_HEIGHT, Math.min(contentHeight, MAX_INPUT_HEIGHT)));
+  };
 
   // Tooltip state
   const hintButtonRef = useRef<View>(null);
@@ -1015,7 +1025,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   };
 
-  const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
+  const inputBorderWidth = useRef(new Animated.Value(1)).current;
 
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
@@ -1551,74 +1561,78 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Provide light haptic feedback when the ask box area is tapped
           onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
         >
-          <View style={styles.inputWithActions}>
-            <ThemedTextInput
-              ref={detailsInputRef}
-              style={styles.askInput}
-              value={challengeDetails}
-              onChangeText={setChallengeDetails}
-              multiline={true}
-              placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
-              placeholder={(() => {
-                if (detailsOnlyFlow) {
-                  return 'Something happened and I don\'t know how to respond faithfully.';
-                }
-                const placeholders: Record<string, string> = {
-                  relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                  anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                  purpose: "I'm unsure about my career path and want godly direction.",
-                  forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                  financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                  spiritual: 'I want to deepen prayer and Bible study habits.',
-                };
-                return placeholders[selectedChallenge] ?? 'What situation are you facing?';
-              })()}
-              autoFocus={false}
-              scrollEnabled={true}
-              keyboardAppearance="dark"
-            />
-            <View style={styles.actionsOverlay}>
+          <ThemedTextInput
+            ref={detailsInputRef}
+            style={[
+              styles.askInput,
+              inputHeight >= MAX_INPUT_HEIGHT
+                ? { height: MAX_INPUT_HEIGHT }
+                : { minHeight: MIN_INPUT_HEIGHT },
+            ]}
+            value={challengeDetails}
+            onChangeText={setChallengeDetails}
+            multiline={true}
+            placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
+            placeholder={(() => {
+              if (detailsOnlyFlow) {
+                return 'Something happened and I don\'t know how to respond faithfully.';
+              }
+              const placeholders: Record<string, string> = {
+                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                purpose: "I'm unsure about my career path and want godly direction.",
+                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                spiritual: 'I want to deepen prayer and Bible study habits.',
+              };
+              return placeholders[selectedChallenge] ?? 'What situation are you facing?';
+            })()}
+            autoFocus={false}
+            scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+            keyboardAppearance="dark"
+            onContentSizeChange={handleContentSizeChange}
+            textAlignVertical="top"
+          />
+          <View style={styles.actionsOverlay}>
+            <TouchableOpacity
+              ref={hintButtonRef}
+              onPress={onPressHint}
+              activeOpacity={0.9}
+              style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
+                <MaterialCommunityIcons
+                  name="information"
+                  size={20}
+                  color={showTooltip ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+            {challengeDetails && challengeDetails.trim().length > 0 ? (
               <TouchableOpacity
-                ref={hintButtonRef}
-                onPress={onPressHint}
-                activeOpacity={0.9}
-                style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
-                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                onPress={handleContinue}
+                disabled={!challengeDetails || !challengeDetails.trim()}
+                activeOpacity={0.8}
               >
-                <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
-                  <MaterialCommunityIcons
-                    name="information"
-                    size={20}
-                    color={showTooltip ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
-                  />
-                </Animated.View>
+                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
               </TouchableOpacity>
-              {challengeDetails && challengeDetails.trim().length > 0 ? (
-                <TouchableOpacity
-                  style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                  onPress={handleContinue}
-                  disabled={!challengeDetails || !challengeDetails.trim()}
-                  activeOpacity={0.8}
-                >
-                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                  onPress={handleContinue}
-                  disabled={!challengeDetails || !challengeDetails.trim()}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              )}
-            </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                onPress={handleContinue}
+                disabled={!challengeDetails || !challengeDetails.trim()}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
       </View>
     </View>
   );
-
   const tooltipWidth = 280;
   const screenWidth = Dimensions.get('window').width;
   const computedLeft = tooltipAnchor
@@ -2373,9 +2387,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     padding: 0,
-    paddingBottom: 60, // Space for overlay icon
+    paddingBottom: 60, // Space for overlay icons
     width: '100%',
-    minHeight: 150,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -2643,16 +2656,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   askInput: {
-    flex: 1,
+    width: '100%',
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
     padding: 16,
-    paddingBottom: 16,
+    paddingBottom: 0,
     backgroundColor: 'transparent',
     textAlignVertical: 'top',
-    minHeight: 150,
-    maxHeight: 150,
     ...Platform.select({
       ios: {
         paddingTop: 16,
@@ -2662,10 +2673,6 @@ const styles = StyleSheet.create({
         paddingTop: 16,
       },
     }),
-  },
-  inputWithActions: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
   },
   continueButtonContainer: {
     backgroundColor: 'transparent',
