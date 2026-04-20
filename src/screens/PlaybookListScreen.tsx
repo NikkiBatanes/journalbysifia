@@ -605,14 +605,14 @@ const PickerModal = React.memo(({
                   </View>
                   {showFromPicker && (
                     <View style={pickerStyles.pickerContainer}>
-                      <DateTimePicker value={customFrom} mode="date" display="compact" maximumDate={customTo}
+                      <DateTimePicker value={customFrom} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'compact'} maximumDate={customTo}
                         onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
                         accentColor={Colors.hopeWhite} themeVariant="dark" />
                     </View>
                   )}
                   {showToPicker && (
                     <View style={pickerStyles.pickerContainer}>
-                      <DateTimePicker value={customTo} mode="date" display="compact" minimumDate={customFrom} maximumDate={new Date()}
+                      <DateTimePicker value={customTo} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'compact'} minimumDate={customFrom} maximumDate={new Date()}
                         onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
                         accentColor={Colors.hopeWhite} themeVariant="dark" />
                     </View>
