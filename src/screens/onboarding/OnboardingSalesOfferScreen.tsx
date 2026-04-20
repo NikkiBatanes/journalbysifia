@@ -1862,7 +1862,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.info('Navigating to trial offer screen for trial flow');
               try {
                 // When coming from onboarding flow (StreakPlanScreen), don't pass source/returnTo so trial screen recognizes it as registration onboarding
-                const isFromOnboarding = routeParams?.source === 'onboarding';
+                const isFromOnboarding = routeParams?.onboardingFlow === true;
                 (navigation as any).navigate('OnboardingTrialOffer', {
                   selectedTierId: selectedTier,
                   billing: isAnnual ? 'annual' : 'monthly',
