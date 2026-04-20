@@ -141,15 +141,23 @@ const getSectionState = (
   return 'unreached';
 };
 
+interface CardSection {
+  label: string;
+  step: number;
+  metaIcon?: string;
+  actionIcon?: string;
+  actionIconType?: 'material' | 'ionicons';
+}
+
 // Static — defined once at module level, never recreated on render
-const CARD_SECTIONS = [
+const CARD_SECTIONS: CardSection[] = [
   { label: 'Intro',                step: 0 },
   { label: 'Truth in Love',        step: 1, metaIcon: 'time-outline' },
   { label: 'Scripture to Anchor',  step: 2 },
   { label: 'Faithful Actions',     step: 3 },
   { label: 'Prayer',               step: 4, metaIcon: 'pray-outline',        actionIcon: 'hands-pray',             actionIconType: 'material' },
   { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
-] as const;
+];
 
 interface CarouselCardProps {
   item: Playbook; index: number; scrollX: Animated.Value;
