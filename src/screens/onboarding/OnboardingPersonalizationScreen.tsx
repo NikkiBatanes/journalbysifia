@@ -2431,6 +2431,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    minWidth: 36,
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
@@ -2440,6 +2441,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   tooltip: {
     position: 'absolute',
