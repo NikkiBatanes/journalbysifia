@@ -1582,14 +1582,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 ref={hintButtonRef}
                 onPress={onPressHint}
                 activeOpacity={0.9}
-                style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
                 <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
                   <MaterialCommunityIcons
                     name="information"
                     size={20}
-                    color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+                    color={showTooltip ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
                   />
                 </Animated.View>
               </TouchableOpacity>
@@ -2436,11 +2436,14 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   askHintButton: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+  },
+  askHintButtonActive: {
+    backgroundColor: Colors.alertCoral,
   },
   hintButtonText: {
     color: 'rgba(255, 255, 255, 0.6)',
