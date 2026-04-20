@@ -1602,14 +1602,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                  onPress={handleContinue}
-                  disabled={!challengeDetails || !challengeDetails.trim()}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-                </TouchableOpacity>
+                <View style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}>
+                  <TouchableOpacity
+                    style={styles.circularButtonInner}
+                    onPress={handleContinue}
+                    disabled={!challengeDetails || !challengeDetails.trim()}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </View>
@@ -2463,6 +2465,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 0,
+  },
+  circularButtonInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   askSendButtonExpanded: {
     width: 240,
