@@ -1023,6 +1023,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const buttonWidthAnim = useRef(new Animated.Value(36)).current;
   const buttonHasText = useRef(false);
 
+  // Hint collapse animation - collapses hint text when typing starts
+  const hintWidthAnim = useRef(new Animated.Value(200)).current;
+  const hintHasCollapsed = useRef(false);
+
   useEffect(() => {
     const hasText = challengeDetails && challengeDetails.trim().length > 0;
     const hasTextBoolean = !!hasText;
@@ -1034,7 +1038,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         useNativeDriver: false,
       }).start();
     }
-  }, [challengeDetails, buttonWidthAnim]);
+    // Collapse hint when typing starts
+    if (hasTextBoolean !== hintHasCollapsed.current) {
+      hintHasCollapsed.current = hasTextBoolean;
+      Animated.timing(hintWidthAnim, {
+        toValue: hasTextBoolean ? 0 : 200,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [challengeDetails, buttonWidthAnim, hintWidthAnim]);
 
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
@@ -1550,7 +1563,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Provide light haptic feedback when the ask box area is tapped
           onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
         >
-          <View style={styles.inputContainer}>
+          <View style={styles.inputWithActions}>
             <ThemedTextInput
               ref={detailsInputRef}
               style={styles.askInput}
@@ -1576,42 +1589,45 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               scrollEnabled={true}
               keyboardAppearance="dark"
             />
-            <TouchableOpacity
-              ref={hintButtonRef}
-              onPress={onPressHint}
-              activeOpacity={0.9}
-              style={[styles.inputHintButton, !showTooltip && styles.disabledButton]}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
-                <MaterialCommunityIcons
-                  name="information"
-                  size={20}
-                  color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-                />
+            <View style={styles.actionsOverlay}>
+              <Animated.View style={{ width: hintWidthAnim, overflow: 'hidden' }}>
+                <TouchableOpacity
+                  ref={hintButtonRef}
+                  onPress={onPressHint}
+                  activeOpacity={0.9}
+                  style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
+                    <MaterialCommunityIcons
+                      name="information"
+                      size={20}
+                      color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+                    />
+                  </Animated.View>
+                  <ThemedText style={styles.hintButtonText}>Need help putting words to it?</ThemedText>
+                </TouchableOpacity>
               </Animated.View>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.actionsOverlay}>
-            {challengeDetails && challengeDetails.trim().length > 0 ? (
-              <TouchableOpacity
-                style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                onPress={handleContinue}
-                disabled={!challengeDetails || !challengeDetails.trim()}
-                activeOpacity={0.8}
-              >
-                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                onPress={handleContinue}
-                disabled={!challengeDetails || !challengeDetails.trim()}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-              </TouchableOpacity>
-            )}
+              {challengeDetails && challengeDetails.trim().length > 0 ? (
+                <TouchableOpacity
+                  style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                  onPress={handleContinue}
+                  disabled={!challengeDetails || !challengeDetails.trim()}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                  onPress={handleContinue}
+                  disabled={!challengeDetails || !challengeDetails.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </Animated.View>
         {detailsOnlyFlow ? (
@@ -1624,7 +1640,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               }}
               activeOpacity={0.9}
             >
-              <ThemedText style={styles.optionalHelperToggleText}>Need help putting words to it?</ThemedText>
               <Ionicons
                 name={showOptionalHelper ? 'chevron-up' : 'chevron-down'}
                 size={18}
@@ -2416,20 +2431,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  inputContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  inputHintButton: {
-    position: 'absolute',
-    right: 12,
-    bottom: 12,
-    width: 28,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   charCounterWrapper: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -2445,7 +2446,16 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   askHintButton: {
-    // positioned in actionsOverlay
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  hintButtonText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontWeight: '500',
   },
   askSendButton: {
     height: 36,
@@ -2582,7 +2592,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   askInput: {
-    width: '100%',
+    flex: 1,
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
@@ -2601,6 +2611,10 @@ const styles = StyleSheet.create({
         paddingTop: 16,
       },
     }),
+  },
+  inputWithActions: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   continueButtonContainer: {
     backgroundColor: 'transparent',
