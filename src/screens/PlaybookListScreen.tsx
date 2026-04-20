@@ -359,9 +359,9 @@ type PickerModalProps = {
   onHaptic: () => void;
 };
 
-// iOS inline DateTimePicker always renders at ~340pt regardless of layout.
+// iOS inline DateTimePicker always renders at ~350pt regardless of layout.
 // When it's open, we expand the card to match rather than cropping or scaling.
-const IOS_PICKER_NATIVE_WIDTH = 340;
+const IOS_PICKER_NATIVE_WIDTH = 350;
 
 const PickerModal = React.memo(({
   visible, filter, initContentView, initDateViewMode, initSelectedCategories,
@@ -421,8 +421,8 @@ const PickerModal = React.memo(({
       backgroundColor: 'rgba(30, 41, 59, 0.95)',
       borderRadius: 18,
       overflow: 'hidden',
-      minWidth: 280,
-      maxWidth: 340,
+      minWidth: 220,
+      maxWidth: 350,
       paddingTop: 14,
       paddingBottom: 16,
       shadowColor: '#000',
