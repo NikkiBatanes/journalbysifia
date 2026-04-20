@@ -39,6 +39,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../theme/ThemeContext';
+import { useWindowDimensions } from 'react-native';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -226,6 +228,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const routeParams = route.params as { name?: string; step?: number; rewriteData?: any } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
   const detailsOnlyFlow = true;
 
@@ -2013,7 +2018,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             }],
           }}>
             <View style={styles.situationCard}>
-              <Text style={styles.situationLabel}>WHAT YOU'VE SHARED</Text>
+              <Text style={[styles.situationLabel, font]}>WHAT YOU'VE SHARED</Text>
               <Text style={styles.situationText} numberOfLines={3}>"{challengeDetails.length > 100 ? challengeDetails.slice(0, 100) + '…"' : challengeDetails + '"'}</Text>
             </View>
           </Animated.View>
@@ -2027,10 +2032,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               }),
             }],
           }}>
-            <Animated.Text style={[styles.buildingHeading, { opacity: buildingTextOpacity }]}>
+            <Animated.Text style={[styles.buildingHeading, font, { opacity: buildingTextOpacity }]}>
               {'Building your playbook' + buildingDots}
             </Animated.Text>
-            <Text style={styles.buildingSubtext}>Grounding this moment in Scripture and faithful next steps.</Text>
+            <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
           </Animated.View>
 
           {/* Step indicators */}
@@ -2073,6 +2078,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   </View>
                   <Text style={[
                     styles.stepText,
+                    font,
                     step.status === 'completed' && styles.stepTextCompleted,
                     step.status === 'active' && styles.stepTextActive,
                     step.status === 'inactive' && styles.stepTextInactive,
@@ -2109,7 +2115,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 ]}
               />
             </View>
-            <Text style={styles.progressLabel}>Phase {generationCurrentStep} of 4</Text>
+            <Text style={[styles.progressLabel, font]}>Phase {generationCurrentStep} of 4</Text>
           </Animated.View>
         </Animated.View>
       )}

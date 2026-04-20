@@ -1073,7 +1073,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 });
               }}
             >
-              <ThemedText weight="bold" style={styles.modalButtonText}>Open My Playbook</ThemedText>
+              <ThemedText weight="bold" style={styles.modalButtonText}>Start My Playbook</ThemedText>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1402,7 +1402,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
             >
-              <ThemedText weight="bold" style={styles.continueButtonText}>Open my playbook</ThemedText>
+              <ThemedText weight="bold" style={styles.continueButtonText}>Start My Playbook</ThemedText>
             </TouchableOpacity>
             <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Start your guided walkthrough</ThemedText>
           </>

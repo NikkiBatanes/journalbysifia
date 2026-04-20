@@ -182,7 +182,7 @@ const PlaybookReadyOverlay: React.FC<PlaybookReadyOverlayProps> = ({ visible, on
             onPress={handlePress}
           >
             <ThemedText weight="bold" style={styles.buttonText}>
-              Open My Playbook
+              Start My Playbook
             </ThemedText>
           </TouchableOpacity>
         </View>
