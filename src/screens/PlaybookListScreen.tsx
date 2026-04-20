@@ -1659,9 +1659,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return (
       <SafeAreaView style={styles.safeArea} edges={['left','right']}>
         <View style={styles.container}>
-          <View style={[styles.listContent, styles.pageInner]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.listContent, styles.pageInner]}
+          >
             <PlaybookSkeleton />
-          </View>
+          </ScrollView>
         </View>
       </SafeAreaView>
     );
@@ -1878,9 +1881,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
         {/* ── BLUE SHEET ─────────────────────────────────────── */}
         <BlueSheet style={styles.contentSheet}>
           {isLoading ? (
-            <View style={[styles.listContent, styles.pageInner]}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[styles.listContent, styles.pageInner]}
+            >
               <PlaybookSkeleton />
-            </View>
+            </ScrollView>
           ) : searchQuery.trim().length > 0 ? (
             /* ── SEARCH RESULTS ──────────────────────────── */
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={scrollContentStyle}>

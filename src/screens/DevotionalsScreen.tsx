@@ -29,6 +29,7 @@ import { usePlaybooksData } from '../services/hooks/usePlaybookData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import DevotionalModal from '../components/DevotionalModal';
+import CategoryCarouselRow from '../components/CategoryCarouselRow';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Devotional } from '../interfaces/devotional';
@@ -363,6 +364,7 @@ const DevotionalsScreen = () => {
           friction={2}
           overshootRight={false}
           containerStyle={styles.swipeableInner}
+          enabled={contentView === 'all' || contentView === 'date'}
         >
           <TouchableOpacity
             style={styles.devotionalCard}
@@ -622,6 +624,152 @@ const DevotionalsScreen = () => {
 
     return result;
   }, [devotionals, filter, searchQuery, contentView, selectedCategories, dateViewMode, customDateFrom, customDateTo]);
+
+  // All devotionals sorted newest first (for date views)
+  const allDevotionalsSorted = useMemo(() =>
+    [...filteredDevotionals]
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()),
+    [filteredDevotionals],
+  );
+
+  const currentYear = new Date().getFullYear();
+
+  // Weekly sections: group by year-week key, sorted newest first
+  // RESPECT USER WEEK START SETTING - default to Sunday for now
+  const weeklySections = useMemo(() => {
+    const map = new Map<string, { label: string; weekStart: Date; devotionals: Devotional[] }>();
+    allDevotionalsSorted.forEach(d => {
+      const date = new Date(d.updatedAt || d.createdAt || 0);
+      const dow = date.getDay(); // 0=Sunday
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - dow);
+      weekStart.setHours(0, 0, 0, 0);
+      const key = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+      if (!map.has(key)) {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        const isCurrentYear = weekStart.getFullYear() === currentYear;
+        const label = `${format(weekStart, 'MMM d')} – ${format(weekEnd, isCurrentYear ? 'MMM d' : 'MMM d, yyyy')}`;
+        map.set(key, { label, weekStart, devotionals: [] });
+      }
+      map.get(key)!.devotionals.push(d);
+    });
+    return Array.from(map.values()).sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+  }, [allDevotionalsSorted, currentYear]);
+
+  // Monthly sections: group by year-month, sorted newest first; showYear flags year-change rows
+  const monthlySections = useMemo(() => {
+    const map = new Map<string, { label: string; year: number; month: number; devotionals: Devotional[] }>();
+    allDevotionalsSorted.forEach(d => {
+      const date = new Date(d.updatedAt || d.createdAt || 0);
+      const y = date.getFullYear();
+      const m = date.getMonth();
+      const key = `${y}-${m}`;
+      if (!map.has(key)) {
+        map.set(key, { label: format(date, 'MMMM'), year: y, month: m, devotionals: [] });
+      }
+      map.get(key)!.devotionals.push(d);
+    });
+    const sorted = Array.from(map.values()).sort((a, b) => (b.year * 12 + b.month) - (a.year * 12 + a.month));
+    // Compute showYear once per item so renderItem in FlatList doesn't need local state
+    let lastSeenYear: number | null = null;
+    return sorted.map(item => {
+      const showYear = item.year !== currentYear && item.year !== lastSeenYear;
+      if (item.year !== currentYear) { lastSeenYear = item.year; }
+      return { ...item, showYear };
+    });
+  }, [allDevotionalsSorted, currentYear]);
+
+  // Yearly sections: group by year, sorted newest first
+  const yearlySections = useMemo(() => {
+    const map = new Map<number, { year: number; devotionals: Devotional[] }>();
+    allDevotionalsSorted.forEach(d => {
+      const y = new Date(d.updatedAt || d.createdAt || 0).getFullYear();
+      if (!map.has(y)) { map.set(y, { year: y, devotionals: [] }); }
+      map.get(y)!.devotionals.push(d);
+    });
+    return Array.from(map.values()).sort((a, b) => b.year - a.year);
+  }, [allDevotionalsSorted]);
+
+  // Custom date range filtered devotionals
+  const customDateDevotionals = useMemo(() => {
+    const fromStart = new Date(customDateFrom); fromStart.setHours(0, 0, 0, 0);
+    const toEnd = new Date(customDateTo); toEnd.setHours(23, 59, 59, 999);
+    return allDevotionalsSorted.filter(d => {
+      const date = new Date(d.updatedAt || d.createdAt || 0).getTime();
+      return date >= fromStart.getTime() && date <= toEnd.getTime();
+    });
+  }, [allDevotionalsSorted, customDateFrom, customDateTo]);
+
+  // Unified data array for the date-view FlatList — computed from the active mode
+  type DateSectionItem = {
+    key: string;
+    category: string;
+    devotionals: Devotional[];
+    showYear: boolean;
+    year?: number;
+    isEmpty?: boolean;
+  };
+  const dateSectionItems = useMemo((): DateSectionItem[] => {
+    switch (deferredDateViewMode) {
+      case 'weekly':
+        return weeklySections.map(s => ({
+          key: `weekly-${s.weekStart.getTime()}`,
+          category: s.label,
+          devotionals: s.devotionals,
+          showYear: false,
+        }));
+      case 'monthly':
+        return monthlySections.map(s => ({
+          key: `monthly-${s.year}-${s.month}`,
+          category: s.label,
+          devotionals: s.devotionals,
+          showYear: s.showYear,
+          year: s.year,
+        }));
+      case 'yearly':
+        return yearlySections.map(s => ({
+          key: `yearly-${s.year}`,
+          category: s.year.toString(),
+          devotionals: s.devotionals,
+          showYear: false,
+        }));
+      case 'custom':
+        return customDateDevotionals.length > 0 ? [{
+          key: 'custom',
+          category: 'Custom Range',
+          devotionals: customDateDevotionals,
+          showYear: false,
+        }] : [];
+      default:
+        return [];
+    }
+  }, [deferredDateViewMode, weeklySections, monthlySections, yearlySections, customDateDevotionals]);
+
+  // All devotionals grouped by category — both statuses, newest first per group
+  // All unique categories the user actually has devotionals for
+  const categorySections = useMemo(() => {
+    const map = new Map<string, Devotional[]>();
+    devotionals.forEach(d => {
+      if (deferredFilter === 'ongoing' && d.completed) return;
+      if (deferredFilter === 'completed' && !d.completed) return;
+      const cat = d.category || 'Uncategorized';
+      // If specific categories are selected, skip others
+      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) return;
+      if (!map.has(cat)) { map.set(cat, []); }
+      map.get(cat)!.push(d);
+    });
+    const sections: { category: string; devotionals: Devotional[] }[] = [];
+    map.forEach((devs, category) => {
+      const sorted = [...devs].sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+      sections.push({ category, devotionals: sorted });
+    });
+    return sections.sort((a, b) => a.category.localeCompare(b.category));
+  }, [devotionals, deferredFilter, deferredSelectedCategories]);
 
   // Sorting by updatedAt desc (fallback createdAt)
   const sortedDevotionals = useMemo(() => {
@@ -1038,82 +1186,79 @@ const DevotionalsScreen = () => {
             <DevotionalSkeleton />
           </View>
         ) : contentView === 'all' ? (
-          // All view: SectionList grouped by month/year
-          <SectionList
-            ref={sectionListRef}
-            style={styles.sectionList}
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
-            renderSectionHeader={({ section: { title } }) => (
-              <View style={styles.sectionHeader}>
-                <ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText>
-              </View>
-            )}
-            stickySectionHeadersEnabled
-            scrollEnabled={!isTrulyEmpty}
-            bounces={!isTrulyEmpty}
-            contentContainerStyle={
-              isTrulyEmpty
-                ? styles.emptyListContent
-                : [
-                    styles.listContent,
-                    styles.pageInner,
-                    styles.listContentPadding,
-                  ]
-            }
-            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 8) + 80 }} />}
-            scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 8) + 80, left: 0, right: 0 }}
-            ListEmptyComponent={renderFilterEmptyState}
-            onViewableItemsChanged={onViewableItemsChanged}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={100}
-          />
-        ) : contentView === 'category' ? (
-          // Category view: Horizontal carousels per category
+          // All view: Continue devotionals carousel + Completed devotionals carousel
           <ScrollView
-            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.listContent, styles.pageInner, styles.listContentPadding]}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
-            showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={100}
           >
-            {sortedDevotionals.length > 0 ? (
-              availableCategories.map(category => {
-                const categoryDevotionals = sortedDevotionals.filter(d => d.category === category);
-                if (categoryDevotionals.length === 0) return null;
-                return (
-                  <View key={category} style={styles.categorySection}>
-                    <View style={styles.categorySectionHeader}>
-                      <ThemedText weight="semiBold" style={styles.categorySectionTitle}>{category.toUpperCase()}</ThemedText>
-                      <View style={styles.categorySectionCount}>
-                        <ThemedText style={styles.categorySectionCountText}>{categoryDevotionals.length}</ThemedText>
-                      </View>
-                    </View>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.categoryCarouselContent}
-                    >
-                      {categoryDevotionals.map((devotional) => renderDevotionalItem({ item: devotional }))}
-                    </ScrollView>
-                  </View>
-                );
-              })
-            ) : (
+            {deferredFilter === 'ongoing' && (
+              <CategoryCarouselRow
+                category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
+                items={sortedDevotionals}
+                cardStyles={styles}
+                renderItem={(item) => renderDevotionalItem({ item })}
+              />
+            )}
+            {deferredFilter === 'completed' && sortedDevotionals.length > 0 && (
+              <CategoryCarouselRow
+                category="COMPLETED DEVOTIONALS"
+                items={sortedDevotionals}
+                cardStyles={styles}
+                renderItem={(item) => renderDevotionalItem({ item })}
+              />
+            )}
+            {sortedDevotionals.length === 0 && renderFilterEmptyState()}
+            <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
+          </ScrollView>
+        ) : contentView === 'category' ? (
+          // Category view: Horizontal carousels per category
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.listContent, styles.pageInner, styles.listContentPadding]}
+            scrollEnabled={!isTrulyEmpty}
+            bounces={!isTrulyEmpty}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
+          >
+            {categorySections.length === 0 ? (
               renderFilterEmptyState()
+            ) : (
+              categorySections.map(({ category, devotionals }) => (
+                <CategoryCarouselRow
+                  key={category}
+                  category={category}
+                  items={devotionals}
+                  cardStyles={styles}
+                  renderItem={(item) => renderDevotionalItem({ item })}
+                />
+              ))
             )}
             <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
           </ScrollView>
         ) : (
-          // Date view: FlatList
+          // Date view: FlatList with date sections
           <FlatList
-            data={sortedDevotionals}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
+            data={dateSectionItems}
+            keyExtractor={(item) => item.key}
+            renderItem={({ item }: { item: DateSectionItem }) => (
+              <View>
+                {item.showYear && item.year != null && (
+                  <View style={styles.dateSectionYearHeader}>
+                    <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{item.year}</ThemedText>
+                  </View>
+                )}
+                <CategoryCarouselRow
+                  category={item.category}
+                  items={item.devotionals}
+                  cardStyles={styles}
+                  renderItem={(devotional) => renderDevotionalItem({ item: devotional })}
+                />
+              </View>
+            )}
             contentContainerStyle={[
               styles.listContent,
               styles.pageInner,
@@ -1124,7 +1269,6 @@ const DevotionalsScreen = () => {
             ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 8) + 80 }} />}
             scrollIndicatorInsets={{ top: 0, bottom: Math.max(insets.bottom, 8) + 80, left: 0, right: 0 }}
             ListEmptyComponent={renderFilterEmptyState}
-            onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={100}
@@ -1333,34 +1477,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
   categorySectionTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   categorySectionCount: {
-    backgroundColor: 'rgba(3, 32, 61, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 2,
   },
   categorySectionCountText: {
-    fontSize: 12,
+    fontSize: 11,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
   },
-  categoryCarouselContent: {
-    paddingHorizontal: 0,
+  dateSectionYearHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 4,
   },
-  header: {
+  dateSectionYearText: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: 'rgba(255, 255, 255, 0.4)',
+    letterSpacing: 0.5,
+  },
+  carouselTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 0,
+    paddingTop: 20,
+  },
+  carouselTitle: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   headerBlue: {
     backgroundColor: Colors.anchorBlue,
@@ -1419,6 +1578,7 @@ const styles = StyleSheet.create({
     borderRadius: 26, // Increased border radius to 26
     padding: 16,
     position: 'relative',
+    width: '100%',
   },
   cardContent: {
     flex: 1,
@@ -1861,13 +2021,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 16,
     paddingHorizontal: 16, // gutters for section title and spacing
-  },
-  carouselTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.hopeWhite,
-    marginBottom: 8,
-    paddingLeft: 0,
   },
   // FlatList should scroll edge-to-edge while cards have gutters
   carouselList: {

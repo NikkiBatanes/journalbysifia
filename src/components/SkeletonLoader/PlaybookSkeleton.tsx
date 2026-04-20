@@ -21,13 +21,13 @@ export const PlaybookSkeleton: React.FC = () => {
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
-          duration: 1000,
-          useNativeDriver: false,
+          duration: 1500,
+          useNativeDriver: true,
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
-          duration: 1000,
-          useNativeDriver: false,
+          duration: 1500,
+          useNativeDriver: true,
         }),
       ])
     );
@@ -35,40 +35,41 @@ export const PlaybookSkeleton: React.FC = () => {
     return () => animation.stop();
   }, [animatedValue]);
 
+  const scale = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.98, 1.05],
+  });
+
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.5, 0.9],
+    outputRange: [0.2, 0.85],
   });
 
   const CarouselCardSkeleton = () => (
     <View style={styles.carouselCardTouch}>
       <Animated.View style={[styles.carouselCard, { opacity }]}>
-        {/* Gradient container with category label */}
-        <View style={styles.gradientContainer}>
-          <View style={styles.categoryLabel}>
-            <Animated.View style={[styles.categoryLabelTextSkeleton, { opacity }]} />
-          </View>
-          <Animated.View style={[styles.menuButtonSkeleton, { opacity }]} />
-        </View>
+        {/* Category label */}
+        <Animated.View style={[styles.categoryLabelSkeleton, { transform: [{ scale }], opacity }]} />
+
+        {/* Menu button */}
+        <Animated.View style={[styles.menuButtonSkeleton, { transform: [{ scale }], opacity }]} />
 
         {/* Date */}
-        <View style={styles.dateWithBadge}>
-          <Animated.View style={[styles.dateSkeleton, { opacity }]} />
-        </View>
+        <Animated.View style={[styles.dateSkeleton, { transform: [{ scale }], opacity }]} />
 
         {/* Title */}
-        <Animated.View style={[styles.titleSkeleton, { opacity }]} />
+        <Animated.View style={[styles.titleSkeleton, { transform: [{ scale }], opacity }]} />
 
         {/* Description */}
-        <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
+        <Animated.View style={[styles.descriptionSkeleton, { transform: [{ scale }], opacity }]} />
 
         {/* Sections container */}
         <View style={styles.sectionsContainer}>
           {[1, 2, 3, 4, 5, 6].map((item) => (
             <View key={item} style={styles.sectionItem}>
-              <Animated.View style={[styles.statusPillSkeleton, { opacity }]} />
+              <Animated.View style={[styles.statusPillSkeleton, { transform: [{ scale }], opacity }]} />
               <View style={styles.sectionContent}>
-                <Animated.View style={[styles.sectionLabelSkeleton, { opacity }]} />
+                <Animated.View style={[styles.sectionLabelSkeleton, { transform: [{ scale }], opacity }]} />
               </View>
             </View>
           ))}
@@ -90,21 +91,16 @@ export const PlaybookSkeleton: React.FC = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+        style={{ height: 300 }}
       >
-        {[1, 2, 3].map((item) => (
-          <CarouselCardSkeleton key={item} />
-        ))}
+        <CarouselCardSkeleton />
       </ScrollView>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Continue Section */}
-      <SectionSkeleton />
-
-      {/* Category Sections */}
-      <SectionSkeleton />
+      {/* Single Carousel Section */}
       <SectionSkeleton />
     </View>
   );
@@ -126,7 +122,7 @@ const styles = StyleSheet.create({
   },
   categorySectionTitle: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 4,
     width: '40%',
   },
@@ -144,60 +140,44 @@ const styles = StyleSheet.create({
   },
   carouselCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
-  gradientContainer: {
-    height: 44,
-    borderRadius: 14,
-    marginBottom: 8,
-    position: 'relative',
-  },
-  categoryLabel: {
-    position: 'absolute',
-    left: 10,
-    bottom: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.82)',
-  },
-  categoryLabelTextSkeleton: {
+  categoryLabelSkeleton: {
     height: 10,
-    backgroundColor: 'rgba(3, 32, 61, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 4,
     width: 60,
+    marginBottom: 8,
   },
   menuButtonSkeleton: {
     position: 'absolute',
-    right: 10,
+    right: 12,
     top: 12,
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  dateWithBadge: {
-    marginBottom: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   dateSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderRadius: 4,
-    width: '40%',
+    marginBottom: 4,
+    width: '60%',
   },
   titleSkeleton: {
     height: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 4,
     marginBottom: 4,
     width: '90%',
   },
   descriptionSkeleton: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderRadius: 4,
     marginBottom: 6,
     width: '70%',
@@ -210,7 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -220,8 +200,8 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 999,
     borderWidth: 0.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     marginRight: 6,
   },
   sectionContent: {
@@ -232,7 +212,7 @@ const styles = StyleSheet.create({
   },
   sectionLabelSkeleton: {
     height: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderRadius: 4,
     width: '50%',
   },
