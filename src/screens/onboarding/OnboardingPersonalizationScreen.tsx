@@ -1591,25 +1591,20 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 />
               </Animated.View>
             </TouchableOpacity>
-            {challengeDetails && challengeDetails.trim().length > 0 ? (
+            <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
               <TouchableOpacity
-                style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                style={[styles.askSendButtonInner, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
                 activeOpacity={0.8}
               >
-                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                {challengeDetails && challengeDetails.trim().length > 0 ? (
+                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                ) : (
+                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                )}
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
-                onPress={handleContinue}
-                disabled={!challengeDetails || !challengeDetails.trim()}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-              </TouchableOpacity>
-            )}
+            </Animated.View>
           </View>
         </Animated.View>
         {detailsOnlyFlow ? (
@@ -2437,7 +2432,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    minWidth: 36,
   },
   askSendButtonCircular: {
     width: 36,
@@ -2454,9 +2448,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   askSendButtonInner: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 0,
+    height: 36,
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
