@@ -1559,6 +1559,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             keyboardAppearance="dark"
           />
           <View style={styles.actionsOverlay}>
+            <View style={styles.charCounterWrapper}>
+              <ThemedText style={styles.charCounterText}>
+                {challengeDetails.length}/500
+              </ThemedText>
+            </View>
             <TouchableOpacity
               ref={hintButtonRef}
               onPress={onPressHint}
@@ -1569,10 +1574,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
                 <MaterialCommunityIcons
                   name="information"
-                  size={30}
+                  size={20}
                   color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
                 />
               </Animated.View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.askSendButton, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
+              onPress={handleContinue}
+              disabled={!challengeDetails || !challengeDetails.trim()}
+            >
+              <Ionicons
+                name="arrow-up"
+                size={20}
+                color={Colors.hopeWhite}
+              />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1906,38 +1922,28 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             )}
           </ScrollView>
 
-          <View
-            style={[
-              styles.continueButtonContainer,
-              // Add safe-area-aware bottom padding for better spacing above home indicator
-              keyboardVisible
-                ? (currentStep === totalSteps
-                    // Final step: "Create My Playbook" — minimal padding, safe-area only
-                    ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
-                    // Other steps: slightly reduced padding
-                    : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
-                : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
-            ]}
-          >
-            <TouchableOpacity
-              style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
-              onPress={handleContinue}
-              disabled={!canContinue()}
+          {/* Continue button - hide on page 4 since button is now inside input field */}
+          {currentStep !== 4 && (
+            <View
+              style={[
+                styles.continueButtonContainer,
+                // Add safe-area-aware bottom padding for better spacing above home indicator
+                keyboardVisible
+                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 4) }
+                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
+              ]}
             >
-              <ThemedText weight="medium" style={styles.continueButtonText}>
-                {(() => {
-                  // Safeguard to always show button text
-                  if (currentStep === totalSteps) {
-                    return detailsOnlyFlow ? 'Create My First Playbook' : 'Create My Playbook';
-                  } else if (currentStep > 0 && currentStep <= totalSteps) {
-                    return 'Continue';
-                  } else {
-                    return 'Continue'; // Fallback
-                  }
-                })()}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
+                onPress={handleContinue}
+                disabled={!canContinue()}
+              >
+                <ThemedText weight="medium" style={styles.continueButtonText}>
+                  Continue
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
         </>
       )}
@@ -2411,8 +2417,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  charCounterWrapper: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  charCounterText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: Fonts.regular,
+  },
   askHintButton: {
     // positioned in actionsOverlay
+  },
+  askSendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askSendButtonActive: {
+    backgroundColor: Colors.alertCoral,
   },
   tooltip: {
     position: 'absolute',
