@@ -558,9 +558,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   };
 
   const handleChallengeDetailsChange = (text: string) => {
-    if (text.length < (challengeDetails || '').length) {
-      // Text was deleted — reset height so onContentSizeChange can re-measure correctly
-      // (iOS does not reliably fire onContentSizeChange when text shrinks)
+    // Only reset height when text is fully cleared — resetting on every deletion
+    // keystroke causes rapid layout thrashing which flickers the header.
+    // onContentSizeChange handles growth; clearing handles the empty→min reset.
+    if (text.length === 0) {
       setInputHeight(MIN_INPUT_HEIGHT);
     }
     setChallengeDetails(text);
@@ -571,24 +572,36 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipAnchor, setTooltipAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
-  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(20)).current;
+  const tooltipScale = useRef(new Animated.Value(0.9)).current;
   const [showHelperSelector, setShowHelperSelector] = useState(false);
+  const [buttonActive, setButtonActive] = useState(false);
 
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const containerTranslateY = useRef(new Animated.Value(0)).current;
 
-  const headerIntroOpacity = useRef(new Animated.Value(0.8)).current;
-  const askBoxOpacity = useRef(new Animated.Value(0)).current;
-  const askBoxTranslateY = useRef(new Animated.Value(16)).current;
+  const headerIntroOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxTranslateY = useRef(new Animated.Value(0)).current;
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const headerScale = useRef(new Animated.Value(0.45)).current;
   const keyboardTranslateY = useRef(new Animated.Value(0)).current;
   // Content entry animation: 0 = off-screen / header centered, 1 = content visible
-  const contentEntryAnim = useRef(new Animated.Value(0)).current;
+  const contentEntryAnim = useRef(new Animated.Value(1)).current;
   // Stable offset for detailsOnly header position (must not be inline — recreating
   // Animated.Value every render gives the native driver a new node graph each time)
   const headerDetailsOffset = useRef(new Animated.Value(0)).current;
+
+  // Stable animated Y for detailsOnly: headerTranslateY + 0 offset.
+  // MUST be memoized — calling Animated.add() inline recreates the derived node
+  // on every render, causing the native driver to briefly lose the current value
+  // and producing a visible flicker while typing/erasing.
+  const detailsOnlyHeaderY = React.useMemo(
+    () => Animated.add(headerTranslateY, headerDetailsOffset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   // Header Y that combines headerTranslateY + initial centering offset so the block
   // starts in the TRUE vertical center of the screen and settles upward as step
@@ -1070,9 +1083,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     const hasTextBoolean = !!hasText;
     if (hasTextBoolean !== buttonHasText.current) {
       buttonHasText.current = hasTextBoolean;
-      Animated.timing(buttonWidthAnim, {
+      Animated.spring(buttonWidthAnim, {
         toValue: hasTextBoolean ? 240 : 36,
-        duration: 250,
+        tension: 50,
+        friction: 12,
         useNativeDriver: false,
       }).start();
     }
@@ -1107,36 +1121,39 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [showTooltip, hintIconScale]);
   const onPressHint = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
+    setButtonActive(prev => !prev);
     hintButtonRef.current?.measureInWindow?.((x: number, y: number, width: number, height: number) => {
       setTooltipAnchor({ x, y, width, height });
       setShowTooltip((prev) => {
         const next = !prev;
         if (next) {
           Animated.parallel([
-            Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
-            Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
+            Animated.spring(tooltipOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipScale, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
           ]).start();
         } else {
           Animated.parallel([
-            Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-            Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+            Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
           ]).start();
         }
         return next;
       });
     });
-  }, [tooltipOpacity, tooltipTranslateY]);
+  }, [tooltipOpacity, tooltipTranslateY, tooltipScale]);
 
   const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
-      // Small delay helps after layout/keyboard animations
+      // Longer delay to allow animations to complete
       setTimeout(() => {
         detailsInputRef.current?.focus();
         if (!(detailsOnlyFlow || currentStep === 4)) {
           const y = Math.max(askBoxYRef.current - 140, 0);
           scrollViewRef.current?.scrollTo({ y, animated: true });
         }
-      }, 100);
+      }, 500);
     });
   }, [currentStep, detailsOnlyFlow]);
 
@@ -1161,7 +1178,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (showTooltip) {
       Animated.parallel([
         Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
       ]).start(() => setShowTooltip(false));
     }
   };
@@ -1198,10 +1216,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     // Do not auto-focus per UX requirement
   }, [selectedChallenge, routeParams?.rewriteData]);
 
-  // Do not auto-focus when entering the details step per UX requirement
+  // Focus input once on mount - matches UserInputScreen's auto-focus pattern
+  const autoFocusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => {
-    // no-op
-  }, [currentStep]);
+    autoFocusTimer.current = setTimeout(() => {
+      detailsInputRef.current?.focus();
+    }, 1500);
+    return () => {
+      if (autoFocusTimer.current) {
+        clearTimeout(autoFocusTimer.current);
+        autoFocusTimer.current = null;
+      }
+    };
+  }, []);
 
   // Always show the top content when entering a new step/page
   React.useEffect(() => {
@@ -1288,12 +1315,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Step content slides up from below while header settles to its flex position
         Animated.spring(contentEntryAnim, { toValue: 1, tension: 38, friction: 11, useNativeDriver: true }),
       ]),
-    ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY]);
+    ]).start(() => {
+      // Focus input after animations complete
+      if (detailsOnlyFlow || currentStep === 4) {
+        detailsInputRef.current?.focus();
+      }
+    });
+  }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow, currentStep]);
 
-  // Re-trigger askBox animation when navigating to step 4 or detailsOnlyFlow
+  const hasRunIntroAnim = useRef(false);
+  // Re-trigger askBox animation when navigating to step 4 (not on initial mount - intro animation handles that)
   useEffect(() => {
     if (detailsOnlyFlow || currentStep === 4) {
+      if (!hasRunIntroAnim.current) { hasRunIntroAnim.current = true; return; }
       // Reset animation values
       askBoxOpacity.setValue(0);
       askBoxTranslateY.setValue(16);
@@ -1796,7 +1830,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   };
                   return placeholders[selectedChallenge] ?? 'What situation are you facing?';
                 })()}
-                autoFocus={false}
+                autoFocus={true}
                 scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
                 keyboardAppearance="dark"
                 onContentSizeChange={handleContentSizeChange}
@@ -1809,7 +1843,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   ref={hintButtonRef}
                   onPress={onPressHint}
                   activeOpacity={0.9}
-                  style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
+                  style={[styles.askHintButton, buttonActive && styles.askHintButtonActive, !buttonActive && styles.disabledButton]}
                   hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                 >
                   <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
@@ -1820,25 +1854,48 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     />
                   </Animated.View>
                 </TouchableOpacity>
-                {challengeDetails && challengeDetails.trim().length > 0 ? (
+                <Animated.View
+                  style={[
+                    styles.askSendButton,
+                    { width: buttonWidthAnim },
+                    (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton,
+                    challengeDetails.trim() && styles.askSendButtonActive,
+                  ]}
+                >
                   <TouchableOpacity
-                    style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
                     onPress={handleContinue}
                     disabled={!challengeDetails || !challengeDetails.trim()}
                     activeOpacity={0.8}
+                    style={styles.askSendButtonInner}
                   >
-                    <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                    <Animated.View style={{
+                      opacity: buttonWidthAnim.interpolate({
+                        inputRange: [36, 100],
+                        outputRange: [1, 0],
+                        extrapolate: 'clamp',
+                      }),
+                      transform: [{
+                        rotate: buttonWidthAnim.interpolate({
+                          inputRange: [36, 240],
+                          outputRange: ['0deg', '-90deg'],
+                          extrapolate: 'clamp',
+                        })
+                      }]
+                    }}>
+                      <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                    </Animated.View>
+                    <Animated.View style={{
+                      opacity: buttonWidthAnim.interpolate({
+                        inputRange: [100, 240],
+                        outputRange: [0, 1],
+                        extrapolate: 'clamp',
+                      }),
+                      position: 'absolute',
+                    }}>
+                      <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                    </Animated.View>
                   </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
-                    onPress={handleContinue}
-                    disabled={!challengeDetails || !challengeDetails.trim()}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                )}
+                </Animated.View>
               </View>
             </Animated.View>
           </View>
@@ -1878,7 +1935,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* Header with logo and title - animated and centered */}
       {!isGenerating && (
         <TouchableOpacity activeOpacity={1} onPress={() => Keyboard.dismiss()} style={{ alignSelf: 'center', width: '100%' }}>
-        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? Animated.add(headerTranslateY, headerDetailsOffset) : combinedHeaderY }] }]}>
+        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? detailsOnlyHeaderY : combinedHeaderY }] }]}>
           <Animated.Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
             style={[
@@ -2143,8 +2200,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           animationType="none"
           onRequestClose={() => {
             Animated.parallel([
-              Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-              Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+              Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+              Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+              Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
             ]).start(() => setShowTooltip(false));
           }}
         >
@@ -2153,8 +2211,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             style={styles.tooltipModalBackdrop}
             onPress={() => {
               Animated.parallel([
-                Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-                Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+                Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+                Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+                Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
               ]).start(() => setShowTooltip(false));
             }}
           >
@@ -2167,7 +2226,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   right: undefined,
                   bottom: undefined,
                   opacity: tooltipOpacity,
-                  transform: [{ translateY: tooltipTranslateY }],
+                  transform: [{ translateY: tooltipTranslateY }, { scale: tooltipScale }],
                 },
               ]}
               pointerEvents="box-none"
@@ -2300,7 +2359,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: '70%',
-    height: 100,
+    height: 110,
     alignSelf: 'center',
   },
   headerTransparent: {
@@ -2467,6 +2526,7 @@ const styles = StyleSheet.create({
     ...OnboardingStyles.subtitle,
     fontWeight: 'bold',
     fontSize: 18,
+    lineHeight: 26,
     marginBottom: 8,
   },
   ageOptionTitle: {
