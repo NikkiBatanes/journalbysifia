@@ -483,6 +483,7 @@ const PickerModal = React.memo(({
       color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase' as const, letterSpacing: 0.8,
     },
     customDateValue: { fontSize: 13, fontFamily: Fonts.semiBold, color: Colors.hopeWhite },
+    pickerContainer: { marginHorizontal: 8, marginBottom: 8, height: 340, overflow: 'hidden' as const },
     inlinePicker: { marginHorizontal: 8, marginBottom: 8, height: 320 },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []); // static — only computed once
@@ -600,14 +601,18 @@ const PickerModal = React.memo(({
                     </Pressable>
                   </View>
                   {showFromPicker && (
-                    <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
-                      onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
-                      style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+                    <View style={pickerStyles.pickerContainer}>
+                      <DateTimePicker value={customFrom} mode="date" display="compact" maximumDate={customTo}
+                        onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
+                        accentColor={Colors.hopeWhite} themeVariant="dark" />
+                    </View>
                   )}
                   {showToPicker && (
-                    <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
-                      onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
-                      style={pickerStyles.inlinePicker} accentColor={Colors.hopeWhite} themeVariant="dark" />
+                    <View style={pickerStyles.pickerContainer}>
+                      <DateTimePicker value={customTo} mode="date" display="compact" minimumDate={customFrom} maximumDate={new Date()}
+                        onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
+                        accentColor={Colors.hopeWhite} themeVariant="dark" />
+                    </View>
                   )}
                   {/* Apply only needed for Custom since date selection requires confirmation */}
                   <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
