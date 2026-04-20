@@ -1550,37 +1550,37 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Provide light haptic feedback when the ask box area is tapped
           onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
         >
-          <ThemedTextInput
-            ref={detailsInputRef}
-            style={styles.askInput}
-            value={challengeDetails}
-            onChangeText={setChallengeDetails}
-            multiline={true}
-            placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
-            placeholder={(() => {
-              if (detailsOnlyFlow) {
-                return 'Something happened and I don\'t know how to respond faithfully.';
-              }
-              const placeholders: Record<string, string> = {
-                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                purpose: "I'm unsure about my career path and want godly direction.",
-                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                spiritual: 'I want to deepen prayer and Bible study habits.',
-              };
-              return placeholders[selectedChallenge] ?? 'What situation are you facing?';
-            })()}
-            autoFocus={false}
-            scrollEnabled={true}
-            keyboardAppearance="dark"
-          />
-          <View style={styles.actionsOverlay}>
+          <View style={styles.inputContainer}>
+            <ThemedTextInput
+              ref={detailsInputRef}
+              style={styles.askInput}
+              value={challengeDetails}
+              onChangeText={setChallengeDetails}
+              multiline={true}
+              placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
+              placeholder={(() => {
+                if (detailsOnlyFlow) {
+                  return 'Something happened and I don\'t know how to respond faithfully.';
+                }
+                const placeholders: Record<string, string> = {
+                  relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                  anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                  purpose: "I'm unsure about my career path and want godly direction.",
+                  forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                  financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                  spiritual: 'I want to deepen prayer and Bible study habits.',
+                };
+                return placeholders[selectedChallenge] ?? 'What situation are you facing?';
+              })()}
+              autoFocus={false}
+              scrollEnabled={true}
+              keyboardAppearance="dark"
+            />
             <TouchableOpacity
               ref={hintButtonRef}
               onPress={onPressHint}
               activeOpacity={0.9}
-              style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+              style={[styles.inputHintButton, !showTooltip && styles.disabledButton]}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
               <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
@@ -1591,20 +1591,27 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 />
               </Animated.View>
             </TouchableOpacity>
-            <Animated.View style={[styles.askSendButton, { width: buttonWidthAnim }]}>
+          </View>
+          <View style={styles.actionsOverlay}>
+            {challengeDetails && challengeDetails.trim().length > 0 ? (
               <TouchableOpacity
-                style={[styles.askSendButtonInner, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
+                style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
                 onPress={handleContinue}
                 disabled={!challengeDetails || !challengeDetails.trim()}
                 activeOpacity={0.8}
               >
-                {challengeDetails && challengeDetails.trim().length > 0 ? (
-                  <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
-                ) : (
-                  <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
-                )}
+                <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
               </TouchableOpacity>
-            </Animated.View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                onPress={handleContinue}
+                disabled={!challengeDetails || !challengeDetails.trim()}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
         {detailsOnlyFlow ? (
@@ -2409,6 +2416,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  inputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  inputHintButton: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   charCounterWrapper: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -2432,6 +2453,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    minWidth: 36,
   },
   askSendButtonCircular: {
     width: 36,
@@ -2448,10 +2470,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   askSendButtonInner: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    height: 36,
+    padding: 0,
   },
   askSendButtonActive: {
     backgroundColor: Colors.alertCoral,
