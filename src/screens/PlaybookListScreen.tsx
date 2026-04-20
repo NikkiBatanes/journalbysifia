@@ -416,9 +416,9 @@ const PickerModal = React.memo(({
     card: {
       backgroundColor: 'rgba(30, 41, 59, 0.95)',
       borderRadius: 18,
-      overflow: 'hidden',
-      minWidth: 220,
-      maxWidth: 320,
+      overflow: 'visible',
+      minWidth: 280,
+      maxWidth: 360,
       paddingTop: 14,
       paddingBottom: 16,
       shadowColor: '#000',
@@ -428,7 +428,7 @@ const PickerModal = React.memo(({
       elevation: 10,
     },
     cardScroll: {
-      maxHeight: 500,
+      maxHeight: 600,
     },
     sectionLabel: {
       fontSize: 10,
