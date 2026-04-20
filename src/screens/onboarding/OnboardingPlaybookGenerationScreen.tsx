@@ -414,6 +414,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
                 if (playbook && !error) {
 
+                  logger.debug('OnboardingGeneration: Queue polling path - playbook fetched successfully');
                   logger.debug('OnboardingGeneration: Action steps from getPlaybook', { actionSteps: playbook.actionSteps });
 
                   // DEBUG: Log what we got from getPlaybook
@@ -569,11 +570,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
         } else {
           // Direct generation completed immediately (no queue)
+          logger.debug('OnboardingGeneration: Direct generation path - checking for playbook');
 
           // Wait a moment for database to be ready, then check for the playbook
           setTimeout(async () => {
             try {
               if (user?.id) {
+                logger.debug('OnboardingGeneration: Fetching recent playbooks for user');
                 const { supabase } = await import('../../services/supabaseClient');
                 const { data: recentPlaybooks } = await supabase
                   .from('playbooks')
@@ -582,9 +585,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   .order('created_at', { ascending: false })
                   .limit(1);
 
+                logger.debug('OnboardingGeneration: Recent playbooks fetched', { count: recentPlaybooks?.length || 0 });
+
                 if (recentPlaybooks && recentPlaybooks.length > 0) {
                   const recentPlaybook = recentPlaybooks[0];
                   const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
+
+                  logger.debug('OnboardingGeneration: Checking playbook age', { playbookAge, threshold: 30000 });
 
                   // If playbook was created in the last 30 seconds, it's likely our generated one
                   if (playbookAge < 30000) {
@@ -615,12 +622,14 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       };
 
                       // Animate progress to 100% and navigate
+                      logger.debug('OnboardingGeneration: Direct generation fallback - animating progress');
                       Animated.timing(progressAnim, {
                         toValue: 100,
                         duration: 800,
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
+                          logger.debug('OnboardingGeneration: Direct generation fallback - navigating to PlaybookWalkthrough');
                           (navigation as any).replace('PlaybookWalkthrough', {
                             playbook: realGeneratedPlaybook,
                             source: 'onboarding',
