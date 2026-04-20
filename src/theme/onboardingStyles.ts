@@ -63,12 +63,12 @@ export const createOnboardingStyles = (fonts: {
   },
 
   subtitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontFamily: fonts.fontRegular,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
+    lineHeight: 16,
   },
 
   sectionTitle: {

@@ -1502,9 +1502,9 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
     alignItems: 'center',
   },
   modalButtonText: {
@@ -1885,9 +1885,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 28,
-    borderRadius: 12,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 0,
@@ -1915,8 +1915,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     marginTop: 0,  // Remove top margin
-    paddingVertical: 12,  // Increase padding for easier tapping
-    paddingHorizontal: 20,  // Increase horizontal padding
+    paddingVertical: 15,  // Increase padding for easier tapping
+    paddingHorizontal: 28,  // Increase horizontal padding
     alignSelf: 'center',
     minHeight: 44,  // Ensure minimum tap target size
   },

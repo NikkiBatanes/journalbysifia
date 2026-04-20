@@ -1737,8 +1737,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   startTrialButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 15,
+    borderRadius: 50,
     marginBottom: 6,
     alignItems: 'center',
     justifyContent: 'center',

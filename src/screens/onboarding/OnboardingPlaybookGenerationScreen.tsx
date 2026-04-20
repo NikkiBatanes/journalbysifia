@@ -1201,9 +1201,9 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: Colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
   },
   retryButtonText: {
     fontSize: 16,
@@ -1298,9 +1298,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',

@@ -2387,8 +2387,8 @@ const styles = StyleSheet.create({
   },
   unlockButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 15,
+    borderRadius: 50,
     marginBottom: 10,
     width: '100%',
     maxWidth: 720,
