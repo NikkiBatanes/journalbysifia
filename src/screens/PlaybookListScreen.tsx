@@ -2054,8 +2054,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: Colors.inputBackground,
     borderRadius: 24,
     padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
   },
   carouselTypeIndicator: {
     flexDirection: 'row',
