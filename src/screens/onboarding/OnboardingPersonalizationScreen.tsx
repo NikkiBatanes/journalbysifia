@@ -1297,14 +1297,22 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Reset animation values
       askBoxOpacity.setValue(0);
       askBoxTranslateY.setValue(16);
+      headerTranslateY.setValue(-30);
+      headerScale.setValue(0.35);
+      headerIntroOpacity.setValue(0.6);
 
       // Trigger animation
-      Animated.parallel([
-        Animated.spring(askBoxOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
-        Animated.spring(askBoxTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+      Animated.sequence([
+        Animated.parallel([
+          Animated.spring(askBoxOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(askBoxTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(headerTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(headerScale, { toValue: 0.45, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        ]),
       ]).start();
     }
-  }, [detailsOnlyFlow, currentStep, askBoxOpacity, askBoxTranslateY]);
+  }, [detailsOnlyFlow, currentStep, askBoxOpacity, askBoxTranslateY, headerTranslateY, headerScale, headerIntroOpacity]);
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
@@ -1776,7 +1784,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
                 placeholder={(() => {
                   if (detailsOnlyFlow) {
-                    return 'Something happened and I don\'t know how to respond faithfully.';
+                    return 'Share what happened...';
                   }
                   const placeholders: Record<string, string> = {
                     relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
@@ -1814,7 +1822,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </TouchableOpacity>
                 {challengeDetails && challengeDetails.trim().length > 0 ? (
                   <TouchableOpacity
-                    style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                    style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
                     onPress={handleContinue}
                     disabled={!challengeDetails || !challengeDetails.trim()}
                     activeOpacity={0.8}
@@ -1823,7 +1831,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
-                    style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
+                    style={[styles.askSendButtonCircular, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, challengeDetails.trim() && styles.askSendButtonActive]}
                     onPress={handleContinue}
                     disabled={!challengeDetails || !challengeDetails.trim()}
                     activeOpacity={0.8}
@@ -2924,7 +2932,8 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
-    borderRadius: 18,
+    borderRadius: 20,
+    padding: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   askInput: {
