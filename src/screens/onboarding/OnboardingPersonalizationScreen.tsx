@@ -1559,11 +1559,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             keyboardAppearance="dark"
           />
           <View style={styles.actionsOverlay}>
-            <View style={styles.charCounterWrapper}>
-              <ThemedText style={styles.charCounterText}>
-                {challengeDetails.length}/500
-              </ThemedText>
-            </View>
             <TouchableOpacity
               ref={hintButtonRef}
               onPress={onPressHint}
