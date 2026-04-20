@@ -1023,10 +1023,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const buttonWidthAnim = useRef(new Animated.Value(36)).current;
   const buttonHasText = useRef(false);
 
-  // Hint collapse animation - collapses hint text when typing starts
-  const hintWidthAnim = useRef(new Animated.Value(200)).current;
-  const hintHasCollapsed = useRef(false);
-
   useEffect(() => {
     const hasText = challengeDetails && challengeDetails.trim().length > 0;
     const hasTextBoolean = !!hasText;
@@ -1038,16 +1034,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         useNativeDriver: false,
       }).start();
     }
-    // Collapse hint when typing starts
-    if (hasTextBoolean !== hintHasCollapsed.current) {
-      hintHasCollapsed.current = hasTextBoolean;
-      Animated.timing(hintWidthAnim, {
-        toValue: hasTextBoolean ? 0 : 200,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [challengeDetails, buttonWidthAnim, hintWidthAnim]);
+  }, [challengeDetails, buttonWidthAnim]);
 
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
@@ -1590,23 +1577,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               keyboardAppearance="dark"
             />
             <View style={styles.actionsOverlay}>
-              <Animated.View style={{ width: hintWidthAnim, overflow: 'hidden' }}>
-                <TouchableOpacity
-                  ref={hintButtonRef}
-                  onPress={onPressHint}
-                  activeOpacity={0.9}
-                  style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
-                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                >
-                  <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
-                    <MaterialCommunityIcons
-                      name="information"
-                      size={20}
-                      color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
-              </Animated.View>
+              <TouchableOpacity
+                ref={hintButtonRef}
+                onPress={onPressHint}
+                activeOpacity={0.9}
+                style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
+                  <MaterialCommunityIcons
+                    name="information"
+                    size={20}
+                    color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
               {challengeDetails && challengeDetails.trim().length > 0 ? (
                 <TouchableOpacity
                   style={[styles.askSendButtonExpanded, (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton, styles.askSendButtonActive]}
