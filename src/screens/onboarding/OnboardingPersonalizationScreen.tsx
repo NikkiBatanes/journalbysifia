@@ -2021,6 +2021,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </View>
               </View>
               <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
+              <TouchableOpacity
+                onPress={onPressHint}
+                style={styles.tooltipHelpButton}
+                activeOpacity={0.8}
+              >
+                <ThemedText style={styles.tooltipHelpButtonText}>Need help putting words to it?</ThemedText>
+              </TouchableOpacity>
               <View style={styles.tooltipCaret} />
             </Animated.View>
           </TouchableOpacity>
@@ -2573,6 +2580,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 6,
+  },
+  tooltipHelpButton: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+  },
+  tooltipHelpButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    fontWeight: '600',
   },
   tooltipCaret: {
     position: 'absolute',
