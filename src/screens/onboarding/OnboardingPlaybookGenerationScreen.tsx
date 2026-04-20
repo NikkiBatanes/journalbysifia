@@ -434,6 +434,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       reference: '1 Peter 5:7',
                     },
                     directChallenge: playbook.directChallenge || 'Take one step forward in faith this week.',
+                    wordToSpeak: playbook.wordToSpeak || '',
+                    prayer: playbook.prayer || '',
+                    userInput: params.userInput || '',
                   };
 
                   // DEBUG: Log what we're passing to the ready screen
@@ -601,6 +604,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                           reference: '1 Peter 5:7',
                         },
                         directChallenge: completePlaybook.directChallenge || 'Take one step forward in faith this week.',
+                        wordToSpeak: completePlaybook.wordToSpeak || '',
+                        prayer: completePlaybook.prayer || '',
+                        userInput: params.userInput || '',
                       };
 
                       // Animate progress to 100% and navigate
