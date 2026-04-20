@@ -421,7 +421,7 @@ const PickerModal = React.memo(({
       backgroundColor: 'rgba(30, 41, 59, 0.95)',
       borderRadius: 18,
       overflow: 'hidden',
-      minWidth: 220,
+      minWidth: 280,
       maxWidth: 340,
       paddingTop: 14,
       paddingBottom: 16,
