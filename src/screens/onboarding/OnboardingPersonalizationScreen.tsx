@@ -7,6 +7,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
@@ -546,49 +547,155 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [showOptionalHelper, setShowOptionalHelper] = useState(false);
   const askBoxYRef = useRef(0);
 
-  // Transition animations for "Building a playbook..." state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [buildingDots, setBuildingDots] = useState('');
-  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
-  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
-  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
-  const generatingScaleAnim = useRef(new Animated.Value(0.92)).current;
-  const inputScaleAnim = useRef(new Animated.Value(1)).current;
+  // Tooltip state
+  const hintButtonRef = useRef<View>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipAnchor, setTooltipAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const tooltipOpacity = useRef(new Animated.Value(0)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+
+  // Keyboard handling state
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const containerTranslateY = useRef(new Animated.Value(0)).current;
+
   const headerIntroOpacity = useRef(new Animated.Value(1)).current;
   const askBoxOpacity = useRef(new Animated.Value(1)).current;
   const askBoxTranslateY = useRef(new Animated.Value(0)).current;
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const headerScale = useRef(new Animated.Value(1)).current;
+
+  // Transition animations (from UserInputScreen)
+  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
+  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
+  const generatingScaleAnim = useRef(new Animated.Value(0.92)).current;
+  const inputScaleAnim = useRef(new Animated.Value(1)).current;
   const genLogoEntryAnim = useRef(new Animated.Value(0)).current;
   const genCardEntryAnim = useRef(new Animated.Value(0)).current;
   const genHeadingEntryAnim = useRef(new Animated.Value(0)).current;
   const genStepsEntryAnim = useRef(new Animated.Value(0)).current;
   const genProgressEntryAnim = useRef(new Animated.Value(0)).current;
 
-  // Progress animation system
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const PHASE_PROGRESS_TARGETS = [25, 50, 75, 95];
+  // Progress animation system (from UserInputScreen)
+  const PHASE_PROGRESS_TARGETS = [20, 50, 80, 95];
   const currentPhaseRef = useRef(0);
   const trickleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const generationAbortRef = useRef(false);
   const isMountedRef = useRef(true);
+  const [generationMessage, setGenerationMessage] = useState<string | null>(null);
 
-  // Generation steps tracking (like UserInputScreen)
-  interface GenerationStep {
-    id: number;
-    label: string;
-    status: 'active' | 'completed' | 'inactive';
-  }
+  // Generation steps tracking (from UserInputScreen)
+  type StepStatus = 'completed' | 'active' | 'inactive';
+  type GenerationStep = { key: string; title: string; status: StepStatus };
 
-  const [generationCurrentStep, setGenerationCurrentStep] = useState(1);
-  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>([
-    { id: 1, label: 'Seeing this moment clearly', status: 'active' },
-    { id: 2, label: 'Naming what matters most', status: 'inactive' },
-    { id: 3, label: 'Shaping faithful next steps', status: 'inactive' },
-    { id: 4, label: 'Preparing your playbook', status: 'inactive' },
-  ]);
+  const INITIAL_GENERATION_STEPS: GenerationStep[] = [
+    { key: 'seeing', title: 'Seeing this moment clearly', status: 'inactive' },
+    { key: 'naming', title: 'Naming what matters most', status: 'inactive' },
+    { key: 'shaping', title: 'Shaping faithful next steps', status: 'inactive' },
+    { key: 'preparing', title: 'Preparing your playbook', status: 'inactive' },
+  ];
 
+  const buildInitialGenerationSteps = () => INITIAL_GENERATION_STEPS.map((step) => ({ ...step }));
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [buildingDots, setBuildingDots] = useState('');
+  const [generationCurrentStep, setGenerationCurrentStep] = useState(1); // 1-4
+  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>(() => buildInitialGenerationSteps());
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Check icon animations for generation steps
   const checkIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Per-step pulsing dots — one per step so the native driver never loses the binding
+  const pulsingDotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Shimmer opacity pulse for "Building your playbook..." text
+  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      generationAbortRef.current = true;
+    };
+  }, []);
+
+  // ── Per-step pulsing dot loops ───────────────────────────────────────────────
+  useEffect(() => {
+    if (isGenerating) {
+      const loops = pulsingDotAnims.map((anim) => {
+        anim.setValue(0);
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 750, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0.2, duration: 750, useNativeDriver: true }),
+          ])
+        );
+      });
+      loops.forEach((l) => l.start());
+      return () => loops.forEach((l) => l.stop());
+    } else {
+      pulsingDotAnims.forEach((anim) => anim.setValue(0));
+    }
+  }, [isGenerating]);
+
+  // ── Animated dots + text-opacity shimmer on "Building your playbook..." ──────
+  useEffect(() => {
+    if (!isGenerating) {
+      setBuildingDots('');
+      buildingTextOpacity.setValue(0.55);
+      return;
+    }
+
+    // Cycling dots: '' → '.' → '..' → '...'
+    const dotStates = ['', '.', '..', '...'];
+    let di = 0;
+    const dotInterval = setInterval(() => {
+      di = (di + 1) % dotStates.length;
+      setBuildingDots(dotStates[di]);
+    }, 420);
+
+    // Shimmer = the letters themselves breathing bright → dim → bright
+    buildingTextOpacity.setValue(0.55);
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buildingTextOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.55,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    return () => {
+      clearInterval(dotInterval);
+      shimmerLoop.stop();
+    };
+  }, [isGenerating]);
+
+  const resetToInputState = () => {
+    inputCollapseAnim.setValue(0);
+    inputScaleAnim.setValue(1);
+    headerIntroOpacity.setValue(1);
+    askBoxOpacity.setValue(1);
+    generatingFadeAnim.setValue(0);
+    generatingScaleAnim.setValue(0.92);
+    genLogoEntryAnim.setValue(0);
+    genCardEntryAnim.setValue(0);
+    genHeadingEntryAnim.setValue(0);
+    genStepsEntryAnim.setValue(0);
+    genProgressEntryAnim.setValue(0);
+    setBuildingDots('');
+    StatusBar.setBarStyle('light-content', true);
+    setIsGenerating(false);
+  };
+
+  const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
   const animateProgressTo = (target: number, duration = 800) =>
     new Promise<void>((resolve) => {
@@ -652,19 +759,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   };
 
-  const resetGenerationSteps = () => {
-    setGenerationSteps([
-      { id: 1, label: 'Seeing this moment clearly', status: 'active' },
-      { id: 2, label: 'Naming what matters most', status: 'inactive' },
-      { id: 3, label: 'Shaping faithful next steps', status: 'inactive' },
-      { id: 4, label: 'Preparing your playbook', status: 'inactive' },
-    ]);
-    setGenerationCurrentStep(1);
-    checkIconAnims.forEach((anim) => anim.setValue(0));
-    progressAnim.setValue(0);
-    currentPhaseRef.current = 0;
-  };
-
   const startProgressTrickle = () => {
     const TICK_MS = 300;
     let elapsed = 0;
@@ -695,67 +789,235 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   };
 
-  // Cleanup progress trickle on unmount
-  useEffect(() => {
-    return () => {
-      stopProgressTrickle();
+  const resetGenerationSteps = () => {
+    setGenerationSteps(() => buildInitialGenerationSteps());
+    setGenerationCurrentStep(1);
+    progressAnim.setValue(0);
+    setGenerationMessage(null);
+    generationAbortRef.current = false;
+    currentPhaseRef.current = 0;
+  };
+
+  const handleGenerationFlow = async () => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    resetGenerationSteps();
+    startProgressTrickle();
+
+    // Track current phase so timers and post-playbook advancement stay in sync
+    let currentPhase = 0;
+
+    const advanceToPhase = (phase: number) => {
+      if (generationAbortRef.current || currentPhase >= phase) { return; }
+      currentPhase = phase;
+      updateStepStatus(phase);
+      try { triggerLightHaptic(); } catch {}
     };
-  }, []);
 
-  // Animate the rounded-top container when keyboard opens (details step only)
-  const containerTranslateY = useRef(new Animated.Value(0)).current;
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+    // Step 0 active immediately — with haptic
+    updateStepStatus(0);
+    try { triggerLightHaptic(); } catch {}
 
-  // Tooltip for input guidance (mirrors UserInputScreen)
-  const [showTooltip, setShowTooltip] = useState(false);
-  const hintButtonRef = useRef<any>(null);
-  const [tooltipAnchor, setTooltipAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const tooltipOpacity = useRef(new Animated.Value(0)).current;
-  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+    // ── Time-based step timers ───────
+    const phaseTimers = [
+      setTimeout(() => advanceToPhase(1), 4000),
+      setTimeout(() => advanceToPhase(2), 8500),
+      setTimeout(() => advanceToPhase(3), 13500),
+    ];
+    const clearPhaseTimers = () => phaseTimers.forEach(clearTimeout);
+
+    const runGeneration = async () => {
+      const response = await unifiedGenerationService.generatePlaybook({
+        userId: user.id,
+        userInput: challengeDetails,
+        userName: name || 'Friend',
+        isOnboarding: true,
+      });
+
+      if (!response.success) {
+        throw Object.assign(new Error(response.message || 'Unable to generate playbook'), response);
+      }
+
+      let savedPlaybook: Playbook | null = null;
+
+      const fetchLatestPlaybook = async () => {
+        if (!user.id) { return null; }
+        const { data: recentPlaybooks } = await supabase
+          .from('playbooks')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!recentPlaybooks || recentPlaybooks.length === 0) {
+          return null;
+        }
+
+        const { data: playbook } = await supabase
+          .from('playbooks')
+          .select('*')
+          .eq('id', recentPlaybooks[0].id)
+          .single();
+
+        return playbook as Playbook;
+      };
+
+      if (response.queueId) {
+        const maxAttempts = 60;
+        let attempts = 0;
+
+        while (attempts < maxAttempts && !savedPlaybook) {
+          if (generationAbortRef.current) {
+            return null;
+          }
+
+          attempts += 1;
+          await wait(1000);
+
+          const status = await unifiedGenerationService.checkGenerationStatus(response.queueId);
+
+          if (status.status === 'failed') {
+            throw new Error(status.message || 'Generation failed. Please try again.');
+          }
+
+          if (status.status === 'completed' && status.resultId && user.id) {
+            const completePlaybook = await fetchLatestPlaybook();
+            if (completePlaybook) {
+              savedPlaybook = completePlaybook;
+              break;
+            }
+          }
+
+          if (status.status === 'processing' && attempts > 15) {
+            try {
+              const fallback = await fetchLatestPlaybook();
+              if (fallback) {
+                savedPlaybook = fallback;
+                break;
+              }
+            } catch (fallbackError) {
+              Logger.error('[OnboardingPersonalizationScreen] Fallback playbook fetch failed', fallbackError as Error);
+            }
+          }
+        }
+      } else {
+        savedPlaybook = await fetchLatestPlaybook();
+      }
+
+      if (!savedPlaybook) {
+        throw new Error('Playbook generation is taking longer than expected. Please try again.');
+      }
+
+      return savedPlaybook;
+    };
+
+    try {
+      const playbook = await runGeneration();
+
+      clearPhaseTimers();
+
+      if (!playbook) {
+        resetToInputState();
+        return;
+      }
+
+      if (currentPhase < 1) {
+        await wait(400);
+        advanceToPhase(1);
+      }
+      if (currentPhase < 2) {
+        await wait(1500);
+        advanceToPhase(2);
+      }
+      if (currentPhase < 3) {
+        await wait(1500);
+        advanceToPhase(3);
+      }
+
+      await wait(1000);
+
+      stopProgressTrickle();
+      await completeProgress();
+      try { triggerSuccessHaptic(); } catch {}
+
+      if (user.id) {
+        try {
+          await faithPointsService.awardPoints(user.id, 'playbook_generated', {
+            suppressNotification: true,
+            isOnboarding: true,
+          });
+        } catch (pointsError) {
+          Logger.error('[OnboardingPersonalizationScreen] Failed to award faith points', pointsError as Error);
+        }
+
+        try {
+          await subscriptionService.trackUsage(user.id, 'playbook', 0, false);
+        } catch (usageError) {
+          Logger.error('[OnboardingPersonalizationScreen] Failed to track usage', usageError as Error);
+        }
+      }
+
+      generationAbortRef.current = true;
+
+      logger.debug('[OnboardingPersonalizationScreen] Navigating to playbook walkthrough', { playbookId: playbook?.id, playbookTitle: playbook?.title });
+
+      (navigation as any).replace('PlaybookWalkthrough', {
+        playbook,
+        source: 'onboarding',
+      });
+    } catch (error) {
+      clearPhaseTimers();
+      stopProgressTrickle();
+      Logger.error('[OnboardingPersonalizationScreen] Generation error', error as Error);
+      try { triggerErrorHaptic(); } catch {}
+
+      if ((error as any).contentBlocked) {
+        Alert.alert(
+          'Content Review',
+          (error as any).christianMessage || 'Content blocked for review.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setIsGenerating(false);
+                resetGenerationSteps();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Generation Failed',
+        (error as Error).message || 'Unable to generate playbook. Please try again.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => {
+              generationAbortRef.current = false;
+              handleGenerationFlow();
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              resetToInputState();
+              resetGenerationSteps();
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
 
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
-
-  // Animated dots + text-opacity shimmer on "Building your playbook..."
-  useEffect(() => {
-    if (!isGenerating) {
-      setBuildingDots('');
-      buildingTextOpacity.setValue(0.55);
-      return;
-    }
-
-    // Cycling dots: '' → '.' → '..' → '...'
-    const dotStates = ['', '.', '..', '...'];
-    let di = 0;
-    const dotInterval = setInterval(() => {
-      di = (di + 1) % dotStates.length;
-      setBuildingDots(dotStates[di]);
-    }, 420);
-
-    // Shimmer = the letters themselves breathing bright → dim → bright
-    buildingTextOpacity.setValue(0.55);
-    const shimmerLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(buildingTextOpacity, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(buildingTextOpacity, {
-          toValue: 0.55,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    shimmerLoop.start();
-
-    return () => {
-      clearInterval(dotInterval);
-      shimmerLoop.stop();
-    };
-  }, [isGenerating]);
 
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
@@ -1059,82 +1321,20 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               }, delay);
             });
 
-            // Start progress trickle animation
-            startProgressTrickle();
-
-            // Wait for progress to complete, then navigate
-            setTimeout(async () => {
-              await completeProgress();
-              stopProgressTrickle();
-              (navigation as any).navigate('OnboardingPlaybookGeneration', {
-                userName: name || 'Friend',
-                userInput: challengeDetails,
-                onboardingData: {
-                  ageGroup: ageGroupForNavigation,
-                  faithJourney: faithJourneyForNavigation,
-                  challenge: challengeForNavigation,
-                  challengeDetails,
-                },
-              });
-            }, 2000);
+            // Start the generation flow with polling and step-by-step animation
+            handleGenerationFlow();
           });
         });
       } catch (error) {
         logger.error('Error in handleContinue:', error as Error);
-        // Continue with navigation even if onboarding update fails
-        logger.error('Error occurred, but continuing to Playbook Generation');
-
-        // IMPORTANT: Save name ONLY for non-OAuth users (email/password) - same logic as success case
-        if (name && name.trim().length > 0 && user) {
-          const trimmedName = name.trim();
-          const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
-          const hasOAuthName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
-
-          // Skip name save for Apple/Google OAuth users who already provided name
-          if ((provider === 'apple' || provider === 'google') && hasOAuthName) {
-            logger.debug('✅ OAuth user - name already provided, skipping save (error case)', {
-              provider,
-              existingFirstName: user?.user_metadata?.first_name,
-            });
-          } else {
-            // Only save name for email/password users or OAuth users without names
-            const updateData: any = {
-              full_name: trimmedName,
-              first_name: trimmedName,
-            };
-
-            try {
-              const { error: updateError } = await supabase.auth.updateUser({
-                data: updateData,
-              });
-
-              if (updateError) {
-                Logger.error('❌ Error saving name to user metadata (error case)', updateError as Error, {
-                  component: 'OnboardingPersonalizationScreen',
-                });
-              } else {
-                logger.debug('✅ Name saved successfully (error case)');
-              }
-            } catch (nameError) {
-              Logger.error('❌ Error updating user metadata with name (error case)', nameError as Error, {
-                component: 'OnboardingPersonalizationScreen',
-              });
-            }
-          }
-        }
-
-        const userInput = challengeDetails.trim();
-        const ageGroupForNavigation = selectedAgeGroup || 'adult';
-        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
-        const challengeForNavigation = selectedChallenge || 'relationships';
-
+        // Fallback: navigate to generation screen if generation failed
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
-          userInput,
+          userInput: challengeDetails,
           onboardingData: {
-            ageGroup: ageGroupForNavigation,
-            faithJourney: faithJourneyForNavigation,
-            challenge: challengeForNavigation,
+            ageGroup: selectedAgeGroup || 'adult',
+            faithJourney: selectedFaithJourney || 'growing',
+            challenge: selectedChallenge || 'relationships',
             challengeDetails,
           },
         });
@@ -1551,46 +1751,43 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               }],
             },
           ]}>
-            <View style={styles.stepCard}>
-              <View style={styles.stepRow}>
-                <View style={[styles.stepCircle, styles.stepActive]}>
-                  <View style={styles.pulsingDot} />
+            {generationSteps.map((step, index) => (
+              <View key={step.key} style={[
+                styles.stepCard,
+                step.status === 'completed' && styles.stepCardCompleted,
+                step.status === 'active' && styles.stepCardActive,
+                step.status === 'inactive' && styles.stepCardDefault,
+              ]}>
+                <View style={styles.stepRow}>
+                  <View style={[
+                    styles.stepCircle,
+                    step.status === 'completed' && styles.stepCompleted,
+                    step.status === 'active' && styles.stepActive,
+                    step.status === 'inactive' && styles.stepInactive,
+                  ]}>
+                    {step.status === 'completed' && (
+                      <Animated.View style={{ transform: [{ scale: checkIconAnims[index].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+                        <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                      </Animated.View>
+                    )}
+                    {step.status === 'active' && (
+                      <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnims[index] }]} />
+                    )}
+                    {step.status === 'inactive' && (
+                      <View style={styles.staticDot} />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.stepText,
+                    step.status === 'completed' && styles.stepTextCompleted,
+                    step.status === 'active' && styles.stepTextActive,
+                    step.status === 'inactive' && styles.stepTextInactive,
+                  ]}>
+                    {step.title}
+                  </Text>
                 </View>
-                <Text style={[styles.stepText, styles.stepTextActive]}>
-                  Seeing this moment clearly
-                </Text>
               </View>
-            </View>
-            <View style={styles.stepCard}>
-              <View style={styles.stepRow}>
-                <View style={[styles.stepCircle, styles.stepInactive]}>
-                  <View style={styles.staticDot} />
-                </View>
-                <Text style={[styles.stepText, styles.stepTextInactive]}>
-                  Naming what matters most
-                </Text>
-              </View>
-            </View>
-            <View style={styles.stepCard}>
-              <View style={styles.stepRow}>
-                <View style={[styles.stepCircle, styles.stepInactive]}>
-                  <View style={styles.staticDot} />
-                </View>
-                <Text style={[styles.stepText, styles.stepTextInactive]}>
-                  Shaping faithful next steps
-                </Text>
-              </View>
-            </View>
-            <View style={styles.stepCard}>
-              <View style={styles.stepRow}>
-                <View style={[styles.stepCircle, styles.stepInactive]}>
-                  <View style={styles.staticDot} />
-                </View>
-                <Text style={[styles.stepText, styles.stepTextInactive]}>
-                  Preparing your playbook
-                </Text>
-              </View>
-            </View>
+            ))}
           </Animated.View>
 
           {/* Progress bar */}
@@ -1618,7 +1815,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 ]}
               />
             </View>
-            <Text style={styles.progressLabel}>Phase 1 of 4</Text>
+            <Text style={styles.progressLabel}>Phase {generationCurrentStep} of 4</Text>
           </Animated.View>
         </Animated.View>
       )}
@@ -1857,12 +2054,7 @@ const styles = StyleSheet.create({
     height: 120,
   },
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    justifyContent: 'center',
-    marginHorizontal: 15,
+    marginBottom: 16,
   },
   // Welcome-style dots pagination
   dotsContainer: {
@@ -2444,6 +2636,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0,
   },
+  stepCardCompleted: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: 'rgba(255, 107, 107, 0.2)',
+  },
+  stepCardActive: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  stepCardDefault: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2461,6 +2665,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+  },
+  stepCompleted: {
+    backgroundColor: Colors.alertCoral,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   stepInactive: {
     backgroundColor: 'transparent',
@@ -2489,6 +2698,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
   },
+  stepTextCompleted: {
+    color: Colors.alertCoral,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+  },
   stepTextInactive: {
     color: 'rgba(255,255,255,0.5)',
     fontFamily: Fonts.regular,
@@ -2510,7 +2724,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
-    fontFamily: Fonts.regular,
   },
 });
 

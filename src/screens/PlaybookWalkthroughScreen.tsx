@@ -1499,27 +1499,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
 
-  // ── Onboarding "playbook ready" overlay — shown once via AsyncStorage gate ──
-  const OVERLAY_STORAGE_KEY = '@siFia:hasSeenPlaybookReadyOverlay';
+  // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
   const [showReadyOverlay, setShowReadyOverlay] = useState(false);
 
   useEffect(() => {
-    if (source !== 'onboarding') { return; }
-    AsyncStorage.getItem(OVERLAY_STORAGE_KEY)
-      .then(seen => {
-        if (!seen) {
-          setShowReadyOverlay(true);
-        }
-      })
-      .catch(() => {
-        // If storage fails, skip overlay rather than block the user
-      });
+    if (source === 'onboarding') {
+      setShowReadyOverlay(true);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
 
   const handleDismissReadyOverlay = useCallback(() => {
     setShowReadyOverlay(false);
-    AsyncStorage.setItem(OVERLAY_STORAGE_KEY, 'true').catch(() => {});
   }, []);
 
   const backButtonAnim = useRef(new Animated.Value(0)).current;
@@ -2036,7 +2027,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       </GestureDetector>
 
       {/* Floating close button — top left (steps 0–5), always closes the screen */}
-      {stepIndex !== 6 && (
+      {stepIndex !== 6 && (source as any) !== 'onboarding' && (
         <Animated.View
           style={[
             styles.closeButton,
@@ -2063,26 +2054,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons name={source === 'onboarding' ? 'close-outline' : 'close'} size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
         </Animated.View>
-      )}
-
-      {/* Onboarding-specific: Skip button and progress indicator */}
-      {source === 'onboarding' && stepIndex !== 6 && (
-        <View style={[styles.onboardingTopBar, { top: insets.top + 8 }]}>
-          {/* Skip button */}
-          <TouchableOpacity
-            onPress={handleSkipWalkthrough}
-            style={styles.skipButton}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={styles.skipButtonText}>Skip</ThemedText>
-          </TouchableOpacity>
-          {/* Progress indicator */}
-          <View style={styles.progressIndicator}>
-            <ThemedText style={styles.progressText}>
-              Step {stepIndex + 1} of {TOTAL_STEPS}
-            </ThemedText>
-          </View>
-        </View>
       )}
 
       {/* Animated share button — top left, completion page only */}
