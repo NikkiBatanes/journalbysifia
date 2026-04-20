@@ -359,6 +359,10 @@ type PickerModalProps = {
   onHaptic: () => void;
 };
 
+// iOS inline DateTimePicker always renders at ~320pt regardless of layout.
+// When it's open, we expand the card to match rather than cropping or scaling.
+const IOS_PICKER_NATIVE_WIDTH = 320;
+
 const PickerModal = React.memo(({
   visible, filter, initContentView, initDateViewMode, initSelectedCategories,
   initCustomDateFrom, initCustomDateTo, availableCategories,
@@ -416,9 +420,9 @@ const PickerModal = React.memo(({
     card: {
       backgroundColor: 'rgba(30, 41, 59, 0.95)',
       borderRadius: 18,
-      overflow: 'visible',
-      minWidth: 280,
-      maxWidth: 360,
+      overflow: 'hidden',
+      minWidth: 220,
+      maxWidth: 320,
       paddingTop: 14,
       paddingBottom: 16,
       shadowColor: '#000',
@@ -426,9 +430,6 @@ const PickerModal = React.memo(({
       shadowOpacity: 0.3,
       shadowRadius: 20,
       elevation: 10,
-    },
-    cardScroll: {
-      maxHeight: 600,
     },
     sectionLabel: {
       fontSize: 10,
@@ -486,8 +487,6 @@ const PickerModal = React.memo(({
       color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase' as const, letterSpacing: 0.8,
     },
     customDateValue: { fontSize: 13, fontFamily: Fonts.semiBold, color: Colors.hopeWhite },
-    pickerContainer: { marginHorizontal: 8, marginBottom: 8, height: 340, overflow: 'hidden' as const },
-    inlinePicker: { marginHorizontal: 8, marginBottom: 8, height: 320 },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []); // static — only computed once
 
@@ -495,8 +494,16 @@ const PickerModal = React.memo(({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleApplyAndClose}>
       {/* Backdrop — tap to apply current local state and close */}
       <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
-        <Pressable style={pickerStyles.card}>
-        <ScrollView style={pickerStyles.cardScroll} showsVerticalScrollIndicator={false}>
+        <Pressable
+          style={[
+            pickerStyles.card,
+            // Expand card to fit the picker natively — no cropping, no scaling
+            (showFromPicker || showToPicker) && {
+              width: Math.min(IOS_PICKER_NATIVE_WIDTH, width - 32),
+            },
+          ]}
+        >
+
           {/* ── VIEW ──────────────────────────────────── */}
           <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>View</ThemedText>
           <View style={pickerStyles.pillRow}>
@@ -604,18 +611,14 @@ const PickerModal = React.memo(({
                     </Pressable>
                   </View>
                   {showFromPicker && (
-                    <View style={pickerStyles.pickerContainer}>
-                      <DateTimePicker value={customFrom} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'compact'} maximumDate={customTo}
-                        onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
-                        accentColor={Colors.hopeWhite} themeVariant="dark" />
-                    </View>
+                    <DateTimePicker value={customFrom} mode="date" display="inline" maximumDate={customTo}
+                      onChange={(_e, d) => { if (d) { setCustomFrom(d); } }}
+                      accentColor={Colors.hopeWhite} themeVariant="dark" />
                   )}
                   {showToPicker && (
-                    <View style={pickerStyles.pickerContainer}>
-                      <DateTimePicker value={customTo} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'compact'} minimumDate={customFrom} maximumDate={new Date()}
-                        onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
-                        accentColor={Colors.hopeWhite} themeVariant="dark" />
-                    </View>
+                    <DateTimePicker value={customTo} mode="date" display="inline" minimumDate={customFrom} maximumDate={new Date()}
+                      onChange={(_e, d) => { if (d) { setCustomTo(d); } }}
+                      accentColor={Colors.hopeWhite} themeVariant="dark" />
                   )}
                   {/* Apply only needed for Custom since date selection requires confirmation */}
                   <Pressable style={({ pressed }) => [pickerStyles.applyBtn, pressed && { opacity: 0.8 }]}
@@ -655,7 +658,7 @@ const PickerModal = React.memo(({
               );
             })}
           </View>
-        </ScrollView>
+
         </Pressable>
       </Pressable>
     </Modal>
