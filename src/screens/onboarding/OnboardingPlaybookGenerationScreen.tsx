@@ -153,16 +153,19 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
   // Handle navigation after animation completes
   useEffect(() => {
-    logger.debug('OnboardingGeneration: Navigation useEffect', { shouldNavigate, hasNavigationData: !!navigationData });
     if (shouldNavigate && navigationData) {
-      logger.debug('OnboardingGeneration: Navigating to PlaybookWalkthrough');
-      // Navigate to PlaybookWalkthrough with onboarding source
-      (navigation as any).replace('PlaybookWalkthrough', {
+      // Navigate to OnboardingPlaybookReady with the old carousel design
+      (navigation as any).replace('OnboardingPlaybookReady', {
         playbook: navigationData,
-        source: 'onboarding',
+        onboardingData: {
+          name: params.userName || 'Friend',
+          ageGroup: '',
+          faithJourney: '',
+          challengeDetails: params.userInput || '',
+        },
       });
     }
-  }, [shouldNavigate, navigationData, navigation]);
+  }, [shouldNavigate, navigationData, navigation, params]);
 
   // Helper to determine error type (network vs AI generation failure)
   const determineErrorType = useCallback((error: any): 'network' | 'ai' => {
@@ -414,7 +417,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
                 if (playbook && !error) {
 
-                  logger.debug('OnboardingGeneration: Queue polling path - playbook fetched successfully');
                   logger.debug('OnboardingGeneration: Action steps from getPlaybook', { actionSteps: playbook.actionSteps });
 
                   // DEBUG: Log what we got from getPlaybook
@@ -455,7 +457,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       useNativeDriver: false,
                     }).start(() => {
                       try { triggerLightHaptic(); } catch {}
-                      logger.debug('OnboardingGeneration: Setting navigation data and shouldNavigate=true');
                       // Keep isGenerating true to avoid blank state, set navigation data
                       setGeneratedPlaybook(realGeneratedPlaybook);
                       setNavigationData(realGeneratedPlaybook);
@@ -570,13 +571,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
         } else {
           // Direct generation completed immediately (no queue)
-          logger.debug('OnboardingGeneration: Direct generation path - checking for playbook');
 
           // Wait a moment for database to be ready, then check for the playbook
           setTimeout(async () => {
             try {
               if (user?.id) {
-                logger.debug('OnboardingGeneration: Fetching recent playbooks for user');
                 const { supabase } = await import('../../services/supabaseClient');
                 const { data: recentPlaybooks } = await supabase
                   .from('playbooks')
@@ -585,13 +584,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   .order('created_at', { ascending: false })
                   .limit(1);
 
-                logger.debug('OnboardingGeneration: Recent playbooks fetched', { count: recentPlaybooks?.length || 0 });
-
                 if (recentPlaybooks && recentPlaybooks.length > 0) {
                   const recentPlaybook = recentPlaybooks[0];
                   const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
-
-                  logger.debug('OnboardingGeneration: Checking playbook age', { playbookAge, threshold: 30000 });
 
                   // If playbook was created in the last 30 seconds, it's likely our generated one
                   if (playbookAge < 30000) {
@@ -622,17 +617,20 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       };
 
                       // Animate progress to 100% and navigate
-                      logger.debug('OnboardingGeneration: Direct generation fallback - animating progress');
                       Animated.timing(progressAnim, {
                         toValue: 100,
                         duration: 800,
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
-                          logger.debug('OnboardingGeneration: Direct generation fallback - navigating to PlaybookWalkthrough');
-                          (navigation as any).replace('PlaybookWalkthrough', {
+                          (navigation as any).replace('OnboardingPlaybookReady', {
                             playbook: realGeneratedPlaybook,
-                            source: 'onboarding',
+                            onboardingData: {
+                              name: params.userName || 'Friend',
+                              ageGroup: '',
+                              faithJourney: '',
+                              challengeDetails: params.userInput || '',
+                            },
                           });
                         }, 500);
                       });
