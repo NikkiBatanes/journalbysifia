@@ -310,10 +310,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
-        // Filter to only show Spark tier in onboarding flow
+        // Filter to only show Growth tier in onboarding flow
         if (routeParams?.onboardingFlow) {
-          tiers = tiers.filter(t => t.id === 'spark');
-          logger.debug('Filtered to only show Spark tier for onboarding flow', {
+          tiers = tiers.filter(t => t.id === 'growth');
+          logger.debug('Filtered to only show Growth tier for onboarding flow', {
             remainingTiers: tiers.map(t => t.id),
           });
         }
@@ -1555,7 +1555,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   style={styles.growthPlanToggleRow}
                 >
                   <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
-                    About the Spark plan
+                    About the Growth plan
                   </ThemedText>
                   <Ionicons
                     name={isAboutGrowthExpanded ? 'chevron-up' : 'chevron-down'}
@@ -1566,7 +1566,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 {isAboutGrowthExpanded && (
                   <>
                     <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      The Spark plan is for everyday moments when you want gentle structure without pressure.
+                      The Growth plan is for everyday moments when you want gentle structure without pressure.
                     </ThemedText>
                     <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
                       {'\n'}It gives you continued access to playbooks and devotionals, so you can return when situations resurface instead of starting over each time.
@@ -1575,7 +1575,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       <>
                         <View style={styles.trialDivider} />
                         <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign, styles.additionalFollowupText]}>
-                          After the trial, the Spark plan includes access to a monthly set of guided playbooks and devotionals.
+                          After the trial, the Growth plan includes access to a monthly set of guided playbooks and devotionals.
                         </ThemedText>
                       </>
                     )}
@@ -1857,21 +1857,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               buttonText: shouldUseTrialProduct ? 'Start 3-Day Free Trial' : 'Regular purchase',
             });
 
-            // If it's a trial button, navigate to trial offer screen instead of processing directly
-            if (shouldUseTrialProduct) {
-              logger.info('Navigating to trial offer screen for trial flow');
+            // Always navigate to trial offer screen during onboarding flow
+            if (routeParams?.onboardingFlow) {
+              logger.info('Navigating to trial offer screen for onboarding flow');
               try {
-                // When coming from onboarding flow (StreakPlanScreen), don't pass source/returnTo so trial screen recognizes it as registration onboarding
-                const isFromOnboarding = routeParams?.onboardingFlow === true;
                 (navigation as any).navigate('OnboardingTrialOffer', {
                   selectedTierId: selectedTier,
                   billing: isAnnual ? 'annual' : 'monthly',
                   skipNotificationPreference: routeParams?.skipNotificationPreference,
-                  returnTo: isFromOnboarding ? undefined : routeParams?.returnTo,
-                  context: routeParams?.context,
-                  source: isFromOnboarding ? undefined : routeParams?.source,
-                  feature: isFromOnboarding ? undefined : routeParams?.feature,
-                  dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
                   onboardingFlow: true,
                 });
                 logger.info('Navigation to trial offer screen initiated successfully');

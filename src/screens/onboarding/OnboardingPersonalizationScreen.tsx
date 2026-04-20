@@ -2013,7 +2013,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             opacity: genCardEntryAnim,
             transform: [{
               translateY: genCardEntryAnim.interpolate({
-                inputRange: [0, 1], outputRange: [22, 0],
+                inputRange: [0, 1], outputRange: [10, 0],
               }),
             }],
           }}>
@@ -2028,7 +2028,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             opacity: genHeadingEntryAnim,
             transform: [{
               translateY: genHeadingEntryAnim.interpolate({
-                inputRange: [0, 1], outputRange: [20, 0],
+                inputRange: [0, 1], outputRange: [8, 0],
               }),
             }],
           }}>
@@ -3068,7 +3068,7 @@ const styles = StyleSheet.create({
   // Styles for "Building a playbook..." overlay
   generatingContainer: {
     paddingHorizontal: 24,
-    paddingTop: 210,
+    paddingTop: 150,
     paddingBottom: 40,
   },
   generatingLogo: {
@@ -3083,7 +3083,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
