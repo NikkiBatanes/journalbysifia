@@ -1912,29 +1912,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               </>
             )}
           </ScrollView>
-
-          {/* Continue button - only show for steps 1-3, not step 4 */}
-          {currentStep < 4 && (
-            <View
-              style={[
-                styles.continueButtonContainer,
-                // Add safe-area-aware bottom padding for better spacing above home indicator
-                keyboardVisible
-                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 4) }
-                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
-              ]}
-            >
-              <TouchableOpacity
-                style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
-                onPress={handleContinue}
-                disabled={!canContinue()}
-              >
-                <ThemedText weight="medium" style={styles.continueButtonText}>
-                  Continue
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          )}
         </Animated.View>
         </>
       )}
