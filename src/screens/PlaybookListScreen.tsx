@@ -483,7 +483,7 @@ const PickerModal = React.memo(({
       color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase' as const, letterSpacing: 0.8,
     },
     customDateValue: { fontSize: 13, fontFamily: Fonts.semiBold, color: Colors.hopeWhite },
-    inlinePicker: { marginHorizontal: 8, marginBottom: 4, width: '100%' },
+    inlinePicker: { marginHorizontal: 8, marginBottom: 8, height: 320 },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []); // static — only computed once
 
