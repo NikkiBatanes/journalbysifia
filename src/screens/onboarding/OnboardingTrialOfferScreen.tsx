@@ -988,30 +988,16 @@ const OnboardingTrialOfferScreen = () => {
         onContinue={handleSuccessModalDismiss}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={[styles.closeButton, (isClosing || isStartingTrial) && styles.disabledButton]}
-          onPress={handleClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          disabled={isClosing || isStartingTrial}
-        >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTextBlock}>
-            <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.isTrialEligible ? 'How your free trial works' : 'Not sure yet?'}
-            </ThemedText>
-            {routeParams?.onboardingFlow && (
-              <ThemedText style={styles.headerSubText}>
-                3 days free on {getTierDisplayName(selectedTierId)}. After that, your subscription continues at {getLocalizedPrice()}/{isAnnual ? 'year' : 'month'} unless cancelled.
-              </ThemedText>
-            )}
-          </View>
-        </View>
-      </View>
+      {/* Sticky close button - outside ScrollView */}
+      <TouchableOpacity
+        style={[styles.closeButtonSticky, (isClosing || isStartingTrial) && styles.disabledButton]}
+        onPress={handleClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        disabled={isClosing || isStartingTrial}
+      >
+        <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+      </TouchableOpacity>
 
       <View style={styles.scrollContainer}>
         {/* Main Content (scrollable to avoid cut-off in landscape) */}
@@ -1021,6 +1007,22 @@ const OnboardingTrialOfferScreen = () => {
           showsVerticalScrollIndicator={false}
           bounces
         >
+          {/* Header - now inside ScrollView to scroll with content */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextBlock}>
+                <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+                  {routeParams?.isTrialEligible ? 'How your free trial works' : 'Not sure yet?'}
+                </ThemedText>
+                {routeParams?.onboardingFlow && (
+                  <ThemedText style={styles.headerSubText}>
+                    3 days free on {getTierDisplayName(selectedTierId)}. After that, your subscription continues at {getLocalizedPrice()}/{isAnnual ? 'year' : 'month'} unless cancelled.
+                  </ThemedText>
+                )}
+              </View>
+            </View>
+          </View>
+
           <View style={styles.contentWrap}>
 
           {/* Timeline */}
@@ -1234,7 +1236,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingTop: 18,
+    paddingTop: 24,
     paddingBottom: 12,
     alignSelf: 'stretch',
     width: '100%',
@@ -1292,6 +1294,18 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  closeButtonSticky: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   scrollContainer: {
     flex: 1,
