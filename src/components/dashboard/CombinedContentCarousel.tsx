@@ -77,7 +77,9 @@ const getSectionState = (
   if (wp >= sectionStep) { return 'completed'; }
   // For Faithful Actions (step 3), if any action steps are completed, mark as viewed
   if (sectionStep === 3 && completedSteps && completedSteps > 0) { return 'viewed'; }
-  // For Prayer (step 4) and Words to Speak (step 5), use walkthrough_progress
+  // For Prayer (step 4) and Words to Speak (step 5), if walkthrough_progress >= sectionStep, mark as viewed
+  if ((sectionStep === 4 || sectionStep === 5) && wp >= sectionStep) { return 'viewed'; }
+  // For other sections, use walkthrough_progress
   if (wp + 1 === sectionStep) { return 'viewed'; }
   return 'unreached';
 };
@@ -501,7 +503,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   // Listen for playbook action step updates from PlaybookWalkthrough
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', () => {
+    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
+      console.log('📡 Received playbookActionStepUpdated event:', data);
       fetchContent();
     });
 
