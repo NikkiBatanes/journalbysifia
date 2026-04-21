@@ -504,14 +504,35 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   // Listen for playbook action step updates from PlaybookWalkthrough
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
-      console.log('📡 Received playbookActionStepUpdated event:', data);
-      fetchContent();
+      console.log('📡 CombinedContentCarousel: Received playbookActionStepUpdated event:', data);
+      console.log('📡 CombinedContentCarousel: Current content count:', content.length);
+      const playbookBefore = content.find(p => p.id === data.playbookId && p.type === 'playbook');
+      if (playbookBefore && playbookBefore.type === 'playbook') {
+        console.log('📡 CombinedContentCarousel: Playbook before refetch:', {
+          id: playbookBefore.id,
+          completedSteps: playbookBefore.completedSteps,
+          totalSteps: playbookBefore.totalSteps,
+        });
+      }
+      console.log('📡 CombinedContentCarousel: Calling fetchContent()...');
+      fetchContent().then(() => {
+        console.log('📡 CombinedContentCarousel: Fetch completed');
+        console.log('📡 CombinedContentCarousel: Content count after fetch:', content.length);
+        const playbookAfter = content.find(p => p.id === data.playbookId && p.type === 'playbook');
+        if (playbookAfter && playbookAfter.type === 'playbook') {
+          console.log('📡 CombinedContentCarousel: Playbook after fetch:', {
+            id: playbookAfter.id,
+            completedSteps: playbookAfter.completedSteps,
+            totalSteps: playbookAfter.totalSteps,
+          });
+        }
+      });
     });
 
     return () => {
       subscription.remove();
     };
-  }, [fetchContent]);
+  }, [fetchContent, content]);
 
   const scheduleRefetch = useCallback(() => {
     if (refetchTimeoutRef.current) {
