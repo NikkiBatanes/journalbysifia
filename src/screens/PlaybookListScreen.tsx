@@ -884,6 +884,24 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }, [])
   );
 
+  // Listen for prayer/reads updates from PlaybookWalkthrough
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('playbookPrayerReadUpdated', (data) => {
+      console.log('📡 PlaybookListScreen: Received playbookPrayerReadUpdated event:', data);
+      setSessionStates(prev => ({
+        ...prev,
+        [data.playbookId]: {
+          hasPrayed: data.hasPrayed ?? prev[data.playbookId]?.hasPrayed ?? false,
+          hasRead: data.hasRead ?? prev[data.playbookId]?.hasRead ?? false,
+        },
+      }));
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // Handle rename playbook
   const handleRenamePlaybook = useCallback(async () => {
     if (!selectedPlaybookForRename || !newTitle.trim()) return;
