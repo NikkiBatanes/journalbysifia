@@ -787,8 +787,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return getPlaybooks(userId || '', { lightweight: true });
     },
     enabled: !!userId && isAuthenticated, // Only run when we have a valid userId and are authenticated
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more frequent updates
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
+    staleTime: 0, // Always consider data stale to ensure real-time updates
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache for 5 minutes
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Enable automatic refetch on focus to update walkthrough_progress
     retry: (failureCount) => {
