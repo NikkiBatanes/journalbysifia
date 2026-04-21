@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
   Platform,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -124,6 +125,43 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const monthlyScale = useRef(new Animated.Value(1)).current;
+  const annualScale = useRef(new Animated.Value(1)).current;
+
+  const animateToggle = (isAnnual: boolean) => {
+    if (isAnnual) {
+      Animated.spring(monthlyScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(annualScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      Animated.spring(annualScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(monthlyScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    }
+  };
+
+  useEffect(() => {
+    animateToggle(isAnnual);
+  }, [isAnnual]);
+
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
@@ -412,7 +450,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -1630,24 +1668,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <View style={styles.footerPriceSection}>
           {/* Monthly/Annual Toggle */}
           <View style={styles.footerToggleContainer}>
-            <TouchableOpacity
-              style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(false);
-              }}
-            >
-              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(true);
-              }}
-            >
-              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: monthlyScale }] }}>
+              <TouchableOpacity
+                style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(false);
+                }}
+              >
+                <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+            <Animated.View style={{ transform: [{ scale: annualScale }] }}>
+              <TouchableOpacity
+                style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(true);
+                }}
+              >
+                <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
 
           {(() => {
