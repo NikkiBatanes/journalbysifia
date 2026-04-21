@@ -1910,11 +1910,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const screenWidth = Dimensions.get('window').width;
   const computedLeft = tooltipAnchor
     ? buttonHasText.current
-      ? Math.min(Math.max(tooltipAnchor.x + (tooltipAnchor.width / 2) - (tooltipWidth / 2), 10), screenWidth - tooltipWidth - 10)
+      ? Math.min(Math.max(tooltipAnchor.x + (tooltipAnchor.width / 2) - (tooltipWidth / 2) + 10, 10), screenWidth - tooltipWidth - 10)
       : Math.min(Math.max(tooltipAnchor.x + tooltipAnchor.width - tooltipWidth + 15, 10), screenWidth - tooltipWidth - 10)
     : 10;
   const computedTop = tooltipAnchor
-    ? Math.max(tooltipAnchor.y - 110, (insets?.top ?? 0) + 10)
+    ? Math.max(tooltipAnchor.y - 55, (insets?.top ?? 0) + 10)
     : (insets?.top ?? 0) + 10;
   const computedCaretLeft = buttonHasText.current ? '50%' : undefined;
   const computedCaretRight = buttonHasText.current ? undefined : 24;
