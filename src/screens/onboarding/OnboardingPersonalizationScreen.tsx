@@ -501,9 +501,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         setChallengeDetails(rewriteData.challengeDetails);
 
         // Focus input and move cursor to end after restoration
+        // Long delay to allow iOS save password alert to be dismissed
         setTimeout(() => {
           detailsInputRef.current?.focus();
-        }, 100);
+        }, 3000);
       }
 
       logger.debug('Restored rewrite data:', rewriteData);
@@ -1151,14 +1152,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
-      // Longer delay to allow animations to complete
+      // Long delay to allow iOS save password alert to be dismissed
       setTimeout(() => {
         detailsInputRef.current?.focus();
         if (!(detailsOnlyFlow || currentStep === 4)) {
           const y = Math.max(askBoxYRef.current - 140, 0);
           scrollViewRef.current?.scrollTo({ y, animated: true });
         }
-      }, 500);
+      }, 3000);
     });
   }, [currentStep, detailsOnlyFlow]);
 
@@ -1221,19 +1222,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     // Do not auto-focus per UX requirement
   }, [selectedChallenge, routeParams?.rewriteData]);
 
-  // Focus input once on mount - matches UserInputScreen's auto-focus pattern
-  const autoFocusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  React.useEffect(() => {
-    autoFocusTimer.current = setTimeout(() => {
-      detailsInputRef.current?.focus();
-    }, 1500);
-    return () => {
-      if (autoFocusTimer.current) {
-        clearTimeout(autoFocusTimer.current);
-        autoFocusTimer.current = null;
-      }
-    };
-  }, []);
+  // Do NOT auto-focus on mount - wait for iOS save password alert to be dismissed
+  // User can manually tap the input field to focus when ready
 
   // Always show the top content when entering a new step/page
   React.useEffect(() => {
@@ -1321,10 +1311,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         Animated.spring(contentEntryAnim, { toValue: 1, tension: 38, friction: 11, useNativeDriver: true }),
       ]),
     ]).start(() => {
-      // Focus input after animations complete
-      if (detailsOnlyFlow || currentStep === 4) {
-        detailsInputRef.current?.focus();
-      }
+      // Do NOT auto-focus - wait for iOS save password alert to be dismissed
+      // User can manually tap the input field to focus when ready
     });
   }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow, currentStep]);
 
