@@ -63,15 +63,21 @@ const CARD_SECTIONS: CardSection[] = [
   { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
 ];
 
-// Derive per-section state from walkthrough_progress
-// completed = Next was pressed on that step, viewed = user was there but didn't press Next,
+// Derive per-section state from walkthrough_progress and action step completion
+// completed = Next was pressed on that step OR all action steps in that section are completed
+// viewed = user was there but didn't press Next OR some action steps are completed
 // unreached = never got there
 const getSectionState = (
   sectionStep: number,
   wp: number,
+  completedSteps?: number,
+  totalSteps?: number,
 ): 'completed' | 'viewed' | 'unreached' => {
-  if (wp < 0) { return 'unreached'; } // not started — nothing is viewed or completed
+  if (wp < 0 && (!completedSteps || completedSteps === 0)) { return 'unreached'; }
   if (wp >= sectionStep) { return 'completed'; }
+  // For Faithful Actions (step 3), if any action steps are completed, mark as viewed
+  if (sectionStep === 3 && completedSteps && completedSteps > 0) { return 'viewed'; }
+  // For Prayer (step 4) and Words to Speak (step 5), use walkthrough_progress
   if (wp + 1 === sectionStep) { return 'viewed'; }
   return 'unreached';
 };
@@ -746,14 +752,14 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ) : (
             <View style={styles.sectionsContainer}>
               {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
-                const state = getSectionState(step, wp);
+                const state = getSectionState(step, wp, completed, total);
                 // Derive dynamic values per section to match PlaybookListScreen
                 const meta = step === 1 ? tilReadTime
                            : step === 3 && total > 0 ? `${completed} of ${total} acted on`
                            : undefined;
                 // Note: hasPrayed/hasRead not available in CombinedContentCarousel context
-                // Using state-based coloring instead
-                const actionIconState = state === 'completed';
+                // Using state-based coloring - show coral for both completed and viewed states
+                const actionIconState = state === 'completed' || state === 'viewed';
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[styles.statusPill, state === 'completed' && styles.statusPillCompleted, state === 'viewed' && styles.statusPillViewed, state === 'unreached' && styles.statusPillUnreached]}>
