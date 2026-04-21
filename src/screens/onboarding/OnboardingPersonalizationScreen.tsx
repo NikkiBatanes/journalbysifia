@@ -1089,7 +1089,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (hasTextBoolean !== buttonHasText.current) {
       buttonHasText.current = hasTextBoolean;
       Animated.spring(buttonWidthAnim, {
-        toValue: hasTextBoolean ? 240 : 36,
+        toValue: hasTextBoolean ? 220 : 36,
         tension: 50,
         friction: 12,
         useNativeDriver: false,
@@ -1832,6 +1832,16 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               />
               <View style={styles.actionsOverlay}>
                 <TouchableOpacity
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setShowHelperSelector(true);
+                  }}
+                  style={styles.inputFooterHelpButton}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText style={styles.inputFooterHelpButtonText}>See examples</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
                   ref={hintButtonRef}
                   onPress={onPressHint}
                   activeOpacity={0.9}
@@ -2249,17 +2259,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </View>
               </View>
               <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
-              <TouchableOpacity
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  setShowTooltip(false);
-                  setShowHelperSelector(true);
-                }}
-                style={styles.tooltipHelpButton}
-                activeOpacity={0.8}
-              >
-                <ThemedText style={styles.tooltipHelpButtonText}>Need help putting words to it?</ThemedText>
-              </TouchableOpacity>
               <View style={[styles.tooltipCaret, { left: computedCaretLeft, right: computedCaretRight, transform: computedCaretTransform }]} />
             </Animated.View>
           </TouchableOpacity>
@@ -2276,27 +2275,26 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             onPress={() => setShowHelperSelector(false)}
           >
             <View style={styles.helperSelectorContainer}>
-              <ThemedText style={styles.helperSelectorTitle}>Need help putting words to it?</ThemedText>
-              <ThemedText style={styles.helperSelectorSubtitle}>Tap an option below to get started</ThemedText>
+              <ThemedText style={styles.helperSelectorTitle}>Choose a sample to get started</ThemedText>
               <View style={styles.helperSelectorList}>
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('We talked and now I feel unsettled.');
+                    setChallengeDetails('We talked, and now I feel unsettled. I keep replaying the conversation and do not know if I am overreacting.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
                   }}
                   activeOpacity={0.9}
                 >
-                  <ThemedText style={styles.helperSelectorOptionText}>We talked and now I feel unsettled.</ThemedText>
+                  <ThemedText style={styles.helperSelectorOptionText}>We talked, and now I feel unsettled.</ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I reacted quickly and regret it.');
+                    setChallengeDetails('I reacted quickly and regret it. Now I feel bothered by what I said and wish I had slowed down first.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
                   }}
@@ -2309,26 +2307,39 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   style={styles.helperSelectorOption}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I feel guilty but don\'t know why.');
+                    setChallengeDetails('I cannot tell if this is conviction or just shame. Something feels heavy, but I do not know how I am supposed to respond.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
                   }}
                   activeOpacity={0.9}
                 >
-                  <ThemedText style={styles.helperSelectorOptionText}>I feel guilty but don't know why.</ThemedText>
+                  <ThemedText style={styles.helperSelectorOptionText}>I cannot tell if this is conviction or just shame.</ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I\'m afraid of making the wrong decision.');
+                    setChallengeDetails('I am afraid of making the wrong decision. I want to do what is right, but I feel pressure and do not know what step to take.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
                   }}
                   activeOpacity={0.9}
                 >
-                  <ThemedText style={styles.helperSelectorOptionText}>I'm afraid of making the wrong decision.</ThemedText>
+                  <ThemedText style={styles.helperSelectorOptionText}>I am afraid of making the wrong decision.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I felt nudged to say something honest, but I held back. Now I feel convicted and confused about what I should do next.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I felt nudged to say something honest, but I held back.</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2945,6 +2956,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  inputFooterHelpButton: {
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputFooterHelpButtonText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   helperSelectorOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2963,7 +2988,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 16,
     textAlign: 'center',
   },
   helperSelectorSubtitle: {
@@ -2977,16 +3002,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   helperSelectorOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   helperSelectorOptionText: {
     color: Colors.hopeWhite,
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '400',
   },
   tooltipCaret: {
     position: 'absolute',
