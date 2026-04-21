@@ -2251,6 +2251,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
               <TouchableOpacity
                 onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
                   setShowTooltip(false);
                   setShowHelperSelector(true);
                 }}
@@ -2276,10 +2277,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           >
             <View style={styles.helperSelectorContainer}>
               <ThemedText style={styles.helperSelectorTitle}>Need help putting words to it?</ThemedText>
+              <ThemedText style={styles.helperSelectorSubtitle}>Tap an option below to get started</ThemedText>
               <View style={styles.helperSelectorList}>
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
                     setChallengeDetails('We talked and now I feel unsettled.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
@@ -2292,6 +2295,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
                     setChallengeDetails('I reacted quickly and regret it.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
@@ -2304,6 +2308,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
                     setChallengeDetails('I feel guilty but don\'t know why.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
@@ -2316,6 +2321,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.helperSelectorOption}
                   onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
                     setChallengeDetails('I\'m afraid of making the wrong decision.');
                     focusDetailsInput();
                     setShowHelperSelector(false);
@@ -2851,7 +2857,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     borderColor: 'transparent',
     borderWidth: 0,
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     zIndex: 9999,
     elevation: 9999,
@@ -2926,11 +2932,13 @@ const styles = StyleSheet.create({
   },
   tooltipHelpButton: {
     marginTop: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   tooltipHelpButtonText: {
     color: Colors.hopeWhite,
@@ -2946,17 +2954,22 @@ const styles = StyleSheet.create({
   },
   helperSelectorContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
+    borderRadius: 28,
     padding: 20,
     width: '100%',
     maxWidth: 400,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   helperSelectorTitle: {
     color: Colors.hopeWhite,
     fontSize: 18,
     fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  helperSelectorSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    fontWeight: '500',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -2965,8 +2978,10 @@ const styles = StyleSheet.create({
   },
   helperSelectorOption: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 14,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   helperSelectorOptionText: {
     color: Colors.hopeWhite,

@@ -2140,7 +2140,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     borderColor: 'transparent',
     borderWidth: 0,
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     zIndex: 20,
   },

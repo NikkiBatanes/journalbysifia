@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
@@ -69,6 +70,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const devotionalGating = useDevotionalGating();
   const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
@@ -1362,13 +1364,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       currencyInfo,
     });
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
-            <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
         <View style={styles.centeredContainer}>
           <ThemedText style={styles.loadingText}>
             Loading pricing options...
@@ -1377,13 +1377,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             Tiers: {pricingTiers.length}, Currency: {currencyInfo ? 'loaded' : 'loading...'}
           </ThemedText>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent animated />
       {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
       <PurchaseLoadingModal
         visible={isPurchasing}
@@ -1399,26 +1399,27 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         onContinue={handleSuccessModalContinue}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Close button top-right */}
-        <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
-          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-      </View>
+      {/* Close button - absolute positioned at top */}
+      <TouchableOpacity
+        style={[styles.closeButtonTopRight, { top: insets.top + 12 }]}
+        onPress={handleClose}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+      </TouchableOpacity>
 
-      {/* Body content: sticky toggle header + scrollable content */}
-      <View style={styles.content}>
-        {/* Pricing Cards - Scrollable with sticky toggle */}
-        <ScrollView
-          style={styles.pricingScroll}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContentPadding,
-            { paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
-          ]}
-          scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
-        >
+      {/* Pricing Cards - Scrollable */}
+      <ScrollView
+        style={styles.pricingScroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContentPadding,
+          { paddingHorizontal: 24, paddingTop: insets.top + 8, paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
+        ]}
+        scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
+        snapToStart={true}
+        snapToEnd={true}
+      >
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
             {dynamicSalesCopy
@@ -1745,7 +1746,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
 
       {/* Fixed Footer CTA */}
       <View
@@ -1914,7 +1914,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         </View>
       </View>
 
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1923,26 +1923,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 8,
-    position: 'relative',
-  },
   closeButtonTopRight: {
     position: 'absolute',
-    top: 0,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    right: 20,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 10,
   },
 
   closeButton: {
@@ -1980,7 +1970,6 @@ const styles = StyleSheet.create({
   },
   pricingScroll: {
     flex: 1,
-    marginTop: 4,
   },
   stickyToggleHeader: {
     backgroundColor: Colors.anchorBlue,

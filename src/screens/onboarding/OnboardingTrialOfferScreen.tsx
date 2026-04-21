@@ -986,7 +986,7 @@ const OnboardingTrialOfferScreen = () => {
           accessibilityLabel="Close"
           disabled={isClosing || isStartingTrial}
         >
-          <Ionicons name="close" size={22} color={Colors.hopeWhite} />
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
@@ -1246,16 +1246,16 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     letterSpacing: 0.15,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
-    right: 16,
+    right: 20,
     top: 8,
-    zIndex: 2,
+    zIndex: 100,
   },
   disabledButton: {
     opacity: 0.6,
