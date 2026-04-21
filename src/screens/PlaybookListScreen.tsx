@@ -790,7 +790,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more frequent updates
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
     refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: false, // Disable automatic refetch on focus (we handle manually)
+    refetchOnWindowFocus: true, // Enable automatic refetch on focus to update walkthrough_progress
     retry: (failureCount) => {
 
       return failureCount < 3;
