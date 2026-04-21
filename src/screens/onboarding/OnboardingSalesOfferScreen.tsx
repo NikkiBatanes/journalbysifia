@@ -122,6 +122,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
   const [preservedTier, setPreservedTier] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -305,8 +306,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
-        // Filter to only show Growth tier in onboarding flow
-        if (routeParams?.onboardingFlow) {
+        // Filter to only show Growth tier in onboarding flow (unless showAllPlans is true)
+        if (routeParams?.onboardingFlow && !showAllPlans) {
           tiers = tiers.filter(t => t.id === 'growth');
           logger.debug('Filtered to only show Growth tier for onboarding flow', {
             remainingTiers: tiers.map(t => t.id),
@@ -314,16 +315,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
 
 
-        // Filter to only show Transformation annual when forced
-        if ((route.params as any)?.forceTransformationAnnual) {
+        // Filter to only show Transformation annual when forced (unless showAllPlans is true)
+        if ((route.params as any)?.forceTransformationAnnual && !showAllPlans) {
           tiers = tiers.filter(t => t.id === 'transformation');
           logger.debug('Filtered to only show Transformation annual', {
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
-        // Filter to show only annual plans at or above current tier when forced
-        if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
+        // Filter to show only annual plans at or above current tier when forced (unless showAllPlans is true)
+        if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker' && !showAllPlans) {
           const baseTier = currentUserTier.replace('_annual', '');
           const tierHierarchy = ['spark', 'growth', 'transformation'];
           const currentTierIndex = tierHierarchy.indexOf(baseTier);
@@ -1217,11 +1218,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
             </View>
           )}
-          {isAnnual && (
-            <ThemedText weight="semiBold" style={[styles.tierDuration, isSelected && styles.selectedText]}>
-              -{tier.duration}
-            </ThemedText>
-          )}
         </View>
 
         <View style={styles.priceContainer}>
@@ -1229,21 +1225,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             {(() => {
               const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
               const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
-              return `${currencyInfo?.symbol || '$'}${formatted}/month`;
+              return `${currencyInfo?.symbol || '$'}${formatted}/${isAnnual ? 'year' : 'month'}`;
             })()}
           </ThemedText>
-          {(() => {
-            const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
-            const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-            return original && original > current ? (
-              <ThemedText weight="semiBold" style={styles.originalPrice}>
-                {(() => {
-                  const formatted = (currencyInfo?.currency === 'PHP' && original % 1 === 0) ? Math.floor(original) : original.toFixed(2);
-                  return `${currencyInfo?.symbol || '$'}${formatted}/month`;
-                })()}
-              </ThemedText>
-            ) : null;
-          })()}
         </View>
 
         <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
@@ -1598,6 +1582,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             )}
           </View>
 
+          {/* See All Plans Button - show when in filtered mode */}
+          {(routeParams?.onboardingFlow || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && (
+            <TouchableOpacity
+              style={styles.seeAllPlansButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setShowAllPlans(!showAllPlans);
+              }}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.seeAllPlansText}>{showAllPlans ? 'Show Less' : 'See All Plans'}</ThemedText>
+            </TouchableOpacity>
+          )}
+
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
@@ -1669,15 +1667,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             if (isAnnual) {
               const annualPrice = tier.annualPrice;
+              const monthlyPrice = tier.monthlyPrice;
+              const monthlyYearly = monthlyPrice * 12;
 
               return (
                 <>
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
-                    {`${symbol}${formatValue(annualPrice)}/year`}
+                    {`${symbol}${formatValue(annualPrice)}`}
                   </ThemedText>
-                  <ThemedText style={styles.footerPriceSub}>Save 2 months free</ThemedText>
-                  <ThemedText style={styles.footerPriceApprox}>
-                    Annual plan saves you 2 months.
+                  <ThemedText style={styles.footerPriceSub}>
+                    <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6 }}>{`${symbol}${formatValue(monthlyYearly)}`}</ThemedText>
+                    {' · Save 2 months'}
                   </ThemedText>
                   <ThemedText style={styles.footerPriceApprox}>
                     Pay once, grow all year.
@@ -1777,9 +1777,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
-          <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
-          <ThemedText style={styles.footerText}>No Payment Now.</ThemedText>
-          <ThemedText style={styles.footerText}> Cancel Anytime</ThemedText>
+          {!isAnnual && <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />}
+          {isAnnual ? (
+            <ThemedText style={styles.footerText}>Billed yearly after trial unless cancelled.</ThemedText>
+          ) : (
+            <>
+              <ThemedText style={styles.footerText}>No Payment Now.</ThemedText>
+              <ThemedText style={styles.footerText}> Cancel Anytime</ThemedText>
+            </>
+          )}
         </View>
       </View>
 
@@ -2052,6 +2058,21 @@ const styles = StyleSheet.create({
   cardsContainer: {
     marginBottom: 16,
   },
+  seeAllPlansButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  seeAllPlansText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    // weight handled by ThemedText
+  },
   pricingCard: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 30,
@@ -2149,7 +2170,7 @@ const styles = StyleSheet.create({
   recommendedText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '400',
+    fontWeight: '500',
     letterSpacing: 0.5,
   },
   tierDuration: {
