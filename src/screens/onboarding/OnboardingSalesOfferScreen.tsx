@@ -1587,26 +1587,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </View>
           )}
 
-          {/* Trial Benefits Section - show whenever user is trial-eligible */}
-          {!routeParams?.onboardingFlow && shouldUseTrialProduct && (
-            <View style={styles.trialBenefitsContainer}>
-              {(() => {
-                return (
-                  <>
-                    <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                      Start with a free 3-day trial
-                    </ThemedText>
-                    <View style={styles.trialSupportingTextContainer}>
-                      <ThemedText style={styles.trialSupportingText}>
-                        This trial lets you experience the full siFia flow in real situations,
-                        so you can discern whether this structure serves your current season.
-                      </ThemedText>
-                    </View>
-                  </>
-                );
-              })()}
-            </View>
-          )}
 
           <View style={styles.cardsContainer}>
             {pricingTiers.length > 0 ? (
@@ -2502,6 +2482,13 @@ const styles = StyleSheet.create({
     color: Colors.growthGreen,
     marginBottom: 12,
     textAlign: 'center',
+  },
+  trialPricingText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    textAlign: 'center',
+    marginTop: 8,
   },
   trialBenefitItem: {
     flexDirection: 'row',

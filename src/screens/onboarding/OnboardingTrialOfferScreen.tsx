@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   Alert,
   Linking,
   Platform,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -74,6 +75,42 @@ const OnboardingTrialOfferScreen = () => {
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const monthlyScale = useRef(new Animated.Value(1)).current;
+  const annualScale = useRef(new Animated.Value(1)).current;
+
+  const animateToggle = (isAnnual: boolean) => {
+    if (isAnnual) {
+      Animated.spring(monthlyScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(annualScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      Animated.spring(annualScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(monthlyScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    }
+  };
+
+  useEffect(() => {
+    animateToggle(isAnnual);
+  }, [isAnnual]);
   // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
@@ -472,7 +509,7 @@ const OnboardingTrialOfferScreen = () => {
         // const fiveMinutesAgo = transactionTime - (5 * 60 * 1000); // Unused
 
         // CRITICAL: Now that Apple has authorized, set up the trial in database
-        // This activates the trial with 2 playbooks + 2 devotionals
+        // This activates the trial with tier-specific limits (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
         try {
           logger.info('🔄 TRIAL STEP 3: Starting trial setup in database', {
             userId: user.id,
@@ -774,32 +811,73 @@ const OnboardingTrialOfferScreen = () => {
 
 
 
-  const timelineItems = [
-    {
-      id: 1,
-      title: 'Today - Your free trial begins',
-      description: '',
-      icon: 'checkmark-circle',
-      iconColor: Colors.growthGreen,
-      isCompleted: true,
-    },
-    {
-      id: 2,
-      title: `${formatShortDate(addDays(new Date(), 2))}`,
-      description: 'We will send a gentle reminder before your trial ends, so you can decide with peace.',
-      icon: 'notifications',
-      iconColor: Colors.growthGreen,
-      isCompleted: false,
-    },
-    {
-      id: 3,
-      title: `${formatShortDate(addDays(new Date(), 3))}`,
-      description: '',
-      icon: 'rocket',
-      iconColor: Colors.alertCoral,
-      isCompleted: false,
-    },
-  ];
+  const getTrialBenefits = () => {
+    switch (selectedTierId) {
+      case 'growth':
+        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+      case 'spark':
+        return 'You get 10 playbooks, 10 devotionals, and 1,3-day devotionals.';
+      case 'transformation':
+        return 'You get 15 playbooks, 15 devotionals, and 1,3,5 & 7-day devotionals.';
+      default:
+        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+    }
+  };
+
+  const formatDateRange = (startDate: Date, endDate: Date) => {
+    const start = startDate;
+    const end = endDate;
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay}-${endDay}`;
+    } else {
+      return `${startMonth} ${startDay}-${endMonth} ${endDay}`;
+    }
+  };
+
+  const timelineItems = React.useMemo(() => {
+    const today = new Date();
+    const day2 = addDays(today, 2);
+    const day3 = addDays(today, 3);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    return [
+      {
+        id: 1,
+        title: 'Today',
+        subtitle: 'Your free trial begins',
+        description: getTrialBenefits(),
+        icon: 'checkmark-circle',
+        iconColor: Colors.growthGreen,
+        isCompleted: true,
+      },
+      {
+        id: 2,
+        title: formatDateRange(today, day2),
+        subtitle: 'Use it in real moments',
+        description: 'Come back with new situations, create devotionals, and see if the structure helps.',
+        icon: 'notifications',
+        iconColor: Colors.growthGreen,
+        isCompleted: false,
+      },
+      {
+        id: 3,
+        title: formatDate(day3),
+        subtitle: 'Your paid plan starts',
+        description: 'If you keep the subscription, your monthly or annual plan begins fresh.',
+        icon: 'rocket',
+        iconColor: Colors.alertCoral,
+        isCompleted: false,
+      },
+    ];
+  }, [selectedTierId]);
 
 // ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {
@@ -820,66 +898,12 @@ const OnboardingTrialOfferScreen = () => {
 
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
-          {item.id === 1 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                Explore siFia Growth and see how it supports your current season.
-              </ThemedText>
-              <ThemedText style={styles.timelineDescription}>
-                There's nothing you need to decide today.
-              </ThemedText>
-
-              <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>During your trial, you can:</ThemedText>
-
-              <View style={styles.timelineBulletsContainer}>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Create playbooks and devotionals</ThemedText>
-                </View>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Reflect, pray, and journal with clarity</ThemedText>
-                </View>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Return to siFia when moments come up</ThemedText>
-                </View>
-              </View>
-            </View>
-          ) : item.id === 2 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                We'll send a gentle reminder before your trial ends.
-              </ThemedText>
-              <View style={styles.timelineSectionSpacing} />
-            </View>
-          ) : item.id === 3 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                If you choose to continue, your subscription starts.
-              </ThemedText>
-              <View style={styles.timelineSectionSpacing}>
-                <ThemedText style={styles.timelineDescription}>You’ll have full access to:</ThemedText>
-                <View style={styles.timelineBulletsContainer}>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>Up to 20 playbooks per month</ThemedText>
-                  </View>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>Up to 20 devotionals per month.</ThemedText>
-                  </View>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>A consistent space for reflection, prayer, and faithful next steps.</ThemedText>
-                  </View>
-                </View>
-                <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>You can cancel anytime before the trial ends.</ThemedText>
-              </View>
-            </View>
-          ) : (
-            <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
+          {item.subtitle && (
+            <ThemedText weight="bold" style={styles.timelineSubtitle}>{item.subtitle}</ThemedText>
           )}
+          {item.description ? (
+            <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
+          ) : null}
         </View>
       </View>
     );
@@ -980,6 +1004,11 @@ const OnboardingTrialOfferScreen = () => {
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
               {routeParams?.onboardingFlow ? 'How your free trial works' : 'Not sure yet?'}
             </ThemedText>
+            {routeParams?.onboardingFlow && (
+              <ThemedText style={styles.headerSubText}>
+                3 days free on {getTierDisplayName(selectedTierId)}. After that, your subscription continues at {getLocalizedPrice()}/{isAnnual ? 'year' : 'month'} unless cancelled.
+              </ThemedText>
+            )}
           </View>
         </View>
       </View>
@@ -1026,26 +1055,30 @@ const OnboardingTrialOfferScreen = () => {
       <View style={styles.footerBlock} pointerEvents="box-none">
         {/* Monthly/Annual Toggle */}
         <View style={styles.footerToggleContainer}>
-          <TouchableOpacity
-            style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(false);
-            }}
-            activeOpacity={0.9}
-          >
-            <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(true);
-            }}
-            activeOpacity={0.9}
-          >
-            <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: monthlyScale }] }}>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(false);
+              }}
+              activeOpacity={0.9}
+            >
+              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View style={{ transform: [{ scale: annualScale }] }}>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(true);
+              }}
+              activeOpacity={0.9}
+            >
+              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
 
         {/* Pricing Summary (dynamic) */}
@@ -1222,6 +1255,15 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     lineHeight: 30,
     letterSpacing: 0.25,
     marginBottom: 0,
+    marginTop: 8,
+  },
+  headerSubText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    textAlign: 'left',
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -1570,12 +1612,19 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 3,
   },
+  timelineSubtitle: {
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    color: Colors.hopeWhite,
+    opacity: 0.95,
+    marginBottom: 4,
+  },
   timelineDescription: {
     fontSize: 13,
     fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     lineHeight: 18,
-    opacity: 0.9,
+    opacity: 0.6,
   },
   timelineDescriptionSpacing: {
     marginTop: 8,
