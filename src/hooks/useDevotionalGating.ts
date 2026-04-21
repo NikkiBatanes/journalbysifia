@@ -58,7 +58,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
 
   // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')
   // This ensures Growth Trial gets Growth tier's feature unlocks (5-day devotionals)
-  // while still having trial limits (2/2)
+  // while still having trial limits (depends on trial_chosen_tier: Spark 5/5, Growth 15/15, Transformation 25/25)
   const tier = useMemo(() => {
     if (!subscription) {return 'seeker';}
 

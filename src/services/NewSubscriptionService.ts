@@ -21,7 +21,51 @@ export class NewSubscriptionService {
 
   // ===== TIER CONFIGURATION =====
   /**
-   * Get limits and features for a subscription tier
+   * Get trial limits based on chosen tier
+   * @param trialChosenTier - The tier the user chose for trial
+   * @returns Tier limits for the trial period
+   */
+  static getTrialLimits(trialChosenTier?: SubscriptionTier): {
+    playbooks_limit: number;
+    devotionals_limit: number;
+    smart_journaling_enabled: boolean;
+    show_dashboard_counts: boolean;
+  } {
+    const tier = trialChosenTier || 'growth'; // Default to growth if not specified
+    switch (tier) {
+      case 'spark':
+        return {
+          playbooks_limit: 5,
+          devotionals_limit: 5,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      case 'growth':
+        return {
+          playbooks_limit: 15,
+          devotionals_limit: 15,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      case 'transformation':
+        return {
+          playbooks_limit: 25,
+          devotionals_limit: 25,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      default:
+        return {
+          playbooks_limit: 15,
+          devotionals_limit: 15,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+    }
+  }
+
+  /**
+   * Get tier limits and features for a subscription tier
    */
   static getTierLimits(tier: SubscriptionTier): {
     playbooks_limit: number;
@@ -41,10 +85,12 @@ export class NewSubscriptionService {
           show_dashboard_counts: true,
         };
       case 'free_trial':
-        // Free trial: Limited to 2 playbooks and 2 devotionals for 3 days
+        // Free trial: Limits depend on trial_chosen_tier
+        // Spark: 5/5, Growth: 15/15, Transformation: 25/25
+        // Default to Growth limits if no chosen tier specified
         return {
-          playbooks_limit: 2,
-          devotionals_limit: 2,
+          playbooks_limit: 15,
+          devotionals_limit: 15,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -291,9 +337,9 @@ export class NewSubscriptionService {
       // Create or update subscription record with trial dates for proper expiry management
       const chosenTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
 
-      // IMPORTANT: All trials get 2/2 limits regardless of chosen tier
-      // The chosen tier only applies AFTER they convert to paid
-      const trialLimits = this.getTierLimits('free_trial'); // Always 2/2 for trials
+      // IMPORTANT: Trial limits depend on chosen tier
+      // Spark: 5/5, Growth: 15/15, Transformation: 25/25
+      const trialLimits = this.getTrialLimits(chosenTier);
 
       // Generate display name for trial: "siFia Spark Trial", "siFia Growth Trial", etc.
       const tierDisplayName = this.getTierDisplayName(chosenTier);
@@ -308,8 +354,8 @@ export class NewSubscriptionService {
         trial_chosen_tier: chosenTier, // Remember which tier they want after trial
         billing_cycle: billing_cycle || 'monthly', // Store billing cycle for conversion
         subscription_display_name: displayName, // e.g., "siFia Spark Trial"
-        playbooks_limit: trialLimits.playbooks_limit, // Always 2 for trials
-        devotionals_limit: trialLimits.devotionals_limit, // Always 2 for trials
+        playbooks_limit: trialLimits.playbooks_limit,
+        devotionals_limit: trialLimits.devotionals_limit,
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
@@ -477,7 +523,10 @@ export class NewSubscriptionService {
     // Special case: If updating to same tier but it's a trial tier, we need to update trial fields
     if (isSameTierUpgrade && to_tier === 'free_trial') {
       // Update trial-specific fields even if tier is the same
-      const limits = this.getTierLimits(to_tier);
+      // Use tier-specific trial limits based on trial_chosen_tier
+      const subscription = await this.getUserSubscription(userId);
+      const trialChosenTier = subscription?.trial_chosen_tier || 'growth';
+      const limits = this.getTrialLimits(trialChosenTier);
       const displayName = this.getTierDisplayName(to_tier);
 
       const updateData: any = {
@@ -485,8 +534,8 @@ export class NewSubscriptionService {
         playbooks_limit: limits.playbooks_limit,
         devotionals_limit: limits.devotionals_limit,
         smart_journaling_enabled: limits.smart_journaling_enabled,
-        playbooks_used: 0, // ALWAYS reset usage for trial - should be 0/2
-        devotionals_used: 0, // ALWAYS reset usage for trial - should be 0/2
+        playbooks_used: 0, // ALWAYS reset usage for trial
+        devotionals_used: 0, // ALWAYS reset usage for trial
         updated_at: new Date().toISOString(),
       };
 

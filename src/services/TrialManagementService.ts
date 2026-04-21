@@ -32,7 +32,8 @@ export interface TrialCancellationResult {
 export class TrialManagementService {
   /**
    * PHASE 1A: Create a free trial subscription
-   * Sets user to free_trial tier with 2/2 limits for 3 days
+   * Sets user to free_trial tier with tier-specific limits for 3 days
+   * Spark: 5/5, Growth: 15/15, Transformation: 25/25
    */
   static async createTrial(
     userId: string,
@@ -55,8 +56,8 @@ export class TrialManagementService {
       const trialEndDate = new Date(trialStartDate);
       trialEndDate.setDate(trialEndDate.getDate() + 3);
 
-      // Get free_trial limits (2 playbooks, 2 devotionals)
-      const trialLimits = NewSubscriptionService.getTierLimits('free_trial');
+      // Get tier-specific trial limits (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
+      const trialLimits = NewSubscriptionService.getTrialLimits(chosenTier);
 
       // Build display name with billing cycle
       const tierName = this.getTierName(chosenTier);
@@ -73,8 +74,8 @@ export class TrialManagementService {
           trial_end_date: trialEndDate.toISOString(),
           trial_chosen_tier: chosenTier, // Store which tier they'll convert to
           billing_cycle: billingCycle || 'monthly', // Store billing cycle for conversion
-          playbooks_limit: trialLimits.playbooks_limit, // 2
-          devotionals_limit: trialLimits.devotionals_limit, // 2
+          playbooks_limit: trialLimits.playbooks_limit,
+          devotionals_limit: trialLimits.devotionals_limit,
           playbooks_used: 0, // Reset usage for trial
           devotionals_used: 0,
           smart_journaling_enabled: trialLimits.smart_journaling_enabled,

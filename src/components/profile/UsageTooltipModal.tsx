@@ -237,9 +237,9 @@ const UsageTooltipModal: React.FC<Props> = ({
   const getFullTierLimits = (tier: string): { playbooks: number; devotionals: number } => {
     switch (tier) {
       case 'spark':
-        return { playbooks: 8, devotionals: 8 };
+        return { playbooks: 10, devotionals: 10 };
       case 'growth':
-        return { playbooks: 20, devotionals: 20 };
+        return { playbooks: 25, devotionals: 25 };
       case 'transformation':
       case 'family':
         return { playbooks: -1, devotionals: -1 };

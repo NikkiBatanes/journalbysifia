@@ -136,8 +136,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Spark',
           description: 'For consistent encouragement',
           features: [
-            '8 playbooks each month',
-            '8 devotionals each month',
+            '10 playbooks each month',
+            '10 devotionals each month',
             'Access 1-day, 3-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
@@ -146,8 +146,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             'Smart Journaling for personalized reflection',
           ],
           limits: {
-            playbooks: 8,
-            devotionals: 8,
+            playbooks: 10,
+            devotionals: 10,
           },
           color: Colors.alertCoral,
         };
@@ -156,8 +156,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Growth',
           description: 'For deeper transformation',
           features: [
-            '20 playbooks each month',
-            '20 devotionals each month',
+            '25 playbooks each month',
+            '25 devotionals each month',
             'Access 1-day, 3-day, 5-day devotionals',
             'Gentle reminders to keep you on track',
             'Track your progress week by week',
@@ -168,8 +168,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             'Export to PDF for sharing and printing',
           ],
           limits: {
-            playbooks: 20,
-            devotionals: 20,
+            playbooks: 25,
+            devotionals: 25,
           },
           color: Colors.growthGreen,
         };

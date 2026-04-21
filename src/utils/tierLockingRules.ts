@@ -50,11 +50,11 @@ export const LOCK_VISIBILITY_RULES = {
 // Usage counter messages per tier
 export const USAGE_DISPLAY_RULES = {
   seeker: 'Upgrade to Create Devotionals',
-  free_trial: '2 Devotionals Remaining',
-  spark: '8 Devotionals Remaining',
-  spark_annual: '8 Devotionals Remaining',
-  growth: '20 Devotionals Remaining',
-  growth_annual: '20 Devotionals Remaining',
+  free_trial: 'Devotionals Remaining', // Limits depend on trial_chosen_tier
+  spark: '10 Devotionals Remaining',
+  spark_annual: '10 Devotionals Remaining',
+  growth: '25 Devotionals Remaining',
+  growth_annual: '25 Devotionals Remaining',
   transformation: 'Unlimited Devotionals',
   transformation_annual: 'Unlimited Devotionals',
 } as Record<SubscriptionTier, string>;

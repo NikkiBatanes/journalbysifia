@@ -33,7 +33,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     cooldownSeconds: 30, // Prevent button mashing
   },
 
-  // Spark tier - 8 playbooks/month (subscription handles limit)
+  // Spark tier - 10 playbooks/month (subscription handles limit)
   // Rate limits ONLY prevent rapid abuse, not normal usage
   spark: {
     perMinute: 3,     // Can generate 3 quickly if needed
@@ -43,7 +43,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
 
-  // Growth tier - 20 playbooks/month (subscription handles limit)
+  // Growth tier - 25 playbooks/month (subscription handles limit)
   // Rate limits ONLY prevent rapid abuse
   growth: {
     perMinute: 5,     // Very generous

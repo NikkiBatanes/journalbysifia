@@ -68,11 +68,11 @@ export const getTierDisplayName = (tier: SubscriptionTier): string => {
     // Seeker (freemium - was "basic")
     'seeker': 'siFia Seeker',
 
-    // Spark (entry paid) - 8 playbooks, 8 devotionals
+    // Spark (entry paid) - 10 playbooks, 10 devotionals
     'spark': 'siFia Spark',
     'spark_annual': 'siFia Spark',
 
-    // Growth (mid tier) - 20 playbooks, 20 devotionals
+    // Growth (mid tier) - 25 playbooks, 25 devotionals
     'growth': 'siFia Growth',
     'growth_annual': 'siFia Growth',
 

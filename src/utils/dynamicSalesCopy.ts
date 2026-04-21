@@ -50,9 +50,9 @@ function getTierDisplayName(tier: SubscriptionTier): string {
 function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals'): number {
   const limits = {
     'seeker': { playbooks: 0, devotionals: 0 },
-    'free_trial': { playbooks: 2, devotionals: 2 },
-    'spark': { playbooks: 8, devotionals: 8 },
-    'growth': { playbooks: 20, devotionals: 20 },
+    'free_trial': { playbooks: 15, devotionals: 15 }, // Default, actual limits depend on trial_chosen_tier
+    'spark': { playbooks: 10, devotionals: 10 },
+    'growth': { playbooks: 25, devotionals: 25 },
     'transformation': { playbooks: -1, devotionals: -1 }, // unlimited
     // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1 },
   } as Record<SubscriptionTier, { playbooks: number; devotionals: number }>;
