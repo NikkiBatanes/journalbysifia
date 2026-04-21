@@ -820,20 +820,23 @@ const PlaybookListScreen = ({ navigation }: any) => {
           totalSteps: calculateTaskStats(playbookBefore.actionSteps).total,
         });
       }
-      console.log('📡 PlaybookListScreen: Calling refetch()...');
-      refetch().then(() => {
-        console.log('📡 PlaybookListScreen: Refetch completed');
-        console.log('📡 PlaybookListScreen: Playbooks count after refetch:', playbooks.length);
-        const playbookAfter = playbooks.find(p => p.id === data.playbookId);
-        if (playbookAfter) {
-          console.log('📡 PlaybookListScreen: Playbook after refetch:', {
-            id: playbookAfter.id,
-            actionSteps: playbookAfter.actionSteps?.length || 0,
-            completedSteps: calculateTaskStats(playbookAfter.actionSteps).completed,
-            totalSteps: calculateTaskStats(playbookAfter.actionSteps).total,
-          });
-        }
-      });
+      // Wait 500ms to ensure database update completes before refetching
+      setTimeout(() => {
+        console.log('📡 PlaybookListScreen: Calling refetch()...');
+        refetch().then(() => {
+          console.log('📡 PlaybookListScreen: Refetch completed');
+          console.log('📡 PlaybookListScreen: Playbooks count after refetch:', playbooks.length);
+          const playbookAfter = playbooks.find(p => p.id === data.playbookId);
+          if (playbookAfter) {
+            console.log('📡 PlaybookListScreen: Playbook after refetch:', {
+              id: playbookAfter.id,
+              actionSteps: playbookAfter.actionSteps?.length || 0,
+              completedSteps: calculateTaskStats(playbookAfter.actionSteps).completed,
+              totalSteps: calculateTaskStats(playbookAfter.actionSteps).total,
+            });
+          }
+        });
+      }, 500);
     });
 
     return () => {
