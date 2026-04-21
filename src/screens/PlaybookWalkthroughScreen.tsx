@@ -1993,6 +1993,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   if (!stepId) { return; }
                   updateActionStepCompleted(stepId).catch(() => {});
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
+                  queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
+                  queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
                 }}
               />
             )}
