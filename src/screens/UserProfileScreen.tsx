@@ -181,7 +181,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           // CRITICAL: Force refresh subscription data from database after sync
           // This ensures the UI shows the correct tier, especially after cancellation
-          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
           setSubscription(subscriptionData as any);
 
           Logger.info('[UserProfileScreen] Subscription refreshed on focus', {
@@ -405,7 +405,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Load subscription and usage data separately to avoid blocking UI
       try {
-        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
         setSubscription(subscriptionData as any);
 
         const usageData = {

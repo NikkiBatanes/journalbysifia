@@ -54,7 +54,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     refetch,
   } = useQuery({
     queryKey: ['subscription', userId],
-    queryFn: () => NewSubscriptionService.getUserSubscription(userId),
+    queryFn: () => NewSubscriptionService.getUserSubscription(userId, true), // Force fresh data from database
     enabled: !!userId,
     staleTime: 0, // Always consider stale to ensure immediate updates after payment
     gcTime: 10 * 60 * 1000, // 10 minutes
