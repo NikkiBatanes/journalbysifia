@@ -645,14 +645,14 @@ const UserInputScreen: React.FC = () => {
 
     // Handle other tier displays using consistent naming
     const tierDisplayMap: Record<string, string> = {
-      'seeker': 'siFia Seeker',
+      'seeker': 'Free Access',
       'spark': 'siFia Spark',
       'growth': 'siFia Growth',
       'transformation': 'siFia Transformation',
       'family': 'siFia Family',
     };
 
-    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ') || 'siFia Seeker';
+    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ') || 'Free Access';
 
     return displayName;
   };
