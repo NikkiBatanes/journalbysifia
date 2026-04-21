@@ -581,7 +581,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const tooltipTranslateY = useRef(new Animated.Value(20)).current;
   const tooltipScale = useRef(new Animated.Value(0.9)).current;
   const [showHelperSelector, setShowHelperSelector] = useState(false);
-  const [buttonActive, setButtonActive] = useState(false);
 
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -1127,7 +1126,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [showTooltip, hintIconScale]);
   const onPressHint = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
-    setButtonActive(prev => !prev);
     hintButtonRef.current?.measureInWindow?.((x: number, y: number, width: number, height: number) => {
       setTooltipAnchor({ x, y, width, height });
       setShowTooltip((prev) => {
@@ -1182,11 +1180,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       ]).start();
     }
     if (showTooltip) {
+      setShowTooltip(false);
       Animated.parallel([
         Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
         Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
         Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
-      ]).start(() => setShowTooltip(false));
+      ]).start();
     }
   };
 
@@ -1836,7 +1835,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   ref={hintButtonRef}
                   onPress={onPressHint}
                   activeOpacity={0.9}
-                  style={[styles.askHintButton, buttonActive && styles.askHintButtonActive, !buttonActive && styles.disabledButton]}
+                  style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
                   hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                 >
                   <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
@@ -2193,22 +2192,24 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           transparent
           animationType="none"
           onRequestClose={() => {
+            setShowTooltip(false);
             Animated.parallel([
               Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
               Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
               Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
-            ]).start(() => setShowTooltip(false));
+            ]).start();
           }}
         >
           <TouchableOpacity
             activeOpacity={1}
             style={styles.tooltipModalBackdrop}
             onPress={() => {
+              setShowTooltip(false);
               Animated.parallel([
                 Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
                 Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
                 Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
-              ]).start(() => setShowTooltip(false));
+              ]).start();
             }}
           >
             <Animated.View
