@@ -658,27 +658,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     const isCardCompleted = playbook.status === 'completed';
     const wp = playbook.walkthroughProgress ?? -1;
-    
-    // Calculate completed/total stats
-    let completed = 0;
-    let total = 0;
-    if (playbook.content) {
-      try {
-        const parsed = typeof playbook.content === 'string' ? JSON.parse(playbook.content) : playbook.content;
-        const steps = parsed.actionSteps || [];
-        steps.forEach((step: any) => {
-          if (step.subTasks && step.subTasks.length > 0) {
-            step.subTasks.forEach((subtask: any) => {
-              if (subtask.completed) completed++;
-              total++;
-            });
-          } else {
-            if (step.completed) completed++;
-            total++;
-          }
-        });
-      } catch {}
-    }
+
+    // Use the pre-calculated completedSteps and totalSteps from the playbook object
+    const completed = playbook.completedSteps ?? 0;
+    const total = playbook.totalSteps ?? 0;
 
     const category = playbook.category || 'Growth';
 
