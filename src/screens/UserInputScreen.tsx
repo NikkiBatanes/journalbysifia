@@ -150,6 +150,10 @@ const UserInputScreen: React.FC = () => {
     genStepsEntryAnim.setValue(0);
     genProgressEntryAnim.setValue(0);
     setBuildingDots('');
+    // Reset step card animations
+    stepCardBgAnims.forEach(anim => anim.setValue(0));
+    stepCardBorderAnims.forEach(anim => anim.setValue(0));
+    stepCardScaleAnims.forEach(anim => anim.setValue(1));
     StatusBar.setBarStyle('light-content', true);
     setIsGenerating(false);
   };
@@ -192,6 +196,27 @@ const UserInputScreen: React.FC = () => {
           friction: 8,
           useNativeDriver: true,
         }).start();
+        // Animate step card background, border, and scale for each completed step (springy)
+        Animated.parallel([
+          Animated.spring(stepCardBgAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardBorderAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardScaleAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 50,
+            friction: 6,
+          }),
+        ]).start();
         return { ...step, status: 'completed' };
       })
     );
@@ -215,11 +240,74 @@ const UserInputScreen: React.FC = () => {
             friction: 8,
             useNativeDriver: true,
           }).start();
+          // Animate step card background, border, and scale for completed steps (springy)
+          Animated.parallel([
+            Animated.spring(stepCardBgAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardBorderAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardScaleAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 50,
+              friction: 6,
+            }),
+          ]).start();
           return { ...step, status: 'completed' };
         }
         if (index === stepIndex) {
+          // Animate step card for active step (springy scale up + background/border)
+          Animated.parallel([
+            Animated.spring(stepCardScaleAnims[index], {
+              toValue: 1.05,
+              useNativeDriver: false,
+              tension: 50,
+              friction: 6,
+            }),
+            Animated.spring(stepCardBgAnims[index], {
+              toValue: 0.5,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardBorderAnims[index], {
+              toValue: 0.5,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+          ]).start();
           return { ...step, status: 'active' };
         }
+        // Reset inactive step cards
+        Animated.parallel([
+          Animated.spring(stepCardBgAnims[index], {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardBorderAnims[index], {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardScaleAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 50,
+            friction: 6,
+          }),
+        ]).start();
         return { ...step, status: 'inactive' };
       })
     );
@@ -278,6 +366,13 @@ const UserInputScreen: React.FC = () => {
   // Per-step pulsing dots — one per step so the native driver never loses the binding
   // on re-mount when the active step changes.
   const pulsingDotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Animated background colors for step cards (springy)
+  const stepCardBgAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Animated border colors for step cards (springy)
+  const stepCardBorderAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Animated scale for step cards (springy)
+  const stepCardScaleAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(1))).current;
 
   // Shimmer opacity pulse for "Building your playbook..." text (letters only, no block)
   const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
@@ -1469,11 +1564,25 @@ const UserInputScreen: React.FC = () => {
                 },
               ]}>
                 {generationSteps.map((step, index) => (
-                  <View key={index} style={[
+                  <Animated.View key={index} style={[
                     styles.stepCard,
                     step.status === 'completed' && styles.stepCardCompleted,
                     step.status === 'active' && styles.stepCardActive,
                     step.status === 'inactive' && styles.stepCardDefault,
+                    (step.status === 'active' || step.status === 'completed') && {
+                      backgroundColor: stepCardBgAnims[index].interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: ['transparent', 'rgba(255,255,255,0.05)', 'rgba(255, 107, 107, 0.1)'],
+                      }),
+                      borderColor: stepCardBorderAnims[index].interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: ['transparent', 'rgba(255,255,255,0.1)', 'rgba(255, 107, 107, 0.2)'],
+                      }),
+                      borderWidth: 1,
+                    },
+                    {
+                      transform: [{ scale: stepCardScaleAnims[index] }],
+                    },
                   ]}>
                     <View style={styles.stepRow}>
                       <View style={[
@@ -1488,8 +1597,6 @@ const UserInputScreen: React.FC = () => {
                           </Animated.View>
                         )}
                         {step.status === 'active' && (
-                          // Each step has its own dedicated animation value so
-                          // the native driver stays bound even after re-mounts
                           <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnims[index] }]} />
                         )}
                         {step.status === 'inactive' && (
@@ -1506,7 +1613,7 @@ const UserInputScreen: React.FC = () => {
                         {step.title}
                       </Text>
                     </View>
-                  </View>
+                  </Animated.View>
                 ))}
               </Animated.View>
 

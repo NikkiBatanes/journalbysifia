@@ -896,7 +896,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             {generationSteps.map((step, index) => (
               <Animated.View key={step.key} style={[
                 styles.stepCard,
-                {
+                step.status === 'completed' && styles.stepCardCompleted,
+                step.status === 'active' && styles.stepCardActive,
+                step.status === 'inactive' && styles.stepCardDefault,
+                (step.status === 'active' || step.status === 'completed') && {
                   backgroundColor: stepCardBgAnims[index].interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: ['transparent', 'rgba(255,255,255,0.05)', 'rgba(255, 107, 107, 0.1)'],
@@ -905,6 +908,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     inputRange: [0, 0.5, 1],
                     outputRange: ['transparent', 'rgba(255,255,255,0.1)', 'rgba(255, 107, 107, 0.2)'],
                   }),
+                  borderWidth: 1,
+                },
+                {
                   transform: [{ scale: stepCardScaleAnims[index] }],
                 },
               ]}>
