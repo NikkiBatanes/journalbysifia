@@ -758,7 +758,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const state = getSectionState(step, wp, completed, total);
                 // Derive dynamic values per section to match PlaybookListScreen
                 const meta = step === 1 ? tilReadTime
-                           : step === 3 && total > 0 ? `${completed} of ${total} acted on`
+                           : step === 3 ? `${completed} of ${total} acted on`
                            : undefined;
                 // Debug logging for Faithful Actions meta
                 if (step === 3) {
