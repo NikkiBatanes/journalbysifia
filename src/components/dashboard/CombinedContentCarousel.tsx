@@ -750,6 +750,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             <View style={styles.sectionsContainer}>
               {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
                 const state = getSectionState(step, wp);
+                // Derive dynamic values per section to match PlaybookListScreen
+                const meta = step === 1 ? tilReadTime
+                           : step === 3 && total > 0 ? `${completed} of ${total} acted on`
+                           : undefined;
+                // Note: hasPrayed/hasRead not available in CombinedContentCarousel context
+                // Using state-based coloring instead
+                const actionIconState = state === 'completed';
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[styles.statusPill, state === 'completed' && styles.statusPillCompleted, state === 'viewed' && styles.statusPillViewed, state === 'unreached' && styles.statusPillUnreached]}>
@@ -757,19 +764,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                     </View>
                     <View style={styles.sectionContent}>
                       <ThemedText style={[styles.sectionLabel, state === 'unreached' && styles.sectionLabelMuted]}>{label}</ThemedText>
-                      {metaIcon && (
-                        <View style={styles.sectionMetaContainer}>
-                          <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={styles.sectionMetaIcon} />
-                          <ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{step === 1 ? tilReadTime : step === 3 && total > 0 ? `${completed} of ${total} acted on` : ''}</ThemedText>
-                        </View>
-                      )}
-                      {actionIcon && !metaIcon && (
-                        actionIconType === 'ionicons' ? (
-                          <Ionicons name={actionIcon as any} size={14} color={'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />
-                        ) : (
-                          <MaterialCommunityIcons name={actionIcon as any} size={14} color={'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />
-                        )
-                      )}
+                      {meta && <View style={styles.sectionMetaContainer}>{metaIcon && <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={styles.sectionMetaIcon} />}<ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{meta}</ThemedText></View>}
+                      {actionIcon && !meta && (actionIconType === 'ionicons' ? <Ionicons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} /> : <MaterialCommunityIcons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />)}
                     </View>
                   </View>
                 );
