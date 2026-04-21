@@ -1203,14 +1203,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             pointerEvents="none"
             style={[
               styles.selectedOverlay,
-              { backgroundColor: isFocused ? Colors.alertCoral : Colors.growthGreen },
             ]}
           />
         )}
         {null}
 
         <View style={styles.cardHeader}>
-          <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
+          <ThemedText weight="medium" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
           {tier.id === 'growth' && (
@@ -1223,6 +1222,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               -{tier.duration}
             </ThemedText>
           )}
+        </View>
+
+        <View style={styles.priceContainer}>
+          <ThemedText weight="bold" style={[tier.id === 'growth' ? styles.growthCurrentPrice : styles.currentPrice, isSelected && styles.selectedText]} numberOfLines={1}>
+            {(() => {
+              const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+              const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
+              return `${currencyInfo?.symbol || '$'}${formatted}/month`;
+            })()}
+          </ThemedText>
+          {(() => {
+            const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
+            const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+            return original && original > current ? (
+              <ThemedText weight="semiBold" style={styles.originalPrice}>
+                {(() => {
+                  const formatted = (currencyInfo?.currency === 'PHP' && original % 1 === 0) ? Math.floor(original) : original.toFixed(2);
+                  return `${currencyInfo?.symbol || '$'}${formatted}/month`;
+                })()}
+              </ThemedText>
+            ) : null;
+          })()}
         </View>
 
         <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
@@ -1251,7 +1272,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       {tier.features[2]} · {tier.features[3]} · {tier.features[4]}
                     </ThemedText>
                   </View>
-                  <View style={styles.featureRow}>
+                  <View style={[styles.featureRow, { marginBottom: 0 }]}>
                     <ThemedText style={styles.featureText}>
                       {tier.features[5]}
                     </ThemedText>
@@ -1295,47 +1316,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           })()}
         </View>
 
-        <View style={styles.priceContainer}>
-          <View style={styles.priceRow}>
-            <View style={styles.priceLeft}>
-              <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]}>
-                {(() => {
-                  const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-                  const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
-                  return `${currencyInfo?.symbol || '$'}${formatted}`;
-                })()}
-              </ThemedText>
-              {(() => {
-                const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
-                const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-                return original && original > current ? (
-                  <ThemedText weight="semiBold" style={styles.originalPrice}>
-                    {(() => {
-                      const formatted = (currencyInfo?.currency === 'PHP' && original % 1 === 0) ? Math.floor(original) : original.toFixed(2);
-                      return `${currencyInfo?.symbol || '$'}${formatted}`;
-                    })()}
-                  </ThemedText>
-                ) : null;
-              })()}
-            </View>
-            <View style={styles.priceRight}
-              onStartShouldSetResponder={() => false}
-              onStartShouldSetResponderCapture={() => false}
-            >
-              <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
-                {(currencyInfo?.symbol || '$')}{getMonthlyEquivalent(tier)}/month
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* original price now shown inline next to current price */}
-        </View>
-
-        {isSelected && (
-          <View style={styles.selectionIndicator}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
-          </View>
-        )}
       </TouchableOpacity>
       </View>
     );
@@ -2073,22 +2053,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pricingCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.inputBackground,
     borderRadius: 30,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     marginBottom: 8,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     position: 'relative',
   },
   selectedCard: {
-    borderColor: Colors.growthGreen,
     // base background remains; selection tint is provided by selectedOverlay
   },
   focusedCard: {
-    borderColor: Colors.alertCoral,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    // removed alert coral color
   },
   selectedOverlay: {
     position: 'absolute',
@@ -2139,26 +2119,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardHeader: {
-    marginBottom: 8,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
   tierName: {
-    fontSize: 18,
+    fontSize: 20,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
+    lineHeight: 28,
+  },
+  growthTierName: {
+    fontSize: 20,
+    // weight handled by ThemedText
+    color: Colors.hopeWhite,
+    lineHeight: 28,
   },
   recommendedBadge: {
-    backgroundColor: Colors.growthGreen,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
+    position: 'absolute',
+    top: 4,
+    right: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.6)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   recommendedText: {
-    fontSize: 10,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    fontWeight: '400',
+    letterSpacing: 0.5,
   },
   tierDuration: {
     fontSize: 16,
@@ -2166,28 +2158,30 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginLeft: 8,
+    lineHeight: 20,
   },
   tierDescription: {
-    fontSize: 16,
+    fontSize: 18,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
     opacity: 0.9,
+    lineHeight: 24,
   },
   tierSecondaryDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.hopeWhite,
     opacity: 0.7,
-    marginBottom: 12,
+    marginBottom: 6,
     lineHeight: 20,
   },
   featuresContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   featureIcon: {
     fontSize: 16,
@@ -2197,26 +2191,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   priceContainer: {
     alignItems: 'flex-start',
     width: '100%',
+    marginBottom: 12,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 2,
-    justifyContent: 'space-between',
-    width: '100%',
+    justifyContent: 'flex-start',
   },
   priceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flexShrink: 0,
-    flexGrow: 0,
-    flex: 1,
-    minWidth: 140,
+    width: 'auto',
   },
   priceRight: {
     flexDirection: 'row',
@@ -2227,11 +2217,20 @@ const styles = StyleSheet.create({
     // allow content width
   },
   currentPrice: {
-    fontSize: 20,
+    fontSize: 24,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginRight: 4,
     flexShrink: 0,
+    lineHeight: 32,
+  },
+  growthCurrentPrice: {
+    fontSize: 26,
+    // weight handled by ThemedText
+    color: Colors.hopeWhite,
+    marginRight: 4,
+    flexShrink: 0,
+    lineHeight: 34,
   },
   originalPrice: {
     fontSize: 16,
@@ -2241,6 +2240,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     flexShrink: 0,
     marginRight: 4,
+    lineHeight: 20,
   },
   monthlyEquivalent: {
     fontSize: 14,
@@ -2364,7 +2364,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cardWrapper: {
-    marginBottom: 6,
+    marginBottom: 0,
   },
   headerLeft: {
     flex: 1,
