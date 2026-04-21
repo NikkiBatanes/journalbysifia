@@ -1057,12 +1057,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 interface PrayerStepProps {
   prayer: string;
   playbookTitle?: string;
+  playbookId?: string;
   userId: string;
   onNext: () => void;
   insets: { top: number; bottom: number };
 }
 
-const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, insets }) => {
+const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbookId, userId, insets }) => {
   const [hasPrayed, setHasPrayed] = useState(persistedHasPrayed);
   const [showButton, setShowButton] = useState(persistedHasPrayed); // show immediately if already prayed
   const fadeAnim = useRef(new Animated.Value(persistedHasPrayed ? 1 : 0)).current;
@@ -1093,6 +1094,13 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
     persistedHasPrayed = nowPrayed;
     setHasPrayed(nowPrayed);
     saveCurrentSession();
+
+    // Notify dashboard about prayer update
+    DeviceEventEmitter.emit('playbookPrayerReadUpdated', {
+      playbookId: playbookId,
+      hasPrayed: nowPrayed,
+      hasRead: persistedHasRead,
+    });
 
     if (nowPrayed) {
       createPrayerMutation.mutate({
@@ -1191,11 +1199,12 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, userId, 
 
 interface WordToSpeakStepProps {
   word: string;
+  playbookId?: string;
   onNext: () => void;
   insets: { top: number; bottom: number };
 }
 
-const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
+const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, insets }) => {
   const [hasRead, setHasRead] = useState(persistedHasRead);
   const [showButton, setShowButton] = useState(persistedHasRead); // show immediately if already read
   const fadeAnim = useRef(new Animated.Value(persistedHasRead ? 1 : 0)).current;
@@ -1220,6 +1229,13 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, insets }) => {
     persistedHasRead = nowRead;
     setHasRead(nowRead);
     saveCurrentSession();
+
+    // Notify dashboard about read update
+    DeviceEventEmitter.emit('playbookPrayerReadUpdated', {
+      playbookId: playbookId,
+      hasPrayed: persistedHasPrayed,
+      hasRead: nowRead,
+    });
   };
 
   return (
@@ -2008,6 +2024,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               <PrayerStep
                 prayer={prayerText}
                 playbookTitle={playbook.title}
+                playbookId={playbook.id}
                 userId={userId}
                 onNext={goNext}
                 insets={insets}
@@ -2017,6 +2034,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             {stepIndex === 5 && (
               <WordToSpeakStep
                 word={wordToSpeak}
+                playbookId={playbook.id}
                 onNext={goNext}
                 insets={insets}
               />

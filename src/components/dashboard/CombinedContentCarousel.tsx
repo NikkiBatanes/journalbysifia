@@ -15,6 +15,7 @@ import {
   RefreshControl,
   DeviceEventEmitter,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -217,12 +218,58 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const refetchTimeoutRef = useRef<any>(null);
   const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
+  const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
   React.useEffect(() => {
     if (!loading && content.length === 0) {
       onEmpty?.();
     }
   }, [loading, content.length, onEmpty]);
+
+  // Load session states from AsyncStorage for playbooks
+  useEffect(() => {
+    const loadSessionStates = async () => {
+      const playbookIds = content.filter(c => c.type === 'playbook').map(c => c.id);
+      if (playbookIds.length === 0) return;
+
+      const entries: Record<string, { hasPrayed: boolean; hasRead: boolean }> = {};
+      await Promise.all(
+        playbookIds.map(async (id) => {
+          try {
+            const raw = await AsyncStorage.getItem(`playbook_session_${id}`);
+            if (raw) {
+              const sess = JSON.parse(raw);
+              entries[id] = {
+                hasPrayed: sess.hasPrayed ?? false,
+                hasRead: sess.hasRead ?? false,
+              };
+            }
+          } catch (_) {}
+        })
+      );
+      setSessionStates(entries);
+    };
+
+    loadSessionStates();
+  }, [content]);
+
+  // Listen for prayer/reads updates from PlaybookWalkthrough
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('playbookPrayerReadUpdated', (data) => {
+      console.log('📡 CombinedContentCarousel: Received playbookPrayerReadUpdated event:', data);
+      setSessionStates(prev => ({
+        ...prev,
+        [data.playbookId]: {
+          hasPrayed: data.hasPrayed ?? prev[data.playbookId]?.hasPrayed ?? false,
+          hasRead: data.hasRead ?? prev[data.playbookId]?.hasRead ?? false,
+        },
+      }));
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const formatFinishedDate = (dateStr?: string): string | undefined => {
     if (!dateStr) { return undefined; }
@@ -766,9 +813,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 if (step === 3) {
                   console.log('🔍 Faithful Actions debug:', { step, completed, total, meta, wp, shouldRenderMeta: !!meta });
                 }
-                // Note: hasPrayed/hasRead not available in CombinedContentCarousel context
-                // Using state-based coloring - show coral for both completed and viewed states
-                const actionIconState = state === 'completed' || state === 'viewed';
+                // Use hasPrayed/hasRead flags for Prayer/Words to Speak icons
+                const actionIconState = step === 4 ? sessionStates[playbook.id]?.hasPrayed ?? false
+                                          : step === 5 ? sessionStates[playbook.id]?.hasRead ?? false
+                                          : state === 'completed' || state === 'viewed';
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[styles.statusPill, state === 'completed' && styles.statusPillCompleted, state === 'viewed' && styles.statusPillViewed, state === 'unreached' && styles.statusPillUnreached]}>
