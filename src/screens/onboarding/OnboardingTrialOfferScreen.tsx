@@ -1014,7 +1014,7 @@ const OnboardingTrialOfferScreen = () => {
                 <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
                   {routeParams?.isTrialEligible ? 'How your free trial works' : 'Not sure yet?'}
                 </ThemedText>
-                {routeParams?.onboardingFlow && (
+                {routeParams?.isTrialEligible && (
                   <ThemedText style={styles.headerSubText}>
                     3 days free on {getTierDisplayName(selectedTierId)}. After that, your subscription continues at {getLocalizedPrice()}/{isAnnual ? 'year' : 'month'} unless cancelled.
                   </ThemedText>
