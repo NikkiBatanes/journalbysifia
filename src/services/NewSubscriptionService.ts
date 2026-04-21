@@ -95,6 +95,13 @@ export class NewSubscriptionService {
     return tier === 'seeker' ? 1 : this.getTierLimits(tier).playbooks_limit;
   }
 
+  /**
+   * Get onboarding devotional limit (special case for seeker during onboarding)
+   */
+  static getOnboardingDevotionalLimit(tier: SubscriptionTier): number {
+    return tier === 'seeker' ? 1 : this.getTierLimits(tier).devotionals_limit;
+  }
+
   // ===== USER SUBSCRIPTION MANAGEMENT =====
 
   /**

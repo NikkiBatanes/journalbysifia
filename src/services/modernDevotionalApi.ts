@@ -38,6 +38,9 @@ async function generateDevotionalInternal(
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
 
+  // Auto-set duration to 3 days during onboarding
+  const finalDuration = isOnboarding ? 3 : duration;
+
   // Get user subscription for tier-based key selection
   const { subscriptionService } = await import('./subscriptionService');
   const subscription = await subscriptionService.getUserSubscription(userId);
@@ -117,7 +120,7 @@ async function generateDevotionalInternal(
           const sdkResponse = await withTimeout(
             supabase.functions.invoke('generate-devotional', {
               body: {
-                duration,
+                duration: finalDuration,
                 playbookId,
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',

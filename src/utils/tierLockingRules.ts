@@ -154,8 +154,21 @@ export function getUpgradeMessage(
 export function checkDevotionalAccess(
   tier: SubscriptionTier,
   duration: number,
-  context: 'onboarding' | 'inApp' = 'inApp'
+  context: 'onboarding' | 'inApp' = 'inApp',
+  isOnboarding: boolean = false
 ): DevotionalAccessCheck {
+  // Onboarding exception: seekers can generate 1 devotional (3-day) during onboarding
+  if (isOnboarding && tier === 'seeker' && duration === 3) {
+    return {
+      isLocked: false,
+      canGenerate: true,
+      upgradeRequired: false,
+      lockIconVisible: false,
+      usageMessage: '1 Devotional Available',
+      upgradeMessage: getUpgradeMessage(tier, context),
+    };
+  }
+
   const isLocked = isDevotionalDurationLocked(tier, duration);
   const canGenerate = !isLocked;
   const upgradeRequired = isLocked;

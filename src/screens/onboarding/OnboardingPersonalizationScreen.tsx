@@ -3206,6 +3206,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 150,
     paddingBottom: 40,
+    zIndex: 100,
+    elevation: 100,
   },
   generatingLogo: {
     position: 'absolute',

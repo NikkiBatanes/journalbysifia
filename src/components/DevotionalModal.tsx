@@ -74,6 +74,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [isOnboardingCreating, setIsOnboardingCreating] = useState(false);
   const { user } = useAuth();
   const navigation = useNavigation();
   const { createDevotional, isCreating } = useDevotionalOperations(user?.id || '');
@@ -189,8 +190,21 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       }
       // Reset justCompleted flag after modal opens
       setJustCompleted(false);
+
+      // Auto-select 3-day duration during onboarding and trigger generation (immediate, no delay)
+      if (isOnboarding && !isCreating && !isSuccess) {
+        setIsOnboardingCreating(true); // Immediately show building UI
+        // Trigger building entry animations
+        Animated.parallel([
+          Animated.timing(genLogoEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(genCardEntryAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(genStepsEntryAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(genProgressEntryAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        ]).start();
+        handleSelectDuration(3);
+      }
     }
-  }, [visible, rotateAnim, isCreating, isSuccess, justCompleted]);
+  }, [visible, rotateAnim, isCreating, isSuccess, justCompleted, isOnboarding]);
 
   React.useEffect(() => {
 
@@ -207,30 +221,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && isCreating && !isSuccess) {
+        if (finished && mounted && (isCreating || isOnboardingCreating) && !isSuccess) {
           loop();
         }
       });
     };
-    if (isCreating && !isSuccess) {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
       loop();
     }
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();
     };
-  }, [isCreating, isSuccess, shimmerOpacity]);
+  }, [isCreating, isOnboardingCreating, isSuccess, shimmerOpacity]);
 
   // Animated dots while creating
   React.useEffect(() => {
-    if (!isCreating || isSuccess) { return; }
+    if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
     const id = setInterval(() => setDotCount(prev => (prev + 1) % 4), 500);
     return () => clearInterval(id);
-  }, [isCreating, isSuccess]);
+  }, [isCreating, isOnboardingCreating, isSuccess]);
 
   // Shimmer animation for building text
   React.useEffect(() => {
-    if (!isCreating || isSuccess) {
+    if (!(isCreating || isOnboardingCreating) || isSuccess) {
       setBuildingDots('');
       buildingTextOpacity.setValue(0.55);
       return;
@@ -266,11 +280,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       clearInterval(dotInterval);
       shimmerLoop.stop();
     };
-  }, [isCreating, isSuccess, buildingTextOpacity]);
+  }, [isCreating, isOnboardingCreating, isSuccess, buildingTextOpacity]);
 
   // Logo entry animation when generation starts
   React.useEffect(() => {
-    if (isCreating && !isSuccess) {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
       Animated.spring(genLogoEntryAnim, {
         toValue: 1,
         useNativeDriver: true,
@@ -280,11 +294,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     } else {
       genLogoEntryAnim.setValue(0);
     }
-  }, [isCreating, isSuccess, genLogoEntryAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, genLogoEntryAnim]);
 
   // Staggered entrance animations for generation elements
   React.useEffect(() => {
-    if (isCreating && !isSuccess) {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
       const staggerSequence = Animated.sequence([
         Animated.timing(genCardEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.timing(genHeadingEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -298,11 +312,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       genStepsEntryAnim.setValue(0);
       genProgressEntryAnim.setValue(0);
     }
-  }, [isCreating, isSuccess, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
 
   // Container bounce animation when generation starts
   React.useEffect(() => {
-    if (isCreating && !isSuccess) {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
       Animated.parallel([
         Animated.spring(generatingScaleAnim, {
           toValue: 1,
@@ -312,7 +326,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }),
         Animated.timing(generatingFadeAnim, {
           toValue: 1,
-          duration: 200,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
@@ -320,11 +334,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       generatingScaleAnim.setValue(0.92);
       generatingFadeAnim.setValue(0);
     }
-  }, [isCreating, isSuccess, generatingScaleAnim, generatingFadeAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, generatingScaleAnim, generatingFadeAnim]);
 
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
-    if (!isCreating || isSuccess) { return; }
+    if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
     // Adjust step interval based on devotional duration
     // 1-3 day: 3000ms per step (18s total)
     // 5 day: 7000ms per step (42s total) - slower
@@ -461,7 +475,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }, getStepDuration());
     return () => clearInterval(stepInterval);
-  }, [isCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]);
+  }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]);
 
   const measureContent = () => {
     if (contentRef.current) {
@@ -473,7 +487,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Animate the ellipsis
   React.useEffect(() => {
-    if (!isCreating) {return;}
+    if (!(isCreating || isOnboardingCreating)) {return;}
 
     const timer = setInterval(() => {
       setEllipsis((prev: string) => {
@@ -483,7 +497,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }, 300);
 
     return () => clearInterval(timer);
-  }, [isCreating]);
+  }, [isCreating, isOnboardingCreating]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -493,7 +507,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     if (visible) {
       setIsVisible(true);
       // Only reset progress animation when modal opens if no creation is in progress
-      if (!isCreating && !isSuccess) {
+      if (!isCreating && !isOnboardingCreating && !isSuccess) {
         progressAnim.setValue(0);
         setCurrentStep(0);
       }
@@ -569,6 +583,48 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
+    const { user } = useAuth();
+    const userId = user?.id;
+
+    // Use subscriptionService.canGenerate with onboarding exception
+    if (userId) {
+      const { subscriptionService } = await import('../services/subscriptionService');
+      const canGenerateCheck = await subscriptionService.canGenerate(userId, 'devotional', isOnboarding);
+
+      if (!canGenerateCheck.allowed) {
+        // For Seeker users during onboarding, they should be allowed 1 devotional
+        const isSeeker = devotionalGating.tier === 'seeker';
+        if (isSeeker && isOnboarding) {
+          // Onboarding exception should allow this, so log and continue
+          Logger.info('[DevotionalModal] Onboarding exception allowing seeker devotional', {
+            component: 'DevotionalModal',
+            context: 'onboarding_seeker_exception',
+            userId,
+            requestedDuration: days,
+          });
+        } else {
+          // Not allowed - show upgrade
+          Logger.info('[DevotionalModal] Devotional generation not allowed', {
+            component: 'DevotionalModal',
+            context: 'not_allowed',
+            userId,
+            reason: canGenerateCheck.message,
+          });
+
+          onClose();
+          navigation.navigate('OnboardingSalesOffer' as any, {
+            upgradeMode: true,
+            currentTier: devotionalGating.tier,
+            requestedDuration: days,
+            skipNotificationPreference: true,
+            featureType: 'devotionals',
+            source: 'devotional_limit',
+            feature: 'devotionals',
+          });
+          return;
+        }
+      }
+    }
 
     // Check if user has no remaining devotionals - check directly from subscription
     const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
@@ -576,8 +632,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
 
-    // For Seeker users, skip popup and go directly to sales offer
-    if (isSeeker && hasNoRemaining) {
+    // For Seeker users, skip popup and go directly to sales offer (unless onboarding)
+    if (isSeeker && hasNoRemaining && !isOnboarding) {
 
       Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker/no-remaining gating', {
         component: 'DevotionalModal',
@@ -625,7 +681,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // Check if this duration is locked for current tier
     // Use 'onboarding' context only if explicitly in onboarding flow, otherwise use 'inApp'
-    const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp');
+    const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp', isOnboarding);
 
     if (accessCheck.isLocked) {
 
@@ -791,7 +847,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
           <View style={styles.contentWrapper}>
             {/* Logo at very top of modal during generation */}
-            {(isCreating || isClosing) && (
+            {(isCreating || isOnboardingCreating || isClosing) && (
               <Animated.Image
                 source={require('../../assets/icons/siFia-logo-white.png')}
                 style={[
@@ -810,7 +866,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               />
             )}
 
-            {!isCreating && !isSuccess && !isClosing && (
+            {!isCreating && !isOnboardingCreating && !isSuccess && !isClosing && (
               <View style={styles.fixedContent}>
                 <ThemedText weight="semiBold" style={styles.title}>Create a Devotional for This Season</ThemedText>
                 <View style={styles.subtitleContainer}>
@@ -826,7 +882,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               {(playbookInfo || userInput) && (
                 <Animated.View style={[
                   styles.playbookInfoContainer,
-                  isCreating ? {
+                  (isCreating || isOnboardingCreating) ? {
                     opacity: genCardEntryAnim,
                     transform: [{
                       translateY: genCardEntryAnim.interpolate({
@@ -861,10 +917,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               )}
 
               <View style={styles.optionsContainer}>
-                {!(isCreating || isSuccess || isClosing) && (
+                {!(isCreating || isOnboardingCreating || isSuccess || isClosing) && (
                   <ThemedText weight="semiBold" style={styles.durationPrompt}>Select a devotional duration:</ThemedText>
                 )}
-                {(isCreating || isClosing) ? (
+                {(isCreating || isOnboardingCreating || isClosing) ? (
     <Animated.View style={[
       styles.generatingContainer,
       {
@@ -1004,6 +1060,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       </TouchableOpacity>
     </View>
   ) : (
+    !isOnboarding && (
     <View style={styles.optionsContainer}>
                 {DURATION_OPTIONS.map((option) => {
                   const accessCheck = devotionalGating.checkAccess(option.days, isOnboarding ? 'onboarding' : 'inApp');
@@ -1048,6 +1105,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           tier={devotionalGating.tier}
                           duration={option.days}
                           context={isOnboarding ? 'onboarding' : 'inApp'}
+                          isOnboarding={isOnboarding}
                           onLockTap={() => {
                             if (isOnboarding) {
                               // In onboarding, lock icon should not trigger sales offer
@@ -1086,9 +1144,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   );
                 })}
               </View>
+    )
   )}
   {/* Continue My Journey button for onboarding */}
-  {isOnboarding && !(isCreating || isSuccess) && (
+  {isOnboarding && !(isCreating || isSuccess) && devotionalGating.tier !== 'seeker' && (
     <TouchableOpacity
       style={styles.continueJourneyButton}
       onPress={() => {

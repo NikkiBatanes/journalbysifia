@@ -28,7 +28,7 @@ interface DevotionalGatingResult {
   error: string | null;
 
   // Access checking
-  checkAccess: (duration: number, context?: 'onboarding' | 'inApp') => DevotionalAccessCheck;
+  checkAccess: (duration: number, context?: 'onboarding' | 'inApp', isOnboarding?: boolean) => DevotionalAccessCheck;
   canGenerate: (duration: number) => boolean;
   isLocked: (duration: number) => boolean;
 
@@ -107,8 +107,8 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   }, [subscription]);
 
   // Access checking function
-  const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp'): DevotionalAccessCheck => {
-    return checkDevotionalAccess(tier, duration, context);
+  const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp', isOnboarding: boolean = false): DevotionalAccessCheck => {
+    return checkDevotionalAccess(tier, duration, context, isOnboarding);
   };
 
   // Simple access checks

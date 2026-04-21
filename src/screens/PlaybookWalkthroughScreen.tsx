@@ -2159,6 +2159,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       playbookId={playbook?.id}
       playbookInfo={playbook?.title}
       userInput={playbook?.userInput}
+      isOnboarding={source === 'onboarding'}
       onDevotionalCreated={(devotionalId) => {
         setShowDevotionalModal(false);
         navigation.navigate('DevotionalDetail', { devotionalId });

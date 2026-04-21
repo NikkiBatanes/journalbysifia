@@ -129,6 +129,20 @@ export const subscriptionService = {
       };
     }
 
+    // Special-case onboarding for seekers on devotional generation
+    if (type === 'devotional' && isOnboarding) {
+      const onboardingLimit = NSS.getOnboardingDevotionalLimit(sub.tier);
+      const used = (sub as any).devotionals_used || 0;
+      const allowed = onboardingLimit === -1 || used < onboardingLimit;
+      return {
+        allowed,
+        upgradeRequired: !allowed,
+        remaining: onboardingLimit === -1 ? 'Unlimited' : Math.max(0, onboardingLimit - used),
+        limit: onboardingLimit === -1 ? 'Unlimited' : onboardingLimit,
+        message: allowed ? undefined : `You've used all ${onboardingLimit} onboarding devotionals. Upgrade for more!`,
+      };
+    }
+
     const check: SubscriptionCheck = await NSS.checkUsageLimit(userId, type);
 
     // Determine remaining/limit based on action type
