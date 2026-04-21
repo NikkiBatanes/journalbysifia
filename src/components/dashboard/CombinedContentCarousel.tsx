@@ -15,13 +15,14 @@ import {
   RefreshControl,
   DeviceEventEmitter,
 } from 'react-native';
-import { Ionicons } from '@ionicons/react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ThemedText from '../common/ThemedText';
-import { Colors } from '../../constants/Colors';
-import { supabase } from '../../lib/supabase';
+import { Colors } from '../../theme/colors';
+import { supabase } from '../../services/supabaseClient';
 import { Logger } from '../../utils/logger';
 import { format } from 'date-fns';
 import { triggerLightHaptic } from '../../utils/haptics';
