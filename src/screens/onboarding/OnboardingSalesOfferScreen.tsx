@@ -1213,6 +1213,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
+          {tier.id === 'growth' && (
+            <View style={styles.recommendedBadge}>
+              <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
+            </View>
+          )}
           {isAnnual && (
             <ThemedText weight="semiBold" style={[styles.tierDuration, isSelected && styles.selectedText]}>
               -{tier.duration}
@@ -1390,7 +1395,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         onPress={handleClose}
         activeOpacity={0.8}
       >
-        <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+        <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
       </TouchableOpacity>
 
       {/* Pricing Cards - Scrollable */}
@@ -1427,7 +1432,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings!'
-                                  : 'Continue walking with intention'}
+                                  : 'Keep this space open'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {dynamicSalesCopy
@@ -1451,7 +1456,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           : fromExportRestriction
                               ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
                               : routeParams?.onboardingFlow
-                                ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care. Again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
+                                ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
                                 : 'Gentle structure for faithful living'}
           </ThemedText>
           {fromExportRestriction && (
@@ -1476,94 +1481,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
           {routeParams?.onboardingFlow && (
             <View>
-              <View style={styles.growthPlanSection}>
-                <ThemedText style={styles.growthPlanListLabel}>
-                  What staying supported includes
-                </ThemedText>
-
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Ongoing discernment support for emotionally complex moments
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Space for reflection, prayer, and Scripture
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    A place to pause before responding instead of reacting
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Gentle structure that supports faithfulness without pressure
-                  </ThemedText>
-                </View>
-              </View>
-
-              {shouldUseTrialProduct && (
-                <View style={styles.trialBenefitsContainer}>
-                  {(() => {
-                    return (
-                      <>
-                        <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                          Start with a free 3-day trial
-                        </ThemedText>
-                        <View style={styles.trialSupportingTextContainerFirst}>
-                          <ThemedText style={styles.trialSupportingText}>
-                            This trial lets you experience the full siFia flow in real situations,
-                            so you can discern whether this structure serves your current season.
-                          </ThemedText>
-                        </View>
-                      </>
-                    );
-                  })()}
-                </View>
-              )}
-
-              <View style={styles.growthPlanDuplicateCard}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setIsAboutGrowthExpanded(prev => !prev);
-                  }}
-                  style={styles.growthPlanToggleRow}
-                >
-                  <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
-                    About the Growth plan
-                  </ThemedText>
-                  <Ionicons
-                    name={isAboutGrowthExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={Colors.hopeWhite}
-                  />
-                </TouchableOpacity>
-                {isAboutGrowthExpanded && (
-                  <>
-                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      The Growth plan is for everyday moments when you want gentle structure without pressure.
-                    </ThemedText>
-                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      {'\n'}It gives you continued access to playbooks and devotionals, so you can return when situations resurface instead of starting over each time.
-                    </ThemedText>
-                    {shouldUseTrialProduct && (
-                      <>
-                        <View style={styles.trialDivider} />
-                        <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign, styles.additionalFollowupText]}>
-                          After the trial, the Growth plan includes access to a monthly set of guided playbooks and devotionals.
-                        </ThemedText>
-                      </>
-                    )}
-                  </>
-                )}
-              </View>
             </View>
           )}
 
@@ -1694,7 +1611,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             </View>
           )}
 
-          {!routeParams?.onboardingFlow && (
           <View style={styles.cardsContainer}>
             {pricingTiers.length > 0 ? (
               pricingTiers.map(renderPricingCard)
@@ -1706,7 +1622,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </View>
             )}
           </View>
-        )}
 
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
@@ -1905,12 +1820,12 @@ const styles = StyleSheet.create({
   closeButtonTopRight: {
     position: 'absolute',
     right: 20,
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     zIndex: 10,
   },
 
@@ -1959,18 +1874,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   mainTitle: {
-    fontSize: 24,
+    fontSize: 28,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'left',
-    marginTop: 0,
-    marginBottom: 4,
+    marginTop: 20,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'left',
-    marginBottom: 22,
+    marginBottom: 12,
+    lineHeight: 24,
   },
   smallMotivationalText: {
     fontSize: 14,
@@ -2236,6 +2152,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
+  },
+  recommendedBadge: {
+    backgroundColor: Colors.growthGreen,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  recommendedText: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
   },
   tierDuration: {
     fontSize: 16,
