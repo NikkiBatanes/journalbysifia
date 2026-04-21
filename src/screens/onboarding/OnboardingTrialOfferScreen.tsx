@@ -1099,25 +1099,17 @@ const OnboardingTrialOfferScreen = () => {
 
         {/* Pricing Summary (dynamic) */}
         <View style={styles.pricingSummary}>
-          {/* Rounded divider with floating centered tag */}
-          <View style={styles.dividerWrapper}>
-            <View style={styles.dividerLine} />
-            <View style={styles.planTagFloating}>
-              <ThemedText weight="bold" style={styles.planTagText}>
-                {`${getTierDisplayName(selectedTierId)} PLAN`}
-              </ThemedText>
-            </View>
-          </View>
           <ThemedText weight="bold" style={styles.pricingTitle}>
-            {`3 days free, then ${getLocalizedPrice()} / ${isAnnual ? 'year' : 'month'}`}
+            {`3 days free, then ${getLocalizedPrice()}/${isAnnual ? 'year' : 'month'}`}
           </ThemedText>
           {isAnnual ? (
             <View style={styles.savingsContainer}>
-              <ThemedText style={styles.annualSavingsHighlight}>Save 2 months free</ThemedText>
               <ThemedText style={styles.annualSavingsText}>
-                Annual plan saves you 2 months.
+                <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6, color: Colors.faithGold }}>{`${currencyInfo?.symbol || '$'}${(getSelectedTier()?.monthlyPrice * 12).toFixed(2)}`}</ThemedText>
+                {' · '}
+                <ThemedText style={{ color: Colors.faithGold }}>Save 2 months</ThemedText>
               </ThemedText>
-              <ThemedText style={styles.annualSavingsText}>
+              <ThemedText style={styles.footerPriceApprox}>
                 Pay once, grow all year.
               </ThemedText>
             </View>
@@ -1379,18 +1371,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 16,
   },
-  changePlanButton: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 12,
-  },
-  changePlanButtonText: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
-    color: Colors.faithGold,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
+  disabledButton: {
+    opacity: 0.5,
   },
   planOptionsScroll: {
     marginTop: 12,
@@ -1466,39 +1448,39 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     marginBottom: 16,
   },
   selectedPlanContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
   },
   selectedPlanLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.hopeWhite,
-    opacity: 0.6,
-    letterSpacing: 1.5,
+    opacity: 0.5,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   selectedPlanName: {
-    fontSize: 18,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   changePlanButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   changePlanButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     color: Colors.hopeWhite,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   timelineBulletsContainer: {
     marginTop: 10,
@@ -1721,15 +1703,6 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   strong: {
     fontFamily: fonts.bold,
   },
-  pricingSummary: {
-    alignItems: 'center',
-    marginBottom: -8,
-    paddingVertical: 16,
-  },
-  savingsContainer: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
   savingsText: {
     fontSize: 14,
     fontFamily: fonts.semiBold,
@@ -1752,19 +1725,17 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     marginTop: 2,
   },
   annualSavingsText: {
+    fontSize: 14,
+    color: Colors.faithGold,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  footerPriceApprox: {
     fontSize: 13,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
+    opacity: 0.8,
     textAlign: 'center',
     marginTop: 2,
-    opacity: 0.85,
-  },
-  dividerWrapper: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
   },
   dividerLine: {
     width: '100%',
@@ -1844,7 +1815,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   startTrialButtonText: {
@@ -1933,7 +1904,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 4,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     alignSelf: 'center',
     overflow: 'hidden',
   },
@@ -1951,6 +1923,16 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   activeFooterToggleText: {
     color: Colors.hopeWhite,
+  },
+  pricingSummary: {
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingVertical: 4,
+  },
+  savingsContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 6,
   },
 });
 

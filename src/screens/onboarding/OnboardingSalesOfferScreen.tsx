@@ -1695,7 +1695,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               return (
                 <>
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
-                    {`${symbol}${formatValue(annualPrice)}`}
+                    {`${symbol}${formatValue(annualPrice)}/year`}
                   </ThemedText>
                   <ThemedText style={styles.footerPriceSub}>
                     <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6 }}>{`${symbol}${formatValue(monthlyYearly)}`}</ThemedText>
@@ -2347,14 +2347,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   footerPriceSection: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 6,
     paddingHorizontal: 8,
   },
   footerPriceBadge: {
@@ -2518,7 +2518,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 4,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     alignSelf: 'center',
     overflow: 'hidden',
   },
