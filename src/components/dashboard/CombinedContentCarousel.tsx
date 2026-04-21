@@ -762,7 +762,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                            : undefined;
                 // Debug logging for Faithful Actions meta
                 if (step === 3) {
-                  console.log('🔍 Faithful Actions debug:', { step, completed, total, meta, wp });
+                  console.log('🔍 Faithful Actions debug:', { step, completed, total, meta, wp, shouldRenderMeta: !!meta });
                 }
                 // Note: hasPrayed/hasRead not available in CombinedContentCarousel context
                 // Using state-based coloring - show coral for both completed and viewed states
