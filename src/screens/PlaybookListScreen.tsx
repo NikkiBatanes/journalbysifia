@@ -802,7 +802,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
       console.log('📡 PlaybookListScreen: Received playbookActionStepUpdated event:', data);
-      refetch();
+      console.log('📡 PlaybookListScreen: Calling refetch()...');
+      refetch().then(() => {
+        console.log('📡 PlaybookListScreen: Refetch completed');
+      });
     });
 
     return () => {
