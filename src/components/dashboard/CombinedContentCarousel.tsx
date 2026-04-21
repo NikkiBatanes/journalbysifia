@@ -3,7 +3,7 @@
  * Unified carousel displaying both playbooks and devotionals in a single horizontal scroll
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -14,7 +14,9 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
+import { format } from 'date-fns';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
@@ -40,6 +42,37 @@ const SIDE_INSET = Math.max(
 
 type ContentType = 'playbook' | 'devotional';
 
+interface CardSection {
+  label: string;
+  step: number;
+  metaIcon?: string;
+  actionIcon?: string;
+  actionIconType?: 'material' | 'ionicons';
+}
+
+// Static — defined once at module level, never recreated on render
+const CARD_SECTIONS: CardSection[] = [
+  { label: 'Intro',                step: 0 },
+  { label: 'Truth in Love',        step: 1, metaIcon: 'time-outline' },
+  { label: 'Scripture to Anchor',  step: 2 },
+  { label: 'Faithful Actions',     step: 3 },
+  { label: 'Prayer',               step: 4, metaIcon: 'pray-outline',        actionIcon: 'hands-pray',             actionIconType: 'material' },
+  { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
+];
+
+// Derive per-section state from walkthrough_progress
+// completed = Next was pressed on that step, viewed = user was there but didn't press Next,
+// unreached = never got there
+const getSectionState = (
+  sectionStep: number,
+  wp: number,
+): 'completed' | 'viewed' | 'unreached' => {
+  if (wp < 0) { return 'unreached'; } // not started — nothing is viewed or completed
+  if (wp >= sectionStep) { return 'completed'; }
+  if (wp + 1 === sectionStep) { return 'viewed'; }
+  return 'unreached';
+};
+
 interface BaseContent {
   id: string;
   type: ContentType;
@@ -59,6 +92,10 @@ interface PlaybookContent extends BaseContent {
   estimatedTime?: string;
   difficulty?: string;
   tags?: string[];
+  walkthroughProgress?: number;
+  updatedAt?: string;
+  completedAt?: string;
+  status?: string;
 }
 
 interface DevotionalContent extends BaseContent {
@@ -275,6 +312,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             }
 
             let lastAccessed: string | undefined;
+            let walkthroughProgress = -1;
             try {
               const { data: progressData } = await supabase
                 .from('user_progress')
@@ -284,6 +322,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 .eq('content_id', playbook.id)
                 .single();
               lastAccessed = progressData?.updated_at;
+              walkthroughProgress = progressData?.walkthrough_progress ?? -1;
             } catch {}
 
             const progressPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
@@ -300,6 +339,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               completedSteps,
               lastAccessed,
               category: playbook.category || 'Personal Growth',
+              walkthroughProgress,
+              updatedAt: playbook.updated_at,
+              completedAt: playbook.completed_at,
+              status: playbook.status,
             };
           } catch (err) {
             Logger.warn('Error processing playbook', { component: 'CombinedContentCarousel', data: err });
@@ -314,6 +357,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               totalSteps: 1,
               completedSteps: 0,
               category: 'Personal Growth',
+              walkthroughProgress: -1,
+              updatedAt: playbook.updated_at,
+              completedAt: playbook.completed_at,
+              status: playbook.status,
             };
           }
         })
@@ -651,6 +698,45 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       extrapolate: 'clamp',
     });
 
+    const isCardCompleted = playbook.status === 'completed';
+    const wp = playbook.walkthroughProgress ?? -1;
+    
+    // Calculate completed/total stats
+    let completed = 0;
+    let total = 0;
+    if (playbook.content) {
+      try {
+        const parsed = typeof playbook.content === 'string' ? JSON.parse(playbook.content) : playbook.content;
+        const steps = parsed.actionSteps || [];
+        steps.forEach((step: any) => {
+          if (step.subTasks && step.subTasks.length > 0) {
+            step.subTasks.forEach((subtask: any) => {
+              if (subtask.completed) completed++;
+              total++;
+            });
+          } else {
+            if (step.completed) completed++;
+            total++;
+          }
+        });
+      } catch {}
+    }
+
+    const category = playbook.category || 'Growth';
+
+    // Format dates
+    const CURRENT_YEAR = new Date().getFullYear();
+    let updatedDateStr = null;
+    if (playbook.updatedAt) {
+      const d = new Date(playbook.updatedAt);
+      updatedDateStr = format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
+    }
+    let completedDateStr = null;
+    if (playbook.completedAt) {
+      const d = new Date(playbook.completedAt);
+      completedDateStr = format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
+    }
+
     return (
       <TouchableOpacity
         key={playbook.id}
@@ -668,67 +754,85 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       >
         <Animated.View
           style={[
-            styles.card,
+            styles.carouselCard,
             styles.itemContainer,
             { transform: [{ scale }, { translateY }], opacity },
           ]}
         >
-          <View style={styles.typeIndicator}>
-            <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.alertCoral} />
-            <ThemedText weight="semiBold" style={styles.typeText}>PLAYBOOK</ThemedText>
-          </View>
-
-          <View style={styles.badgeContainer}>
-            <View style={[styles.progressBadge, { backgroundColor: getProgressColor(playbook.progress) }]}>
-              <ThemedText weight="semiBold" style={styles.progressBadgeText}>{playbook.progress}%</ThemedText>
+          <View style={styles.gradientContainer}>
+            <View style={styles.categoryLabel}>
+              <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
             </View>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setSelectedPlaybookForDevotional(playbook);
+                setDevotionalModalVisible(true);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
+            </TouchableOpacity>
           </View>
 
-          <ThemedText weight="semiBold" style={styles.cardTitle}>
+          <View style={styles.dateWithBadge}>
+            {!isCardCompleted && updatedDateStr ? (
+              <ThemedText style={styles.carouselDate}>{updatedDateStr}</ThemedText>
+            ) : null}
+          </View>
+
+          <ThemedText weight="semiBold" style={styles.carouselCardTitle}>
             {playbook.title}
           </ThemedText>
 
-          {playbook.description && (
-            <ThemedText style={styles.cardDescription} numberOfLines={3}>
-              {playbook.description}
+          {playbook.userInput && (
+            <ThemedText style={styles.carouselCardDescription} numberOfLines={1}>
+              {playbook.userInput}
             </ThemedText>
           )}
 
-          <View style={styles.progressSection}>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${playbook.progress}%`,
-                    backgroundColor: getProgressColor(playbook.progress),
-                  },
-                ]}
-              />
+          {isCardCompleted ? (
+            <View style={styles.completedSummary}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+              <ThemedText style={styles.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText>
+              {completedDateStr && (
+                <>
+                  <View style={styles.completedSummaryDivider} />
+                  <ThemedText style={styles.completedDateText}>{completedDateStr}</ThemedText>
+                </>
+              )}
             </View>
-            <ThemedText
-              weight="medium"
-              style={[
-                styles.progressText,
-                {
-                  color:
-                    playbook.progress === 0
-                      ? Colors.textGray
-                      : playbook.progress === 100
-                      ? Colors.growthGreen
-                      : Colors.alertCoral,
-                },
-              ]}
-            >
-              {getProgressText(playbook.progress)}
-            </ThemedText>
-          </View>
-
-          <View style={styles.stepInfo}>
-            <ThemedText weight="medium" style={styles.stepText}>
-              {playbook.completedSteps}/{playbook.totalSteps} Steps Explored
-            </ThemedText>
-          </View>
+          ) : (
+            <View style={styles.sectionsContainer}>
+              {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
+                const state = getSectionState(step, wp);
+                return (
+                  <View key={label} style={styles.sectionItem}>
+                    <View style={[styles.statusPill, state === 'completed' && styles.statusPillCompleted, state === 'viewed' && styles.statusPillViewed, state === 'unreached' && styles.statusPillUnreached]}>
+                      {state === 'completed' ? <View style={[styles.statusPillFill, styles.statusPillFillCompleted]} /> : <ThemedText style={[styles.statusPillText, state === 'viewed' && styles.statusPillTextViewed, state === 'unreached' && styles.statusPillTextUnreached]}>{state === 'viewed' ? '◐' : '○'}</ThemedText>}
+                    </View>
+                    <View style={styles.sectionContent}>
+                      <ThemedText style={[styles.sectionLabel, state === 'unreached' && styles.sectionLabelMuted]}>{label}</ThemedText>
+                      {metaIcon && (
+                        <View style={styles.sectionMetaContainer}>
+                          <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={styles.sectionMetaIcon} />
+                          <ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{step === 1 ? '3 min read' : step === 3 && total > 0 ? `${completed} of ${total} acted on` : ''}</ThemedText>
+                        </View>
+                      )}
+                      {actionIcon && !metaIcon && (
+                        actionIconType === 'ionicons' ? (
+                          <Ionicons name={actionIcon as any} size={14} color={'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />
+                        ) : (
+                          <MaterialCommunityIcons name={actionIcon as any} size={14} color={'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />
+                        )
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </Animated.View>
       </TouchableOpacity>
     );
@@ -1205,6 +1309,179 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
+  },
+  // New styles to match PlaybookListScreen card design
+  carouselCard: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 26,
+    padding: 16,
+  },
+  gradientContainer: {
+    height: 44,
+    borderRadius: 14,
+    marginBottom: 8,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
+    overflow: 'visible',
+  },
+  categoryLabel: {
+    position: 'absolute',
+    left: 10,
+    bottom: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  categoryLabelText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.04,
+    textTransform: 'uppercase',
+    color: Colors.anchorBlue,
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    padding: 4,
+    zIndex: 20,
+  },
+  dateWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  carouselDate: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
+  },
+  carouselCardTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  carouselCardDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 6,
+  },
+  completedSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  completedSummaryText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  completedSummaryDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 8,
+  },
+  completedDateText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  sectionsContainer: {
+    marginTop: 10,
+  },
+  sectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statusPill: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  statusPillCompleted: {
+    backgroundColor: 'rgba(95, 138, 104, 0.15)',
+    borderColor: Colors.growthGreen,
+  },
+  statusPillViewed: {
+    backgroundColor: 'rgba(197, 140, 43, 0.1)',
+    borderColor: Colors.faithGold,
+  },
+  statusPillUnreached: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  statusPillTextViewed: {
+    color: Colors.faithGold,
+  },
+  statusPillTextUnreached: {
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
+  statusPillFill: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  statusPillFillCompleted: {
+    backgroundColor: Colors.growthGreen,
+  },
+  sectionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionLabel: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+  },
+  sectionLabelMuted: {
+    color: 'rgba(255, 255, 255, 0.35)',
+  },
+  sectionMetaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sectionMetaIcon: {
+    marginRight: 0,
+  },
+  sectionInfo: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  sectionInfoMuted: {
+    color: 'rgba(255, 255, 255, 0.4)',
+  },
+  sectionActionIcon: {
+    marginRight: 0,
   },
 });
 
