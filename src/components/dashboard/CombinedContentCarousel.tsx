@@ -492,6 +492,17 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     }, [fetchContent])
   );
 
+  // Listen for playbook action step updates from PlaybookWalkthrough
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', () => {
+      fetchContent();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchContent]);
+
   const scheduleRefetch = useCallback(() => {
     if (refetchTimeoutRef.current) {
       clearTimeout(refetchTimeoutRef.current);

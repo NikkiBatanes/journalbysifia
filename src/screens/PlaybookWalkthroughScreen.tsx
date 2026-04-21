@@ -1996,8 +1996,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
                   queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
-                  // Emit event to trigger CombinedContentCarousel refresh
-                  DeviceEventEmitter.emit('playbookProgressUpdate');
+                  queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
+                  queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
+                  // Trigger dashboard refresh via event
+                  DeviceEventEmitter.emit('playbookActionStepUpdated', { playbookId });
                 }}
               />
             )}
