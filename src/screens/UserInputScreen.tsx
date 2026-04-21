@@ -390,8 +390,15 @@ const UserInputScreen: React.FC = () => {
   }, [route.params?.initialText]);
 
   useEffect(() => {
-    // Removed automatic focus to prevent keyboard from appearing while iOS password alert is showing
-    // User can manually tap the input to focus when ready
+    const focusInput = () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    };
+
+    // Delay focus to allow screen animation to complete first
+    autoFocusTimer.current = setTimeout(focusInput, 1500);
+
     return () => {
       if (autoFocusTimer.current) {
         clearTimeout(autoFocusTimer.current);
@@ -563,7 +570,8 @@ const UserInputScreen: React.FC = () => {
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
-  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(20)).current;
+  const tooltipScale = useRef(new Animated.Value(0.9)).current;
   const headerTranslateY = useRef(new Animated.Value(0)).current; // Adjusted iPad landscape position
   const headerScale = useRef(new Animated.Value(0.45)).current;
   const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
@@ -652,10 +660,12 @@ const UserInputScreen: React.FC = () => {
       }),
     ]).start();
     if (showTooltip) {
+      setShowTooltip(false);
       Animated.parallel([
         Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
-      ]).start(() => setShowTooltip(false));
+        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
+      ]).start();
     }
     // Collapse navigation when input is focused
     if (showNavigation) {
@@ -1119,10 +1129,12 @@ const UserInputScreen: React.FC = () => {
   const dismissKeyboard = () => {
     Keyboard.dismiss();
     if (showTooltip) {
+      setShowTooltip(false);
       Animated.parallel([
         Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
-      ]).start(() => setShowTooltip(false));
+        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
+      ]).start();
     }
   };
 
@@ -1193,13 +1205,15 @@ const UserInputScreen: React.FC = () => {
       const next = !v;
       if (next) {
         Animated.parallel([
-          Animated.spring(tooltipOpacity, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
-          Animated.spring(tooltipTranslateY, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
+          Animated.spring(tooltipOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(tooltipTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(tooltipScale, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
         ]).start();
       } else {
         Animated.parallel([
-          Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-          Animated.spring(tooltipTranslateY, { toValue: 6, tension: 80, friction: 8, useNativeDriver: true }),
+          Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
         ]).start();
       }
       return next;
@@ -1615,7 +1629,7 @@ const UserInputScreen: React.FC = () => {
                 </Animated.View>
                 {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
                 {showTooltip && (
-                  <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] }]} pointerEvents="box-none">
+                  <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }, { scale: tooltipScale }] }]} pointerEvents="box-none">
                     <Text style={[styles.tooltipKicker, font]}>How siFia can help</Text>
                     <Text style={[styles.tooltipTitle, font]}>You don't need to explain everything perfectly.</Text>
                     <Text style={[styles.tooltipTitleSpaced, font]}>Just share what feels important right now.</Text>
