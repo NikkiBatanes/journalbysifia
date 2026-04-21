@@ -8,6 +8,7 @@ export interface PricingTier {
   name: string;
   duration: string;
   description: string;
+  secondaryDescription?: string;
   features: string[];
   monthlyPrice: number;
   annualPrice: number;
@@ -50,14 +51,15 @@ class PricingService {
       id: 'growth',
       name: 'Growth',
       duration: '12 months',
-      description: 'For ongoing formation',
+      description: 'For steady growth',
+      secondaryDescription: 'For recurring moments, deeper reflection, and more room to return often.',
       features: [
-        'All in Spark, plus:',
-        '20 playbooks and 20 devotionals each month',
-        '1-day, 3-day, and 5-day devotionals',
-        'Deeper reflection prompts',
-        'Smart journaling tools',
-        'Export reflections to PDF',
+        '25 playbooks',
+        '25 devotionals',
+        '1, 3 & 5-day devotionals',
+        'Smart journaling',
+        'PDF export',
+        'Cancel anytime',
       ],
       monthlyPrice: 14.99,
       annualOriginal: 179.88,
@@ -115,14 +117,15 @@ class PricingService {
       id: 'growth',
       name: 'Growth',
       duration: '12 months',
-      description: 'For ongoing formation',
+      description: 'For steady growth',
+      secondaryDescription: 'For recurring moments, deeper reflection, and more room to return often.',
       features: [
-        'All in Spark, plus:',
-        '20 playbooks and 20 devotionals each month',
-        '1-day, 3-day, and 5-day devotionals',
-        'Deeper reflection prompts',
-        'Smart journaling tools',
-        'Export reflections to PDF',
+        '25 playbooks',
+        '25 devotionals',
+        '1, 3 & 5-day devotionals',
+        'Smart journaling',
+        'PDF export',
+        'Cancel anytime',
       ],
       monthlyPrice: 399.00,
       annualOriginal: 4788.00,

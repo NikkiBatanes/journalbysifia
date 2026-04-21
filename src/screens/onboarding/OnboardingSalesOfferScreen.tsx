@@ -1229,45 +1229,71 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {tier.description}
         </ThemedText>
 
-        {isExpanded && (
-          <View style={styles.featuresContainer}>
-            {(() => {
-              const processed: string[] = [];
-              const first = tier.features[0]?.trim() || '';
-              const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
-              if (m) {
-                processed.push(`${m[1]} playbooks each month`);
-                processed.push(`${m[2]} devotionals each month`);
-                // Add devotional access info based on tier
-                if (tier.id === 'seeker') {
-                  processed.push('All devotional durations locked');
-                } else if (tier.id === 'spark') {
-                  processed.push('Access 1-day & 3-day devotionals');
-                } else if (tier.id === 'growth') {
-                  processed.push('Access 1-day, 3-day & 5-day devotionals');
-                } else if (tier.id === 'transformation') {
-                  processed.push('Access all devotional durations (1-7 days)');
-                }
-                // POST-LAUNCH: || tier.id === 'family'
-                // No extra line for transformation as requested (no unlocked text)
-                processed.push(...tier.features.slice(1));
-              } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-                processed.push('Unlimited playbooks each month');
-                processed.push('Unlimited devotionals each month');
-                // Do not add any unlocked duration text
-                processed.push(...tier.features.slice(1));
-              } else {
-                processed.push(...tier.features);
-              }
-              return processed.map((feature, index) => (
-                <View key={index} style={styles.featureRow}>
-                  <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
-                  <ThemedText style={styles.featureText}>{feature}</ThemedText>
-                </View>
-              ));
-            })()}
-          </View>
+        {tier.secondaryDescription && (
+          <ThemedText style={[styles.tierSecondaryDescription, isSelected && styles.selectedText]}>
+            {tier.secondaryDescription}
+          </ThemedText>
         )}
+
+        <View style={styles.featuresContainer}>
+          {(() => {
+            // Special formatting for Growth tier
+            if (tier.id === 'growth' && tier.features.length >= 6) {
+              return (
+                <>
+                  <View style={styles.featureRow}>
+                    <ThemedText style={styles.featureText}>
+                      {tier.features[0]} · {tier.features[1]}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureRow}>
+                    <ThemedText style={styles.featureText}>
+                      {tier.features[2]} · {tier.features[3]} · {tier.features[4]}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureRow}>
+                    <ThemedText style={styles.featureText}>
+                      {tier.features[5]}
+                    </ThemedText>
+                  </View>
+                </>
+              );
+            }
+
+            // Default formatting for other tiers
+            const processed: string[] = [];
+            const first = tier.features[0]?.trim() || '';
+            const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+            if (m) {
+              processed.push(`${m[1]} playbooks each month`);
+              processed.push(`${m[2]} devotionals each month`);
+              // Add devotional access info based on tier
+              if (tier.id === 'seeker') {
+                processed.push('All devotional durations locked');
+              } else if (tier.id === 'spark') {
+                processed.push('Access 1-day & 3-day devotionals');
+              } else if (tier.id === 'transformation') {
+                processed.push('Access all devotional durations (1-7 days)');
+              }
+              // POST-LAUNCH: || tier.id === 'family'
+              // No extra line for transformation as requested (no unlocked text)
+              processed.push(...tier.features.slice(1));
+            } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
+              processed.push('Unlimited playbooks each month');
+              processed.push('Unlimited devotionals each month');
+              // Do not add any unlocked duration text
+              processed.push(...tier.features.slice(1));
+            } else {
+              processed.push(...tier.features);
+            }
+            return processed.map((feature, index) => (
+              <View key={index} style={styles.featureRow}>
+                <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
+                <ThemedText style={styles.featureText}>{feature}</ThemedText>
+              </View>
+            ));
+          })()}
+        </View>
 
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
@@ -1299,37 +1325,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
                 {(currencyInfo?.symbol || '$')}{getMonthlyEquivalent(tier)}/month
               </ThemedText>
-              <View
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderTerminationRequest={() => false}
-                style={styles.detailsToggle}
-              >
-                <TouchableOpacity
-                  style={styles.detailsToggle}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  delayPressIn={0}
-                  onPressIn={(e: any) => {
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                  }}
-                  onPress={(e: any) => {
-                    // prevent parent card onPress from firing
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                    try { triggerLightHaptic(); } catch {}
-                    toggleCardExpansion(tier.id);
-                  }}
-                  onPressOut={(e: any) => {
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                  }}
-                  activeOpacity={0.8}
-                >
-                <Ionicons
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={Colors.faithGold}
-                />
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
 
@@ -2178,6 +2173,13 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 8,
     opacity: 0.9,
+  },
+  tierSecondaryDescription: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   featuresContainer: {
     marginBottom: 20,
