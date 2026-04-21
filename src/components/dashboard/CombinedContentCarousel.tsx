@@ -723,6 +723,16 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     const category = playbook.category || 'Growth';
 
+    // Calculate read time for Truth in Love section
+    const estimateReadTime = (text: string): string => {
+      if (!text) { return ''; }
+      const words = text.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      return `${minutes} min read`;
+    };
+
+    const tilReadTime = estimateReadTime((playbook.content as any)?.truthInLove?.text || (playbook as any)?.truthInLove?.text || '');
+
     // Format dates
     const CURRENT_YEAR = new Date().getFullYear();
     let updatedDateStr = null;
@@ -816,7 +826,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                       {metaIcon && (
                         <View style={styles.sectionMetaContainer}>
                           <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={styles.sectionMetaIcon} />
-                          <ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{step === 1 ? '3 min read' : step === 3 && total > 0 ? `${completed} of ${total} acted on` : ''}</ThemedText>
+                          <ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{step === 1 ? tilReadTime : step === 3 && total > 0 ? `${completed} of ${total} acted on` : ''}</ThemedText>
                         </View>
                       )}
                       {actionIcon && !metaIcon && (
