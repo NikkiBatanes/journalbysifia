@@ -128,15 +128,23 @@ const estimateReadTime = (text: string): string => {
   return `${minutes} min read`;
 };
 
-// Derive per-section state from walkthrough_progress
-// completed = Next was pressed on that step, viewed = user was there but didn't press Next,
+// Derive per-section state from walkthrough_progress and action step completion
+// completed = Next was pressed on that step OR all action steps in that section are completed
+// viewed = user was there but didn't press Next OR some action steps are completed
 // unreached = never got there
 const getSectionState = (
   sectionStep: number,
   wp: number,
+  completedSteps?: number,
+  totalSteps?: number,
 ): 'completed' | 'viewed' | 'unreached' => {
-  if (wp < 0) { return 'unreached'; } // not started — nothing is viewed or completed
+  if (wp < 0 && (!completedSteps || completedSteps === 0)) { return 'unreached'; }
   if (wp >= sectionStep) { return 'completed'; }
+  // For Faithful Actions (step 3), if any action steps are completed, mark as viewed
+  if (sectionStep === 3 && completedSteps && completedSteps > 0) { return 'viewed'; }
+  // For Prayer (step 4) and Words to Speak (step 5), if walkthrough_progress >= sectionStep, mark as viewed
+  if ((sectionStep === 4 || sectionStep === 5) && wp >= sectionStep) { return 'viewed'; }
+  // For other sections, use walkthrough_progress
   if (wp + 1 === sectionStep) { return 'viewed'; }
   return 'unreached';
 };
@@ -247,7 +255,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
         ) : (
           <View style={st.sectionsContainer}>
             {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
-              const state = getSectionState(step, wp);
+              const state = getSectionState(step, wp, completed, total);
               // Derive dynamic values per section
               const meta = step === 1 ? tilReadTime
                          : step === 3 && total > 0 ? `${completed} of ${total} acted on`
@@ -1618,7 +1626,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: sessionStates[item.id]?.hasPrayed },
                 { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: sessionStates[item.id]?.hasRead },
               ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons'; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
-                const state = getSectionState(step, wp);
+                const state = getSectionState(step, wp, completed, total);
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[
