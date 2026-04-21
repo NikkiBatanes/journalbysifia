@@ -83,19 +83,23 @@ interface BaseContent {
   category?: string;
 }
 
-interface PlaybookContent extends BaseContent {
+interface PlaybookContent {
   type: 'playbook';
+  id: string;
+  title: string;
+  description?: string;
+  content: any;
   userInput?: string;
   progress: number;
   totalSteps: number;
   completedSteps: number;
-  estimatedTime?: string;
-  difficulty?: string;
-  tags?: string[];
-  walkthroughProgress?: number;
-  updatedAt?: string;
+  lastAccessed?: string;
+  category: string;
+  walkthroughProgress: number;
+  updatedAt: string;
   completedAt?: string;
   status?: string;
+  truthInLove?: any;
 }
 
 interface DevotionalContent extends BaseContent {
@@ -233,137 +237,65 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       }
       setError(null);
 
-      const [playbooksQuery, devotionalsQuery] = await Promise.all([
-        supabase
-          .from('playbooks')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(10),
-        supabase
-          .from('devotionals')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(10),
-      ]);
+      // Use getPlaybooks API for consistency with PlaybookListScreen
+      const { getPlaybooks } = await import('../../services/apiIntegration');
+      const playbooksData = await getPlaybooks(user.id, { lightweight: true });
 
-      if (playbooksQuery.error) {
-        Logger.error('Error fetching playbooks', playbooksQuery.error as Error, {
-          component: 'CombinedContentCarousel',
-        });
-      }
+      const devotionalsQuery = await supabase
+        .from('devotionals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(10);
 
       if (devotionalsQuery.error) {
         Logger.error('Error fetching devotionals', devotionalsQuery.error as Error, {
           component: 'CombinedContentCarousel',
         });
       }
-
-      const playbooksData = playbooksQuery.data || [];
       const devotionalsData = devotionalsQuery.data || [];
 
-      const playbooksWithProgress = await Promise.all(
-        playbooksData.map(async (playbook) => {
-          try {
-            let userInput: string | undefined = (playbook as any)?.user_input;
-            if (!userInput) {
-              try {
-                const parsedContent = playbook.content
-                  ? (typeof playbook.content === 'string' ? JSON.parse(playbook.content) : playbook.content)
-                  : null;
-                userInput = parsedContent?.userInput || parsedContent?.input?.userInput || undefined;
-              } catch {}
-            }
-
-            const { count: totalStepsCount } = await supabase
-              .from('playbook_action_steps')
-              .select('id', { count: 'exact', head: true })
-              .eq('playbook_id', playbook.id);
-
-            const { count: completedStepsCount } = await supabase
-              .from('playbook_action_steps')
-              .select('id', { count: 'exact', head: true })
-              .eq('playbook_id', playbook.id)
-              .eq('completed', true);
-
-            let totalSteps = totalStepsCount ?? 0;
-            let completedSteps = completedStepsCount ?? 0;
-
-            if (totalSteps === 0) {
-              try {
-                const parsedContent = playbook.content
-                  ? (typeof playbook.content === 'string'
-                      ? JSON.parse(playbook.content)
-                      : playbook.content)
-                  : null;
-
-                if (parsedContent && parsedContent.actionSteps && Array.isArray(parsedContent.actionSteps)) {
-                  totalSteps = parsedContent.actionSteps.length;
-                } else if (parsedContent && parsedContent.steps && Array.isArray(parsedContent.steps)) {
-                  totalSteps = parsedContent.steps.length;
-                } else if (parsedContent && parsedContent.sections && Array.isArray(parsedContent.sections)) {
-                  totalSteps = parsedContent.sections.length;
-                } else {
-                  totalSteps = 1;
-                }
-              } catch {
-                totalSteps = 1;
+      const playbooksWithProgress = playbooksData.map((playbook) => {
+        // getPlaybooks API already returns processed data with walkthroughProgress and actionSteps
+        // Calculate completed/total stats from actionSteps
+        let completed = 0;
+        let total = 0;
+        if (playbook.actionSteps && Array.isArray(playbook.actionSteps)) {
+          for (const step of playbook.actionSteps) {
+            if (!step) { continue; }
+            if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
+              for (const subTask of step.subTasks) {
+                if (subTask?.completed) { completed++; }
+                total++;
               }
+            } else {
+              if (step.completed) { completed++; }
+              total++;
             }
-
-            let lastAccessed: string | undefined;
-            try {
-              const { data: progressData } = await supabase
-                .from('user_progress')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('content_type', 'playbook')
-                .eq('content_id', playbook.id)
-                .single();
-              lastAccessed = progressData?.updated_at;
-            } catch {}
-
-            const walkthroughProgress = (playbook as any).walkthrough_progress ?? -1;
-            const progressPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-
-            return {
-              type: 'playbook' as const,
-              id: playbook.id,
-              title: playbook.title,
-              description: playbook.description,
-              content: playbook.content,
-              userInput,
-              progress: progressPercentage,
-              totalSteps,
-              completedSteps,
-              lastAccessed,
-              category: playbook.category || 'Personal Growth',
-              walkthroughProgress,
-              updatedAt: playbook.updated_at,
-              completedAt: playbook.completed_at,
-              status: playbook.status,
-            };
-          } catch (err) {
-            Logger.warn('Error processing playbook', { component: 'CombinedContentCarousel', data: err });
-            return {
-              type: 'playbook' as const,
-              id: playbook.id,
-              title: playbook.title,
-              description: playbook.description,
-              content: playbook.content,
-              userInput: (playbook as any)?.user_input,
-              progress: 0,
-              totalSteps: 1,
-              completedSteps: 0,
-              category: 'Personal Growth',
-              walkthroughProgress: -1,
-              updatedAt: playbook.updated_at,
-              completedAt: playbook.completed_at,
-              status: playbook.status,
-            };
           }
-        })
-      );
+        }
+
+        const progressPercentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        return {
+          type: 'playbook' as const,
+          id: playbook.id,
+          title: playbook.title,
+          description: playbook.description,
+          content: playbook.content,
+          userInput: playbook.userInput,
+          progress: progressPercentage,
+          totalSteps: total,
+          completedSteps: completed,
+          lastAccessed: playbook.updatedAt,
+          category: playbook.category || 'Personal Growth',
+          walkthroughProgress: playbook.walkthroughProgress ?? -1,
+          updatedAt: playbook.updatedAt,
+          completedAt: playbook.completedAt,
+          status: playbook.status,
+          truthInLove: playbook.truthInLove, // Include for read time calculation
+        };
+      });
 
       const deriveCategory = (row: any): string => {
         const savedArray = Array.isArray(row.categories) ? row.categories : [];
@@ -731,7 +663,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       return `${minutes} min read`;
     };
 
-    const tilReadTime = estimateReadTime((playbook.content as any)?.truthInLove?.text || (playbook as any)?.truthInLove?.text || '');
+    // Use truthInLove from playbook object to match PlaybookListScreen
+    const tilText = (playbook.truthInLove as any)?.text || '';
+    const tilReadTime = estimateReadTime(tilText);
 
     // Format dates
     const CURRENT_YEAR = new Date().getFullYear();
