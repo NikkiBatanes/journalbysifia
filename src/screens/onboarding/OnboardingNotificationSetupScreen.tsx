@@ -120,7 +120,7 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Journal Reminders',
       description: 'Occasional nudges to pause, reflect, and write',
       icon: 'create-outline',
-      enabled: true,
+      enabled: false,
     },
     {
       id: 'prayer_reminders',
