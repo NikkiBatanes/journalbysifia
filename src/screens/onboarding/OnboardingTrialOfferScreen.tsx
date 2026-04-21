@@ -871,13 +871,13 @@ const OnboardingTrialOfferScreen = () => {
         id: 3,
         title: formatDate(day3),
         subtitle: 'Your paid plan starts',
-        description: 'If you keep the subscription, your monthly or annual plan begins fresh.',
+        description: `If you keep the subscription, your ${isAnnual ? 'annual' : 'monthly'} plan begins fresh.`,
         icon: 'rocket',
         iconColor: Colors.alertCoral,
         isCompleted: false,
       },
     ];
-  }, [selectedTierId]);
+  }, [selectedTierId, isAnnual]);
 
 // ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {
@@ -1026,6 +1026,22 @@ const OnboardingTrialOfferScreen = () => {
           {/* Timeline */}
           <View style={styles.timelineContainer}>
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
+          </View>
+
+          {/* Selected Plan Container */}
+          <View style={styles.selectedPlanContainer}>
+            <ThemedText style={styles.selectedPlanLabel}>SELECTED PLAN</ThemedText>
+            <ThemedText weight="bold" style={styles.selectedPlanName}>{getTierDisplayName(selectedTierId)}</ThemedText>
+            <TouchableOpacity
+              style={styles.changePlanButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                navigation.goBack();
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.changePlanButtonText}>Change Plan</ThemedText>
+            </TouchableOpacity>
           </View>
 
           {/* Bottom Links */}
@@ -1255,7 +1271,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     lineHeight: 30,
     letterSpacing: 0.25,
     marginBottom: 0,
-    marginTop: 8,
+    marginTop: 16,
   },
   headerSubText: {
     fontSize: 13,
@@ -1275,19 +1291,15 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     letterSpacing: 0.15,
   },
   closeButton: {
+    position: 'absolute',
+    top: 18,
+    right: 24,
     width: 42,
     height: 42,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    right: 20,
-    top: 8,
-    zIndex: 100,
-  },
-  disabledButton: {
-    opacity: 0.6,
   },
   scrollContainer: {
     flex: 1,
@@ -1452,6 +1464,41 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   timelineContainer: {
     marginBottom: 16,
+  },
+  selectedPlanContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  selectedPlanLabel: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  selectedPlanName: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+  },
+  changePlanButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  changePlanButtonText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
   },
   timelineBulletsContainer: {
     marginTop: 10,
@@ -1731,10 +1778,10 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#35537F',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   pricingTitle: {
     fontSize: 16,
