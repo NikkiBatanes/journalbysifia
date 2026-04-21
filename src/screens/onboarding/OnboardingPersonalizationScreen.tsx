@@ -319,6 +319,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     titleContainer: {
       alignItems: 'center',
       paddingHorizontal: 20,
+      marginTop: -30,
       marginBottom: isVerySmallPhone ? 15 : (isSmallPhone ? 20 : 30),
       backgroundColor: Colors.anchorBlue,
     },
@@ -1955,9 +1956,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // Condense header further when keyboard is visible on details step to free vertical space
             ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
           ]}>
-            {greetingName ? (
-              <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
-            ) : null}
             {detailsOnlyFlow ? (
               <>
                 <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
