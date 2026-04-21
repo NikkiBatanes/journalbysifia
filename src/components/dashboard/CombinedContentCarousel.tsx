@@ -520,7 +520,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
       // Filter out completed items and limit to 3 of each type
       const activePlaybooks = playbooksWithProgress
-        .filter(p => p.progress < 100)
+        .filter(p => p.progress < 100 && p.status !== 'completed')
         .slice(0, 3);
 
       const activeDevotionals = devotionalsWithStatus
