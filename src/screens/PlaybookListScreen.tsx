@@ -18,6 +18,7 @@ import {
   PanResponder,
   Dimensions,
   ScrollView,
+  DeviceEventEmitter,
   TextInput,
   Easing,
   LayoutAnimation,
@@ -796,6 +797,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return failureCount < 3;
     },
   });
+
+  // Listen for playbook action step updates from PlaybookWalkthrough
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
+      console.log('📡 PlaybookListScreen: Received playbookActionStepUpdated event:', data);
+      refetch();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refetch]);
 
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
