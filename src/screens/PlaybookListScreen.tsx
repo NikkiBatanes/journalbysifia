@@ -802,16 +802,36 @@ const PlaybookListScreen = ({ navigation }: any) => {
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
       console.log('📡 PlaybookListScreen: Received playbookActionStepUpdated event:', data);
+      console.log('📡 PlaybookListScreen: Current playbooks count:', playbooks.length);
+      const playbookBefore = playbooks.find(p => p.id === data.playbookId);
+      if (playbookBefore) {
+        console.log('📡 PlaybookListScreen: Playbook before refetch:', {
+          id: playbookBefore.id,
+          actionSteps: playbookBefore.actionSteps?.length || 0,
+          completedSteps: calculateTaskStats(playbookBefore.actionSteps).completed,
+          totalSteps: calculateTaskStats(playbookBefore.actionSteps).total,
+        });
+      }
       console.log('📡 PlaybookListScreen: Calling refetch()...');
       refetch().then(() => {
         console.log('📡 PlaybookListScreen: Refetch completed');
+        console.log('📡 PlaybookListScreen: Playbooks count after refetch:', playbooks.length);
+        const playbookAfter = playbooks.find(p => p.id === data.playbookId);
+        if (playbookAfter) {
+          console.log('📡 PlaybookListScreen: Playbook after refetch:', {
+            id: playbookAfter.id,
+            actionSteps: playbookAfter.actionSteps?.length || 0,
+            completedSteps: calculateTaskStats(playbookAfter.actionSteps).completed,
+            totalSteps: calculateTaskStats(playbookAfter.actionSteps).total,
+          });
+        }
       });
     });
 
     return () => {
       subscription.remove();
     };
-  }, [refetch]);
+  }, [refetch, playbooks]);
 
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
