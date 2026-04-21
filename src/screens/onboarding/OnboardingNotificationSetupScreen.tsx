@@ -396,7 +396,7 @@ const OnboardingNotificationSetupScreen = () => {
             adjustsFontSizeToFit
             minimumFontScale={0.9}
           >
-            {`Welcome, ${displayName}`}
+            {welcomeData.title}
           </ThemedText>
           <ThemedText style={styles.welcomeSubtitle}>
             {welcomeData.subtitle}
