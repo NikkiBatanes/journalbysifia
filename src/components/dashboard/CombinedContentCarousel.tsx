@@ -771,7 +771,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                     <View style={styles.sectionContent}>
                       <ThemedText style={[styles.sectionLabel, state === 'unreached' && styles.sectionLabelMuted]}>{label}</ThemedText>
                       {meta && <View style={styles.sectionMetaContainer}>{metaIcon && <Ionicons name={metaIcon as any} size={12} color={'rgba(255,255,255,0.4)'} style={styles.sectionMetaIcon} />}<ThemedText style={[styles.sectionInfo, state !== 'completed' && styles.sectionInfoMuted]}>{meta}</ThemedText></View>}
-                      {actionIcon && !metaIcon && (actionIconType === 'ionicons' ? <Ionicons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} /> : <MaterialCommunityIcons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />)}
+                      {actionIcon && !meta && (actionIconType === 'ionicons' ? <Ionicons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} /> : <MaterialCommunityIcons name={actionIcon as any} size={14} color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'} style={styles.sectionActionIcon} />)}
                     </View>
                   </View>
                 );
