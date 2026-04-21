@@ -1499,7 +1499,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             <CombinedContentCarousel
               onPlaybookPress={(playbook) => {
                 triggerLightHaptic();
-                navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
+                navigation.navigate('PlaybookWalkthrough' as any, { playbook });
               }}
               onDevotionalPress={(devotional) => {
                 triggerLightHaptic();
