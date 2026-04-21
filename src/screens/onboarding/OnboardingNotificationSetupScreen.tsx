@@ -141,8 +141,8 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Trial Reminders',
       description: 'Helpful updates so you can decide with peace',
       icon: 'time-outline',
-      enabled: true,
-      required: effectiveUserType === 'trial',
+      enabled: false,
+      required: false,
     },
     {
       id: 'prayer_request_alerts',
@@ -408,7 +408,9 @@ const OnboardingNotificationSetupScreen = () => {
           <ThemedText weight="bold" style={styles.settingsTitle}>Notification Preferences</ThemedText>
           <ThemedText style={styles.settingsSubtitle}>Choose what would be helpful for you right now. You can change these anytime.</ThemedText>
 
-          {notificationSettings.map((setting) => (
+          {notificationSettings
+            .filter(setting => !(setting.id === 'trial_reminders' && effectiveUserType === 'trial'))
+            .map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
               <View style={styles.settingLeft}>
                 <View style={styles.settingIconContainer}>
