@@ -55,7 +55,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean; isTrialEligible?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
 
@@ -1002,7 +1002,7 @@ const OnboardingTrialOfferScreen = () => {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.onboardingFlow ? 'How your free trial works' : 'Not sure yet?'}
+              {routeParams?.isTrialEligible ? 'How your free trial works' : 'Not sure yet?'}
             </ThemedText>
             {routeParams?.onboardingFlow && (
               <ThemedText style={styles.headerSubText}>

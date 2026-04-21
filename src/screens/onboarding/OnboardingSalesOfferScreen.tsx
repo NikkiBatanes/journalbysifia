@@ -50,6 +50,7 @@ interface RouteParams {
   tier?: string; // caller-reported tier
   skipNotificationPreference?: boolean;
   context?: string; // e.g., 'profile_settings', 'timeblock'
+  changedTier?: string; // tier changed in trial offer screen
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   returnToReflection?: boolean; // when launched from reflection editor
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
@@ -121,7 +122,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
-  const [preservedTier, setPreservedTier] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -344,10 +344,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
-        // Filter to only show Growth tier in onboarding flow (unless showAllPlans is true)
+        // Filter to only show selected tier in onboarding flow when collapsed (unless showAllPlans is true)
         if (routeParams?.onboardingFlow && !showAllPlans) {
-          tiers = tiers.filter(t => t.id === 'growth');
-          logger.debug('Filtered to only show Growth tier for onboarding flow', {
+          tiers = tiers.filter(t => t.id === selectedTier);
+          logger.debug('Filtered to show selected tier when collapsed in onboarding flow', {
+            selectedTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
@@ -476,27 +477,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     setExpandedCards(new Set());
   }, [isAnnual]);
 
-  // Preserve selected tier when navigating to trial offer and restore when returning
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // When screen comes back into focus, if we have a preserved tier, restore it
-      if (preservedTier && selectedTier === 'spark') {
-        logger.debug('Restoring preserved tier from trial offer', { preservedTier, currentTier: selectedTier });
-        setSelectedTier(preservedTier);
-        setPreservedTier(null); // Clear preserved tier after restoration
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, preservedTier, selectedTier]);
-
-  // Preserve tier before navigating to trial offer
-  useEffect(() => {
-    if (shouldUseTrialProduct && !preservedTier && selectedTier !== 'spark') {
-      logger.debug('Preserving selected tier before trial offer', { selectedTier });
-      setPreservedTier(selectedTier);
-    }
-  }, [shouldUseTrialProduct, preservedTier, selectedTier]);
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
@@ -1253,6 +1233,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </ThemedText>
           {tier.id === 'growth' && (
             <View style={styles.recommendedBadge}>
+              <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
             </View>
           )}
@@ -1750,15 +1731,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               buttonText: shouldUseTrialProduct ? 'Start 3-Day Free Trial' : 'Regular purchase',
             });
 
-            // Always navigate to trial offer screen during onboarding flow
-            if (routeParams?.onboardingFlow) {
-              logger.info('Navigating to trial offer screen for onboarding flow');
+            // Navigate to trial offer screen if user is eligible for trial
+            if (shouldUseTrialProduct) {
+              logger.info('Navigating to trial offer screen - user is trial eligible');
               try {
                 (navigation as any).navigate('OnboardingTrialOffer', {
                   selectedTierId: selectedTier,
                   billing: isAnnual ? 'annual' : 'monthly',
                   skipNotificationPreference: routeParams?.skipNotificationPreference,
-                  onboardingFlow: true,
+                  onboardingFlow: routeParams?.onboardingFlow,
+                  isTrialEligible: true,
                 });
                 logger.info('Navigation to trial offer screen initiated successfully');
               } catch (navError) {
@@ -2190,6 +2172,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   recommendedText: {
     fontSize: 14,
