@@ -15,7 +15,6 @@ import {
 import { Colors } from '../theme';
 import { OnboardingStyles } from '../theme/onboardingStyles';
 import ThemedText from './common/ThemedText';
-import AnimatedPointsNotification from './ui/AnimatedPointsNotification';
 import { faithPointsService } from '../services/faithPointsService';
 
 import { Devotional } from '../interfaces/devotional';
@@ -78,16 +77,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
   const [rating, setRating] = useState(0);
-  const [showLocalPoints, setShowLocalPoints] = useState(false);
-  const [localPoints, setLocalPoints] = useState<number>(0);
-  const pointsShownRef = useRef(false);
 
-  // Memoize the animation complete callback to prevent re-renders
-  const handleAnimationComplete = useCallback(() => {
-
-    setShowLocalPoints(false);
-    animationKeyRef.current = null;
-  }, []);
 
   // Simple celebratory burst particles
   type BurstParticle = {
@@ -243,34 +233,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             triggerSuccessHaptic();
             // Fire celebratory burst when checkmark appears
             startBurstRef.current(8); // Reduced particle count from 12 to 8
-            // Show local FP notification above this modal content for guaranteed visibility
-            // Only show once per modal open to prevent flashing
-            if (!pointsShownRef.current) {
-
-              pointsShownRef.current = true;
-              try {
-                // Use different activity type based on whether this is the last day
-                const activityType = isLastDayRef.current ? 'devotional_full_completed' : 'devotional_completed';
-                const pts = faithPointsService.getPointsForActivity(activityType as any);
-
-                setLocalPoints(pts);
-
-                // Set unique animation key to prevent re-renders
-                animationKeyRef.current = `${devotionalIdRef.current}-${currentDayNumberRef.current}-${Date.now()}`;
-
-                // Faith points are already awarded by syncDevotionalCompletion in useMarkDayCompleteReactQuery
-                // DO NOT award points here to prevent duplicate awarding and competing InteractionManager callbacks
-                // Just show the points UI
-
-                // Delay showing points slightly to ensure modal is fully visible
-                setTimeout(() => {
-
-                  setShowLocalPoints(true);
-                }, 100);
-              } catch (e) {
-                Logger.error('[DevotionalCompletionModal] Error showing points', e as Error, { component: 'DevotionalCompletionModal' });
-              }
-            }
             // Notify parent that check reveal completed
             try { onCheckRevealRef.current && onCheckRevealRef.current(); } catch {}
           });
@@ -280,10 +242,8 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
       // Allow animations to run again next time it's opened
       hasOpenedRef.current = false;
-      pointsShownRef.current = false;
       lastVisibleState.current = false;
       animationKeyRef.current = null;
-      setShowLocalPoints(false);
     }
 
     // ✅ FIX: Cleanup timeouts on unmount or when visibility changes
@@ -325,8 +285,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       Logger.debug('[DevotionalCompletionModal] handleClose animation complete - calling onClose', { component: 'DevotionalCompletionModal' });
       onClose();
       setRating(0);
-      setShowLocalPoints(false);
-      pointsShownRef.current = false;
     });
   }, [onClose, slideAnim, backdropAnim]);
 
@@ -632,18 +590,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             </View>
           </View>
         </Animated.View>
-        {showLocalPoints && animationKeyRef.current && (
-          <View pointerEvents="none" style={styles.localPointsOverlay}>
-            <AnimatedPointsNotification
-              key={animationKeyRef.current}
-              points={localPoints}
-              activityType={isLastDay ? 'devotional_full_completed' : 'devotional_completed'}
-              position={'center'}
-              visible={true}
-              onAnimationComplete={handleAnimationComplete}
-            />
-          </View>
-        )}
       </View>
     </Modal>
   );
@@ -796,14 +742,6 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-  },
-  localPointsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 999999999,
-    elevation: 999999999,
-    pointerEvents: 'none',
   },
   ratingTitle: {
     fontSize: 14,

@@ -450,9 +450,14 @@ export async function generateDevotional(
 
     // Get user tier for rate limiting and priority
     try {
-      const { subscriptionService } = await import('./subscriptionService');
-      const subscription = await subscriptionService.getUserSubscription(userId);
-      userTier = subscription.tier;
+      // During onboarding, use 'onboarding' tier to bypass seeker rate limits
+      if (params.isOnboarding) {
+        userTier = 'onboarding';
+      } else {
+        const { subscriptionService } = await import('./subscriptionService');
+        const subscription = await subscriptionService.getUserSubscription(userId);
+        userTier = subscription.tier;
+      }
     } catch (tierError) {
       Logger.warn('Failed to get user tier for devotional, using default', {
         component: 'modernDevotionalApi',

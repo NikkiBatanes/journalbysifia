@@ -721,7 +721,7 @@ export class NewSubscriptionService {
       case 'playbook':
         return this.checkPlaybookLimit(subscription, limits, isOnboarding);
       case 'devotional':
-        return this.checkDevotionalLimit(subscription, limits);
+        return this.checkDevotionalLimit(subscription, limits, isOnboarding);
       case 'smart_journal':
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
@@ -745,8 +745,8 @@ export class NewSubscriptionService {
       throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
 
-    // Skip incrementing usage for onboarding playbooks - they're free for all tiers
-    if (isOnboarding && action === 'playbook') {
+    // Skip incrementing usage for onboarding playbooks and devotionals - they're free for all tiers
+    if (isOnboarding && (action === 'playbook' || action === 'devotional')) {
       return;
     }
 
@@ -1041,15 +1041,20 @@ export class NewSubscriptionService {
   /**
    * Check devotional generation limit
    */
-  private static checkDevotionalLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+  private static checkDevotionalLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
     // PHASE 5: Grace period check - block generation if billing issue
     const isInGracePeriod = (subscription as any).billing_issue === true;
     const gracePeriodEnd = (subscription as any).grace_period_end_date;
     const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
 
-    const isUnlimited = limits.devotionals_limit === -1;
-    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.devotionals_used < limits.devotionals_limit);
-    const remaining = isUnlimited ? -1 : Math.max(0, limits.devotionals_limit - subscription.devotionals_used);
+    // Use onboarding limit for seeker tier during onboarding
+    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
+      ? this.getOnboardingDevotionalLimit(subscription.tier)
+      : limits.devotionals_limit;
+
+    const isUnlimited = effectiveLimit === -1;
+    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.devotionals_used < effectiveLimit);
+    const remaining = isGracePeriodActive ? 0 : (isUnlimited ? -1 : Math.max(0, effectiveLimit - subscription.devotionals_used));
 
     return {
       can_generate_playbook: true, // Will be checked separately

@@ -583,7 +583,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
-    const { user } = useAuth();
     const userId = user?.id;
 
     // Use subscriptionService.canGenerate with onboarding exception
@@ -628,7 +627,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // Check if user has no remaining devotionals - check directly from subscription
     const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
-    const devotionalsLimit = devotionalGating.subscription?.devotionals_limit || 0;
+    const baseLimit = devotionalGating.subscription?.devotionals_limit || 0;
+    // During onboarding, seekers get 1 free devotional regardless of their base tier limit
+    const devotionalsLimit = (isOnboarding && devotionalGating.tier === 'seeker') ? 1 : baseLimit;
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
 
@@ -654,7 +655,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       return;
     }
 
-    if (hasNoRemaining) {
+    if (hasNoRemaining && !isOnboarding) {
 
       // Force refresh before showing modal
       await devotionalGating.refreshSubscription();

@@ -44,6 +44,10 @@ export interface ResilienceConfig {
 
 // Tier-based configurations for different user levels
 export const TIER_CONFIGS: Record<string, Partial<ResilienceConfig>> = {
+  onboarding: {
+    maxRequestsPerMinute: 20, // Generous limit for onboarding - never block first-time experience
+    maxRetries: 3,
+  },
   seeker: {
     maxRequestsPerMinute: 2,
     maxRetries: 2,

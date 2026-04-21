@@ -1109,7 +1109,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         }
 
         try {
-          await subscriptionService.trackUsage(user.id, 'playbook', 0, false);
+          await subscriptionService.trackUsage(user.id, 'playbook', 0, true);
         } catch (usageError) {
           Logger.error('[OnboardingPersonalizationScreen] Failed to track usage', usageError as Error);
         }

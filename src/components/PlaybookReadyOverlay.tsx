@@ -166,7 +166,7 @@ const PlaybookReadyOverlay: React.FC<PlaybookReadyOverlayProps> = ({ visible, on
           </ThemedText>
 
           <ThemedText style={styles.subtitle}>
-            {'This is a space to slow down and reflect with God. Not everything will feel easy.\nThat\u2019s okay.'}
+            {'Slow down. Tell the truth. Reflect with God before you respond.'}
           </ThemedText>
 
           <View style={styles.warningContainer}>
