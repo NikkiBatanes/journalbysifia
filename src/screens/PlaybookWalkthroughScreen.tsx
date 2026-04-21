@@ -13,6 +13,7 @@ import {
   TextInput,
   Alert,
   Share,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1995,6 +1996,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
                   queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
+                  // Emit event to trigger CombinedContentCarousel refresh
+                  DeviceEventEmitter.emit('playbookProgressUpdate');
                 }}
               />
             )}

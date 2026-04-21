@@ -3,29 +3,31 @@
  * Unified carousel displaying both playbooks and devotionals in a single horizontal scroll
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Logger } from '../../utils/ProductionLogger';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
-  TouchableOpacity,
   Dimensions,
+  FlatList,
+  TouchableOpacity,
   Animated,
+  RefreshControl,
   DeviceEventEmitter,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil } from 'lucide-react-native';
+import { Ionicons } from '@ionicons/react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import ThemedText from '../common/ThemedText';
+import { Colors } from '../../constants/Colors';
+import { supabase } from '../../lib/supabase';
+import { Logger } from '../../utils/logger';
 import { format } from 'date-fns';
-import { Colors } from '../../theme/colors';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import DashboardCombinedContentSkeleton from '../SkeletonLoader/DashboardCombinedContentSkeleton';
-import ThemedText from '../common/ThemedText';
 import DevotionalModal from '../DevotionalModal';
 
 const { width } = Dimensions.get('window');
@@ -498,23 +500,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       fetchContent();
     }, 150);
   }, [fetchContent]);
-
-  useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.type === 'updated' && event.query.queryKey) {
-        const queryKey = event.query.queryKey;
-        if (queryKey.includes('userPlaybooks') ||
-            queryKey.includes('playbookProgress') ||
-            queryKey.includes('playbooks') ||
-            queryKey.includes('actionSteps') ||
-            queryKey.includes('devotionals')) {
-          scheduleRefetch();
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [queryClient, scheduleRefetch]);
 
   useEffect(() => {
     const handleProgressUpdate = () => {
