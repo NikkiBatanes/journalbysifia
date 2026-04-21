@@ -312,7 +312,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             }
 
             let lastAccessed: string | undefined;
-            let walkthroughProgress = -1;
             try {
               const { data: progressData } = await supabase
                 .from('user_progress')
@@ -322,9 +321,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 .eq('content_id', playbook.id)
                 .single();
               lastAccessed = progressData?.updated_at;
-              walkthroughProgress = progressData?.walkthrough_progress ?? -1;
             } catch {}
 
+            const walkthroughProgress = (playbook as any).walkthrough_progress ?? -1;
             const progressPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
             return {
