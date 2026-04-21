@@ -58,10 +58,7 @@ const OnboardingTrialOfferScreen = () => {
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
 
-  // Detect if coming from Growth+ only features (smart journaling or export)
-  const fromSmartJournalingLock = routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling';
   const fromExportRestriction = (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
-  const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
 
   // Detect if from registration onboarding vs upgrade/profile
   const fromRegistrationOnboarding = routeParams?.onboardingFlow === true && !routeParams?.source && !routeParams?.returnTo;
@@ -731,17 +728,7 @@ const OnboardingTrialOfferScreen = () => {
         const currency = await pricingService.getCurrencyInfo();
 
         if (mounted) {
-          // Filter out Spark tier if coming from Growth+ only features
-          let filteredTiers = tiers || [];
-          if (fromGrowthOnlyFeature) {
-            filteredTiers = filteredTiers.filter((t: any) => t.id !== 'spark');
-            logger.debug('Filtered out Spark tier for Growth+ feature in trial offer', {
-              source: routeParams?.source,
-              feature: routeParams?.feature,
-              remainingTiers: filteredTiers.map((t: any) => t.id),
-            });
-          }
-          setPricingTiers(filteredTiers);
+          setPricingTiers(tiers || []);
           // setDynamicPricing([]); // Not using dynamic pricing for now - removed unused state
           setCurrencyInfo(currency || null);
         }
@@ -752,7 +739,7 @@ const OnboardingTrialOfferScreen = () => {
     return () => {
       mounted = false;
     };
-  }, [fromGrowthOnlyFeature, routeParams?.feature, routeParams?.source]);
+  }, [routeParams?.feature, routeParams?.source]);
 
   const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth'); // POST-LAUNCH: fallback was 'family'
 

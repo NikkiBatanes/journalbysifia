@@ -10,7 +10,6 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { toLocalDateString } from '../../utils/date';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -407,7 +406,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
   const navigation = useNavigation();
   const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
   const s = {
     ...defaultStyles,
     ...styles,
@@ -681,25 +679,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
   const handleSave = async () => {
     try {
-      // Check if feature is gated for seeker accounts
-      if (smartJournalingGating.isLocked) {
-        try { triggerLightHaptic(); } catch {}
-        // Close modal first before navigating
-        if (onUpgradeRequired) {
-          try { onUpgradeRequired(); } catch {}
-        }
-        setTimeout(() => {
-          (navigation as any).navigate('OnboardingSalesOffer', {
-            source: 'smart_journaling_lock',
-            feature: 'smart_journaling',
-            tier: subscription?.tier || 'seeker',
-            upgradeMode: false,
-            skipNotificationPreference: true,
-          });
-        }, 300);
-        return;
-      }
-
       // Clear any existing draft since we're saving the entry
       try {
         await AsyncStorage.removeItem(getDraftKey());
@@ -847,23 +826,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
                   {_subtaskTitle || ''}
                 </ThemedText>
-                {smartJournalingGating.isLocked && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      (navigation as any).navigate('OnboardingSalesOffer', {
-                        source: 'smart_journaling_lock',
-                        feature: 'smart_journaling',
-                        tier: subscription?.tier || 'seeker',
-                        upgradeMode: false,
-                        skipNotificationPreference: true,
-                      });
-                    }}
-                    hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                  >
-                    <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                  </TouchableOpacity>
-                )}
               </View>
 
               {/* Conditional content based on active tab */}

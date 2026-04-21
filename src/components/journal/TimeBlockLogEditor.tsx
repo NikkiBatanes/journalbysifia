@@ -26,7 +26,6 @@ import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { LocationSelector } from '../LocationSelector';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -717,7 +716,6 @@ function TimeBlockLogEditorInner(
   const fontKey = currentFont || 'lexend';
   const navigation = useNavigation();
   const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
 
   const fonts = useMemo(() => {
     return {
@@ -822,26 +820,6 @@ function TimeBlockLogEditorInner(
 
   const handleSave = async () => {
     try {
-      // Check if feature is gated for seeker accounts
-      if (smartJournalingGating.isLocked) {
-        try { triggerLightHaptic(); } catch {}
-        // Close modal first before navigating
-        if (onUpgradeRequired) {
-          try { onUpgradeRequired(); } catch {}
-        }
-        setTimeout(() => {
-          // Navigate to sales offer with trial eligibility check
-          (navigation as any).navigate('OnboardingSalesOffer', {
-            source: 'smart_journaling_lock',
-            feature: 'smart_journaling',
-            tier: subscription?.tier || 'seeker',
-            upgradeMode: false,
-            skipNotificationPreference: true,
-          });
-        }, 300);
-        return;
-      }
-
       if (!title.trim()) {
         Alert.alert('Missing Title', 'Please enter a title for your time block.');
         return;
@@ -979,23 +957,6 @@ function TimeBlockLogEditorInner(
               <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: headerTitleFontSize }]}>
                 {_subtaskTitle || 'Time Block Entry'}
               </ThemedText>
-              {smartJournalingGating.isLocked && (
-                <TouchableOpacity
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    (navigation as any).navigate('OnboardingSalesOffer', {
-                      source: 'smart_journaling_lock',
-                      feature: 'smart_journaling',
-                      tier: subscription?.tier || 'seeker',
-                      upgradeMode: false,
-                      skipNotificationPreference: true,
-                    });
-                  }}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                </TouchableOpacity>
-              )}
             </View>
 
             {/* Form content based on active tab */}

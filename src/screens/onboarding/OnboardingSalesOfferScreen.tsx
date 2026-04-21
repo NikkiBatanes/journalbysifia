@@ -135,7 +135,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
-  const fromSmartJournalingLock = !isUpgradeMode && routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling';
   const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
   const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
   const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
@@ -154,12 +153,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Detect if coming from devotional gating
   // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
   const fromDevotionalGating = isUpgradeMode && (routeParams?.featureType === 'devotionals' || (!routeParams?.featureType && requestedDuration));
-
-  // Detect if coming from Growth+ only features (smart journaling or export)
-  const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
-  const growthOnlyFeatureName = fromExportRestriction
-    ? (routeParams?.feature === 'export_pdf' ? 'PDF Export' : 'Word Export')
-    : 'Smart Journaling';
 
   // Generate dynamic sales copy for playbook/devotional gating
   const dynamicSalesCopy = React.useMemo(() => {
@@ -320,14 +313,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
-        // Filter out Spark tier if coming from Growth+ only features
-        if (fromGrowthOnlyFeature) {
-          tiers = tiers.filter(t => t.id !== 'spark');
-          logger.debug('Filtered out Spark tier for Growth+ feature', {
-            feature: growthOnlyFeatureName,
-            remainingTiers: tiers.map(t => t.id),
-          });
-        }
 
         // Filter to only show Transformation annual when forced
         if ((route.params as any)?.forceTransformationAnnual) {
@@ -426,7 +411,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName, isFromProfile, route.params, routeParams?.onboardingFlow]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -1436,10 +1421,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                         ? 'Unlock Calendar Auto-Sync'
                         : fromGuidedPromptsLock
                           ? 'Unlock Unlimited Guided Prompts'
-                          : fromSmartJournalingLock
-                            ? 'Upgrade to Unlock Smart Journaling'
-                            : fromExportRestriction
-                              ? 'Save your reflection as a PDF'
+                          : fromExportRestriction
+                            ? 'Save your reflection as a PDF'
                               : (route.params as any)?.forceTransformationAnnual
                                 ? 'Upgrade to Annual Plan for maximum savings!'
                                 : (route.params as any)?.forceAnnualOnly
@@ -1465,9 +1448,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                         ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
                         : fromGuidedPromptsLock
                           ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
-                          : fromSmartJournalingLock
-                            ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
-                            : fromExportRestriction
+                          : fromExportRestriction
                               ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
                               : routeParams?.onboardingFlow
                                 ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care. Again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
@@ -1888,9 +1869,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ? 'Start 3-Day Free Trial'
                 : fromExportRestriction
                   ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                  : fromSmartJournalingLock
-                    ? 'Upgrade to Smart Journaling'
-                    : isUpgradeMode
+                  : isUpgradeMode
                       ? 'Upgrade and Continue'
                       : fromPlanningLock
                         ? 'Start Planning Ahead'

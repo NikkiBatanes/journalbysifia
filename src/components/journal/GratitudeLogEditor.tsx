@@ -16,7 +16,6 @@ import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../common/ThemedText';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -421,7 +420,6 @@ const GratitudeLogEditorInner = (
   } = props;
   const navigation = useNavigation();
   const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
@@ -591,25 +589,6 @@ const GratitudeLogEditorInner = (
   };
 
   const handleSave = useCallback(() => {
-    // Check if feature is gated for seeker accounts
-    if (smartJournalingGating.isLocked) {
-      try { triggerLightHaptic(); } catch {}
-      // Close modal first before navigating
-      if (onUpgradeRequired) {
-        try { onUpgradeRequired(); } catch {}
-      }
-      setTimeout(() => {
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'smart_journaling_lock',
-          feature: 'smart_journaling',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-        });
-      }, 300);
-      return;
-    }
-
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
@@ -630,7 +609,7 @@ const GratitudeLogEditorInner = (
       date: new Date(),
     });
 
-  }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave]);
+  }, [gratitudeItems, onSave]);
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
@@ -671,23 +650,6 @@ const GratitudeLogEditorInner = (
               <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
                 What are you grateful for today?
               </ThemedText>
-              {smartJournalingGating.isLocked && (
-                <TouchableOpacity
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    (navigation as any).navigate('OnboardingSalesOffer', {
-                      source: 'smart_journaling_lock',
-                      feature: 'smart_journaling',
-                      tier: subscription?.tier || 'seeker',
-                      upgradeMode: false,
-                      skipNotificationPreference: true,
-                    });
-                  }}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                </TouchableOpacity>
-              )}
             </View>
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
