@@ -1902,7 +1902,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginTop: 20,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
@@ -2099,10 +2099,11 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     marginBottom: 16,
+    marginTop: 16,
   },
   seeAllPlansButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
+    borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
