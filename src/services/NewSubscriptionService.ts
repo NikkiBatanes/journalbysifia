@@ -96,15 +96,15 @@ export class NewSubscriptionService {
         };
       case 'spark':
         return {
-          playbooks_limit: 8,
-          devotionals_limit: 8,
+          playbooks_limit: 10,
+          devotionals_limit: 10,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
       case 'growth':
         return {
-          playbooks_limit: 20,
-          devotionals_limit: 20,
+          playbooks_limit: 25,
+          devotionals_limit: 25,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };

@@ -72,9 +72,9 @@ function getTierLimits(tier: string): { playbooks_limit: number; devotionals_lim
     case 'seeker':
       return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
     case 'spark':
-      return { playbooks_limit: 8, devotionals_limit: 8, smart_journaling_enabled: true };
+      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
     case 'growth':
-      return { playbooks_limit: 20, devotionals_limit: 20, smart_journaling_enabled: true };
+      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
     case 'transformation':
       return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
     default:
