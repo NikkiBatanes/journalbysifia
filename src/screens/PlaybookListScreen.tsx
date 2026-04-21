@@ -130,18 +130,24 @@ const estimateReadTime = (text: string): string => {
 
 // Derive per-section state from walkthrough_progress and action step completion
 // completed = Next was pressed on that step OR all action steps in that section are completed
-// viewed = user was there but didn't press Next OR some action steps are completed
+// viewed = user was there but didn't press Next OR some action steps are completed OR prayed/read for Prayer/Words
 // unreached = never got there
 const getSectionState = (
   sectionStep: number,
   wp: number,
   completedSteps?: number,
   totalSteps?: number,
+  sessionStates?: Record<string, { hasPrayed: boolean; hasRead: boolean }>,
+  playbookId?: string,
 ): 'completed' | 'viewed' | 'unreached' => {
   if (wp < 0 && (!completedSteps || completedSteps === 0)) { return 'unreached'; }
   if (wp >= sectionStep) { return 'completed'; }
   // For Faithful Actions (step 3), if any action steps are completed, mark as viewed
   if (sectionStep === 3 && completedSteps && completedSteps > 0) { return 'viewed'; }
+  // For Prayer (step 4), check if user has prayed
+  if (sectionStep === 4 && sessionStates && playbookId && sessionStates[playbookId]?.hasPrayed) { return 'viewed'; }
+  // For Words to Speak (step 5), check if user has read
+  if (sectionStep === 5 && sessionStates && playbookId && sessionStates[playbookId]?.hasRead) { return 'viewed'; }
   // For Prayer (step 4) and Words to Speak (step 5), if walkthrough_progress >= sectionStep, mark as viewed
   if ((sectionStep === 4 || sectionStep === 5) && wp >= sectionStep) { return 'viewed'; }
   // For other sections, use walkthrough_progress
@@ -168,9 +174,15 @@ const CARD_SECTIONS: CardSection[] = [
 ];
 
 interface CarouselCardProps {
-  item: Playbook; index: number; scrollX: Animated.Value;
-  isMenuOpen: boolean; hasPrayed: boolean; hasRead: boolean; devotionalCount: number;
+  item: Playbook;
+  index: number;
+  scrollX: Animated.AnimatedInterpolation<number>;
+  isMenuOpen: boolean;
+  hasPrayed: boolean;
+  hasRead: boolean;
+  devotionalCount: number;
   cardStyles: any;
+  sessionStates: Record<string, { hasPrayed: boolean; hasRead: boolean }>;
   onPress: (item: Playbook) => void; onLongPress: (item: Playbook) => void;
   onMenuToggle: (id: string | null) => void; onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
@@ -179,7 +191,7 @@ interface CarouselCardProps {
 const CURRENT_YEAR = new Date().getFullYear();
 const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
-const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
+const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
   // Interpolation input range depends only on index — stable dep
   const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
@@ -255,7 +267,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
         ) : (
           <View style={st.sectionsContainer}>
             {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
-              const state = getSectionState(step, wp, completed, total);
+              const state = getSectionState(step, wp, completed, total, sessionStates, item.id);
               // Derive dynamic values per section
               const meta = step === 1 ? tilReadTime
                          : step === 3 && total > 0 ? `${completed} of ${total} acted on`
@@ -341,6 +353,7 @@ const CategoryCarouselRow = React.memo(({
             hasRead={sessionStates[playbook.id]?.hasRead ?? false}
             devotionalCount={devotionalsCount[playbook.id] ?? 0}
             cardStyles={st}
+            sessionStates={sessionStates}
             onPress={onPress}
             onLongPress={onLongPress}
             onMenuToggle={onMenuToggle}
@@ -1647,7 +1660,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: sessionStates[item.id]?.hasPrayed },
                 { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: sessionStates[item.id]?.hasRead },
               ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons'; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
-                const state = getSectionState(step, wp, completed, total);
+                const state = getSectionState(step, wp, completed, total, sessionStates, item.id);
                 return (
                   <View key={label} style={styles.sectionItem}>
                     <View style={[
