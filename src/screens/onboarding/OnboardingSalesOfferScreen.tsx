@@ -1248,7 +1248,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         {null}
 
         <View style={styles.cardHeader}>
-          <ThemedText weight="medium" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
+          <ThemedText weight="semiBold" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
           {tier.id === 'growth' && (
@@ -2121,14 +2121,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    marginBottom: 8,
+    marginBottom: 16,
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     position: 'relative',
   },
   selectedCard: {
-    // base background remains; selection tint is provided by selectedOverlay
+    borderColor: 'rgba(255, 107, 107, 0.6)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
   focusedCard: {
     // removed alert coral color
@@ -2182,7 +2183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardHeader: {
-    marginBottom: 12,
+    marginBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
   },
