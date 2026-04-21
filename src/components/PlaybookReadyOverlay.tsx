@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.4,
     borderColor: Colors.alertCoral,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 20,
     gap: 8,
     alignItems: 'flex-start',
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 25,
     alignItems: 'center',
   },
   buttonText: {

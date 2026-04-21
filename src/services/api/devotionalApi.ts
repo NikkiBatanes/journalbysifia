@@ -305,7 +305,7 @@ export class DevotionalApi {
       duration: params.duration,
       playbookId: params.playbookId,
       userInput: params.userInput,
-      isOnboarding: false,
+      isOnboarding: params.isOnboarding || false,
       bibleVersion,
     });
   }

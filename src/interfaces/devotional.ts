@@ -93,4 +93,5 @@ export interface DevotionalCreationParams {
   userInput?: string;
   dateOfBirth?: string;
   ageGroup?: string;
+  isOnboarding?: boolean; // NEW: Flag for onboarding context
 }

@@ -1597,7 +1597,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.4,
     borderColor: Colors.alertCoral,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     marginHorizontal: 0,
     marginTop: 2,
     marginBottom: 14,

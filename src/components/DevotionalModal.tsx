@@ -734,6 +734,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         duration: days,
         playbookId,
         userInput: userInput || '', // Pass empty string if undefined
+        isOnboarding: isOnboarding, // Pass onboarding flag to API
       });
 
       if (progressTimeout) {
