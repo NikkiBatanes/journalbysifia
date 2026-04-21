@@ -353,6 +353,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
+        // Filter to only show selected tier in non-onboarding flow when collapsed (unless showAllPlans is true)
+        if (!routeParams?.onboardingFlow && !showAllPlans && !isUpgradeMode) {
+          tiers = tiers.filter(t => t.id === selectedTier);
+          logger.debug('Filtered to show selected tier when collapsed in non-onboarding flow', {
+            selectedTier,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
+        // Filter to only show selected tier for Seeker users in upgrade mode when collapsed (unless showAllPlans is true)
+        if (isUpgradeMode && currentUserTier === 'seeker' && !showAllPlans) {
+          tiers = tiers.filter(t => t.id === selectedTier);
+          logger.debug('Filtered to show selected tier when collapsed for Seeker in upgrade mode', {
+            selectedTier,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
 
         // Filter to only show Transformation annual when forced (unless showAllPlans is true)
         if ((route.params as any)?.forceTransformationAnnual && !showAllPlans) {
@@ -1466,33 +1484,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {!routeParams?.onboardingFlow && (
           <View style={styles.featuresSection}>
             {isUpgradeMode ? (
-              // Upgrade mode benefits (pastoral, limit to 4)
-              <>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Ongoing playbooks for moments that return
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Devotionals that meet you where you are
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    A steady structure for prayer, reflection and next steps
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Space to journal honestly and respond with wisdom
-                  </ThemedText>
-                </View>
-              </>
+              // Upgrade mode benefits - removed per user request
+              <></>
             ) : (
               // Onboarding benefits (limit to 3, aligned copy)
               fromPlanningLock ? (
@@ -1582,7 +1575,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </View>
 
           {/* See All Plans Button - show when in filtered mode */}
-          {(routeParams?.onboardingFlow || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && (
+          {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && (
             <TouchableOpacity
               style={styles.seeAllPlansButton}
               onPress={() => {
@@ -1870,7 +1863,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'left',
-    marginBottom: 12,
+    marginBottom: 0,
     lineHeight: 24,
   },
   smallMotivationalText: {

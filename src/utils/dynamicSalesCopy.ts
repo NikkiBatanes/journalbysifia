@@ -135,10 +135,10 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   // CASE 1: Seeker tier (no access at all)
   if (currentTier === 'seeker') {
-    const title = featureType === 'playbooks' ? 'Continue with Playbooks' : 'Continue with Devotionals';
+    const title = featureType === 'playbooks' ? 'Unlock more playbooks' : 'Continue with Devotionals';
     const message = featureType === 'playbooks'
-      ? 'Playbooks are part of the siFia Journey. \nThey help you slow down, reflect with Scripture, and respond faithfully when real moments come up.'
-      : 'Devotionals are part of the siFia Journey. \nThey help you slow down, reflect with Scripture, and respond faithfully when real moments come up. Devotionals are available at the pace you’re ready for — shorter when you need clarity, longer when you want to linger.';
+      ? "You're trying to bring a real moment before God. Upgrade to keep going with playbooks, devotionals, and Bible studies when new situations come up."
+      : 'Devotionals are part of the siFia Journey. \nThey help you slow down, reflect with Scripture, and respond faithfully when real moments come up. Devotionals are available at the pace you\'re ready for — shorter when you need clarity, longer when you want to linger.';
 
     return {
       title,
