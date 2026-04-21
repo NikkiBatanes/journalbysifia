@@ -1031,7 +1031,7 @@ const OnboardingTrialOfferScreen = () => {
           {/* Selected Plan Container */}
           <View style={styles.selectedPlanContainer}>
             <ThemedText style={styles.selectedPlanLabel}>SELECTED PLAN</ThemedText>
-            <ThemedText weight="bold" style={styles.selectedPlanName}>{getTierDisplayName(selectedTierId)}</ThemedText>
+            <ThemedText weight="bold" style={styles.selectedPlanName}>{getTierDisplayName(selectedTierId)} {isAnnual ? 'Annual' : 'Monthly'}</ThemedText>
             <TouchableOpacity
               style={styles.changePlanButton}
               onPress={() => {
