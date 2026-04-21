@@ -318,9 +318,9 @@ const OnboardingNotificationSetupScreen = () => {
     const fromCancelledSales = (route.params as any)?.fromCancelledSales;
     if (fromCancelledSales) {
       return {
-        title: 'Welcome, Seeker',
+        title: 'Welcome to siFia',
         subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
-        badge: 'Seeker Access',
+        badge: 'Free Access',
       };
     }
 
@@ -361,9 +361,9 @@ const OnboardingNotificationSetupScreen = () => {
       case 'seeker':
       default:
         return {
-          title: 'Welcome, Seeker',
+          title: 'Welcome to siFia',
           subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
-          badge: 'Seeker Access',
+          badge: 'Free Access',
         };
     }
   };
