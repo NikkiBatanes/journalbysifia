@@ -58,8 +58,8 @@ Password: [Provide secure demo password]
 
 SUBSCRIPTION TIERS:
 - Seeker (Free): 3 playbooks/month, 3 devotionals/month
-- Spark: 8 playbooks/month, 8 devotionals/month
-- Growth: 20 playbooks/month, 20 devotionals/month  
+- Spark: 10 playbooks/month, 10 devotionals/month
+- Growth: 25 playbooks/month, 25 devotionals/month  
 - Transformation: Unlimited playbooks and devotionals
 
 IAP PRODUCTS:
@@ -605,8 +605,8 @@ FEATURES TO TEST:
 
 SUBSCRIPTION TIERS:
 - Seeker (Free): 3 playbooks/month, 3 devotionals/month
-- Spark ($X/month): 8 playbooks/month, 8 devotionals/month
-- Growth ($X/month): 20 playbooks/month, 20 devotionals/month
+- Spark ($X/month): 10 playbooks/month, 10 devotionals/month
+- Growth ($X/month): 25 playbooks/month, 25 devotionals/month
 - Transformation ($X/month): Unlimited
 
 NOTE: Dynamic discount feature has been REMOVED to comply with

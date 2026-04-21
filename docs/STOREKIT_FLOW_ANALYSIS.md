@@ -86,8 +86,8 @@ This document provides a comprehensive analysis of all subscription scenarios in
    billing_cycle: 'monthly' | 'annual' (from product ID)
    
    // Full paid limits
-   playbooks_limit: 8 (Spark) | 20 (Growth) | 999999 (Transformation)
-   devotionals_limit: 8 (Spark) | 20 (Growth) | 999999 (Transformation)
+   playbooks_limit: 10 (Spark) | 25 (Growth) | 999999 (Transformation)
+   devotionals_limit: 10 (Spark) | 25 (Growth) | 999999 (Transformation)
    
    // Reset usage for fresh start
    playbooks_used: 0
@@ -134,7 +134,7 @@ This document provides a comprehensive analysis of all subscription scenarios in
    platform_transaction_id: NEW_TRANSACTION_ID
    ```
 
-4. **User gets fresh 8/8 limits every 30 days**
+4. **User gets fresh 10/10 limits every 30 days**
 
 **Critical Implementation Detail:**
 - Monthly subscriptions ONLY reset via `DID_RENEW` webhook
@@ -160,8 +160,8 @@ This document provides a comprehensive analysis of all subscription scenarios in
    
    // CRITICAL: User keeps full access
    // tier: 'spark' (unchanged)
-   // playbooks_limit: 8 (unchanged)
-   // devotionals_limit: 8 (unchanged)
+   // playbooks_limit: 10 (unchanged)
+   // devotionals_limit: 10 (unchanged)
    // playbooks_used: current usage (unchanged)
    // User keeps access until subscription_end_date
    ```
@@ -241,12 +241,12 @@ checkAndResetMonthlyUsage(userId) {
 ```
 
 **Example Timeline:**
-- **Day 0:** Purchase Spark Annual → 8/8 limits
-- **Day 30:** Usage resets → 8/8 refreshed (client-side)
-- **Day 60:** Usage resets → 8/8 refreshed (client-side)
-- **Day 90:** Usage resets → 8/8 refreshed (client-side)
+- **Day 0:** Purchase Spark Annual → 10/10 limits
+- **Day 30:** Usage resets → 10/10 refreshed (client-side)
+- **Day 60:** Usage resets → 10/10 refreshed (client-side)
+- **Day 90:** Usage resets → 10/10 refreshed (client-side)
 - ...continues every 30 days...
-- **Day 360:** Usage resets → 8/8 refreshed (client-side)
+- **Day 360:** Usage resets → 10/10 refreshed (client-side)
 - **Day 365:** Apple charges for Year 2 → `DID_RENEW` webhook resets usage
 
 **Key Files:**
@@ -268,16 +268,16 @@ checkAndResetMonthlyUsage(userId) {
    // CRITICAL: User keeps annual tier and monthly refreshes
    tier: 'spark_annual' (unchanged)
    billing_cycle: 'annual' (unchanged)
-   playbooks_limit: 8 (unchanged)
-   devotionals_limit: 8 (unchanged)
+   playbooks_limit: 10 (unchanged)
+   devotionals_limit: 10 (unchanged)
    ```
 
 3. **User Experience After Cancellation:**
    - **Keeps Spark Annual tier until Day 365** (paid for full year)
    - **Monthly refreshes CONTINUE** via `checkAndResetMonthlyUsage()`
-   - Day 210: Usage resets → 8/8 refreshed ✅
-   - Day 240: Usage resets → 8/8 refreshed ✅
-   - Day 270: Usage resets → 8/8 refreshed ✅
+   - Day 210: Usage resets → 10/10 refreshed ✅
+   - Day 240: Usage resets → 10/10 refreshed ✅
+   - Day 270: Usage resets → 10/10 refreshed ✅
    - ...continues until Day 365...
 
 4. **On Day 365 (End of Annual Period):**
