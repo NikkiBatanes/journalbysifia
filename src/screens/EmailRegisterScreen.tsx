@@ -66,8 +66,8 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 280 : 350,
-      height: isVerySmallPhone ? 280 : 350,
+      width: isVerySmallPhone ? 250 : 310,
+      height: isVerySmallPhone ? 250 : 310,
       marginTop: isVerySmallPhone ? -100 : -100,
     },
     titleContainer: {
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   finishButton: {
-    marginTop: 32,
+    marginTop: 2,
     justifyContent: 'center',
   },
   primaryButtonText: {
