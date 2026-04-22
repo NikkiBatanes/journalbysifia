@@ -1218,20 +1218,20 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     delayLongPress={300}
                   >
                     <View style={styles.questionCardContainer}>
-                  <ThemedText weight="bold" style={[
-                    styles.questionCardNumber,
-                    isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
-                  ]}>{idx + 1}</ThemedText>
-                  <View style={styles.questionCardTextView}>
-                    <ThemedText
-                      style={styles.questionCardText}
-                      selectable={true}
-                      numberOfLines={0}
-                      adjustsFontSizeToFit={false}
-                    >
-                      {question.text || 'Reflection question'}
+                  <View style={[
+                    styles.questionCardNumberCircle,
+                    isQuestionJournaled(index + 1, idx + 1) && styles.journaledNumberCircle,
+                  ]}>
+                    <ThemedText weight="bold" style={styles.questionCardNumberText}>
+                      {idx + 1}
                     </ThemedText>
                   </View>
+                  <ThemedText
+                    style={styles.questionCardText}
+                    selectable={true}
+                  >
+                    {question.text || 'Reflection question'}
+                  </ThemedText>
                 </View>
               </Pressable>
                 ))
@@ -1547,7 +1547,7 @@ const styles = StyleSheet.create({
     paddingTop: 0, // No top padding as per design
   },
   contentContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: CARD_HORIZONTAL_PADDING,
     paddingTop: 2, // Further reduced to bring content even closer to progress bar
     paddingBottom: 80,
   },
@@ -1576,37 +1576,43 @@ const styles = StyleSheet.create({
     // No background or padding here so QuestionCard stands out
   },
   questionCardWrapper: {
-    flex: 1,
+    width: '100%',
     marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 32,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingLeft: 50,
+    paddingRight: 14,
+    position: 'relative',
     borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
-  questionCardNumber: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
+  questionCardNumberCircle: {
+    position: 'absolute',
+    top: 16,
+    left: 14,
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    textAlign: 'center',
-    lineHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  journaledNumberCircle: {
+    backgroundColor: Colors.growthGreen,
+  },
+  questionCardNumberText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    lineHeight: 18,
   },
   questionCardText: {
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-  },
-  questionCardTextView: {
-    flex: 1,                 // make sure text can wrap
   },
   fab: {
     position: 'absolute',

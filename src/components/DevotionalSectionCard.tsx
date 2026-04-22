@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     marginBottom: 18,
+    marginHorizontal: CARD_HORIZONTAL_PADDING,
     // Remove shadows and elevation for flat, modern appearance
     elevation: 0,
   },
