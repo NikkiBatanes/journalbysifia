@@ -127,6 +127,7 @@ const CategorySelectionStep: React.FC<{
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonOpacity = React.useRef(new Animated.Value(1)).current;
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const buttonScale = React.useRef(new Animated.Value(0)).current;
   const chooseAgainScale = React.useRef(new Animated.Value(0)).current;
 
   // Enable LayoutAnimation for Android
@@ -135,6 +136,19 @@ const CategorySelectionStep: React.FC<{
   }
 
   const displayedCategories = showAllCategories ? FOCUS_CATEGORIES : FOCUS_CATEGORIES.slice(0, 12);
+
+  React.useEffect(() => {
+    if (selectedCategory) {
+      Animated.spring(buttonScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      buttonScale.setValue(0);
+    }
+  }, [selectedCategory, buttonScale]);
 
   React.useEffect(() => {
     LayoutAnimation.configureNext({
@@ -340,7 +354,7 @@ const CategorySelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedCategory && (!isOtherSelected || customFocus.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
