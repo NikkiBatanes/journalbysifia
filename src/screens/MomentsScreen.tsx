@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Feather, Search, X as CloseIcon } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -17,6 +18,7 @@ import { getAllPlugins } from '../systems/journal/plugins/registry';
 type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
 export const MomentsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontBold = getFontFamily(fontKey, 'bold');
@@ -171,6 +173,7 @@ export const MomentsScreen: React.FC = () => {
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
       <EnhancedMomentsRenderer
         plugins={plugins}
+        navigation={navigation}
         dateRange={(function computeRange() {
           const base = getCurrentDateRange();
           if (activeFilters.includes('upcoming')) {

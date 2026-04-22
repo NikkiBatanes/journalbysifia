@@ -95,8 +95,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState('');
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
@@ -107,7 +105,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow;
   });
-  const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
   const shouldFocusInput = useRef(false); // Track when we need to focus
 
@@ -234,12 +231,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     }
   }, [error]);
 
-  const closeAllSwipeables = () => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) {ref.close();}
-    });
-  };
-
   const startAdding = () => {
     // Check if planning is locked for future dates
     if (planningGating.isLocked) {
@@ -258,7 +249,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   };
 
   const cancelAdding = () => {
-    closeAllSwipeables();
     setVisibleCount(5);
     setIsAdding(false);
     setNewTodo('');
@@ -272,7 +262,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     const todoText = newTodo.trim();
     if (!todoText || !user) {return;}
 
-    closeAllSwipeables();
 
     // Clear input immediately for better UX
     setNewTodo('');
@@ -354,64 +343,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     );
   };
 
-  // Edit a todo
-  const editTodo = (id: string) => {
-    const todo = todos.find(t => t.id === id);
-    if (!todo) {return;}
-
-    setEditingId(id);
-    setEditingText(todo.text);
-    closeAllSwipeables();
-    // Focus the edit input field (autoFocus should handle this, but let's ensure it)
-    setTimeout(() => {
-      // Focus the edit input - it will be the first TextInput with autoFocus
-    }, 100);
-  };
-
-  // Save edited todo
-  const saveEditedTodo = async () => {
-    if (!editingId || !editingText.trim()) {return;}
-
-    const todo = todos.find(t => t.id === editingId);
-    if (!todo) {return;}
-
-    try {
-      await updateTodoMutation.mutateAsync({
-        id: editingId,
-        updates: {
-          content: JSON.stringify({
-            text: editingText.trim(),
-            completed: todo.completed,
-            priority: todo.priority || false,
-          }),
-        },
-      });
-
-      // Track analytics
-      analytics.trackTodoEvent('todo_created', {
-        text_length: editingText.trim().length,
-        has_priority: todo.priority || false,
-        date: dateStr,
-      }, user?.id);
-
-      // Reset edit state
-      setEditingId(null);
-      setEditingText('');
-    } catch (editError) {
-      Logger.error('Failed to update todo', editError as Error, {
-        component: 'TodosReactQuery',
-      });
-      Alert.alert('Error', 'Failed to update todo. Please try again.');
-    }
-  };
-
-  // Cancel editing
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingText('');
-  };
-
-  // Add a todo
   const addTodo = async (value: string): Promise<boolean> => {
     if (!user || !value.trim()) {
       return false;
@@ -442,7 +373,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     const todoText = newTodo.trim();
     if (!todoText) {return;}
 
-    closeAllSwipeables();
 
     // Clear input immediately for better UX
     const originalText = newTodo;
@@ -524,13 +454,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const loadMore = () => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount((prev: number) => Math.min(prev + 5, todos.length));
   };
 
   const showLess = () => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount(5);
     // Scroll to top when showing less
     setTimeout(() => {
@@ -976,79 +904,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onToggle={(id, isPriority) => {
                 if (isPriority) { triggerLightHaptic(); }
                 toggleTodo(id, isPriority);
-                closeAllSwipeables();
               }}
               onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
-              onDelete={removeTodo}
-              onEdit={editTodo}
-              onRowPress={(id) => {
-                // If already editing, switch editing focus to the tapped item instead of toggling
-                if (editingId !== null) {
-                  const t = todos.find(tt => tt.id === id);
-                  if (t) {
-                    setEditingId(id);
-                    setEditingText(t.text);
-                  }
-                  return;
-                }
-                // Otherwise, behave like a normal toggle tap
-                toggleTodo(id, false);
-                closeAllSwipeables();
-              }}
-              disableSwipe={viewMode === 'carousel' && !expanded}
-              ref={ref => {
-                if (ref) {
-                  swipeableRefs.current[item.id] = ref;
-                } else {
-                  delete swipeableRefs.current[item.id];
-                }
-              }}
+              onDelete={() => {}}
+              disableSwipe={true}
             >
-              {editingId === item.id ? (
-                <View style={styles.editContainer}>
-                  <TextInput
-                    style={[styles.editInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                    value={editingText}
-                    onChangeText={setEditingText}
-                    autoFocus
-                    multiline
-                    onSubmitEditing={saveEditedTodo}
-                    returnKeyType="done"
-                    blurOnSubmit={false}
-                  />
-                  <View style={styles.editButtons}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerLightHaptic();
-                        cancelEdit();
-                      }}
-                      style={[styles.editActionButton, styles.editCancelButton]}
-                    >
-                      <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerLightHaptic();
-                        saveEditedTodo();
-                      }}
-                      style={[styles.editActionButton, styles.editSaveButton]}
-                      disabled={!editingText.trim()}
-                    >
-                      <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <ThemedText
-                  style={[
-                    styles.todoText,
-                    item.completed && styles.completedText,
-                  ]}
-                  accessibilityElementsHidden={true}
-                >
-                  {item.text}
-                </ThemedText>
-              )}
+              <ThemedText
+                style={[
+                  styles.todoText,
+                  item.completed && styles.completedText,
+                ]}
+              >
+                {item.text}
+              </ThemedText>
             </SwipeableTodoItem>
           </View>
         ))}

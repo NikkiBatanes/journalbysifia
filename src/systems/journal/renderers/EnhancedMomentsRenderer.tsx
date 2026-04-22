@@ -34,6 +34,7 @@ interface EnhancedMomentsRendererProps {
   filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'prayerRequests' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
+  navigation?: any;
 }
 
 interface MomentEntry {
@@ -453,6 +454,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   prayerAnswerFilter = 'all',
   filterKeys = [],
   onAddPress,
+  navigation,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1975,7 +1977,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2085,6 +2087,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                                 refreshKey={refreshKey}
                                 viewMode="inline"
                                 filters={pluginFilters}
+                                navigation={navigation}
                               />
                             </View>
                           </View>
@@ -2145,7 +2148,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2233,7 +2236,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
                           </View>
                         </View>
                       </View>
@@ -2285,7 +2288,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2369,6 +2372,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 refreshKey={refreshKey}
                 viewMode="inline"
                 filters={pluginFilters}
+                navigation={navigation}
               />
             </View>
           </View>

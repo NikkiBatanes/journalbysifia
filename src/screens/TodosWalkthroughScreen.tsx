@@ -21,7 +21,7 @@ import Entypo from 'react-native-vector-icons/Entypo';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreateTodoEntry, useUpdateTodoEntry, useTodosData } from '../services/hooks/useJournalData';
+import { useCreateTodoEntry, useDeleteTodoEntry, useTodosData } from '../services/hooks/useJournalData';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import ThemedText from '../components/common/ThemedText';
 import { Colors } from '../theme/colors';
@@ -109,11 +109,17 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [todos, setTodos] = useState(initialState.todos);
   const [showSaveButton, setShowSaveButton] = useState(todos.some((todo: string) => todo.trim() !== ''));
 
+  const dateStr = toLocalDateString(selectedDate);
+
   const createMutation = useCreateTodoEntry();
-  const updateMutation = useUpdateTodoEntry();
+  const deleteMutation = useDeleteTodoEntry();
+  const { data: existingTodos } = useTodosData(user?.id || '', dateStr);
+
+  const inputRefs = useRef<(TextInput | null)[]>([]).current;
 
   const saveButtonOpacity = useRef(new Animated.Value(showSaveButton ? 1 : 0)).current;
   const saveButtonScale = useRef(new Animated.Value(showSaveButton ? 1 : 0.8)).current;
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Animate save button visibility
   useEffect(() => {
@@ -135,7 +141,22 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }).start();
   }, [todos]);
 
-  const dateStr = toLocalDateString(selectedDate);
+  // Keyboard visibility tracking
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      'keyboardWillShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardWillHideListener = Keyboard.addListener(
+      'keyboardWillHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(
@@ -201,29 +222,26 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      // Delete existing entry if it exists
-      if (existingEntry) {
-        await updateMutation.mutateAsync({
-          id: existingEntry.id,
-          updates: {
-            content: JSON.stringify({ todos: validTodos }),
-          },
-        });
-      } else {
-        // Create new entries for each todo
-        for (const todo of validTodos) {
-          await createMutation.mutateAsync({
-            user_id: user.id,
-            selected_date: dateStr,
-            content_type: 'todo',
-            content: JSON.stringify({
-              text: todo,
-              completed: false,
-              priority: false,
-            }),
-            completed: false,
-          });
+      // Delete all existing todo entries for this date
+      if (existingTodos && existingTodos.length > 0) {
+        for (const entry of existingTodos) {
+          await deleteMutation.mutateAsync(entry.id);
         }
+      }
+
+      // Create new individual entries for each todo
+      for (const todo of validTodos) {
+        await createMutation.mutateAsync({
+          user_id: user.id,
+          selected_date: dateStr,
+          content_type: 'todo',
+          content: JSON.stringify({
+            text: todo,
+            completed: false,
+            priority: false,
+          }),
+          completed: false,
+        });
       }
 
       triggerMediumHaptic();
@@ -236,16 +254,25 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleAddField = () => {
     triggerLightHaptic();
-    setTodos([...todos, '']);
+    const newTodos = [...todos, ''];
+    setTodos(newTodos);
+    // Focus the newly added input field
+    setTimeout(() => {
+      const newIndex = newTodos.length - 1;
+      if (inputRefs[newIndex]) {
+        inputRefs[newIndex]?.focus();
+      }
+    }, 100);
   };
 
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: isKeyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bounces={true}
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
@@ -274,6 +301,9 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
               </View>
               <TextInput
+                ref={(ref) => {
+                  inputRefs[index] = ref;
+                }}
                 style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 value={todo}
                 onChangeText={(text) => {
@@ -281,6 +311,18 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   newTodos[index] = text;
                   setTodos(newTodos);
                 }}
+                onFocus={() => {
+                  // Ensure input refs are updated when todos array changes
+                  if (!inputRefs[index]) {
+                    inputRefs[index] = null;
+                  }
+                }}
+                onSubmitEditing={() => {
+                  if (index < todos.length - 1 && inputRefs[index + 1]) {
+                    inputRefs[index + 1]?.focus();
+                  }
+                }}
+                returnKeyType={index < todos.length - 1 ? 'next' : 'done'}
                 autoFocus={index === 0}
                 keyboardAppearance="dark"
               />
@@ -343,7 +385,7 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingBottom: 320,
   },
   focusLabelContainer: {
     flexDirection: 'row',

@@ -1390,7 +1390,7 @@ const UserInputScreen: React.FC = () => {
               <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
                 <TouchableOpacity
                   style={styles.navIconItem}
-                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'Journal' }] })); }}
+                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Journal' }], index: 1 } }] })); }}
                   onPressIn={() => setPressedNavIcon(3)}
                   onPressOut={() => setPressedNavIcon(null)}
                 >
