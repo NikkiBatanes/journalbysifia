@@ -993,6 +993,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               </ThemedText>
             </TouchableOpacity>
           </View>
+
         </View>
         </StepFadeIn>
     </View>
@@ -2011,11 +2012,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   updateActionStepCompleted(stepId).catch(() => {});
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
-                  queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
-                  queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
-                  queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
-                  // Trigger dashboard refresh via event
-                  DeviceEventEmitter.emit('playbookActionStepUpdated', { playbookId });
                 }}
               />
             )}
@@ -2113,34 +2109,37 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       )}
 
-      {/* Animated back button — top right, left of close, Faithful Actions action 2+ only */}
-      <Animated.View
-        pointerEvents={stepIndex === 3 && actionStepIndex >= 1 ? 'auto' : 'none'}
-        style={[
-          styles.closeButton,
-          { top: insets.top + 8, right: 70 },
-          {
-            opacity: backButtonAnim,
-            transform: [
-              {
-                scale: backButtonAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.6, 1],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={goBackActionStep}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+      {/* Animated back button — below skip button, aligned with close button at screen level */}
+      {stepIndex === 3 && actionStepIndex >= 1 && (
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            styles.closeButton,
+            { right: 20, bottom: insets.bottom + 200 },
+            {
+              opacity: backButtonAnim,
+              transform: [
+                {
+                  scale: backButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="chevron-back" size={17} color="rgba(255,255,255,0.65)" />
-        </TouchableOpacity>
-      </Animated.View>
+          <TouchableOpacity
+            onPress={goBackActionStep}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chevron-back" size={17} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
 
       {/* Floating coral next button — bottom right */}
       {hasFloatingNext && (
@@ -2236,6 +2235,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
     borderRadius: 999,
     zIndex: 100,
+  },
+  // Back button below skip button — aligned with close button
+  backButtonBelowSkip: {
+    position: 'absolute',
+    right: -8,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    top: 56,
   },
   // Onboarding-specific UI
   onboardingTopBar: {
