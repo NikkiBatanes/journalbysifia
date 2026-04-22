@@ -1056,7 +1056,15 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <ThemedText weight="medium" style={styles.chooseDateLabel}>Choose a date</ThemedText>
           <View style={styles.datePickerContainer}>
             <TouchableOpacity
-              style={styles.datePickerButton}
+              style={[
+                styles.datePickerButton,
+                (() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const isTomorrowSelected = copyTargetDate.toDateString() === tomorrow.toDateString();
+                  return isTomorrowSelected && styles.datePickerButtonActive;
+                })(),
+              ]}
               onPress={() => {
                 triggerLightHaptic();
                 // Simple date picker - tomorrow
@@ -1069,7 +1077,15 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.datePickerButton}
+              style={[
+                styles.datePickerButton,
+                (() => {
+                  const nextWeek = new Date();
+                  nextWeek.setDate(nextWeek.getDate() + 7);
+                  const isNextWeekSelected = copyTargetDate.toDateString() === nextWeek.toDateString();
+                  return isNextWeekSelected && styles.datePickerButtonActive;
+                })(),
+              ]}
               onPress={() => {
                 triggerLightHaptic();
                 // Simple date picker - next week
@@ -1497,66 +1513,72 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    padding: 28,
+    borderRadius: 32,
+    padding: 32,
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 360,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: Colors.hopeWhite,
     textAlign: 'left',
     paddingHorizontal: 4,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   modalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     justifyContent: 'flex-start',
   },
   modalTitleIcon: {
-    marginTop: -10,
+    marginTop: -2,
   },
   modalSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: Colors.hopeWhite,
     textAlign: 'left',
-    marginBottom: 24,
-    opacity: 0.9,
+    marginBottom: 28,
+    opacity: 0.85,
     paddingHorizontal: 4,
     alignSelf: 'flex-start',
   },
   chooseDateLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 12,
-    opacity: 0.8,
+    opacity: 0.75,
+    paddingHorizontal: 4,
   },
   datePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    gap: 12,
   },
   datePickerButton: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    marginHorizontal: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 40,
+  },
+  datePickerButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   datePickerText: {
     fontSize: 14,
@@ -1572,7 +1594,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginBottom: 12,
   },
@@ -1609,28 +1631,28 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 16,
+    gap: 12,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
-    marginHorizontal: 6,
+    borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   copyButton: {
@@ -1640,13 +1662,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    textAlignVertical: 'center',
   },
   copyButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    letterSpacing: 0.2,
   },
   monthHeaderText: {
     fontSize: 16,
