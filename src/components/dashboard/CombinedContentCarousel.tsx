@@ -14,6 +14,7 @@ import {
   Animated,
   RefreshControl,
   DeviceEventEmitter,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,6 +32,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import DashboardCombinedContentSkeleton from '../SkeletonLoader/DashboardCombinedContentSkeleton';
 import DevotionalModal from '../DevotionalModal';
+import { extractCleanTitle } from '../../utils/titleUtils';
+import { useDevotionalOperations } from '../../services/hooks/useDevotionalDataSimplified';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
@@ -116,6 +119,7 @@ interface DevotionalContent extends BaseContent {
   type: 'devotional';
   isCompleted: boolean;
   completedAt?: string;
+  createdAt?: string;
   estimatedDuration?: number;
   verse?: {
     text: string;
@@ -127,6 +131,8 @@ interface DevotionalContent extends BaseContent {
   days?: any[];
   nextDayNumber?: number;
   nextDayTitle?: string;
+  category?: string;
+  rating?: number;
 }
 
 type CombinedContent = PlaybookContent | DevotionalContent;
@@ -219,6 +225,47 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
+  const [menuVisible, setMenuVisible] = useState<string | null>(null);
+
+  // Devotional operations for delete functionality
+  const { deleteDevotional } = useDevotionalOperations(user?.id || '');
+
+  // Helper functions for devotional card
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const currentYear = new Date().getFullYear();
+    const year = date.getFullYear();
+    const formatString = year === currentYear ? 'EEE, MMM d' : 'EEE, MMM d, yyyy';
+    return format(date, formatString);
+  };
+
+  const handleDeleteDevotional = async (devotionalId: string) => {
+    try {
+      await deleteDevotional(devotionalId);
+      setMenuVisible(null);
+    } catch (error) {
+      console.error('Error deleting devotional', error);
+    }
+  };
+
+  const showDeleteConfirm = (devotionalId: string) => {
+    setMenuVisible(null);
+    Alert.alert(
+      'Delete Devotional',
+      'Are you sure you want to delete this devotional?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDeleteDevotional(devotionalId),
+        },
+      ]
+    );
+  };
 
   React.useEffect(() => {
     if (!loading && content.length === 0) {
@@ -859,6 +906,36 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       extrapolate: 'clamp',
     });
 
+    // Calculate progress
+    const completedDays = devotional.days?.filter((day: any) => day.completed).length || 0;
+    const totalDays = devotional.total_days || devotional.days?.length || 1;
+    const progress = (completedDays / totalDays) * 100;
+    const isComplete = progress >= 100;
+    const formattedDate = formatDate(devotional.createdAt || new Date().toISOString());
+    const cleanTitle = extractCleanTitle(devotional.title, 'Devotional');
+
+    // Find next incomplete day
+    let nextDayInfo = null;
+    if (!isComplete && devotional.days) {
+      const nextIdx = devotional.days.findIndex((day: any) => !day.completed);
+      if (nextIdx !== -1) {
+        const nextDay = devotional.days[nextIdx];
+        const scriptureWords = nextDay.scripture?.text ? nextDay.scripture.text.trim().split(/\s+/).length : 0;
+        const reflectionWords = nextDay.reflection ? nextDay.reflection.trim().split(/\s+/).length : 0;
+        const questionsWords = nextDay.reflectionQuestions?.reduce((sum: number, q: any) => sum + (q.text ? q.text.trim().split(/\s+/).length : 0), 0) || 0;
+        const prayerWords = nextDay.prayer ? nextDay.prayer.trim().split(/\s+/).length : 0;
+        const totalWords = scriptureWords + reflectionWords + questionsWords + prayerWords;
+        const readTime = totalWords > 0 ? Math.max(1, Math.round(totalWords / 100)) : 0;
+        const isOneDay = totalDays === 1;
+        nextDayInfo = {
+          dayNumber: nextDay.dayNumber || nextIdx + 1,
+          title: nextDay.title,
+          readTime,
+          isOneDay,
+        };
+      }
+    }
+
     return (
       <TouchableOpacity
         key={devotional.id}
@@ -867,7 +944,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           triggerLightHaptic();
           onDevotionalPress?.(devotional);
         }}
-        activeOpacity={0.85}
+        activeOpacity={1}
       >
         <Animated.View
           style={[
@@ -876,63 +953,120 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             { transform: [{ scale }, { translateY }], opacity },
           ]}
         >
-          <View style={styles.typeIndicator}>
-            <MaterialCommunityIcons name="book" size={16} color={Colors.alertCoral} />
-            <ThemedText weight="semiBold" style={styles.typeText}>DEVOTIONAL</ThemedText>
-          </View>
-
-          {devotional.isCompleted && (
-            <View style={styles.badgeContainer}>
-              <View style={[styles.statusBadge, { backgroundColor: Colors.growthGreen }]}>
-                <ThemedText weight="semiBold" style={styles.statusBadgeText}>DONE</ThemedText>
+          <View style={styles.cardContent}>
+            {/* Gradient Container with Category and Menu */}
+            <View style={styles.gradientContainer}>
+              <View style={styles.gradientTagRow}>
+                <View style={styles.categoryLabel}>
+                  <ThemedText weight="bold" style={styles.categoryLabelText}>{devotional.category || 'Devotional'}</ThemedText>
+                </View>
               </View>
-            </View>
-          )}
-
-          <ThemedText weight="semiBold" style={styles.cardTitle}>
-            {devotional.title}
-          </ThemedText>
-
-          {devotional.description && (
-            <ThemedText style={styles.cardDescription} numberOfLines={2}>
-              {devotional.description}
-            </ThemedText>
-          )}
-
-          {devotional.verse && (
-            <View style={styles.verseContainer}>
-              <ThemedText style={styles.verseText} numberOfLines={2}>
-                "{devotional.verse.text}"
-              </ThemedText>
-              <ThemedText weight="medium" style={styles.verseReference}>
-                {devotional.verse.reference}
-              </ThemedText>
-            </View>
-          )}
-
-          {devotional.isCompleted ? (
-            <View style={styles.completedInfo}>
-              <MaterialCommunityIcons name="check-circle" size={16} color={Colors.growthGreen} />
-              <ThemedText weight="medium" style={styles.completedText}>
-                Finished {formatFinishedDate(devotional.completedAt) || 'recently'}
-              </ThemedText>
-            </View>
-          ) : (
-            <View style={styles.nextDayInfo}>
-              {devotional.nextDayNumber && devotional.nextDayTitle && (
-                <>
-                  <ThemedText weight="medium" style={styles.nextDayText}>Next</ThemedText>
-                  <ThemedText weight="medium" style={styles.nextDayText}>{`Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle}`}</ThemedText>
-                </>
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(menuVisible === devotional.id ? null : devotional.id);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
+              </TouchableOpacity>
+              {menuVisible === devotional.id && (
+                <View style={styles.dropdownMenu}>
+                  <TouchableOpacity
+                    style={[styles.dropdownItem, styles.dropdownItemLast]}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      showDeleteConfirm(devotional.id);
+                    }}
+                  >
+                    <View style={styles.dropdownItemContent}>
+                      <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                      <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               )}
-              <View style={styles.durationRow}>
-                <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textGray} />
-                <ThemedText style={styles.durationText}>
-                  {devotional.estimatedDuration} min read
+              {menuVisible === devotional.id && (
+                <TouchableOpacity
+                  style={styles.menuBackdrop}
+                  onPress={() => setMenuVisible(null)}
+                  activeOpacity={1}
+                />
+              )}
+            </View>
+
+            {/* Date */}
+            <View style={styles.dateWithBadge}>
+              <ThemedText weight="medium" style={styles.date}>{formattedDate}</ThemedText>
+            </View>
+
+            {/* Title */}
+            <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>{cleanTitle}</ThemedText>
+
+            {/* Description */}
+            {devotional.description && (
+              <ThemedText style={styles.description} numberOfLines={2}>
+                {devotional.description.replace(/^CATEGORY:[^\n]*\n?/i, '')}
+              </ThemedText>
+            )}
+
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressHeader}>
+                <View style={styles.progressLabel}>
+                  <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={16} color={Colors.secondaryText} style={styles.progressIcon} />
+                  <ThemedText weight="semiBold" style={styles.progressLabelText}>Progress</ThemedText>
+                </View>
+                <ThemedText weight="medium" style={styles.dayCounter}>
+                  {completedDays} of {totalDays} days completed
                 </ThemedText>
               </View>
+              <View style={styles.progressBarRow}>
+                <View style={styles.progressWrapper}>
+                  <View style={styles.barBg}>
+                    <View style={[styles.barFill, { width: `${progress}%` }]} />
+                  </View>
+                </View>
+              </View>
+              <View style={styles.nextDayContainer}>
+                {nextDayInfo && (
+                  <View style={styles.nextDayContentContainer}>
+                    <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
+                    <ThemedText weight="medium" style={styles.nextDayTitle}>
+                      Day {nextDayInfo.dayNumber}{!nextDayInfo.isOneDay && `: ${nextDayInfo.title}`}
+                    </ThemedText>
+                    <View style={styles.nextDayReadTimeContainer}>
+                      <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
+                      <ThemedText style={styles.nextDayReadTime}>{nextDayInfo.readTime} min read</ThemedText>
+                    </View>
+                  </View>
+                )}
+              </View>
             </View>
-          )}
+
+            {/* Rating (Completed only) */}
+            {isComplete && devotional.rating && typeof devotional.rating === 'number' && devotional.rating > 0 && (
+              <View style={styles.ratingContainer}>
+                <View style={styles.ratingRow}>
+                  {Array.from({ length: 5 }).map((_, idx) => {
+                    const isFilled = idx < Math.round(devotional.rating || 0);
+                    return (
+                      <MaterialCommunityIcons
+                        key={idx}
+                        name={isFilled ? 'star' : 'star-outline'}
+                        size={18}
+                        color={isFilled ? Colors.faithGold : Colors.secondaryText}
+                        style={styles.ratingStar}
+                      />
+                    );
+                  })}
+                  <ThemedText weight="medium" style={styles.ratingValueText}>
+                    {Math.round(devotional.rating || 0)}/5
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+          </View>
         </Animated.View>
       </TouchableOpacity>
     );
@@ -1363,6 +1497,172 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Colors.hopeWhite,
     marginBottom: 4,
+  },
+  // Devotional card styles from DevotionalsScreen
+  cardContent: {
+    flex: 1,
+  },
+  gradientTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 48,
+    right: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 18,
+    minWidth: 180,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    paddingVertical: 8,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  dropdownItemTextDelete: {
+    color: Colors.alertCoral,
+  },
+  date: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
+  },
+  devotionalTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 6,
+  },
+  progressBarContainer: {
+    width: '100%',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressLabelText: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  progressIcon: {
+    marginRight: 4,
+  },
+  dayCounter: {
+    fontSize: 12,
+    color: Colors.secondaryText,
+    fontWeight: '500',
+  },
+  progressBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 8,
+  },
+  progressWrapper: {
+    flex: 1,
+  },
+  barBg: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 3,
+  },
+  nextDayContainer: {
+    marginTop: 6,
+    alignItems: 'flex-start',
+  },
+  nextDayContentContainer: {
+    gap: 2,
+  },
+  nextDayLabel: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontWeight: 'bold',
+  },
+  nextDayTitle: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontWeight: '500',
+  },
+  nextDayReadTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nextDayReadTimeIcon: {
+    marginRight: 2,
+  },
+  nextDayReadTime: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  ratingContainer: {
+    marginTop: 10,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingStar: {
+    marginRight: 2,
+  },
+  ratingValueText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: Colors.faithGold,
+    fontWeight: '500',
   },
   carouselCardDescription: {
     fontSize: 12,
