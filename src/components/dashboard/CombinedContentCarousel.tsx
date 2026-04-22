@@ -1620,6 +1620,7 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: 10,
+    lineHeight: 14,
     color: Colors.hopeWhite,
     opacity: 0.5,
     letterSpacing: 1.2,
