@@ -38,6 +38,7 @@ import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 import { useScroll } from '../../context/ScrollContext';
+import TimeBlockLogEditor from './TimeBlockLogEditor';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -243,7 +244,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   }>({ visible: false });
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding;
+  // Disabled - we now use modal editor instead
+  const shouldShowAddingMode = false;
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [_showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -254,6 +256,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Track if we're editing a virtual (expanded) instance of a repeating block
   const [editIsVirtualInstance, setEditIsVirtualInstance] = useState<boolean>(false);
   const [editInstanceDate, setEditInstanceDate] = useState<string | null>(null);
+
+  // Modal state for TimeBlockLogEditor
+  const [showEditorModal, setShowEditorModal] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<TimeBlockItem | null>(null);
 
   const [newBlock, setNewBlock] = useState<{
     title: string;
@@ -298,26 +304,27 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   useEffect(() => {
     // Cancel any active editing when date changes
-    if (prevDateRef.current !== dateStr && isAdding) {
-      setIsAdding(false);
-      setEditId(null);
+    if (prevDateRef.current !== dateStr && showEditorModal) {
+      setShowEditorModal(false);
+      setEditingBlock(null);
     }
     if (prevDateRef.current !== dateStr && globalEditMode?.isGlobalEditMode && globalEditMode?.setGlobalEditMode) {
       globalEditMode.setGlobalEditMode(false);
     }
     prevDateRef.current = dateStr;
-  }, [dateStr, globalEditMode, isAdding]);
+  }, [dateStr, globalEditMode, showEditorModal]);
 
+// ...
   // Auto-cancel edit mode when component unmounts
   useEffect(() => {
     return () => {
       // Cleanup when component unmounts
-      if (isAdding) {
-        setIsAdding(false);
-        setEditId(null);
+      if (showEditorModal) {
+        setShowEditorModal(false);
+        setEditingBlock(null);
       }
     };
-  }, [isAdding]);
+  }, [showEditorModal]);
 
   const closeAllSwipeActions = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -334,42 +341,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   const handleEditBlock = (block: TimeBlockItem) => {
     closeAllSwipeActions();
-    setIsAdding(true);
-
-    // Check if this is a virtual instance (repeated occurrence)
-    const datePattern = /\d{4}-\d{2}-\d{2}$/;
-    const isVirtualInstance = datePattern.test(block.id);
-
-    // If it's a virtual instance, extract the original ID to edit the source event
-    let editIdToUse = block.id;
-    if (isVirtualInstance) {
-      const parts = block.id.split('-');
-      editIdToUse = parts.slice(0, 5).join('-'); // Get original UUID
-      Logger.info('EDIT: Editing virtual instance, using original ID', { editId: editIdToUse });
-    }
-
-    // Remember whether this edit came from a virtual instance (and which date)
-    setEditIsVirtualInstance(isVirtualInstance);
-    try {
-      const instanceDateStr = toLocalDateString(block.startTime);
-      setEditInstanceDate(isVirtualInstance ? instanceDateStr : null);
-    } catch {
-      setEditInstanceDate(isVirtualInstance ? dateStr : null);
-    }
-
-    setEditId(editIdToUse);
-    setNewBlock({
-      ...block,
-      notes: block.notes || '',
-      location: block.location || '',
-      startTime: new Date(block.startTime),
-      endTime: new Date(block.endTime),
-      alert: block.alert || 'none',
-    });
-    setInputValue(block.repeat.customFrequency?.value?.toString() || '1');
-    setCustomFrequency(block.repeat.customFrequency || { value: 1, unit: 'week' });
-    // Always start with repeat options closed when editing
-    setShowRepeatOptions(false);
+    // Open modal with the block to edit
+    setEditingBlock(block);
+    setShowEditorModal(true);
   };
 
   const handleDeleteBlock = (timeBlock: TimeBlockItem) => {
@@ -1101,27 +1075,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       return;
     }
 
-    setNewBlock({
-      title: '',
-      startTime: new Date(),
-      endTime: new Date(Date.now() + 60 * 60 * 1000), // Default 1 hour duration
-      category: '',
-      notes: '',
-      location: '',
-      isAllDay: false,
-      alert: 'none',
-      repeat: {
-        frequency: 'never',
-      },
-    });
-    setIsAdding(true);
-    setShowCategoryError(false);
-    setShowCategoryPicker(false);
-    setShowRepeatOptions(false);
-    setShowEndDatePicker(false);
-    setShowFrequencySelector(false);
-    setCustomFrequency({ value: 1, unit: 'week' });
-    setInputValue('1');
+    // Open modal with empty block for creating new time block
+    setEditingBlock(null);
+    setShowEditorModal(true);
   };
 
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
@@ -1165,11 +1121,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const hasItems = timeBlocks.length > 0;
 
   // Determine if the JournalCard header should be shown
-  // Show header when there are existing items OR when editing an existing block
-  // Do NOT show header when the list is empty and user is adding a new block
+  // Show header when there are existing items
   const showHeader = useMemo(() => {
-    return hasItems || (!!editId && shouldShowAddingMode);
-  }, [hasItems, editId, shouldShowAddingMode]);
+    return hasItems;
+  }, [hasItems]);
 
   // Singular/plural helper
   const sp = (singular: string, plural: string, count: number) => (count === 1 ? singular : plural);
@@ -2256,6 +2211,36 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         onCancel={() => setShowDeleteModal({ visible: false })}
         canDeleteSeries={calendarGating.canDeleteSeries}
       />
+
+      {/* TimeBlockLogEditor Modal */}
+      <Modal
+        visible={showEditorModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowEditorModal(false)}
+      >
+        <TimeBlockLogEditor
+          onSave={(data) => {
+            setShowEditorModal(false);
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: queryKeys.timeBlocks.all });
+          }}
+          onCancel={() => setShowEditorModal(false)}
+          dateString={dateStr}
+          context="journal"
+          existingTimeBlock={editingBlock ? {
+            id: editingBlock.id,
+            title: editingBlock.title,
+            start_time: editingBlock.startTime.toISOString(),
+            end_time: editingBlock.endTime.toISOString(),
+            category: editingBlock.category,
+            description: editingBlock.notes,
+            location: editingBlock.location,
+            all_day: editingBlock.isAllDay,
+            alert: editingBlock.alert,
+          } : undefined}
+        />
+      </Modal>
     </JournalCard>
   );
 };

@@ -63,6 +63,8 @@ interface TimeBlockLogEditorProps {
   isLoading?: boolean;
   styles?: any;
   dateString?: string;
+  // Context to determine title/subtext: 'journal' for general journal, 'faithful-actions' for playbook action steps
+  context?: 'journal' | 'faithful-actions';
   // Existing time block data for editing
   existingTimeBlock?: {
     id?: string;
@@ -773,6 +775,7 @@ function TimeBlockLogEditorInner(
     isLoading = false,
     styles,
     existingTimeBlock,
+    context = 'journal',
     // Unused props: initialContent, _subtaskId, _stepId, dateString
   } = props;
   const { currentFont } = useTheme();
@@ -1012,10 +1015,12 @@ function TimeBlockLogEditorInner(
             <View style={s.titleRow}>
               <View style={s.titleTextFlex}>
                 <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
-                  Set a time
+                  {context === 'faithful-actions' ? 'Set a time' : 'Time Block'}
                 </ThemedText>
                 <ThemedText style={s.subtext}>
-                  Choose when you want to come back to this.
+                  {context === 'faithful-actions' 
+                    ? 'Choose when you want to come back to this.' 
+                    : 'Schedule and organize your day.'}
                 </ThemedText>
               </View>
             </View>
@@ -1116,7 +1121,11 @@ function TimeBlockLogEditorInner(
                   <ThemedText weight="medium" style={s.inputLabel}>End Repeat</ThemedText>
                   <View style={s.endRepeatRow}>
                     <TouchableOpacity
-                      onPress={() => { setEndRepeatMode('never'); setEndRepeatDate(null); }}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setEndRepeatMode('never');
+                        setEndRepeatDate(null);
+                      }}
                       style={[
                         s.endRepeatButton,
                         endRepeatMode === 'never' && s.endRepeatButtonActive,
@@ -1125,7 +1134,10 @@ function TimeBlockLogEditorInner(
                       <ThemedText style={s.repeatText}>Never</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => { setShowEndDatePicker(true); }}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setShowEndDatePicker(true);
+                      }}
                       style={[
                         s.endRepeatButton,
                         (endRepeatMode === 'date' && endRepeatDate) && s.endRepeatButtonActive,
@@ -1175,7 +1187,10 @@ function TimeBlockLogEditorInner(
                   s.categoryButton,
                   s.selectedCategoryButton,
                 ]}
-                onPress={() => setShowCategoryModal(true)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowCategoryModal(true);
+                }}
                 accessibilityLabel="Select Category"
               >
                 <Ionicons

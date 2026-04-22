@@ -21,6 +21,7 @@ import { getFontFamily } from '../theme/fonts';
 import { MapPin, Navigation } from 'lucide-react-native';
 import ThemedText from './common/ThemedText';
 import { getCurrentLocation, searchLocations } from '../services/calendarSyncService';
+import { triggerLightHaptic } from '../utils/haptics';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused
 
 interface LocationResult {
@@ -179,7 +180,10 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 
         <TouchableOpacity
           style={styles.currentLocationButton}
-          onPress={handleGetCurrentLocation}
+          onPress={() => {
+            triggerLightHaptic();
+            handleGetCurrentLocation();
+          }}
           disabled={isLoadingLocation}
         >
           {isLoadingLocation ? (
