@@ -128,25 +128,28 @@ const createDefaultStyles = (fonts: any) => ({
   },
   inputLabel: {
     color: Colors.hopeWhite,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
-    opacity: 0.8,
+    opacity: 0.7,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   formInput: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 26,
+    borderRadius: 16,
     padding: 16,
     color: Colors.hopeWhite,
     fontSize: 16,
     fontFamily: Fonts.regular,
-    minHeight: 50,
-    textAlignVertical: 'top',
-    marginBottom: 12,
+    minHeight: 56,
+    textAlignVertical: 'center',
+    marginBottom: 16,
   },
   multilineInput: {
     minHeight: 120,
+    textAlignVertical: 'top',
   },
   locationInputContainer: {
     marginBottom: 12,
@@ -205,19 +208,23 @@ const createDefaultStyles = (fonts: any) => ({
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 8,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    minHeight: 56,
   },
   selectedCategoryButton: {
     // No background styling
   },
   categoryIcon: {
-    marginRight: 8,
+    marginRight: 12,
   },
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 16,
     fontFamily: Fonts.medium,
+    flex: 1,
   },
   categoryTextRequired: {
     color: Colors.alertCoral,
@@ -226,7 +233,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   allDayText: {
     color: Colors.hopeWhite,
@@ -382,7 +389,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 20,
     paddingHorizontal: 4,
   },
   timeSection: {
@@ -395,7 +402,11 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
+    minHeight: 56,
   },
   repeatText: {
     color: Colors.hopeWhite,
@@ -919,12 +930,12 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular }, { fontSize: inputTitleFontSize }]}
+                style={[s.formInput, { fontFamily: fonts.regular }]}
                 placeholder="Title *"
                 placeholderTextColor={Colors.alertCoral}
                 value={title}
                 onChangeText={(text) => handleContentChange('title', text)}
-                multiline={true}
+                multiline={false}
                 keyboardAppearance="dark"
               />
 
@@ -1004,7 +1015,6 @@ function TimeBlockLogEditorInner(
                 style={[
                   s.categoryButton,
                   s.selectedCategoryButton,
-                  s.categoryButtonRow,
                 ]}
                 onPress={() => setShowCategoryModal(true)}
                 accessibilityLabel="Select Category"
