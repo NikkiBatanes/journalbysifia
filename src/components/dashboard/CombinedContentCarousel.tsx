@@ -226,6 +226,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [tagModalVisible, setTagModalVisible] = useState(false);
+  const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<PlaybookContent | null>(null);
+  const [selectedPlaybookForTag, setSelectedPlaybookForTag] = useState<PlaybookContent | null>(null);
 
   // Devotional operations for delete functionality
   const { deleteDevotional } = useDevotionalOperations(user?.id || '');
@@ -806,7 +810,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         >
           {/* Type Badge */}
           <View style={styles.typeBadge}>
-            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} />
+            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} style={styles.typeBadgeIcon} />
             <ThemedText weight="semiBold" style={styles.typeBadgeText}>PLAYBOOK</ThemedText>
           </View>
 
@@ -818,8 +822,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               style={styles.menuButton}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                setSelectedPlaybookForDevotional(playbook);
-                setDevotionalModalVisible(true);
+                setMenuVisible(menuVisible === playbook.id ? null : playbook.id);
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -962,7 +965,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           <View style={styles.cardContent}>
             {/* Type Badge */}
             <View style={styles.typeBadge}>
-              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} />
+              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} style={styles.typeBadgeIcon} />
               <ThemedText weight="semiBold" style={styles.typeBadgeText}>DEVOTIONAL</ThemedText>
             </View>
 
@@ -1515,6 +1518,9 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 8,
     alignSelf: 'flex-end',
+  },
+  typeBadgeIcon: {
+    lineHeight: 10,
   },
   typeBadgeText: {
     fontSize: 10,
