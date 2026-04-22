@@ -113,7 +113,6 @@ interface PlaybookContent {
   completedAt?: string;
   status?: string;
   truthInLove?: any;
-  tag?: string;
 }
 
 interface DevotionalContent extends BaseContent {
@@ -227,10 +226,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
-  const [renameModalVisible, setRenameModalVisible] = useState(false);
-  const [tagModalVisible, setTagModalVisible] = useState(false);
-  const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<PlaybookContent | null>(null);
-  const [selectedPlaybookForTag, setSelectedPlaybookForTag] = useState<PlaybookContent | null>(null);
 
   // Devotional operations for delete functionality
   const { deleteDevotional } = useDevotionalOperations(user?.id || '');
@@ -267,41 +262,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           text: 'Delete',
           style: 'destructive',
           onPress: () => handleDeleteDevotional(devotionalId),
-        },
-      ]
-    );
-  };
-
-  const handleDeletePlaybook = async (playbookId: string) => {
-    setMenuVisible(null);
-    Alert.alert(
-      'Delete Playbook',
-      'Are you sure you want to delete this playbook?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('playbooks')
-                .delete()
-                .eq('id', playbookId);
-              
-              if (error) throw error;
-              
-              // Invalidate and refetch
-              queryClient.invalidateQueries({ queryKey: ['playbooks', user?.id] });
-              queryClient.invalidateQueries({ queryKey: ['combined-content', user?.id] });
-            } catch (error) {
-              console.error('Error deleting playbook:', error);
-              Alert.alert('Error', 'Failed to delete playbook');
-            }
-          },
         },
       ]
     );
@@ -858,72 +818,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               style={styles.menuButton}
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
-                setMenuVisible(menuVisible === playbook.id ? null : playbook.id);
+                setSelectedPlaybookForDevotional(playbook);
+                setDevotionalModalVisible(true);
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
             </TouchableOpacity>
-            {menuVisible === playbook.id && (
-              <View style={styles.dropdownMenu}>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    setSelectedPlaybookForDevotional(playbook);
-                    setDevotionalModalVisible(true);
-                  }}
-                >
-                  <ThemedText style={styles.dropdownItemText}>Turn into devotional</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    setSelectedPlaybookForRename(playbook);
-                    setRenameModalVisible(true);
-                  }}
-                >
-                  <ThemedText style={styles.dropdownItemText}>Rename</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    setSelectedPlaybookForTag(playbook);
-                    setTagModalVisible(true);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <ThemedText style={styles.dropdownItemText}>Tag</ThemedText>
-                    {playbook.tag && (
-                      <View style={styles.dropdownBadge}>
-                        <ThemedText style={styles.dropdownBadgeText}>{playbook.tag}</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dropdownItem, styles.dropdownItemLast]}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    handleDeletePlaybook(playbook.id);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
-                    <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-            {menuVisible === playbook.id && (
-              <TouchableOpacity style={styles.menuBackdrop} onPress={() => setMenuVisible(null)} activeOpacity={1} />
-            )}
           </View>
 
           <View style={styles.dateWithBadge}>
@@ -1613,7 +1514,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 8,
-    alignSelf: 'flex-end',
+    marginLeft: 'auto',
   },
   typeBadgeText: {
     fontSize: 10,
@@ -1675,30 +1576,6 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextDelete: {
     color: Colors.alertCoral,
-  },
-  dropdownBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 12,
-  },
-  dropdownBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    marginLeft: 2,
-  },
-  menuBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 99,
   },
   date: {
     fontSize: 12,
