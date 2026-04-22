@@ -299,10 +299,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 <ThemedText weight="semiBold" style={styles.completionCategory}>
                   {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
                 </ThemedText>
-                <ThemedText style={styles.completionSubtext}>Your win is saved for today</ThemedText>
-              </View>
-              <View style={styles.completionCheckmark}>
-                <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
               </View>
             </View>
 
