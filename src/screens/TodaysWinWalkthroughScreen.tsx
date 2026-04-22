@@ -28,7 +28,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreateTodayWinEntry } from '../services/hooks/useJournalData';
+import { useCreateTodayWinEntry, useUpdateTodayWinEntry, useTodayWinData } from '../services/hooks/useJournalData';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 
@@ -514,10 +514,38 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedWinType, setSelectedWinType] = useState<WinType | null>(null);
   const [quietWin, setQuietWin] = useState('');
-
-  const createMutation = useCreateTodayWinEntry();
+  const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
 
   const dateStr = toLocalDateString(selectedDate);
+
+  const createMutation = useCreateTodayWinEntry();
+  const updateMutation = useUpdateTodayWinEntry();
+
+  // Fetch existing Today's Win data when component mounts
+  const { data: existingEntries } = useTodayWinData(user?.id || '', dateStr);
+  const existingEntry = existingEntries?.[0] || null;
+
+  React.useEffect(() => {
+    if (existingEntry) {
+      try {
+        const content = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
+        if (content.winType) {
+          const winType = WIN_TYPES.find(wt => wt.id === content.winType);
+          if (winType) {
+            setSelectedWinType(winType);
+          }
+        }
+        if (content.quietWin) {
+          setQuietWin(content.quietWin);
+        }
+        setExistingEntryId(existingEntry.id);
+        // Skip to completion step if data exists
+        setCurrentStep(3);
+      } catch (error) {
+        console.error('Error parsing existing win data:', error);
+      }
+    }
+  }, [existingEntry]);
 
   const handleNext = () => {
     if (currentStep === 1) {
@@ -540,34 +568,40 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     try {
-      await createMutation.mutateAsync({
-        user_id: user.id,
-        selected_date: dateStr,
-        content: JSON.stringify({
-          winType: selectedWinType?.id,
-          quietWin: quietWin,
-        }),
-      });
+      console.log('🏆 Saving win:', { userId: user.id, dateStr, winType: selectedWinType?.id, quietWin, existingEntryId });
+
+      if (existingEntryId) {
+        // Update existing entry
+        const result = await updateMutation.mutateAsync({
+          id: existingEntryId,
+          updates: {
+            content: JSON.stringify({
+              winType: selectedWinType?.id,
+              quietWin: quietWin,
+            }),
+          },
+        });
+        console.log('🏆 Win updated successfully:', result);
+      } else {
+        // Create new entry
+        const result = await createMutation.mutateAsync({
+          user_id: user.id,
+          selected_date: dateStr,
+          content: JSON.stringify({
+            winType: selectedWinType?.id,
+            quietWin: quietWin,
+          }),
+        });
+        console.log('🏆 Win created successfully:', result);
+      }
 
       triggerMediumHaptic();
       navigation.goBack();
     } catch (error) {
-      console.error('Error saving win:', error);
+      console.error('🏆 Error saving win:', error);
       Alert.alert('Error', 'Failed to save your win. Please try again.');
     }
   };
-
-  // Refetch today's win data when screen comes into focus
-  const queryClient = useQueryClient();
-  useFocusEffect(
-    React.useCallback(() => {
-      if (user) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.journal.todayWin(user.id, dateStr),
-        });
-      }
-    }, [user, dateStr, queryClient])
-  );
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(

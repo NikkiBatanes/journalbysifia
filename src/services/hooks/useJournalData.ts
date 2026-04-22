@@ -143,13 +143,7 @@ export const useTodayWinData = (userId: string, date: string) => {
   return useQuery({
     queryKey: queryKeys.journal.todayWin(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'today_win');
-      if (cached) {
-        return cached;
-      }
-
-      // Fetch from API
+      // Always fetch from API to ensure fresh data
       const entries = await JournalApi.getTodayWinEntries(userId, date);
 
       // Cache the results
@@ -588,16 +582,14 @@ export const useCreateTodayWinEntry = () => {
       // Error handling is now managed at component level
     },
     onSuccess: (data, variables) => {
-      // Update cache with the new data instead of invalidating
+      console.log('🏆 useCreateTodayWinEntry onSuccess:', { data, variables });
+      // Invalidate query to force refetch from database
       const queryKey = queryKeys.journal.todayWin(variables.user_id, variables.selected_date);
-      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => {
-        // Add the new entry to the cache
-        return [...old, data];
-      });
+      console.log('🏆 Invalidating query for:', queryKey);
+      queryClient.invalidateQueries({ queryKey });
 
       // Clear local cache
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
-
     },
   });
 };
