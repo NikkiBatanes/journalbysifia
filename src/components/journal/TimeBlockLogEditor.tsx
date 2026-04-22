@@ -15,7 +15,6 @@ import {
   Alert,
 } from 'react-native';
 
-import { Pencil } from 'lucide-react-native';
 import { Colors, Fonts } from '../../theme';
 // import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -29,7 +28,6 @@ import { LocationSelector } from '../LocationSelector';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import BlueSheet from '../layout/BlueSheet';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -85,52 +83,7 @@ export interface TimeBlockLogEditorRef {
 const createDefaultStyles = (fonts: any) => ({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 0,
-    backgroundColor: Colors.hopeWhite,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    letterSpacing: 0.5,
-    flex: 1,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    borderRadius: 20,
-    padding: 4,
-    alignItems: 'center',
-  },
-  modeIconsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 4,
-  },
-  modeButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginHorizontal: 0,
-  },
-  activeModeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  iconSeparator: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 0,
+    backgroundColor: Colors.anchorBlue,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -883,46 +836,14 @@ function TimeBlockLogEditorInner(
     }
   };
 
-  // Header date: Day, Month Day (and Year only if not current year)
-  const headerDate = React.useMemo(() => {
-    // If a specific date needs to be shown in the future, wire it here.
-    const d = new Date();
-    const nowYear = new Date().getFullYear();
-    const opts: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    };
-    if (d.getFullYear() !== nowYear) {
-      opts.year = 'numeric';
-    }
-    return d.toLocaleDateString('en-US', opts);
-  }, []);
-
   return (
     <View style={s.container}>
       <StatusBar hidden />
-      <View style={s.header}>
-        <ThemedText weight="bold" style={s.title}>{headerDate}</ThemedText>
-        <View style={s.modeToggle}>
-          <View style={s.modeButton} pointerEvents="none">
-            <Pencil
-              size={22}
-              color={Colors.alertCoral}
-              fill={Colors.alertCoral}
-              strokeWidth={1.5}
-            />
-          </View>
-        </View>
-      </View>
-
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         enabled={Platform.OS === 'ios'}>
-
-        <BlueSheet>
           <ScrollView
             ref={scrollViewRef}
             style={s.content}
@@ -1412,7 +1333,6 @@ function TimeBlockLogEditorInner(
               )}
             </View>
           </ScrollView>
-        </BlueSheet>
 
         {/* Floating Action Buttons - Standard Layout */}
         <View style={s.fabWrapper}>
