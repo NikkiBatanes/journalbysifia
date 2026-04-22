@@ -214,20 +214,18 @@ const WinTypeSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedWinType && (
-        <View style={{ position: 'absolute', bottom: insets.bottom + 20, left: 0, right: 0, alignItems: 'center' }}>
-          <Animated.View style={[styles.primaryButton, { transform: [{ scale: buttonScale }] }]}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerMediumHaptic();
-                onNext();
-              }}
-              activeOpacity={0.7}
-              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
+        <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerMediumHaptic();
+              onNext();
+            }}
+            activeOpacity={0.7}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Close button - top right */}
