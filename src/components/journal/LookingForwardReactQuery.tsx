@@ -13,6 +13,7 @@ import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigation } from '@react-navigation/native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -41,6 +42,9 @@ interface LookingForwardProps {
 }
 
 const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
+  // Navigation
+  const navigation = useNavigation<any>();
+  
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -237,12 +241,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
       return {
         id: entry.id,
-        text: content?.entry?.text || '',
+        text: content?.entry?.text || content?.lookingAheadText || '',
+        emotionId: content?.emotionId || '',
+        emotionName: content?.emotionName || '',
+        customEmotion: content?.customEmotion || '',
       };
     } catch {
       return {
         id: entry.id,
         text: '',
+        emotionId: '',
+        emotionName: '',
+        customEmotion: '',
       };
     }
   }, [entry]);
@@ -286,39 +296,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   }, [dateStr]);
 
-  // Handle global edit mode activation
+  // Handle global edit mode activation - disabled for LookingForward since it uses walkthrough
   React.useEffect(() => {
-    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
-      // Check if there's existing looking forward content
-      const hasExistingEntry = entries.length > 0 && entries[0]?.content;
-
-      if (hasExistingEntry) {
-        // Start editing existing entry
-        const currentEntry = entries[0];
-        const existingText = (() => {
-          try {
-            const parsed = typeof currentEntry.content === 'string' ? JSON.parse(currentEntry.content) : currentEntry.content;
-            return parsed.entry?.text || '';
-          } catch {
-            return '';
-          }
-        })();
-
-        if (existingText && !isEditing) {
-          setIsEditing(true);
-          setIsAdding(false); // Make sure adding is false
-          setEntryText(existingText);
-        } else if (!existingText && !isAdding) {
-          setIsAdding(true);
-          setIsEditing(false); // Make sure editing is false
-        }
-      } else if (!isAdding) {
-        // Start adding new entry
-        setIsAdding(true);
-        setIsEditing(false); // Make sure editing is false
-      }
-    }
-  }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
+    // Global edit mode is disabled for LookingForward component
+    // It now navigates to Tomorrow in His Hands walkthrough instead
+  }, []);
 
   // Track loading performance
   React.useEffect(() => {
@@ -507,10 +489,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const editEntry = () => {
     if (!displayEntry) {return;}
 
-    setEntryText(displayEntry.text);
     triggerLightHaptic();
-    setIsEditing(true);
-    setIsAdding(true);
+    navigation.navigate('TomorrowInHisHandsWalkthrough', {
+      selectedDate: toLocalDateString(selectedDate),
+      existingEntry: entry,
+    });
   };
 
   const cancelEditing = () => {
@@ -588,7 +571,22 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               styles.entryContainer,
               viewMode === 'inline' && styles.entryContainerInline,
             ]}>
-              <ThemedText style={styles.entryText}>{displayEntry.text}</ThemedText>
+              <View style={styles.completionCard}>
+                {displayEntry.text.trim() && (
+                  <View style={styles.completionSection}>
+                    <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
+                  </View>
+                )}
+
+                <View style={styles.completionDivider} />
+
+                {displayEntry.emotionName && (
+                  <View style={styles.completionSection}>
+                    <ThemedText weight="medium" style={styles.completionSectionLabel}>How You're Holding It</ThemedText>
+                    <ThemedText style={styles.completionSectionTextLarge}>{displayEntry.emotionName}</ThemedText>
+                  </View>
+                )}
+              </View>
             </View>
           )}
         </SwipeableTodoItem>
@@ -660,7 +658,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           </ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
-            onPress={startAdding}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.navigate('TomorrowInHisHandsWalkthrough', {
+                selectedDate: toLocalDateString(selectedDate),
+                existingEntry: entry,
+              });
+            }}
             accessibilityRole="button"
             accessibilityLabel={dateCategory === 'today' ? 'Begin looking forward' : 'Revisit looking forward'}
           >
@@ -858,6 +862,56 @@ const styles = StyleSheet.create({
   retryText: {
     color: Colors.hopeWhite,
     fontSize: 12,
+  },
+  // Completion card styles
+  completionCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    width: '100%',
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  completionHeaderContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  completionDivider: {
+    height: 1,
+    backgroundColor: Colors.inputBorder,
+    marginVertical: 16,
+  },
+  completionSection: {
+    marginBottom: 20,
+  },
+  completionSectionLabel: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  completionSectionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 22,
+  },
+  completionSectionTextLarge: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    lineHeight: 26,
+    fontWeight: '600',
   },
   // Empty state styles
   emptyStateContainer: {

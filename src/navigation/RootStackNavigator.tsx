@@ -13,7 +13,9 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
+import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
+import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -386,6 +388,28 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="TodaysFocusWalkthrough"
             component={TodaysFocusWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Tomorrow in His Hands Walkthrough */}
+          <Stack.Screen
+            name="TomorrowInHisHandsWalkthrough"
+            component={TomorrowInHisHandsWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Today's Win Walkthrough */}
+          <Stack.Screen
+            name="TodaysWinWalkthrough"
+            component={TodaysWinWalkthroughScreen as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',

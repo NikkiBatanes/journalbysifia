@@ -34,7 +34,9 @@ export type JournalContentType =
   | 'todo'
   | 'today_win'
   | 'looking_forward'
-  | 'todays_focus';
+  | 'todays_focus'
+  | 'win'
+  | 'tomorrow_in_his_hands';
 
 export type Priority = 'high' | 'medium' | 'low';
 

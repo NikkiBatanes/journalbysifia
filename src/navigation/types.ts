@@ -101,10 +101,21 @@ export type RootStackParamList = {
     existingEntry?: any;
   } | undefined;
 
+  // Tomorrow in His Hands Walkthrough
+  TomorrowInHisHandsWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
   // Todos Walkthrough
   TodosWalkthrough: {
     selectedDate?: string;
     existingEntry?: any;
+  } | undefined;
+
+  // Today's Win Walkthrough
+  TodaysWinWalkthrough: {
+    selectedDate?: string;
   } | undefined;
 
   // Test screens
