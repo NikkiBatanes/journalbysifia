@@ -22,6 +22,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
@@ -258,7 +259,7 @@ const QuietWinStep: React.FC<{
 
   useEffect(() => {
     Animated.timing(verticalLineHeight, {
-      toValue: 75,
+      toValue: 60,
       duration: 400,
       useNativeDriver: false,
     }).start();
@@ -314,17 +315,11 @@ const QuietWinStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
-          <ThemedText style={styles.subtitle}>
-            Name one moment from today and thank God for it.
-          </ThemedText>
-        </StepFadeIn>
-
-        <StepFadeIn delay={120}>
           <TextInput
             style={styles.quietWinInput}
             value={quietWin}
             onChangeText={onChange}
-            placeholder="I paused before reacting and chose a steadier response."
+            placeholder="Name one moment from today and thank God for it..."
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
             numberOfLines={4}
@@ -343,7 +338,7 @@ const QuietWinStep: React.FC<{
                 KIND OF WIN
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                You chose <ThemedText weight="semiBold">{winType.name}</ThemedText>
+                <ThemedText weight="semiBold">{winType.name}</ThemedText>
               </ThemedText>
             </View>
           </View>
@@ -393,6 +388,7 @@ const CompletionStep: React.FC<{
 }> = ({ winType, quietWin, onDone, insets, navigation }) => {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
+  const iconRotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Animate checkmark
@@ -400,17 +396,32 @@ const CompletionStep: React.FC<{
       toValue: 1,
       tension: 50,
       friction: 7,
+      delay: 400,
       useNativeDriver: true,
     }).start();
 
-    // Animate icon
-    Animated.spring(iconScale, {
-      toValue: 1,
-      tension: 50,
-      friction: 7,
-      useNativeDriver: true,
-    }).start();
+    // Animate icon container with rotation
+    Animated.parallel([
+      Animated.spring(iconScale, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(iconRotation, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
+
+  const iconRotateInterpolate = iconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
     <View style={styles.stepContainer}>
@@ -419,79 +430,69 @@ const CompletionStep: React.FC<{
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
       >
-        <StepFadeIn delay={0}>
-          <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="emoji-events" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S WIN</ThemedText>
-          </View>
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <MaterialIcons name="emoji-events" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            TODAY'S WIN
+          </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={80}>
-          <View style={styles.completionContainer}>
-            <Animated.View style={{ transform: [{ scale: checkmarkScale }] }}>
-              <View style={styles.checkmarkCircle}>
-                <Ionicons name="checkmark" size={32} color={Colors.hopeWhite} />
-              </View>
+        <StepFadeIn delay={80} style={styles.completionCard}>
+          <View style={styles.completionHeader}>
+            <Animated.View style={[
+              styles.completionIconContainer,
+              {
+                transform: [
+                  { scale: iconScale },
+                  { rotate: iconRotateInterpolate },
+                ],
+              },
+            ]}>
+              <MaterialIcons name="emoji-events" size={24} color={Colors.alertCoral} />
             </Animated.View>
-            <ThemedText weight="semiBold" style={styles.completionTitle}>
-              Saved
-            </ThemedText>
-            <ThemedText style={styles.completionSubtitle}>
-              A small moment named with gratitude.
-            </ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={160}>
-          <View style={styles.summaryContainer}>
-            <View style={styles.summarySection}>
-              <ThemedText weight="medium" style={styles.summaryLabel}>
-                TODAY'S WIN
-              </ThemedText>
-              <ThemedText style={styles.summaryText}>
-                {quietWin || 'No description provided'}
-              </ThemedText>
-            </View>
-
-            <View style={styles.summarySection}>
-              <ThemedText weight="medium" style={styles.summaryLabel}>
-                KIND OF WIN
-              </ThemedText>
-              <ThemedText style={styles.summaryText}>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>
                 {winType.name}
               </ThemedText>
+              <ThemedText style={styles.completionSubtext}>Your win is saved for today</ThemedText>
             </View>
+            <Animated.View style={[
+              styles.completionCheckmark,
+              { transform: [{ scale: checkmarkScale }] }
+            ]}>
+              <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
+            </Animated.View>
+          </View>
+
+          {quietWin.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{quietWin}</ThemedText>
+            </View>
+          )}
+
+          <View style={styles.completionFooter}>
+            <ThemedText style={styles.completionFooterText}>
+              A small moment named with gratitude.
+            </ThemedText>
           </View>
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.doneButton, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
             onDone();
           }}
-          activeOpacity={0.7}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.85}
+          style={styles.completionButton}
         >
-          <ThemedText weight="semiBold" style={styles.doneButtonText}>Save today's win</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            navigation.goBack();
-          }}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+            Save for today
+          </ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -687,16 +688,117 @@ const styles = StyleSheet.create({
   winTypeNameSelected: {
     color: Colors.hopeWhite,
   },
-  quietWinInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 16,
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+    marginTop: 48,
+  },
+  stepLabelWhite: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  completionCard: {
+    borderRadius: 50,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  completionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  completionHeaderContent: {
+    flex: 1,
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  completionSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  completionCheckmark: {
+    marginLeft: 12,
+  },
+  completionSection: {
+    marginBottom: 20,
+  },
+  completionSectionLabel: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  completionSectionText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    minHeight: 120,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    lineHeight: 24,
+  },
+  completionFooter: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  completionFooterText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  completionButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  completionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    width: '100%',
+  },
+  completionButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  quietWinInput: {
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 16,
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
+    minHeight: 140,
   },
   metadataContainer: {
     marginTop: 48,
