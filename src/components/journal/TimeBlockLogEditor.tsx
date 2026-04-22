@@ -113,12 +113,21 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  subtext: {
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
   titleTextFlex: {
     flex: 1,
@@ -873,9 +882,14 @@ function TimeBlockLogEditorInner(
           >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: headerTitleFontSize }]}>
-                {_subtaskTitle || 'Time Block Entry'}
-              </ThemedText>
+              <View style={s.titleTextFlex}>
+                <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+                  Set a time
+                </ThemedText>
+                <ThemedText style={s.subtext}>
+                  Choose when you want to come back to this.
+                </ThemedText>
+              </View>
             </View>
 
             {/* Form content based on active tab */}
