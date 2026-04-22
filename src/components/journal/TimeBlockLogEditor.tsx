@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
-import { Colors } from '../../theme/colors';
+import { Colors, Fonts } from '../../theme';
 // import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
@@ -29,6 +29,7 @@ import { LocationSelector } from '../LocationSelector';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import BlueSheet from '../layout/BlueSheet';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -80,29 +81,11 @@ export interface TimeBlockLogEditorRef {
   focusInput: () => void;
 }
 
-// Styles matching other log editors
+// Styles matching app design (PlaybookListScreen & PlaybookWalkthroughScreen)
 const createDefaultStyles = (fonts: any) => ({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
-  backgroundContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.anchorBlue,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    borderRadius: 20,
-    padding: 4,
-    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -111,13 +94,21 @@ const createDefaultStyles = (fonts: any) => ({
     paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 0,
-    zIndex: 10,
     backgroundColor: Colors.hopeWhite,
   },
   title: {
-    fontSize: 18,
-    // Typography handled by ThemedText weight="bold"
+    fontSize: 24,
+    fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 4,
+    alignItems: 'center',
   },
   modeIconsContainer: {
     flexDirection: 'row',
@@ -143,16 +134,6 @@ const createDefaultStyles = (fonts: any) => ({
   },
   keyboardAvoidingView: {
     flex: 1,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
-  contentCard: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
   },
   content: {
     flex: 1,
@@ -168,7 +149,6 @@ const createDefaultStyles = (fonts: any) => ({
     marginBottom: 8,
   },
   titleInput: {
-    // Typography handled by ThemedText weight="bold"
     fontSize: 22,
     paddingVertical: 8,
     includeFontPadding: false,
@@ -181,7 +161,6 @@ const createDefaultStyles = (fonts: any) => ({
     includeFontPadding: false,
     textAlignVertical: 'center',
     marginBottom: 20,
-    // fontWeight handled by ThemedText weight="bold",
   },
   titleRow: {
     flexDirection: 'row',
@@ -192,21 +171,23 @@ const createDefaultStyles = (fonts: any) => ({
     flex: 1,
   },
   formContainer: {
-    padding: 20,
+    padding: 0,
   },
   inputLabel: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
+    opacity: 0.8,
   },
   formInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 26,
     padding: 16,
     color: Colors.hopeWhite,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     minHeight: 50,
     textAlignVertical: 'top',
     marginBottom: 12,
@@ -239,14 +220,14 @@ const createDefaultStyles = (fonts: any) => ({
   timeText: {
     color: Colors.hopeWhite,
     fontSize: 20,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
   },
   timeSeparator: {
     color: Colors.hopeWhite,
     fontSize: 14,
     marginHorizontal: 8,
     opacity: 0.6,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   timeSeparatorSmall: {
     fontSize: 10,
@@ -283,7 +264,7 @@ const createDefaultStyles = (fonts: any) => ({
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   categoryTextRequired: {
     color: Colors.alertCoral,
@@ -297,7 +278,7 @@ const createDefaultStyles = (fonts: any) => ({
   allDayText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
   },
   switchContainer: {
     padding: 4,
@@ -338,7 +319,7 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     textTransform: 'uppercase',
     lineHeight: 12,
   },
@@ -434,13 +415,13 @@ const createDefaultStyles = (fonts: any) => ({
   },
   addMenuText: {
     color: Colors.hopeWhite,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     marginLeft: 8,
   },
   sectionLabel: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
     marginBottom: 8,
     opacity: 0.8,
   },
@@ -466,7 +447,7 @@ const createDefaultStyles = (fonts: any) => ({
   repeatText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   timePickerModal: {
     flex: 1,
@@ -483,7 +464,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timePickerTitle: {
     fontSize: 18,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 20,
   },
@@ -507,7 +488,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timePickerButtonText: {
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   timePickerCancelText: {
     color: Colors.hopeWhite,
@@ -536,7 +517,7 @@ const createDefaultStyles = (fonts: any) => ({
   allDayLabel: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     marginRight: 8,
   },
   customRepeatContainer: {
@@ -598,11 +579,11 @@ const createDefaultStyles = (fonts: any) => ({
   customModalButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
   },
   repeatModalTitle: {
     fontSize: 18,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 20,
   },
@@ -620,21 +601,21 @@ const createDefaultStyles = (fonts: any) => ({
   repeatOptionText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   repeatOptionSelectedText: {
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
   },
   customRepeatLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     marginBottom: 12,
   },
   frequencyUnitText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     marginRight: 4,
   },
   endRepeatContainer: {
@@ -920,9 +901,7 @@ function TimeBlockLogEditorInner(
 
   return (
     <View style={s.container}>
-
       <StatusBar hidden />
-      <View style={s.backgroundContainer} />
       <View style={s.header}>
         <ThemedText weight="bold" style={s.title}>{headerDate}</ThemedText>
         <View style={s.modeToggle}>
@@ -943,7 +922,7 @@ function TimeBlockLogEditorInner(
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         enabled={Platform.OS === 'ios'}>
 
-        <View style={s.contentCard}>
+        <BlueSheet>
           <ScrollView
             ref={scrollViewRef}
             style={s.content}
@@ -1433,7 +1412,7 @@ function TimeBlockLogEditorInner(
               )}
             </View>
           </ScrollView>
-        </View>
+        </BlueSheet>
 
         {/* Floating Action Buttons - Standard Layout */}
         <View style={s.fabWrapper}>
