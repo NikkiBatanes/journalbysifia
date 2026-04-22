@@ -162,7 +162,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <MapPin size={16} color={Colors.textGray} />
+        <MapPin size={16} color={Colors.hopeWhite} />
         <TextInput
           style={[
             styles.textInput,
@@ -173,7 +173,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           placeholder={placeholder}
-          placeholderTextColor={Colors.textGray}
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
           returnKeyType="done"
         />
 
