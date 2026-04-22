@@ -28,7 +28,9 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreateJournalEntry } from '../services/hooks/useJournalData';
+import { useCreateTodayWinEntry } from '../services/hooks/useJournalData';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../services/queryKeys';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -101,6 +103,7 @@ const WinTypeSelectionStep: React.FC<{
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
+  const screenHeight = useRef(0).current;
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -211,18 +214,20 @@ const WinTypeSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedWinType && (
-        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
-          <TouchableOpacity
-            onPress={() => {
-              triggerMediumHaptic();
-              onNext();
-            }}
-            activeOpacity={0.7}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        </Animated.View>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 20, left: 0, right: 0, alignItems: 'center' }}>
+          <Animated.View style={[styles.primaryButton, { transform: [{ scale: buttonScale }] }]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerMediumHaptic();
+                onNext();
+              }}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       )}
 
       {/* Close button - top right */}
@@ -510,7 +515,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedWinType, setSelectedWinType] = useState<WinType | null>(null);
   const [quietWin, setQuietWin] = useState('');
 
-  const createMutation = useCreateJournalEntry();
+  const createMutation = useCreateTodayWinEntry();
 
   const dateStr = toLocalDateString(selectedDate);
 
@@ -538,12 +543,10 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       await createMutation.mutateAsync({
         user_id: user.id,
         selected_date: dateStr,
-        content_type: 'win',
         content: JSON.stringify({
           winType: selectedWinType?.id,
           quietWin: quietWin,
         }),
-        completed: true,
       });
 
       triggerMediumHaptic();
@@ -553,6 +556,18 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       Alert.alert('Error', 'Failed to save your win. Please try again.');
     }
   };
+
+  // Refetch today's win data when screen comes into focus
+  const queryClient = useQueryClient();
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todayWin(user.id, dateStr),
+        });
+      }
+    }, [user, dateStr, queryClient])
+  );
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(
