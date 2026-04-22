@@ -290,28 +290,34 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           variant="gratitude"
           disableSwipe={viewMode === 'carousel' && !expanded}
         >
-          <View style={[
-            styles.winContainer,
-            viewMode === 'inline' && styles.winContainerInline,
-            styles.winDisplayWrapper,
-          ]}>
-            {displayWin.winType && (
-              <View style={styles.winTypePill}>
-                <ThemedText style={styles.winTypePillText}>
-                  {WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType}
+          <View style={styles.completionCard}>
+            <View style={styles.completionHeader}>
+              <View style={styles.completionIconContainer}>
+                <Ionicons name="trophy" size={24} color={Colors.alertCoral} />
+              </View>
+              <View style={styles.completionHeaderContent}>
+                <ThemedText weight="semiBold" style={styles.completionCategory}>
+                  {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
                 </ThemedText>
+                <ThemedText style={styles.completionSubtext}>Your win is saved for today</ThemedText>
+              </View>
+              <View style={styles.completionCheckmark}>
+                <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
+              </View>
+            </View>
+
+            {displayWin.text.trim() && (
+              <View style={styles.completionSection}>
+                <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
+                <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
               </View>
             )}
-            <ThemedText
-              style={[
-                styles.winText,
-                styles.winTextCentered,
-                { fontFamily: getFontFamily(fontKey, 'bold') },
-              ]}
-              numberOfLines={viewMode === 'inline' ? undefined : 6}
-            >
-              {displayWin.text}
-            </ThemedText>
+
+            <View style={styles.completionFooter}>
+              <ThemedText style={styles.completionFooterText}>
+                A small moment named with gratitude.
+              </ThemedText>
+            </View>
           </View>
         </SwipeableTodoItem>
       ) : (
@@ -453,6 +459,69 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  completionCard: {
+    borderRadius: 50,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  completionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  completionHeaderContent: {
+    flex: 1,
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  completionSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  completionCheckmark: {
+    marginLeft: 12,
+  },
+  completionSection: {
+    marginBottom: 20,
+  },
+  completionSectionLabel: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  completionSectionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  completionFooter: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  completionFooterText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   editButton: {
     padding: 4,
