@@ -18,6 +18,7 @@ import {
   TextInput,
   LayoutAnimation,
   Easing,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -37,7 +38,7 @@ import { format } from 'date-fns';
 
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
-import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
+import DevotionalCarouselSkeleton from '../components/SkeletonLoader/DevotionalCarouselSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
 import PickerModal from '../components/PickerModal';
@@ -47,6 +48,20 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
 type FilterType = 'ongoing' | 'completed';
+
+// Carousel constants - matching PlaybookListScreen for consistent spacing
+const { width } = Dimensions.get('window');
+const CARD_HORIZONTAL_PADDING = 16;
+const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
+const isTablet = width >= 768;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
+const ITEM_SPACING = 8;
+const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+const SIDE_INSET = Math.max(
+  0,
+  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+);
+const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
@@ -290,10 +305,6 @@ const DevotionalsScreen = () => {
     return format(date, formatString);
   };
 
-  // Animation values map (declared early so render function can use it)
-  const animatedValues = useRef<Record<string, Animated.Value>>({});
-
-  // (animation setup moved below sortedDevotionals)
 
   const renderDevotionalItem = useCallback(({ item }: { item: Devotional }) => {
     // Calculate progress percentage (0-100)
@@ -326,20 +337,8 @@ const DevotionalsScreen = () => {
     // Use the utility function to extract a clean title
     const cleanTitle = extractCleanTitle(item.title, 'Devotional');
 
-    // Per-item animation values with safe fallbacks
-    const anim = animatedValues.current[item.id] || new Animated.Value(1);
-    const translateY = anim.interpolate?.({ inputRange: [0, 1], outputRange: [50, 0] }) || new Animated.Value(0);
-
     return (
-      <Animated.View
-        style={[
-          styles.devotionalCardContainer,
-          {
-            opacity: anim,
-            transform: [{ translateY }],
-          },
-        ]}
-      >
+      <View style={styles.devotionalCardContainer}>
         <TouchableOpacity
           style={styles.devotionalCard}
           onPress={() => handleDevotionalPress(item)}
@@ -487,7 +486,7 @@ const DevotionalsScreen = () => {
               )}
             </View>
           </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, filter]);
 
@@ -802,43 +801,6 @@ const DevotionalsScreen = () => {
     });
   }, [filteredDevotionals]);
 
-  const initAnimations = useCallback(() => {
-    try {
-      // Collect ids from currently visible list (sorted)
-      const ids: string[] = (Array.isArray(sortedDevotionals) ? sortedDevotionals : []).map(d => d.id);
-      ids.forEach(id => {
-        if (!animatedValues.current[id]) {
-          animatedValues.current[id] = new Animated.Value(0);
-        } else {
-          animatedValues.current[id].setValue(0);
-        }
-      });
-      if (ids.length > 0) {
-        const animations = ids.map((id, index) =>
-          Animated.spring(animatedValues.current[id], {
-            toValue: 1,
-            useNativeDriver: true,
-            speed: 20,
-            bounciness: 8,
-            delay: index * 100,
-          })
-        );
-        Animated.stagger(100, animations).start();
-      }
-    } catch (err) {
-      Logger.warn('[DevotionalsScreen] initAnimations error', {
-        component: 'DevotionalsScreen',
-        error: err as Error,
-      });
-    }
-  }, [sortedDevotionals]);
-
-  // Restart animations whenever list changes or screen focuses
-  useEffect(() => { initAnimations(); }, [initAnimations]);
-  useEffect(() => {
-    const unsub = (navigation as any)?.addListener?.('focus', () => { initAnimations(); });
-    return () => { if (typeof unsub === 'function') { unsub(); } };
-  }, [navigation, initAnimations]);
 
   // Grouping by Month Year
   const sections = useMemo(() => {
@@ -1199,13 +1161,13 @@ const DevotionalsScreen = () => {
       <BlueSheet style={styles.contentSheet}>
         {isInitialLoading ? (
           <View style={[styles.listContent, styles.pageInner]}>
-            <DevotionalSkeleton />
+            <DevotionalCarouselSkeleton />
           </View>
         ) : contentView === 'all' ? (
           // All view: Continue devotionals carousel + Completed devotionals carousel
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContent, styles.pageInner, styles.listContentPadding]}
+            contentContainerStyle={[styles.listContentPadding, scrollContentStyle]}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
             onScroll={handleScroll}
@@ -1217,6 +1179,7 @@ const DevotionalsScreen = () => {
                 items={sortedDevotionals}
                 cardStyles={styles}
                 renderItem={(item) => renderDevotionalItem({ item })}
+                itemSize={ITEM_SIZE}
               />
             )}
             {deferredFilter === 'completed' && sortedDevotionals.length > 0 && (
@@ -1225,6 +1188,7 @@ const DevotionalsScreen = () => {
                 items={sortedDevotionals}
                 cardStyles={styles}
                 renderItem={(item) => renderDevotionalItem({ item })}
+                itemSize={ITEM_SIZE}
               />
             )}
             {sortedDevotionals.length === 0 && renderFilterEmptyState()}
@@ -1234,7 +1198,7 @@ const DevotionalsScreen = () => {
           // Category view: Horizontal carousels per category
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContent, styles.pageInner, styles.listContentPadding]}
+            contentContainerStyle={[styles.listContentPadding, scrollContentStyle]}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
             onScroll={handleScroll}
@@ -1243,15 +1207,24 @@ const DevotionalsScreen = () => {
             {categorySections.length === 0 ? (
               renderFilterEmptyState()
             ) : (
-              categorySections.map(({ category, devotionals }) => (
-                <CategoryCarouselRow
-                  key={category}
-                  category={category}
-                  items={devotionals}
-                  cardStyles={styles}
-                  renderItem={(item) => renderDevotionalItem({ item })}
-                />
-              ))
+              <>
+                <View style={{ paddingHorizontal: SIDE_INSET }}>
+                  <ThemedText weight="bold" style={styles.carouselTitle}>
+                    CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
+                  </ThemedText>
+                </View>
+                <View style={{ height: 32 }} />
+                {categorySections.map(({ category, devotionals }) => (
+                  <CategoryCarouselRow
+                    key={category}
+                    category={category}
+                    items={devotionals}
+                    cardStyles={styles}
+                    renderItem={(item) => renderDevotionalItem({ item })}
+                    itemSize={ITEM_SIZE}
+                  />
+                ))}
+              </>
             )}
             <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
           </ScrollView>
@@ -1272,13 +1245,25 @@ const DevotionalsScreen = () => {
                   items={item.devotionals}
                   cardStyles={styles}
                   renderItem={(devotional) => renderDevotionalItem({ item: devotional })}
+                  itemSize={ITEM_SIZE}
                 />
               </View>
             )}
+            ListHeaderComponent={
+              dateSectionItems.length > 0 ? (
+                <View>
+                  <View style={{ paddingHorizontal: SIDE_INSET }}>
+                    <ThemedText weight="bold" style={styles.carouselTitle}>
+                      CONTINUE YOUR DEVOTIONAL{dateSectionItems.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
+                    </ThemedText>
+                  </View>
+                  <View style={{ height: 32 }} />
+                </View>
+              ) : null
+            }
             contentContainerStyle={[
-              styles.listContent,
-              styles.pageInner,
               styles.listContentPadding,
+              scrollContentStyle,
             ]}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
@@ -1350,8 +1335,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   devotionalCardContainer: {
-    width: '100%',
-    marginBottom: 12,
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
     borderRadius: 26,
     overflow: 'hidden',
     minHeight: 200,
@@ -1488,7 +1473,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: SIDE_INSET,
     marginBottom: 12,
   },
   categorySectionTitle: {
@@ -1509,7 +1494,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
   },
   dateSectionYearHeader: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SIDE_INSET,
     paddingTop: 24,
     paddingBottom: 4,
   },
@@ -1545,7 +1530,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    paddingHorizontal: 16, // Add responsive padding to match PlaybookListScreen
   },
   contentSheet: {
     flex: 1,
@@ -1553,7 +1537,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingBottom: 70,
   },
   sectionList: {
@@ -2152,14 +2136,14 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 24,
     marginBottom: 16,
-    paddingHorizontal: 16, // gutters for section title and spacing
+    paddingHorizontal: SIDE_INSET, // gutters for section title and spacing
   },
   // FlatList should scroll edge-to-edge while cards have gutters
   carouselList: {
-    marginHorizontal: -16, // bleed the scrolling area to screen edges
+    marginHorizontal: -SIDE_INSET, // bleed the scrolling area to screen edges
   },
   carouselContent: {
-    paddingHorizontal: 16, // gutters for first/last cards
+    paddingHorizontal: SIDE_INSET, // gutters for first/last cards
   },
   card: {
     width: 256,

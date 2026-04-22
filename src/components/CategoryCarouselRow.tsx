@@ -2,16 +2,15 @@ import React, { useRef } from 'react';
 import { View, Animated, ScrollView } from 'react-native';
 import ThemedText from './common/ThemedText';
 
-// Carousel constants
-const ITEM_SIZE = 280;
-const ITEM_SPACING = 16;
-const SIDE_INSET = 16;
+// Default carousel constants (can be overridden via props)
+const DEFAULT_ITEM_SIZE = 280;
 
 interface CategoryCarouselRowProps<T> {
   category: string;
   items: T[];
   cardStyles: any;
   renderItem: (item: T, index: number) => React.ReactNode;
+  itemSize?: number;
 }
 
 function CategoryCarouselRow<T>({
@@ -19,6 +18,7 @@ function CategoryCarouselRow<T>({
   items,
   cardStyles,
   renderItem,
+  itemSize = DEFAULT_ITEM_SIZE,
 }: CategoryCarouselRowProps<T>): React.ReactElement {
   const rowScrollX = useRef(new Animated.Value(0)).current;
 
@@ -30,31 +30,25 @@ function CategoryCarouselRow<T>({
           <ThemedText style={cardStyles.categorySectionCountText}>{items.length}</ThemedText>
         </View>
       </View>
-      <View style={cardStyles.carouselList}>
-        <Animated.ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={cardStyles.carouselContent}
-          decelerationRate="fast"
-          snapToInterval={ITEM_SIZE + ITEM_SPACING}
-          snapToAlignment="start"
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: rowScrollX } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}
-          directionalLockEnabled={true}
-          disableIntervalMomentum={false}
-          bounces={false}
-          removeClippedSubviews={true}
-        >
-          {items.map((item, index) => (
-            <View key={index} style={{ width: ITEM_SIZE, marginRight: ITEM_SPACING }}>
-              {renderItem(item, index)}
-            </View>
-          ))}
-        </Animated.ScrollView>
-      </View>
+      <Animated.ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={cardStyles.carouselContent}
+        decelerationRate="fast"
+        snapToInterval={itemSize}
+        snapToAlignment="center"
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: rowScrollX } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+        directionalLockEnabled={true}
+        disableIntervalMomentum={false}
+        bounces={false}
+        removeClippedSubviews={true}
+      >
+        {items.map((item, index) => renderItem(item, index))}
+      </Animated.ScrollView>
     </View>
   );
 }
