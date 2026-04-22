@@ -846,7 +846,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         >
           {/* Type Badge */}
           <View style={styles.typeBadge}>
-            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} style={styles.typeBadgeIcon} />
+            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} />
             <ThemedText weight="semiBold" style={styles.typeBadgeText}>PLAYBOOK</ThemedText>
           </View>
 
@@ -1061,7 +1061,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           <View style={styles.cardContent}>
             {/* Type Badge */}
             <View style={styles.typeBadge}>
-              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} style={styles.typeBadgeIcon} />
+              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} />
               <ThemedText weight="semiBold" style={styles.typeBadgeText}>DEVOTIONAL</ThemedText>
             </View>
 
@@ -1615,12 +1615,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: 'flex-end',
   },
-  typeBadgeIcon: {
-    marginTop: 1,
-  },
   typeBadgeText: {
     fontSize: 10,
-    lineHeight: 14,
     color: Colors.hopeWhite,
     opacity: 0.5,
     letterSpacing: 1.2,
