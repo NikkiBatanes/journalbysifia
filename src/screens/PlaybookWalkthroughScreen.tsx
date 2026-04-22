@@ -429,6 +429,7 @@ interface FaithfulActionsStepProps {
   setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
   onStepCommit?: (stepIndex: number) => void;
   onJournalExpanded?: (expanded: boolean) => void;
+  onJournalCollapseComplete?: () => void;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -485,6 +486,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   setActionStepIndex,
   onStepCommit,
   onJournalExpanded,
+  onJournalCollapseComplete,
 }) => {
   const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
@@ -546,7 +548,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         Animated.parallel([
           Animated.timing(rowHeight, { toValue: 0, duration: 220, useNativeDriver: false }),
           Animated.timing(rowOpacity, { toValue: 0, duration: 180, useNativeDriver: false }),
-        ]).start();
+        ]).start(() => {
+          // Notify parent that collapse is complete
+          onJournalCollapseComplete?.();
+        });
       });
     }
   };
@@ -793,7 +798,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            Faithful Actions
+            {steps.length} Faithful Actions
           </ThemedText>
         </StepFadeIn>
 
@@ -1537,6 +1542,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const backButtonAnim = useRef(new Animated.Value(0)).current;
   const backButtonPositionAnim = useRef(new Animated.Value(0)).current;
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const [journalCollapseComplete, setJournalCollapseComplete] = useState(true);
 
   const userName: string =
     (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
@@ -1689,9 +1695,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [stepIndex, screen0CloseAnim, screen0NextAnim]);
 
-  // Animate back button — visible only on Faithful Actions step 2+ (actionStepIndex >= 1)
+  // Animate back button — visible only on Faithful Actions step 2+ (actionStepIndex >= 1) AND when journal is not expanded AND collapse is complete
   useEffect(() => {
-    const shouldShow = stepIndex === 3 && actionStepIndex >= 1;
+    const shouldShow = stepIndex === 3 && actionStepIndex >= 1 && !journalExpanded && journalCollapseComplete;
     if (shouldShow) {
       Animated.spring(backButtonAnim, {
         toValue: 1,
@@ -1700,23 +1706,21 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         useNativeDriver: true,
       }).start();
     } else {
+      // Hide immediately when journal expands or leaving step
       Animated.timing(backButtonAnim, {
         toValue: 0,
         duration: 180,
         useNativeDriver: true,
       }).start();
     }
-  }, [stepIndex, actionStepIndex, backButtonAnim]);
+  }, [stepIndex, actionStepIndex, journalExpanded, journalCollapseComplete, backButtonAnim]);
 
-  // Animate back button position when journal expands/collapses
+  // Reset journalCollapseComplete when journal expands
   useEffect(() => {
-    Animated.spring(backButtonPositionAnim, {
-      toValue: journalExpanded ? 76 : 0,
-      tension: 150,
-      friction: 10,
-      useNativeDriver: true,
-    }).start();
-  }, [journalExpanded, backButtonPositionAnim]);
+    if (journalExpanded) {
+      setJournalCollapseComplete(false);
+    }
+  }, [journalExpanded]);
 
   // Reset scriptureNextAnim when not on step 2
   useEffect(() => {
@@ -2028,6 +2032,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
                 }}
+                onJournalExpanded={setJournalExpanded}
+                onJournalCollapseComplete={() => setJournalCollapseComplete(true)}
               />
             )}
 
