@@ -292,9 +292,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         >
           <View style={styles.completionCard}>
             <View style={styles.completionHeader}>
-              <View style={styles.completionIconContainer}>
-                <Ionicons name="trophy" size={24} color={Colors.alertCoral} />
-              </View>
               <View style={styles.completionHeaderContent}>
                 <ThemedText weight="semiBold" style={styles.completionCategory}>
                   {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
@@ -462,7 +459,7 @@ const styles = StyleSheet.create({
   completionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   completionIconContainer: {
     width: 48,
@@ -475,11 +472,13 @@ const styles = StyleSheet.create({
   },
   completionHeaderContent: {
     flex: 1,
+    alignItems: 'center',
   },
   completionCategory: {
     fontSize: 20,
     color: Colors.hopeWhite,
     marginBottom: 4,
+    textAlign: 'center',
   },
   completionSubtext: {
     fontSize: 14,
