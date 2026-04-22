@@ -246,7 +246,7 @@ const createDefaultStyles = (fonts: any) => ({
     flex: 1,
   },
   categoryTextRequired: {
-    color: Colors.alertCoral,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   allDayContainer: {
     flexDirection: 'row',
@@ -958,7 +958,7 @@ function TimeBlockLogEditorInner(
                 ref={inputRef}
                 style={[s.formInput, { fontFamily: fonts.regular, padding: 16, paddingBottom: 0, textAlignVertical: 'top' }]}
                 placeholder="Title *"
-                placeholderTextColor={Colors.alertCoral}
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={title}
                 onChangeText={(text) => handleContentChange('title', text)}
                 multiline={false}
@@ -1058,7 +1058,7 @@ function TimeBlockLogEditorInner(
                     category === 'Select a category' && s.categoryTextRequired,
                   ]}
                 >
-                  {category === 'Select a category' ? 'Select a category *' : category}
+                  {category === 'Select a category' ? 'Category *' : category}
                 </ThemedText>
                 <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
@@ -1325,7 +1325,7 @@ function TimeBlockLogEditorInner(
                 <LocationSelector
                   currentLocation={location}
                   onLocationSelect={(loc) => handleContentChange('location', loc)}
-                  placeholder="Add location"
+                  placeholder="Location"
                 />
               </View>
 
