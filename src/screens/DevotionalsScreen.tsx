@@ -436,13 +436,13 @@ const DevotionalsScreen = () => {
                     const nextIdx = item.days.findIndex(day => !day.completed);
                     if (nextIdx !== -1) {
                       const nextDay = item.days[nextIdx];
-                      // Calculate read time from all content: scripture, reflection, questions, prayer (~200 wpm)
+                      // Calculate read time from all content: scripture, reflection, questions, prayer (~100 wpm for devotional reading)
                       const scriptureWords = nextDay.scripture?.text ? nextDay.scripture.text.trim().split(/\s+/).length : 0;
                       const reflectionWords = nextDay.reflection ? nextDay.reflection.trim().split(/\s+/).length : 0;
                       const questionsWords = nextDay.reflectionQuestions?.reduce((sum, q) => sum + (q.text ? q.text.trim().split(/\s+/).length : 0), 0) || 0;
                       const prayerWords = nextDay.prayer ? nextDay.prayer.trim().split(/\s+/).length : 0;
                       const totalWords = scriptureWords + reflectionWords + questionsWords + prayerWords;
-                      const readTime = totalWords > 0 ? Math.max(1, Math.round(totalWords / 200)) : 0;
+                      const readTime = totalWords > 0 ? Math.max(1, Math.round(totalWords / 100)) : 0;
                       // For 1-day devotionals, don't show title, just "Day 1"
                       const isOneDay = item.totalDays === 1;
                       return (
