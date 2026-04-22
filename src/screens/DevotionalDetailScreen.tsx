@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   progressBarContainer: {
     flexDirection: 'row',
@@ -1474,7 +1474,7 @@ const styles = StyleSheet.create({
   barBg: {
     width: '100%',
     height: 8, // Match Playbook height
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginRight: 4,
     textAlign: 'right',
   },
@@ -1556,8 +1556,10 @@ const styles = StyleSheet.create({
   reflectionContainer: {
     marginBottom: 24,
     padding: CARD_CONTENT_PADDING,
-    backgroundColor: 'rgba(26,60,109,0.08)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   sectionTitle: {
     fontSize: 18,
@@ -1578,13 +1580,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
@@ -1637,8 +1641,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingBottom: 96, // Reserve more space so content doesn't overlap the button
     padding: CARD_CONTENT_PADDING,
-    backgroundColor: 'rgba(26,60,109,0.08)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   prayerButton: {
     position: 'absolute',
@@ -1648,17 +1654,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(26,60,109,0.15)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.15)',
     zIndex: 10,
     minWidth: 80,
     minHeight: 44,
   },
   prayerButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderColor: 'rgba(255, 107, 107, 0.4)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   prayerButtonText: {
     marginLeft: 2,
@@ -1706,8 +1712,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
     padding: 12,
-    backgroundColor: 'rgba(0, 128, 0, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   completedText: {
     marginLeft: 8,
