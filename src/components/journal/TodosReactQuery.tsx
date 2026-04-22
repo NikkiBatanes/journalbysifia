@@ -247,12 +247,14 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       return;
     }
 
-    closeAllSwipeables();
-    setVisibleCount(5);
-    setIsAdding(true);
-    setNewTodo('');
-    // Set flag to indicate we need to focus the input
-    shouldFocusInput.current = true;
+    // Navigate to walkthrough screen instead of inline editor
+    if (navigation) {
+      triggerLightHaptic();
+      navigation.navigate('TodosWalkthrough' as any, {
+        selectedDate: selectedDate.toISOString(),
+        existingEntry: todosData.length > 0 ? todosData[0] : undefined,
+      });
+    }
   };
 
   const cancelAdding = () => {

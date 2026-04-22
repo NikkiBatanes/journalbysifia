@@ -101,6 +101,12 @@ export type RootStackParamList = {
     existingEntry?: any;
   } | undefined;
 
+  // Todos Walkthrough
+  TodosWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
   // Test screens
   QueryTest: undefined;
 };

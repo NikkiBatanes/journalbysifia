@@ -13,6 +13,7 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
+import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -385,6 +386,17 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="TodaysFocusWalkthrough"
             component={TodaysFocusWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Todos Walkthrough */}
+          <Stack.Screen
+            name="TodosWalkthrough"
+            component={TodosWalkthroughScreen as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',
