@@ -806,7 +806,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         >
           {/* Type Badge */}
           <View style={styles.typeBadge}>
-            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.anchorBlue} />
+            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} />
             <ThemedText weight="semiBold" style={styles.typeBadgeText}>PLAYBOOK</ThemedText>
           </View>
 
@@ -1516,10 +1516,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    opacity: 0.5,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
+    marginBottom: 4,
   },
   // Devotional card styles from DevotionalsScreen
   cardContent: {
