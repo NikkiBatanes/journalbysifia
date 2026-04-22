@@ -521,7 +521,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       title={hasContent || shouldShowAddingMode || viewMode === 'carousel' ? 'LOOKING FORWARD TO' : undefined}
       subtitle={headerSubtitle}
       icon={hasContent || shouldShowAddingMode || viewMode === 'carousel' ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
-      showAddButton={hasContent ? !shouldShowAddingMode : false}
+      showAddButton={(hasContent || viewMode === 'carousel') ? !shouldShowAddingMode : false}
       onAdd={displayEntry ? editEntry : startAdding}
       isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
