@@ -1616,7 +1616,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   typeBadgeIcon: {
-    lineHeight: 14,
+    // No lineHeight constraint - let parent alignItems: 'center' handle alignment
   },
   typeBadgeText: {
     fontSize: 10,
@@ -1678,6 +1678,30 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextDelete: {
     color: Colors.alertCoral,
+  },
+  dropdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 12,
+  },
+  dropdownBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginLeft: 2,
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 99,
   },
   date: {
     fontSize: 12,
