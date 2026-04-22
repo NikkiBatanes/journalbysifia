@@ -807,7 +807,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           <View style={styles.gradientContainer}>
             <View style={styles.gradientTagRow}>
               <View style={styles.typeIconCircle}>
-                <MaterialCommunityIcons name="play-circle" size={14} color={Colors.alertCoral} />
+                <MaterialCommunityIcons name="clipboard-text-play" size={14} color={Colors.alertCoral} />
               </View>
               <View style={styles.categoryLabel}>
                 <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
