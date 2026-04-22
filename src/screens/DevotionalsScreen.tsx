@@ -435,10 +435,17 @@ const DevotionalsScreen = () => {
                   {!isComplete && item.days && item.days.some(day => !day.completed) && (() => {
                     const nextIdx = item.days.findIndex(day => !day.completed);
                     if (nextIdx !== -1) {
+                      const nextDay = item.days[nextIdx];
+                      // Calculate read time from reflection text (~200 wpm)
+                      const readTime = nextDay.reflection ? Math.max(1, Math.round(nextDay.reflection.trim().split(/\s+/).length / 200)) : 0;
                       return (
-                        <View style={styles.nextDayTextContainer}>
-                          <ThemedText weight="bold" style={styles.nextDayLabel}>Next:</ThemedText>
-                          <ThemedText weight="medium" style={styles.nextDayValue}> Day {nextIdx + 1}</ThemedText>
+                        <View style={styles.nextDayContentContainer}>
+                          <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
+                          <ThemedText weight="medium" style={styles.nextDayTitle}>Day {nextDay.dayNumber}: {nextDay.title}</ThemedText>
+                          <View style={styles.nextDayReadTimeContainer}>
+                            <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
+                            <ThemedText style={styles.nextDayReadTime}>{readTime} min read</ThemedText>
+                          </View>
                         </View>
                       );
                     }
@@ -1794,14 +1801,34 @@ const styles = StyleSheet.create({
     marginTop: 6,
     alignItems: 'flex-start',
   },
-  nextDayTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  nextDayContentContainer: {
+    gap: 2,
   },
   nextDayLabel: {
     fontSize: 13,
     color: Colors.holyGlow,
     fontWeight: 'bold',
+  },
+  nextDayTitle: {
+    fontSize: 13,
+    color: Colors.holyGlow,
+    fontWeight: 'medium',
+  },
+  nextDayReadTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nextDayReadTimeIcon: {
+    marginRight: 2,
+  },
+  nextDayReadTime: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  nextDayTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   nextDayValue: {
     fontSize: 13,
