@@ -1616,7 +1616,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   typeBadgeIcon: {
-    // No lineHeight constraint - let parent alignItems: 'center' handle alignment
+    marginTop: 1,
   },
   typeBadgeText: {
     fontSize: 10,
