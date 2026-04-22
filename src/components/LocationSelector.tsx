@@ -13,6 +13,7 @@ import {
   FlatList,
   ActivityIndicator,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Colors } from '../theme/colors';
@@ -55,6 +56,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   // const { user } = useAuth(); // Unused
   const { currentFont } = useTheme();
@@ -63,6 +65,15 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   useEffect(() => {
     setInputValue(currentLocation);
   }, [currentLocation]);
+
+  // Refocus input when modal appears to keep keyboard open
+  useEffect(() => {
+    if (showSuggestions && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showSuggestions]);
 
   const handleGetCurrentLocation = async () => {
 
@@ -143,7 +154,6 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
     setInputValue(fullLocation);
     onLocationSelect(fullLocation);
     setShowSuggestions(false);
-    Keyboard.dismiss();
 
   };
 
@@ -154,10 +164,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   };
 
   const handleInputBlur = () => {
-    // Delay hiding suggestions to allow for selection
-    setTimeout(() => {
-      setShowSuggestions(false);
-    }, 200);
+    // Don't auto-dismiss on blur - let user dismiss by selecting or tapping outside
   };
 
   return (
@@ -165,6 +172,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
       <View style={styles.inputContainer}>
         <MapPin size={16} color={Colors.hopeWhite} />
         <TextInput
+          ref={inputRef}
           style={[
             styles.textInput,
             { fontFamily: getFontFamily(fontKey, 'medium') },
@@ -212,6 +220,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                 <TouchableOpacity
                   style={styles.suggestionItem}
                   onPress={() => handleSuggestionSelect(item)}
+                  activeOpacity={0.7}
                 >
                   <MapPin size={14} color={Colors.textGray} />
                   <View style={styles.suggestionInfo}>
@@ -257,6 +266,27 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     minHeight: 44,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  modalContent: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+    margin: 16,
+    marginTop: 120,
+    maxHeight: 300,
+  },
   textInput: {
     flex: 1,
     fontSize: 16,
@@ -276,30 +306,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 8,
-    marginTop: 4,
+    borderRadius: 24,
+    marginTop: -240,
     maxHeight: 200,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     zIndex: 1000,
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 8,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
     marginLeft: 8,
+    fontFamily: 'medium',
   },
   suggestionsList: {
     maxHeight: 180,
@@ -307,32 +338,35 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   suggestionInfo: {
-    marginLeft: 8,
+    marginLeft: 12,
     flex: 1,
   },
   suggestionName: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    marginBottom: 2,
+    marginBottom: 4,
+    fontFamily: 'medium',
   },
   suggestionAddress: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: 'regular',
   },
   noResultsContainer: {
-    padding: 16,
+    padding: 20,
     alignItems: 'center',
   },
   noResultsText: {
-    fontSize: 12,
-    color: Colors.textGray,
+    fontSize: 14,
+    color: Colors.hopeWhite,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 20,
+    fontFamily: 'medium',
   },
 });

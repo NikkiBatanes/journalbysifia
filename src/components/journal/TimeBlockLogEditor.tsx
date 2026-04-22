@@ -92,15 +92,17 @@ const createDefaultStyles = (fonts: any) => ({
   },
   keyboardAvoidingView: {
     flex: 1,
+    overflow: 'visible',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 16,
+    overflow: 'visible',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+    paddingBottom: 150,
   },
   entryInput: {
     color: Colors.hopeWhite,
@@ -147,6 +149,7 @@ const createDefaultStyles = (fonts: any) => ({
     padding: 0,
     width: 320,
     alignSelf: 'center',
+    overflow: 'visible',
   },
   inputLabel: {
     color: Colors.hopeWhite,
@@ -191,6 +194,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   locationInputContainer: {
     marginBottom: 16,
+    overflow: 'visible',
   },
 
   timeContainer: {
@@ -1325,28 +1329,43 @@ function TimeBlockLogEditorInner(
                 animationType="fade"
                 onRequestClose={() => setShowRepeatModal(false)}
               >
-                <View style={s.repeatModal}>
+                <TouchableOpacity
+                  style={s.repeatModal}
+                  activeOpacity={1}
+                  onPress={() => setShowRepeatModal(false)}
+                >
                   <View style={s.repeatModalContainer}>
                     <ThemedText weight="semiBold" style={s.repeatModalTitle}>Repeat</ThemedText>
                     <View style={s.repeatOptionsGrid}>
-                      {['Never', 'Daily', 'Weekly', 'Bi-weekly', 'Monthly', 'Yearly'].map((option) => (
+                      {[
+                        { value: 'Never', label: 'Never' },
+                        { value: 'Daily', label: 'Daily' },
+                        { value: 'Weekly', label: 'Weekly' },
+                        { value: 'Monthly', label: 'Monthly' },
+                      ].map((option) => (
                         <TouchableOpacity
-                          key={option}
+                          key={option.value}
                           style={[
                             s.repeatOptionPill,
-                            repeatOption === option && s.repeatOptionPillActive,
+                            repeatOption === option.value && s.repeatOptionPillActive,
                           ]}
                           onPress={async () => {
                             await triggerLightHaptic();
-                            setRepeatOption(option);
-                            setShowRepeatModal(false);
+                            if (option.value === 'Custom') {
+                              setRepeatOption(option.value);
+                              setShowRepeatModal(false);
+                              setShowCustomRepeatModal(true);
+                            } else {
+                              setRepeatOption(option.value);
+                              setShowRepeatModal(false);
+                            }
                           }}
                         >
-                          <ThemedText weight={repeatOption === option ? 'semiBold' : 'medium'} style={[
+                          <ThemedText weight={repeatOption === option.value ? 'semiBold' : 'medium'} style={[
                             s.repeatOptionPillText,
-                            repeatOption === option && s.repeatOptionPillTextActive,
+                            repeatOption === option.value && s.repeatOptionPillTextActive,
                           ]}>
-                            {option}
+                            {option.label}
                           </ThemedText>
                         </TouchableOpacity>
                       ))}
@@ -1359,6 +1378,7 @@ function TimeBlockLogEditorInner(
                       ]}
                       onPress={async () => {
                         await triggerLightHaptic();
+                        setRepeatOption('Custom');
                         setShowRepeatModal(false);
                         setShowCustomRepeatModal(true);
                       }}
@@ -1372,7 +1392,7 @@ function TimeBlockLogEditorInner(
                       <Ionicons name="chevron-forward" size={14} color={repeatOption === 'Custom' ? Colors.hopeWhite : 'rgba(255,255,255,0.5)'} style={s.repeatOptionPillIcon} />
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               </Modal>
 
               {/* Alert Modal */}
@@ -1383,7 +1403,11 @@ function TimeBlockLogEditorInner(
                 onRequestClose={() => setShowAlertModal(false)}
                 supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
               >
-                <View style={s.repeatModal}>
+                <TouchableOpacity
+                  style={s.repeatModal}
+                  activeOpacity={1}
+                  onPress={() => setShowAlertModal(false)}
+                >
                   <View style={s.repeatModalContainer}>
                     <ThemedText weight="medium" style={s.repeatModalTitle}>Alert</ThemedText>
                     <View style={s.repeatOptionsGrid}>
@@ -1446,7 +1470,7 @@ function TimeBlockLogEditorInner(
                       ))}
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               </Modal>
 
               {/* Custom Repeat Modal */}
