@@ -44,9 +44,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 30,
-    padding: CARD_CONTENT_PADDING,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     marginBottom: 18,
-    marginHorizontal: CARD_HORIZONTAL_PADDING,
     // Remove shadows and elevation for flat, modern appearance
     elevation: 0,
   },

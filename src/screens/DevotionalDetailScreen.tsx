@@ -1222,14 +1222,16 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     styles.questionCardNumber,
                     isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                   ]}>{idx + 1}</ThemedText>
-                  <ThemedText
-                    style={styles.questionCardText}
-                    selectable={true}
-                    numberOfLines={0}
-                    adjustsFontSizeToFit={false}
-                  >
-                    {question.text || 'Reflection question'}
-                  </ThemedText>
+                  <View style={styles.questionCardTextView}>
+                    <ThemedText
+                      style={styles.questionCardText}
+                      selectable={true}
+                      numberOfLines={0}
+                      adjustsFontSizeToFit={false}
+                    >
+                      {question.text || 'Reflection question'}
+                    </ThemedText>
+                  </View>
                 </View>
               </Pressable>
                 ))
@@ -1545,7 +1547,7 @@ const styles = StyleSheet.create({
     paddingTop: 0, // No top padding as per design
   },
   contentContainer: {
-    paddingHorizontal: CARD_HORIZONTAL_PADDING,
+    paddingHorizontal: 8,
     paddingTop: 2, // Further reduced to bring content even closer to progress bar
     paddingBottom: 80,
   },
@@ -1574,7 +1576,7 @@ const styles = StyleSheet.create({
     // No background or padding here so QuestionCard stands out
   },
   questionCardWrapper: {
-    width: '100%',
+    flex: 1,
     marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
@@ -1602,6 +1604,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
+  },
+  questionCardTextView: {
     flex: 1,                 // make sure text can wrap
   },
   fab: {
@@ -1730,7 +1734,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: 12,
+    marginTop: 16,
+    paddingBottom: 10,
   },
   bibleVersion: {
     fontSize: 13,
