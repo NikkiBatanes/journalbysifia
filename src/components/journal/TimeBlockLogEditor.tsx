@@ -13,6 +13,8 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  Keyboard,
+  Animated,
 } from 'react-native';
 
 import { Colors, Fonts } from '../../theme';
@@ -394,7 +396,7 @@ const createDefaultStyles = (fonts: any) => ({
     right: 16,
   },
   fabDefaultPosition: {
-    bottom: 16,
+    bottom: 350,
   },
   fabRow: {
     flexDirection: 'row',
@@ -479,7 +481,7 @@ const createDefaultStyles = (fonts: any) => ({
     backgroundColor: Colors.inputBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
+    borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 16,
@@ -847,6 +849,33 @@ function TimeBlockLogEditorInner(
   const [endRepeatMode, setEndRepeatMode] = useState<'never' | 'date'>('never');
   const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  // Keyboard position state for FAB
+  const fabBottomPosition = useRef(new Animated.Value(80)).current;
+
+  // Keyboard listeners to update FAB position with smooth animation
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+      Animated.timing(fabBottomPosition, {
+        toValue: 350,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(fabBottomPosition, {
+        toValue: 80,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [fabBottomPosition]);
 
   // Calculate estimated line count based on text length and newlines
   const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
@@ -1477,10 +1506,8 @@ function TimeBlockLogEditorInner(
             </View>
           </ScrollView>
 
-        {/* Floating Action Buttons - Standard Layout */}
-        <View style={s.fabWrapper}>
-          {/* Right Action Buttons */}
-          <View style={[s.fabContainer, s.rightFabContainer, s.fabDefaultPosition]}>
+          {/* Floating Action Buttons - Standard Layout */}
+          <Animated.View style={[s.fabContainer, s.rightFabContainer, { bottom: fabBottomPosition }]}>
             <View style={s.fabRow}>
               {/* Cancel FAB */}
               <TouchableOpacity
@@ -1513,8 +1540,7 @@ function TimeBlockLogEditorInner(
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Start Time Picker Modal */}
