@@ -3,6 +3,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, DeviceEventEmitter } from 'react-native';
+import type { NavigationProp } from '@react-navigation/native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
@@ -37,6 +38,7 @@ interface PriorityItem {
 
 interface TodayFocusData {
   focus: string;
+  personalText: string;
   priorities: PriorityItem[];
 }
 
@@ -48,6 +50,7 @@ interface TodaysFocusProps {
   expanded?: boolean;
   onExpand?: () => void;
   planningEnabled?: boolean;
+  navigation?: NavigationProp<any>;
 }
 
 type FocusCTA = 'begin' | 'update' | 'revisit' | 'plan' | 'editPlan';
@@ -60,7 +63,7 @@ interface FocusCardState {
   ctaAction: FocusCTA;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -116,11 +119,13 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
         return {
           focus: parsedContent.focus || '',
+          personalText: parsedContent.personalText || '',
           priorities,
         };
       } catch (parseError) {
         return {
           focus: '',
+          personalText: '',
           priorities: [
             { id: 'fallback_1', text: '', completed: false },
             { id: 'fallback_2', text: '', completed: false },
@@ -130,6 +135,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }
     })() : {
       focus: '',
+      personalText: '',
       priorities: [
         { id: 'default_1', text: '', completed: false },
         { id: 'default_2', text: '', completed: false },
@@ -377,7 +383,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     }
 
     if (isEditing) {
-      // Save when exiting edit mode
+      // Save when exiting edit mode (for global edit mode compatibility)
       const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
       if (hasContent) {
         saveFocus(data).then(() => {
@@ -397,22 +403,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         }
       }
     } else {
-      // Enter edit mode - ensure we have exactly 3 priorities
-      const currentPriorities = data.priorities;
-      const ensuredPriorities = [
-        currentPriorities[0] || { id: '1', text: '', completed: false },
-        currentPriorities[1] || { id: '2', text: '', completed: false },
-        currentPriorities[2] || { id: '3', text: '', completed: false },
-      ];
-
-      const editData = {
-        ...data,
-        priorities: ensuredPriorities,
-      };
-
-      originalData.current = { ...editData };
-      setData(editData);
-      setIsEditing(true);
+      // Navigate to walkthrough screen instead of inline editor
+      if (navigation) {
+        triggerLightHaptic();
+        navigation.navigate('TodaysFocusWalkthrough' as any, {
+          selectedDate,
+          existingEntry,
+        });
+      }
     }
   };
 
@@ -437,6 +435,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         setWasDeleted(true);
         setData({
           focus: '',
+          personalText: '',
           priorities: [
             { id: '1', text: '', completed: false },
             { id: '2', text: '', completed: false },
@@ -782,6 +781,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               ? (
                 <View style={styles.viewContainer}>
                   {data.focus && <ThemedText weight="semiBold" style={styles.focusText}>{data.focus}</ThemedText>}
+                  {data.personalText && <ThemedText style={styles.personalText}>{data.personalText}</ThemedText>}
                   <View style={styles.prioritiesList}>
                     {data.priorities.some(p => p.text.trim() !== '') && (() => {
                       const priorityCount = data.priorities.filter(p => p.text.trim() !== '').length;
@@ -982,6 +982,14 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 8,
     lineHeight: 26,
+    textAlign: 'center',
+  },
+  personalText: {
+    // weight handled by ThemedText
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 12,
+    lineHeight: 20,
     textAlign: 'center',
   },
   placeholderText: {
