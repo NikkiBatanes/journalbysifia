@@ -44,15 +44,72 @@ interface RouteParams {
 interface WinType {
   id: string;
   name: string;
+  category: string;
 }
 
 const WIN_TYPES: WinType[] = [
-  { id: 'followed-through', name: 'I followed through' },
-  { id: 'chose-peace', name: 'I chose peace' },
-  { id: 'told-truth', name: 'I told the truth' },
-  { id: 'showed-up', name: 'I showed up' },
-  { id: 'god-provided', name: 'God provided' },
-  { id: 'kept-going', name: 'I kept going' },
+  // Core 6 (shown by default)
+  { id: 'followed-through', name: 'I followed through', category: 'Practical' },
+  { id: 'chose-peace', name: 'I chose peace', category: 'Inner Life' },
+  { id: 'told-truth', name: 'I told the truth', category: 'Relationships' },
+  { id: 'showed-up', name: 'I showed up', category: 'Practical' },
+  { id: 'chose-trust', name: 'I chose trust', category: 'Faith' },
+  { id: 'kept-going', name: 'I kept going', category: 'Inner Life' },
+
+  // Additional wins
+  { id: 'took-next-step', name: 'I took the next step', category: 'Work' },
+  { id: 'god-provided', name: 'God provided', category: 'Faith' },
+  { id: 'asked-for-help', name: 'I asked for help', category: 'Inner Life' },
+  { id: 'let-go', name: 'I let go', category: 'Inner Life' },
+  { id: 'forgave', name: 'I forgave', category: 'Relationships' },
+  { id: 'apologized', name: 'I apologized', category: 'Relationships' },
+  { id: 'set-boundary', name: 'I set a boundary', category: 'Relationships' },
+  { id: 'was-patient', name: 'I was patient', category: 'Relationships' },
+  { id: 'showed-kindness', name: 'I showed kindness', category: 'Relationships' },
+  { id: 'stayed-faithful', name: 'I stayed faithful', category: 'Faith' },
+  { id: 'obeyed-hard', name: 'I obeyed when it was hard', category: 'Faith' },
+  { id: 'brought-to-god', name: 'I brought it to God', category: 'Faith' },
+  { id: 'prayed-panicking', name: 'I prayed instead of panicking', category: 'Faith' },
+  { id: 'shared-gospel', name: 'I shared the gospel', category: 'Faith' },
+  { id: 'shared-jesus', name: 'I shared Jesus', category: 'Faith' },
+  { id: 'finished-hard', name: 'I finished something hard', category: 'Practical' },
+  { id: 'rested-needed', name: 'I rested when I needed to', category: 'Health' },
+  { id: 'took-care-body', name: 'I took care of my body', category: 'Health' },
+  { id: 'worked-out', name: 'I worked out', category: 'Health' },
+  { id: 'ate-well', name: 'I ate well today', category: 'Health' },
+  { id: 'took-care-skin', name: 'I took care of my skin', category: 'Health' },
+  { id: 'got-ready', name: 'I got ready for the day', category: 'Home' },
+  { id: 'cared-home', name: 'I cared for my home', category: 'Home' },
+  { id: 'cared-child', name: 'I cared for my child', category: 'Motherhood' },
+  { id: 'stayed-present-motherhood', name: 'I stayed present in motherhood', category: 'Motherhood' },
+  { id: 'handled-family', name: 'I handled what my family needed', category: 'Family' },
+  { id: 'passed-exam', name: 'I passed the exam', category: 'School' },
+  { id: 'finished-assignment', name: 'I finished my assignment', category: 'School' },
+  { id: 'studied-needed', name: 'I studied when I needed to', category: 'School' },
+  { id: 'made-progress-business', name: 'I made progress in business', category: 'Business' },
+  { id: 'made-hard-decision', name: 'I made a hard decision', category: 'Business' },
+  { id: 'showed-up-work', name: 'I showed up for my work', category: 'Work' },
+  { id: 'followed-through-work', name: 'I followed through in work', category: 'Work' },
+  { id: 'reached-out', name: 'I reached out', category: 'Relationships' },
+  { id: 'encouraged-someone', name: 'I encouraged someone', category: 'Relationships' },
+  { id: 'god-made-way', name: 'God made a way', category: 'Faith' },
+];
+
+const CORE_WIN_TYPES = WIN_TYPES.slice(0, 6);
+
+const CATEGORIES = [
+  'All',
+  'Faith',
+  'Inner Life',
+  'Relationships',
+  'Practical',
+  'Home',
+  'Family',
+  'Motherhood',
+  'Health',
+  'School',
+  'Work',
+  'Business',
 ];
 
 // StepFadeIn component
@@ -101,6 +158,8 @@ const WinTypeSelectionStep: React.FC<{
   navigation: any;
 }> = ({ selectedWinType, onSelect, onNext, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
   const screenHeight = useRef(0).current;
@@ -172,27 +231,117 @@ const WinTypeSelectionStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={120} style={styles.winTypesGrid}>
-          {WIN_TYPES.map((winType, index) => {
-            const isSelected = selectedWinType?.id === winType.id;
-            return (
-              <TouchableOpacity
-                key={winType.id}
-                style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onSelect(winType);
-                }}
-                activeOpacity={0.75}
-              >
-                <ThemedText
-                  weight="semiBold"
-                  style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+          {!isExpanded ? (
+            // Collapsed state: Show only 6 core wins
+            CORE_WIN_TYPES.map((winType, index) => {
+              const isSelected = selectedWinType?.id === winType.id;
+              return (
+                <TouchableOpacity
+                  key={winType.id}
+                  style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    onSelect(winType);
+                  }}
+                  activeOpacity={0.75}
                 >
-                  {winType.name}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
+                  <ThemedText
+                    style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                    numberOfLines={2}
+                  >
+                    {winType.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            // Expanded state: Show category filter and filtered wins
+            <>
+              {/* Category filter row */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryFilterScroll}
+                contentContainerStyle={styles.categoryFilterContent}
+              >
+                {CATEGORIES.map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.categoryFilterChip,
+                      selectedCategory === category && styles.categoryFilterChipSelected,
+                    ]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setSelectedCategory(category);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.categoryFilterText,
+                        selectedCategory === category && styles.categoryFilterTextSelected,
+                      ]}
+                    >
+                      {category}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Filtered win types */}
+              {WIN_TYPES.filter(
+                selectedCategory === 'All'
+                  ? () => true
+                  : (winType) => winType.category === selectedCategory
+              ).map((winType, index) => {
+                const isSelected = selectedWinType?.id === winType.id;
+                return (
+                  <TouchableOpacity
+                    key={winType.id}
+                    style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      onSelect(winType);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <ThemedText
+                      style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                      numberOfLines={2}
+                    >
+                      {winType.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+        </StepFadeIn>
+
+        {/* Show more/less button */}
+        <StepFadeIn delay={160}>
+          <TouchableOpacity
+            style={styles.showMoreButton}
+            onPress={() => {
+              triggerLightHaptic();
+              setIsExpanded(!isExpanded);
+              if (!isExpanded) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              }
+            }}
+            activeOpacity={0.75}
+          >
+            <ThemedText style={styles.showMoreButtonText}>
+              {isExpanded ? 'Show less' : 'Show more'}
+            </ThemedText>
+            <Ionicons
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={Colors.alertCoral}
+              style={styles.showMoreButtonIcon}
+            />
+          </TouchableOpacity>
         </StepFadeIn>
 
         <StepFadeIn delay={200}>
@@ -880,6 +1029,51 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginBottom: 4,
     lineHeight: 16,
+  },
+  categoryFilterScroll: {
+    marginBottom: 16,
+  },
+  categoryFilterContent: {
+    paddingHorizontal: 8,
+    gap: 8,
+  },
+  categoryFilterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  categoryFilterChipSelected: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
+  },
+  categoryFilterTextSelected: {
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    gap: 8,
+  },
+  showMoreButtonText: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontWeight: '600',
+  },
+  showMoreButtonIcon: {
+    marginLeft: 4,
   },
   completionContainer: {
     alignItems: 'center',
