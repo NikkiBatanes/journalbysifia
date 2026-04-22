@@ -428,6 +428,7 @@ interface FaithfulActionsStepProps {
   actionStepIndex: number;
   setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
   onStepCommit?: (stepIndex: number) => void;
+  onJournalExpanded?: (expanded: boolean) => void;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -483,6 +484,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   actionStepIndex,
   setActionStepIndex,
   onStepCommit,
+  onJournalExpanded,
 }) => {
   const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
@@ -511,6 +513,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const expanding = !journalExpandedRef.current;
     journalExpandedRef.current = expanding;
     setJournalExpanded(expanding);
+    onJournalExpanded?.(expanding);
     triggerLightHaptic();
 
     Animated.parallel([
@@ -1532,6 +1535,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const backButtonAnim = useRef(new Animated.Value(0)).current;
+  const backButtonPositionAnim = useRef(new Animated.Value(0)).current;
+  const [journalExpanded, setJournalExpanded] = useState(false);
 
   const userName: string =
     (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
@@ -1702,6 +1707,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       }).start();
     }
   }, [stepIndex, actionStepIndex, backButtonAnim]);
+
+  // Animate back button position when journal expands/collapses
+  useEffect(() => {
+    Animated.spring(backButtonPositionAnim, {
+      toValue: journalExpanded ? 76 : 0,
+      tension: 150,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  }, [journalExpanded, backButtonPositionAnim]);
 
   // Reset scriptureNextAnim when not on step 2
   useEffect(() => {
@@ -2119,6 +2134,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             {
               opacity: backButtonAnim,
               transform: [
+                {
+                  translateY: backButtonPositionAnim,
+                },
                 {
                   scale: backButtonAnim.interpolate({
                     inputRange: [0, 1],

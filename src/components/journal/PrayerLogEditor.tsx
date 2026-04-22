@@ -840,6 +840,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   onChangeText={handleContentChange}
                   multiline
                   textAlignVertical="top"
+                  keyboardAppearance="dark"
                 />
               ) : (
                 /* Prayers for People Tab */
@@ -851,6 +852,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     placeholderTextColor={Colors.trustGrey}
                     value={prayerForPerson}
                     onChangeText={handlePersonChange}
+                    keyboardAppearance="dark"
                   />
                   <View style={s.gap} />
                   <TextInput
@@ -862,6 +864,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     onChangeText={handleRequestChange}
                     multiline
                     textAlignVertical="top"
+                    keyboardAppearance="dark"
                   />
                 </View>
               )}

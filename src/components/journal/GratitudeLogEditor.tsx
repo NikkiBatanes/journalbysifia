@@ -672,6 +672,7 @@ const GratitudeLogEditorInner = (
                     handleItemChange(index, text);
                   }}
                   multiline
+                  keyboardAppearance="dark"
                   textAlignVertical="top"
                   returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={() => {
