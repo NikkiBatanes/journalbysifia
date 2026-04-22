@@ -504,7 +504,7 @@ const createDefaultStyles = (fonts: any) => ({
     minHeight: 100,
     paddingTop: 0,
     textAlignVertical: 'top',
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.medium,
   },
   titleInputContainer: {
     flexDirection: 'row',
@@ -529,7 +529,7 @@ const createDefaultStyles = (fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 20,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.medium,
   },
   timePickerModal: {
     flex: 1,
@@ -1167,16 +1167,25 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <View style={s.titleInputContainer}>
                 <Ionicons name="text" size={18} color={Colors.hopeWhite} style={s.titleInputIcon} />
-                <TextInput
-                  ref={inputRef}
-                  style={s.titleInputField}
-                  placeholder="Title *"
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                  value={title}
-                  onChangeText={(text) => handleContentChange('title', text)}
-                  multiline={false}
-                  keyboardAppearance="dark"
-                />
+                <View style={{ flex: 1, position: 'relative' }}>
+                  <TextInput
+                    ref={inputRef}
+                    style={s.titleInputField}
+                    placeholder=""
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={title}
+                    onChangeText={(text) => handleContentChange('title', text)}
+                    multiline={false}
+                    keyboardAppearance="dark"
+                  />
+                  {!title && (
+                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>
+                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>*</ThemedText>
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {/* Repeat Section */}
@@ -1288,7 +1297,13 @@ function TimeBlockLogEditorInner(
                     category === 'Select a category' && s.categoryTextRequired,
                   ]}
                 >
-                  {category === 'Select a category' ? 'Category *' : category}
+                  {category === 'Select a category' ? (
+                    <>
+                      Category <ThemedText weight="medium" style={{ color: Colors.alertCoral }}>*</ThemedText>
+                    </>
+                  ) : (
+                    category
+                  )}
                 </ThemedText>
                 <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>

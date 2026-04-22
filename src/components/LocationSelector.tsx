@@ -167,7 +167,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         <TextInput
           style={[
             styles.textInput,
-            { fontFamily: getFontFamily(fontKey, 'semiBold') },
+            { fontFamily: getFontFamily(fontKey, 'medium') },
           ]}
           value={inputValue}
           onChangeText={handleInputChange}
