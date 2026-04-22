@@ -453,10 +453,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   completionCard: {
-    borderRadius: 50,
-    padding: 24,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
+    width: '100%',
   },
   completionHeader: {
     flexDirection: 'row',
