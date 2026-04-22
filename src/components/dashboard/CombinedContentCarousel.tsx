@@ -804,12 +804,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             { transform: [{ scale }, { translateY }], opacity },
           ]}
         >
-          {/* Type Badge */}
-          <View style={styles.typeBadge}>
-            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} />
-            <ThemedText weight="semiBold" style={styles.typeBadgeText}>PLAYBOOK</ThemedText>
-          </View>
-
           <View style={styles.gradientContainer}>
             <View style={styles.categoryLabel}>
               <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
@@ -960,16 +954,11 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ]}
         >
           <View style={styles.cardContent}>
-            {/* Type Badge */}
-            <View style={styles.typeBadge}>
-              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} />
-              <ThemedText weight="semiBold" style={styles.typeBadgeText}>DEVOTIONAL</ThemedText>
-            </View>
-
             {/* Gradient Container with Category and Menu */}
             <View style={styles.gradientContainer}>
               <View style={styles.gradientTagRow}>
                 <View style={styles.categoryLabel}>
+                  <Ionicons name="book" size={12} color={Colors.alertCoral} style={styles.categoryLabelIcon} />
                   <ThemedText weight="bold" style={styles.categoryLabelText}>{devotional.category || 'Devotional'}</ThemedText>
                 </View>
               </View>
@@ -1477,10 +1466,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   categoryLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  categoryLabelIcon: {
+    marginRight: 2,
   },
   categoryLabelText: {
     fontSize: 10,
@@ -1507,23 +1502,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     color: Colors.hopeWhite,
-    marginBottom: 4,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    color: Colors.hopeWhite,
-    opacity: 0.5,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   // Devotional card styles from DevotionalsScreen
