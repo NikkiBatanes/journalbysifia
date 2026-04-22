@@ -80,13 +80,16 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Parse existing entry content to initialize state
   const getInitialState = () => {
-    if (existingEntry) {
+    if (existingTodos && existingTodos.length > 0) {
       try {
-        const parsedContent = typeof existingEntry.content === 'string'
-          ? JSON.parse(existingEntry.content)
-          : existingEntry.content;
+        // Extract text from individual todo entries
+        const savedTodos = existingTodos.map(entry => {
+          const parsedContent = typeof entry.content === 'string'
+            ? JSON.parse(entry.content)
+            : entry.content;
+          return parsedContent.text || '';
+        }).filter(text => text.trim() !== '');
         
-        const savedTodos = parsedContent.todos || [];
         // Ensure we always have at least 3 task slots
         const paddedTodos = [...savedTodos];
         while (paddedTodos.length < 3) {
@@ -94,7 +97,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         }
         
         return {
-          todos: paddedTodos.slice(0, 3),
+          todos: paddedTodos,
         };
       } catch (error) {
         console.error('Error parsing existing entry content:', error);
@@ -116,6 +119,35 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { data: existingTodos } = useTodosData(user?.id || '', dateStr);
 
   const inputRefs = useRef<(TextInput | null)[]>([]).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Update todos when existingTodos data loads
+  useEffect(() => {
+    if (existingTodos && existingTodos.length > 0) {
+      const savedTodos = existingTodos.map(entry => {
+        const parsedContent = typeof entry.content === 'string'
+          ? JSON.parse(entry.content)
+          : entry.content;
+        return parsedContent.text || '';
+      }).filter(text => text.trim() !== '');
+      
+      const paddedTodos = [...savedTodos];
+      while (paddedTodos.length < 3) {
+        paddedTodos.push('');
+      }
+      
+      setTodos(paddedTodos);
+      
+      // Focus the first empty field and scroll to it
+      setTimeout(() => {
+        const firstEmptyIndex = paddedTodos.findIndex(todo => todo.trim() === '');
+        if (firstEmptyIndex !== -1 && inputRefs[firstEmptyIndex]) {
+          inputRefs[firstEmptyIndex]?.focus();
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }
+      }, 100);
+    }
+  }, [existingTodos, inputRefs, scrollViewRef]);
 
   const saveButtonOpacity = useRef(new Animated.Value(showSaveButton ? 1 : 0)).current;
   const saveButtonScale = useRef(new Animated.Value(showSaveButton ? 1 : 0.8)).current;
@@ -261,6 +293,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       const newIndex = newTodos.length - 1;
       if (inputRefs[newIndex]) {
         inputRefs[newIndex]?.focus();
+        scrollViewRef.current?.scrollToEnd({ animated: true });
       }
     }, 100);
   };
@@ -268,6 +301,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.stepScroll}
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: isKeyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}

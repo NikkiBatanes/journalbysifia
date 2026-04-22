@@ -1548,7 +1548,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 28,
-    opacity: 0.85,
+    opacity: 0.5,
     paddingHorizontal: 4,
     alignSelf: 'flex-start',
   },
