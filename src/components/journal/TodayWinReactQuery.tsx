@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   completionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   completionIconContainer: {
     width: 48,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   completionDivider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 8,
+    marginVertical: 16,
   },
   editButton: {
     padding: 4,
