@@ -149,6 +149,16 @@ const createDefaultStyles = (fonts: any) => ({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
+  allDayLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 8,
+    marginTop: 16,
+    opacity: 0.7,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   formInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
@@ -184,16 +194,18 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timeLabel: {
     color: Colors.hopeWhite,
-    fontSize: 12,
-    opacity: 0.6,
-    marginBottom: 4,
-    textTransform: 'uppercase',
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 8,
+    marginTop: 16,
+    opacity: 0.7,
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   timeText: {
     color: Colors.hopeWhite,
-    fontSize: 20,
-    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    fontFamily: Fonts.medium,
   },
   timeSeparator: {
     color: Colors.hopeWhite,
@@ -256,8 +268,8 @@ const createDefaultStyles = (fonts: any) => ({
   },
   allDayText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    fontFamily: Fonts.medium,
   },
   switchContainer: {
     padding: 4,
@@ -431,7 +443,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   repeatText: {
     color: Colors.hopeWhite,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: Fonts.medium,
   },
   timePickerModal: {
@@ -498,12 +510,6 @@ const createDefaultStyles = (fonts: any) => ({
   allDaySection: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  allDayLabel: {
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    marginRight: 8,
   },
   customRepeatContainer: {
     marginTop: 8,
@@ -627,7 +633,8 @@ const createDefaultStyles = (fonts: any) => ({
   },
   endRepeatButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 14,
+    fontSize: 16,
+    fontFamily: Fonts.medium,
   },
   endRepeatButtonNeverActive: {
     backgroundColor: Colors.alertCoral,
