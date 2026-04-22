@@ -1,0 +1,1088 @@
+import * as React from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  StatusBar,
+  TextInput,
+  Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+import { Colors } from '../theme/colors';
+import { Fonts } from '../theme/fonts';
+import ThemedText from '../components/common/ThemedText';
+import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { toLocalDateString } from '../utils/date';
+import { useCreateJournalEntry, useUpdateJournalEntry } from '../services/hooks/useJournalData';
+import { analytics } from '../utils/analytics';
+
+import type { RootStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'TodaysFocusWalkthrough'>;
+
+// Focus Category Data
+interface FocusCategory {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  iconType: 'ionicons' | 'material' | 'fontawesome';
+}
+
+const FOCUS_CATEGORIES: FocusCategory[] = [
+  { id: 'prayer', name: 'Prayer', description: 'Returning to God with honesty and stillness.', icon: 'hands-pray', iconType: 'material' },
+  { id: 'bible-reading', name: 'Bible Reading', description: 'Making space to read, listen, and stay rooted in Scripture.', icon: 'book', iconType: 'ionicons' },
+  { id: 'discipleship', name: 'Discipleship', description: 'Showing up faithfully for the people God has entrusted to you.', icon: 'people-circle-outline', iconType: 'ionicons' },
+  { id: 'ministry', name: 'Ministry', description: 'Serving, leading, preparing, or carrying what needs care.', icon: 'cross', iconType: 'fontawesome' },
+  { id: 'relationships', name: 'Relationships', description: 'Conversations, boundaries, and care for others.', icon: 'heart', iconType: 'material' },
+  { id: 'health', name: 'Health', description: 'Your body, energy, and what needs attention.', icon: 'heart-pulse', iconType: 'material' },
+  { id: 'work', name: 'Work', description: 'Tasks, decisions, output, and follow-through.', icon: 'briefcase', iconType: 'ionicons' },
+  { id: 'rest', name: 'Rest', description: 'Slowing down, resetting, and not carrying everything.', icon: 'bed', iconType: 'material' },
+  { id: 'nutrition', name: 'Nutrition', description: 'For eating with care, planning meals, and staying attentive to your health.', icon: 'utensils', iconType: 'fontawesome' },
+  { id: 'workout', name: 'Workout', description: 'For movement, exercise, training, and caring for your body.', icon: 'dumbbell', iconType: 'fontawesome' },
+  { id: 'school', name: 'School', description: 'For studying, assignments, exams, and academic responsibilities.', icon: 'school', iconType: 'material' },
+  { id: 'business', name: 'Business', description: 'For building, deciding, leading, and carrying what your work requires today.', icon: 'building', iconType: 'fontawesome' },
+  { id: 'home', name: 'Home', description: 'The responsibilities and tensions of daily life.', icon: 'home', iconType: 'material' },
+  { id: 'prayer-fasting', name: 'Prayer & Fasting', description: 'Setting aside time to seek God with focus and surrender.', icon: 'water', iconType: 'material' },
+  { id: 'motherhood', name: 'Motherhood', description: 'For caring for your children, guiding your home, and handling what needs you today.', icon: 'baby', iconType: 'material' },
+  { id: 'outreach', name: 'Outreach', description: 'Following through on opportunities to encourage, invite, or share.', icon: 'share-nodes', iconType: 'fontawesome' },
+  { id: 'events', name: 'Events', description: 'For planning, preparing for, or showing up well to what is coming.', icon: 'calendar', iconType: 'material' },
+  { id: 'reading', name: 'Reading', description: 'For learning, slowing down, and giving attention to what you want to take in.', icon: 'reader', iconType: 'ionicons' },
+  { id: 'pet-care', name: 'Pet Care', description: 'For caring for your pet, handling practical needs, and showing steady attention.', icon: 'paw', iconType: 'material' },
+  { id: 'decision', name: 'Decision', description: 'A next step that still feels unclear.', icon: 'help-circle', iconType: 'material' },
+  { id: 'follow-through', name: 'Follow-through', description: 'Doing what you already know is yours to do.', icon: 'check-circle', iconType: 'material' },
+  { id: 'groceries', name: 'Groceries', description: 'Planning and handling practical needs for the day or week.', icon: 'cart', iconType: 'material' },
+  { id: 'errands', name: 'Errands', description: 'Ordinary responsibilities that still need peace and follow-through.', icon: 'store', iconType: 'material' },
+  { id: 'other', name: 'Other', description: 'Something else that needs your attention today.', icon: 'add-circle', iconType: 'material' },
+];
+
+// StepFadeIn component
+interface StepFadeInProps {
+  delay?: number;
+  children: React.ReactNode;
+  style?: any;
+}
+
+const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(16)).current;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 340,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 55,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// Step 1: Category Selection
+const CategorySelectionStep: React.FC<{
+  selectedCategory: FocusCategory | null;
+  onSelect: (category: FocusCategory) => void;
+  onNext: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+}> = ({ selectedCategory, onSelect, onNext, insets, navigation }) => {
+  const [showAllCategories, setShowAllCategories] = React.useState(false);
+  const [customFocus, setCustomFocus] = React.useState('');
+  const buttonOpacity = React.useRef(new Animated.Value(1)).current;
+
+  // Enable LayoutAnimation for Android
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+
+  const displayedCategories = showAllCategories ? FOCUS_CATEGORIES : FOCUS_CATEGORIES.slice(0, 12);
+
+  const handleToggleShowAll = () => {
+    triggerLightHaptic();
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+      update: { type: 'easeInEaseOut' },
+    });
+    Animated.timing(buttonOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAllCategories(!showAllCategories);
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>Choose your focus for today</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160} style={styles.categoriesGrid}>
+          {displayedCategories.map((category, index) => {
+            const isSelected = selectedCategory?.id === category.id;
+            return (
+              <TouchableOpacity
+                key={category.id}
+                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onSelect(category);
+                }}
+                activeOpacity={0.75}
+              >
+                <View style={styles.categoryIconContainer}>
+                  <View style={[
+                    styles.categoryIconCircle,
+                    isSelected && styles.categoryIconCircleSelected
+                  ]}>
+                    {category.iconType === 'ionicons' && (
+                      <Ionicons
+                        name={category.icon as any}
+                        size={18}
+                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                      />
+                    )}
+                    {category.iconType === 'material' && (
+                      <MaterialCommunityIcons
+                        name={category.icon as any}
+                        size={18}
+                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                      />
+                    )}
+                    {category.iconType === 'fontawesome' && (
+                      <FontAwesome6
+                        name={category.icon as any}
+                        size={18}
+                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                      />
+                    )}
+                  </View>
+                </View>
+                <ThemedText
+                  weight="semiBold"
+                  style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+                >
+                  {category.name}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </StepFadeIn>
+
+        {FOCUS_CATEGORIES.length > 12 && (
+          <StepFadeIn delay={240}>
+            <Animated.View style={{ opacity: buttonOpacity }}>
+              <TouchableOpacity
+                style={styles.showMoreButton}
+                onPress={handleToggleShowAll}
+                activeOpacity={0.75}
+              >
+                <ThemedText style={styles.showMoreButtonText}>{showAllCategories ? 'Show Less' : 'Show More'}</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </StepFadeIn>
+        )}
+
+        {selectedCategory?.id === 'other' && (
+          <StepFadeIn delay={280}>
+            <View style={styles.customInputContainer}>
+              <ThemedText style={styles.customInputTitle}>What is your focus today?</ThemedText>
+              <TextInput
+                style={styles.customInput}
+                placeholder="Enter your custom focus..."
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={customFocus}
+                onChangeText={setCustomFocus}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+          </StepFadeIn>
+        )}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Bottom buttons */}
+      {selectedCategory && (
+        <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerMediumHaptic();
+              onNext();
+            }}
+            activeOpacity={0.7}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Close button - top right */}
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 2: Personal Text Input
+const PersonalTextInputStep: React.FC<{
+  category: FocusCategory;
+  personalText: string;
+  onChange: (text: string) => void;
+  onNext: () => void;
+  onBack: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+  icon: string;
+  iconType: 'ionicons' | 'material' | 'fontawesome';
+}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType }) => {
+  const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(verticalLineHeight, {
+      toValue: 75,
+      duration: 400,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={40}>
+          <View style={styles.titleRowLeft}>
+            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
+              What matters most in {category.id === 'other' ? 'this' : category.name.toLowerCase()} today?
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <TextInput
+            style={styles.personalInput}
+            value={personalText}
+            onChangeText={onChange}
+            placeholder={`Bring this before God first...`}
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            autoFocus
+            keyboardAppearance="dark"
+          />
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <View style={styles.metadataContainer}>
+            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
+            <View style={styles.metadataContent}>
+              {iconType === 'ionicons' && (
+                <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              {iconType === 'material' && (
+                <MaterialIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              {iconType === 'fontawesome' && (
+                <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              <ThemedText weight="medium" style={styles.fromText}>
+                FOCUS
+              </ThemedText>
+              <ThemedText style={styles.metadataText}>
+                You chose <ThemedText weight="semiBold">{category.name}</ThemedText>
+              </ThemedText>
+              <ThemedText style={styles.metadataText}>
+                Add one short sentence if you want to make it personal.
+              </ThemedText>
+            </View>
+          </View>
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onNext();
+          }}
+          activeOpacity={0.7}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Close button - top right */}
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 3: Priorities Input
+const PrioritiesInputStep: React.FC<{
+  priorities: string[];
+  onChange: (index: number, text: string) => void;
+  onNext: () => void;
+  onBack: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+  icon: string;
+  iconType: 'ionicons' | 'material' | 'fontawesome';
+}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType }) => {
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={40}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>TOP PRIORITIES</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <View style={styles.iconBelowTitle}>
+            {iconType === 'ionicons' && (
+              <Ionicons name={icon as any} size={24} color={Colors.alertCoral} />
+            )}
+            {iconType === 'material' && (
+              <MaterialIcons name={icon as any} size={24} color={Colors.alertCoral} />
+            )}
+            {iconType === 'fontawesome' && (
+              <FontAwesome6 name={icon as any} size={24} color={Colors.alertCoral} />
+            )}
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={120}>
+          <ThemedText style={styles.stepDescription}>Add your top 3 priorities</ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <ThemedText style={styles.stepDescription}>Add up to 3 priorities for today.</ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={240} style={styles.prioritiesContainer}>
+          {priorities.map((priority, index) => (
+            <View key={index} style={styles.priorityInputRow}>
+              <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
+              <TextInput
+                style={styles.priorityInput}
+                value={priority}
+                onChangeText={(text) => onChange(index, text)}
+                placeholder=""
+                placeholderTextColor={Colors.textGray}
+                autoFocus={index === 0}
+              />
+            </View>
+          ))}
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onNext();
+          }}
+          activeOpacity={0.7}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Close button - top right */}
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 4: Completion Screen
+const CompletionStep: React.FC<{
+  category: FocusCategory;
+  personalText: string;
+  priorities: string[];
+  onDone: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+  icon: string;
+  iconType: 'ionicons' | 'material' | 'fontawesome';
+}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType }) => {
+  const validPriorities = priorities.filter(p => p.trim() !== '');
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.titleRow}>
+            {iconType === 'ionicons' && (
+              <Ionicons name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
+            )}
+            {iconType === 'material' && (
+              <MaterialIcons name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
+            )}
+            {iconType === 'fontawesome' && (
+              <FontAwesome6 name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
+            )}
+            <ThemedText weight="semiBold" style={styles.completionTitle}>SAVED</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <ThemedText weight="medium" style={styles.completionSubtitle}>Today is set</ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <ThemedText style={styles.completionDescription}>
+            A simple daily anchor before you move into the rest of your day.
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={240} style={styles.summaryCard}>
+          <ThemedText weight="semiBold" style={styles.summaryLabel}>TODAY'S FOCUS</ThemedText>
+          <ThemedText weight="medium" style={styles.summaryValue}>{category.name}</ThemedText>
+
+          {personalText.trim() && (
+            <>
+              <View style={styles.summaryDivider} />
+              <ThemedText style={styles.summaryValue}>{personalText}</ThemedText>
+            </>
+          )}
+
+          {validPriorities.length > 0 && (
+            <>
+              <View style={styles.summaryDivider} />
+              <ThemedText weight="semiBold" style={styles.summaryLabel}>TOP PRIORITIES</ThemedText>
+              {validPriorities.map((priority, index) => (
+                <ThemedText key={index} style={styles.summaryValue}>
+                  {index + 1}. {priority}
+                </ThemedText>
+              ))}
+            </>
+          )}
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onDone();
+          }}
+          activeOpacity={0.7}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Close button - top right */}
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Main Screen Component
+const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { selectedDate = new Date(), existingEntry } = route.params || {};
+
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<FocusCategory | null>(null);
+  const [personalText, setPersonalText] = useState('');
+  const [priorities, setPriorities] = useState(['', '', '']);
+
+  const createMutation = useCreateJournalEntry();
+  const updateMutation = useUpdateJournalEntry();
+
+  const dateStr = toLocalDateString(selectedDate);
+
+  // Hide status bar for translucent scrolling effect
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setHidden(true, 'slide');
+      StatusBar.setBarStyle('light-content');
+      return () => {
+        StatusBar.setHidden(false, 'slide');
+        StatusBar.setBarStyle('light-content');
+      };
+    }, [])
+  );
+
+  const handleSave = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save today\'s focus.');
+      return;
+    }
+
+    try {
+      const contentToSave = JSON.stringify({
+        focus: selectedCategory?.name || '',
+        focusCategory: selectedCategory?.id || '',
+        personalText: personalText.trim(),
+        priorities: priorities.map((text, index) => ({
+          id: `priority_${index + 1}`,
+          text: text.trim(),
+          completed: false,
+        })),
+      });
+
+      if (existingEntry?.id) {
+        await updateMutation.mutateAsync({
+          id: existingEntry.id,
+          updates: { content: contentToSave },
+        });
+      } else {
+        await createMutation.mutateAsync({
+          user_id: user.id,
+          selected_date: dateStr,
+          content_type: 'todays_focus',
+          content: contentToSave,
+        });
+      }
+
+      analytics.trackFocusEvent('focus_updated', {
+        focus_length: selectedCategory?.name.length || 0,
+        has_priorities: priorities.filter(p => p.trim()).length > 0,
+        priorities_count: priorities.filter(p => p.trim()).length,
+        date: dateStr,
+      }, user.id);
+
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
+    }
+  };
+
+  const handleNext = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
+  };
+
+  return (
+    <View style={styles.container}>
+      {currentStep === 0 && (
+        <CategorySelectionStep
+          selectedCategory={selectedCategory}
+          onSelect={setSelectedCategory}
+          onNext={handleNext}
+          insets={insets}
+          navigation={navigation}
+        />
+      )}
+
+      {currentStep === 1 && selectedCategory && (
+        <PersonalTextInputStep
+          category={selectedCategory}
+          personalText={personalText}
+          onChange={setPersonalText}
+          onNext={handleNext}
+          onBack={handleBack}
+          insets={insets}
+          navigation={navigation}
+          icon={selectedCategory.icon}
+          iconType={selectedCategory.iconType}
+        />
+      )}
+
+      {currentStep === 2 && selectedCategory && (
+        <PrioritiesInputStep
+          priorities={priorities}
+          onChange={(index, text) => {
+            const newPriorities = [...priorities];
+            newPriorities[index] = text;
+            setPriorities(newPriorities);
+          }}
+          onNext={handleNext}
+          onBack={handleBack}
+          insets={insets}
+          navigation={navigation}
+          icon={selectedCategory.icon}
+          iconType={selectedCategory.iconType}
+        />
+      )}
+
+      {currentStep === 3 && selectedCategory && (
+        <CompletionStep
+          category={selectedCategory}
+          personalText={personalText}
+          priorities={priorities}
+          onDone={handleSave}
+          insets={insets}
+          navigation={navigation}
+          icon={selectedCategory.icon}
+          iconType={selectedCategory.iconType}
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.anchorBlue,
+  },
+  stepContainer: {
+    flex: 1,
+  },
+  stepScroll: {
+    flex: 1,
+  },
+  stepContent: {
+    paddingHorizontal: 24,
+  },
+  stepTitle: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    lineHeight: 30,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  stepTitleLeft: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    lineHeight: 30,
+    marginBottom: 16,
+    textAlign: 'left',
+  },
+  stepSubtitle: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  titleRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+  },
+  iconBelowTitle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  titleIcon: {
+    marginTop: 2,
+  },
+  focusLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+    marginTop: 32,
+  },
+  focusLabel: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.hopeWhite,
+  },
+  labelIcon: {
+    marginTop: 1,
+  },
+  stepDescription: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  descriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  descriptionIcon: {
+    marginTop: 2,
+  },
+  metadataContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+    flexDirection: 'row',
+  },
+  verticalLine: {
+    width: 1,
+    backgroundColor: Colors.hopeWhite,
+    opacity: 0.3,
+    marginRight: 12,
+    borderRadius: 2,
+  },
+  metadataContent: {
+    flex: 1,
+  },
+  metadataIcon: {
+    marginBottom: 4,
+    opacity: 0.8,
+  },
+  fromText: {
+    fontSize: 8,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    letterSpacing: 2,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    lineHeight: 12,
+  },
+  metadataText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    lineHeight: 16,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  showMoreButton: {
+    alignSelf: 'center',
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  showMoreButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  customInputContainer: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+  },
+  customInputTitle: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  customInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  categoryCard: {
+    width: '31%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 0,
+    minHeight: 100,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCardSelected: {
+    backgroundColor: 'rgba(255, 107, 107, 0.18)',
+    borderColor: Colors.alertCoral,
+  },
+  categoryIconContainer: {
+    marginBottom: 8,
+  },
+  categoryIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryIconCircleSelected: {
+    backgroundColor: Colors.alertCoral,
+  },
+  categoryName: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  categoryNameSelected: {
+    color: Colors.hopeWhite,
+  },
+  categoryDescription: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 14,
+  },
+  categoryDescriptionSelected: {
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  personalInput: {
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 16,
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
+    minHeight: 120,
+  },
+  prioritiesContainer: {
+    gap: 16,
+  },
+  priorityInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  priorityNumber: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    width: 24,
+  },
+  priorityInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  completionTitle: {
+    fontSize: 32,
+    color: Colors.growthGreen,
+    marginBottom: 8,
+  },
+  completionSubtitle: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 12,
+  },
+  completionDescription: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  summaryCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 24,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  summaryValue: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginVertical: 16,
+  },
+  bottomButtons: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    backgroundColor: Colors.anchorBlue,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
+  },
+  primaryButton: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: Colors.alertCoral,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+});
+
+export default withErrorBoundary(TodaysFocusWalkthroughScreen, 'TodaysFocusWalkthroughScreen');

@@ -12,6 +12,7 @@ import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
+import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -378,6 +379,17 @@ export default function RootStackNavigator({
             name="Journal"
             component={JournalScreen as React.ComponentType}
             options={{ headerShown: false }}
+          />
+
+          {/* Today's Focus Walkthrough */}
+          <Stack.Screen
+            name="TodaysFocusWalkthrough"
+            component={TodaysFocusWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
           />
 
           {/* siFia AI Input Screen */}
