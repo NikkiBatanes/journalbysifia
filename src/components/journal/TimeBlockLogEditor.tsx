@@ -134,6 +134,9 @@ const createDefaultStyles = (fonts: any) => ({
   },
   formContainer: {
     padding: 0,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
   },
   inputLabel: {
     color: Colors.hopeWhite,
