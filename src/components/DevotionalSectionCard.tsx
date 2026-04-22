@@ -11,6 +11,7 @@ interface DevotionalSectionCardProps {
   subtitle: string;
   children: React.ReactNode;
   style?: object;
+  subtitleStyle?: object;
   variant?: 'blue' | 'tintOnBlue';
 }
 
@@ -20,6 +21,7 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
   subtitle,
   children,
   style = {},
+  subtitleStyle = {},
   variant = 'blue',
 }) => (
   <View style={[styles.card, variant === 'tintOnBlue' ? styles.cardTintOnBlue : null, style]}>
@@ -27,9 +29,9 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
       <View style={[styles.iconContainer, variant === 'tintOnBlue' ? styles.iconContainerOnTint : null]}>
         <Ionicons name={icon} size={20} color={Colors.alertCoral} />
       </View>
-      <View>
+      <View style={styles.titleContainer}>
         <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
-        <ThemedText weight="regular" style={styles.subtitle}>{subtitle}</ThemedText>
+        <ThemedText weight="regular" style={[styles.subtitle, subtitleStyle]} numberOfLines={2}>{subtitle}</ThemedText>
       </View>
     </View>
     <View style={styles.content}>
@@ -67,6 +69,9 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 0,
   },
+  titleContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 18,
     lineHeight: 24,
@@ -75,9 +80,9 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     lineHeight: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.65)',
     marginTop: 0,
-    marginBottom: 2,
+    marginBottom: 16,
   },
   content: {
     marginTop: 0,

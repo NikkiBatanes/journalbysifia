@@ -934,7 +934,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               {extractCleanTitle(devotional.title, 'Devotional')}
             </ThemedText>
             <View style={styles.dayCounterContainer}>
-              <Ionicons name="calendar-clear-outline" size={14} color={Colors.hopeWhite} />
+              <Ionicons name="calendar-clear-outline" size={14} color="rgba(255,255,255,0.65)" />
               <ThemedText weight="medium" style={styles.dayCounterText}>
                 Day {currentDayIndex + 1} of {devotional.totalDays}
               </ThemedText>
@@ -993,7 +993,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 }
               }}
             >
-              <Ionicons name="share-outline" size={18} color={Colors.hopeWhite} />
+              <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           )}
         </View>
@@ -1124,7 +1124,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="book-outline"
               title="Today's Scripture"
-              subtitle="God's Word for today"
+              subtitle="Read God's Word"
               variant="tintOnBlue"
             >
               {Platform.OS === 'ios' ? (
@@ -1167,7 +1167,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="bookmark-outline"
               title="Daily Reflection"
-              subtitle="Meditate on this"
+              subtitle="Reflect on this"
               variant="tintOnBlue"
             >
               {Platform.OS === 'ios' ? (
@@ -1189,7 +1189,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="help-circle-outline"
               title="Questions to Ponder"
-              subtitle="Reflect deeply"
+              subtitle="Tap a question to journal your thoughts"
               variant="tintOnBlue"
             >
               {day?.reflectionQuestions?.length ? (
@@ -1243,6 +1243,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               icon="heart-outline"
               title="Prayer"
               subtitle="Connect with God"
+              subtitleStyle={{ marginBottom: 0 }}
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
@@ -1318,15 +1319,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 >
                   <MaterialCommunityIcons
                     name="hands-pray"
-                    size={20}
+                    size={18}
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
-                    style={styles.prayerIcon}
                   />
-                  <ThemedText weight="bold" style={[
+                  <ThemedText weight="medium" style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
                   ]}>
-                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
+                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? 'Prayed' : 'I prayed this'}
                   </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
   progressBarContainer: {
     flexDirection: 'row',
@@ -1474,7 +1474,7 @@ const styles = StyleSheet.create({
   barBg: {
     width: '100%',
     height: 8, // Match Playbook height
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(26, 60, 109, 0.1)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     marginRight: 4,
     textAlign: 'right',
   },
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
   },
   dayCounterText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: 'rgba(255,255,255,0.65)',
     marginLeft: 4,
     marginRight: 4,
   },
@@ -1556,10 +1556,8 @@ const styles = StyleSheet.create({
   reflectionContainer: {
     marginBottom: 24,
     padding: CARD_CONTENT_PADDING,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(26,60,109,0.08)',
+    borderRadius: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1580,15 +1578,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 32,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
   },
   questionCardNumber: {
     color: Colors.hopeWhite,
@@ -1637,37 +1635,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prayerContainer: {
-    marginTop: 8,
+    marginTop: 0,
     position: 'relative',
     paddingBottom: 96, // Reserve more space so content doesn't overlap the button
     padding: CARD_CONTENT_PADDING,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(26,60,109,0.08)',
+    borderRadius: 12,
   },
   prayerButton: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     zIndex: 10,
-    minWidth: 80,
-    minHeight: 44,
   },
   prayerButtonActive: {
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   prayerButtonText: {
-    marginLeft: 2,
     color: Colors.hopeWhite,
     fontSize: 14,
   },
@@ -1675,14 +1669,14 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   prayerIcon: {
-    marginRight: 6,
+    marginRight: 0,
   },
   // Overlay layer anchored near the Pray button to render heart particles
   prayerBurstLayer: {
     position: 'absolute',
     // Anchor to the same corner as the button
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
     width: 120,
     height: 120,
     alignItems: 'center',
@@ -1697,7 +1691,7 @@ const styles = StyleSheet.create({
   },
   heartParticle: {
     position: 'absolute',
-    left: 60, // start from center of the layer (half of width)
+    right: 60, // start from center of the layer (half of width)
     top: 60,  // start from center of the layer (half of height)
   },
   prayerText: {
@@ -1712,10 +1706,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(0, 128, 0, 0.1)',
+    borderRadius: 12,
   },
   completedText: {
     marginLeft: 8,
@@ -1725,8 +1717,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    marginTop: 12,
-    marginBottom: 12,
     fontStyle: 'italic',
   },
   scriptureReference: {
@@ -1734,14 +1724,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.alertCoral,
     textAlign: 'right',
-    marginTop: 8,
     opacity: 0.9,
   },
   scriptureReferenceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: 12,
   },
   bibleVersion: {
     fontSize: 13,

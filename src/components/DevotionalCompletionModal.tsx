@@ -13,7 +13,6 @@ import {
   NativeModules,
 } from 'react-native';
 import { Colors } from '../theme';
-import { OnboardingStyles } from '../theme/onboardingStyles';
 import ThemedText from './common/ThemedText';
 import { faithPointsService } from '../services/faithPointsService';
 
@@ -77,6 +76,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
   const [rating, setRating] = useState(0);
+  const starAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(1))).current;
 
 
   // Simple celebratory burst particles
@@ -294,6 +294,16 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     // Update the UI state immediately
     triggerLightHaptic();
     setRating(selectedRating);
+
+    // Trigger spring animation on the pressed star
+    starAnims[index].setValue(0.8);
+    Animated.spring(starAnims[index], {
+      toValue: 1,
+      tension: 150,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
     // Submit the rating in the background
     onRatingSubmit(selectedRating)
       .then(() => {
@@ -314,12 +324,14 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             style={styles.starButton}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name={index < rating ? 'star' : 'star-outline'}
-              size={24}
-              color={Colors.faithGold}
-              style={styles.starIcon}
-            />
+            <Animated.View style={{ transform: [{ scale: starAnims[index] }] }}>
+              <Ionicons
+                name={index < rating ? 'star' : 'star-outline'}
+                size={24}
+                color={Colors.faithGold}
+                style={styles.starIcon}
+              />
+            </Animated.View>
           </TouchableOpacity>
         ))}
       </View>
@@ -368,7 +380,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         >
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           </View>
 
@@ -376,19 +388,19 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             <View style={styles.contentLimiter}>
             {isLastDay ? (
               <>
-                <ThemedText weight="bold" style={styles.congratsTitle}>
-                  Congratulations!
-                </ThemedText>
-                <ThemedText weight="regular" style={styles.congratsSubtitle}>
-                  You've completed the entire devotional!
-                </ThemedText>
-                {devotional.title && (
-                  <View style={styles.titleContainer}>
-                    <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>
-                      {extractCleanTitle(devotional.title)}
+                <View style={styles.completionHeaderContainer}>
+                  <View style={styles.stepLabelRow}>
+                    <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+                    <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+                      You've completed
                     </ThemedText>
                   </View>
-                )}
+                  <ThemedText weight="bold" style={styles.completionTitle}>
+                    {extractCleanTitle(devotional.title)}
+                  </ThemedText>
+                  <ThemedText style={styles.completionPlaybookLabel}>DEVOTIONAL</ThemedText>
+                </View>
+
                 <Animated.View
                   style={[
                     styles.checkContainer,
@@ -417,7 +429,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                           inputRange: [0, 0.6, 1],
                           outputRange: [0, 1, 0],
                         });
-                        // Compute particle container style to avoid inline styles
                         const particleContainerStyle = {
                           width: p.size + 10,
                           height: p.size + 10,
@@ -482,21 +493,20 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               </>
             ) : (
               <>
-                {devotional.totalDays > 1 && (
-                  <ThemedText weight="semiBold" style={styles.dayIndicator}>
-                    Day {currentDayNumber} of {totalDays}
-                  </ThemedText>
-                )}
-                <View style={styles.titleContainer}>
-                  <ThemedText weight="semiBold" style={styles.devotionalTitle}>
+                <View style={styles.completionHeaderContainer}>
+                  <View style={styles.stepLabelRow}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                    <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+                      Day {currentDayNumber} of {totalDays} Completed
+                    </ThemedText>
+                  </View>
+                  <ThemedText weight="bold" style={styles.completionTitle}>
                     {devotional.totalDays > 1 && currentDay
-                      ? `${extractCleanTitle(devotional.title)}: ${currentDay.title}`
+                      ? currentDay.title
                       : extractCleanTitle(devotional.title)}
                   </ThemedText>
+                  <ThemedText style={styles.completionPlaybookLabel}>DEVOTIONAL</ThemedText>
                 </View>
-                <ThemedText weight="bold" style={styles.completedText}>
-                  COMPLETED!
-                </ThemedText>
 
                 <Animated.View
                   style={[
@@ -526,7 +536,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                           inputRange: [0, 0.6, 1],
                           outputRange: [0, 1, 0],
                         });
-                        // Compute particle container style to avoid inline styles
                         const particleContainerStyle = {
                           width: p.size + 10,
                           height: p.size + 10,
@@ -578,10 +587,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 </View>
 
                 <TouchableOpacity
-                  style={[OnboardingStyles.primaryButton, styles.continueButtonOverride]}
+                  style={styles.continueButton}
                   onPress={() => { triggerLightHaptic(); onContinue(); }}
                 >
-                  <ThemedText weight="semiBold" style={OnboardingStyles.primaryButtonText}>
+                  <ThemedText weight="semiBold" style={styles.continueButtonText}>
                     Continue to Next Day
                   </ThemedText>
                 </TouchableOpacity>
@@ -610,11 +619,11 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 10,
-    paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.7,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 0,
+    paddingBottom: 32,
+    height: SCREEN_HEIGHT * 0.55,
     justifyContent: 'flex-start',
   },
   header: {
@@ -622,19 +631,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 24,
+    paddingTop: 20,
     position: 'relative',
   },
   closeButton: {
     position: 'absolute',
-    right: 16,
-    top: 12,
+    right: 20,
+    top: 16,
     padding: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 20, // Added top padding to push content down
+    paddingTop: 16,
     paddingBottom: 20,
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -653,26 +668,9 @@ const styles = StyleSheet.create({
   completedText: {
     fontSize: 18,
     color: Colors.growthGreen,
-    marginTop: 16, // Increased top margin for more spacing
-    marginBottom: 8, // Added bottom margin for more spacing
+    marginTop: 16,
+    marginBottom: 8,
     letterSpacing: 0.5,
-  },
-  congratsTitle: {
-    fontSize: 28,
-    color: Colors.hopeWhite,
-    marginTop: 24,
-    marginBottom: 4,
-    lineHeight: 34,
-    textAlign: 'center',
-  },
-  congratsSubtitle: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    marginTop: 0,
-    marginBottom: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-    opacity: 0.9,
   },
   checkContainer: {
     marginTop: 10,
@@ -689,20 +687,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   progressContainer: {
-    width: '100%',
     marginTop: 10,
     marginBottom: 30,
+    alignSelf: 'center',
   },
   progressBackground: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 6,
+    height: 6,
+    width: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 4,
+    borderRadius: 2,
   },
   progressText: {
     fontSize: 18,
@@ -714,6 +713,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 16,
     opacity: 0.9,
+    textAlign: 'center',
   },
   devotionalTitle: {
     fontSize: 16,
@@ -731,60 +731,76 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   continueButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    marginTop: 30,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    paddingVertical: 13,
+    marginTop: 24,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   continueButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.hopeWhite,
+    fontWeight: '600',
   },
   ratingTitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.hopeWhite,
-    marginTop: 10,
-    marginBottom: 0,
-    lineHeight: 22,
-    opacity: 0.9,
+    marginTop: 8,
+    marginBottom: 8,
+    lineHeight: 20,
+    opacity: 0.8,
     textAlign: 'center',
   },
   starsContainer: {
-    marginVertical: 12,
+    marginVertical: 8,
   },
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
   },
   starButton: {
-    padding: 6,
-    borderRadius: 12,
+    padding: 4,
   },
   starIcon: {
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  submitButton: {
-    backgroundColor: Colors.faithGold,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-    width: '100%',
+  completionHeaderContainer: {
     alignItems: 'center',
+    marginBottom: 24,
   },
-  submitButtonText: {
-    fontSize: 16,
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  stepLabelWhite: {
+    fontSize: 14,
     color: Colors.hopeWhite,
+    opacity: 0.9,
+    letterSpacing: 0.5,
   },
-  continueButtonOverride: {
-    width: '100%',
-    marginTop: 30,
+  completionTitle: {
+    fontSize: 28,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    lineHeight: 34,
+    textAlign: 'center',
+  },
+  completionPlaybookLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
 
