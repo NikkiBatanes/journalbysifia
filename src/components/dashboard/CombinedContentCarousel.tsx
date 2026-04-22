@@ -1514,7 +1514,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 8,
-    marginLeft: 'auto',
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   typeBadgeText: {
     fontSize: 10,
