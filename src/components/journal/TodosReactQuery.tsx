@@ -422,7 +422,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         };
       }
 
-      await updateTodoMutation.mutateAsync({
+      updateTodoMutation.mutateAsync({
         id,
         updates: {
           content: JSON.stringify(updatedContent),

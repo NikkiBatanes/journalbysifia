@@ -111,6 +111,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const initialState = getInitialState();
   const [todos, setTodos] = useState(initialState.todos);
   const [showSaveButton, setShowSaveButton] = useState(todos.some((todo: string) => todo.trim() !== ''));
+  const hasLoadedInitialTodos = useRef(false);
 
   const dateStr = toLocalDateString(selectedDate);
 
@@ -123,7 +124,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Update todos when existingTodos data loads
   useEffect(() => {
-    if (existingTodos && existingTodos.length > 0) {
+    if (existingTodos && existingTodos.length > 0 && !hasLoadedInitialTodos.current) {
       const savedTodos = existingTodos.map(entry => {
         const parsedContent = typeof entry.content === 'string'
           ? JSON.parse(entry.content)
@@ -136,7 +137,16 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         paddedTodos.push('');
       }
       
+      // Check if all fields are filled out
+      const allFilled = paddedTodos.every(todo => todo.trim() !== '');
+      
+      if (allFilled) {
+        // Add a new empty field if all are filled
+        paddedTodos.push('');
+      }
+      
       setTodos(paddedTodos);
+      hasLoadedInitialTodos.current = true;
       
       // Focus the first empty field and scroll to it
       setTimeout(() => {
@@ -254,27 +264,29 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      // Delete all existing todo entries for this date
+      // Delete all existing todo entries for this date in parallel
       if (existingTodos && existingTodos.length > 0) {
-        for (const entry of existingTodos) {
-          await deleteMutation.mutateAsync(entry.id);
-        }
+        await Promise.all(
+          existingTodos.map(entry => deleteMutation.mutateAsync(entry.id))
+        );
       }
 
-      // Create new individual entries for each todo
-      for (const todo of validTodos) {
-        await createMutation.mutateAsync({
-          user_id: user.id,
-          selected_date: dateStr,
-          content_type: 'todo',
-          content: JSON.stringify({
-            text: todo,
+      // Create new individual entries for each todo in parallel
+      await Promise.all(
+        validTodos.map(todo =>
+          createMutation.mutateAsync({
+            user_id: user.id,
+            selected_date: dateStr,
+            content_type: 'todo',
+            content: JSON.stringify({
+              text: todo,
+              completed: false,
+              priority: false,
+            }),
             completed: false,
-            priority: false,
-          }),
-          completed: false,
-        });
-      }
+          })
+        )
+      );
 
       triggerMediumHaptic();
       navigation.goBack();
