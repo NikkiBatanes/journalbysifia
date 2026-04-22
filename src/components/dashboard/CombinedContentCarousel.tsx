@@ -805,8 +805,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ]}
         >
           <View style={styles.gradientContainer}>
-            <View style={styles.categoryLabel}>
-              <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
+            <View style={styles.gradientTagRow}>
+              <View style={styles.typeIconCircle}>
+                <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.alertCoral} />
+              </View>
+              <View style={styles.categoryLabel}>
+                <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
+              </View>
             </View>
             <TouchableOpacity
               style={styles.menuButton}
@@ -957,8 +962,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             {/* Gradient Container with Category and Menu */}
             <View style={styles.gradientContainer}>
               <View style={styles.gradientTagRow}>
+                <View style={styles.typeIconCircle}>
+                  <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} />
+                </View>
                 <View style={styles.categoryLabel}>
-                  <Ionicons name="book" size={12} color={Colors.alertCoral} style={styles.categoryLabelIcon} />
                   <ThemedText weight="bold" style={styles.categoryLabelText}>{devotional.category || 'Devotional'}</ThemedText>
                 </View>
               </View>
@@ -1466,16 +1473,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   categoryLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.82)',
-  },
-  categoryLabelIcon: {
-    marginRight: 2,
   },
   categoryLabelText: {
     fontSize: 10,
@@ -1511,6 +1512,15 @@ const styles = StyleSheet.create({
   gradientTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  typeIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   menuBackdrop: {
     position: 'absolute',
