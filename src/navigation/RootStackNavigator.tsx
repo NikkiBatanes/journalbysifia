@@ -377,7 +377,7 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="Journal"
             component={JournalScreen as React.ComponentType}
-            options={{ headerShown: true }}
+            options={{ headerShown: false }}
           />
 
           {/* siFia AI Input Screen */}
