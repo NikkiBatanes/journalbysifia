@@ -76,9 +76,9 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   fab: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -94,9 +94,7 @@ export const styles = StyleSheet.create({
     bottom: 4,
   },
   cancelFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   addFab: {
     backgroundColor: 'transparent',

@@ -166,7 +166,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         <TextInput
           style={[
             styles.textInput,
-            { fontFamily: getFontFamily(fontKey, 'regular') },
+            { fontFamily: getFontFamily(fontKey, 'semiBold') },
           ]}
           value={inputValue}
           onChangeText={handleInputChange}
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.inputBackground,
     borderRadius: 50,
     paddingHorizontal: 12,
     borderWidth: 1,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   suggestionAddress: {
     fontSize: 12,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
   },
   noResultsContainer: {
     padding: 16,

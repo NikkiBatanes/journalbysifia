@@ -12,7 +12,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { Pencil, X } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../common/ThemedText';
@@ -356,11 +356,16 @@ const defaultStyles = {
     gap: 12,
   },
   fab: {
-    width: 24,
-    height: 24,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,
@@ -382,9 +387,7 @@ const defaultStyles = {
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   cancelFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   itemMarginBottom: {
     marginBottom: 8,
@@ -726,7 +729,7 @@ const GratitudeLogEditorInner = (
                   _onCancel();
                 }}
               >
-                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -743,9 +746,9 @@ const GratitudeLogEditorInner = (
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

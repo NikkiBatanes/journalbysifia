@@ -137,9 +137,9 @@ const defaultStyles = {
     gap: 12,
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
@@ -156,7 +156,7 @@ const defaultStyles = {
     backgroundColor: Colors.anchorBlue,
   },
   cancelFab: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   fabDisabled: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
@@ -897,7 +897,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   onCancel();
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -914,9 +914,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

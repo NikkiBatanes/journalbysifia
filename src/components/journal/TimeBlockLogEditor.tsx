@@ -90,7 +90,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: 16,
     paddingVertical: 16,
   },
   scrollContent: {
@@ -104,6 +104,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   titleInput: {
     fontSize: 22,
+    fontWeight: 'bold',
     paddingVertical: 8,
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -114,30 +115,33 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtext: {
     color: Colors.hopeWhite,
     opacity: 0.6,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: Fonts.regular,
     includeFontPadding: false,
     textAlignVertical: 'center',
+    marginBottom: 16,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+    marginTop: 48,
+    width: 320,
+    alignSelf: 'center',
   },
   titleTextFlex: {
     flex: 1,
   },
   formContainer: {
     padding: 0,
-    maxWidth: 600,
+    width: 320,
     alignSelf: 'center',
-    width: '100%',
   },
   inputLabel: {
     color: Colors.hopeWhite,
@@ -145,35 +149,40 @@ const createDefaultStyles = (fonts: any) => ({
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
-    opacity: 0.7,
-    letterSpacing: 0.5,
+    opacity: 0.6,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   allDayLabel: {
     color: Colors.hopeWhite,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
-    marginBottom: 8,
-    marginTop: 16,
-    opacity: 0.7,
-    letterSpacing: 0.5,
+    marginBottom: 0,
+    marginTop: 0,
+    marginRight: 8,
+    opacity: 0.6,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   formInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
-    padding: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 20,
     fontFamily: Fonts.regular,
-    minHeight: 44,
+    minHeight: 40,
     marginBottom: 16,
+    width: '100%',
   },
   multilineInput: {
-    minHeight: 120,
+    minHeight: 100,
+    borderRadius: 16,
+    paddingTop: 10,
   },
   locationInputContainer: {
     marginBottom: 16,
@@ -195,14 +204,14 @@ const createDefaultStyles = (fonts: any) => ({
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
-    opacity: 0.7,
-    letterSpacing: 0.5,
+    opacity: 0.6,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   timeText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
   },
   timeSeparator: {
     color: Colors.hopeWhite,
@@ -220,8 +229,10 @@ const createDefaultStyles = (fonts: any) => ({
     alignItems: 'center',
   },
   repeatTextWithMargin: {
-    opacity: 0.7,
     marginRight: 8,
+  },
+  selectedOptionText: {
+    color: Colors.alertCoral,
   },
   categoryContainer: {
     marginTop: 0,
@@ -234,24 +245,26 @@ const createDefaultStyles = (fonts: any) => ({
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 16,
-    minHeight: 44,
+    minHeight: 40,
+    width: '100%',
   },
   selectedCategoryButton: {
     // No background styling
   },
   categoryIcon: {
-    marginRight: 12,
+    marginRight: 8,
   },
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     flex: 1,
   },
   categoryTextRequired: {
@@ -266,7 +279,7 @@ const createDefaultStyles = (fonts: any) => ({
   allDayText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
   },
   switchContainer: {
     padding: 4,
@@ -326,9 +339,9 @@ const createDefaultStyles = (fonts: any) => ({
     backgroundColor: Colors.anchorBlue,
   },
   fab: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -343,9 +356,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   cancelFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,
@@ -408,17 +419,18 @@ const createDefaultStyles = (fonts: any) => ({
   },
   sectionLabel: {
     color: Colors.hopeWhite,
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
-    opacity: 0.8,
+    opacity: 0.6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   timeRowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
-    paddingHorizontal: 4,
   },
   timeSection: {
     flexDirection: 'row',
@@ -430,18 +442,89 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 16,
-    minHeight: 44,
+    minHeight: 40,
+    width: '100%',
   },
   repeatText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  notesIcon: {
+    marginRight: 12,
+    marginTop: 10,
+  },
+  notesInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  notesInputIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  notesInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 20,
+    minHeight: 100,
+    paddingTop: 0,
+    textAlignVertical: 'top',
+    fontFamily: Fonts.semiBold,
+  },
+  titleInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    minHeight: 40,
+  },
+  titleInputIcon: {
+    marginRight: 8,
+  },
+  titleInputField: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 20,
+    fontFamily: Fonts.semiBold,
   },
   timePickerModal: {
     flex: 1,
@@ -524,27 +607,28 @@ const createDefaultStyles = (fonts: any) => ({
     alignItems: 'center',
   },
   frequencyInput: {
-    width: 50,
-    height: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    padding: 8,
+    width: 56,
+    height: 40,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 50,
+    paddingHorizontal: 10,
     color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 16,
     marginRight: 8,
   },
   frequencyUnitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 50,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    minHeight: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   customModalButtons: {
     flexDirection: 'row',
@@ -553,16 +637,20 @@ const createDefaultStyles = (fonts: any) => ({
   },
   customModalButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 50,
     alignItems: 'center',
     marginHorizontal: 5,
+    minHeight: 40,
   },
   customModalCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   customModalConfirmButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
   },
   customModalButtonText: {
     color: Colors.hopeWhite,
@@ -582,14 +670,14 @@ const createDefaultStyles = (fonts: any) => ({
   repeatOptionLast: {
   },
   repeatOptionSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 50,
     marginHorizontal: 4,
   },
   repeatOptionText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
   },
   repeatOptionSelectedText: {
     fontFamily: Fonts.semiBold,
@@ -597,13 +685,13 @@ const createDefaultStyles = (fonts: any) => ({
   customRepeatLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     marginBottom: 12,
   },
   frequencyUnitText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     marginRight: 4,
   },
   endRepeatContainer: {
@@ -617,21 +705,23 @@ const createDefaultStyles = (fonts: any) => ({
   },
   endRepeatButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
     borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 40,
   },
   endRepeatButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   endRepeatButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
   },
   endRepeatButtonNeverActive: {
     backgroundColor: Colors.alertCoral,
@@ -648,17 +738,18 @@ const createDefaultStyles = (fonts: any) => ({
     justifyContent: 'space-between',
   },
   dayButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   dayButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   dayButtonText: {
     color: Colors.hopeWhite,
@@ -958,16 +1049,19 @@ function TimeBlockLogEditorInner(
               </View>
 
               {/* Title Input */}
-              <TextInput
-                ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular }]}
-                placeholder="Title *"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={title}
-                onChangeText={(text) => handleContentChange('title', text)}
-                multiline={false}
-                keyboardAppearance="dark"
-              />
+              <View style={s.titleInputContainer}>
+                <Ionicons name="text" size={18} color={Colors.hopeWhite} style={s.titleInputIcon} />
+                <TextInput
+                  ref={inputRef}
+                  style={s.titleInputField}
+                  placeholder="Title *"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={title}
+                  onChangeText={(text) => handleContentChange('title', text)}
+                  multiline={false}
+                  keyboardAppearance="dark"
+                />
+              </View>
 
               {/* Repeat Section */}
               <TouchableOpacity
@@ -977,9 +1071,12 @@ function TimeBlockLogEditorInner(
                   setShowRepeatModal(true);
                 }}
               >
-                <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
+                <View style={s.buttonContent}>
+                  <Ionicons name="repeat" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
+                </View>
                 <View style={s.repeatOptionContainer}>
-                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</ThemedText>
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, repeatOption !== 'Never' && s.selectedOptionText]}>{repeatOption}</ThemedText>
                   <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
@@ -996,7 +1093,7 @@ function TimeBlockLogEditorInner(
                         endRepeatMode === 'never' && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.repeatText}>Never</ThemedText>
+                      <ThemedText style={s.repeatText}>Never</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => { setShowEndDatePicker(true); }}
@@ -1005,7 +1102,7 @@ function TimeBlockLogEditorInner(
                         (endRepeatMode === 'date' && endRepeatDate) && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.repeatText}>
+                      <ThemedText style={s.repeatText}>
                         {endRepeatDate ? endRepeatDate.toLocaleDateString() : 'Select End Date'}
                       </ThemedText>
                     </TouchableOpacity>
@@ -1021,9 +1118,12 @@ function TimeBlockLogEditorInner(
                   setShowAlertModal(true);
                 }}
               >
-                <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
+                <View style={s.buttonContent}>
+                  <Ionicons name="notifications" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
+                </View>
                 <View style={s.repeatOptionContainer}>
-                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, alert !== 'none' && s.selectedOptionText]}>
                     {alert === 'none' ? 'None' :
                      alert === 'at-time' ? 'At time of event' :
                      alert === '5-min' ? '5 minutes before' :
@@ -1334,24 +1434,27 @@ function TimeBlockLogEditorInner(
               </View>
 
               {/* Notes Input */}
-              <TextInput
-                style={[s.formInput, s.multilineInput, { fontFamily: fonts.regular }]}
-                placeholder="Notes"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={notes}
-                onChangeText={(text) => handleContentChange('notes', text)}
-                multiline
-                textAlignVertical="top"
-                keyboardAppearance="dark"
-                onFocus={() => {
-                  // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
-                  setTimeout(() => {
-                    if (scrollViewRef.current) {
-                      scrollViewRef.current.scrollTo({ y: 360, animated: true });
-                    }
-                  }, 250);
-                }}
-              />
+              <View style={s.notesInputContainer}>
+                <Ionicons name="document-text" size={18} color={Colors.hopeWhite} style={s.notesInputIcon} />
+                <TextInput
+                  style={s.notesInput}
+                  placeholder="Notes"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={notes}
+                  onChangeText={(text) => handleContentChange('notes', text)}
+                  multiline
+                  textAlignVertical="top"
+                  keyboardAppearance="dark"
+                  onFocus={() => {
+                    // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
+                    setTimeout(() => {
+                      if (scrollViewRef.current) {
+                        scrollViewRef.current.scrollTo({ y: 360, animated: true });
+                      }
+                    }, 250);
+                  }}
+                />
+              </View>
 
               {/* Metadata section
                  Only show when there is a real playbook title. This keeps
@@ -1387,7 +1490,7 @@ function TimeBlockLogEditorInner(
                   onCancel();
                 }}
               >
-                <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -1404,9 +1507,9 @@ function TimeBlockLogEditorInner(
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

@@ -1561,7 +1561,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   handleCancel();
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -1578,9 +1578,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>
