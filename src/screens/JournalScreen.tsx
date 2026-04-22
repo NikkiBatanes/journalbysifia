@@ -18,6 +18,7 @@ import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
+import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 
 // Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -72,6 +73,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { setShowTabBar, setContentScrollRef } = useScroll();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showGratitudeModal, setShowGratitudeModal] = useState(false);
+  const [existingGratitudeEntry, setExistingGratitudeEntry] = useState<any | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
 
@@ -612,7 +615,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               onScroll={handleContentScroll}
               scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.carouselContainer}>
@@ -621,6 +623,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   refreshKey={refreshKey}
                   initialScrollIndex={carouselIndices.plan}
                   onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, plan: index })); }}
+                  navigation={navigation}
                 />
               </View>
               {/* Only show ReflectCarousel for today or past dates */}
@@ -637,6 +640,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                       refreshKey={refreshKey}
                       initialScrollIndex={carouselIndices.reflect}
                       onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, reflect: index })); }}
+                      onGratitudeBegin={(existingEntry) => {
+                        setExistingGratitudeEntry(existingEntry);
+                        setShowGratitudeModal(true);
+                      }}
                     />
                   </View>
                   <View style={styles.carouselContainer}>
@@ -748,6 +755,20 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
           </View>
         </View>
       </Modal>
+
+      {/* Smart Journaling Gratitude Modal */}
+      <SmartJournalingGratitudeModal
+        visible={showGratitudeModal}
+        existingGratitude={existingGratitudeEntry}
+        onSave={() => {
+          // Modal will handle its own success flow
+          setRefreshKey(prev => prev + 1);
+        }}
+        onCancel={() => {
+          setShowGratitudeModal(false);
+          setExistingGratitudeEntry(undefined);
+        }}
+      />
 
     </View>
     </SafeAreaView>

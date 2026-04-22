@@ -50,9 +50,10 @@ interface GratitudeListProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  onBegin?: (existingEntry?: any) => void;
 }
 
-export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand }) => {
+export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onBegin }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -606,7 +607,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           </ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
-            onPress={startAdding}
+            onPress={() => {
+              if (onBegin) {
+                onBegin();
+              } else {
+                startAdding();
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
@@ -769,7 +776,24 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         title={(hasContent || shouldShowAddingMode) ? 'GRATITUDE LIST' : undefined}
         subtitle={dynamicSubtitle}
         showAddButton={hasContent ? !shouldShowAddingMode : false}
-        onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
+        onAdd={() => {
+          if (onBegin) {
+            // Pass all gratitude items from all entries for editing
+            const allItems = gratitudeItems.map(item => item.text);
+            // Create a synthetic entry object with all items
+            const syntheticEntry = gratitudeEntries.length > 0 ? {
+              ...gratitudeEntries[0],
+              content: JSON.stringify({ items: allItems })
+            } : undefined;
+            onBegin(syntheticEntry);
+          } else {
+            if (gratitudeItems.length > 0) {
+              startEditing();
+            } else {
+              startAdding();
+            }
+          }
+        }}
         isAdding={shouldShowAddingMode}
         viewMode={viewMode}
         expanded={expanded}

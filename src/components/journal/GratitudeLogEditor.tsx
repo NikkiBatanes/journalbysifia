@@ -46,6 +46,7 @@ interface GratitudeLogEditorProps {
 
 export interface GratitudeLogEditorRef {
   focusInput: () => void;
+  reset: () => void;
 }
 
 // Styles matching reflection log editor pattern
@@ -461,36 +462,21 @@ const GratitudeLogEditorInner = (
     focusInput: () => {
       // Ensure input refs array is properly initialized
       if (!inputRefs.current || inputRefs.current.length === 0) {
-        // Initialize refs array if not already done
-        inputRefs.current = Array(gratitudeItems.length).fill(null);
+        inputRefs.current = [null, null, null];
       }
 
-      // Find the first empty input field
-      let firstEmptyIndex = -1;
-      for (let i = 0; i < gratitudeItems.length; i++) {
-        if (gratitudeItems[i].trim().length === 0) {
-          firstEmptyIndex = i;
-          break;
-        }
-      }
-
-      // If all fields have content, focus on the last field and position cursor at the end
-      const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
-
-      if (inputRefs.current[targetIndex]) {
-        inputRefs.current[targetIndex]!.focus();
-        // Position cursor at the end of the text (or start if empty)
+      // Focus the first non-empty input
+      const targetIndex = gratitudeItems.findIndex(item => item.trim().length === 0);
+      if (targetIndex === -1) {
+        // All inputs have text, add a new one and focus it
+        setGratitudeItems(prev => [...prev, '']);
         setTimeout(() => {
-          if (inputRefs.current[targetIndex]) {
-            const text = gratitudeItems[targetIndex] || '';
-            inputRefs.current[targetIndex]!.setSelection(text.length, text.length);
+          if (inputRefs.current[inputRefs.current.length - 1]) {
+            inputRefs.current[inputRefs.current.length - 1]!.focus();
           }
-        }, 100);
+        }, 200);
       } else {
-        Logger.warn('[GratitudeLogEditor] Input ref not available at index: ' + targetIndex, {
-          component: 'GratitudeLogEditor',
-        });
-        // Retry focus after a short delay
+        // Focus the first empty input
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             inputRefs.current[targetIndex]!.focus();
@@ -498,20 +484,24 @@ const GratitudeLogEditorInner = (
         }, 200);
       }
     },
+    reset: () => {
+      setGratitudeItems(['', '', '']);
+      setHasUserMadeChanges(false);
+    },
   }));
 
 
 
   // Update gratitude items when initialItems changes (for React Query data loading)
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) {
+    if (initialItems && initialItems.length > 0 && !hasUserMadeChanges) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
-      if (hasExistingData && !hasUserMadeChanges) {
+      if (hasExistingData) {
         const numberedItems = addNumbersToItems(initialItems);
         setGratitudeItems(numberedItems);
       }
     }
-  }, [initialItems, hasUserMadeChanges, addNumbersToItems]);
+  }, [initialItems, addNumbersToItems, hasUserMadeChanges]);
 
 
 
@@ -691,17 +681,6 @@ const GratitudeLogEditorInner = (
               </View>
             ))}
 
-            {/* Add more button - positioned to the right - only show if first 3 are filled */}
-            {gratitudeItems.slice(0, 3).every(item => item.trim().length > 0) && (
-              <View style={s.addMoreContainer}>
-                <TouchableOpacity style={s.addMoreButton} onPress={addGratitudeItem}>
-                  <View style={s.rotateIcon}>
-                    <Ionicons name="close" size={13} color={Colors.alertCoral} style={s.boldIcon} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
             {/* Metadata section - matching reflection editor format */}
             {(_subtaskTitle || playbookTitle) && (
               <PlaybookMetaSection
@@ -730,6 +709,17 @@ const GratitudeLogEditorInner = (
                 }}
               >
                 <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+
+              {/* Add More FAB - Plus button */}
+              <TouchableOpacity
+                style={[s.fab, s.addFab]}
+                onPress={() => {
+                  triggerLightHaptic();
+                  addGratitudeItem();
+                }}
+              >
+                <Ionicons name="add" size={17} color={Colors.hopeWhite} />
               </TouchableOpacity>
 
               {/* Save FAB */}

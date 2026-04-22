@@ -1040,6 +1040,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <SmartJournalingGratitudeModal
           visible={true}
           subtaskTitle={currentStep.title ?? ''}
+          subtaskId={currentStep.id}
+          stepId={currentStep.id}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
           actionStepNumber={stepNumber}
