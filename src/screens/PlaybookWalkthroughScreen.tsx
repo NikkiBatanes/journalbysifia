@@ -443,6 +443,7 @@ let persistedActionStepIndex = 0;
 let persistedPlaybookId: string | undefined;
 let persistedHasPrayed = false;
 let persistedHasRead = false;
+let persistedCompletionChoice: string | null = null;
 
 // ─── AsyncStorage session persistence ───────────────────────────────────────
 // Saves module-level vars to AsyncStorage so state survives Metro hot reloads
@@ -459,6 +460,7 @@ const saveCurrentSession = () => {
       actionStepIndex: persistedActionStepIndex,
       hasPrayed: persistedHasPrayed,
       hasRead: persistedHasRead,
+      completionChoice: persistedCompletionChoice,
     })
   ).catch(() => {});
 };
@@ -1338,7 +1340,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   insets,
   onTurnIntoDevotional,
 }) => {
-  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(persistedCompletionChoice);
   const headerAnim = useRef(new Animated.Value(40)).current;
   const buttonsAnim = useRef(new Animated.Value(30)).current;
 
@@ -1438,6 +1440,8 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                   onPress={() => {
                     triggerLightHaptic();
                     setSelectedChoice(choice);
+                    persistedCompletionChoice = choice;
+                    saveCurrentSession();
                   }}
                   activeOpacity={0.8}
                 >
@@ -1604,6 +1608,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             persistedActionStepIndex = session.actionStepIndex ?? 0;
             persistedHasPrayed = session.hasPrayed ?? false;
             persistedHasRead = session.hasRead ?? false;
+            persistedCompletionChoice = session.completionChoice ?? null;
             // Don't restore journalNudgeFired — always let the nudge run fresh
             journalNudgeFired = false;
             setActionStepIndex(persistedActionStepIndex);
@@ -1617,6 +1622,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           persistedActionStepIndex = 0;
           persistedHasPrayed = false;
           persistedHasRead = false;
+          persistedCompletionChoice = null;
           journalNudgeFired = false;
           setActionStepIndex(0);
         }
