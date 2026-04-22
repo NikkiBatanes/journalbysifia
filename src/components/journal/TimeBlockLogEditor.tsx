@@ -143,8 +143,8 @@ const createDefaultStyles = (fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
-    marginBottom: 4,
-    marginTop: 12,
+    marginBottom: 8,
+    marginTop: 16,
     opacity: 0.7,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -160,7 +160,7 @@ const createDefaultStyles = (fonts: any) => ({
     lineHeight: 20,
     fontFamily: Fonts.regular,
     minHeight: 44,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   multilineInput: {
     minHeight: 120,
@@ -169,13 +169,13 @@ const createDefaultStyles = (fonts: any) => ({
     textAlignVertical: 'top',
   },
   locationInputContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
 
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   timeButton: {
     alignItems: 'center',
@@ -215,7 +215,7 @@ const createDefaultStyles = (fonts: any) => ({
     marginRight: 8,
   },
   categoryContainer: {
-    marginTop: 16,
+    marginTop: 0,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -230,7 +230,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 16,
     minHeight: 44,
   },
   selectedCategoryButton: {
@@ -252,7 +252,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   allDayText: {
     color: Colors.hopeWhite,
@@ -408,7 +408,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
     paddingHorizontal: 4,
   },
   timeSection: {
@@ -426,7 +426,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 16,
     minHeight: 44,
   },
   repeatText: {
@@ -604,7 +604,7 @@ const createDefaultStyles = (fonts: any) => ({
     marginRight: 4,
   },
   endRepeatContainer: {
-    marginTop: 8,
+    marginTop: 0,
     marginBottom: 16,
   },
   endRepeatRow: {
