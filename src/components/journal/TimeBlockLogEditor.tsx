@@ -174,9 +174,6 @@ const createDefaultStyles = (fonts: any) => ({
   },
   multilineInput: {
     minHeight: 120,
-    padding: 16,
-    paddingBottom: 0,
-    textAlignVertical: 'top',
   },
   locationInputContainer: {
     marginBottom: 16,
@@ -963,7 +960,7 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular, padding: 16, paddingBottom: 0, textAlignVertical: 'top' }]}
+                style={[s.formInput, { fontFamily: fonts.regular }]}
                 placeholder="Title *"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={title}
@@ -983,7 +980,7 @@ function TimeBlockLogEditorInner(
                 <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
                 <View style={s.repeatOptionContainer}>
                   <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</ThemedText>
-                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
+                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
 
@@ -999,7 +996,7 @@ function TimeBlockLogEditorInner(
                         endRepeatMode === 'never' && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.endRepeatButtonText}>Never</ThemedText>
+                      <ThemedText weight="medium" style={s.repeatText}>Never</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => { setShowEndDatePicker(true); }}
@@ -1008,7 +1005,7 @@ function TimeBlockLogEditorInner(
                         (endRepeatMode === 'date' && endRepeatDate) && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.endRepeatButtonText}>
+                      <ThemedText weight="medium" style={s.repeatText}>
                         {endRepeatDate ? endRepeatDate.toLocaleDateString() : 'Select End Date'}
                       </ThemedText>
                     </TouchableOpacity>
@@ -1039,7 +1036,7 @@ function TimeBlockLogEditorInner(
                      alert === '2-days' ? '2 days before' :
                      alert === '1-week' ? '1 week before' : 'None'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
+                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
 
@@ -1061,13 +1058,13 @@ function TimeBlockLogEditorInner(
                 <ThemedText
                   weight="medium"
                   style={[
-                    s.categoryText,
+                    s.repeatText,
                     category === 'Select a category' && s.categoryTextRequired,
                   ]}
                 >
                   {category === 'Select a category' ? 'Category *' : category}
                 </ThemedText>
-                <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
+                <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
 
               <TimeBlockCategoryModal
@@ -1390,7 +1387,7 @@ function TimeBlockLogEditorInner(
                   onCancel();
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+                <Ionicons name="close" size={16} color={Colors.hopeWhite} />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -1409,7 +1406,7 @@ function TimeBlockLogEditorInner(
                 {isLoading ? (
                   <ActivityIndicator size={20} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>
