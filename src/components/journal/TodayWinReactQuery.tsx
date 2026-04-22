@@ -507,7 +507,8 @@ const styles = StyleSheet.create({
   completionDivider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginVertical: 24,
+    marginTop: 16,
+    marginBottom: 20,
   },
   editButton: {
     padding: 4,
