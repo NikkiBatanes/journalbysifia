@@ -583,14 +583,14 @@ const createDefaultStyles = (fonts: any) => ({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: '100%',
   },
   repeatModalContainer: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 24,
     padding: 20,
-    margin: 20,
-    minWidth: 300,
-    maxWidth: 340,
+    maxWidth: 280,
+    alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -680,17 +680,18 @@ const createDefaultStyles = (fonts: any) => ({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 8,
+    alignItems: 'center',
   },
   repeatOptionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 50,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    minWidth: 80,
   },
   repeatOptionPillActive: {
     backgroundColor: Colors.alertCoral,
@@ -1365,44 +1366,70 @@ function TimeBlockLogEditorInner(
                 transparent={true}
                 animationType="fade"
                 onRequestClose={() => setShowAlertModal(false)}
+                supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
               >
                 <View style={s.repeatModal}>
                   <View style={s.repeatModalContainer}>
-                    <ThemedText weight="semiBold" style={s.repeatModalTitle}>Alert</ThemedText>
-                    {[
-                      { value: 'none', label: 'None' },
-                      { value: 'at-time', label: 'At time of event' },
-                      { value: '5-min', label: '5 minutes before' },
-                      { value: '10-min', label: '10 minutes before' },
-                      { value: '15-min', label: '15 minutes before' },
-                      { value: '30-min', label: '30 minutes before' },
-                      { value: '1-hour', label: '1 hour before' },
-                      { value: '2-hours', label: '2 hours before' },
-                      { value: '1-day', label: '1 day before' },
-                      { value: '2-days', label: '2 days before' },
-                      { value: '1-week', label: '1 week before' },
-                    ].map((option, index, array) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          s.repeatOption,
-                          index === array.length - 1 && s.repeatOptionLast,
-                          alert === option.value && s.repeatOptionSelected,
-                        ]}
-                        onPress={async () => {
-                          await triggerLightHaptic();
-                          setAlert(option.value as any);
-                          setShowAlertModal(false);
-                        }}
-                      >
-                        <ThemedText weight="medium" style={[
-                          s.repeatOptionText,
-                          alert === option.value && s.repeatOptionSelectedText,
-                        ]}>
-                          {option.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
+                    <ThemedText weight="medium" style={s.repeatModalTitle}>Alert</ThemedText>
+                    <View style={s.repeatOptionsGrid}>
+                      {[
+                        { value: 'none', label: 'None' },
+                        { value: 'at-time', label: 'At time' },
+                        { value: '5-min', label: '5 min' },
+                        { value: '10-min', label: '10 min' },
+                        { value: '15-min', label: '15 min' },
+                        { value: '30-min', label: '30 min' },
+                      ].map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            s.repeatOptionPill,
+                            alert === option.value && s.repeatOptionPillActive,
+                          ]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setAlert(option.value as any);
+                            setShowAlertModal(false);
+                          }}
+                        >
+                          <ThemedText weight={alert === option.value ? 'semiBold' : 'medium'} style={[
+                            s.repeatOptionPillText,
+                            alert === option.value && s.repeatOptionPillTextActive,
+                          ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View style={s.repeatOptionsGrid}>
+                      {[
+                        { value: '1-hour', label: '1 hour' },
+                        { value: '2-hours', label: '2 hours' },
+                        { value: '1-day', label: '1 day' },
+                        { value: '2-days', label: '2 days' },
+                        { value: '1-week', label: '1 week' },
+                      ].map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            s.repeatOptionPill,
+                            alert === option.value && s.repeatOptionPillActive,
+                          ]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setAlert(option.value as any);
+                            setShowAlertModal(false);
+                          }}
+                        >
+                          <ThemedText weight={alert === option.value ? 'semiBold' : 'medium'} style={[
+                            s.repeatOptionPillText,
+                            alert === option.value && s.repeatOptionPillTextActive,
+                          ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
                 </View>
               </Modal>
