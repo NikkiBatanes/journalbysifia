@@ -123,6 +123,7 @@ const CategorySelectionStep: React.FC<{
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonOpacity = React.useRef(new Animated.Value(1)).current;
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const chooseAgainScale = React.useRef(new Animated.Value(0)).current;
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -143,6 +144,19 @@ const CategorySelectionStep: React.FC<{
       setIsOtherSelected(false);
     }
   }, [selectedCategory]);
+
+  React.useEffect(() => {
+    if (isOtherSelected) {
+      Animated.spring(chooseAgainScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      chooseAgainScale.setValue(0);
+    }
+  }, [isOtherSelected]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -298,15 +312,21 @@ const CategorySelectionStep: React.FC<{
         {FOCUS_CATEGORIES.length > 12 && (
           <StepFadeIn delay={240}>
             <Animated.View style={{ opacity: buttonOpacity }}>
-              <TouchableOpacity
-                style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
-                onPress={isOtherSelected ? handleChooseAgain : handleToggleShowAll}
-                activeOpacity={0.75}
+              <Animated.View
+                style={{
+                  transform: [{ scale: isOtherSelected ? chooseAgainScale : 1 }],
+                }}
               >
-                <ThemedText style={styles.showMoreButtonText}>
-                  {isOtherSelected ? 'Choose again' : (showAllCategories ? 'Show Less' : 'Show More')}
-                </ThemedText>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                  onPress={isOtherSelected ? handleChooseAgain : handleToggleShowAll}
+                  activeOpacity={0.75}
+                >
+                  <ThemedText style={styles.showMoreButtonText}>
+                    {isOtherSelected ? 'Choose again' : (showAllCategories ? 'Show Less' : 'Show More')}
+                  </ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
             </Animated.View>
           </StepFadeIn>
         )}
@@ -315,7 +335,7 @@ const CategorySelectionStep: React.FC<{
       </ScrollView>
 
       {/* Bottom buttons */}
-      {selectedCategory && (
+      {selectedCategory && (!isOtherSelected || customFocus.trim() !== '') && (
         <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
           <TouchableOpacity
             onPress={() => {
@@ -653,6 +673,55 @@ const CompletionStep: React.FC<{
 }> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType }) => {
   const validPriorities = priorities.filter(p => p.trim() !== '');
 
+  // Animation refs
+  const checkmarkScale = React.useRef(new Animated.Value(0)).current;
+  const iconScale = React.useRef(new Animated.Value(0)).current;
+  const iconRotation = React.useRef(new Animated.Value(0)).current;
+  const priorityAnims = React.useRef(validPriorities.map(() => new Animated.Value(0))).current;
+
+  React.useEffect(() => {
+    // Animate checkmark
+    Animated.spring(checkmarkScale, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      delay: 400,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate icon container with rotation
+    Animated.parallel([
+      Animated.spring(iconScale, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(iconRotation, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Stagger animate priority bullets
+    Animated.stagger(100, priorityAnims.map(anim =>
+      Animated.spring(anim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      })
+    )).start();
+  }, []);
+
+  const iconRotateInterpolate = iconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -660,83 +729,94 @@ const CompletionStep: React.FC<{
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
       >
-        <StepFadeIn delay={0}>
-          <View style={styles.titleRow}>
-            {iconType === 'ionicons' && (
-              <Ionicons name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
-            )}
-            {iconType === 'material' && (
-              <MaterialIcons name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
-            )}
-            {iconType === 'fontawesome' && (
-              <FontAwesome6 name={icon as any} size={20} color={Colors.alertCoral} style={styles.labelIcon} />
-            )}
-            <ThemedText weight="semiBold" style={styles.completionTitle}>SAVED</ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={80}>
-          <ThemedText weight="medium" style={styles.completionSubtitle}>Today is set</ThemedText>
-        </StepFadeIn>
-
-        <StepFadeIn delay={160}>
-          <ThemedText style={styles.completionDescription}>
-            A simple daily anchor before you move into the rest of your day.
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <MaterialIcons name="filter-center-focus" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            TODAY'S FOCUS
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={240} style={styles.summaryCard}>
-          <ThemedText weight="semiBold" style={styles.summaryLabel}>TODAY'S FOCUS</ThemedText>
-          <ThemedText weight="medium" style={styles.summaryValue}>{category.name}</ThemedText>
+        <StepFadeIn delay={80} style={styles.completionCard}>
+          <View style={styles.completionHeader}>
+            <Animated.View style={[
+              styles.completionIconContainer,
+              {
+                transform: [
+                  { scale: iconScale },
+                  { rotate: iconRotateInterpolate },
+                ],
+              },
+            ]}>
+              {iconType === 'ionicons' && (
+                <Ionicons name={icon as any} size={24} color={Colors.alertCoral} />
+              )}
+              {iconType === 'material' && (
+                <MaterialIcons name={icon as any} size={24} color={Colors.alertCoral} />
+              )}
+              {iconType === 'fontawesome' && (
+                <FontAwesome6 name={icon as any} size={24} color={Colors.alertCoral} />
+              )}
+            </Animated.View>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>{category.name}</ThemedText>
+              <ThemedText style={styles.completionSubtext}>Your focus is set for today</ThemedText>
+            </View>
+            <Animated.View style={[
+              styles.completionCheckmark,
+              { transform: [{ scale: checkmarkScale }] },
+            ]}>
+              <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
+            </Animated.View>
+          </View>
 
           {personalText.trim() && (
-            <>
-              <View style={styles.summaryDivider} />
-              <ThemedText style={styles.summaryValue}>{personalText}</ThemedText>
-            </>
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>Personal Note</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{personalText}</ThemedText>
+            </View>
           )}
 
           {validPriorities.length > 0 && (
-            <>
-              <View style={styles.summaryDivider} />
-              <ThemedText weight="semiBold" style={styles.summaryLabel}>TOP PRIORITIES</ThemedText>
-              {validPriorities.map((priority, index) => (
-                <ThemedText key={index} style={styles.summaryValue}>
-                  {index + 1}. {priority}
-                </ThemedText>
-              ))}
-            </>
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>Top Priorities</ThemedText>
+              <View style={styles.prioritiesList}>
+                {validPriorities.map((priority, index) => (
+                  <View key={index} style={styles.priorityItem}>
+                    <Animated.View style={[
+                      styles.priorityBullet,
+                      { transform: [{ scale: priorityAnims[index] || 0 }] },
+                    ]}>
+                      <ThemedText weight="semiBold" style={styles.priorityBulletText}>{index + 1}</ThemedText>
+                    </Animated.View>
+                    <ThemedText style={styles.priorityText}>{priority}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
           )}
+
+          <View style={styles.completionFooter}>
+            <ThemedText style={styles.completionFooterText}>
+              A simple daily anchor before you move into the rest of your day.
+            </ThemedText>
+          </View>
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
             onDone();
           }}
-          activeOpacity={0.7}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.85}
+          style={styles.completionButton}
         >
-          <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            navigation.goBack();
-          }}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+            Save for today
+          </ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -1180,6 +1260,139 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginVertical: 16,
+  },
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+    marginTop: 48,
+  },
+  stepLabelWhite: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+  },
+  completionCard: {
+    borderRadius: 50,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  completionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  completionHeaderContent: {
+    flex: 1,
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  completionSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  completionCheckmark: {
+    marginLeft: 12,
+  },
+  completionSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  completionSectionLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  completionSectionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  prioritiesList: {
+    gap: 12,
+  },
+  priorityItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  priorityBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  priorityBulletText: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+  },
+  priorityText: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  completionFooter: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  completionFooterText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  completionButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  completionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    width: '100%',
+  },
+  completionButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   bottomButtons: {
     position: 'absolute',
