@@ -468,7 +468,7 @@ const clearSessionStorage = (id: string) => {
 };
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
-  { type: 'reflection', icon: 'head-lightbulb', color: Colors.faithGold, label: 'Reflect' },
+  { type: 'reflection', icon: 'feather', color: Colors.faithGold, label: 'Journal' },
   { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
   { type: 'gratitude', icon: 'heart', color: Colors.alertCoral, label: 'Gratitude' },
   { type: 'timeblock', icon: 'clock', color: Colors.growthGreen, label: 'Schedule' },
