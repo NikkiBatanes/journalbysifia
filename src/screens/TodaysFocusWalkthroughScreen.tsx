@@ -69,7 +69,7 @@ const FOCUS_CATEGORIES: FocusCategory[] = [
   { id: 'follow-through', name: 'Follow-through', description: 'Doing what you already know is yours to do.', icon: 'check-circle', iconType: 'material' },
   { id: 'groceries', name: 'Groceries', description: 'Planning and handling practical needs for the day or week.', icon: 'cart', iconType: 'material' },
   { id: 'errands', name: 'Errands', description: 'Ordinary responsibilities that still need peace and follow-through.', icon: 'store', iconType: 'material' },
-  { id: 'other', name: 'Other', description: 'Something else that needs your attention today.', icon: 'add-circle', iconType: 'material' },
+  { id: 'other', name: 'Other', description: 'Something else that needs your attention today.', icon: 'plus-circle', iconType: 'material' },
 ];
 
 // StepFadeIn component
@@ -116,9 +116,10 @@ const CategorySelectionStep: React.FC<{
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ selectedCategory, onSelect, onNext, insets, navigation }) => {
+  customFocus: string;
+  setCustomFocus: (text: string) => void;
+}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
-  const [customFocus, setCustomFocus] = React.useState('');
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonOpacity = React.useRef(new Animated.Value(1)).current;
@@ -379,7 +380,8 @@ const PersonalTextInputStep: React.FC<{
   navigation: any;
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
-}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType }) => {
+  customFocus: string;
+}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -464,7 +466,7 @@ const PersonalTextInputStep: React.FC<{
                 <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'material' && (
-                <MaterialIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <MaterialCommunityIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'fontawesome' && (
                 <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
@@ -473,7 +475,11 @@ const PersonalTextInputStep: React.FC<{
                 FOCUS
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                You chose <ThemedText weight="semiBold">{category.name}</ThemedText>
+                {category.id === 'other' && customFocus.trim() ? (
+                  <ThemedText weight="semiBold">Other: {customFocus.trim()}</ThemedText>
+                ) : (
+                  <>You chose <ThemedText weight="semiBold">{category.name}</ThemedText></>
+                )}
               </ThemedText>
               <ThemedText style={styles.metadataText}>
                 Add one short sentence if you want to make it personal.
@@ -527,7 +533,8 @@ const PrioritiesInputStep: React.FC<{
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
   category: FocusCategory;
-}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category }) => {
+  customFocus: string;
+}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -608,7 +615,7 @@ const PrioritiesInputStep: React.FC<{
                 <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'material' && (
-                <MaterialIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <MaterialCommunityIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'fontawesome' && (
                 <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
@@ -617,7 +624,11 @@ const PrioritiesInputStep: React.FC<{
                 FOCUS
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                {category.name}
+                {category.id === 'other' && customFocus.trim() ? (
+                  <ThemedText weight="semiBold">Other: {customFocus.trim()}</ThemedText>
+                ) : (
+                  <ThemedText weight="semiBold">{category.name}</ThemedText>
+                )}
               </ThemedText>
               <ThemedText style={styles.metadataText}>
                 Add up to 3 priorities for today.
@@ -670,7 +681,8 @@ const CompletionStep: React.FC<{
   navigation: any;
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
-}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType }) => {
+  customFocus: string;
+}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType, customFocus }) => {
   const validPriorities = priorities.filter(p => p.trim() !== '');
 
   // Animation refs
@@ -751,14 +763,16 @@ const CompletionStep: React.FC<{
                 <Ionicons name={icon as any} size={24} color={Colors.alertCoral} />
               )}
               {iconType === 'material' && (
-                <MaterialIcons name={icon as any} size={24} color={Colors.alertCoral} />
+                <MaterialCommunityIcons name={icon as any} size={24} color={Colors.alertCoral} />
               )}
               {iconType === 'fontawesome' && (
                 <FontAwesome6 name={icon as any} size={24} color={Colors.alertCoral} />
               )}
             </Animated.View>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>{category.name}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>
+                {category.id === 'other' && customFocus.trim() ? customFocus.trim() : category.name}
+              </ThemedText>
               <ThemedText style={styles.completionSubtext}>Your focus is set for today</ThemedText>
             </View>
             <Animated.View style={[
@@ -771,7 +785,7 @@ const CompletionStep: React.FC<{
 
           {personalText.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Personal Note</ThemedText>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>Focus Note</ThemedText>
               <ThemedText style={styles.completionSectionText}>{personalText}</ThemedText>
             </View>
           )}
@@ -831,6 +845,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
 
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<FocusCategory | null>(null);
+  const [customFocus, setCustomFocus] = useState('');
   const [personalText, setPersonalText] = useState('');
   const [priorities, setPriorities] = useState(['', '', '']);
 
@@ -859,8 +874,9 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
 
     try {
       const contentToSave = JSON.stringify({
-        focus: selectedCategory?.name || '',
+        focus: selectedCategory?.id === 'other' ? customFocus.trim() : selectedCategory?.name || '',
         focusCategory: selectedCategory?.id || '',
+        customFocus: selectedCategory?.id === 'other' ? customFocus.trim() : '',
         personalText: personalText.trim(),
         priorities: priorities.map((text, index) => ({
           id: `priority_${index + 1}`,
@@ -923,6 +939,8 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           onNext={handleNext}
           insets={insets}
           navigation={navigation}
+          customFocus={customFocus}
+          setCustomFocus={setCustomFocus}
         />
       )}
 
@@ -937,6 +955,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           navigation={navigation}
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
+          customFocus={customFocus}
         />
       )}
 
@@ -955,6 +974,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
           category={selectedCategory}
+          customFocus={customFocus}
         />
       )}
 
@@ -968,6 +988,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           navigation={navigation}
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
+          customFocus={customFocus}
         />
       )}
     </View>
