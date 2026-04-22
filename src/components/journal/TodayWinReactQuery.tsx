@@ -302,6 +302,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
               </View>
             </View>
 
+            <View style={styles.completionDivider} />
+
             {displayWin.text.trim() && (
               <View style={styles.completionSection}>
                 <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
@@ -501,17 +503,10 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
-  completionFooter: {
-    marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  completionFooterText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    lineHeight: 20,
+  completionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 24,
   },
   editButton: {
     padding: 4,
