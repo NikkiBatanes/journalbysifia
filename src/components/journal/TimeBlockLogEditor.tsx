@@ -90,7 +90,8 @@ const createDefaultStyles = (fonts: any) => ({
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
   },
   scrollContent: {
     flexGrow: 1,
