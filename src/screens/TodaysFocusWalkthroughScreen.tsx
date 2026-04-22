@@ -855,15 +855,19 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         const parsedContent = typeof existingEntry.content === 'string'
           ? JSON.parse(existingEntry.content)
           : existingEntry.content;
+        
+        // Handle backward compatibility for old entries without focusCategory
         const categoryId = parsedContent.focusCategory || null;
         // Find the full category object from the category list
         const categoryObj = categoryId ? FOCUS_CATEGORIES.find(cat => cat.id === categoryId) : null;
+        
         const savedPriorities = parsedContent.priorities?.map((p: any) => p.text) || [];
         // Ensure we always have exactly 3 priority slots
         const paddedPriorities = [...savedPriorities];
         while (paddedPriorities.length < 3) {
           paddedPriorities.push('');
         }
+        
         return {
           category: categoryObj || null,
           customFocus: parsedContent.customFocus || '',

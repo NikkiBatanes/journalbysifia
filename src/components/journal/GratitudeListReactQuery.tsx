@@ -12,7 +12,6 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
 
-import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -80,7 +79,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const [isEditing, setIsEditing] = useState(false);
   const [newItems, setNewItems] = useState(['', '', '']); // Start with three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
-  const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRefs = useRef<(TextInput | null)[]>([]); // Refs for input fields
   const shouldFocusInput = useRef(false); // Track when we need to focus
 
@@ -278,117 +276,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setNewItems(updatedItems);
   }, [newItems]);
 
-  const closeAllSwipeables = useCallback(() => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) {ref.close();}
-    });
-  }, []);
-
-  const handleDeleteGratitudeItem = useCallback((id: string) => {
-    Alert.alert(
-      'Delete Gratitude Item',
-      'Are you sure you want to delete this item?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => {
-            swipeableRefs.current[id]?.close();
-          },
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            triggerSelectionHaptic();
-            try {
-              // Find the original entry that contains this item
-              const entryToDelete = gratitudeEntries.find(entry => {
-                const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-                return parsedContent.items?.some((item: any, index: number) => `${entry.id}_${index}` === id);
-              });
-
-              if (entryToDelete) {
-                const parsedContent = typeof entryToDelete.content === 'string' ? JSON.parse(entryToDelete.content) : entryToDelete.content;
-                const itemToDelete = parsedContent.items?.find((item: any, index: number) => `${entryToDelete.id}_${index}` === id);
-                const updatedItems = parsedContent.items?.filter((item: any, index: number) => `${entryToDelete.id}_${index}` !== id) || [];
-
-                // Track gratitude item deletion
-                if (itemToDelete) {
-                  analytics.trackGratitudeEvent('gratitude_item_deleted', {
-                    item_id: id,
-                    item_text_length: itemToDelete.text?.length || 0,
-                    date: dateStr,
-                  }, user?.id);
-                }
-
-                // CRITICAL: Optimistic cache update BEFORE API calls
-                const currentQueryKey = ['journal', 'gratitude', user?.id, dateStr];
-
-                if (updatedItems.length > 0) {
-                  // Optimistically update with remaining items
-                  const optimisticEntry = {
-                    ...entryToDelete,
-                    content: JSON.stringify({ items: updatedItems }),
-                    updated_at: new Date().toISOString(),
-                  };
-                  queryClient.setQueryData(currentQueryKey, [optimisticEntry]);
-                } else {
-                  // Optimistically remove the entire entry if no items remain
-                  queryClient.setQueryData(currentQueryKey, []);
-                }
-
-                // Always delete the old entry first
-                await deleteMutation.mutateAsync(entryToDelete.id);
-
-                // If there are remaining items, create a new entry with them
-                if (updatedItems.length > 0) {
-                  const itemsToSave = updatedItems.map((item: any, index: number) => ({
-                    id: Date.now() + Math.random().toString() + index,
-                    text: typeof item === 'string' ? item : (item.text || String(item)),
-                    date: selectedDate,
-                  }));
-
-                  const newEntry = await createMutation.mutateAsync({
-                    user_id: user?.id || '',
-                    selected_date: dateStr,
-                    content_type: 'gratitude',
-                    content: JSON.stringify({ items: itemsToSave }),
-                  });
-
-                  // Update cache with the new entry data
-                  queryClient.setQueryData(currentQueryKey, [newEntry]);
-                } else {
-                  // Ensure cache remains empty since no items left
-                  queryClient.setQueryData(currentQueryKey, []);
-                }
-                triggerSuccessHaptic();
-              }
-            } catch (deleteError) {
-              Logger.error('Error deleting gratitude item', deleteError as Error, {
-        component: 'GratitudeListReactQuery',
-      });
-
-              // Refetch to restore correct state on error
-              queryClient.invalidateQueries({
-                queryKey: ['journal', 'gratitude', user?.id, dateStr],
-              });
-
-              Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
-              triggerErrorHaptic();
-            }
-
-            // Reset visible count if needed
-            if (gratitudeItems.length - 1 <= visibleCount) {
-              setVisibleCount(5);
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr, queryClient]);
-
   // Individual item edit handlers
   // editGratitudeItem removed - was defined but never called
 
@@ -492,7 +379,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         setNewItems(['', '', '']);
         setIsAdding(false);
         setIsEditing(false);
-        closeAllSwipeables();
 
         triggerSuccessHaptic();
 
@@ -521,7 +407,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           setNewItems(['', '', '']);
           setIsAdding(false);
           setIsEditing(false);
-          closeAllSwipeables();
 
           triggerSuccessHaptic();
 
@@ -546,7 +431,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         setNewItems(['', '', '']);
         setIsAdding(false);
         setIsEditing(false);
-        closeAllSwipeables();
 
         // Scroll to reflect section (contains gratitude) when canceling
         setTimeout(() => {
@@ -558,19 +442,17 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const loadMore = useCallback(() => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount(prev => Math.min(prev + 5, gratitudeItems.length));
-  }, [gratitudeItems.length, closeAllSwipeables]);
+  }, [gratitudeItems.length]);
 
   const showLess = useCallback(() => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount(5);
     // Scroll to reflect section (contains gratitude) when showing less
     setTimeout(() => {
       scrollToSection('reflect-carousel', -100);
     }, 100);
-  }, [closeAllSwipeables, scrollToSection]);
+  }, [scrollToSection]);
 
   const displayGratitudeList = () => {
     if (isAdding || isEditing) {return null;}
@@ -636,36 +518,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         {visibleItems.map((item, index) => (
         <View
           key={item.id}
+          style={styles.itemRowTopAligned}
           accessibilityRole="text"
           accessibilityLabel={`Gratitude item ${index + 1} of ${visibleItems.length}: ${item.text}`}
-          accessibilityHint="Swipe left to delete this gratitude item"
         >
-          <SwipeableTodoItem
-            ref={(ref: any) => {
-              if (ref) {
-                swipeableRefs.current[item.id] = ref;
-              } else {
-                delete swipeableRefs.current[item.id];
-              }
-            }}
-            item={{
-              id: item.id,
-              text: item.text,
-              completed: false,
-            }}
-            onToggle={() => {}}
-            onDelete={() => handleDeleteGratitudeItem(item.id)}
-            hideCheckbox={true}
-            variant="gratitude"
-            disableSwipe={viewMode === 'carousel' && !expanded}
-          >
-            <View style={styles.itemRowTopAligned}>
-              <View style={styles.itemNumber}>
-                <ThemedText style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</ThemedText>
-              </View>
-              <ThemedText style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</ThemedText>
-            </View>
-          </SwipeableTodoItem>
+          <View style={styles.itemNumber}>
+            <ThemedText style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</ThemedText>
+          </View>
+          <ThemedText style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</ThemedText>
         </View>
       ))}
         {!isAdding && gratitudeItems.length > 0 && (
@@ -913,6 +773,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   itemsContainer: {
     width: '100%',
     marginTop: 0, // Reduced from 10 to 4 to match Today's Win component
+    gap: 12,
   },
   paginationContainer: {
     width: '100%',
@@ -971,17 +832,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
   itemText: {
     color: Colors.hopeWhite,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 16,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 24,
     marginRight: 8,
   },
   numberText: {
     color: Colors.alertCoral,
     fontFamily: fonts.bold,
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 16, // Ensure vertical centering in the circle
+    lineHeight: 18, // Ensure vertical centering in the circle
   },
 
   // Input styles
