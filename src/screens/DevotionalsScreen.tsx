@@ -438,10 +438,14 @@ const DevotionalsScreen = () => {
                       const nextDay = item.days[nextIdx];
                       // Calculate read time from reflection text (~200 wpm)
                       const readTime = nextDay.reflection ? Math.max(1, Math.round(nextDay.reflection.trim().split(/\s+/).length / 200)) : 0;
+                      // For 1-day devotionals, don't show title, just "Day 1"
+                      const isOneDay = item.totalDays === 1;
                       return (
                         <View style={styles.nextDayContentContainer}>
                           <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
-                          <ThemedText weight="medium" style={styles.nextDayTitle}>Day {nextDay.dayNumber}: {nextDay.title}</ThemedText>
+                          <ThemedText weight="medium" style={styles.nextDayTitle}>
+                            Day {nextDay.dayNumber}{!isOneDay && `: ${nextDay.title}`}
+                          </ThemedText>
                           <View style={styles.nextDayReadTimeContainer}>
                             <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
                             <ThemedText style={styles.nextDayReadTime}>{readTime} min read</ThemedText>
