@@ -12,6 +12,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -301,6 +302,8 @@ const PersonalTextInputStep: React.FC<{
   iconType: 'ionicons' | 'material' | 'fontawesome';
 }> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
 
   React.useEffect(() => {
     Animated.timing(verticalLineHeight, {
@@ -309,6 +312,32 @@ const PersonalTextInputStep: React.FC<{
       useNativeDriver: false,
     }).start();
   }, []);
+
+  React.useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+      setKeyboardVisible(true);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 325,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardVisible(false);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 20,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [insets.bottom, buttonPosition]);
 
   return (
     <View style={styles.stepContainer}>
@@ -377,7 +406,7 @@ const PersonalTextInputStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -388,7 +417,7 @@ const PersonalTextInputStep: React.FC<{
         >
           <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
@@ -418,7 +447,46 @@ const PrioritiesInputStep: React.FC<{
   navigation: any;
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
-}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType }) => {
+  category: FocusCategory;
+}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category }) => {
+  const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+
+  React.useEffect(() => {
+    Animated.timing(verticalLineHeight, {
+      toValue: 75,
+      duration: 400,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  React.useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+      setKeyboardVisible(true);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 325,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardVisible(false);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 20,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [insets.bottom, buttonPosition]);
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -430,42 +498,16 @@ const PrioritiesInputStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>TOP PRIORITIES</ThemedText>
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={40}>
-          <View style={styles.titleRow}>
-            <ThemedText weight="semiBold" style={styles.stepTitle}>TOP PRIORITIES</ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={80}>
-          <View style={styles.iconBelowTitle}>
-            {iconType === 'ionicons' && (
-              <Ionicons name={icon as any} size={24} color={Colors.alertCoral} />
-            )}
-            {iconType === 'material' && (
-              <MaterialIcons name={icon as any} size={24} color={Colors.alertCoral} />
-            )}
-            {iconType === 'fontawesome' && (
-              <FontAwesome6 name={icon as any} size={24} color={Colors.alertCoral} />
-            )}
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={120}>
-          <ThemedText style={styles.stepDescription}>Add your top 3 priorities</ThemedText>
-        </StepFadeIn>
-
-        <StepFadeIn delay={160}>
-          <ThemedText style={styles.stepDescription}>Add up to 3 priorities for today.</ThemedText>
-        </StepFadeIn>
-
-        <StepFadeIn delay={240} style={styles.prioritiesContainer}>
+        <StepFadeIn delay={240} style={[styles.prioritiesContainer, { marginTop: 32 }]}>
           {priorities.map((priority, index) => (
             <View key={index} style={styles.priorityInputRow}>
-              <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
+              <View style={styles.priorityNumberContainer}>
+                <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
+              </View>
               <TextInput
                 style={styles.priorityInput}
                 value={priority}
@@ -473,15 +515,42 @@ const PrioritiesInputStep: React.FC<{
                 placeholder=""
                 placeholderTextColor={Colors.textGray}
                 autoFocus={index === 0}
+                keyboardAppearance="dark"
               />
             </View>
           ))}
         </StepFadeIn>
 
+        <StepFadeIn delay={320}>
+          <View style={styles.metadataContainer}>
+            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
+            <View style={styles.metadataContent}>
+              {iconType === 'ionicons' && (
+                <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              {iconType === 'material' && (
+                <MaterialIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              {iconType === 'fontawesome' && (
+                <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              )}
+              <ThemedText weight="medium" style={styles.fromText}>
+                FOCUS
+              </ThemedText>
+              <ThemedText style={styles.metadataText}>
+                {category.name}
+              </ThemedText>
+              <ThemedText style={styles.metadataText}>
+                Add up to 3 priorities for today.
+              </ThemedText>
+            </View>
+          </View>
+        </StepFadeIn>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -492,7 +561,7 @@ const PrioritiesInputStep: React.FC<{
         >
           <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
@@ -746,6 +815,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           navigation={navigation}
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
+          category={selectedCategory}
         />
       )}
 
@@ -989,17 +1059,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  priorityNumber: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
+  priorityNumberContainer: {
     width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  priorityNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontFamily: Fonts.bold,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   priorityInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
     padding: 16,
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
   },
   completionTitle: {
