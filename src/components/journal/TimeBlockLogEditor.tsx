@@ -90,11 +90,11 @@ const createDefaultStyles = (fonts: any) => ({
   },
   content: {
     flex: 1,
-    padding: 24,
+    padding: 16,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 220,
+    paddingBottom: 120,
   },
   entryInput: {
     color: Colors.hopeWhite,
@@ -113,12 +113,12 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtext: {
     color: Colors.hopeWhite,
     opacity: 0.6,
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: Fonts.regular,
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -127,7 +127,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   titleTextFlex: {
     flex: 1,
@@ -137,10 +137,10 @@ const createDefaultStyles = (fonts: any) => ({
   },
   inputLabel: {
     color: Colors.hopeWhite,
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: Fonts.semiBold,
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: 4,
+    marginTop: 12,
     opacity: 0.7,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -152,11 +152,11 @@ const createDefaultStyles = (fonts: any) => ({
     borderRadius: 50,
     padding: 0,
     color: Colors.hopeWhite,
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 20,
     fontFamily: Fonts.regular,
-    minHeight: 56,
-    marginBottom: 16,
+    minHeight: 44,
+    marginBottom: 12,
   },
   multilineInput: {
     minHeight: 120,
@@ -225,9 +225,9 @@ const createDefaultStyles = (fonts: any) => ({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
-    padding: 16,
-    marginBottom: 12,
-    minHeight: 56,
+    padding: 12,
+    marginBottom: 8,
+    minHeight: 44,
   },
   selectedCategoryButton: {
     // No background styling
@@ -248,7 +248,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   allDayText: {
     color: Colors.hopeWhite,
@@ -404,7 +404,7 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
   timeSection: {
@@ -421,13 +421,13 @@ const createDefaultStyles = (fonts: any) => ({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 50,
-    padding: 16,
-    marginBottom: 12,
-    minHeight: 56,
+    padding: 12,
+    marginBottom: 8,
+    minHeight: 44,
   },
   repeatText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: Fonts.medium,
   },
   timePickerModal: {
@@ -870,7 +870,7 @@ function TimeBlockLogEditorInner(
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? -80 : 0}
         enabled={Platform.OS === 'ios'}>
           <ScrollView
             ref={scrollViewRef}
