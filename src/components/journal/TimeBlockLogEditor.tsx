@@ -138,17 +138,21 @@ const createDefaultStyles = (fonts: any) => ({
   },
   formInput: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    padding: 0,
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 24,
     fontFamily: Fonts.regular,
     minHeight: 56,
-    textAlignVertical: 'center',
     marginBottom: 16,
   },
   multilineInput: {
     minHeight: 120,
+    padding: 16,
+    paddingBottom: 0,
     textAlignVertical: 'top',
   },
   locationInputContainer: {
@@ -930,7 +934,7 @@ function TimeBlockLogEditorInner(
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular }]}
+                style={[s.formInput, { fontFamily: fonts.regular, padding: 16, paddingBottom: 0, textAlignVertical: 'top' }]}
                 placeholder="Title *"
                 placeholderTextColor={Colors.alertCoral}
                 value={title}
