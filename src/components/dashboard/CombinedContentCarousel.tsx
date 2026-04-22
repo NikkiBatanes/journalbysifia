@@ -804,6 +804,12 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             { transform: [{ scale }, { translateY }], opacity },
           ]}
         >
+          {/* Type Badge */}
+          <View style={styles.typeBadge}>
+            <MaterialCommunityIcons name="clipboard-text" size={14} color={Colors.anchorBlue} />
+            <ThemedText weight="semiBold" style={styles.typeBadgeText}>PLAYBOOK</ThemedText>
+          </View>
+
           <View style={styles.gradientContainer}>
             <View style={styles.categoryLabel}>
               <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
@@ -954,6 +960,12 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ]}
         >
           <View style={styles.cardContent}>
+            {/* Type Badge */}
+            <View style={styles.typeBadge}>
+              <MaterialCommunityIcons name="book" size={14} color={Colors.alertCoral} />
+              <ThemedText weight="semiBold" style={styles.typeBadgeText}>DEVOTIONAL</ThemedText>
+            </View>
+
             {/* Gradient Container with Category and Menu */}
             <View style={styles.gradientContainer}>
               <View style={styles.gradientTagRow}>
@@ -1496,6 +1508,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Colors.hopeWhite,
     marginBottom: 4,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   // Devotional card styles from DevotionalsScreen
   cardContent: {
