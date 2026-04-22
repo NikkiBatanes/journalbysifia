@@ -302,12 +302,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
               </View>
             </View>
 
-            <View style={styles.completionFooter}>
-              <ThemedText style={styles.completionFooterText}>
-                A small moment named with gratitude.
-              </ThemedText>
-            </View>
-
             {displayWin.text.trim() && (
               <View style={styles.completionSection}>
                 <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
