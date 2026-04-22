@@ -407,7 +407,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       if (navigation) {
         triggerLightHaptic();
         navigation.navigate('TodaysFocusWalkthrough' as any, {
-          selectedDate,
+          selectedDate: selectedDate.toISOString(),
           existingEntry,
         });
       }
@@ -708,8 +708,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   completed: false,
                 }}
                 onToggle={() => {}}
-                onDelete={() => clearFocus()}
-                disableSwipe={viewMode === 'carousel' && !expanded}
+                onDelete={() => {}}
+                disableSwipe={true}
                 hideCheckbox={true}
                 variant="gratitude"
               >
@@ -800,9 +800,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                             completed: priority.completed,
                           }}
                           onToggle={() => togglePriority(index)}
-                          onDelete={() => removePriority(priority.id)}
+                          onDelete={() => {}}
                           hideCheckbox={true}
-                          disableSwipe={viewMode === 'carousel' && !expanded}
+                          disableSwipe={true}
                           ref={ref => {
                             if (ref) {
                               swipeableRefs.current[priority.id] = ref;

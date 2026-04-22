@@ -95,6 +95,12 @@ export type RootStackParamList = {
   // Journal screen
   Journal: undefined;
 
+  // Today's Focus Walkthrough
+  TodaysFocusWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
   // Test screens
   QueryTest: undefined;
 };

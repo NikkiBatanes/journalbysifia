@@ -13,7 +13,10 @@ import {
   Platform,
   UIManager,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -589,7 +592,7 @@ const PrioritiesInputStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={240} style={[styles.prioritiesContainer, { marginTop: 32 }]}>
-          {priorities.map((priority, index) => (
+          {priorities.map((priority: string, index: number) => (
             <View key={index} style={styles.priorityInputRow}>
               <View style={styles.priorityNumberContainer}>
                 <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
@@ -683,7 +686,7 @@ const CompletionStep: React.FC<{
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
 }> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType, customFocus }) => {
-  const validPriorities = priorities.filter(p => p.trim() !== '');
+  const validPriorities = priorities.filter((p: string) => p.trim() !== '');
 
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
@@ -794,7 +797,7 @@ const CompletionStep: React.FC<{
             <View style={styles.completionSection}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>Top Priorities</ThemedText>
               <View style={styles.prioritiesList}>
-                {validPriorities.map((priority, index) => (
+                {validPriorities.map((priority: string, index: number) => (
                   <View key={index} style={styles.priorityItem}>
                     <Animated.View style={[
                       styles.priorityBullet,
@@ -840,14 +843,52 @@ const CompletionStep: React.FC<{
 // Main Screen Component
 const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
-  const { selectedDate = new Date(), existingEntry } = route.params || {};
+  const { selectedDate: selectedDateStr, existingEntry } = route.params || {};
+  const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+
+  // Parse existing entry content to initialize state
+  const getInitialState = () => {
+    if (existingEntry?.content) {
+      try {
+        const parsedContent = typeof existingEntry.content === 'string'
+          ? JSON.parse(existingEntry.content)
+          : existingEntry.content;
+        const categoryId = parsedContent.focusCategory || null;
+        // Find the full category object from the category list
+        const categoryObj = categoryId ? FOCUS_CATEGORIES.find(cat => cat.id === categoryId) : null;
+        const savedPriorities = parsedContent.priorities?.map((p: any) => p.text) || [];
+        // Ensure we always have exactly 3 priority slots
+        const paddedPriorities = [...savedPriorities];
+        while (paddedPriorities.length < 3) {
+          paddedPriorities.push('');
+        }
+        return {
+          category: categoryObj || null,
+          customFocus: parsedContent.customFocus || '',
+          personalText: parsedContent.personalText || '',
+          priorities: paddedPriorities,
+        };
+      } catch (error) {
+        console.error('Error parsing existing entry content:', error);
+      }
+    }
+    return {
+      category: null,
+      customFocus: '',
+      personalText: '',
+      priorities: ['', '', ''],
+    };
+  };
+
+  const initialState = getInitialState();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<FocusCategory | null>(null);
-  const [customFocus, setCustomFocus] = useState('');
-  const [personalText, setPersonalText] = useState('');
-  const [priorities, setPriorities] = useState(['', '', '']);
+  const [selectedCategory, setSelectedCategory] = useState<FocusCategory | null>(initialState.category);
+  const [customFocus, setCustomFocus] = useState(initialState.customFocus);
+  const [personalText, setPersonalText] = useState(initialState.personalText);
+  const [priorities, setPriorities] = useState(initialState.priorities);
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
@@ -878,7 +919,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         focusCategory: selectedCategory?.id || '',
         customFocus: selectedCategory?.id === 'other' ? customFocus.trim() : '',
         personalText: personalText.trim(),
-        priorities: priorities.map((text, index) => ({
+        priorities: priorities.map((text: string, index: number) => ({
           id: `priority_${index + 1}`,
           text: text.trim(),
           completed: false,
@@ -901,8 +942,8 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
 
       analytics.trackFocusEvent('focus_updated', {
         focus_length: selectedCategory?.name.length || 0,
-        has_priorities: priorities.filter(p => p.trim()).length > 0,
-        priorities_count: priorities.filter(p => p.trim()).length,
+        has_priorities: priorities.filter((p: string) => p.trim()).length > 0,
+        priorities_count: priorities.filter((p: string) => p.trim()).length,
         date: dateStr,
       }, user.id);
 
@@ -930,8 +971,33 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     navigation.goBack();
   };
 
+  // Swipe gesture handlers
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onEnd((event) => {
+      const { translationX } = event;
+
+      // Swipe right to go back
+      if (translationX > screenWidth * 0.3) {
+        runOnJS(handleBack)();
+        runOnJS(triggerMediumHaptic)();
+      }
+      // Swipe left to go forward
+      else if (translationX < -screenWidth * 0.3) {
+        // Prevent forward swipe on step 0 if no category is selected
+        if (currentStep === 0 && !selectedCategory) {
+          return;
+        }
+        if (currentStep < 3) {
+          runOnJS(handleNext)();
+          runOnJS(triggerMediumHaptic)();
+        }
+      }
+    });
+
   return (
-    <View style={styles.container}>
+    <GestureDetector gesture={swipeGesture}>
+      <View style={styles.container}>
       {currentStep === 0 && (
         <CategorySelectionStep
           selectedCategory={selectedCategory}
@@ -992,6 +1058,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         />
       )}
     </View>
+    </GestureDetector>
   );
 };
 
