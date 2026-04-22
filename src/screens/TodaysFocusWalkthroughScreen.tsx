@@ -119,7 +119,10 @@ const CategorySelectionStep: React.FC<{
 }> = ({ selectedCategory, onSelect, onNext, insets, navigation }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [customFocus, setCustomFocus] = React.useState('');
+  const [isOtherSelected, setIsOtherSelected] = React.useState(false);
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonOpacity = React.useRef(new Animated.Value(1)).current;
+  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -127,6 +130,55 @@ const CategorySelectionStep: React.FC<{
   }
 
   const displayedCategories = showAllCategories ? FOCUS_CATEGORIES : FOCUS_CATEGORIES.slice(0, 12);
+
+  React.useEffect(() => {
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+      update: { type: 'easeInEaseOut' },
+    });
+    if (selectedCategory?.id === 'other') {
+      setIsOtherSelected(true);
+    } else {
+      setIsOtherSelected(false);
+    }
+  }, [selectedCategory]);
+
+  React.useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+      setKeyboardVisible(true);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 325,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardVisible(false);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 20,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [insets.bottom, buttonPosition]);
+
+  const handleChooseAgain = () => {
+    triggerLightHaptic();
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+      update: { type: 'easeInEaseOut' },
+    });
+    onSelect(null as any);
+  };
 
   const handleToggleShowAll = () => {
     triggerLightHaptic();
@@ -165,11 +217,32 @@ const CategorySelectionStep: React.FC<{
 
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
-            <ThemedText weight="semiBold" style={styles.stepTitle}>Choose your focus for today</ThemedText>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>
+              {isOtherSelected ? 'What is your focus today?' : 'Choose your focus for today'}
+            </ThemedText>
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={160} style={styles.categoriesGrid}>
+        {isOtherSelected && (
+          <StepFadeIn delay={160}>
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customInput}
+                placeholder="Type your focus"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={customFocus}
+                onChangeText={setCustomFocus}
+                multiline
+                numberOfLines={2}
+                autoFocus
+                keyboardAppearance="dark"
+              />
+            </View>
+          </StepFadeIn>
+        )}
+
+        {!isOtherSelected && (
+          <StepFadeIn delay={160} style={styles.categoriesGrid}>
           {displayedCategories.map((category, index) => {
             const isSelected = selectedCategory?.id === category.id;
             return (
@@ -220,35 +293,21 @@ const CategorySelectionStep: React.FC<{
             );
           })}
         </StepFadeIn>
+        )}
 
         {FOCUS_CATEGORIES.length > 12 && (
           <StepFadeIn delay={240}>
             <Animated.View style={{ opacity: buttonOpacity }}>
               <TouchableOpacity
-                style={styles.showMoreButton}
-                onPress={handleToggleShowAll}
+                style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                onPress={isOtherSelected ? handleChooseAgain : handleToggleShowAll}
                 activeOpacity={0.75}
               >
-                <ThemedText style={styles.showMoreButtonText}>{showAllCategories ? 'Show Less' : 'Show More'}</ThemedText>
+                <ThemedText style={styles.showMoreButtonText}>
+                  {isOtherSelected ? 'Choose again' : (showAllCategories ? 'Show Less' : 'Show More')}
+                </ThemedText>
               </TouchableOpacity>
             </Animated.View>
-          </StepFadeIn>
-        )}
-
-        {selectedCategory?.id === 'other' && (
-          <StepFadeIn delay={280}>
-            <View style={styles.customInputContainer}>
-              <ThemedText style={styles.customInputTitle}>What is your focus today?</ThemedText>
-              <TextInput
-                style={styles.customInput}
-                placeholder="Enter your custom focus..."
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                value={customFocus}
-                onChangeText={setCustomFocus}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
           </StepFadeIn>
         )}
 
@@ -257,7 +316,7 @@ const CategorySelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedCategory && (
-        <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -268,7 +327,7 @@ const CategorySelectionStep: React.FC<{
           >
             <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
 
       {/* Close button - top right */}
@@ -377,7 +436,7 @@ const PersonalTextInputStep: React.FC<{
           />
         </StepFadeIn>
 
-        <StepFadeIn delay={160}>
+        <StepFadeIn delay={120}>
           <View style={styles.metadataContainer}>
             <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
             <View style={styles.metadataContent}>
@@ -962,7 +1021,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   showMoreButton: {
-    alignSelf: 'center',
     marginTop: 16,
     paddingVertical: 10,
     paddingHorizontal: 24,
@@ -987,13 +1045,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   customInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    backgroundColor: 'transparent',
+    fontSize: 18,
     color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
     minHeight: 80,
     textAlignVertical: 'top',
+    paddingHorizontal: 0,
+    paddingVertical: 16,
   },
   categoryCard: {
     width: '31%',
