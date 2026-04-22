@@ -680,6 +680,11 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
         queryKey: ['journal', 'lookingForward', user.id, dateStr],
       });
 
+      // Also invalidate the general entries query to ensure header shows
+      queryClient.invalidateQueries({
+        queryKey: ['journal', 'entries', user.id, dateStr],
+      });
+
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save. Please try again.');
