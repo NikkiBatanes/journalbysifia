@@ -539,8 +539,6 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           setQuietWin(content.quietWin);
         }
         setExistingEntryId(existingEntry.id);
-        // Skip to completion step if data exists
-        setCurrentStep(3);
       } catch (error) {
         console.error('Error parsing existing win data:', error);
       }
