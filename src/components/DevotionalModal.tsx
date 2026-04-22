@@ -870,7 +870,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
             {!isCreating && !isOnboardingCreating && !isSuccess && !isClosing && (
               <View style={styles.fixedContent}>
-                <ThemedText weight="semiBold" style={styles.title}>Create a Devotional for This Season</ThemedText>
+                <ThemedText weight="semiBold" style={styles.title}>Turn this into a devotional</ThemedText>
                 <View style={styles.subtitleContainer}>
                   <ThemedText weight="regular" style={styles.subtitle}>
                     Based on what you've shared, this devotional helps you reflect, pray, and listen with God as you continue your journey.
@@ -899,12 +899,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     onPress={() => { triggerLightHaptic(); togglePlaybookInfo(); }}
                     activeOpacity={0.8}
                   >
-                    <ThemedText weight="semiBold" style={styles.playbookInfoLabel}>WHAT YOU SHARED</ThemedText>
+                    <ThemedText weight="semiBold" style={styles.playbookInfoLabel}>WHAT YOU'VE SHARED</ThemedText>
                     <Animated.View style={{ transform: [{ rotate }] }}>
                       <Ionicons
                         name="chevron-down"
-                        size={20}
-                        color={Colors.hopeWhite}
+                        size={17}
+                        color="rgba(255,255,255,0.65)"
                       />
                     </Animated.View>
                   </TouchableOpacity>
@@ -1450,54 +1450,57 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     color: Colors.hopeWhite,
-    marginBottom: 0,
+    marginBottom: 8,
     marginTop: 0,
-    textAlign: 'center',
-    fontWeight: '800',
+    textAlign: 'left',
+    fontWeight: '700',
     letterSpacing: 0.2,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     width: '100%',
     flexShrink: 1,
     includeFontPadding: false,
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
     maxWidth: '100%',
     flexWrap: 'nowrap',
     overflow: 'hidden',
+    lineHeight: 28,
   },
   subtitleContainer: {
-    marginBottom: 0,
+    marginBottom: 16,
   },
   subtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textAlign: 'left',
     marginBottom: 0,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   durationPrompt: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.65)',
     textAlign: 'left',
-    lineHeight: 20,
-    marginBottom: 4, // Reduced from 12px to 4px
+    lineHeight: 18,
+    marginBottom: 8,
     paddingHorizontal: 4,
+    fontWeight: '500',
   },
   optionsContainer: {
-    gap: 10,
+    gap: 12,
     width: '100%',
   },
   optionButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16, // adjusted to 16 radius for duration choices
-    padding: 10,
-    borderWidth: 0, // remove border
-    borderColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   optionButtonLocked: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     opacity: 0.7,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   optionHeader: {
     flexDirection: 'row',
@@ -1564,35 +1567,37 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   optionDays: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-    marginBottom: 2,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   optionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.hopeWhite,
     fontWeight: '600',
     marginBottom: 4,
+    lineHeight: 20,
   },
   optionDescription: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.65)',
     lineHeight: 16,
   },
   playbookInfoContainer: {
     width: '100%',
     marginBottom: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 0, // remove border
-    borderColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   playbookInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 14,
     paddingHorizontal: 12,
   },
   playbookInfoLabel: {
@@ -1601,12 +1606,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1,
     opacity: 1,
-    marginVertical: 2,
     textTransform: 'uppercase',
   },
   fixedContent: {
     width: '100%',
-    marginTop: 32,
+    marginTop: 16,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
@@ -1620,16 +1624,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   playbookInfoContentExpanded: {
-    maxHeight: 1000, // Arbitrarily large value to allow content to expand
+    height: 'auto',
     paddingBottom: 12,
   },
   playbookInfoContentCollapsed: {
-    maxHeight: 0,
-    paddingBottom: 0,
+    height: 0,
+    overflow: 'hidden',
   },
   playbookInfoText: {
-    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: 18,
   },
   footerText: {
