@@ -842,6 +842,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginBottom: 16,
   },
   titleRowLeft: {
     marginBottom: 16,
@@ -1041,7 +1042,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   categoryFilterScroll: {
-    marginBottom: 40,
+    marginBottom: 32,
   },
   categoryFilterContent: {
     flexDirection: 'row',
