@@ -504,10 +504,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   // Determine if there's content
-  const hasContent = lookingForward && lookingForward.text.trim();
+  const hasContent = lookingForward && (lookingForward.text.trim() || lookingForward.emotionName);
 
   // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || (!lookingForward.text.trim() && !lookingForward.emotionName))) {
     return null;
   }
 
@@ -518,10 +518,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   return (
     <JournalCard
-      title={hasContent || shouldShowAddingMode || viewMode === 'carousel' ? 'LOOKING FORWARD TO' : undefined}
+      title={hasContent || shouldShowAddingMode ? 'LOOKING FORWARD TO' : undefined}
       subtitle={headerSubtitle}
-      icon={hasContent || shouldShowAddingMode || viewMode === 'carousel' ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
-      showAddButton={(hasContent || viewMode === 'carousel') ? !shouldShowAddingMode : false}
+      icon={hasContent || shouldShowAddingMode ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
+      showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={displayEntry ? editEntry : startAdding}
       isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
@@ -530,14 +530,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       onExpand={onExpand}
     >
       {displayEntry && !shouldShowAddingMode && (
-        <SwipeableTodoItem
-          item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
-          onToggle={() => {}}
-          onDelete={handleEntryDelete}
-          hideCheckbox
-          variant="gratitude"
-          disableSwipe={viewMode === 'carousel' && !expanded}
-        >
+        <>
           {editingItemId === displayEntry.id ? (
             <View style={styles.editEntryContainer}>
               <TextInput
@@ -583,13 +576,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
                 {displayEntry.emotionName && (
                   <View style={styles.completionSection}>
                     <ThemedText weight="medium" style={styles.completionSectionLabel}>How You're Holding It</ThemedText>
-                    <ThemedText style={styles.completionSectionTextLarge}>{displayEntry.emotionName}</ThemedText>
+                    <ThemedText style={styles.completionEmotionText}>{displayEntry.emotionName}</ThemedText>
                   </View>
                 )}
               </View>
             </View>
           )}
-        </SwipeableTodoItem>
+        </>
       )}
       {shouldShowAddingMode && (
         <>
@@ -907,7 +900,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 22,
   },
-  completionSectionTextLarge: {
+  completionEmotionText: {
     fontSize: 20,
     color: Colors.hopeWhite,
     lineHeight: 26,

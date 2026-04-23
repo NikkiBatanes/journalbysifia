@@ -282,33 +282,24 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       onExpand={onExpand}
     >
       {displayWin ? (
-        <SwipeableTodoItem
-          item={{ id: displayWin.id, text: displayWin.text, completed: false }}
-          onToggle={() => {}}
-          onDelete={handleDelete}
-          hideCheckbox
-          variant="gratitude"
-          disableSwipe={viewMode === 'carousel' && !expanded}
-        >
-          <View style={styles.completionCard}>
-            <View style={styles.completionHeader}>
-              <View style={styles.completionHeaderContent}>
-                <ThemedText weight="semiBold" style={styles.completionCategory}>
-                  {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
-                </ThemedText>
-              </View>
+        <View style={styles.completionCard}>
+          <View style={styles.completionHeader}>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>
+                {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
+              </ThemedText>
             </View>
-
-            <View style={styles.completionDivider} />
-
-            {displayWin.text.trim() && (
-              <View style={styles.completionSection}>
-                <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
-                <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
-              </View>
-            )}
           </View>
-        </SwipeableTodoItem>
+
+          <View style={styles.completionDivider} />
+
+          {displayWin.text.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
+            </View>
+          )}
+        </View>
       ) : (
         <View style={styles.emptyStateContainer}>
           <View style={styles.iconContainer}>

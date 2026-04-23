@@ -143,7 +143,7 @@ const CategorySelectionStep: React.FC<{
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       buttonScale.setValue(0);
@@ -169,7 +169,7 @@ const CategorySelectionStep: React.FC<{
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       chooseAgainScale.setValue(0);
