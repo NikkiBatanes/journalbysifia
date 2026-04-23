@@ -185,7 +185,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         const result = {
           id: entry.id,
           text: content.quietWin,
-          winType: content.winType,
+          winType: content.winTypeName || content.winType,
         };
         return result;
       }
