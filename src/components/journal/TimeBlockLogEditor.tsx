@@ -102,7 +102,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 80,
+    paddingBottom: 60,
   },
   entryInput: {
     color: Colors.hopeWhite,
