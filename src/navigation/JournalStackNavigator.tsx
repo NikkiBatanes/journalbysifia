@@ -26,8 +26,8 @@ const JournalStackNavigator: React.FC = () => {
         component={TimeBlockEditorScreen as React.ComponentType}
         options={{
           headerShown: false,
-          presentation: 'card',
-          animation: 'slide_from_right',
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
         }}
       />
