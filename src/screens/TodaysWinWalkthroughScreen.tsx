@@ -48,13 +48,14 @@ interface WinType {
 }
 
 const WIN_TYPES: WinType[] = [
-  // Core 6 (shown by default)
+  // Core 7 (shown by default)
   { id: 'followed-through', name: 'I followed through', category: 'Practical' },
   { id: 'chose-peace', name: 'I chose peace', category: 'Inner Life' },
   { id: 'told-truth', name: 'I told the truth', category: 'Relationships' },
   { id: 'showed-up', name: 'I showed up', category: 'Work' },
   { id: 'shared-jesus', name: 'I shared Jesus', category: 'Faith' },
   { id: 'kept-going', name: 'I kept going', category: 'Inner Life' },
+  { id: 'other', name: 'Other', category: 'Other' },
 
   // Faith
   { id: 'chose-trust', name: 'I chose trust', category: 'Faith' },
@@ -187,7 +188,7 @@ const WIN_TYPES: WinType[] = [
   { id: 'prayed-with', name: 'I prayed with someone', category: 'Discipleship' },
 ];
 
-const CORE_WIN_TYPES = WIN_TYPES.slice(0, 6);
+const CORE_WIN_TYPES = WIN_TYPES.slice(0, 7);
 
 const CATEGORIES = [
   'Faith',
@@ -204,6 +205,7 @@ const CATEGORIES = [
   'Business',
   'Ministry',
   'Discipleship',
+  'Other',
 ];
 
 // StepFadeIn component
