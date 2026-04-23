@@ -230,6 +230,43 @@ const WinTypeSelectionStep: React.FC<{
           </View>
         </StepFadeIn>
 
+        {/* Category filter row - shown when expanded */}
+        {isExpanded && (
+          <StepFadeIn delay={100}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              style={styles.categoryFilterScroll}
+              contentContainerStyle={styles.categoryFilterContent}
+            >
+              {CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryFilterChip,
+                    selectedCategory === category && styles.categoryFilterChipSelected,
+                  ]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setSelectedCategory(category);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <ThemedText
+                    style={[
+                      styles.categoryFilterText,
+                      selectedCategory === category && styles.categoryFilterTextSelected,
+                    ]}
+                  >
+                    {category}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </StepFadeIn>
+        )}
+
+        {/* Win type chips */}
         <StepFadeIn delay={120} style={styles.winTypesGrid}>
           {!isExpanded ? (
             // Collapsed state: Show only 6 core wins
@@ -255,67 +292,32 @@ const WinTypeSelectionStep: React.FC<{
               );
             })
           ) : (
-            // Expanded state: Show category filter and filtered wins
-            <>
-              {/* Category filter row */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={true}
-                style={styles.categoryFilterScroll}
-                contentContainerStyle={styles.categoryFilterContent}
-              >
-                {CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryFilterChip,
-                      selectedCategory === category && styles.categoryFilterChipSelected,
-                    ]}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setSelectedCategory(category);
-                    }}
-                    activeOpacity={0.75}
+            // Expanded state: Show filtered win types
+            WIN_TYPES.filter(
+              selectedCategory === 'All'
+                ? () => true
+                : (winType) => winType.category === selectedCategory
+            ).map((winType, index) => {
+              const isSelected = selectedWinType?.id === winType.id;
+              return (
+                <TouchableOpacity
+                  key={winType.id}
+                  style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    onSelect(winType);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <ThemedText
+                    style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                    numberOfLines={2}
                   >
-                    <ThemedText
-                      style={[
-                        styles.categoryFilterText,
-                        selectedCategory === category && styles.categoryFilterTextSelected,
-                      ]}
-                    >
-                      {category}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {/* Filtered win types */}
-              {WIN_TYPES.filter(
-                selectedCategory === 'All'
-                  ? () => true
-                  : (winType) => winType.category === selectedCategory
-              ).map((winType, index) => {
-                const isSelected = selectedWinType?.id === winType.id;
-                return (
-                  <TouchableOpacity
-                    key={winType.id}
-                    style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      onSelect(winType);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <ThemedText
-                      style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
-                      numberOfLines={2}
-                    >
-                      {winType.name}
-                    </ThemedText>
-                  </TouchableOpacity>
-                );
-              })}
-            </>
+                    {winType.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })
           )}
         </StepFadeIn>
 
@@ -1031,7 +1033,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   categoryFilterScroll: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   categoryFilterContent: {
     paddingHorizontal: 8,
