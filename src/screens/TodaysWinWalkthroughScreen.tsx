@@ -218,6 +218,21 @@ const COMPLETION_MESSAGES = [
   'A small win is still worth naming.',
   'God was present in this too.',
   'This matters more than it looks.',
+  'God was at work in this too.',
+  'Faithfulness still counts today.',
+  'Grace was present here too.',
+  'This quiet step still mattered.',
+  'God sees what others may not.',
+  'Obedience is worth noticing.',
+  'Even this small step mattered.',
+  'God did not overlook this.',
+  'This was not nothing.',
+  'Faith showed up here too.',
+  'What was faithful still matters.',
+  'God was near in this moment.',
+  'This was a real step forward.',
+  'Even quiet obedience matters.',
+  'This is worth thanking God for.',
 ];
 
 // StepFadeIn component
