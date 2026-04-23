@@ -118,6 +118,11 @@ export type RootStackParamList = {
     selectedDate?: string;
   } | undefined;
 
+  // Prayer Journal Walkthrough
+  PrayerJournalWalkthrough: {
+    selectedDate?: string;
+  } | undefined;
+
   // Test screens
   QueryTest: undefined;
 };

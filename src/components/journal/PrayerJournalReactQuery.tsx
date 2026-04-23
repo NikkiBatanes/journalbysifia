@@ -37,9 +37,10 @@ import {
   triggerSelectionHaptic,
   triggerErrorHaptic,
 } from '../../utils/haptics';
-import { PrayerStyleSelectionModal } from '../modals/PrayerStyleSelectionModal';
 import type { PluginFilters } from '../../systems/journal/types';
 import { faithPointsService } from '../../services/faithPointsService';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -268,6 +269,7 @@ interface PrayerJournalProps {
   expanded?: boolean;
   onExpand?: () => void;
   filters?: PluginFilters;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
@@ -277,6 +279,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   expanded,
   onExpand,
   filters,
+  navigation,
 }) => {
   // Global edit mode context (only for inline view)
   const globalEditMode = useEditModeSafe();
@@ -300,7 +303,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
   const [prayerText, setPrayerText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showStyleModal, setShowStyleModal] = useState(false);
   const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
 
   // Transform API data to local format
@@ -373,28 +375,28 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const getSubtitle = () => {
     if (isEditing) {
       const selectedType = PRAYER_TYPES.find(t => t.key === selectedPrayerType);
-      return selectedType?.method === 'ACTS' ? 'ACTS Method Prayer' : 'Open Prayer';
+      return selectedType?.method === 'ACTS' ? 'CAST Method Prayer' : 'Open Prayer';
     }
     if (hasContent) {
       const totalCount = displayPrayers.length;
-      const supplicationCount = displayPrayers.filter(p => p.type === 'supplication').length;
+      const actsCount = displayPrayers.filter(p => p.type !== 'freeform').length;
       const openCount = displayPrayers.filter(p => p.type === 'freeform').length;
       const answeredCount = displayPrayers.filter(p => p.is_answered || p.status === 'answered' || !!p.answered_at).length;
 
-      // Main prayer count line
+      // Determine prayer path type
+      let prayerPath = '';
+      if (actsCount > 0 && openCount > 0) {
+        prayerPath = 'CAST & Open';
+      } else if (actsCount > 0) {
+        prayerPath = 'CAST Method';
+      } else if (openCount > 0) {
+        prayerPath = 'Open Prayer';
+      }
+
+      // Main prayer count line with path
       let subtitle = totalCount === 1 ? '1 Prayer' : `${totalCount} Prayers`;
-
-      // Add prayer type breakdown
-      const typeParts = [];
-      if (supplicationCount > 0) {
-        typeParts.push(`${supplicationCount} Supplication`);
-      }
-      if (openCount > 0) {
-        typeParts.push(`${openCount} Open`);
-      }
-
-      if (typeParts.length > 0) {
-        subtitle += ` • ${typeParts.join(', ')}`;
+      if (prayerPath) {
+        subtitle += ` • ${prayerPath}`;
       }
 
       // Add answered count on a new line if there are answered prayers
@@ -404,35 +406,34 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
       return subtitle;
     }
-    return 'ACTS & Open Prayer';
+    return 'CAST Method & Open Prayer';
   };
 
-  // Handle edit mode - directly open modal
+  // Handle edit mode - navigate to walkthrough
   const toggleEditing = useCallback(() => {
-    // Directly open modal without changing selection
-    setShowStyleModal(true);
-  }, []);
+    if (navigation) {
+      navigation.navigate('PrayerJournalWalkthrough', {
+        selectedDate: toLocalDateString(selectedDate),
+      });
+    }
+  }, [navigation, selectedDate]);
 
   // Handle prayer type selection
   const handlePrayerTypeSelect = useCallback((type: string) => {
     setSelectedPrayerType(type);
   }, []);
 
-  // Handle style selection modal
-  // handleOpenStyleModal and handleConfirmStyle removed - were defined but never used
-
-  const handleCloseStyleModal = useCallback(() => {
-    setShowStyleModal(false);
+  // Handle cancel editing
+  const handleCancelEdit = useCallback(() => {
     setPrayerText('');
-    // Clear selection when closing so nothing remains selected outside the modal
+    // Ensure no selection remains when cancelling add/edit
     setSelectedPrayerType('');
-    setEditingPrayerId(null);
-  }, []);
+    setIsEditing(false);
 
-  // Handle prayer text change
-  const handlePrayerTextChange = useCallback((text: string) => {
-    setPrayerText(text);
-  }, []);
+    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+      globalEditMode.setGlobalEditMode(false);
+    }
+  }, [globalEditMode, viewMode]);
 
   // Handle save prayer
   const handleSavePrayer = useCallback(async () => {
@@ -528,24 +529,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode, queryClient]);
 
-  // Handle save from modal
-  const handleSaveFromModal = useCallback(async () => {
-    await handleSavePrayer();
-    setShowStyleModal(false);
-  }, [handleSavePrayer]);
-
-  // Handle cancel editing
-  const handleCancelEdit = useCallback(() => {
-    setPrayerText('');
-    // Ensure no selection remains when cancelling add/edit
-    setSelectedPrayerType('');
-    setIsEditing(false);
-
-    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-      globalEditMode.setGlobalEditMode(false);
-    }
-  }, [globalEditMode, viewMode]);
-
   // Handle mark prayer as answered
   const handleMarkAnswered = useCallback(async (prayerId: string, isAnswered: boolean) => {
     try {
@@ -585,72 +568,156 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
 
-  // Render existing prayers
-  const renderExistingPrayers = () => (
-    <View
-      style={[
-        styles.prayersContainer,
-        (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
-      ]}
-    >
-      {PRAYER_TYPES.map((type) => {
-        const typePrayers = displayPrayers.filter((p: any) => p.type === type.key);
-        if (typePrayers.length === 0) { return null; }
+  // Render existing prayers - redesigned to show CAST vs Open Prayer structure
+  const renderExistingPrayers = () => {
+    const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+    const openPrayers = displayPrayers.filter((p: any) => p.type === 'freeform');
 
-        return (
-          <View key={type.key} style={styles.prayerTypeSection}>
-            <View style={styles.prayerTypeSectionHeader}>
-              <Ionicons
-                name={type.icon}
-                size={16}
-                color={Colors.hopeWhite}
+    return (
+      <View
+        style={[
+          styles.prayersContainer,
+          (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
+        ]}
+      >
+        {/* CAST Method Section */}
+        {actsPrayers.length > 0 && (
+          <View style={styles.prayerPathSection}>
+            <View style={styles.prayerPathHeader}>
+              <MaterialCommunityIcons
+                name="layers"
+                size={18}
+                color={Colors.alertCoral}
               />
-              <ThemedText style={styles.prayerTypeSectionTitle} weight="semiBold">{type.displayName}</ThemedText>
+              <ThemedText style={styles.prayerPathTitle} weight="semiBold">CAST METHOD</ThemedText>
+              <View style={styles.prayerPathDivider} />
             </View>
-            {typePrayers.map((prayer: any) => (
-              <SwipeablePrayerCard
-                key={prayer.id}
-                prayer={prayer}
-                type={type}
-                onMarkAnswered={handleMarkAnswered}
-                onEdit={(prayerId: string) => {
-                  // Find the prayer and open modal with its content
-                  const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
-                  if (prayerToEdit) {
-                    setEditingPrayerId(prayerId);
-                    setSelectedPrayerType(prayerToEdit.type);
-                    setPrayerText(prayerToEdit.content);
-                    setShowStyleModal(true);
-                  }
-                }}
-                onDelete={(prayerId: string) => {
-                  Alert.alert(
-                    'Delete Prayer',
-                    'Are you sure you want to delete this prayer?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => {
-                          deleteMutation.mutate({
-                            id: prayerId,
-                            _userId: user?.id || '',
-                            _dateStr: dateStr,
-                          });
-                          triggerSuccessHaptic();
-                        },
-                      },
-                    ]
-                  );
-                }}
-              />
-            ))}
+            <View style={styles.castStepsContainer}>
+              {['confession', 'adoration', 'supplication', 'thanksgiving'].map((step) => {
+                const stepPrayers = actsPrayers.filter((p: any) => p.type === step);
+                if (stepPrayers.length === 0) return null;
+
+                return (
+                  <View key={step} style={styles.castStepSection}>
+                    <ThemedText style={styles.castStepLabel} weight="semiBold">
+                      {step.toUpperCase()}
+                    </ThemedText>
+                    {stepPrayers.map((prayer: any) => {
+                      const type = PRAYER_TYPES.find(t => t.key === step);
+                      return (
+                        <SwipeablePrayerCard
+                          key={prayer.id}
+                          prayer={prayer}
+                          type={type}
+                          onMarkAnswered={handleMarkAnswered}
+                          onEdit={(prayerId: string) => {
+                            const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
+                            if (prayerToEdit) {
+                              setEditingPrayerId(prayerId);
+                              setSelectedPrayerType(prayerToEdit.type);
+                              setPrayerText(prayerToEdit.content);
+                              if (navigation) {
+                                navigation.navigate('PrayerJournalWalkthrough', {
+                                  selectedDate: toLocalDateString(selectedDate),
+                                });
+                              }
+                            }
+                          }}
+                          onDelete={(prayerId: string) => {
+                            Alert.alert(
+                              'Delete Prayer',
+                              'Are you sure you want to delete this prayer?',
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                  text: 'Delete',
+                                  style: 'destructive',
+                                  onPress: () => {
+                                    deleteMutation.mutate({
+                                      id: prayerId,
+                                      _userId: user?.id || '',
+                                      _dateStr: dateStr,
+                                    });
+                                    triggerSuccessHaptic();
+                                  },
+                                },
+                              ]
+                            );
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        );
-      })}
-    </View>
-  );
+        )}
+
+        {/* Open Prayer Section */}
+        {openPrayers.length > 0 && (
+          <View style={styles.prayerPathSection}>
+            <View style={styles.prayerPathHeader}>
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={18}
+                color={Colors.alertCoral}
+              />
+              <ThemedText style={styles.prayerPathTitle} weight="semiBold">OPEN PRAYER</ThemedText>
+              <View style={styles.prayerPathDivider} />
+            </View>
+            <View style={styles.openPrayerContainer}>
+              {openPrayers.map((prayer: any) => {
+                const type = PRAYER_TYPES.find(t => t.key === 'freeform');
+                return (
+                  <SwipeablePrayerCard
+                    key={prayer.id}
+                    prayer={prayer}
+                    type={type}
+                    onMarkAnswered={handleMarkAnswered}
+                    onEdit={(prayerId: string) => {
+                      const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
+                      if (prayerToEdit) {
+                        setEditingPrayerId(prayerId);
+                        setSelectedPrayerType(prayerToEdit.type);
+                        setPrayerText(prayerToEdit.content);
+                        if (navigation) {
+                          navigation.navigate('PrayerJournalWalkthrough', {
+                            selectedDate: toLocalDateString(selectedDate),
+                          });
+                        }
+                      }
+                    }}
+                    onDelete={(prayerId: string) => {
+                      Alert.alert(
+                        'Delete Prayer',
+                        'Are you sure you want to delete this prayer?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => {
+                              deleteMutation.mutate({
+                                id: prayerId,
+                                _userId: user?.id || '',
+                                _dateStr: dateStr,
+                              });
+                              triggerSuccessHaptic();
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ErrorBoundary>
@@ -713,18 +780,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Prayer Style Selection Modal */}
-        <PrayerStyleSelectionModal
-          visible={showStyleModal}
-          selectedPrayerType={selectedPrayerType}
-          prayerText={prayerText}
-          onSelectPrayerType={handlePrayerTypeSelect}
-          onPrayerTextChange={handlePrayerTextChange}
-          onSave={handleSaveFromModal}
-          onCancel={handleCloseStyleModal}
-          isSaving={isSaving}
-        />
       </JournalCard>
     </ErrorBoundary>
   );
@@ -734,29 +789,68 @@ const styles = StyleSheet.create({
   editContainer: {
     gap: 16,
   },
-  sectionTitle: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    marginBottom: 4,
-  },
   prayersContainer: {
+    gap: 24,
     maxHeight: 200,
   },
   prayersContainerExpanded: {
+    gap: 16,
     maxHeight: undefined,
   },
+  prayerPathSection: {
+    gap: 16,
+  },
+  prayerPathHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  prayerPathTitle: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.alertCoral,
+  },
+  prayerPathDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  castStepsContainer: {
+    gap: 16,
+  },
+  castStepSection: {
+    gap: 8,
+  },
+  castStepLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+  },
+  openPrayerContainer: {
+    gap: 8,
+  },
   prayerTypeSection: {
+    gap: 12,
     marginBottom: 8,
   },
   prayerTypeSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginBottom: 8,
   },
   prayerTypeSectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
   },
   prayerItem: {
     backgroundColor: '#35537e',
