@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 
@@ -26,6 +27,7 @@ import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
 import { faithPointsService } from '../../services/faithPointsService';
+import type { RootStackParamList } from '../../navigation/types';
 
 // Use the API interface directly
 type PersonPrayer = PrayerApiEntry;
@@ -37,6 +39,7 @@ interface EnhancedPrayerListReactQueryProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
 const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> = ({
@@ -45,6 +48,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   viewMode,
   expanded,
   onExpand,
+  navigation,
 }) => {
 
   const { user } = useAuth();
@@ -69,7 +73,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const today = new Date().toLocaleDateString('en-CA'); // Use local date to match dateStr format
   const isPastDate = dateStr < today;
 
-  // Modal state
+  // Modal state (kept for edit functionality)
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
@@ -78,8 +82,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [name, setName] = useState('');
   const [prayerText, setPrayerText] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
-  const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
+  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('mine');
+  const [currentRequestedBy, setCurrentRequestedBy] = useState('');
 
   // Computed values
   const hasContent = peoplePrayers.length > 0;
@@ -226,8 +230,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       setName('');
       setPrayerText('');
       setNotes('');
-      setSelectedPrayerType('');
-      setCurrentRequestedBy(undefined);
+      setSelectedPrayerType('mine');
+      setCurrentRequestedBy('');
       setEditingPrayerId(null);
       setShowModal(false);
 
@@ -267,22 +271,25 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   // Modal handlers
   const handleOpenModal = useCallback(() => {
     triggerLightHaptic();
-    setShowModal(true);
-  }, []);
+    // Navigate to walkthrough instead of showing modal
+    if (navigation) {
+      navigation.navigate('PrayersForPeopleWalkthrough');
+    }
+  }, [navigation]);
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
     setName('');
     setPrayerText('');
     setNotes('');
-    setSelectedPrayerType('');
-    setCurrentRequestedBy(undefined);
+    setSelectedPrayerType('mine');
+    setCurrentRequestedBy('');
     setEditingPrayerId(null);
+  }, []);
 
-    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-      globalEditMode.setGlobalEditMode(false);
-    }
-  }, [globalEditMode, viewMode]);
+  if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+    globalEditMode.setGlobalEditMode(false);
+  }
 
   // Handle global edit mode changes for inline view
   React.useEffect(() => {

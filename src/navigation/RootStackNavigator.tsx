@@ -17,6 +17,7 @@ import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWa
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
 import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
+import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkthroughScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -420,6 +421,17 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PrayerJournalWalkthrough"
             component={PrayerJournalWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Prayers for People Walkthrough */}
+          <Stack.Screen
+            name="PrayersForPeopleWalkthrough"
+            component={PrayersForPeopleWalkthroughScreen as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',

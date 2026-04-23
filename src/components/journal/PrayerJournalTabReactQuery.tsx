@@ -36,7 +36,7 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
       <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />
 
       {/* People Prayers List */}
-      <EnhancedPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />
+      <EnhancedPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} navigation={navigation} />
     </View>
   );
 };

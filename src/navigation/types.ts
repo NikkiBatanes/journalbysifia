@@ -123,6 +123,12 @@ export type RootStackParamList = {
     selectedDate?: string;
   } | undefined;
 
+  // Prayers for People Walkthrough
+  PrayersForPeopleWalkthrough: {
+    initialPersonName?: string;
+    initialPrayerRequest?: string;
+  } | undefined;
+
   // Test screens
   QueryTest: undefined;
 };

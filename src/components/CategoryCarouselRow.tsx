@@ -47,7 +47,9 @@ function CategoryCarouselRow<T>({
         bounces={false}
         removeClippedSubviews={true}
       >
-        {items.map((item, index) => renderItem(item, index))}
+        {items.map((item, index) => (
+          <View key={index}>{renderItem(item, index)}</View>
+        ))}
       </Animated.ScrollView>
     </View>
   );
