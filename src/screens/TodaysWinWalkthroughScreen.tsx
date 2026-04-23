@@ -639,7 +639,6 @@ const QuietWinStep: React.FC<{
             placeholder="Name one moment from today and thank God for it..."
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
-            numberOfLines={4}
             textAlignVertical="top"
             autoFocus
             keyboardAppearance="dark"
