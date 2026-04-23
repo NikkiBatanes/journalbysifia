@@ -490,7 +490,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 8,
+    marginBottom: 16,
   },
   notesInputIcon: {
     marginRight: 8,
@@ -934,13 +934,13 @@ function TimeBlockLogEditorInner(
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // Keyboard position state for FAB
-  const fabBottomPosition = useRef(new Animated.Value(80)).current;
+  const fabBottomPosition = useRef(new Animated.Value(40)).current;
 
   // Keyboard listeners to update FAB position with smooth animation
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (event) => {
       Animated.timing(fabBottomPosition, {
-        toValue: event.endCoordinates.height + 16,
+        toValue: event.endCoordinates.height + 8,
         duration: event.duration || 250,
         useNativeDriver: false,
       }).start();
@@ -948,7 +948,7 @@ function TimeBlockLogEditorInner(
 
     const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
       Animated.timing(fabBottomPosition, {
-        toValue: 80,
+        toValue: 40,
         duration: 250,
         useNativeDriver: false,
       }).start();
