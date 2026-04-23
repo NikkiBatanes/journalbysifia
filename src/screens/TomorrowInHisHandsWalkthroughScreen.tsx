@@ -276,7 +276,7 @@ const EmotionSelectionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -304,7 +304,6 @@ const EmotionSelectionStep: React.FC<{
                 value={customEmotion}
                 onChangeText={setCustomEmotion}
                 multiline
-                numberOfLines={2}
                 autoFocus
                 keyboardAppearance="dark"
               />
@@ -477,7 +476,7 @@ const LookingAheadInputStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -504,7 +503,6 @@ const LookingAheadInputStep: React.FC<{
             placeholder="I am looking forward to..."
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
-            numberOfLines={4}
             textAlignVertical="top"
             autoFocus
             keyboardAppearance="dark"
@@ -635,7 +633,7 @@ const CompletionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -1132,6 +1130,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontFamily: Fonts.regular,
     minHeight: 120,
+    textAlignVertical: 'top',
   },
   stepLabelRow: {
     flexDirection: 'row',
