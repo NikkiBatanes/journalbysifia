@@ -38,6 +38,7 @@ import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 import { useScroll } from '../../context/ScrollContext';
+import { useNavigation } from '@react-navigation/native';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -151,6 +152,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+
+  // Navigation
+  const navigation = useNavigation();
 
   // Planning gating state
   const planningGating = usePlanningGating(selectedDate, 'inApp');
@@ -1157,7 +1161,21 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <TouchableOpacity
                 style={styles.editActionBtn}
                 onPress={() => {
-                  console.log('TimeBlock edit tapped - navigation removed');
+                  triggerSelectionHaptic();
+                  (navigation as any).navigate('TimeBlockEditor', { 
+                    selectedDate: dateStr,
+                    existingTimeBlock: {
+                      id: block.id,
+                      title: block.title,
+                      start_time: block.startTime.toISOString(),
+                      end_time: block.endTime.toISOString(),
+                      category: block.category,
+                      description: block.notes,
+                      location: block.location,
+                      all_day: block.isAllDay,
+                      alert: block.alert,
+                    }
+                  });
                 }}
                 activeOpacity={0.7}
               >
@@ -1378,6 +1396,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Begin planning your day"
                 >
@@ -1394,6 +1416,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit yesterday's time blocks"
                 >
@@ -1410,6 +1436,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit this day's time blocks"
                 >
@@ -1426,6 +1456,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Plan time blocks for this future day"
                 >
