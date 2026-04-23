@@ -345,7 +345,6 @@ const createDefaultStyles = (fonts: any) => ({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
   },
   fab: {
     width: 42,
@@ -390,11 +389,9 @@ const createDefaultStyles = (fonts: any) => ({
   },
   // FAB styles - matching reflection editor
   fabContainer: {
-    position: 'absolute',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8, // Add padding around the container
   },
   leftFabContainer: {
     left: 16,
@@ -939,10 +936,10 @@ function TimeBlockLogEditorInner(
 
   // Keyboard listeners to update FAB position with smooth animation
   useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (event) => {
       Animated.timing(fabBottomPosition, {
-        toValue: 350,
-        duration: 250,
+        toValue: event.endCoordinates.height + 16,
+        duration: event.duration || 250,
         useNativeDriver: false,
       }).start();
     });
@@ -1061,7 +1058,9 @@ function TimeBlockLogEditorInner(
   };
 
   const onCancel = () => {
+    console.log('[TBEditor] local onCancel - calling _onCancel prop', typeof _onCancel);
     _onCancel();
+    console.log('[TBEditor] _onCancel prop returned');
   };
 
   const formatTime = (date: Date): string => {
@@ -1087,7 +1086,7 @@ function TimeBlockLogEditorInner(
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -80 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         enabled={Platform.OS === 'ios'}>
           <ScrollView
             ref={scrollViewRef}
@@ -1683,41 +1682,60 @@ function TimeBlockLogEditorInner(
             </View>
           </ScrollView>
 
-          {/* Floating Action Buttons - Standard Layout */}
-          <Animated.View style={[s.fabContainer, s.rightFabContainer, { bottom: fabBottomPosition }]}>
-            <View style={s.fabRow}>
-              {/* Cancel FAB */}
-              <TouchableOpacity
-                style={[s.fab, s.cancelFab]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onCancel();
-                }}
-              >
-                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-              </TouchableOpacity>
+      {/* Floating Action Buttons - Standard Layout */}
+      {/* Wrapping in a non-scrollable ScrollView with keyboardShouldPersistTaps='always' fixes the iOS
+          quirk where tapping a button while the keyboard is visible requires two taps (first to dismiss
+          keyboard, second to trigger). See: https://github.com/facebook/react-native/issues/9447 */}
+      <Animated.View style={[s.fabWrapper, { bottom: fabBottomPosition }]}>
+        <ScrollView
+          horizontal
+          scrollEnabled={false}
+          keyboardShouldPersistTaps="always"
+          contentContainerStyle={{ flexGrow: 1 }}
+          style={{ flexGrow: 0 }}
+        >
+        <View style={[s.fabContainer, s.rightFabContainer]}>
+          <View style={s.fabRow}>
+            {/* Cancel FAB */}
+            <TouchableOpacity
+              style={[s.fab, s.cancelFab]}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              onPressIn={() => { console.log('[TimeBlockFAB] Cancel onPressIn'); }}
+              onPress={() => {
+                console.log('[TimeBlockFAB] Cancel onPress - firing onCancel');
+                triggerLightHaptic();
+                onCancel();
+              }}
+            >
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
 
-              {/* Save FAB */}
-              <TouchableOpacity
-                style={[
-                  s.fab,
-                  s.saveFab,
-                  (!title.trim() || !category || category === 'Select a category' || isLoading) && s.fabDisabled,
-                ]}
-                disabled={!title.trim() || !category || category === 'Select a category' || isLoading}
-                onPress={() => {
-                  triggerLightHaptic();
-                  handleSave();
-                }}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
-                ) : (
-                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
+            {/* Save FAB */}
+            <TouchableOpacity
+              style={[
+                s.fab,
+                s.saveFab,
+                (!title.trim() || !category || category === 'Select a category' || isLoading) && s.fabDisabled,
+              ]}
+              disabled={!title.trim() || !category || category === 'Select a category' || isLoading}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              onPressIn={() => { console.log('[TimeBlockFAB] Save onPressIn, disabled=', !title.trim() || !category || category === 'Select a category' || isLoading); }}
+              onPress={() => {
+                console.log('[TimeBlockFAB] Save onPress - firing handleSave');
+                triggerLightHaptic();
+                handleSave();
+              }}
+            >
+              {isLoading ? (
+                <ActivityIndicator size={17} color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+        </ScrollView>
+      </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Start Time Picker Modal */}

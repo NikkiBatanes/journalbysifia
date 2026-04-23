@@ -1,4 +1,5 @@
 import React from 'react';
+import type { NavigationProp } from '@react-navigation/native';
 
 export type ViewMode = 'carousel' | 'inline' | 'moments';
 export type JournalCategory = 'plan' | 'reflect' | 'pray';
@@ -45,4 +46,5 @@ export interface PluginRenderProps {
   viewMode: ViewMode;
   // Optional filtering context for plugins to respect renderer-level filters
   filters?: PluginFilters;
+  navigation?: any;
 }

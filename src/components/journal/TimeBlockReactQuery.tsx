@@ -38,7 +38,6 @@ import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 import { useScroll } from '../../context/ScrollContext';
-import TimeBlockLogEditor from './TimeBlockLogEditor';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -257,10 +256,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [editIsVirtualInstance, setEditIsVirtualInstance] = useState<boolean>(false);
   const [editInstanceDate, setEditInstanceDate] = useState<string | null>(null);
 
-  // Modal state for TimeBlockLogEditor
-  const [showEditorModal, setShowEditorModal] = useState(false);
-  const [editingBlock, setEditingBlock] = useState<TimeBlockItem | null>(null);
-
   const [newBlock, setNewBlock] = useState<{
     title: string;
     startTime: Date;
@@ -304,27 +299,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   useEffect(() => {
     // Cancel any active editing when date changes
-    if (prevDateRef.current !== dateStr && showEditorModal) {
-      setShowEditorModal(false);
-      setEditingBlock(null);
-    }
     if (prevDateRef.current !== dateStr && globalEditMode?.isGlobalEditMode && globalEditMode?.setGlobalEditMode) {
       globalEditMode.setGlobalEditMode(false);
     }
     prevDateRef.current = dateStr;
-  }, [dateStr, globalEditMode, showEditorModal]);
-
-// ...
-  // Auto-cancel edit mode when component unmounts
-  useEffect(() => {
-    return () => {
-      // Cleanup when component unmounts
-      if (showEditorModal) {
-        setShowEditorModal(false);
-        setEditingBlock(null);
-      }
-    };
-  }, [showEditorModal]);
+  }, [dateStr, globalEditMode]);
 
   const closeAllSwipeActions = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -337,13 +316,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const toggleNotes = (id: string) => {
     closeAllSwipeActions();
     setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleEditBlock = (block: TimeBlockItem) => {
-    closeAllSwipeActions();
-    // Open modal with the block to edit
-    setEditingBlock(block);
-    setShowEditorModal(true);
   };
 
   const handleDeleteBlock = (timeBlock: TimeBlockItem) => {
@@ -1068,18 +1040,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     }
   };
 
-  const startAdding = () => {
-    // Check if planning is locked for future dates
-    if (planningGating.isLocked) {
-      planningGating.handleLockedAction();
-      return;
-    }
-
-    // Open modal with empty block for creating new time block
-    setEditingBlock(null);
-    setShowEditorModal(true);
-  };
-
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     if (event.type === 'dismissed') {
       setShowTimePicker({ start: false, end: false, id: null });
@@ -1196,7 +1156,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <View style={styles.timeblockSwipeActions}>
               <TouchableOpacity
                 style={styles.editActionBtn}
-                onPress={() => handleEditBlock(block)}
+                onPress={() => {
+                  console.log('TimeBlock edit tapped - navigation removed');
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="create-outline" size={22} color="white" />
@@ -1382,7 +1344,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       title={headerTitle}
       subtitle={headerSubtitle}
       showAddButton={hasItems && !shouldShowAddingMode}
-      onAdd={startAdding}
       isAdding={shouldShowAddingMode}
       variant={variant}
       viewMode={viewMode}
@@ -1417,10 +1378,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    startAdding();
-                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Begin planning your day"
                 >
@@ -1437,10 +1394,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    startAdding();
-                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit yesterday's time blocks"
                 >
@@ -1457,10 +1410,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    startAdding();
-                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit this day's time blocks"
                 >
@@ -1477,10 +1426,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    startAdding();
-                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Plan time blocks for this future day"
                 >
@@ -2211,36 +2156,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         onCancel={() => setShowDeleteModal({ visible: false })}
         canDeleteSeries={calendarGating.canDeleteSeries}
       />
-
-      {/* TimeBlockLogEditor Modal */}
-      <Modal
-        visible={showEditorModal}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowEditorModal(false)}
-      >
-        <TimeBlockLogEditor
-          onSave={(data) => {
-            setShowEditorModal(false);
-            // Invalidate queries to refresh data
-            queryClient.invalidateQueries({ queryKey: queryKeys.timeBlocks.all });
-          }}
-          onCancel={() => setShowEditorModal(false)}
-          dateString={dateStr}
-          context="journal"
-          existingTimeBlock={editingBlock ? {
-            id: editingBlock.id,
-            title: editingBlock.title,
-            start_time: editingBlock.startTime.toISOString(),
-            end_time: editingBlock.endTime.toISOString(),
-            category: editingBlock.category,
-            description: editingBlock.notes,
-            location: editingBlock.location,
-            all_day: editingBlock.isAllDay,
-            alert: editingBlock.alert,
-          } : undefined}
-        />
-      </Modal>
     </JournalCard>
   );
 };

@@ -535,12 +535,10 @@ export const useUpdateLookingForwardEntry = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
       JournalApi.updateJournalEntry(id, updates),
     onSuccess: (data) => {
-      // Update the specific entry in the looking forward query
-      queryClient.setQueryData(
-        queryKeys.journal.lookingForward(data.user_id, data.selected_date),
-        (old: JournalApiEntry[] = []) =>
-          old.map(entry => entry.id === data.id ? data : entry)
-      );
+      // Invalidate query to force refetch from database
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.lookingForward(data.user_id, data.selected_date),
+      });
 
       // Clear cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'looking_forward');

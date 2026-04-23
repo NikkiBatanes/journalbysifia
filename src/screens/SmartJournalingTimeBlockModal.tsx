@@ -4,6 +4,7 @@ import {
   Alert,
   DeviceEventEmitter,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
@@ -26,6 +27,7 @@ interface SmartJournalingTimeBlockModalProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingTimeBlock?: any;
+  selectedDate?: string;
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -40,6 +42,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   actionStepNumber,
   actionStepTitle,
   existingTimeBlock,
+  selectedDate,
   onSave,
   onCancel,
 }) => {
@@ -214,8 +217,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     isEditing?: boolean;
     existingId?: string;
   }) => {
+    console.log('[SmartTBModal] saveTimeBlock CALLED with title:', timeBlockData.title);
     try {
       if (!user) {
+        console.log('[SmartTBModal] saveTimeBlock EARLY RETURN: no user');
         Alert.alert('Error', 'You must be logged in to save time blocks.');
         return;
       }
@@ -232,7 +237,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
-        selected_date: toLocalDateString(timeBlockData.date),
+        selected_date: selectedDate || toLocalDateString(timeBlockData.date),
         start_time: timeBlockData.startTime.toISOString(),
         end_time: timeBlockData.endTime.toISOString(),
         all_day: timeBlockData.isAllDay,
@@ -263,16 +268,16 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       let result;
       if (isEditSession && existingTimeBlock?.id) {
-        // Update existing time block
-
+        console.log('[SmartTBModal] calling updateTimeBlockMutation.mutateAsync');
         result = await updateTimeBlockMutation.mutateAsync({
           id: existingTimeBlock.id,
           updates: timeBlockEntry,
         });
+        console.log('[SmartTBModal] updateTimeBlockMutation SUCCESS');
       } else {
-        // Create new time block
-
+        console.log('[SmartTBModal] calling createTimeBlockMutation.mutateAsync');
         result = await createTimeBlockMutation.mutateAsync(timeBlockEntry);
+        console.log('[SmartTBModal] createTimeBlockMutation SUCCESS');
       }
 
       // Mark subtask as completed and protected immediately since data is saved (only for new time blocks)
@@ -281,8 +286,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         handleAutoCheckStep(stepId, subtaskId);
       }
 
+      console.log('[SmartTBModal] calling parent onSave(result)');
       // Notify parent of successful save
       onSave(result);
+      console.log('[SmartTBModal] parent onSave returned');
 
       // CRITICAL FIX: Emit timeblock event to refresh Moments screen
       DeviceEventEmitter.emit('timeblock_saved', { timeblock: result });
@@ -298,6 +305,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }, 100);
 
     } catch (error: any) {
+      console.log('[SmartTBModal] saveTimeBlock CAUGHT ERROR:', error?.message, error);
       Logger.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED', error as Error, { component: 'SmartJournalingTimeBlockModal' });
       Alert.alert(
         'Error',
@@ -308,10 +316,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   };
 
   const handleCancel = () => {
-
-    // Completion state handled by parent component
-
+    console.log('[SmartTBModal] handleCancel called - calling parent onCancel', typeof onCancel);
     onCancel();
+    console.log('[SmartTBModal] parent onCancel returned');
   };
 
   // Note: Removed unused _handleSuccessModalClose and _handleEdit functions
@@ -327,6 +334,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         transparent={false}
         onRequestClose={handleCancel}
       >
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <TimeBlockLogEditor
             ref={timeBlockEditorRef}
             onSave={saveTimeBlock}
@@ -357,6 +365,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             onDone={successModal.handleDone}
             onEdit={successModal.handleEdit}
           />
+        </GestureHandlerRootView>
       </Modal>
     </>
   );

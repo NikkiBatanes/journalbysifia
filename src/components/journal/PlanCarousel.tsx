@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useMemo } from 'react';
 import { View, Animated, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import type { NavigationProp } from '@react-navigation/native';
 import { Colors, standardColors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
@@ -12,9 +13,10 @@ interface PlanCarouselProps {
   refreshKey?: number;
   initialScrollIndex?: number;
   onScrollIndexChange?: (index: number) => void;
+  navigation?: NavigationProp<any>;
 }
 
-const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, initialScrollIndex = 0, onScrollIndexChange }) => {
+const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, initialScrollIndex = 0, onScrollIndexChange, navigation }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
 
@@ -93,7 +95,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       id: 'focus',
       title: 'FOCUS',
       icon: 'target-outline',
-      component: <TodaysFocusReactQuery selectedDate={selectedDate} refreshKey={refreshKey} variant="carousel" />,
+      component: <TodaysFocusReactQuery selectedDate={selectedDate} refreshKey={refreshKey} variant="carousel" navigation={navigation} />,
       color: Colors.alertCoral,
     },
     {
@@ -110,7 +112,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       component: <TimeBlockReactQuery selectedDate={selectedDate} />,
       color: standardColors.info,
     },
-  ], [selectedDate, refreshKey]);
+  ], [selectedDate, refreshKey, navigation]);
 
   // Handle scroll feedback with sound
 
