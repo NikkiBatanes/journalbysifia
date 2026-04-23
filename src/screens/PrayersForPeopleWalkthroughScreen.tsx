@@ -136,12 +136,6 @@ const PrayerTypeSelectionStep: React.FC<{
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={80}>
-          <ThemedText style={styles.stepDescription}>
-            Choose the one that fits this moment.
-          </ThemedText>
-        </StepFadeIn>
-
         <StepFadeIn delay={160} style={styles.categoriesGrid}>
           {PRAYER_TYPES.map((type, index) => {
             const isSelected = selectedType?.id === type.id;
@@ -179,6 +173,16 @@ const PrayerTypeSelectionStep: React.FC<{
               </TouchableOpacity>
             );
           })}
+        </StepFadeIn>
+
+        <StepFadeIn delay={240}>
+          <View style={styles.metadataContainer}>
+            <View style={styles.metadataContent}>
+              <ThemedText style={styles.metadataText}>
+                Choose the one that fits this moment.
+              </ThemedText>
+            </View>
+          </View>
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
@@ -797,65 +801,80 @@ const styles = StyleSheet.create({
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+    marginTop: 32,
   },
   labelIcon: {
-    marginRight: 8,
+    marginTop: 1,
   },
   focusLabel: {
-    fontSize: 12,
-    color: Colors.alertCoral,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.hopeWhite,
   },
   titleRow: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 32,
   },
   titleRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
     marginBottom: 16,
   },
   stepTitle: {
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.hopeWhite,
-    lineHeight: 34,
+    lineHeight: 30,
+    textAlign: 'center',
   },
   stepTitleLeft: {
     fontSize: 24,
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 30,
+    marginBottom: 16,
+    textAlign: 'left',
   },
   stepDescription: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 24,
     marginBottom: 24,
   },
   categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
   categoryCard: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    padding: 20,
+    maxWidth: 400,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    minHeight: 80,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryCardSelected: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: 'rgba(255, 107, 107, 0.18)',
     borderColor: Colors.alertCoral,
   },
   categoryIconContainer: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   categoryIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -863,20 +882,39 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   categoryName: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
-    marginBottom: 4,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   categoryNameSelected: {
     color: Colors.hopeWhite,
   },
   categoryDescription: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    lineHeight: 18,
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   categoryDescriptionSelected: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  metadataContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 24,
+    paddingHorizontal: 8,
+  },
+  metadataContent: {
+    flex: 1,
+    gap: 4,
+  },
+  metadataText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
+    textAlign: 'left',
   },
   inputContainer: {
     marginBottom: 24,
@@ -902,22 +940,25 @@ const styles = StyleSheet.create({
   primaryButton: {
     position: 'absolute',
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.alertCoral,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
   },
   closeButton: {
     position: 'absolute',
     right: 20,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
   },
   stepLabelRow: {
     flexDirection: 'row',
