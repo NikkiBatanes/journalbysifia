@@ -392,6 +392,8 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    width: '100%',
+    paddingRight: 16,
   },
   leftFabContainer: {
     left: 16,
