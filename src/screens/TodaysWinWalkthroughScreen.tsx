@@ -52,61 +52,139 @@ const WIN_TYPES: WinType[] = [
   { id: 'followed-through', name: 'I followed through', category: 'Practical' },
   { id: 'chose-peace', name: 'I chose peace', category: 'Inner Life' },
   { id: 'told-truth', name: 'I told the truth', category: 'Relationships' },
-  { id: 'showed-up', name: 'I showed up', category: 'Practical' },
-  { id: 'chose-trust', name: 'I chose trust', category: 'Faith' },
+  { id: 'showed-up', name: 'I showed up', category: 'Work' },
+  { id: 'shared-jesus', name: 'I shared Jesus', category: 'Faith' },
   { id: 'kept-going', name: 'I kept going', category: 'Inner Life' },
 
-  // Additional wins
-  { id: 'took-next-step', name: 'I took the next step', category: 'Work' },
-  { id: 'god-provided', name: 'God provided', category: 'Faith' },
-  { id: 'asked-for-help', name: 'I asked for help', category: 'Inner Life' },
-  { id: 'let-go', name: 'I let go', category: 'Inner Life' },
-  { id: 'forgave', name: 'I forgave', category: 'Relationships' },
-  { id: 'apologized', name: 'I apologized', category: 'Relationships' },
-  { id: 'set-boundary', name: 'I set a boundary', category: 'Relationships' },
-  { id: 'was-patient', name: 'I was patient', category: 'Relationships' },
-  { id: 'showed-kindness', name: 'I showed kindness', category: 'Relationships' },
+  // Faith
+  { id: 'chose-trust', name: 'I chose trust', category: 'Faith' },
   { id: 'stayed-faithful', name: 'I stayed faithful', category: 'Faith' },
   { id: 'obeyed-hard', name: 'I obeyed when it was hard', category: 'Faith' },
   { id: 'brought-to-god', name: 'I brought it to God', category: 'Faith' },
   { id: 'prayed-panicking', name: 'I prayed instead of panicking', category: 'Faith' },
   { id: 'shared-gospel', name: 'I shared the gospel', category: 'Faith' },
-  { id: 'shared-jesus', name: 'I shared Jesus', category: 'Faith' },
+  { id: 'god-made-way', name: 'God made a way', category: 'Faith' },
+
+  // Inner Life
+  { id: 'let-go', name: 'I let go', category: 'Inner Life' },
+  { id: 'asked-for-help', name: 'I asked for help', category: 'Inner Life' },
+  { id: 'rested-needed', name: 'I rested when I needed to', category: 'Inner Life' },
+  { id: 'stayed-steady', name: 'I stayed steady', category: 'Inner Life' },
+  { id: 'made-space-breathe', name: 'I made space to breathe', category: 'Inner Life' },
+
+  // Relationships
+  { id: 'forgave', name: 'I forgave', category: 'Relationships' },
+  { id: 'apologized', name: 'I apologized', category: 'Relationships' },
+  { id: 'set-boundary', name: 'I set a boundary', category: 'Relationships' },
+  { id: 'was-patient', name: 'I was patient', category: 'Relationships' },
+  { id: 'showed-kindness', name: 'I showed kindness', category: 'Relationships' },
+  { id: 'reached-out', name: 'I reached out', category: 'Relationships' },
+  { id: 'encouraged-someone', name: 'I encouraged someone', category: 'Relationships' },
+
+  // Marriage
+  { id: 'honored-spouse', name: 'I honored my spouse', category: 'Marriage' },
+  { id: 'spoke-gentleness', name: 'I spoke with gentleness', category: 'Marriage' },
+  { id: 'listened-care', name: 'I listened with care', category: 'Marriage' },
+  { id: 'apologized-marriage', name: 'I apologized', category: 'Marriage' },
+  { id: 'forgave-marriage', name: 'I forgave', category: 'Marriage' },
+  { id: 'chose-unity', name: 'I chose unity', category: 'Marriage' },
+  { id: 'reached-out-first', name: 'I reached out first', category: 'Marriage' },
+  { id: 'served-love', name: 'I served with love', category: 'Marriage' },
+
+  // Practical
   { id: 'finished-hard', name: 'I finished something hard', category: 'Practical' },
-  { id: 'rested-needed', name: 'I rested when I needed to', category: 'Health' },
+  { id: 'got-ready', name: 'I got ready for the day', category: 'Practical' },
+  { id: 'cared-home', name: 'I cared for my home', category: 'Practical' },
+  { id: 'handled-needed-care', name: 'I handled what needed care', category: 'Practical' },
+  { id: 'did-needed', name: 'I did what needed to be done', category: 'Practical' },
+  { id: 'made-progress', name: 'I made progress today', category: 'Practical' },
+  { id: 'took-care-avoiding', name: 'I took care of what I was avoiding', category: 'Practical' },
+
+  // Home
+  { id: 'handled-family-home', name: 'I handled what my family needed', category: 'Home' },
+  { id: 'cleaned-needed', name: 'I cleaned what needed cleaning', category: 'Home' },
+  { id: 'stayed-on-top', name: 'I stayed on top of things', category: 'Home' },
+  { id: 'followed-through-home', name: 'I followed through at home', category: 'Home' },
+  { id: 'kept-order', name: 'I kept things in order', category: 'Home' },
+  { id: 'took-care-needed', name: 'I took care of what was needed', category: 'Home' },
+
+  // Family
+  { id: 'handled-family', name: 'I handled what my family needed', category: 'Family' },
+  { id: 'showed-kindness-family', name: 'I showed kindness', category: 'Family' },
+  { id: 'was-patient-family', name: 'I was patient', category: 'Family' },
+  { id: 'reached-out-family', name: 'I reached out', category: 'Family' },
+  { id: 'stayed-present', name: 'I stayed present', category: 'Family' },
+  { id: 'served-love-family', name: 'I served with love', category: 'Family' },
+  { id: 'listened-care-family', name: 'I listened with care', category: 'Family' },
+  { id: 'followed-through-family', name: 'I followed through for my family', category: 'Family' },
+
+  // Motherhood
+  { id: 'cared-child', name: 'I cared for my child', category: 'Motherhood' },
+  { id: 'stayed-present-motherhood', name: 'I stayed present in motherhood', category: 'Motherhood' },
+  { id: 'handled-family-motherhood', name: 'I handled what my family needed', category: 'Motherhood' },
+  { id: 'showed-kindness-motherhood', name: 'I showed kindness', category: 'Motherhood' },
+  { id: 'was-patient-motherhood', name: 'I was patient', category: 'Motherhood' },
+  { id: 'stayed-steady-child', name: 'I stayed steady for my child', category: 'Motherhood' },
+  { id: 'met-need-love', name: 'I met a need with love', category: 'Motherhood' },
+  { id: 'kept-showing-up', name: 'I kept showing up as a mother', category: 'Motherhood' },
+
+  // Health
   { id: 'took-care-body', name: 'I took care of my body', category: 'Health' },
   { id: 'worked-out', name: 'I worked out', category: 'Health' },
   { id: 'ate-well', name: 'I ate well today', category: 'Health' },
   { id: 'took-care-skin', name: 'I took care of my skin', category: 'Health' },
-  { id: 'got-ready', name: 'I got ready for the day', category: 'Home' },
-  { id: 'cared-home', name: 'I cared for my home', category: 'Home' },
-  { id: 'cared-child', name: 'I cared for my child', category: 'Motherhood' },
-  { id: 'stayed-present-motherhood', name: 'I stayed present in motherhood', category: 'Motherhood' },
-  { id: 'handled-family', name: 'I handled what my family needed', category: 'Family' },
+  { id: 'drank-water', name: 'I drank water', category: 'Health' },
+  { id: 'listened-body', name: 'I listened to my body', category: 'Health' },
+  { id: 'made-healthy-choice', name: 'I made a healthy choice', category: 'Health' },
+
+  // School
   { id: 'passed-exam', name: 'I passed the exam', category: 'School' },
   { id: 'finished-assignment', name: 'I finished my assignment', category: 'School' },
   { id: 'studied-needed', name: 'I studied when I needed to', category: 'School' },
-  { id: 'showed-up-school', name: 'I showed up', category: 'School' },
+  { id: 'stayed-focused-school', name: 'I stayed focused', category: 'School' },
+  { id: 'prepared-well', name: 'I prepared well', category: 'School' },
+  { id: 'followed-through-school', name: 'I followed through in school', category: 'School' },
   { id: 'kept-going-school', name: 'I kept going', category: 'School' },
-  { id: 'made-progress-business', name: 'I made progress in business', category: 'Business' },
-  { id: 'made-hard-decision', name: 'I made a hard decision', category: 'Business' },
+
+  // Work
   { id: 'showed-up-work', name: 'I showed up for my work', category: 'Work' },
   { id: 'followed-through-work', name: 'I followed through in work', category: 'Work' },
   { id: 'finished-hard-work', name: 'I finished something hard', category: 'Work' },
-  { id: 'reached-out', name: 'I reached out', category: 'Relationships' },
-  { id: 'encouraged-someone', name: 'I encouraged someone', category: 'Relationships' },
-  { id: 'god-made-way', name: 'God made a way', category: 'Faith' },
-  // Additional items to complete categories
-  { id: 'handled-family-home', name: 'I handled what my family needed', category: 'Home' },
-  { id: 'handled-family-motherhood', name: 'I handled what my family needed', category: 'Motherhood' },
-  { id: 'showed-kindness-family', name: 'I showed kindness', category: 'Family' },
-  { id: 'was-patient-family', name: 'I was patient', category: 'Family' },
-  { id: 'reached-out-family', name: 'I reached out', category: 'Family' },
-  { id: 'showed-kindness-motherhood', name: 'I showed kindness', category: 'Motherhood' },
-  { id: 'was-patient-motherhood', name: 'I was patient', category: 'Motherhood' },
+  { id: 'took-next-step', name: 'I took the next step', category: 'Work' },
+  { id: 'stayed-focused-work', name: 'I stayed focused', category: 'Work' },
+  { id: 'handled-attention', name: 'I handled what needed my attention', category: 'Work' },
+  { id: 'completed-important', name: 'I completed an important task', category: 'Work' },
+  { id: 'made-progress-work', name: 'I made progress in my work', category: 'Work' },
+
+  // Business
+  { id: 'made-progress-business', name: 'I made progress in business', category: 'Business' },
+  { id: 'made-hard-decision', name: 'I made a hard decision', category: 'Business' },
   { id: 'showed-up-business', name: 'I showed up for my work', category: 'Business' },
-  { id: 'followed-through-business', name: 'I followed through in work', category: 'Business' },
-  { id: 'finished-hard-business', name: 'I finished something hard', category: 'Business' },
+  { id: 'followed-through-business', name: 'I followed through in business', category: 'Business' },
+  { id: 'handled-attention-business', name: 'I handled what needed my attention', category: 'Business' },
+  { id: 'took-next-step-business', name: 'I took the next step', category: 'Business' },
+  { id: 'stayed-consistent', name: 'I stayed consistent', category: 'Business' },
+  { id: 'moved-forward', name: 'I moved something forward', category: 'Business' },
+
+  // Ministry
+  { id: 'showed-up-ministry', name: 'I showed up in ministry', category: 'Ministry' },
+  { id: 'served-faithfulness', name: 'I served with faithfulness', category: 'Ministry' },
+  { id: 'followed-through-ministry', name: 'I followed through in ministry', category: 'Ministry' },
+  { id: 'encouraged-ministry', name: 'I encouraged someone', category: 'Ministry' },
+  { id: 'led-care', name: 'I led with care', category: 'Ministry' },
+  { id: 'helped-needed', name: 'I helped where needed', category: 'Ministry' },
+  { id: 'prayed-someone', name: 'I prayed for someone', category: 'Ministry' },
+  { id: 'stayed-faithful-serving', name: 'I stayed faithful in serving', category: 'Ministry' },
+
+  // Discipleship
+  { id: 'showed-up-discipleship', name: 'I showed up in discipleship', category: 'Discipleship' },
+  { id: 'reached-out-faith', name: 'I reached out in faith', category: 'Discipleship' },
+  { id: 'encouraged-faith', name: 'I encouraged someone in faith', category: 'Discipleship' },
+  { id: 'listened-care-discipleship', name: 'I listened with care', category: 'Discipleship' },
+  { id: 'spoke-truth-love', name: 'I spoke truth with love', category: 'Discipleship' },
+  { id: 'followed-through-someone', name: 'I followed through with someone', category: 'Discipleship' },
+  { id: 'pointed-jesus', name: 'I pointed someone to Jesus', category: 'Discipleship' },
+  { id: 'prayed-with', name: 'I prayed with someone', category: 'Discipleship' },
 ];
 
 const CORE_WIN_TYPES = WIN_TYPES.slice(0, 6);
@@ -115,6 +193,7 @@ const CATEGORIES = [
   'Faith',
   'Inner Life',
   'Relationships',
+  'Marriage',
   'Practical',
   'Home',
   'Family',
@@ -123,6 +202,8 @@ const CATEGORIES = [
   'School',
   'Work',
   'Business',
+  'Ministry',
+  'Discipleship',
 ];
 
 // StepFadeIn component
@@ -842,7 +923,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   titleRowLeft: {
     marginBottom: 16,
@@ -1043,12 +1124,17 @@ const styles = StyleSheet.create({
   },
   categoryFilterScroll: {
     marginBottom: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
   categoryFilterContent: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 8,
     gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryFilterChip: {
     paddingHorizontal: 12,
