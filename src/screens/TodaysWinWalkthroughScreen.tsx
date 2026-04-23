@@ -1041,7 +1041,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   categoryFilterScroll: {
-    marginBottom: 32,
+    marginBottom: 40,
   },
   categoryFilterContent: {
     flexDirection: 'row',
