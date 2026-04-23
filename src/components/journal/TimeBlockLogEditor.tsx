@@ -102,7 +102,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 150,
+    paddingBottom: 80,
   },
   entryInput: {
     color: Colors.hopeWhite,
@@ -940,7 +940,7 @@ function TimeBlockLogEditorInner(
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (event) => {
       Animated.timing(fabBottomPosition, {
-        toValue: event.endCoordinates.height + 8,
+        toValue: event.endCoordinates.height + 16,
         duration: event.duration || 250,
         useNativeDriver: false,
       }).start();
