@@ -14,6 +14,7 @@ import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -262,15 +263,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     if (!isEditing && !isSaving) {
       // Only update if the entry has actually changed
       setDisplayEntry((prevDisplayEntry: any) => {
-        // Compare by ID and text to avoid unnecessary updates
+        // Compare by ID, text, and emotion to avoid unnecessary updates
         if (!lookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
         if (!lookingForward || !prevDisplayEntry) {
 
           return lookingForward;
         }
 
-        // Don't override optimistic updates with the same content
-        if (lookingForward.id === prevDisplayEntry.id && lookingForward.text === prevDisplayEntry.text) {
+        // Don't override optimistic updates with the same content (including emotion)
+        if (lookingForward.id === prevDisplayEntry.id &&
+            lookingForward.text === prevDisplayEntry.text &&
+            lookingForward.emotionId === prevDisplayEntry.emotionId &&
+            lookingForward.emotionName === prevDisplayEntry.emotionName) {
           return prevDisplayEntry; // No change, keep previous
         }
 
@@ -278,7 +282,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
           // Replace temp ID with real ID but keep the optimistic content
-
           return { ...prevDisplayEntry, id: lookingForward.id };
         }
 
@@ -295,6 +298,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     setIsSaving(false);
 
   }, [dateStr]);
+
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Handle global edit mode activation - disabled for LookingForward since it uses walkthrough
   React.useEffect(() => {

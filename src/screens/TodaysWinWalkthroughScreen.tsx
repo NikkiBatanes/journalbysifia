@@ -235,6 +235,24 @@ const COMPLETION_MESSAGES = [
   'This is worth thanking God for.',
 ];
 
+const FOOTER_MESSAGES = [
+  'A small moment named with gratitude.',
+  'Every step of faith matters.',
+  'God sees your faithfulness.',
+  'Your obedience matters to God.',
+  'Faithfulness in small things.',
+  'God is with you in this.',
+  'A moment worth remembering.',
+  'Grace in the ordinary.',
+  'Faithfulness counts today.',
+  'God honors your steps.',
+  'This moment matters to God.',
+  'Your faithfulness is seen.',
+  'A step of faith taken.',
+  'God is at work here.',
+  'Every faithful act counts.',
+];
+
 // StepFadeIn component
 interface StepFadeInProps {
   delay?: number;
@@ -586,7 +604,7 @@ const WinTypeSelectionStep: React.FC<{
   );
 };
 
-// Step 2: Quiet Win Description
+// Step 2: Kind of Win Description
 const QuietWinStep: React.FC<{
   quietWin: string;
   onChange: (text: string) => void;
@@ -653,7 +671,7 @@ const QuietWinStep: React.FC<{
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              What felt like a quiet win today?
+              What kind of win was this?
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -738,6 +756,7 @@ const CompletionStep: React.FC<{
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
   const [completionMessage, setCompletionMessage] = useState('');
+  const [footerMessage, setFooterMessage] = useState('');
 
   useEffect(() => {
     // Get rotating completion message
@@ -751,7 +770,21 @@ const CompletionStep: React.FC<{
         setCompletionMessage(COMPLETION_MESSAGES[0]);
       }
     };
+
+    // Get rotating footer message
+    const getFooterMessage = async () => {
+      try {
+        const currentIndex = await AsyncStorage.getItem('winFooterIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        setFooterMessage(FOOTER_MESSAGES[index % FOOTER_MESSAGES.length]);
+      } catch (error) {
+        console.error('Error getting footer message:', error);
+        setFooterMessage(FOOTER_MESSAGES[0]);
+      }
+    };
+
     getCompletionMessage();
+    getFooterMessage();
 
     // Animate checkmark
     Animated.spring(checkmarkScale, {
@@ -814,9 +847,8 @@ const CompletionStep: React.FC<{
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionTitle}>
-                {winType.id === 'other' && customWin.trim() ? `Other: ${customWin.trim()}` : winType.name}
+                {winType.id === 'other' && customWin.trim() ? customWin.trim() : winType.name}
               </ThemedText>
-              <ThemedText style={styles.completionSubtext}>{completionMessage}</ThemedText>
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
@@ -828,14 +860,14 @@ const CompletionStep: React.FC<{
 
           {quietWin.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>KIND OF WIN</ThemedText>
               <ThemedText style={styles.completionSectionText}>{quietWin}</ThemedText>
             </View>
           )}
 
           <View style={styles.completionFooter}>
             <ThemedText style={styles.completionFooterText}>
-              A small moment named with gratitude.
+              {footerMessage}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -865,6 +897,7 @@ const CompletionStep: React.FC<{
 const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = { top: 50, bottom: 34 };
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { selectedDate: selectedDateStr } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
@@ -892,6 +925,9 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           if (winType) {
             setSelectedWinType(winType);
           }
+        }
+        if (content.winType === 'other' && content.winTypeName) {
+          setCustomWin(content.winTypeName);
         }
         if (content.quietWin) {
           setQuietWin(content.quietWin);
@@ -924,14 +960,26 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     try {
-      const winTypeId = selectedWinType?.id === 'other' ? 'other' : selectedWinType?.id;
-      const winTypeName = selectedWinType?.id === 'other' ? customWin.trim() : selectedWinType?.name;
+      // Use new values if changed, otherwise keep existing values
+      // If user selected a new win type, use it. Otherwise keep existing.
+      const winTypeId = selectedWinType?.id === 'other' ? 'other' : (selectedWinType?.id || '');
+      const winTypeName = selectedWinType?.id === 'other' ? customWin.trim() : (selectedWinType?.name || '');
+
+      // If user entered new text, use it and clear win type. If win type was selected, clear text.
+      const quietWinToSave = quietWin.trim() !== '' ? quietWin.trim() : '';
+
+      const contentToSave = JSON.stringify({ winType: winTypeId, winTypeName, quietWin: quietWinToSave });
 
       if (existingEntryId) {
-        await updateMutation.mutateAsync({ id: existingEntryId, updates: { content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) } });
+        await updateMutation.mutateAsync({ id: existingEntryId, updates: { content: contentToSave } });
       } else {
-        await createMutation.mutateAsync({ user_id: user.id, selected_date: dateStr, content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) });
+        await createMutation.mutateAsync({ user_id: user.id, selected_date: dateStr, content: contentToSave });
       }
+
+      // Invalidate cache and refetch to ensure UI updates with new data
+      await queryClient.invalidateQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.journal.all });
 
       // Increment completion message index for next time
       try {
@@ -940,6 +988,15 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         await AsyncStorage.setItem('winCompletionIndex', String((index + 1) % COMPLETION_MESSAGES.length));
       } catch (error) {
         console.error('Error incrementing completion message index:', error);
+      }
+
+      // Increment footer message index for next time
+      try {
+        const currentIndex = await AsyncStorage.getItem('winFooterIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        await AsyncStorage.setItem('winFooterIndex', String((index + 1) % FOOTER_MESSAGES.length));
+      } catch (error) {
+        console.error('Error incrementing footer message index:', error);
       }
 
       triggerMediumHaptic();

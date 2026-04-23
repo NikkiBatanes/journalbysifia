@@ -19,6 +19,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -859,6 +860,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { selectedDate: selectedDateStr, existingEntry } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
@@ -932,22 +934,47 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     }
 
     try {
+      // Use new values if changed, otherwise keep existing values
+      // If user selected a new category, use it. Otherwise keep existing.
+      const focusToSave = selectedCategory ? (selectedCategory.id === 'other' ? customFocus.trim() : selectedCategory.name) : '';
+      const focusCategoryToSave = selectedCategory?.id || '';
+      const customFocusToSave = selectedCategory?.id === 'other' ? customFocus.trim() : '';
+
+      // If user entered new text, use it and clear category. If category was selected, clear text.
+      const personalTextToSave = personalText.trim() !== '' ? personalText.trim() : '';
+
+      // If user entered new priorities, use them. Otherwise clear them.
+      const prioritiesToSave = priorities.filter((p: string) => p.trim()).length > 0
+        ? priorities.map((text: string, index: number) => ({
+            id: `priority_${index + 1}`,
+            text: text.trim(),
+            completed: false,
+          }))
+        : [];
+
       const contentToSave = JSON.stringify({
-        focus: selectedCategory?.id === 'other' ? customFocus.trim() : selectedCategory?.name || '',
-        focusCategory: selectedCategory?.id || '',
-        customFocus: selectedCategory?.id === 'other' ? customFocus.trim() : '',
-        personalText: personalText.trim(),
-        priorities: priorities.map((text: string, index: number) => ({
-          id: `priority_${index + 1}`,
-          text: text.trim(),
-          completed: false,
-        })),
+        focus: focusToSave,
+        focusCategory: focusCategoryToSave,
+        customFocus: customFocusToSave,
+        personalText: personalTextToSave,
+        priorities: prioritiesToSave,
       });
 
       if (existingEntry?.id) {
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: { content: contentToSave },
+        });
+
+        // Manually update cache to ensure UI reflects changes immediately
+        queryClient.setQueryData(['journal', 'todaysFocus', user.id, dateStr], (oldData: any) => {
+          if (oldData && Array.isArray(oldData) && oldData.length > 0) {
+            return [{
+              ...oldData[0],
+              content: contentToSave,
+            }];
+          }
+          return oldData;
         });
       } else {
         await createMutation.mutateAsync({
@@ -957,6 +984,10 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           content: contentToSave,
         });
       }
+
+      // Invalidate cache to ensure UI updates with new data
+      await queryClient.invalidateQueries({ queryKey: ['journal', 'todaysFocus', user.id, dateStr] });
+      await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
       analytics.trackFocusEvent('focus_updated', {
         focus_length: selectedCategory?.name.length || 0,

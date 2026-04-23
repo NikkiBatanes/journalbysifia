@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, DeviceEventEmitter } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
@@ -81,11 +82,18 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // React Query hooks with performance tracking
   const loadStartTime = useRef<number>(Date.now());
-  const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr, refreshKey);
+  const { data: focusEntries = [], error, isLoading, refetch } = useTodaysFocusData(user?.id || '', dateStr, refreshKey);
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteTodaysFocusEntry();
+
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
@@ -18,6 +18,7 @@ import {
   useTodayWinData,
   useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Win type names mapping
 const WIN_TYPE_NAMES: Record<string, string> = {
@@ -116,6 +117,13 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   // Get today's win entry with performance tracking
   const loadStartTime = useRef<number>(Date.now());
   const { data: entries = [], isLoading, error, refetch } = useTodayWinData(userId, dateStr);
+
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Track loading performance
   React.useEffect(() => {
@@ -295,7 +303,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
           {displayWin.text.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Quiet Win</ThemedText>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>KIND OF WIN</ThemedText>
               <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
             </View>
           )}

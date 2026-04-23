@@ -54,8 +54,26 @@ const EMOTIONS: Emotion[] = [
   { id: 'frustrated', name: 'Frustrated', icon: 'emoticon-angry-outline' },
   { id: 'reluctant', name: 'Reluctant', icon: 'pause-circle-outline' },
   { id: 'tired', name: 'Tired', icon: 'bed-outline' },
+  { id: 'unprepared', name: 'Unprepared', icon: 'book-open-page-variant-outline' },
   { id: 'open-handed', name: 'Open-handed', icon: 'hand-coin' },
+  { id: 'surrendered', name: 'Surrendered', icon: 'white-balance-sunny' },
+  { id: 'excited', name: 'Excited', icon: 'star-face' },
+  { id: 'expectant', name: 'Expectant', icon: 'clock-outline' },
+  { id: 'ready', name: 'Ready', icon: 'check-circle-outline' },
+  { id: 'prayerful', name: 'Prayerful', icon: 'hands-pray' },
+  { id: 'calm', name: 'Calm', icon: 'weather-sunny' },
+  { id: 'steady', name: 'Steady', icon: 'anchor' },
+  { id: 'overwhelmed', name: 'Overwhelmed', icon: 'wave' },
+  { id: 'nervous', name: 'Nervous', icon: 'lightning-bolt-outline' },
+  { id: 'hesitant', name: 'Hesitant', icon: 'dots-horizontal-circle-outline' },
+  { id: 'heavy', name: 'Heavy', icon: 'weight' },
+  { id: 'cautious', name: 'Cautious', icon: 'shield-outline' },
+  { id: 'curious', name: 'Curious', icon: 'lightbulb-outline' },
+  { id: 'thankful', name: 'Thankful', icon: 'flower' },
+  { id: 'eager', name: 'Eager', icon: 'rocket-launch-outline' },
+  { id: 'stretched', name: 'Stretched', icon: 'arrow-expand-horizontal' },
   { id: 'unsure', name: 'Unsure', icon: 'help-circle-outline' },
+  { id: 'waiting', name: 'Waiting', icon: 'timer-outline' },
   { id: 'other', name: 'Other', icon: 'plus-circle-outline' },
 ];
 
@@ -143,9 +161,13 @@ const EmotionSelectionStep: React.FC<{
 }> = ({ selectedEmotion, onSelect, onNext, insets, navigation, customEmotion, setCustomEmotion }) => {
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+  const [showAllEmotions, setShowAllEmotions] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = React.useRef(new Animated.Value(0)).current;
   const chooseAgainScale = React.useRef(new Animated.Value(0)).current;
+  const showMoreScale = React.useRef(new Animated.Value(0)).current;
+
+  const INITIAL_EMOTION_COUNT = 12; // 4x3 grid
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -192,6 +214,19 @@ const EmotionSelectionStep: React.FC<{
   }, [isOtherSelected]);
 
   React.useEffect(() => {
+    if (!isOtherSelected && EMOTIONS.length > INITIAL_EMOTION_COUNT) {
+      Animated.spring(showMoreScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      showMoreScale.setValue(0);
+    }
+  }, [isOtherSelected]);
+
+  React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
@@ -225,6 +260,16 @@ const EmotionSelectionStep: React.FC<{
       update: { type: 'easeInEaseOut' },
     });
     onSelect(null as any);
+  };
+
+  const handleShowMore = () => {
+    triggerLightHaptic();
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+      update: { type: 'easeInEaseOut' },
+    });
+    setShowAllEmotions(!showAllEmotions);
   };
 
   return (
@@ -269,7 +314,7 @@ const EmotionSelectionStep: React.FC<{
 
         {!isOtherSelected && (
           <StepFadeIn delay={240} style={styles.emotionsGrid}>
-          {EMOTIONS.map((emotion, index) => {
+          {EMOTIONS.slice(0, showAllEmotions ? EMOTIONS.length : INITIAL_EMOTION_COUNT).map((emotion, index) => {
             const isSelected = selectedEmotion?.id === emotion.id;
             return (
               <TouchableOpacity
@@ -303,6 +348,24 @@ const EmotionSelectionStep: React.FC<{
             );
           })}
         </StepFadeIn>
+        )}
+
+        {!isOtherSelected && EMOTIONS.length > INITIAL_EMOTION_COUNT && (
+          <StepFadeIn delay={320}>
+            <Animated.View style={{
+              transform: [{ scale: showMoreScale }],
+            }}>
+              <TouchableOpacity
+                style={[styles.showMoreButton, { alignSelf: 'center' }]}
+                onPress={handleShowMore}
+                activeOpacity={0.75}
+              >
+                <ThemedText style={styles.showMoreButtonText}>
+                  {showAllEmotions ? 'Show less' : 'Show more'}
+                </ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </StepFadeIn>
         )}
 
         {isOtherSelected && (
@@ -709,21 +772,65 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
     }
 
     try {
+      // Parse existing content to preserve data when only editing one field
+      let existingText = '';
+      let existingEmotionId = '';
+      let existingEmotionName = '';
+      let existingCustomEmotion = '';
+
+      if (existingEntry?.content) {
+        try {
+          const parsedContent = typeof existingEntry.content === 'string'
+            ? JSON.parse(existingEntry.content)
+            : existingEntry.content;
+          existingText = parsedContent.entry?.text || '';
+          existingEmotionId = parsedContent.emotionId || '';
+          existingEmotionName = parsedContent.emotionName || '';
+          existingCustomEmotion = parsedContent.customEmotion || '';
+        } catch (error) {
+          console.error('Error parsing existing content:', error);
+        }
+      }
+
+      // Use new values if changed, otherwise keep existing values
+      // If user selected a new emotion, clear the text. If user entered text, clear the emotion.
+      const emotionIdToSave = selectedEmotion ? selectedEmotion.id : '';
+      const emotionNameToSave = selectedEmotion?.id === 'other'
+        ? customEmotion.trim()
+        : (selectedEmotion?.name || '');
+      const customEmotionToSave = selectedEmotion?.id === 'other'
+        ? customEmotion.trim()
+        : '';
+
+      // If user entered new text, use it and clear emotion. If emotion was selected, clear text.
+      const textToSave = lookingAheadText.trim() !== '' ? lookingAheadText.trim() : '';
+
       const contentToSave = JSON.stringify({
         entry: {
           id: `looking_forward_${Date.now()}`,
-          text: lookingAheadText.trim(),
+          text: textToSave,
           date: selectedDate,
         },
-        emotionId: selectedEmotion?.id || '',
-        emotionName: selectedEmotion?.id === 'other' ? customEmotion.trim() : selectedEmotion?.name || '',
-        customEmotion: selectedEmotion?.id === 'other' ? customEmotion.trim() : '',
+        emotionId: emotionIdToSave,
+        emotionName: emotionNameToSave,
+        customEmotion: customEmotionToSave,
       });
 
       if (existingEntry?.id) {
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: { content: contentToSave },
+        });
+
+        // Manually update cache to ensure UI reflects changes immediately
+        queryClient.setQueryData(['journal', 'lookingForward', user.id, dateStr], (oldData: any) => {
+          if (oldData && Array.isArray(oldData) && oldData.length > 0) {
+            return [{
+              ...oldData[0],
+              content: contentToSave,
+            }];
+          }
+          return oldData;
         });
       } else {
         await createMutation.mutateAsync({
@@ -732,6 +839,10 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
           content: contentToSave,
         });
       }
+
+      // Invalidate cache to ensure UI updates with new data
+      await queryClient.invalidateQueries({ queryKey: ['journal', 'lookingForward', user.id, dateStr] });
+      await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
       // Increment completion message index for next time
       try {
