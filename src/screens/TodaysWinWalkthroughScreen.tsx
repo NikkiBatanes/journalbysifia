@@ -233,36 +233,33 @@ const WinTypeSelectionStep: React.FC<{
         {/* Category filter row - shown when expanded */}
         {isExpanded && (
           <StepFadeIn delay={100}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={true}
-              style={styles.categoryFilterScroll}
-              contentContainerStyle={styles.categoryFilterContent}
-            >
-              {CATEGORIES.map((category) => (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryFilterChip,
-                    selectedCategory === category && styles.categoryFilterChipSelected,
-                  ]}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    setSelectedCategory(category);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <ThemedText
+            <View style={styles.categoryFilterScroll}>
+              <View style={styles.categoryFilterContent}>
+                {CATEGORIES.map((category) => (
+                  <TouchableOpacity
+                    key={category}
                     style={[
-                      styles.categoryFilterText,
-                      selectedCategory === category && styles.categoryFilterTextSelected,
+                      styles.categoryFilterChip,
+                      selectedCategory === category && styles.categoryFilterChipSelected,
                     ]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setSelectedCategory(category);
+                    }}
+                    activeOpacity={0.75}
                   >
-                    {category}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                    <ThemedText
+                      style={[
+                        styles.categoryFilterText,
+                        selectedCategory === category && styles.categoryFilterTextSelected,
+                      ]}
+                    >
+                      {category}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </StepFadeIn>
         )}
 
@@ -1036,6 +1033,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   categoryFilterContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 8,
     gap: 8,
   },
