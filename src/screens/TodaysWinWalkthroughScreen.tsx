@@ -112,7 +112,6 @@ const WIN_TYPES: WinType[] = [
 const CORE_WIN_TYPES = WIN_TYPES.slice(0, 6);
 
 const CATEGORIES = [
-  'All',
   'Faith',
   'Inner Life',
   'Relationships',
@@ -173,7 +172,7 @@ const WinTypeSelectionStep: React.FC<{
 }> = ({ selectedWinType, onSelect, onNext, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('Faith');
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
   const screenHeight = useRef(0).current;
@@ -305,9 +304,7 @@ const WinTypeSelectionStep: React.FC<{
           ) : (
             // Expanded state: Show filtered win types
             WIN_TYPES.filter(
-              selectedCategory === 'All'
-                ? () => true
-                : (winType) => winType.category === selectedCategory
+              (winType) => winType.category === selectedCategory
             ).map((winType, index) => {
               const isSelected = selectedWinType?.id === winType.id;
               return (
