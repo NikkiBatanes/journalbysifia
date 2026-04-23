@@ -357,7 +357,7 @@ const WinTypeSelectionStep: React.FC<{
             <View style={styles.customInputContainer}>
               <TextInput
                 style={styles.customInput}
-                placeholder="What was your win today?"
+                placeholder="Type your win"
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 value={customWin}
                 onChangeText={setCustomWin}
