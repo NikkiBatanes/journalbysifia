@@ -491,19 +491,21 @@ const WinTypeSelectionStep: React.FC<{
           </Animated.View>
         </StepFadeIn>
 
-        <StepFadeIn delay={200}>
-          <View style={styles.metadataContainer}>
-            <View style={styles.verticalLine} />
-            <View style={styles.metadataContent}>
-              <ThemedText weight="medium" style={styles.fromText}>
-                TIP
-              </ThemedText>
-              <ThemedText style={styles.metadataText}>
-                Choose the one that feels closest, then continue.
-              </ThemedText>
+        {!isOtherSelected && (
+          <StepFadeIn delay={200}>
+            <View style={styles.metadataContainer}>
+              <View style={styles.verticalLine} />
+              <View style={styles.metadataContent}>
+                <ThemedText weight="medium" style={styles.fromText}>
+                  TIP
+                </ThemedText>
+                <ThemedText style={styles.metadataText}>
+                  Choose the one that feels closest, then continue.
+                </ThemedText>
+              </View>
             </View>
-          </View>
-        </StepFadeIn>
+          </StepFadeIn>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
