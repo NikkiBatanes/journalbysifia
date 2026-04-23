@@ -36,20 +36,23 @@ interface PrayerType {
   id: string;
   name: string;
   description: string;
+  subtext: string;
   icon: string;
 }
 
 const PRAYER_TYPES: PrayerType[] = [
-  { 
-    id: 'prayer-request', 
-    name: 'Prayer Request', 
+  {
+    id: 'prayer-request',
+    name: 'Prayer Request',
     description: 'Someone asked for prayer directly.',
+    subtext: 'Someone asked you to pray for them',
     icon: 'chatbubble-ellipses-outline',
   },
-  { 
-    id: 'pray-for-someone', 
-    name: 'Pray for Someone', 
+  {
+    id: 'pray-for-someone',
+    name: 'Pray for Someone',
     description: 'You want to pray for someone on your own.',
+    subtext: 'You feel nudged to pray for someone on your own',
     icon: 'heart',
   },
 ];
@@ -179,7 +182,7 @@ const PrayerTypeSelectionStep: React.FC<{
           <View style={styles.metadataContainer}>
             <View style={styles.metadataContent}>
               <ThemedText style={styles.metadataText}>
-                Choose the one that fits this moment.
+                {selectedType?.subtext}
               </ThemedText>
             </View>
           </View>
@@ -275,27 +278,27 @@ const PrayerRequestDetailsStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYERS FOR PEOPLE</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER REQUEST</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              Who is this prayer for?
+              Who asked for prayer?
             </ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <ThemedText style={styles.stepDescription}>
-            Add the person and what they asked prayer for.
+            Enter their name below.
           </ThemedText>
         </StepFadeIn>
 
         <StepFadeIn delay={120}>
           <View style={styles.inputContainer}>
-            <ThemedText weight="semiBold" style={styles.inputLabel}>PERSON</ThemedText>
+            <ThemedText weight="semiBold" style={styles.inputLabel}>NAME</ThemedText>
             <TextInput
               style={styles.personalInput}
               value={personName}
@@ -310,7 +313,7 @@ const PrayerRequestDetailsStep: React.FC<{
 
         <StepFadeIn delay={160}>
           <View style={styles.inputContainer}>
-            <ThemedText weight="semiBold" style={styles.inputLabel}>NEED</ThemedText>
+            <ThemedText weight="semiBold" style={styles.inputLabel}>PRAYER FOCUS</ThemedText>
             <TextInput
               style={[styles.personalInput, styles.multilineInput]}
               value={prayerNeed}
@@ -419,27 +422,27 @@ const PrayForSomeoneStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYERS FOR PEOPLE</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAY FOR SOMEONE</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              Write the prayer
+              Who are you being nudged to pray for?
             </ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <ThemedText style={styles.stepDescription}>
-            Write a prayer for this person clearly and with care.
+            Enter their name below.
           </ThemedText>
         </StepFadeIn>
 
         <StepFadeIn delay={120}>
           <View style={styles.inputContainer}>
-            <ThemedText weight="semiBold" style={styles.inputLabel}>PERSON</ThemedText>
+            <ThemedText weight="semiBold" style={styles.inputLabel}>NAME</ThemedText>
             <TextInput
               style={styles.personalInput}
               value={personName}
@@ -454,14 +457,12 @@ const PrayForSomeoneStep: React.FC<{
 
         <StepFadeIn delay={160}>
           <View style={styles.inputContainer}>
-            <ThemedText weight="semiBold" style={styles.inputLabel}>
-              PRAYER FOR {personName ? personName.toUpperCase() : 'NAME'}
-            </ThemedText>
+            <ThemedText weight="semiBold" style={styles.inputLabel}>PRAYER FOCUS</ThemedText>
             <TextInput
               style={[styles.personalInput, styles.multilineInput]}
               value={prayerText}
               onChangeText={onPrayerTextChange}
-              placeholder="Write your prayer here..."
+              placeholder="Name the need clearly before the prayer is written."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"
@@ -505,7 +506,111 @@ const PrayForSomeoneStep: React.FC<{
   );
 };
 
-// Step 3: Completion Screen
+// Step 3: Track Answered
+const TrackAnsweredStep: React.FC<{
+  prayerType: PrayerType;
+  personName: string;
+  prayerNeed: string;
+  prayerText: string;
+  onTrackAnswered: () => void;
+  onSkip: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+}> = ({ prayerType, personName, prayerNeed, prayerText, onTrackAnswered, onSkip, insets, navigation }) => {
+  const getPrayerContent = () => {
+    if (prayerType.id === 'prayer-request') {
+      return prayerNeed;
+    } else {
+      return prayerText;
+    }
+  };
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{prayerType.id === 'prayer-request' ? 'PRAYER REQUEST' : 'PRAY FOR SOMEONE'}</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={40}>
+          <View style={styles.titleRowLeft}>
+            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
+              Would you like to track this prayer?
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <ThemedText style={styles.stepDescription}>
+            You can choose to mark it later if it is answered.
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={120} style={styles.completionCard}>
+          <View style={styles.completionSection}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>PERSON</ThemedText>
+            <ThemedText style={styles.completionSectionText}>{personName}</ThemedText>
+          </View>
+
+          <View style={styles.completionSection}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>PRAYER FOCUS</ThemedText>
+            <ThemedText style={styles.completionSectionText}>{getPrayerContent()}</ThemedText>
+          </View>
+        </StepFadeIn>
+      </ScrollView>
+
+      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onTrackAnswered();
+          }}
+          activeOpacity={0.85}
+          style={[styles.completionButton, { marginBottom: 12 }]}
+        >
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+            Track if answered
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            onSkip();
+          }}
+          activeOpacity={0.85}
+          style={[styles.completionButton, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]}
+        >
+          <ThemedText weight="semiBold" style={[styles.completionButtonText, { color: Colors.hopeWhite }]}>
+            Not now
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 4: Completion Screen
 const CompletionStep: React.FC<{
   prayerType: PrayerType;
   personName: string;
@@ -575,40 +680,33 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <Ionicons name={prayerType.icon as any} size={24} color={Colors.alertCoral} />
+              <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {prayerType.name}
+                Prayer Saved
               </ThemedText>
-              <ThemedText style={styles.completionSubtext}>Prayer saved for {personName}</ThemedText>
+              <ThemedText style={styles.completionSubtext}>A quiet act of faithfulness for someone God brought to mind.</ThemedText>
             </View>
-            <Animated.View style={[
-              styles.completionCheckmark,
-              { transform: [{ scale: checkmarkScale }] },
-            ]}>
-              <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
-            </Animated.View>
           </View>
 
           <View style={styles.completionSection}>
-            <ThemedText weight="medium" style={styles.completionSectionLabel}>Person</ThemedText>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>PERSON</ThemedText>
             <ThemedText style={styles.completionSectionText}>{personName}</ThemedText>
           </View>
 
-          {prayerType.id === 'prayer-request' && prayerNeed && (
-            <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Prayer Need</ThemedText>
-              <ThemedText style={styles.completionSectionText}>{prayerNeed}</ThemedText>
-            </View>
-          )}
+          <View style={styles.completionSection}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>PRAYER FOCUS</ThemedText>
+            <ThemedText style={styles.completionSectionText}>
+              {prayerType.id === 'prayer-request' ? prayerNeed : prayerText}
+            </ThemedText>
+          </View>
 
-          {prayerType.id === 'pray-for-someone' && prayerText && (
-            <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Prayer</ThemedText>
-              <ThemedText style={styles.completionSectionText}>{prayerText}</ThemedText>
-            </View>
-          )}
+          <View style={styles.completionSection}>
+            <ThemedText style={styles.completionSectionText}>
+              This prayer can be revisited later.
+            </ThemedText>
+          </View>
         </StepFadeIn>
       </ScrollView>
 
@@ -656,6 +754,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
   const [prayerText, setPrayerText] = useState('');
+  const [trackAnswered, setTrackAnswered] = useState(false);
 
   // Get initial data from route params if provided
   useEffect(() => {
@@ -669,11 +768,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
   const handleNext = () => {
     if (currentStep === 0) {
-      // Move to step 2 based on selected type
+      // Move to step 1 based on selected type
       setCurrentStep(1);
     } else if (currentStep === 1) {
-      // Save and show completion
-      savePrayer();
+      // Move to track answered step
+      setCurrentStep(2);
     }
   };
 
@@ -683,6 +782,16 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } else {
       navigation.goBack();
     }
+  };
+
+  const handleTrackAnswered = () => {
+    setTrackAnswered(true);
+    savePrayer();
+  };
+
+  const handleSkipTrack = () => {
+    setTrackAnswered(false);
+    savePrayer();
   };
 
   const savePrayer = async () => {
@@ -710,7 +819,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       };
 
       await createPrayerMutation.mutateAsync(prayerData);
-      setCurrentStep(2); // Show completion screen
+      setCurrentStep(3); // Show completion screen
 
       // Track analytics
       analytics.trackPrayerEvent('prayer_created', {
@@ -769,6 +878,19 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       )}
 
       {currentStep === 2 && selectedType && (
+        <TrackAnsweredStep
+          prayerType={selectedType}
+          personName={personName}
+          prayerNeed={prayerNeed}
+          prayerText={prayerText}
+          onTrackAnswered={handleTrackAnswered}
+          onSkip={handleSkipTrack}
+          insets={insets}
+          navigation={navigation}
+        />
+      )}
+
+      {currentStep === 3 && selectedType && (
         <CompletionStep
           prayerType={selectedType}
           personName={personName}
