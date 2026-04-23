@@ -252,12 +252,16 @@ const WinTypeSelectionStep: React.FC<{
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ selectedWinType, onSelect, onNext, insets, navigation }) => {
+  customWin: string;
+  setCustomWin: (text: string) => void;
+}> = ({ selectedWinType, onSelect, onNext, insets, navigation, customWin, setCustomWin }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
+  const chooseAgainScale = useRef(new Animated.Value(0)).current;
   const screenHeight = useRef(0).current;
 
   // Enable LayoutAnimation for Android
@@ -277,6 +281,27 @@ const WinTypeSelectionStep: React.FC<{
       buttonScale.setValue(0);
     }
   }, [selectedWinType, buttonScale]);
+
+  useEffect(() => {
+    if (selectedWinType?.id === 'other') {
+      setIsOtherSelected(true);
+    } else {
+      setIsOtherSelected(false);
+    }
+  }, [selectedWinType]);
+
+  useEffect(() => {
+    if (isOtherSelected) {
+      Animated.spring(chooseAgainScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      chooseAgainScale.setValue(0);
+    }
+  }, [isOtherSelected]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -321,121 +346,164 @@ const WinTypeSelectionStep: React.FC<{
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              What kind of win did{'\n'}today hold?
+              {isOtherSelected ? 'What was your win today?' : 'What kind of win did\ntoday hold?'}
             </ThemedText>
           </View>
         </StepFadeIn>
 
-        {/* Category filter row - shown when expanded */}
-        {isExpanded && (
-          <StepFadeIn delay={100}>
-            <View style={styles.categoryFilterScroll}>
-              <View style={styles.categoryFilterContent}>
-                {CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryFilterChip,
-                      selectedCategory === category && styles.categoryFilterChipSelected,
-                    ]}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setSelectedCategory(category);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.categoryFilterText,
-                        selectedCategory === category && styles.categoryFilterTextSelected,
-                      ]}
-                    >
-                      {category}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
+        {isOtherSelected ? (
+          <StepFadeIn delay={160}>
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customInput}
+                placeholder="Type your focus"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={customWin}
+                onChangeText={setCustomWin}
+                multiline
+                numberOfLines={2}
+                autoFocus
+                keyboardAppearance="dark"
+              />
             </View>
+          </StepFadeIn>
+        ) : (
+          <>
+            {/* Category filter row - shown when expanded */}
+            {isExpanded && (
+              <StepFadeIn delay={100}>
+                <View style={styles.categoryFilterScroll}>
+                  <View style={styles.categoryFilterContent}>
+                    {CATEGORIES.map((category) => (
+                      <TouchableOpacity
+                        key={category}
+                        style={[
+                          styles.categoryFilterChip,
+                          selectedCategory === category && styles.categoryFilterChipSelected,
+                        ]}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setSelectedCategory(category);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.categoryFilterText,
+                            selectedCategory === category && styles.categoryFilterTextSelected,
+                          ]}
+                        >
+                          {category}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </StepFadeIn>
+            )}
+
+            {/* Win type grid */}
+            <StepFadeIn delay={140}>
+              <View style={styles.winTypesGrid}>
+                {!isExpanded ? (
+                  // Collapsed state: Show core 7
+                  CORE_WIN_TYPES.map((winType, index) => {
+                    const isSelected = selectedWinType?.id === winType.id;
+                    return (
+                      <TouchableOpacity
+                        key={winType.id}
+                        style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          onSelect(winType);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <ThemedText
+                          style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                          numberOfLines={2}
+                        >
+                          {winType.name}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  // Expanded state: Show filtered win types
+                  WIN_TYPES.filter(
+                    (winType) => winType.category === selectedCategory
+                  ).map((winType, index) => {
+                    const isSelected = selectedWinType?.id === winType.id;
+                    return (
+                      <TouchableOpacity
+                        key={winType.id}
+                        style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          onSelect(winType);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <ThemedText
+                          style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                          numberOfLines={2}
+                        >
+                          {winType.name}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </View>
+            </StepFadeIn>
+          </>
+        )}
+
+        {/* Show more/less button */}
+        {!isOtherSelected && (
+          <StepFadeIn delay={160}>
+            <TouchableOpacity
+              style={styles.showMoreButton}
+              onPress={() => {
+                triggerLightHaptic();
+                setIsExpanded(!isExpanded);
+                if (!isExpanded) {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                }
+              }}
+              activeOpacity={0.75}
+            >
+              <ThemedText style={styles.showMoreButtonText}>
+                {isExpanded ? 'Show less' : 'Show more'}
+              </ThemedText>
+              <Ionicons
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.alertCoral}
+                style={styles.showMoreButtonIcon}
+              />
+            </TouchableOpacity>
           </StepFadeIn>
         )}
 
-        {/* Win type chips */}
-        <StepFadeIn delay={120} style={styles.winTypesGrid}>
-          {!isExpanded ? (
-            // Collapsed state: Show only 6 core wins
-            CORE_WIN_TYPES.map((winType, index) => {
-              const isSelected = selectedWinType?.id === winType.id;
-              return (
-                <TouchableOpacity
-                  key={winType.id}
-                  style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    onSelect(winType);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <ThemedText
-                    style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
-                    numberOfLines={2}
-                  >
-                    {winType.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            // Expanded state: Show filtered win types
-            WIN_TYPES.filter(
-              (winType) => winType.category === selectedCategory
-            ).map((winType, index) => {
-              const isSelected = selectedWinType?.id === winType.id;
-              return (
-                <TouchableOpacity
-                  key={winType.id}
-                  style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    onSelect(winType);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <ThemedText
-                    style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
-                    numberOfLines={2}
-                  >
-                    {winType.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </StepFadeIn>
-
-        {/* Show more/less button */}
-        <StepFadeIn delay={160}>
-          <TouchableOpacity
-            style={styles.showMoreButton}
-            onPress={() => {
-              triggerLightHaptic();
-              setIsExpanded(!isExpanded);
-              if (!isExpanded) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              }
-            }}
-            activeOpacity={0.75}
-          >
-            <ThemedText style={styles.showMoreButtonText}>
-              {isExpanded ? 'Show less' : 'Show more'}
-            </ThemedText>
-            <Ionicons
-              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={Colors.alertCoral}
-              style={styles.showMoreButtonIcon}
-            />
-          </TouchableOpacity>
-        </StepFadeIn>
+        {/* Choose again button - shown when Other is selected */}
+        {isOtherSelected && (
+          <StepFadeIn delay={160}>
+            <TouchableOpacity
+              style={styles.showMoreButton}
+              onPress={() => {
+                triggerLightHaptic();
+                setIsOtherSelected(false);
+                setCustomWin('');
+              }}
+              activeOpacity={0.75}
+            >
+              <ThemedText style={styles.showMoreButtonText}>
+                Choose again
+              </ThemedText>
+            </TouchableOpacity>
+          </StepFadeIn>
+        )}
 
         <StepFadeIn delay={200}>
           <View style={styles.metadataContainer}>
@@ -455,7 +523,7 @@ const WinTypeSelectionStep: React.FC<{
       </ScrollView>
 
       {/* Bottom button */}
-      {selectedWinType && (
+      {selectedWinType && (!isOtherSelected || customWin.trim() !== '') && (
         <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
@@ -496,8 +564,9 @@ const QuietWinStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-  winType: WinType;
-}> = ({ quietWin, onChange, onNext, onBack, insets, navigation, winType }) => {
+  selectedWinType: WinType | null;
+  customWin: string;
+}> = ({ quietWin, onChange, onNext, onBack, insets, navigation, selectedWinType, customWin }) => {
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -583,7 +652,11 @@ const QuietWinStep: React.FC<{
                 KIND OF WIN
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                <ThemedText weight="semiBold">{winType.name}</ThemedText>
+                {selectedWinType?.id === 'other' && customWin.trim() ? (
+                  <ThemedText weight="semiBold">Other: {customWin.trim()}</ThemedText>
+                ) : (
+                  <ThemedText weight="semiBold">{selectedWinType?.name}</ThemedText>
+                )}
               </ThemedText>
             </View>
           </View>
@@ -623,14 +696,15 @@ const QuietWinStep: React.FC<{
   );
 };
 
-// Step 3: Completion Screen
+// Step 3: Completion
 const CompletionStep: React.FC<{
   winType: WinType;
   quietWin: string;
   onDone: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ winType, quietWin, onDone, insets, navigation }) => {
+  customWin: string;
+}> = ({ winType, quietWin, onDone, insets, navigation, customWin }) => {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
@@ -696,8 +770,8 @@ const CompletionStep: React.FC<{
               <MaterialIcons name="emoji-events" size={24} color={Colors.alertCoral} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {winType.name}
+              <ThemedText weight="semiBold" style={styles.completionTitle}>
+                {winType.id === 'other' && customWin.trim() ? `Other: ${customWin.trim()}` : winType.name}
               </ThemedText>
               <ThemedText style={styles.completionSubtext}>Your win is saved for today</ThemedText>
             </View>
@@ -754,6 +828,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedWinType, setSelectedWinType] = useState<WinType | null>(null);
   const [quietWin, setQuietWin] = useState('');
+  const [customWin, setCustomWin] = useState('');
   const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
 
   const dateStr = toLocalDateString(selectedDate);
@@ -806,37 +881,18 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     try {
-      console.log('🏆 Saving win:', { userId: user.id, dateStr, winType: selectedWinType?.id, quietWin, existingEntryId });
+      const winTypeId = selectedWinType?.id === 'other' ? 'other' : selectedWinType?.id;
+      const winTypeName = selectedWinType?.id === 'other' ? customWin.trim() : selectedWinType?.name;
 
       if (existingEntryId) {
-        // Update existing entry
-        const result = await updateMutation.mutateAsync({
-          id: existingEntryId,
-          updates: {
-            content: JSON.stringify({
-              winType: selectedWinType?.id,
-              quietWin: quietWin,
-            }),
-          },
-        });
-        console.log('🏆 Win updated successfully:', result);
+        await updateMutation.mutateAsync({ id: existingEntryId, updates: { content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) } });
       } else {
-        // Create new entry
-        const result = await createMutation.mutateAsync({
-          user_id: user.id,
-          selected_date: dateStr,
-          content: JSON.stringify({
-            winType: selectedWinType?.id,
-            quietWin: quietWin,
-          }),
-        });
-        console.log('🏆 Win created successfully:', result);
+        await createMutation.mutateAsync({ user_id: user.id, selected_date: dateStr, content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) });
       }
 
       triggerMediumHaptic();
       navigation.goBack();
     } catch (error) {
-      console.error('🏆 Error saving win:', error);
       Alert.alert('Error', 'Failed to save your win. Please try again.');
     }
   };
@@ -862,6 +918,8 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           onNext={handleNext}
           insets={insets}
           navigation={navigation}
+          customWin={customWin}
+          setCustomWin={setCustomWin}
         />
       )}
 
@@ -873,7 +931,8 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           onBack={handleBack}
           insets={insets}
           navigation={navigation}
-          winType={selectedWinType}
+          selectedWinType={selectedWinType}
+          customWin={customWin}
         />
       )}
 
@@ -884,6 +943,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           onDone={handleDone}
           insets={insets}
           navigation={navigation}
+          customWin={customWin}
         />
       )}
     </View>
@@ -1175,6 +1235,20 @@ const styles = StyleSheet.create({
   },
   showMoreButtonIcon: {
     marginLeft: 4,
+  },
+  customInputContainer: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+  },
+  customInput: {
+    backgroundColor: 'transparent',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingHorizontal: 0,
+    paddingVertical: 16,
   },
   completionContainer: {
     alignItems: 'center',
