@@ -934,7 +934,7 @@ function TimeBlockLogEditorInner(
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // Keyboard position state for FAB
-  const fabBottomPosition = useRef(new Animated.Value(40)).current;
+  const fabBottomPosition = useRef(new Animated.Value(80)).current;
 
   // Keyboard listeners to update FAB position with smooth animation
   useEffect(() => {
@@ -948,7 +948,7 @@ function TimeBlockLogEditorInner(
 
     const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
       Animated.timing(fabBottomPosition, {
-        toValue: 40,
+        toValue: 80,
         duration: 250,
         useNativeDriver: false,
       }).start();
