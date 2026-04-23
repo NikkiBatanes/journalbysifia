@@ -66,7 +66,7 @@ const ACTS_STEPS = [
   { key: 'confession', label: 'CONFESSION', title: 'Confession', description: 'Tell the truth about what you need to lay down.' },
   { key: 'adoration', label: 'ADORATION', title: 'Adoration', description: 'Name who God is in the middle of this.' },
   { key: 'supplication', label: 'SUPPLICATION', title: 'Supplication', description: 'Ask for what you need from the Lord.' },
-  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Thank Him for what is already true and given.' },
+  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.' },
 ];
 
 // StepFadeIn component
@@ -146,28 +146,28 @@ const PrayerPathSelectionStep: React.FC<{
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              Which prayer path do you want today?
+              Which prayer path{'\n'}do you want today?
             </ThemedText>
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={160} style={styles.pathsGrid}>
+        <StepFadeIn delay={160} style={styles.categoriesGrid}>
           {PRAYER_PATHS.map((path, index) => {
             const isSelected = selectedPath?.id === path.id;
             return (
               <TouchableOpacity
                 key={path.id}
-                style={[styles.pathCard, isSelected && styles.pathCardSelected]}
+                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
                 onPress={() => {
                   triggerLightHaptic();
                   onSelect(path);
                 }}
                 activeOpacity={0.75}
               >
-                <View style={styles.pathIconContainer}>
+                <View style={styles.categoryIconContainer}>
                   <View style={[
-                    styles.pathIconCircle,
-                    isSelected && styles.pathIconCircleSelected
+                    styles.categoryIconCircle,
+                    isSelected && styles.categoryIconCircleSelected
                   ]}>
                     <Ionicons
                       name={path.icon as any}
@@ -178,11 +178,11 @@ const PrayerPathSelectionStep: React.FC<{
                 </View>
                 <ThemedText
                   weight="semiBold"
-                  style={[styles.pathName, isSelected && styles.pathNameSelected]}
+                  style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
                 >
                   {path.name}
                 </ThemedText>
-                <ThemedText style={[styles.pathDescription, isSelected && styles.pathDescriptionSelected]}>
+                <ThemedText style={[styles.categoryDescription, isSelected && styles.categoryDescriptionSelected]}>
                   {path.description}
                 </ThemedText>
               </TouchableOpacity>
@@ -237,21 +237,281 @@ const PrayerPathSelectionStep: React.FC<{
   );
 };
 
-// Step 2: ACTS Prayer Flow
-const ACTSPrayerStep: React.FC<{
-  stepIndex: number;
+// Step 2: CAST Prayer Description
+const CASTDescriptionStep: React.FC<{
+  onNext: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+}> = ({ onNext, insets, navigation }) => {
+  const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
+  const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
+  const timelineHeight = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(timelineHeight, {
+      toValue: 1,
+      duration: 2000,
+      delay: 200,
+      useNativeDriver: false,
+    }).start();
+
+    const animations = dotScaleAnims.map((anim, index) =>
+      Animated.sequence([
+        Animated.delay(100 + index * 280),
+        Animated.parallel([
+          Animated.spring(anim, {
+            toValue: 1,
+            tension: 40,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnims[index], {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    Animated.stagger(298, animations).start();
+  }, [fadeAnims, dotScaleAnims, timelineHeight]);
+
+  const prayerSteps = [
+    { label: 'Confession', description: 'Tell the truth about what you need to lay down.', icon: 'hand-right' },
+    { label: 'Adoration', description: 'Name who God is in the middle of this.', icon: 'sparkles' },
+    { label: 'Supplication', description: 'Ask for what you need from the Lord.', icon: 'gift' },
+    { label: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.', icon: 'heart' },
+  ];
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>CAST PRAYER</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>
+              CAST Prayer
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={120}>
+          <ThemedText style={styles.stepDescription}>
+            Move slowly through each part before going to the next.
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <View style={[styles.focusLabelContainer, { justifyContent: 'flex-start', marginLeft: 24 }]}>
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.alertCoral }]}>PRAYER FLOW</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <View style={styles.timelineContainer}>
+            <Animated.View style={[
+              styles.timelineThickBar,
+              { height: timelineHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 310],
+              }) }
+            ]} />
+            
+            {prayerSteps.map((step, index) => (
+              <Animated.View
+                key={step.label}
+                style={[
+                  styles.timelineStep,
+                  {
+                    opacity: fadeAnims[index],
+                  },
+                ]}
+              >
+                <Animated.View style={[
+                  styles.timelineDot,
+                  { transform: [{ scale: dotScaleAnims[index] }] }
+                ]}>
+                  {step.icon === 'hand-right' ? (
+                    <Ionicons 
+                      name={step.icon as any} 
+                      size={16} 
+                      color={Colors.hopeWhite}
+                      style={{ transform: [{ rotate: '30deg' }] }}
+                    />
+                  ) : (
+                    <Ionicons name={step.icon as any} size={16} color={Colors.hopeWhite} />
+                  )}
+                </Animated.View>
+                <Animated.View style={[
+                  styles.timelineContentContainer,
+                  { opacity: fadeAnims[index] }
+                ]}>
+                  <ThemedText weight="semiBold" style={styles.timelineLabel}>{step.label}</ThemedText>
+                  <ThemedText style={styles.timelineDescription}>{step.description}</ThemedText>
+                </Animated.View>
+              </Animated.View>
+            ))}
+          </View>
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onNext();
+          }}
+          activeOpacity={0.85}
+          style={styles.completionButton}
+        >
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+            Begin Prayer
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 3: Open Prayer Description
+const OpenPrayerDescriptionStep: React.FC<{
+  onNext: () => void;
+  insets: { top: number; bottom: number };
+  navigation: any;
+}> = ({ onNext, insets, navigation }) => {
+  const buttonScale = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.spring(buttonScale, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: false,
+    }).start();
+  }, [buttonScale]);
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0}>
+          <View style={styles.focusLabelContainer}>
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>
+              Open Prayer
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <ThemedText style={styles.stepDescription}>
+            Pray in your own words, one honest prayer at a time.
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={240}>
+          <View style={styles.metadataContainer}>
+            <View style={styles.verticalLineContainer}>
+              <View style={styles.verticalLine} />
+            </View>
+            <View style={styles.metadataContent}>
+              <ThemedText weight="semiBold" style={styles.metadataLabel}>
+                OPEN PRAYER
+              </ThemedText>
+              <ThemedText style={styles.metadataText}>
+                You do not need a structure for this one. Just come honestly before God.
+              </ThemedText>
+            </View>
+          </View>
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onNext();
+          }}
+          activeOpacity={0.7}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <ThemedText style={styles.primaryButtonText} weight="semiBold">Begin Prayer</ThemedText>
+        </TouchableOpacity>
+      </Animated.View>
+
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Step 3: ACTS Prayer Flow (like faithful actions)
+const ACTSPrayerSlidesStep: React.FC<{
   prayerTexts: { [key: string]: string };
   onChange: (key: string, text: string) => void;
   onNext: () => void;
-  onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ stepIndex, prayerTexts, onChange, onNext, onBack, insets, navigation }) => {
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
-  const currentStep = ACTS_STEPS[stepIndex];
+}> = ({ prayerTexts, onChange, onNext, insets, navigation }) => {
+  const [actsStepIndex, setActsStepIndex] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const cardTranslateY = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  const currentStep = ACTS_STEPS[actsStepIndex];
+  const isLastStep = actsStepIndex >= ACTS_STEPS.length - 1;
+
+  useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
@@ -277,6 +537,34 @@ const ACTSPrayerStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  const animateToNext = useCallback(
+    (callback: () => void) => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
+        Animated.timing(cardTranslateY, { toValue: -14, duration: 160, useNativeDriver: true }),
+      ]).start(() => {
+        callback();
+        cardTranslateY.setValue(22);
+        Animated.parallel([
+          Animated.spring(fadeAnim, { toValue: 1, tension: 75, friction: 8, useNativeDriver: true }),
+          Animated.spring(cardTranslateY, { toValue: 0, tension: 75, friction: 8, useNativeDriver: true }),
+        ]).start();
+      });
+    },
+    [fadeAnim, cardTranslateY]
+  );
+
+  const handleNext = useCallback(() => {
+    triggerMediumHaptic();
+    if (isLastStep) {
+      onNext();
+      return;
+    }
+    animateToNext(() => {
+      setActsStepIndex(prev => prev + 1);
+    });
+  }, [isLastStep, onNext, animateToNext]);
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -285,67 +573,64 @@ const ACTSPrayerStep: React.FC<{
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <StepFadeIn delay={0}>
-          <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={40}>
-          <View style={styles.titleRowLeft}>
-            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              {currentStep.title}
-            </ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={80}>
-          <ThemedText style={styles.stepDescription}>
-            {currentStep.description}
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            CAST PRAYER
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={120}>
-          <View style={styles.actsStepIndicator}>
-            <ThemedText weight="semiBold" style={styles.actsStepLabel}>{currentStep.label}</ThemedText>
-            <ThemedText style={styles.actsStepNumber}>
-              {stepIndex + 1} of {ACTS_STEPS.length}
-            </ThemedText>
+        <StepFadeIn delay={80}>
+          <ThemedText style={styles.actionCounter}>
+            {actsStepIndex + 1} of {ACTS_STEPS.length}
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={100}>
+          <View style={styles.actionProgressBar}>
+            <View style={[
+              styles.actionProgressFill,
+              { width: `${((actsStepIndex + 1) / ACTS_STEPS.length) * 100}%` }
+            ]} />
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={160}>
-          <TextInput
-            style={styles.personalInput}
-            value={prayerTexts[currentStep.key] || ''}
-            onChangeText={(text) => onChange(currentStep.key, text)}
-            placeholder="Write your prayer here..."
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            multiline
-            textAlignVertical="top"
-            autoFocus
-            keyboardAppearance="dark"
-          />
-        </StepFadeIn>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
+          <StepFadeIn delay={120}>
+            <View style={styles.actsCard}>
+              <View style={styles.actsCardHeader}>
+                <ThemedText weight="semiBold" style={styles.actsCardTitle}>{currentStep.label}</ThemedText>
+                <ThemedText style={styles.actsCardDescription}>{currentStep.description}</ThemedText>
+              </View>
+
+              <TextInput
+                style={styles.personalInput}
+                value={prayerTexts[currentStep.key] || ''}
+                onChangeText={(text) => onChange(currentStep.key, text)}
+                placeholder="Write your prayer here..."
+                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                multiline
+                textAlignVertical="top"
+                autoFocus
+                keyboardAppearance="dark"
+              />
+            </View>
+          </StepFadeIn>
+        </Animated.View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
       <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
-          onPress={() => {
-            triggerMediumHaptic();
-            onNext();
-          }}
+          onPress={handleNext}
           activeOpacity={0.7}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => {
@@ -368,10 +653,9 @@ const OpenPrayerStep: React.FC<{
   prayerText: string;
   onChange: (text: string) => void;
   onNext: () => void;
-  onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerText, onChange, onNext, onBack, insets, navigation }) => {
+}> = ({ prayerText, onChange, onNext, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
 
@@ -637,7 +921,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
 
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
-  const [actsStepIndex, setActsStepIndex] = useState(0);
   const [prayerTexts, setPrayerTexts] = useState<{ [key: string]: string }>({});
   const [openPrayerText, setOpenPrayerText] = useState('');
 
@@ -709,31 +992,28 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   };
 
   const handleNext = () => {
-    if (currentStep === 0 && selectedPath?.id === 'acts') {
-      setCurrentStep(1); // Go to ACTS flow
-    } else if (currentStep === 1 && actsStepIndex < ACTS_STEPS.length - 1) {
-      setActsStepIndex(actsStepIndex + 1);
-    } else if (currentStep === 1 && actsStepIndex === ACTS_STEPS.length - 1) {
-      setCurrentStep(2); // Go to completion
-    } else if (currentStep === 0 && selectedPath?.id === 'open') {
-      setCurrentStep(2); // Go directly to completion for open prayer
+    if (currentStep === 0) {
+      if (selectedPath?.id === 'acts') {
+        setCurrentStep(1); // Go to CAST description
+      } else if (selectedPath?.id === 'open') {
+        setCurrentStep(1); // Go to Open prayer description
+      }
+    } else if (currentStep === 1) {
+      if (selectedPath?.id === 'acts') {
+        setCurrentStep(2); // Go to ACTS flow
+      } else if (selectedPath?.id === 'open') {
+        setCurrentStep(3); // Go to completion for open prayer
+      }
+    } else if (currentStep === 2 && selectedPath?.id === 'acts') {
+      setCurrentStep(3); // Go to completion (handled by ACTSPrayerSlidesStep)
+    } else {
+      navigation.goBack();
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 1 && actsStepIndex > 0) {
-      setActsStepIndex(actsStepIndex - 1);
-    } else if (currentStep === 1 && actsStepIndex === 0) {
-      setCurrentStep(0);
-      setActsStepIndex(0);
-    } else if (currentStep === 2) {
-      // Go back to appropriate step
-      if (selectedPath?.id === 'acts') {
-        setCurrentStep(1);
-        setActsStepIndex(ACTS_STEPS.length - 1);
-      } else {
-        setCurrentStep(0);
-      }
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
@@ -779,20 +1059,44 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         )}
 
         {currentStep === 1 && selectedPath?.id === 'acts' && (
-          <ACTSPrayerStep
-            stepIndex={actsStepIndex}
-            prayerTexts={prayerTexts}
-            onChange={(key, text) => {
-              setPrayerTexts(prev => ({ ...prev, [key]: text }));
-            }}
+          <CASTDescriptionStep
             onNext={handleNext}
-            onBack={handleBack}
             insets={insets}
             navigation={navigation}
           />
         )}
 
-        {currentStep === 2 && selectedPath && (
+        {currentStep === 1 && selectedPath?.id === 'open' && (
+          <OpenPrayerDescriptionStep
+            onNext={handleNext}
+            insets={insets}
+            navigation={navigation}
+          />
+        )}
+
+        {currentStep === 2 && selectedPath?.id === 'acts' && (
+          <ACTSPrayerSlidesStep
+            prayerTexts={prayerTexts}
+            onChange={(key: string, text: string) => {
+              setPrayerTexts(prev => ({ ...prev, [key]: text }));
+            }}
+            onNext={() => setCurrentStep(3)}
+            insets={insets}
+            navigation={navigation}
+          />
+        )}
+
+        {currentStep === 2 && selectedPath?.id === 'open' && (
+          <OpenPrayerStep
+            prayerText={openPrayerText}
+            onChange={setOpenPrayerText}
+            onNext={() => setCurrentStep(3)}
+            insets={insets}
+            navigation={navigation}
+          />
+        )}
+
+        {currentStep === 3 && selectedPath && (
           <CompletionStep
             prayerPath={selectedPath}
             prayerTexts={prayerTexts}
@@ -870,62 +1174,92 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   metadataContainer: {
-    marginTop: 32,
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 24,
+    paddingHorizontal: 8,
+  },
+  verticalLineContainer: {
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  verticalLine: {
+    width: 2,
+    height: 40,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 1,
   },
   metadataContent: {
     flex: 1,
+    gap: 4,
+  },
+  metadataLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: Colors.alertCoral,
+    textTransform: 'uppercase',
   },
   metadataText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   pathsGrid: {
     gap: 16,
   },
-  pathCard: {
+  categoryCard: {
+    width: '100%',
+    maxWidth: 400,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  pathCardSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderColor: Colors.alertCoral,
-  },
-  pathIconContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  pathIconCircle: {
-    width: 40,
-    height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    padding: 16,
+    marginBottom: 12,
+    minHeight: 80,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pathIconCircleSelected: {
-    backgroundColor: Colors.alertCoral,
+  categoryCardSelected: {
+    backgroundColor: 'rgba(255, 107, 107, 0.18)',
+    borderColor: Colors.alertCoral,
   },
-  pathName: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
+  categoryIconContainer: {
     marginBottom: 8,
   },
-  pathNameSelected: {
-    color: Colors.alertCoral,
+  categoryIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pathDescription: {
-    fontSize: 14,
+  categoryIconCircleSelected: {
+    backgroundColor: Colors.alertCoral,
+  },
+  categoryName: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  categoryNameSelected: {
+    color: Colors.hopeWhite,
+  },
+  categoryDescription: {
+    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
+    textAlign: 'center',
   },
-  pathDescriptionSelected: {
+  categoryDescriptionSelected: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  categoriesGrid: {
+    gap: 12,
   },
   actsStepIndicator: {
     flexDirection: 'row',
@@ -944,39 +1278,87 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
   },
   personalInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    fontSize: 16,
-    paddingHorizontal: 20,
+    fontSize: 18,
     paddingTop: 16,
     paddingBottom: 16,
     minHeight: 200,
     textAlignVertical: 'top',
     lineHeight: 24,
   },
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
+  },
   primaryButton: {
     position: 'absolute',
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: Colors.alertCoral,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  finishButton: {
+    marginTop: 32,
+    justifyContent: 'center',
+  },
+  primaryButtonPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  completionButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  completionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    width: '100%',
+    height: 50,
   },
-  closeButton: {
-    position: 'absolute',
-    right: 24,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  completionButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   stepLabelRow: {
     flexDirection: 'row',
@@ -989,6 +1371,147 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1,
     color: Colors.hopeWhite,
+  },
+  actionCounter: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 16,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textAlign: 'center' as const,
+  },
+  actionProgressBar: {
+    height: 6,
+    width: 120,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginBottom: 24,
+    overflow: 'hidden' as const,
+    alignSelf: 'center' as const,
+  },
+  actionProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 2,
+  },
+  actsCard: {
+    borderRadius: 20,
+    padding: 24,
+  },
+  actsCardHeader: {
+    marginBottom: 12,
+  },
+  actsCardTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  actsCardDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 20,
+  },
+  prayerStepsContainer: {
+    marginTop: 24,
+    gap: 16,
+  },
+  prayerStepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  prayerStepIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  prayerStepContent: {
+    flex: 1,
+  },
+  prayerStepLabel: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  prayerStepDescription: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 18,
+  },
+  timelineContainer: {
+    marginTop: 24,
+    paddingLeft: 20,
+    position: 'relative',
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 27,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: 'rgba(255, 107, 107, 0.3)',
+    borderRadius: 1,
+  },
+  timelineThickBar: {
+    position: 'absolute',
+    left: 32,
+    top: 0,
+    width: 5,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 2.5,
+  },
+  timelineStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  timelineDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.alertCoral,
+    borderWidth: 2,
+    borderColor: Colors.alertCoral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 20,
+    zIndex: 1,
+  },
+  timelineNumber: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingTop: 4,
+  },
+  timelineContentContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    marginLeft: 0,
+  },
+  timelineLabel: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 6,
+  },
+  timelineDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.65)',
+    lineHeight: 20,
   },
   completionCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
@@ -1065,16 +1588,20 @@ const styles = StyleSheet.create({
     right: 24,
   },
   completionButton: {
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 16,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    width: '100%',
   },
   completionButtonText: {
     fontSize: 16,
