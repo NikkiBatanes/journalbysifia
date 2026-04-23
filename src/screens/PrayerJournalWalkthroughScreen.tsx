@@ -406,16 +406,46 @@ const OpenPrayerDescriptionStep: React.FC<{
   insets: { top: number; bottom: number };
   navigation: any;
 }> = ({ onNext, insets, navigation }) => {
-  const buttonScale = React.useRef(new Animated.Value(0)).current;
+  const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
+  const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
+  const timelineHeight = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    Animated.spring(buttonScale, {
+    Animated.timing(timelineHeight, {
       toValue: 1,
-      tension: 50,
-      friction: 7,
+      duration: 2000,
+      delay: 200,
       useNativeDriver: false,
     }).start();
-  }, [buttonScale]);
+
+    const animations = dotScaleAnims.map((anim, index) =>
+      Animated.sequence([
+        Animated.delay(100 + index * 280),
+        Animated.parallel([
+          Animated.spring(anim, {
+            toValue: 1,
+            tension: 40,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnims[index], {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    Animated.stagger(298, animations).start();
+  }, [fadeAnims, dotScaleAnims, timelineHeight]);
+
+  const prayerSteps = [
+    { label: 'Come honestly', description: 'Come honestly before God.', icon: 'heart' },
+    { label: 'Speak your heart', description: 'Say what is on your heart.', icon: 'chatbubble-ellipses-outline' },
+    { label: 'Ask boldly', description: 'Ask for what you need.', icon: 'gift' },
+    { label: 'End in trust', description: 'End in trust.', icon: 'sparkles' },
+  ];
 
   return (
     <View style={styles.stepContainer}>
@@ -427,7 +457,7 @@ const OpenPrayerDescriptionStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>OPEN PRAYER</ThemedText>
           </View>
         </StepFadeIn>
 
@@ -439,43 +469,73 @@ const OpenPrayerDescriptionStep: React.FC<{
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={160}>
+        <StepFadeIn delay={120}>
           <ThemedText style={styles.stepDescription}>
-            Pray in your own words, one honest prayer at a time.
+            Bring your heart before Jesus honestly and in your own words.
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={240}>
-          <View style={styles.metadataContainer}>
-            <View style={styles.verticalLineContainer}>
-              <View style={styles.verticalLine} />
-            </View>
-            <View style={styles.metadataContent}>
-              <ThemedText weight="semiBold" style={styles.metadataLabel}>
-                OPEN PRAYER
-              </ThemedText>
-              <ThemedText style={styles.metadataText}>
-                You do not need a structure for this one. Just come honestly before God.
-              </ThemedText>
-            </View>
+        <StepFadeIn delay={160}>
+          <View style={[styles.focusLabelContainer, { justifyContent: 'flex-start', marginLeft: 24 }]}>
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.alertCoral }]}>PRAYER FLOW</ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={160}>
+          <View style={styles.timelineContainer}>
+            <Animated.View style={[
+              styles.timelineThickBar,
+              { height: timelineHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 310],
+              }) }
+            ]} />
+            
+            {prayerSteps.map((step, index) => (
+              <Animated.View
+                key={step.label}
+                style={[
+                  styles.timelineStep,
+                  {
+                    opacity: fadeAnims[index],
+                  },
+                ]}
+              >
+                <Animated.View style={[
+                  styles.timelineDot,
+                  { transform: [{ scale: dotScaleAnims[index] }] }
+                ]}>
+                  <Ionicons name={step.icon as any} size={16} color={Colors.hopeWhite} />
+                </Animated.View>
+                <Animated.View style={[
+                  styles.timelineContentContainer,
+                  { opacity: fadeAnims[index] }
+                ]}>
+                  <ThemedText weight="semiBold" style={styles.timelineLabel}>{step.label}</ThemedText>
+                  <ThemedText style={styles.timelineDescription}>{step.description}</ThemedText>
+                </Animated.View>
+              </Animated.View>
+            ))}
           </View>
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
             onNext();
           }}
-          activeOpacity={0.7}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.85}
+          style={styles.completionButton}
         >
-          <ThemedText style={styles.primaryButtonText} weight="semiBold">Begin Prayer</ThemedText>
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+            Begin Prayer
+          </ThemedText>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
@@ -657,33 +717,30 @@ const OpenPrayerStep: React.FC<{
   navigation: any;
 }> = ({ prayerText, onChange, onNext, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const buttonBottom = React.useState(insets.bottom + 20)[0];
+  const buttonOpacity = React.useRef(new Animated.Value(prayerText ? 1 : 0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(buttonOpacity, {
+      toValue: prayerText ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [prayerText, buttonOpacity]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
       setKeyboardVisible(true);
-      Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: false,
-      }).start();
     });
     const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
       setKeyboardVisible(false);
-      Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 20,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: false,
-      }).start();
     });
 
     return () => {
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
-  }, [insets.bottom, buttonPosition]);
+  }, []);
 
   return (
     <View style={styles.stepContainer}>
@@ -693,51 +750,33 @@ const OpenPrayerStep: React.FC<{
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <StepFadeIn delay={0}>
-          <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={40}>
-          <View style={styles.titleRowLeft}>
-            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              Write your prayer
-            </ThemedText>
-          </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={80}>
-          <ThemedText style={styles.stepDescription}>
-            Pray openly in your own words.
+        <StepFadeIn delay={0} style={[styles.stepLabelRow, { justifyContent: 'flex-start', paddingHorizontal: 24 }]}>
+          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            OPEN PRAYER
           </ThemedText>
         </StepFadeIn>
 
         <StepFadeIn delay={120}>
-          <View style={styles.actsStepIndicator}>
-            <ThemedText weight="semiBold" style={styles.actsStepLabel}>OPEN PRAYER</ThemedText>
+          <View style={styles.actsCard}>
+            <TextInput
+              style={styles.personalInput}
+              value={prayerText || ''}
+              onChangeText={onChange}
+              placeholder="Write your prayer here..."
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              multiline
+              textAlignVertical="top"
+              autoFocus
+              keyboardAppearance="dark"
+            />
           </View>
-        </StepFadeIn>
-
-        <StepFadeIn delay={160}>
-          <TextInput
-            style={styles.personalInput}
-            value={prayerText}
-            onChangeText={onChange}
-            placeholder="Write your prayer here..."
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            multiline
-            textAlignVertical="top"
-            autoFocus
-            keyboardAppearance="dark"
-          />
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: keyboardVisible ? insets.bottom + 325 : insets.bottom + 20, opacity: buttonOpacity }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -745,12 +784,12 @@ const OpenPrayerStep: React.FC<{
           }}
           activeOpacity={0.7}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          disabled={!prayerText}
         >
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => {
@@ -1002,10 +1041,12 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       if (selectedPath?.id === 'acts') {
         setCurrentStep(2); // Go to ACTS flow
       } else if (selectedPath?.id === 'open') {
-        setCurrentStep(3); // Go to completion for open prayer
+        setCurrentStep(2); // Go to Open prayer input
       }
     } else if (currentStep === 2 && selectedPath?.id === 'acts') {
       setCurrentStep(3); // Go to completion (handled by ACTSPrayerSlidesStep)
+    } else if (currentStep === 2 && selectedPath?.id === 'open') {
+      setCurrentStep(3); // Go to completion for open prayer
     } else {
       navigation.goBack();
     }
@@ -1363,9 +1404,10 @@ const styles = StyleSheet.create({
   stepLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginBottom: 8,
-    marginTop: 32,
+    marginBottom: 24,
+    marginTop: 48,
   },
   stepLabelWhite: {
     fontSize: 11,
@@ -1514,11 +1556,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   completionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
+    borderRadius: 50,
     padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
   },
   completionHeader: {
     flexDirection: 'row',
@@ -1581,27 +1622,6 @@ const styles = StyleSheet.create({
   markAnsweredButtonText: {
     fontSize: 12,
     color: '#FF9500',
-  },
-  completionButtonContainer: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-  },
-  completionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 50,
-    paddingVertical: 15,
-    paddingHorizontal: 28,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    width: '100%',
   },
   completionButtonText: {
     fontSize: 16,
