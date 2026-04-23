@@ -390,7 +390,7 @@ const createDefaultStyles = (fonts: any) => ({
   // FAB styles - matching reflection editor
   fabContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
   leftFabContainer: {
