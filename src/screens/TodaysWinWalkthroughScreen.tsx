@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -206,6 +207,17 @@ const CATEGORIES = [
   'Ministry',
   'Discipleship',
   'Other',
+];
+
+const COMPLETION_MESSAGES = [
+  'Faithfulness is often quiet.',
+  'Small faithfulness still matters.',
+  'God sees what was faithful today.',
+  'Even small steps matter to God.',
+  'What was quiet still mattered.',
+  'A small win is still worth naming.',
+  'God was present in this too.',
+  'This matters more than it looks.',
 ];
 
 // StepFadeIn component
@@ -612,7 +624,7 @@ const QuietWinStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -710,8 +722,22 @@ const CompletionStep: React.FC<{
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
+  const [completionMessage, setCompletionMessage] = useState('');
 
   useEffect(() => {
+    // Get rotating completion message
+    const getCompletionMessage = async () => {
+      try {
+        const currentIndex = await AsyncStorage.getItem('winCompletionIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        setCompletionMessage(COMPLETION_MESSAGES[index % COMPLETION_MESSAGES.length]);
+      } catch (error) {
+        console.error('Error getting completion message:', error);
+        setCompletionMessage(COMPLETION_MESSAGES[0]);
+      }
+    };
+    getCompletionMessage();
+
     // Animate checkmark
     Animated.spring(checkmarkScale, {
       toValue: 1,
@@ -775,7 +801,7 @@ const CompletionStep: React.FC<{
               <ThemedText weight="semiBold" style={styles.completionTitle}>
                 {winType.id === 'other' && customWin.trim() ? `Other: ${customWin.trim()}` : winType.name}
               </ThemedText>
-              <ThemedText style={styles.completionSubtext}>Your win is saved for today</ThemedText>
+              <ThemedText style={styles.completionSubtext}>{completionMessage}</ThemedText>
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
@@ -890,6 +916,15 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         await updateMutation.mutateAsync({ id: existingEntryId, updates: { content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) } });
       } else {
         await createMutation.mutateAsync({ user_id: user.id, selected_date: dateStr, content: JSON.stringify({ winType: winTypeId, winTypeName, quietWin }) });
+      }
+
+      // Increment completion message index for next time
+      try {
+        const currentIndex = await AsyncStorage.getItem('winCompletionIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        await AsyncStorage.setItem('winCompletionIndex', String((index + 1) % COMPLETION_MESSAGES.length));
+      } catch (error) {
+        console.error('Error incrementing completion message index:', error);
       }
 
       triggerMediumHaptic();
