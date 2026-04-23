@@ -19,6 +19,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -32,7 +33,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreateJournalEntry, useUpdateJournalEntry } from '../services/hooks/useJournalData';
+import { useCreateLookingForwardEntry, useUpdateLookingForwardEntry } from '../services/hooks/useJournalData';
 import { analytics } from '../utils/analytics';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -56,6 +57,41 @@ const EMOTIONS: Emotion[] = [
   { id: 'open-handed', name: 'Open-handed', icon: 'hand-coin' },
   { id: 'unsure', name: 'Unsure', icon: 'help-circle-outline' },
   { id: 'other', name: 'Other', icon: 'plus-circle-outline' },
+];
+
+const COMPLETION_MESSAGES = [
+  'A small act of trust for what is ahead.',
+  'You do not have to carry tomorrow alone.',
+  'What is ahead is still in God\'s hands.',
+  'Trust can begin before tomorrow arrives.',
+  'You can face what is ahead with God.',
+  'Tomorrow can be held with open hands.',
+  'God is already present in what is ahead.',
+  'What is ahead can be entrusted to God.',
+  'You can bring tomorrow before God today.',
+  'Peace can begin before the moment arrives.',
+  'God is already there before you arrive.',
+  'What is coming can still be met with trust.',
+  'You can hold what is ahead with steady faith.',
+  'What is next can be placed before God.',
+  'God\'s presence reaches into what is ahead.',
+  'What is ahead does not have to be figured out alone.',
+  'You can meet tomorrow with open hands.',
+  'You can walk toward tomorrow with God.',
+  'What is ahead can be held with peace.',
+  'You can release tomorrow before it arrives.',
+  'The next step can be taken with trust.',
+  'God is able to hold what you cannot yet see.',
+  'What lies ahead can still be met in faith.',
+  'You are not alone in what is coming.',
+  'Even now, tomorrow can be placed in God\'s hands.',
+  'Jesus is already present in what is ahead.',
+  'What is ahead can be entrusted to Jesus.',
+  'You do not have to face tomorrow without Jesus.',
+  'Jesus is already there before you arrive.',
+  'You can bring tomorrow before Jesus today.',
+  'What is ahead can be held before Jesus.',
+  'You can walk toward what is ahead with Jesus.',
 ];
 
 // StepFadeIn component
@@ -108,12 +144,26 @@ const EmotionSelectionStep: React.FC<{
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const buttonScale = React.useRef(new Animated.Value(0)).current;
   const chooseAgainScale = React.useRef(new Animated.Value(0)).current;
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
+
+  React.useEffect(() => {
+    if (selectedEmotion) {
+      Animated.spring(buttonScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      buttonScale.setValue(0);
+    }
+  }, [selectedEmotion, buttonScale]);
 
   React.useEffect(() => {
     LayoutAnimation.configureNext({
@@ -134,7 +184,7 @@ const EmotionSelectionStep: React.FC<{
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       chooseAgainScale.setValue(0);
@@ -278,7 +328,7 @@ const EmotionSelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedEmotion && (!isOtherSelected || customEmotion.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -468,8 +518,22 @@ const CompletionStep: React.FC<{
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
+  const [completionMessage, setCompletionMessage] = React.useState('');
 
   React.useEffect(() => {
+    // Get rotating completion message
+    const getCompletionMessage = async () => {
+      try {
+        const currentIndex = await AsyncStorage.getItem('lookingForwardCompletionIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        setCompletionMessage(COMPLETION_MESSAGES[index % COMPLETION_MESSAGES.length]);
+      } catch (error) {
+        console.error('Error getting completion message:', error);
+        setCompletionMessage(COMPLETION_MESSAGES[0]);
+      }
+    };
+    getCompletionMessage();
+
     // Animate checkmark
     Animated.spring(checkmarkScale, {
       toValue: 1,
@@ -532,8 +596,7 @@ const CompletionStep: React.FC<{
               <MaterialCommunityIcons name={icon as any} size={24} color={Colors.alertCoral} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionTitle}>Saved</ThemedText>
-              <ThemedText style={styles.completionSubtext}>A small act of trust for what is ahead.</ThemedText>
+              <ThemedText style={styles.completionSubtext}>{completionMessage}</ThemedText>
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
@@ -543,12 +606,14 @@ const CompletionStep: React.FC<{
             </Animated.View>
           </View>
 
-          <View style={styles.completionSection}>
-            <ThemedText weight="medium" style={styles.completionSectionLabel}>LOOKING FORWARD TO</ThemedText>
-            <ThemedText style={styles.completionSectionText}>
-              {lookingAheadText || 'I am looking forward to tomorrow and trusting God with what it will hold.'}
-            </ThemedText>
-          </View>
+          {lookingAheadText.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>LOOKING FORWARD TO</ThemedText>
+              <ThemedText style={styles.completionSectionText}>
+                {lookingAheadText}
+              </ThemedText>
+            </View>
+          )}
 
           <View style={styles.completionSection}>
             <ThemedText weight="medium" style={styles.completionSectionLabel}>HOW YOU'RE HOLDING IT</ThemedText>
@@ -593,14 +658,14 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
         const parsedContent = typeof existingEntry.content === 'string'
           ? JSON.parse(existingEntry.content)
           : existingEntry.content;
-        
+
         const emotionId = parsedContent.emotionId || null;
         const emotionObj = emotionId ? EMOTIONS.find(emo => emo.id === emotionId) : null;
-        
+
         return {
           emotion: emotionObj || null,
           customEmotion: parsedContent.customEmotion || '',
-          lookingAheadText: parsedContent.lookingAheadText || '',
+          lookingAheadText: parsedContent.entry?.text || parsedContent.lookingAheadText || '',
         };
       } catch (error) {
         console.error('Error parsing existing entry content:', error);
@@ -620,8 +685,8 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
   const [customEmotion, setCustomEmotion] = useState(initialState.customEmotion);
   const [lookingAheadText, setLookingAheadText] = useState(initialState.lookingAheadText);
 
-  const createMutation = useCreateJournalEntry();
-  const updateMutation = useUpdateJournalEntry();
+  const createMutation = useCreateLookingForwardEntry();
+  const updateMutation = useUpdateLookingForwardEntry();
 
   const dateStr = toLocalDateString(selectedDate);
 
@@ -647,7 +712,7 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
       const contentToSave = JSON.stringify({
         entry: {
           id: `looking_forward_${Date.now()}`,
-          text: lookingAheadText.trim() || 'I am looking forward to tomorrow and trusting God with what it will hold.',
+          text: lookingAheadText.trim(),
           date: selectedDate,
         },
         emotionId: selectedEmotion?.id || '',
@@ -664,9 +729,17 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
         await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
-          content_type: 'looking_forward',
           content: contentToSave,
         });
+      }
+
+      // Increment completion message index for next time
+      try {
+        const currentIndex = await AsyncStorage.getItem('lookingForwardCompletionIndex');
+        const index = currentIndex ? parseInt(currentIndex, 10) : 0;
+        await AsyncStorage.setItem('lookingForwardCompletionIndex', String((index + 1) % COMPLETION_MESSAGES.length));
+      } catch (error) {
+        console.error('Error incrementing completion message index:', error);
       }
 
       analytics.trackFocusEvent('tomorrow_saved', {
@@ -674,16 +747,6 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
         has_text: lookingAheadText.trim().length > 0,
         date: dateStr,
       }, user.id);
-
-      // Invalidate the looking forward cache to trigger real-time update
-      queryClient.invalidateQueries({
-        queryKey: ['journal', 'lookingForward', user.id, dateStr],
-      });
-
-      // Also invalidate the general entries query to ensure header shows
-      queryClient.invalidateQueries({
-        queryKey: ['journal', 'entries', user.id, dateStr],
-      });
 
       navigation.goBack();
     } catch (error) {
@@ -1006,6 +1069,11 @@ const styles = StyleSheet.create({
   },
   completionCheckmark: {
     marginLeft: 12,
+  },
+  completionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 20,
   },
   completionSection: {
     marginTop: 20,
