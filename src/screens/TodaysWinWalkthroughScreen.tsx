@@ -262,6 +262,7 @@ const WinTypeSelectionStep: React.FC<{
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
   const chooseAgainScale = useRef(new Animated.Value(0)).current;
+  const buttonOpacity = useRef(new Animated.Value(1)).current;
   const screenHeight = useRef(0).current;
 
   // Enable LayoutAnimation for Android
@@ -459,51 +460,36 @@ const WinTypeSelectionStep: React.FC<{
           </>
         )}
 
-        {/* Show more/less button */}
-        {!isOtherSelected && (
-          <StepFadeIn delay={160}>
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => {
-                triggerLightHaptic();
-                setIsExpanded(!isExpanded);
-                if (!isExpanded) {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                }
+        {/* Show more/less / Choose again button */}
+        <StepFadeIn delay={240}>
+          <Animated.View style={{ opacity: buttonOpacity }}>
+            <Animated.View
+              style={{
+                transform: [{ scale: isOtherSelected ? chooseAgainScale : 1 }],
               }}
-              activeOpacity={0.75}
             >
-              <ThemedText style={styles.showMoreButtonText}>
-                {isExpanded ? 'Show less' : 'Show more'}
-              </ThemedText>
-              <Ionicons
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={Colors.alertCoral}
-                style={styles.showMoreButtonIcon}
-              />
-            </TouchableOpacity>
-          </StepFadeIn>
-        )}
-
-        {/* Choose again button - shown when Other is selected */}
-        {isOtherSelected && (
-          <StepFadeIn delay={160}>
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => {
-                triggerLightHaptic();
-                setIsOtherSelected(false);
-                setCustomWin('');
-              }}
-              activeOpacity={0.75}
-            >
-              <ThemedText style={styles.showMoreButtonText}>
-                Choose again
-              </ThemedText>
-            </TouchableOpacity>
-          </StepFadeIn>
-        )}
+              <TouchableOpacity
+                style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                onPress={isOtherSelected ? () => {
+                  triggerLightHaptic();
+                  setIsOtherSelected(false);
+                  setCustomWin('');
+                } : () => {
+                  triggerLightHaptic();
+                  setIsExpanded(!isExpanded);
+                  if (!isExpanded) {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  }
+                }}
+                activeOpacity={0.75}
+              >
+                <ThemedText style={styles.showMoreButtonText}>
+                  {isOtherSelected ? 'Choose again' : (isExpanded ? 'Show less' : 'Show more')}
+                </ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </StepFadeIn>
 
         <StepFadeIn delay={200}>
           <View style={styles.metadataContainer}>
@@ -1223,14 +1209,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     marginTop: 16,
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   showMoreButtonText: {
     fontSize: 14,
-    color: Colors.alertCoral,
+    color: Colors.hopeWhite,
     fontWeight: '600',
   },
   showMoreButtonIcon: {
