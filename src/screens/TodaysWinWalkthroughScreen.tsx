@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   categoryFilterScroll: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   categoryFilterContent: {
     paddingHorizontal: 8,
