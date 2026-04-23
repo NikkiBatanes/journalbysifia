@@ -490,7 +490,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   notesInputIcon: {
     marginRight: 8,
