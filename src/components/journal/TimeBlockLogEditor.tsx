@@ -1689,14 +1689,7 @@ function TimeBlockLogEditorInner(
           quirk where tapping a button while the keyboard is visible requires two taps (first to dismiss
           keyboard, second to trigger). See: https://github.com/facebook/react-native/issues/9447 */}
       <Animated.View style={[s.fabWrapper, { bottom: fabBottomPosition }]}>
-        <ScrollView
-          horizontal
-          scrollEnabled={false}
-          keyboardShouldPersistTaps="always"
-          contentContainerStyle={{ flexGrow: 1 }}
-          style={{ flexGrow: 0 }}
-        >
-        <View style={[s.fabContainer, s.rightFabContainer]}>
+        <View style={s.fabContainer}>
           <View style={s.fabRow}>
             {/* Cancel FAB */}
             <TouchableOpacity
@@ -1736,7 +1729,6 @@ function TimeBlockLogEditorInner(
             </TouchableOpacity>
           </View>
         </View>
-        </ScrollView>
       </Animated.View>
       </KeyboardAvoidingView>
 
