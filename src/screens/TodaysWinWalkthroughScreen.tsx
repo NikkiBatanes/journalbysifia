@@ -86,13 +86,27 @@ const WIN_TYPES: WinType[] = [
   { id: 'passed-exam', name: 'I passed the exam', category: 'School' },
   { id: 'finished-assignment', name: 'I finished my assignment', category: 'School' },
   { id: 'studied-needed', name: 'I studied when I needed to', category: 'School' },
+  { id: 'showed-up-school', name: 'I showed up', category: 'School' },
+  { id: 'kept-going-school', name: 'I kept going', category: 'School' },
   { id: 'made-progress-business', name: 'I made progress in business', category: 'Business' },
   { id: 'made-hard-decision', name: 'I made a hard decision', category: 'Business' },
   { id: 'showed-up-work', name: 'I showed up for my work', category: 'Work' },
   { id: 'followed-through-work', name: 'I followed through in work', category: 'Work' },
+  { id: 'finished-hard-work', name: 'I finished something hard', category: 'Work' },
   { id: 'reached-out', name: 'I reached out', category: 'Relationships' },
   { id: 'encouraged-someone', name: 'I encouraged someone', category: 'Relationships' },
   { id: 'god-made-way', name: 'God made a way', category: 'Faith' },
+  // Additional items to complete categories
+  { id: 'handled-family-home', name: 'I handled what my family needed', category: 'Home' },
+  { id: 'handled-family-motherhood', name: 'I handled what my family needed', category: 'Motherhood' },
+  { id: 'showed-kindness-family', name: 'I showed kindness', category: 'Family' },
+  { id: 'was-patient-family', name: 'I was patient', category: 'Family' },
+  { id: 'reached-out-family', name: 'I reached out', category: 'Family' },
+  { id: 'showed-kindness-motherhood', name: 'I showed kindness', category: 'Motherhood' },
+  { id: 'was-patient-motherhood', name: 'I was patient', category: 'Motherhood' },
+  { id: 'showed-up-business', name: 'I showed up for my work', category: 'Business' },
+  { id: 'followed-through-business', name: 'I followed through in work', category: 'Business' },
+  { id: 'finished-hard-business', name: 'I finished something hard', category: 'Business' },
 ];
 
 const CORE_WIN_TYPES = WIN_TYPES.slice(0, 6);
