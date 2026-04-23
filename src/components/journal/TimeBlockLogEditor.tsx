@@ -940,7 +940,7 @@ function TimeBlockLogEditorInner(
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (event) => {
       Animated.timing(fabBottomPosition, {
-        toValue: event.endCoordinates.height - 20,
+        toValue: event.endCoordinates.height + 16,
         duration: event.duration || 250,
         useNativeDriver: false,
       }).start();
