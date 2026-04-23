@@ -276,7 +276,7 @@ const WinTypeSelectionStep: React.FC<{
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       buttonScale.setValue(0);
@@ -292,12 +292,22 @@ const WinTypeSelectionStep: React.FC<{
   }, [selectedWinType]);
 
   useEffect(() => {
+    // When "Other" category is selected in expanded view, automatically select the "other" win type
+    if (selectedCategory === 'Other' && isExpanded) {
+      const otherWinType = WIN_TYPES.find(wt => wt.id === 'other');
+      if (otherWinType && selectedWinType?.id !== 'other') {
+        onSelect(otherWinType);
+      }
+    }
+  }, [selectedCategory, isExpanded, selectedWinType, onSelect]);
+
+  useEffect(() => {
     if (isOtherSelected) {
       Animated.spring(chooseAgainScale, {
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       chooseAgainScale.setValue(0);
@@ -431,29 +441,34 @@ const WinTypeSelectionStep: React.FC<{
                   })
                 ) : (
                   // Expanded state: Show filtered win types
-                  WIN_TYPES.filter(
-                    (winType) => winType.category === selectedCategory
-                  ).map((winType, index) => {
-                    const isSelected = selectedWinType?.id === winType.id;
-                    return (
-                      <TouchableOpacity
-                        key={winType.id}
-                        style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                        onPress={() => {
-                          triggerLightHaptic();
-                          onSelect(winType);
-                        }}
-                        activeOpacity={0.75}
-                      >
-                        <ThemedText
-                          style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
-                          numberOfLines={2}
+                  selectedCategory === 'Other' ? (
+                    // When Other category is selected, automatically select the "other" win type
+                    null
+                  ) : (
+                    WIN_TYPES.filter(
+                      (winType) => winType.category === selectedCategory
+                    ).map((winType, index) => {
+                      const isSelected = selectedWinType?.id === winType.id;
+                      return (
+                        <TouchableOpacity
+                          key={winType.id}
+                          style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            onSelect(winType);
+                          }}
+                          activeOpacity={0.75}
                         >
-                          {winType.name}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    );
-                  })
+                          <ThemedText
+                            style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                            numberOfLines={2}
+                          >
+                            {winType.name}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )
                 )}
               </View>
             </StepFadeIn>
@@ -512,7 +527,7 @@ const WinTypeSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedWinType && (!isOtherSelected || customWin.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
