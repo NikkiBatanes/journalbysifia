@@ -1362,6 +1362,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       title={headerTitle}
       subtitle={headerSubtitle}
       showAddButton={hasItems && !shouldShowAddingMode}
+      onAdd={() => {
+        triggerLightHaptic();
+        (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+      }}
       isAdding={shouldShowAddingMode}
       variant={variant}
       viewMode={viewMode}
