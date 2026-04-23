@@ -554,14 +554,16 @@ const OpenPrayerDescriptionStep: React.FC<{
   );
 };
 
-// Step 3: ACTS Prayer Flow (like faithful actions)
+// Step 2: ACTS Prayer Slides
 const ACTSPrayerSlidesStep: React.FC<{
   prayerTexts: { [key: string]: string };
   onChange: (key: string, text: string) => void;
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerTexts, onChange, onNext, insets, navigation }) => {
+  supplicationTrackAnswered: boolean;
+  onSupplicationTrackAnsweredChange: (value: boolean) => void;
+}> = ({ prayerTexts, onChange, onNext, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange }) => {
   const [actsStepIndex, setActsStepIndex] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -676,6 +678,26 @@ const ACTSPrayerSlidesStep: React.FC<{
               />
             </View>
           </StepFadeIn>
+
+          {currentStep.key === 'supplication' && (
+            <StepFadeIn delay={160}>
+              <TouchableOpacity
+                style={styles.trackAnsweredToggle}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
+                  {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
+                </View>
+                <ThemedText style={styles.trackAnsweredText}>
+                  Track if answered
+                </ThemedText>
+              </TouchableOpacity>
+            </StepFadeIn>
+          )}
         </Animated.View>
 
         <View style={{ height: 100 }} />
@@ -715,7 +737,9 @@ const OpenPrayerStep: React.FC<{
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerText, onChange, onNext, insets, navigation }) => {
+  trackAnswered: boolean;
+  onTrackAnsweredChange: (value: boolean) => void;
+}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonBottom = React.useState(insets.bottom + 20)[0];
   const buttonOpacity = React.useRef(new Animated.Value(prayerText ? 1 : 0)).current;
@@ -773,6 +797,24 @@ const OpenPrayerStep: React.FC<{
           </View>
         </StepFadeIn>
 
+        <StepFadeIn delay={160}>
+          <TouchableOpacity
+            style={styles.trackAnsweredToggle}
+            onPress={() => {
+              triggerLightHaptic();
+              onTrackAnsweredChange(!trackAnswered);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.trackAnsweredCheckbox, trackAnswered && styles.trackAnsweredCheckboxChecked]}>
+              {trackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
+            </View>
+            <ThemedText style={styles.trackAnsweredText}>
+              Track if answered
+            </ThemedText>
+          </TouchableOpacity>
+        </StepFadeIn>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -815,7 +857,9 @@ const CompletionStep: React.FC<{
   onDone: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, navigation }) => {
+  supplicationTrackAnswered: boolean;
+  openPrayerTrackAnswered: boolean;
+}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, navigation, supplicationTrackAnswered, openPrayerTrackAnswered }) => {
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
@@ -860,7 +904,7 @@ const CompletionStep: React.FC<{
         <View key={step.key} style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
           <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
-          {step.key === 'supplication' && (
+          {step.key === 'supplication' && supplicationTrackAnswered && (
             <TouchableOpacity style={styles.markAnsweredButton}>
               <ThemedText style={styles.markAnsweredButtonText}>Mark as Answered</ThemedText>
             </TouchableOpacity>
@@ -877,6 +921,11 @@ const CompletionStep: React.FC<{
       <View style={styles.completionSection}>
         <ThemedText weight="medium" style={styles.completionSectionLabel}>OPEN PRAYER</ThemedText>
         <ThemedText style={styles.completionSectionText}>{openPrayerText}</ThemedText>
+        {openPrayerTrackAnswered && (
+          <TouchableOpacity style={styles.markAnsweredButton}>
+            <ThemedText style={styles.markAnsweredButtonText}>Mark as Answered</ThemedText>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -962,6 +1011,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
   const [prayerTexts, setPrayerTexts] = useState<{ [key: string]: string }>({});
   const [openPrayerText, setOpenPrayerText] = useState('');
+  const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(false);
+  const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(false);
 
   const createMutation = useCreatePrayer();
   const dateStr = toLocalDateString(selectedDate);
@@ -996,7 +1047,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               prayer_type: 'journal',
               journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
               content: text.trim(),
-              status: step.key === 'supplication' ? 'pending' : undefined,
+              status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
             });
           }
         }
@@ -1008,7 +1059,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           prayer_type: 'journal',
           journal_category: 'personal_prayer',
           content: openPrayerText.trim(),
-          status: 'pending',
+          status: openPrayerTrackAnswered ? 'pending' : undefined,
         });
       }
 
@@ -1124,6 +1175,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onNext={() => setCurrentStep(3)}
             insets={insets}
             navigation={navigation}
+            supplicationTrackAnswered={supplicationTrackAnswered}
+            onSupplicationTrackAnsweredChange={setSupplicationTrackAnswered}
           />
         )}
 
@@ -1134,6 +1187,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onNext={() => setCurrentStep(3)}
             insets={insets}
             navigation={navigation}
+            trackAnswered={openPrayerTrackAnswered}
+            onTrackAnsweredChange={setOpenPrayerTrackAnswered}
           />
         )}
 
@@ -1145,6 +1200,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onDone={handleSave}
             insets={insets}
             navigation={navigation}
+            supplicationTrackAnswered={supplicationTrackAnswered}
+            openPrayerTrackAnswered={openPrayerTrackAnswered}
           />
         )}
       </View>
@@ -1623,10 +1680,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FF9500',
   },
-  completionButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
+  trackAnsweredToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  trackAnsweredCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  trackAnsweredCheckboxChecked: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  trackAnsweredText: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });
 
-export default withErrorBoundary(PrayerJournalWalkthroughScreen);
+export default withErrorBoundary(PrayerJournalWalkthroughScreen, 'PrayerJournalWalkthroughScreen');

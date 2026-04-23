@@ -148,8 +148,8 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
         >
           <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
 
-          {/* Mark as Answered Button - for supplication and open prayer when not answered */}
-          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at) && (
+          {/* Mark as Answered Button - for supplication and open prayer when not answered and status is pending */}
+          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.status === 'pending') && (
             <TouchableOpacity
               style={styles.markAnsweredButton}
               onPress={() => {
@@ -378,9 +378,28 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       return selectedType?.method === 'ACTS' ? 'CAST Method Prayer' : 'Open Prayer';
     }
     if (hasContent) {
-      const totalCount = displayPrayers.length;
-      const actsCount = displayPrayers.filter(p => p.type !== 'freeform').length;
-      const openCount = displayPrayers.filter(p => p.type === 'freeform').length;
+      // Count ACTS prayer sessions (1 CAST prayer = 1 prayer, not per step)
+      const actsPrayers = displayPrayers.filter(p => p.type !== 'freeform');
+      const openPrayers = displayPrayers.filter(p => p.type === 'freeform');
+
+      // Group ACTS prayers by time window (entries within 2 minutes = 1 prayer session)
+      const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      let actsCount = 0;
+      let lastSessionTime = 0;
+      const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+
+      for (const prayer of sortedActs) {
+        const prayerTime = new Date(prayer.created_at).getTime();
+        if (prayerTime - lastSessionTime > SESSION_WINDOW_MS) {
+          actsCount++;
+          lastSessionTime = prayerTime;
+        }
+      }
+
+      // Open prayers are counted individually
+      const openCount = openPrayers.length;
+
+      const totalCount = actsCount + openCount;
       const answeredCount = displayPrayers.filter(p => p.is_answered || p.status === 'answered' || !!p.answered_at).length;
 
       // Determine prayer path type
