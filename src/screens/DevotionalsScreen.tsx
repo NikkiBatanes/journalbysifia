@@ -1208,7 +1208,7 @@ const DevotionalsScreen = () => {
               renderFilterEmptyState()
             ) : (
               <>
-                <View style={{ paddingHorizontal: SIDE_INSET }}>
+                <View style={{ paddingHorizontal: SIDE_INSET, marginTop: 24 }}>
                   <ThemedText weight="bold" style={styles.carouselTitle}>
                     CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                   </ThemedText>
@@ -1252,7 +1252,7 @@ const DevotionalsScreen = () => {
             ListHeaderComponent={
               dateSectionItems.length > 0 ? (
                 <View>
-                  <View style={{ paddingHorizontal: SIDE_INSET }}>
+                  <View style={{ paddingHorizontal: SIDE_INSET, marginTop: 24 }}>
                     <ThemedText weight="bold" style={styles.carouselTitle}>
                       CONTINUE YOUR DEVOTIONAL{dateSectionItems.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                     </ThemedText>
