@@ -327,6 +327,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       status: entry.status,
       is_answered: entry.is_answered,
       answered_at: entry.answered_date,
+      metadata: entry.metadata,
     }));
   }, [prayerEntries]);
 
