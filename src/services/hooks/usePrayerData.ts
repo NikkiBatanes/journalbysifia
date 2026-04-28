@@ -350,21 +350,38 @@ export const useUpdatePrayer = () => {
           : prayer;
 
       // Optimistically update entries cache
-      queryClient.setQueryData<PrayerApiEntry[]>(
+      queryClient.setQueryData(
         queryKeys.prayers.entries(_userId, _dateStr),
-        (old = []) => old.map(applyUpdate)
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map(applyUpdate);
+        }
       );
 
       // Optimistically update people cache (covers answered tracking, etc.)
-      queryClient.setQueryData<PrayerApiEntry[]>(
+      queryClient.setQueryData(
         queryKeys.prayers.people(_userId, _dateStr),
-        (old = []) => old.map(applyUpdate)
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map(applyUpdate);
+        }
       );
 
-      // Optimistically update acts cache (covers journal prayer answered tracking)
-      queryClient.setQueryData<PrayerApiEntry[]>(
+      // Optimistically update acts cache (object shape: {adoration, confession, ...})
+      queryClient.setQueryData(
         queryKeys.prayers.acts(_userId, _dateStr),
-        (old = []) => old.map(applyUpdate)
+        (old: any) => {
+          if (!old || typeof old !== 'object' || Array.isArray(old)) {return old;}
+          const updateArr = (arr: any[]) => Array.isArray(arr) ? arr.map(applyUpdate) : arr;
+          return {
+            ...old,
+            adoration: updateArr(old.adoration),
+            confession: updateArr(old.confession),
+            thanksgiving: updateArr(old.thanksgiving),
+            supplication: updateArr(old.supplication),
+            freeform: updateArr(old.freeform),
+          };
+        }
       );
 
       return { previousPrayers, previousPeoplePrayers, previousActsPrayers };
