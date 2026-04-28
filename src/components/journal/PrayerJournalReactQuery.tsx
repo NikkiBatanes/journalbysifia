@@ -148,8 +148,8 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
         >
           <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
 
-          {/* Mark as Answered Button - for supplication and open prayer when not answered and status is pending */}
-          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.status === 'pending') && (
+          {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
+          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && (prayer.status === 'pending' || prayer.metadata?.track_answered === true || !prayer.metadata?.hasOwnProperty('track_answered'))) && (
             <TouchableOpacity
               style={styles.markAnsweredButton}
               onPress={() => {

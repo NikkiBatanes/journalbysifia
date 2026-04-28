@@ -322,12 +322,15 @@ export const useUpdatePrayer = () => {
       _dateStr: string;
     }) => PrayerApi.updatePrayer(id, updates),
     onMutate: async ({ id, updates, _userId, _dateStr }) => {
-      // Cancel any outgoing refetches for both entries and people caches
+      // Cancel any outgoing refetches for entries, people, and acts caches
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
 
       // Snapshot previous values for rollback
@@ -336,6 +339,9 @@ export const useUpdatePrayer = () => {
       );
       const previousPeoplePrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.people(_userId, _dateStr)
+      );
+      const previousActsPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.acts(_userId, _dateStr)
       );
 
       const applyUpdate = (prayer: PrayerApiEntry) =>
@@ -355,13 +361,19 @@ export const useUpdatePrayer = () => {
         (old = []) => old.map(applyUpdate)
       );
 
-      return { previousPrayers, previousPeoplePrayers };
+      // Optimistically update acts cache (covers journal prayer answered tracking)
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old = []) => old.map(applyUpdate)
+      );
+
+      return { previousPrayers, previousPeoplePrayers, previousActsPrayers };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       Logger.error('Error updating prayer', err as Error, {
       component: 'usePrayerData',
     });
-      // Roll back both caches on failure
+      // Roll back all caches on failure
       if (context?.previousPrayers) {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
@@ -374,6 +386,12 @@ export const useUpdatePrayer = () => {
           context.previousPeoplePrayers
         );
       }
+      if (context?.previousActsPrayers) {
+        queryClient.setQueryData(
+          queryKeys.prayers.acts(_userId, _dateStr),
+          context.previousActsPrayers
+        );
+      }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
       // Always refetch after error or success
@@ -383,6 +401,10 @@ export const useUpdatePrayer = () => {
       // Invalidate people cache so server state is consistent
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      // Invalidate acts cache for journal prayer answered tracking
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
       // Also refresh unprayed requests for dashboard in case an item transitioned
       // into/out of the unprayed requests set (e.g., marking prayed or toggling request flag)
