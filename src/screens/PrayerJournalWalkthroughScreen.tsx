@@ -901,7 +901,7 @@ const OpenPrayerStep: React.FC<{
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={120}>
+        <StepFadeIn delay={0}>
           <View style={styles.actsCard}>
             <TextInput
               style={styles.personalInput}
