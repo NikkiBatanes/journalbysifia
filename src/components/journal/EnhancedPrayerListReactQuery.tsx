@@ -13,7 +13,6 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -488,40 +487,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         handleAddToMyList={handleAddToMyList}
         handleMarkAsAnswered={handleMarkAsAnswered}
         handleMarkAsUnanswered={handleMarkAsUnanswered}
-        onEdit={(prayerId: string) => {
-          const prayerToEdit = peoplePrayers.find(p => p.id === prayerId);
-          if (prayerToEdit) {
-            setEditingPrayerId(prayerId);
-            setSelectedPrayerType(prayerToEdit.is_prayer_request ? 'requests' : 'mine');
-            setName(prayerToEdit.person_name || '');
-            setPrayerText(prayerToEdit.content || '');
-            setNotes(prayerToEdit.notes || '');
-            setShowModal(true);
-          }
-        }}
-        onDelete={(prayerId: string) => {
-          try { triggerLightHaptic(); } catch {}
-          Alert.alert(
-            'Delete Prayer',
-            'Are you sure you want to delete this prayer?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => {
-                  try { triggerLightHaptic(); } catch {}
-                  deleteMutation.mutate({
-                    id: prayerId,
-                    _userId: user?.id || '',
-                    _dateStr: dateStr,
-                  });
-                  triggerSuccessHaptic();
-                },
-              },
-            ]
-          );
-        }}
       />
     );
 
@@ -774,54 +739,12 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 // Swipeable Prayer Card Component (moved outside parent to avoid nested component warning)
 const SwipeablePrayerCard: React.FC<{
   prayer: PersonPrayer;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
   handleAddToMyList: (prayer: PersonPrayer) => void;
   handleMarkAsAnswered: (id: string) => void;
   handleMarkAsUnanswered: (id: string) => void;
-}> = ({ prayer, onEdit, onDelete, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered }) => {
-  const swipeableRef = useRef<Swipeable>(null);
-
-  const renderRightActions = () => (
-    <View style={styles.prayerSwipeActions}>
-      <TouchableOpacity
-        style={styles.editActionBtn}
-        onPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          onEdit(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="create-outline" size={22} color="white" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteActionBtn}
-        onPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          onDelete(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={22} color="white" />
-      </TouchableOpacity>
-    </View>
-  );
-
+}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered }) => {
   return (
-    <View style={styles.swipeableContainer}>
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        rightThreshold={40}
-        friction={2}
-        overshootRight={false}
-        onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-        enableTrackpadTwoFingerGesture
-        containerStyle={styles.swipeableRow}
-      >
-        <View style={styles.prayerItem}>
+    <View style={styles.prayerItem}>
           <View style={styles.prayerHeader}>
             <View style={styles.prayerHeaderLeft}>
               <View style={styles.prayerTypeIndicator}>
@@ -954,8 +877,6 @@ const SwipeablePrayerCard: React.FC<{
               )}
             </TouchableOpacity>
           )}
-        </View>
-      </Swipeable>
     </View>
   );
 };
