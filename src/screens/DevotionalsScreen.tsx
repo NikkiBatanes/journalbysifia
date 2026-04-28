@@ -1185,13 +1185,15 @@ const DevotionalsScreen = () => {
               </View>
             )}
             {deferredFilter === 'completed' && sortedDevotionals.length > 0 && (
-              <CategoryCarouselRow
-                category="COMPLETED DEVOTIONALS"
-                items={sortedDevotionals}
-                cardStyles={styles}
-                renderItem={(item) => renderDevotionalItem({ item })}
-                itemSize={ITEM_SIZE}
-              />
+              <View style={{ marginTop: 24 }}>
+                <CategoryCarouselRow
+                  category="COMPLETED DEVOTIONALS"
+                  items={sortedDevotionals}
+                  cardStyles={styles}
+                  renderItem={(item) => renderDevotionalItem({ item })}
+                  itemSize={ITEM_SIZE}
+                />
+              </View>
             )}
             {sortedDevotionals.length === 0 && renderFilterEmptyState()}
             <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
@@ -1470,7 +1472,7 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     marginBottom: 24,
-    marginTop: 24,
+    marginTop: 32,
   },
   categorySectionHeader: {
     flexDirection: 'row',
@@ -1478,6 +1480,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SIDE_INSET,
     marginBottom: 12,
+    marginTop: 32,
   },
   categorySectionTitle: {
     fontSize: 12,
