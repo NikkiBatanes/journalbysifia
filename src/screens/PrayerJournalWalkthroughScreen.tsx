@@ -1056,7 +1056,7 @@ const CompletionStep: React.FC<{
 
     return (
       <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
-        <ThemedText weight="medium" style={styles.completionSectionLabel}>OPEN PRAYER</ThemedText>
+        <ThemedText weight="medium" style={styles.completionSectionLabel}>PRAYER</ThemedText>
         <ThemedText style={styles.completionSectionText}>{openPrayerText}</ThemedText>
         {openPrayerTrackAnswered && (
           <View style={[styles.completionSection, styles.completionSectionSmall]}>
