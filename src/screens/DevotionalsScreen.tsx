@@ -1079,7 +1079,7 @@ const DevotionalsScreen = () => {
 
       {/* Header */}
       {/* Header on white background - matching PlaybookListScreen structure */}
-      <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
+      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
         <View style={styles.pageInner}>
           {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
