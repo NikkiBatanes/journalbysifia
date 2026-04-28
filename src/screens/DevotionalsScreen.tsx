@@ -1462,14 +1462,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categorySection: {
-    marginBottom: 24,
+    marginTop: 24,
   },
   categorySectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SIDE_INSET,
-    marginBottom: 12,
+    paddingBottom: 12,
   },
   categorySectionTitle: {
     fontSize: 12,
