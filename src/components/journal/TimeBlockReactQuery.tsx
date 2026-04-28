@@ -1402,7 +1402,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.emptyStateButton}
                   onPress={() => {
                     triggerLightHaptic();
-                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr, autoFocus: true });
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Begin planning your day"

@@ -62,6 +62,7 @@ interface TimeBlockLogEditorProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   isLoading?: boolean;
+  autoFocus?: boolean;
   styles?: any;
   dateString?: string;
   // Context to determine title/subtext: 'journal' for general journal, 'faithful-actions' for playbook action steps
@@ -805,6 +806,7 @@ function TimeBlockLogEditorInner(
     actionStepNumber,
     actionStepTitle,
     isLoading = false,
+    autoFocus = false,
     styles,
     existingTimeBlock,
     context = 'journal',
@@ -890,6 +892,17 @@ function TimeBlockLogEditorInner(
       }
     },
   }));
+
+  // Auto-focus input when autoFocus prop is true
+  useEffect(() => {
+    if (autoFocus) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [autoFocus]);
 
   // State management
   const [title, setTitle] = React.useState(existingTimeBlock?.title || '');

@@ -12,6 +12,7 @@ import { queryKeys } from '../services/queryKeys';
 interface RouteParams {
   selectedDate?: string;
   existingTimeBlock?: any;
+  autoFocus?: boolean;
 }
 
 const TimeBlockEditorScreen: React.FC = () => {
@@ -24,6 +25,7 @@ const TimeBlockEditorScreen: React.FC = () => {
   const params = route.params as RouteParams;
   const selectedDate = params?.selectedDate || toLocalDateString(new Date());
   const existingTimeBlock = params?.existingTimeBlock;
+  const autoFocus = params?.autoFocus || false;
 
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
@@ -132,6 +134,7 @@ const TimeBlockEditorScreen: React.FC = () => {
           actionStepNumber={undefined}
           actionStepTitle={undefined}
           isLoading={false}
+          autoFocus={autoFocus}
           existingTimeBlock={existingTimeBlock}
           context="journal"
           dateString={new Date(selectedDate).toLocaleDateString('en-US', {
