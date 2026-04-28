@@ -539,60 +539,54 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       expanded={expanded}
       onExpand={onExpand}
     >
-      {displayEntry && !shouldShowAddingMode && (
-        <>
-          {editingItemId === displayEntry.id ? (
-            <View style={styles.editEntryContainer}>
-              <TextInput
-                style={[styles.editEntryInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                value={editingItemText}
-                onChangeText={setEditingItemText}
-                autoFocus
-                multiline
-                onSubmitEditing={saveEditedEntry}
-                returnKeyType="done"
-                blurOnSubmit={false}
-              />
-              <View style={styles.editEntryButtons}>
-                <TouchableOpacity
-                  onPress={cancelEditEntry}
-                  style={[styles.editEntryActionButton, styles.editEntryCancelButton]}
-                >
-                  <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={saveEditedEntry}
-                  style={[styles.editEntryActionButton, styles.editEntrySaveButton]}
-                  disabled={!editingItemText.trim() || isSaving}
-                >
-                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
+      {displayEntry && !shouldShowAddingMode && !editingItemId ? (
+        <View style={styles.completionCard}>
+          <View style={styles.completionHeader}>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>
+                {displayEntry.emotionName || 'Looking Forward'}
+              </ThemedText>
             </View>
-          ) : (
-            <View style={[
-              styles.entryContainer,
-              viewMode === 'inline' && styles.entryContainerInline,
-            ]}>
-              <View style={styles.completionCard}>
-                {displayEntry.text.trim() && (
-                  <View style={styles.completionSection}>
-                    <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
-                  </View>
-                )}
+          </View>
 
-                <View style={styles.completionDivider} />
+          <View style={styles.completionDivider} />
 
-                {displayEntry.emotionName && (
-                  <View style={styles.completionSection}>
-                    <ThemedText weight="medium" style={styles.completionSectionLabel}>How You're Holding It</ThemedText>
-                    <ThemedText style={styles.completionEmotionText}>{displayEntry.emotionName}</ThemedText>
-                  </View>
-                )}
-              </View>
+          {displayEntry.text.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>WHAT YOU'RE EXCITED ABOUT</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
             </View>
           )}
-        </>
+        </View>
+      ) : null}
+      {displayEntry && !shouldShowAddingMode && editingItemId === displayEntry.id && (
+        <View style={styles.editEntryContainer}>
+          <TextInput
+            style={[styles.editEntryInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+            value={editingItemText}
+            onChangeText={setEditingItemText}
+            autoFocus
+            multiline
+            onSubmitEditing={saveEditedEntry}
+            returnKeyType="done"
+            blurOnSubmit={false}
+          />
+          <View style={styles.editEntryButtons}>
+            <TouchableOpacity
+              onPress={cancelEditEntry}
+              style={[styles.editEntryActionButton, styles.editEntryCancelButton]}
+            >
+              <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={saveEditedEntry}
+              style={[styles.editEntryActionButton, styles.editEntrySaveButton]}
+              disabled={!editingItemText.trim() || isSaving}
+            >
+              <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
       {shouldShowAddingMode && (
         <>
@@ -891,7 +885,7 @@ const styles = StyleSheet.create({
   },
   completionDivider: {
     height: 1,
-    backgroundColor: Colors.inputBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginVertical: 16,
   },
   completionSection: {
@@ -908,7 +902,7 @@ const styles = StyleSheet.create({
   completionSectionText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   completionEmotionText: {
     fontSize: 20,

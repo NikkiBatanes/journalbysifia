@@ -18,6 +18,7 @@ import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
 import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
 import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkthroughScreen';
+import PrayerEditorScreen from '../screens/PrayerEditorScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -436,6 +437,17 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'none',
+            }}
+          />
+
+          {/* Prayer Editor Screen */}
+          <Stack.Screen
+            name="PrayerEditor"
+            component={PrayerEditorScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
             }}
           />
 

@@ -129,6 +129,17 @@ export type RootStackParamList = {
     initialPrayerRequest?: string;
   } | undefined;
 
+  // Prayer Editor Screen
+  PrayerEditor: {
+    prayerRequest: {
+      person_name: string;
+      content: string;
+      id: string;
+      user_id: string;
+      selected_date: string;
+    };
+  };
+
   // Test screens
   QueryTest: undefined;
 };

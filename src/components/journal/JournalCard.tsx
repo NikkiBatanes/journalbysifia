@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     // Content is always visible
     paddingTop: 8,
     paddingBottom: 12, // add bottom spacing so bottom-right buttons fit inside rounded corner
-    paddingRight: 6,   // slight right spacing to avoid hugging the curved edge
+    paddingHorizontal: 6,   // slight spacing to avoid hugging the curved edges
   },
   addButton: {
     padding: 6,
