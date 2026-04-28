@@ -205,17 +205,22 @@ const PrayerPathSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedPath && (
-        <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
-          <TouchableOpacity
-            onPress={() => {
-              triggerMediumHaptic();
-              onNext();
-            }}
-            activeOpacity={0.7}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
+        <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+          <Animated.View style={[
+            styles.primaryButtonInner,
+            { transform: [{ scale: buttonScale }] }
+          ]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerMediumHaptic();
+                onNext();
+              }}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
       )}
 
