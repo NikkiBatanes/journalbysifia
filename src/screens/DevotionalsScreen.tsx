@@ -1167,7 +1167,7 @@ const DevotionalsScreen = () => {
           // All view: Continue devotionals carousel + Completed devotionals carousel
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContentPadding, scrollContentStyle]}
+            contentContainerStyle={scrollContentStyle}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
             onScroll={handleScroll}
@@ -1198,7 +1198,7 @@ const DevotionalsScreen = () => {
           // Category view: Horizontal carousels per category
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContentPadding, scrollContentStyle]}
+            contentContainerStyle={scrollContentStyle}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
             onScroll={handleScroll}
@@ -1213,7 +1213,6 @@ const DevotionalsScreen = () => {
                     CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                   </ThemedText>
                 </View>
-                <View style={{ height: 32 }} />
                 {categorySections.map(({ category, devotionals }) => (
                   <CategoryCarouselRow
                     key={category}
@@ -1257,14 +1256,10 @@ const DevotionalsScreen = () => {
                       CONTINUE YOUR DEVOTIONAL{dateSectionItems.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                     </ThemedText>
                   </View>
-                  <View style={{ height: 32 }} />
                 </View>
               ) : null
             }
-            contentContainerStyle={[
-              styles.listContentPadding,
-              scrollContentStyle,
-            ]}
+            contentContainerStyle={scrollContentStyle}
             scrollEnabled={!isTrulyEmpty}
             bounces={!isTrulyEmpty}
             ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 8) + 80 }} />}
