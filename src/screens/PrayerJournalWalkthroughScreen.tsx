@@ -746,10 +746,13 @@ const ACTSPrayerSlidesStep: React.FC<{
         styles.trackingFloatingButton,
         { bottom: buttonPosition }
       ]}>
-        <Animated.View style={{
-          opacity: trackingOpacity,
-          transform: [{ scale: trackingScale }],
-        }}>
+        <Animated.View style={[
+          styles.trackingFloatingButtonInner,
+          {
+            opacity: trackingOpacity,
+            transform: [{ scale: trackingScale }],
+          }
+        ]}>
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -772,7 +775,10 @@ const ACTSPrayerSlidesStep: React.FC<{
         styles.primaryButton,
         { bottom: buttonPosition }
       ]}>
-        <Animated.View style={{ opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0, flex: 1 }}>
+        <Animated.View style={[
+          styles.primaryButtonInner,
+          { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 }
+        ]}>
           <TouchableOpacity
             onPress={handleNext}
             activeOpacity={0.7}
@@ -910,7 +916,10 @@ const OpenPrayerStep: React.FC<{
       </ScrollView>
 
       <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition }]}>
-        <Animated.View style={{ opacity: trackingOpacity, transform: [{ scale: trackingScale }] }}>
+        <Animated.View style={[
+          styles.trackingFloatingButtonInner,
+          { opacity: trackingOpacity, transform: [{ scale: trackingScale }] }
+        ]}>
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -930,7 +939,10 @@ const OpenPrayerStep: React.FC<{
       </Animated.View>
 
       <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
-        <Animated.View style={{ opacity: prayerText?.trim() ? 1 : 0, flex: 1 }}>
+        <Animated.View style={[
+          styles.primaryButtonInner,
+          { opacity: prayerText?.trim() ? 1 : 0 }
+        ]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -1529,6 +1541,11 @@ const styles = StyleSheet.create({
     right: 20,
     width: 40,
     height: 40,
+    borderRadius: 20,
+  },
+  primaryButtonInner: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.alertCoral,
@@ -1537,6 +1554,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    elevation: 8,
   },
   finishButton: {
     marginTop: 32,
@@ -1865,9 +1883,13 @@ const styles = StyleSheet.create({
     height: 40,
     alignSelf: 'flex-start',
     borderRadius: 20,
+  },
+  trackingFloatingButtonInner: {
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
   },
 });
 
