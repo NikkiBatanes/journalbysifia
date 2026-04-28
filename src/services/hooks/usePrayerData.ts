@@ -564,20 +564,23 @@ export const useMarkSupplicationAnswered = () => {
         queryKeys.prayers.acts(_userId, _dateStr)
       );
 
-      // Update entries query
-      queryClient.setQueryData<PrayerApiEntry[]>(
+      // Update entries query (guard against non-array cache)
+      queryClient.setQueryData(
         queryKeys.prayers.entries(_userId, _dateStr),
-        (old = []) => old.map(prayer =>
-          prayer.id === id
-            ? {
-                ...prayer,
-                is_answered: isAnswered,
-                answered_date: isAnswered ? new Date().toISOString() : null,
-                status: isAnswered ? 'answered' : 'pending',
-                updated_at: new Date().toISOString(),
-              }
-            : prayer
-        )
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map((prayer: any) =>
+            prayer.id === id
+              ? {
+                  ...prayer,
+                  is_answered: isAnswered,
+                  answered_date: isAnswered ? new Date().toISOString() : null,
+                  status: isAnswered ? 'answered' : 'pending',
+                  updated_at: new Date().toISOString(),
+                }
+              : prayer
+          );
+        }
       );
 
       // Update ACTS query (this is the one the component uses)
