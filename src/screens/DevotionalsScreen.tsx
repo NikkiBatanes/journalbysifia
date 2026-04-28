@@ -1516,7 +1516,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginTop: 16,
+    marginTop: 24,
   },
   headerBlue: {
     backgroundColor: Colors.anchorBlue,
