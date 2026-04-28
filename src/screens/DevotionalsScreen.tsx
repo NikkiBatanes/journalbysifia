@@ -1079,7 +1079,7 @@ const DevotionalsScreen = () => {
 
       {/* Header */}
       {/* Header on white background - matching PlaybookListScreen structure */}
-      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+      <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
         <View style={styles.pageInner}>
           {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
@@ -1530,6 +1530,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
+    paddingHorizontal: 16,
   },
   contentSheet: {
     flex: 1,
