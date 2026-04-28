@@ -1174,26 +1174,22 @@ const DevotionalsScreen = () => {
             scrollEventThrottle={100}
           >
             {deferredFilter === 'ongoing' && (
-              <View style={{ marginTop: 24 }}>
-                <CategoryCarouselRow
-                  category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
-                  items={sortedDevotionals}
-                  cardStyles={styles}
-                  renderItem={(item) => renderDevotionalItem({ item })}
-                  itemSize={ITEM_SIZE}
-                />
-              </View>
+              <CategoryCarouselRow
+                category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
+                items={sortedDevotionals}
+                cardStyles={styles}
+                renderItem={(item) => renderDevotionalItem({ item })}
+                itemSize={ITEM_SIZE}
+              />
             )}
             {deferredFilter === 'completed' && sortedDevotionals.length > 0 && (
-              <View style={{ marginTop: 24 }}>
-                <CategoryCarouselRow
-                  category="COMPLETED DEVOTIONALS"
-                  items={sortedDevotionals}
-                  cardStyles={styles}
-                  renderItem={(item) => renderDevotionalItem({ item })}
-                  itemSize={ITEM_SIZE}
-                />
-              </View>
+              <CategoryCarouselRow
+                category="COMPLETED DEVOTIONALS"
+                items={sortedDevotionals}
+                cardStyles={styles}
+                renderItem={(item) => renderDevotionalItem({ item })}
+                itemSize={ITEM_SIZE}
+              />
             )}
             {sortedDevotionals.length === 0 && renderFilterEmptyState()}
             <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
@@ -1212,7 +1208,7 @@ const DevotionalsScreen = () => {
               renderFilterEmptyState()
             ) : (
               <>
-                <View style={{ paddingHorizontal: SIDE_INSET, marginTop: 24 }}>
+                <View style={styles.carouselTitleContainer}>
                   <ThemedText weight="bold" style={styles.carouselTitle}>
                     CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                   </ThemedText>
@@ -1256,7 +1252,7 @@ const DevotionalsScreen = () => {
             ListHeaderComponent={
               dateSectionItems.length > 0 ? (
                 <View>
-                  <View style={{ paddingHorizontal: SIDE_INSET, marginTop: 24 }}>
+                  <View style={styles.carouselTitleContainer}>
                     <ThemedText weight="bold" style={styles.carouselTitle}>
                       CONTINUE YOUR DEVOTIONAL{dateSectionItems.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                     </ThemedText>
@@ -1472,7 +1468,6 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     marginBottom: 24,
-    marginTop: 32,
   },
   categorySectionHeader: {
     flexDirection: 'row',
@@ -1480,7 +1475,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SIDE_INSET,
     marginBottom: 12,
-    marginTop: 32,
   },
   categorySectionTitle: {
     fontSize: 12,
@@ -1516,13 +1510,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 20,
+    paddingBottom: 8,
   },
   carouselTitle: {
     fontSize: 12,
     color: Colors.hopeWhite,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginTop: 24,
   },
   headerBlue: {
     backgroundColor: Colors.anchorBlue,
@@ -1552,7 +1546,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContentPadding: {
-    paddingTop: 52,
+    paddingTop: 20,
     paddingBottom: 8,
   },
   emptyListContent: {
