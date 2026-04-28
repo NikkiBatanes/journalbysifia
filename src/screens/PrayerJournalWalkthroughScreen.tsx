@@ -1077,7 +1077,7 @@ const CompletionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
