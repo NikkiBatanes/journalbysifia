@@ -149,7 +149,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
 
           {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
-          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && (prayer.status === 'pending' || prayer.metadata?.track_answered === true || !prayer.metadata?.hasOwnProperty('track_answered'))) && (
+          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.metadata?.track_answered === true) && (
             <TouchableOpacity
               style={styles.markAnsweredButton}
               onPress={() => {
@@ -157,13 +157,13 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
                 onMarkAnswered(prayer.id, true);
               }}
             >
-              <Check size={12} color="#FF9500" />
-              <ThemedText style={styles.markAnsweredText}>Mark as Answered</ThemedText>
+              <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
+              <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
             </TouchableOpacity>
           )}
 
           {/* Answered Indicator - Tappable to mark as unanswered */}
-          {prayer.answered_at && (
+          {prayer.answered_at && ((type.key === 'supplication' || type.key === 'freeform') ? prayer.metadata?.track_answered === true : true) && (
             <TouchableOpacity
               style={styles.answeredIndicator}
               onPress={() => {
@@ -182,13 +182,13 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
                 }
               }}
             >
-              <Check size={12} color={Colors.growthGreen} />
-              <View style={styles.answeredTextContainer}>
-                <ThemedText style={styles.answeredText}>Answered</ThemedText>
+              <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
+              <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
+              {prayer.answered_at && (
                 <ThemedText style={styles.answeredTimestamp}>
                   {formatAnsweredDate(prayer.answered_at)}
                 </ThemedText>
-              </View>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -886,35 +886,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
     alignSelf: 'center',
-    marginTop: 4,
+    marginTop: 8,
     gap: 6,
   },
   markAnsweredText: {
-    fontSize: 11,
-    color: '#FF9500',
+    fontSize: 12,
+    color: Colors.alertCoral,
   },
   answeredIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
+    gap: 6,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
   answeredText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.growthGreen,
   },
-  answeredTextContainer: {
-    marginLeft: 4,
-  },
   answeredTimestamp: {
-    fontSize: 9,
-    color: Colors.textGray,
-    marginTop: 1,
+    color: 'rgba(76, 175, 80, 0.9)',
+    fontSize: 10,
+    marginLeft: 4,
   },
   emptyStateContainer: {
     alignItems: 'center',

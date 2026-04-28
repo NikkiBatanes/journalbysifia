@@ -854,7 +854,7 @@ const SwipeablePrayerCard: React.FC<{
           )}
           {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
           {(() => {
-            const hasTracking = prayer.metadata?.track_answered === true || !prayer.metadata?.hasOwnProperty('track_answered');
+            const hasTracking = prayer.metadata?.track_answered === true;
             const notAnswered = prayer.status !== 'answered';
             const isNotRequest = prayer.is_prayer_request !== true;
             

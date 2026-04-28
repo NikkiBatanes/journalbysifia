@@ -808,30 +808,69 @@ const OpenPrayerStep: React.FC<{
   onTrackAnsweredChange: (value: boolean) => void;
 }> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-  const buttonBottom = React.useState(insets.bottom + 20)[0];
-  const buttonOpacity = React.useRef(new Animated.Value(prayerText ? 1 : 0)).current;
-
-  React.useEffect(() => {
-    Animated.timing(buttonOpacity, {
-      toValue: prayerText ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [prayerText, buttonOpacity]);
+  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const trackingOpacity = React.useRef(new Animated.Value(0)).current;
+  const trackingScale = React.useRef(new Animated.Value(0.8)).current;
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
       setKeyboardVisible(true);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 325,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
     });
     const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
       setKeyboardVisible(false);
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 20,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
     });
 
     return () => {
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
-  }, []);
+  }, [insets.bottom, buttonPosition]);
+
+  React.useEffect(() => {
+    const hasText = !!prayerText?.trim();
+    if (hasText) {
+      Animated.parallel([
+        Animated.timing(trackingOpacity, {
+          toValue: 1,
+          duration: 300,
+          delay: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(trackingScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          delay: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(trackingOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(trackingScale, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [prayerText, trackingOpacity, trackingScale]);
 
   return (
     <View style={styles.stepContainer}>
@@ -864,28 +903,30 @@ const OpenPrayerStep: React.FC<{
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={160}>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition, opacity: prayerText?.trim() ? trackingOpacity : 0 }]}>
+        <Animated.View style={{ transform: [{ scale: prayerText?.trim() ? trackingScale : 0.8 }] }}>
           <TouchableOpacity
-            style={styles.trackAnsweredToggle}
             onPress={() => {
               triggerLightHaptic();
               onTrackAnsweredChange(!trackAnswered);
             }}
             activeOpacity={0.7}
+            style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
           >
             <View style={[styles.trackAnsweredCheckbox, trackAnswered && styles.trackAnsweredCheckboxChecked]}>
               {trackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
             </View>
-            <ThemedText style={styles.trackAnsweredText}>
+            <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
               Track if answered
             </ThemedText>
           </TouchableOpacity>
-        </StepFadeIn>
+        </Animated.View>
+      </Animated.View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      <Animated.View style={[styles.primaryButton, { bottom: keyboardVisible ? insets.bottom + 325 : insets.bottom + 20, opacity: buttonOpacity }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, opacity: prayerText?.trim() ? 1 : 0 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
