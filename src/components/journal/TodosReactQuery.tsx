@@ -908,6 +908,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
               onDelete={() => {}}
               disableSwipe={true}
+              containerStyle={styles.todoItemWrapper}
             >
               <ThemedText
                 style={[
@@ -1290,6 +1291,14 @@ const styles = StyleSheet.create({
   // Container styles
   todosContainer: {
     width: '100%',
+  },
+  todoItemWrapper: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    padding: 20,
+    width: '100%',
+    marginBottom: 4,
   },
 
   // Header styles

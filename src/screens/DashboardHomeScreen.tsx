@@ -53,6 +53,7 @@ import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTy
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
+import { toLocalDateString } from '../utils/date';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
@@ -431,8 +432,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       maxHeight: '80%',
     },
     prayerModalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: 'column',
+      justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 8,
     },
@@ -440,17 +441,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      justifyContent: 'center',
     },
     prayerModalTitle: {
       color: Colors.hopeWhite,
       fontSize: 12,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
+      textAlign: 'center',
     },
     prayerModalSubtitle: {
       color: Colors.secondaryText,
       fontSize: 14,
       marginBottom: 16,
+      textAlign: 'center',
     },
     prayerModalTabs: {
       flexDirection: 'row',
@@ -476,25 +480,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     prayerModalNameInput: {
       width: '100%',
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      borderRadius: 16,
+      backgroundColor: Colors.inputBackground,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-      padding: 16,
-      paddingBottom: 16,
+      borderColor: Colors.inputBorder,
+      padding: 14,
       color: Colors.hopeWhite,
-      fontSize: 18,
-      lineHeight: 24,
-      marginBottom: 12,
-      textAlignVertical: 'center',
-      ...Platform.select({
-        ios: {
-          paddingTop: 16,
-        },
-        android: {
-          paddingTop: 12,
-        },
-      }),
+      fontSize: 14,
+      marginBottom: 20,
     },
     prayerModalTextArea: {
       backgroundColor: Colors.lightOverlay,
@@ -509,42 +502,47 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     // Combined prayer input + request display container
     combinedPrayerField: {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      borderRadius: 16,
+      backgroundColor: Colors.inputBackground,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-      marginBottom: 12,
+      borderColor: Colors.inputBorder,
+      padding: 14,
+      minHeight: 150,
       overflow: 'hidden',
     },
     combinedPrayerInput: {
-      width: '100%',
-      padding: 16,
-      paddingBottom: 0,
       color: Colors.hopeWhite,
-      fontSize: 18,
-      lineHeight: 24,
-      minHeight: 120,
-      maxHeight: 120,
-      textAlignVertical: 'top' as const,
+      fontSize: 15,
+      lineHeight: 22,
+      minHeight: 80,
       backgroundColor: 'transparent',
-      ...Platform.select({
-        ios: {
-          paddingTop: 16,
-        },
-        android: {
-          paddingTop: 12,
-        },
-      }),
     },
     combinedDivider: {
-      height: .5,
-      backgroundColor: Colors.mediumOverlay,
+      height: 1,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      marginVertical: 12,
+    },
+    combinedReadOnlyInner: {
+      backgroundColor: 'rgba(26,60,109,0.15)',
+      borderRadius: 8,
+      padding: 12,
     },
     prayerModalLabel: {
       color: Colors.hopeWhite,
       fontSize: 12,
       marginBottom: 4,
       // weight handled by ThemedText
+    },
+    prayerModalFieldLabel: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      letterSpacing: 0.8,
+      marginBottom: 4,
+    },
+    prayerModalReadOnlyText: {
+      color: Colors.secondaryText,
+      fontSize: 14,
+      lineHeight: 20,
     },
     prayerModalPreview: {
       color: Colors.secondaryText,
@@ -571,7 +569,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalSaveButton: {
       position: 'absolute',
       right: 20,
-      bottom: 8,
       width: 40,
       height: 40,
       borderRadius: 20,
@@ -592,18 +589,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderRadius: 8,
       borderWidth: 1,
       borderColor: Colors.lightOverlay,
-    },
-    prayerModalFieldLabel: {
-      color: Colors.hopeWhite,
-      fontSize: 12,
-      marginBottom: 6,
-      // No uppercase; keep normal casing
-      // weight handled by ThemedText
-    },
-    prayerModalReadOnlyText: {
-      color: Colors.secondaryText,
-      fontSize: 14,
-      lineHeight: 20,
     },
     // Prayer Requests Card styles (moved from inline to satisfy linter)
     prayerRequestsContainer: {
@@ -699,9 +684,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     moreTextMarginTop: {
       marginTop: 8,
-    },
-    combinedReadOnlyInner: {
-      padding: 12,
     },
     prayerRequestHeader: {
       flexDirection: 'row',
@@ -1065,11 +1047,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const handleOpenPrayer = (req: any) => {
     triggerLightHaptic();
-    // Show prayer editor modal
-    setSelectedPrayerRequest(req);
-    setModalPrayerName(req.person_name || '');
-    setModalPrayerRequest('');
-    setShowPrayerEditorModal(true);
+    // Navigate to PrayerEditorScreen instead of showing modal
+    navigation.navigate('PrayerEditor' as any, {
+      prayerRequest: {
+        person_name: req.person_name,
+        content: req.content,
+        id: req.id,
+        user_id: req.user_id,
+        selected_date: req.selected_date || toLocalDateString(new Date()),
+      },
+    });
   };
 
   const handlePrayerSaved = async () => {
@@ -1729,7 +1716,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>
-                  <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer request from {modalPrayerName || 'them'}</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer Request</ThemedText>
                   <ThemedText weight="regular" style={styles.prayerModalReadOnlyText}>{selectedPrayerRequest?.content || 'Provision for business'}</ThemedText>
                 </View>
               </View>

@@ -809,8 +809,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           }}
                           onToggle={() => togglePriority(index)}
                           onDelete={() => {}}
-                          hideCheckbox={true}
                           disableSwipe={true}
+                          containerStyle={styles.priorityItemWrapper}
                           ref={ref => {
                             if (ref) {
                               swipeableRefs.current[priority.id] = ref;
@@ -854,21 +854,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                               </View>
                             </View>
                           ) : (
-                            <>
-                              <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
-                                {priority.completed && (
-                                  <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
-                                )}
-                              </View>
-                              <ThemedText
-                                style={[
-                                  styles.priorityText,
-                                  priority.completed && styles.completedText,
-                                ]}
-                              >
-                                {priority.text}
-                              </ThemedText>
-                            </>
+                            <ThemedText
+                              style={[
+                                styles.priorityText,
+                                priority.completed && styles.completedText,
+                              ]}
+                            >
+                              {priority.text}
+                            </ThemedText>
                           )}
                         </SwipeableTodoItem>
                       ))
@@ -937,6 +930,14 @@ const styles = StyleSheet.create({
   },
   prioritiesList: {
     marginTop: 0,
+  },
+  priorityItemWrapper: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    padding: 20,
+    width: '100%',
+    marginBottom: 4,
   },
   prioritiesContainer: {
     marginBottom: 8,
@@ -1163,21 +1164,6 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     marginRight: 0,
-  },
-  tickBox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.trustGrey,
-    backgroundColor: 'rgba(176, 184, 193, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  tickBoxCompleted: {
-    backgroundColor: Colors.growthGreen,
-    borderColor: Colors.growthGreen,
   },
   prioritiesTitle: {
     fontSize: 11,

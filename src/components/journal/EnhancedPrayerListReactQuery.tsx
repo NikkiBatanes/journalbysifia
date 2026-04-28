@@ -102,7 +102,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [currentRequestedBy, setCurrentRequestedBy] = useState('');
   
   // Show more / show less state for inline display
-  const [showAllPrayers, setShowAllPrayers] = useState(false);
+  const [requestsDisplayLimit, setRequestsDisplayLimit] = useState(2);
+  const [personalDisplayLimit, setPersonalDisplayLimit] = useState(2);
 
   // Computed values
   const hasContent = peoplePrayers.length > 0;
@@ -281,6 +282,42 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     }
   };
 
+  const handleMarkAsAnswered = async (prayerId: string) => {
+    try {
+      triggerLightHaptic();
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(
+        queryKeys.prayers.people(user?.id || '', dateStr),
+        (old: PersonPrayer[] | undefined) => {
+          if (!old) return old;
+          return old.map(prayer =>
+            prayer.id === prayerId
+              ? { ...prayer, status: 'answered' as const, answered_date: new Date().toISOString() }
+              : prayer
+          );
+        }
+      );
+
+      await updatePrayerMutation.mutateAsync({
+        id: prayerId,
+        updates: {
+          status: 'answered' as const,
+          answered_date: new Date().toISOString(),
+        },
+        _userId: user?.id || '',
+        _dateStr: dateStr,
+      });
+      triggerSuccessHaptic();
+    } catch (error) {
+      console.error('Failed to mark prayer as answered:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+      });
+    }
+  };
+
   const handleSaveModalPrayer = async () => {
     if (!modalPrayerRequest.trim()) {
       Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
@@ -387,19 +424,22 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       requestsLimit = 2;
     }
     
-    // Apply limits if not showing all
-    const displayedRequests = showAllPrayers ? localPrayerRequests : localPrayerRequests.slice(0, requestsLimit);
-    const displayedPersonal = showAllPrayers ? prayedForPrayers : prayedForPrayers.slice(0, personalLimit);
+    // Apply limits
+    const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
+    const displayedPersonal = prayedForPrayers.slice(0, personalDisplayLimit);
     
     // Check if we need to show show more/less button
-    const hasMoreItems = !showAllPrayers && (localPrayerRequests.length > requestsLimit || prayedForPrayers.length > personalLimit);
-    const canShowLess = showAllPrayers && (localPrayerRequests.length > 0 || prayedForPrayers.length > 0);
+    const hasMoreRequests = localPrayerRequests.length > requestsDisplayLimit;
+    const hasMorePersonal = prayedForPrayers.length > personalDisplayLimit;
+    const hasMoreItems = hasMoreRequests || hasMorePersonal;
+    const canShowLess = requestsDisplayLimit > 2 || personalDisplayLimit > 2;
 
     const renderPrayerItem = (item: PersonPrayer) => (
       <SwipeablePrayerCard
         key={item.id}
         prayer={item}
         handleAddToMyList={handleAddToMyList}
+        handleMarkAsAnswered={handleMarkAsAnswered}
         onEdit={(prayerId: string) => {
           const prayerToEdit = peoplePrayers.find(p => p.id === prayerId);
           if (prayerToEdit) {
@@ -474,7 +514,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               {hasMoreItems && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => { triggerSelectionHaptic(); setShowAllPrayers(true); }}
+                  onPress={() => { 
+                    triggerSelectionHaptic(); 
+                    setRequestsDisplayLimit((prev: number) => Math.min(prev + 3, localPrayerRequests.length));
+                    setPersonalDisplayLimit((prev: number) => Math.min(prev + 3, prayedForPrayers.length));
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
@@ -486,7 +530,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               {canShowLess && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => { triggerSelectionHaptic(); setShowAllPrayers(false); }}
+                  onPress={() => { 
+                    triggerSelectionHaptic(); 
+                    setRequestsDisplayLimit(2);
+                    setPersonalDisplayLimit(2);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
@@ -681,7 +729,8 @@ const SwipeablePrayerCard: React.FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   handleAddToMyList: (prayer: PersonPrayer) => void;
-}> = ({ prayer, onEdit, onDelete, handleAddToMyList }) => {
+  handleMarkAsAnswered: (id: string) => void;
+}> = ({ prayer, onEdit, onDelete, handleAddToMyList, handleMarkAsAnswered }) => {
   const swipeableRef = useRef<Swipeable>(null);
 
   const renderRightActions = () => (
@@ -799,6 +848,52 @@ const SwipeablePrayerCard: React.FC<{
               />
               <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
             </TouchableOpacity>
+          )}
+          {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
+          {prayer.metadata?.track_answered === true && prayer.status !== 'answered' && prayer.is_prayer_request === false && (
+            <View style={styles.answeredActionContainer}>
+              <TouchableOpacity
+                style={styles.answeredActionButton}
+                onPress={() => {
+                  handleMarkAsAnswered(prayer.id);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="checkmark"
+                  size={14}
+                  color={Colors.alertCoral}
+                />
+                <ThemedText style={styles.answeredActionText} weight="medium">Mark Answered</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* Show Answered badge for prayers that are already answered */}
+          {prayer.status === 'answered' && (
+            <View style={styles.answeredBadgeContainer}>
+              <MaterialCommunityIcons
+                name="hand-heart"
+                size={14}
+                color={Colors.growthGreen}
+              />
+              <ThemedText style={styles.answeredBadgeText} weight="medium">Answered</ThemedText>
+              {prayer.answered_date && (
+                <ThemedText style={styles.answeredDate}>
+                  {(() => {
+                    const date = new Date(prayer.answered_date);
+                    const currentYear = new Date().getFullYear();
+                    const isCurrentYear = date.getFullYear() === currentYear;
+                    
+                    return date.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      ...(isCurrentYear ? {} : { year: 'numeric' }),
+                    });
+                  })()}
+                </ThemedText>
+              )}
+            </View>
           )}
         </View>
       </Swipeable>
@@ -1229,6 +1324,46 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
     width: '100%',
   },
+  answeredButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  answeredActionContainer: {
+    marginTop: 8,
+  },
+  answeredActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  answeredActionText: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+  },
+  answeredBadgeContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  answeredBadgeText: {
+    fontSize: 12,
+    color: Colors.growthGreen,
+  },
+  answeredDate: {
+    color: 'rgba(76, 175, 80, 0.9)',
+    fontSize: 10,
+    marginLeft: 4,
+  },
   prayedButton: {
     opacity: 0.7,
   },
@@ -1237,6 +1372,9 @@ const styles = StyleSheet.create({
     // font handled by ThemedText
     fontSize: 12,
     marginLeft: 4,
+  },
+  answeredButtonText: {
+    color: Colors.alertCoral,
   },
   loadingContainer: {
     alignItems: 'center',
