@@ -2374,17 +2374,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   timeBlockCardInline: {
-    borderRadius: 16,
+    borderRadius: 24,
     backgroundColor: Colors.anchorBlue,
-    borderWidth: 1,
-    borderColor: Colors.mediumBorder,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
     paddingVertical: 12,
   },
   timeBlockCardMoments: {
-    borderRadius: 16,
+    borderRadius: 24,
     backgroundColor: Colors.anchorBlue,
-    borderWidth: 1,
-    borderColor: Colors.mediumBorder,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
     paddingVertical: 12,
   },
   timeBlocksContainer: {
