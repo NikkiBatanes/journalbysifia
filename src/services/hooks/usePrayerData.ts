@@ -624,7 +624,22 @@ export const useMarkSupplicationAnswered = () => {
         );
       }
     },
-    onSuccess: async (data, { isAnswered, _userId }) => {
+    onSuccess: async (data, { id, isAnswered, _userId, _dateStr }) => {
+      // Directly update ACTS cache with confirmed server data to prevent refetch race
+      queryClient.setQueryData(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old: any) => {
+          if (!old) {return old;}
+          const updatePrayer = (prayer: any) =>
+            prayer.id === id ? { ...prayer, ...data } : prayer;
+          return {
+            ...old,
+            supplication: old.supplication?.map(updatePrayer) || [],
+            freeform: old.freeform?.map(updatePrayer) || [],
+          };
+        }
+      );
+
       // Award faith points when marking prayer as answered (once per day)
       if (isAnswered && _userId) {
         try {
@@ -651,9 +666,6 @@ export const useMarkSupplicationAnswered = () => {
     onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
       // Keep dashboard requests list in sync when marking a request as prayed/unprayed
       queryClient.invalidateQueries({
