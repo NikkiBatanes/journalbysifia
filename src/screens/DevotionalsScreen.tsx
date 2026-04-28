@@ -1552,7 +1552,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContentPadding: {
-    paddingTop: 20,
+    paddingTop: 52,
     paddingBottom: 8,
   },
   emptyListContent: {
