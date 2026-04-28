@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Dimensions, Text } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Colors } from '../../theme';
 
 const { width } = Dimensions.get('window');
@@ -39,13 +38,6 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Section Header - Real Title like Playbook Carousel */}
-      <View style={styles.headerRow}>
-        <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.headerTitle}>Your Devotionals</Text>
-        <Animated.View style={[styles.viewAllButton, { opacity }]} />
-      </View>
-
       {/* Horizontal Carousel Cards */}
       <View style={[styles.carouselContainer, { paddingHorizontal: SIDE_INSET }]}>
         {[1, 2].map((item) => {
