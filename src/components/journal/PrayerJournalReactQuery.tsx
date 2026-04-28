@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -96,103 +95,65 @@ interface SwipeablePrayerCardProps {
   prayer: any;
   type: any;
   onMarkAnswered: (id: string, isAnswered: boolean) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
 }
 
 const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   prayer,
   type,
   onMarkAnswered,
-  onEdit,
-  onDelete,
 }) => {
-  const swipeableRef = useRef<Swipeable>(null);
-
-  const renderRightActions = () => (
-    <View style={styles.prayerSwipeActions}>
-      <TouchableOpacity
-        style={styles.editActionBtn}
-        onPress={() => {
-          onEdit(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="create-outline" size={22} color="white" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteActionBtn}
-        onPress={() => {
-          onDelete(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={22} color="white" />
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
-    <View style={styles.swipeableContainer}>
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-      >
-        <View
-          style={[
-            styles.prayerItem,
-            prayer.answered_at && styles.prayerItemAnswered,
-          ]}
+    <View
+      style={[
+        styles.prayerItem,
+        prayer.answered_at && styles.prayerItemAnswered,
+      ]}
+    >
+      <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
+
+      {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
+      {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.metadata?.track_answered === true) && (
+        <TouchableOpacity
+          style={styles.markAnsweredButton}
+          onPress={() => {
+            // Directly mark as answered (no confirmation)
+            onMarkAnswered(prayer.id, true);
+          }}
         >
-          <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
+          <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
+          <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
+        </TouchableOpacity>
+      )}
 
-          {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
-          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.metadata?.track_answered === true) && (
-            <TouchableOpacity
-              style={styles.markAnsweredButton}
-              onPress={() => {
-                // Directly mark as answered (no confirmation)
-                onMarkAnswered(prayer.id, true);
-              }}
-            >
-              <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
-              <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
-            </TouchableOpacity>
+      {/* Answered Indicator - Tappable to mark as unanswered */}
+      {prayer.answered_at && ((type.key === 'supplication' || type.key === 'freeform') ? prayer.metadata?.track_answered === true : true) && (
+        <TouchableOpacity
+          style={styles.answeredIndicator}
+          onPress={() => {
+            if ((type.key === 'supplication' || type.key === 'freeform')) {
+              Alert.alert(
+                'Mark as Unanswered',
+                'Mark this prayer as unanswered?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Mark Unanswered',
+                    onPress: () => onMarkAnswered(prayer.id, false),
+                  },
+                ]
+              );
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
+          <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
+          {prayer.answered_at && (
+            <ThemedText style={styles.answeredTimestamp}>
+              {formatAnsweredDate(prayer.answered_at)}
+            </ThemedText>
           )}
-
-          {/* Answered Indicator - Tappable to mark as unanswered */}
-          {prayer.answered_at && ((type.key === 'supplication' || type.key === 'freeform') ? prayer.metadata?.track_answered === true : true) && (
-            <TouchableOpacity
-              style={styles.answeredIndicator}
-              onPress={() => {
-                if ((type.key === 'supplication' || type.key === 'freeform')) {
-                  Alert.alert(
-                    'Mark as Unanswered',
-                    'Mark this prayer as unanswered?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Mark Unanswered',
-                        onPress: () => onMarkAnswered(prayer.id, false),
-                      },
-                    ]
-                  );
-                }
-              }}
-            >
-              <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
-              <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
-              {prayer.answered_at && (
-                <ThemedText style={styles.answeredTimestamp}>
-                  {formatAnsweredDate(prayer.answered_at)}
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </Swipeable>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -630,40 +591,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                           prayer={prayer}
                           type={type}
                           onMarkAnswered={handleMarkAnswered}
-                          onEdit={(prayerId: string) => {
-                            const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
-                            if (prayerToEdit) {
-                              setEditingPrayerId(prayerId);
-                              setSelectedPrayerType(prayerToEdit.type);
-                              setPrayerText(prayerToEdit.content);
-                              if (navigation) {
-                                navigation.navigate('PrayerJournalWalkthrough', {
-                                  selectedDate: toLocalDateString(selectedDate),
-                                });
-                              }
-                            }
-                          }}
-                          onDelete={(prayerId: string) => {
-                            Alert.alert(
-                              'Delete Prayer',
-                              'Are you sure you want to delete this prayer?',
-                              [
-                                { text: 'Cancel', style: 'cancel' },
-                                {
-                                  text: 'Delete',
-                                  style: 'destructive',
-                                  onPress: () => {
-                                    deleteMutation.mutate({
-                                      id: prayerId,
-                                      _userId: user?.id || '',
-                                      _dateStr: dateStr,
-                                    });
-                                    triggerSuccessHaptic();
-                                  },
-                                },
-                              ]
-                            );
-                          }}
                         />
                       );
                     })}
@@ -695,40 +622,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                     prayer={prayer}
                     type={type}
                     onMarkAnswered={handleMarkAnswered}
-                    onEdit={(prayerId: string) => {
-                      const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
-                      if (prayerToEdit) {
-                        setEditingPrayerId(prayerId);
-                        setSelectedPrayerType(prayerToEdit.type);
-                        setPrayerText(prayerToEdit.content);
-                        if (navigation) {
-                          navigation.navigate('PrayerJournalWalkthrough', {
-                            selectedDate: toLocalDateString(selectedDate),
-                          });
-                        }
-                      }
-                    }}
-                    onDelete={(prayerId: string) => {
-                      Alert.alert(
-                        'Delete Prayer',
-                        'Are you sure you want to delete this prayer?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => {
-                              deleteMutation.mutate({
-                                id: prayerId,
-                                _userId: user?.id || '',
-                                _dateStr: dateStr,
-                              });
-                              triggerSuccessHaptic();
-                            },
-                          },
-                        ]
-                      );
-                    }}
                   />
                 );
               })}
