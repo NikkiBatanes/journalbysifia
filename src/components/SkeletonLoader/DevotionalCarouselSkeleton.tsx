@@ -84,7 +84,7 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 0,
+    marginTop: 16,
   },
   headerRow: {
     flexDirection: 'row',
