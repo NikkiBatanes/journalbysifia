@@ -97,9 +97,9 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   addFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,

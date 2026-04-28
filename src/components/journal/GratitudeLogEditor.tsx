@@ -302,11 +302,35 @@ const defaultStyles = {
     marginBottom: 8,
     opacity: 0.9,
   },
+  gratitudeItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  gratitudeNumberContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gratitudeNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
   gratitudeItemInput: {
+    flex: 1,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    padding: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
-    fontSize: 16,
-    minHeight: 60,
-    marginBottom: 8,
+    minHeight: 50,
     textAlignVertical: 'top',
   },
   removeButton: {
@@ -383,9 +407,15 @@ const defaultStyles = {
     bottom: 16,
   },
   addFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   cancelFab: {
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
@@ -430,32 +460,24 @@ const GratitudeLogEditorInner = (
 
   const s = { ...defaultStyles, ...styles };
 
-  // Helper function to ensure items have proper numbering (optimized)
-  const addNumbersToItems = useCallback((items: string[]): string[] => {
-    return items.map((item, index) => {
-      if (!item.trim()) {
-        return item; // Keep empty items as is
-      }
-      const expectedPrefix = `${index + 1}. `;
-      // If item doesn't start with the expected number, add it
-      if (!item.startsWith(expectedPrefix)) {
-        // Remove any existing number prefix first
-        const cleanItem = item.replace(/^\d+\. /, '');
-        return expectedPrefix + cleanItem;
-      }
-      return item;
+  // Helper function to remove number prefixes from items (for backward compatibility)
+  const removeNumbersFromItems = useCallback((items: string[]): string[] => {
+    return items.map((item) => {
+      // Remove any existing number prefix
+      return item.replace(/^\d+\. /, '');
     });
   }, []);
 
-  // Process initial items to ensure they have numbers
-  const processedInitialItems = initialItems.length > 0 ? addNumbersToItems(initialItems) : ['', '', ''];
+  // Process initial items to remove any number prefixes (for backward compatibility)
+  const processedInitialItems = initialItems.length > 0 ? removeNumbersFromItems(initialItems) : ['', '', ''];
 
   // State for gratitude items
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
 
-  // Refs for inputs
+  // Refs for inputs and scrollview
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -473,6 +495,10 @@ const GratitudeLogEditorInner = (
         setTimeout(() => {
           if (inputRefs.current[inputRefs.current.length - 1]) {
             inputRefs.current[inputRefs.current.length - 1]!.focus();
+            // Scroll to the bottom of the content
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
           }
         }, 200);
       } else {
@@ -480,6 +506,10 @@ const GratitudeLogEditorInner = (
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             inputRefs.current[targetIndex]!.focus();
+            // Scroll to the bottom of the content
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
           }
         }, 200);
       }
@@ -497,46 +527,23 @@ const GratitudeLogEditorInner = (
     if (initialItems && initialItems.length > 0 && !hasUserMadeChanges) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
       if (hasExistingData) {
-        const numberedItems = addNumbersToItems(initialItems);
-        setGratitudeItems(numberedItems);
+        const cleanItems = removeNumbersFromItems(initialItems);
+        setGratitudeItems(cleanItems);
       }
     }
-  }, [initialItems, addNumbersToItems, hasUserMadeChanges]);
+  }, [initialItems, removeNumbersFromItems, hasUserMadeChanges]);
 
 
 
-  // Optimized text formatting function
-  const formatText = useCallback((text: string, index: number): string => {
-    // Allow complete erasure - if text is empty or just the prefix, keep it empty
-    if (text.length === 0) {
-      return '';
-    }
-
-    const expectedPrefix = `${index + 1}. `;
-
-    // If user tries to delete the prefix (text is just the number and dot), clear completely
-    if (text === `${index + 1}.` || text === `${index + 1}`) {
-      return '';
-    }
-
-    // Auto-add numbering when user starts typing (optimized logic)
-    if (!text.startsWith(expectedPrefix)) {
-      // Check if text starts with any number pattern (e.g., "1.", "2.", etc.)
-      const numberPattern = /^\d+\. /;
-      if (!numberPattern.test(text)) {
-        return expectedPrefix + text;
-      } else {
-        // Replace existing number with correct one
-        return text.replace(/^\d+\. /, expectedPrefix);
-      }
-    }
-
+  // Optimized text formatting function - no longer adds numbers since they're displayed separately
+  const formatText = useCallback((text: string): string => {
+    // Just return the text as-is since numbering is handled separately
     return text;
   }, []);
 
   // Optimized item change handler with batched state updates
   const handleItemChange = useCallback((index: number, text: string) => {
-    const formattedText = formatText(text, index);
+    const formattedText = formatText(text);
     setGratitudeItems(prev => {
       const newItems = [...prev];
       newItems[index] = formattedText;
@@ -547,17 +554,23 @@ const GratitudeLogEditorInner = (
 
   const addGratitudeItem = useCallback(() => {
     triggerLightHaptic(); // Add haptic feedback
-    const newIndex = gratitudeItems.length;
-    setGratitudeItems(prev => [...prev, '']);
+    setGratitudeItems(prev => {
+      const newIndex = prev.length;
+      const newItems = [...prev, ''];
+      // Focus the new input after state update
+      setTimeout(() => {
+        if (inputRefs.current[newIndex]) {
+          inputRefs.current[newIndex]?.focus();
+          // Scroll to the bottom of the content
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }, 150);
+      return newItems;
+    });
     setHasUserMadeChanges(true);
-
-    // Focus the new input after it's rendered
-    setTimeout(() => {
-      if (inputRefs.current[newIndex]) {
-        inputRefs.current[newIndex]?.focus();
-      }
-    }, 100);
-  }, [gratitudeItems.length]);
+  }, []);
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -634,6 +647,7 @@ const GratitudeLogEditorInner = (
       >
         <View style={s.contentCard}>
           <ScrollView
+            ref={scrollViewRef}
             style={s.content}
             contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -654,30 +668,34 @@ const GratitudeLogEditorInner = (
                   index === gratitudeItems.length - 1 && s.lastItemMarginBottom,
                 ]}
               >
-                <TextInput
-                  ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
-                  style={[s.entryInput, s.entryContentInput, { fontFamily: fontRegular }]}
-                  placeholder={`${index + 1}. I'm grateful for...`}
-                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                  value={item}
-                  onChangeText={(text) => {
-                    // Use optimized text formatting
-                    handleItemChange(index, text);
-                  }}
-                  multiline
-                  keyboardAppearance="dark"
-                  textAlignVertical="top"
-                  returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
-                  onSubmitEditing={() => {
-                    if (index < gratitudeItems.length - 1) {
-                      inputRefs.current[index + 1]?.focus();
-                    } else {
-                      Keyboard.dismiss();
-                    }
-                  }}
-                  blurOnSubmit={index === gratitudeItems.length - 1}
-                />
-
+                <View style={s.gratitudeItemRow}>
+                  <View style={s.gratitudeNumberContainer}>
+                    <ThemedText weight="semiBold" style={s.gratitudeNumber}>{index + 1}</ThemedText>
+                  </View>
+                  <TextInput
+                    ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
+                    style={[s.gratitudeItemInput, { fontFamily: fontRegular }]}
+                    placeholder="I'm grateful for..."
+                    placeholderTextColor={Colors.textGray}
+                    value={item}
+                    onChangeText={(text) => {
+                      // Use optimized text formatting
+                      handleItemChange(index, text);
+                    }}
+                    multiline
+                    keyboardAppearance="dark"
+                    textAlignVertical="top"
+                    returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
+                    onSubmitEditing={() => {
+                      if (index < gratitudeItems.length - 1) {
+                        inputRefs.current[index + 1]?.focus();
+                      } else {
+                        Keyboard.dismiss();
+                      }
+                    }}
+                    blurOnSubmit={index === gratitudeItems.length - 1}
+                  />
+                </View>
               </View>
             ))}
 
@@ -719,7 +737,7 @@ const GratitudeLogEditorInner = (
                   addGratitudeItem();
                 }}
               >
-                <Ionicons name="add" size={17} color={Colors.hopeWhite} />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" style={{ transform: [{ rotate: '45deg' }] }} />
               </TouchableOpacity>
 
               {/* Save FAB */}

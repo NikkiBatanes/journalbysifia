@@ -29,6 +29,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import ThemedText from '../components/common/ThemedText';
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -122,7 +124,8 @@ const CategorySelectionStep: React.FC<{
   navigation: any;
   customFocus: string;
   setCustomFocus: (text: string) => void;
-}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus }) => {
+  fontKey: string;
+}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus, fontKey }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
@@ -260,7 +263,7 @@ const CategorySelectionStep: React.FC<{
           <StepFadeIn delay={160}>
             <View style={styles.customInputContainer}>
               <TextInput
-                style={styles.customInput}
+                style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 placeholder="Type your focus"
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 value={customFocus}
@@ -398,7 +401,8 @@ const PersonalTextInputStep: React.FC<{
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
-}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus }) => {
+  fontKey: string;
+}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus, fontKey }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -462,7 +466,7 @@ const PersonalTextInputStep: React.FC<{
 
         <StepFadeIn delay={80}>
           <TextInput
-            style={styles.personalInput}
+            style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={personalText}
             onChangeText={onChange}
             placeholder={`Bring this before God first...`}
@@ -550,7 +554,8 @@ const PrioritiesInputStep: React.FC<{
   iconType: 'ionicons' | 'material' | 'fontawesome';
   category: FocusCategory;
   customFocus: string;
-}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus }) => {
+  fontKey: string;
+}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus, fontKey }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -611,7 +616,7 @@ const PrioritiesInputStep: React.FC<{
                 <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
               </View>
               <TextInput
-                style={styles.priorityInput}
+                style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 value={priority}
                 onChangeText={(text) => onChange(index, text)}
                 placeholder=""
@@ -862,6 +867,10 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   const { selectedDate: selectedDateStr, existingEntry } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
+  // Theme-driven fonts
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+
   // Parse existing entry content to initialize state
   const getInitialState = () => {
     if (existingEntry?.content) {
@@ -1054,6 +1063,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           navigation={navigation}
           customFocus={customFocus}
           setCustomFocus={setCustomFocus}
+          fontKey={fontKey}
         />
       )}
 
@@ -1069,6 +1079,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
           customFocus={customFocus}
+          fontKey={fontKey}
         />
       )}
 
@@ -1088,6 +1099,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           iconType={selectedCategory.iconType}
           category={selectedCategory}
           customFocus={customFocus}
+          fontKey={fontKey}
         />
       )}
 
@@ -1263,7 +1275,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     fontSize: 18,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     minHeight: 80,
     textAlignVertical: 'top',
     paddingHorizontal: 0,
@@ -1322,7 +1333,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 18,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -1345,7 +1355,6 @@ const styles = StyleSheet.create({
   priorityNumber: {
     fontSize: 14,
     color: Colors.alertCoral,
-    fontFamily: Fonts.bold,
     textAlign: 'center',
     lineHeight: 16,
   },

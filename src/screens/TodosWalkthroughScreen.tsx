@@ -399,7 +399,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           activeOpacity={0.7}
           style={styles.addButton}
         >
-          <Ionicons name="add" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" style={{ transform: [{ rotate: '45deg' }] }} />
         </TouchableOpacity>
       </Animated.View>
 
