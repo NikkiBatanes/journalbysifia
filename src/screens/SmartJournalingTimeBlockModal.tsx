@@ -107,7 +107,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
           if (timeBlockEditorRef.current) {
             timeBlockEditorRef.current.focusInput();
           }
-        }, 500); // Delay to allow modal animation to complete
+        }, 100); // Reduced delay for faster focus
       }
     } else if (!visible && prevVisible && hasSaved) {
       // Modal just closed after saving
