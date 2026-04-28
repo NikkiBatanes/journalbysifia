@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 107, 107, 0.12)',
-    alignSelf: 'center',
+    alignSelf: 'flex-end',
     marginTop: 8,
     gap: 6,
   },
