@@ -1174,13 +1174,15 @@ const DevotionalsScreen = () => {
             scrollEventThrottle={100}
           >
             {deferredFilter === 'ongoing' && (
-              <CategoryCarouselRow
-                category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
-                items={sortedDevotionals}
-                cardStyles={styles}
-                renderItem={(item) => renderDevotionalItem({ item })}
-                itemSize={ITEM_SIZE}
-              />
+              <View style={{ marginTop: 24 }}>
+                <CategoryCarouselRow
+                  category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
+                  items={sortedDevotionals}
+                  cardStyles={styles}
+                  renderItem={(item) => renderDevotionalItem({ item })}
+                  itemSize={ITEM_SIZE}
+                />
+              </View>
             )}
             {deferredFilter === 'completed' && sortedDevotionals.length > 0 && (
               <CategoryCarouselRow
@@ -1468,6 +1470,7 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     marginBottom: 24,
+    marginTop: 24,
   },
   categorySectionHeader: {
     flexDirection: 'row',
