@@ -321,6 +321,50 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     }
   };
 
+  const handleMarkAsUnanswered = async (prayerId: string) => {
+    Alert.alert(
+      'Mark as Unanswered',
+      'Mark this prayer as unanswered?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark Unanswered',
+          onPress: async () => {
+            try {
+              triggerLightHaptic();
+              queryClient.setQueryData(
+                queryKeys.prayers.people(user?.id || '', dateStr),
+                (old: PersonPrayer[] | undefined) => {
+                  if (!old) {return old;}
+                  return old.map(prayer =>
+                    prayer.id === prayerId
+                      ? { ...prayer, status: 'pending' as const, answered_date: null }
+                      : prayer
+                  );
+                }
+              );
+              await updatePrayerMutation.mutateAsync({
+                id: prayerId,
+                updates: {
+                  status: 'pending' as const,
+                  answered_date: null,
+                },
+                _userId: user?.id || '',
+                _dateStr: dateStr,
+              });
+              triggerSuccessHaptic();
+            } catch (error) {
+              console.error('Failed to mark prayer as unanswered:', error);
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSaveModalPrayer = async () => {
     if (!modalPrayerRequest.trim()) {
       Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
@@ -443,6 +487,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         prayer={item}
         handleAddToMyList={handleAddToMyList}
         handleMarkAsAnswered={handleMarkAsAnswered}
+        handleMarkAsUnanswered={handleMarkAsUnanswered}
         onEdit={(prayerId: string) => {
           const prayerToEdit = peoplePrayers.find(p => p.id === prayerId);
           if (prayerToEdit) {
@@ -733,7 +778,8 @@ const SwipeablePrayerCard: React.FC<{
   onDelete: (id: string) => void;
   handleAddToMyList: (prayer: PersonPrayer) => void;
   handleMarkAsAnswered: (id: string) => void;
-}> = ({ prayer, onEdit, onDelete, handleAddToMyList, handleMarkAsAnswered }) => {
+  handleMarkAsUnanswered: (id: string) => void;
+}> = ({ prayer, onEdit, onDelete, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered }) => {
   const swipeableRef = useRef<Swipeable>(null);
 
   const renderRightActions = () => (
@@ -877,9 +923,13 @@ const SwipeablePrayerCard: React.FC<{
               </TouchableOpacity>
             </View>
           )}
-          {/* Show Answered badge for prayers that are already answered */}
+          {/* Show Answered badge for prayers that are already answered - tappable to mark as unanswered */}
           {prayer.status === 'answered' && (
-            <View style={styles.answeredBadgeContainer}>
+            <TouchableOpacity
+              style={styles.answeredBadgeContainer}
+              onPress={() => handleMarkAsUnanswered(prayer.id)}
+              activeOpacity={0.7}
+            >
               <MaterialCommunityIcons
                 name="hand-heart"
                 size={14}
@@ -902,7 +952,7 @@ const SwipeablePrayerCard: React.FC<{
                   })()}
                 </ThemedText>
               )}
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       </Swipeable>
