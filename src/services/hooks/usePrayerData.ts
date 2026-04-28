@@ -652,6 +652,9 @@ export const useMarkSupplicationAnswered = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
+      });
       // Keep dashboard requests list in sync when marking a request as prayed/unprayed
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
