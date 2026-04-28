@@ -569,6 +569,8 @@ const ACTSPrayerSlidesStep: React.FC<{
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
+  const trackingOpacity = useRef(new Animated.Value(0)).current;
+  const trackingScale = useRef(new Animated.Value(0.8)).current;
 
   const currentStep = ACTS_STEPS[actsStepIndex];
   const isLastStep = actsStepIndex >= ACTS_STEPS.length - 1;
@@ -599,6 +601,41 @@ const ACTSPrayerSlidesStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  useEffect(() => {
+    const shouldShowTracking = currentStep.key === 'supplication' && prayerTexts[currentStep.key]?.trim();
+    
+    if (shouldShowTracking) {
+      Animated.parallel([
+        Animated.timing(trackingOpacity, {
+          toValue: 1,
+          duration: 300,
+          delay: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(trackingScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          delay: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(trackingOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(trackingScale, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [currentStep.key, prayerTexts, trackingOpacity, trackingScale]);
+
   const animateToNext = useCallback(
     (callback: () => void) => {
       Animated.parallel([
@@ -622,10 +659,31 @@ const ACTSPrayerSlidesStep: React.FC<{
       onNext();
       return;
     }
-    animateToNext(() => {
-      setActsStepIndex(prev => prev + 1);
-    });
-  }, [isLastStep, onNext, animateToNext]);
+    
+    // Animate tracking button out if on supplication step
+    if (currentStep.key === 'supplication') {
+      Animated.parallel([
+        Animated.timing(trackingOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(trackingScale, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        animateToNext(() => {
+          setActsStepIndex(prev => prev + 1);
+        });
+      });
+    } else {
+      animateToNext(() => {
+        setActsStepIndex(prev => prev + 1);
+      });
+    }
+  }, [isLastStep, onNext, animateToNext, currentStep.key, trackingOpacity, trackingScale]);
 
   return (
     <View style={styles.stepContainer}>
@@ -679,31 +737,40 @@ const ACTSPrayerSlidesStep: React.FC<{
             </View>
           </StepFadeIn>
 
-          {currentStep.key === 'supplication' && (
-            <StepFadeIn delay={160}>
-              <TouchableOpacity
-                style={styles.trackAnsweredToggle}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
-                  {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
-                </View>
-                <ThemedText style={styles.trackAnsweredText}>
-                  Track if answered
-                </ThemedText>
-              </TouchableOpacity>
-            </StepFadeIn>
-          )}
         </Animated.View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[
+        styles.trackingFloatingButton,
+        { bottom: buttonPosition, opacity: currentStep.key === 'supplication' && prayerTexts[currentStep.key]?.trim() ? trackingOpacity : 0 }
+      ]}>
+        <Animated.View style={{
+          transform: [{ scale: currentStep.key === 'supplication' && prayerTexts[currentStep.key]?.trim() ? trackingScale : 0.8 }],
+        }}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
+            }}
+            activeOpacity={0.7}
+            style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
+          >
+            <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
+              {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
+            </View>
+            <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
+              Track if answered
+            </ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.View style={[
+        styles.primaryButton,
+        { bottom: buttonPosition, opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 }
+      ]}>
         <TouchableOpacity
           onPress={handleNext}
           activeOpacity={0.7}
@@ -896,18 +963,25 @@ const CompletionStep: React.FC<{
   });
 
   const renderACTSPrayer = () => {
-    return ACTS_STEPS.map((step, index) => {
+    const validSteps = ACTS_STEPS.filter(step => prayerTexts[step.key]?.trim());
+    return validSteps.map((step, index) => {
       const text = prayerTexts[step.key];
-      if (!text || text.trim() === '') return null;
+      const isLast = index === validSteps.length - 1;
 
       return (
-        <View key={step.key} style={styles.completionSection}>
+        <View key={step.key} style={[styles.completionSection, isLast && { borderBottomWidth: 0 }]}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
           <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
           {step.key === 'supplication' && supplicationTrackAnswered && (
-            <TouchableOpacity style={styles.markAnsweredButton}>
-              <ThemedText style={styles.markAnsweredButtonText}>Mark as Answered</ThemedText>
-            </TouchableOpacity>
+            <View style={[styles.completionSection, styles.completionSectionSmall]}>
+              <View style={styles.trackingRow}>
+                <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
+                <View style={styles.trackingBadgeContainer}>
+                  <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
+                  <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
+                </View>
+              </View>
+            </View>
           )}
         </View>
       );
@@ -918,13 +992,19 @@ const CompletionStep: React.FC<{
     if (!openPrayerText || openPrayerText.trim() === '') return null;
 
     return (
-      <View style={styles.completionSection}>
+      <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
         <ThemedText weight="medium" style={styles.completionSectionLabel}>OPEN PRAYER</ThemedText>
         <ThemedText style={styles.completionSectionText}>{openPrayerText}</ThemedText>
         {openPrayerTrackAnswered && (
-          <TouchableOpacity style={styles.markAnsweredButton}>
-            <ThemedText style={styles.markAnsweredButtonText}>Mark as Answered</ThemedText>
-          </TouchableOpacity>
+          <View style={[styles.completionSection, styles.completionSectionSmall]}>
+            <View style={styles.trackingRow}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
+              <View style={styles.trackingBadgeContainer}>
+                <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
+                <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
+              </View>
+            </View>
+          </View>
         )}
       </View>
     );
@@ -977,7 +1057,7 @@ const CompletionStep: React.FC<{
           {prayerPath.id === 'acts' ? renderACTSPrayer() : renderOpenPrayer()}
         </StepFadeIn>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
@@ -1048,6 +1128,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
               content: text.trim(),
               status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
+              metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
             });
           }
         }
@@ -1060,6 +1141,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           journal_category: 'personal_prayer',
           content: openPrayerText.trim(),
           status: openPrayerTrackAnswered ? 'pending' : undefined,
+          metadata: { track_answered: openPrayerTrackAnswered },
         });
       }
 
@@ -1649,15 +1731,15 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   completionSection: {
-    marginBottom: 20,
-    paddingBottom: 20,
+    marginBottom: 8,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   completionSectionLabel: {
     fontSize: 11,
     letterSpacing: 2,
-    color: Colors.alertCoral,
+    color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 8,
     textTransform: 'uppercase',
   },
@@ -1704,6 +1786,42 @@ const styles = StyleSheet.create({
   trackAnsweredText: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  completionSectionSmall: {
+    marginBottom: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
+    marginTop: 8,
+  },
+  trackingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trackingBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    alignSelf: 'flex-start',
+  },
+  trackingBadgeText: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontWeight: '600',
+  },
+  trackingFloatingButton: {
+    position: 'absolute',
+    right: 65,
+    height: 40,
+    alignSelf: 'flex-start',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
 
