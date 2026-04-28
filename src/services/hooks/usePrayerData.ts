@@ -208,12 +208,25 @@ export const useCreatePrayer = () => {
           queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
           (old = []) => [optimisticPrayer, ...old]
         );
-        // Cache updated optimistically
+      }
 
+      // Also optimistically update the unprayed requests cache for instant dashboard display
+      let previousUnprayedRequests: PrayerApiEntry[] | undefined;
+      if (newPrayer.prayer_type === 'people' && newPrayer.is_prayer_request === true) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+        });
+        previousUnprayedRequests = queryClient.getQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id)
+        );
+        queryClient.setQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          (old = []) => [optimisticPrayer, ...old]
+        );
       }
 
       // Return a context object with the snapshotted values
-      return { previousPrayers, previousPeoplePrayers, optimisticPrayer };
+      return { previousPrayers, previousPeoplePrayers, previousUnprayedRequests, optimisticPrayer };
     },
     onError: (err: Error, newPrayer, context) => {
       Logger.error('Error creating prayer', err as Error, {
@@ -230,6 +243,12 @@ export const useCreatePrayer = () => {
         queryClient.setQueryData(
           queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
           context.previousPeoplePrayers
+        );
+      }
+      if (context?.previousUnprayedRequests !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          context.previousUnprayedRequests
         );
       }
     },
@@ -303,38 +322,56 @@ export const useUpdatePrayer = () => {
       _dateStr: string;
     }) => PrayerApi.updatePrayer(id, updates),
     onMutate: async ({ id, updates, _userId, _dateStr }) => {
-      // Cancel any outgoing refetches
+      // Cancel any outgoing refetches for both entries and people caches
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
       });
 
       // Snapshot previous values for rollback
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
       );
-      // (No need to snapshot other caches for update here)
-
-      // Optimistically update to the new value
-      queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(_userId, _dateStr),
-        (old = []) => old.map(prayer =>
-          prayer.id === id
-            ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
-            : prayer
-        )
+      const previousPeoplePrayers = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.people(_userId, _dateStr)
       );
 
-      return { previousPrayers };
+      const applyUpdate = (prayer: PrayerApiEntry) =>
+        prayer.id === id
+          ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
+          : prayer;
+
+      // Optimistically update entries cache
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.entries(_userId, _dateStr),
+        (old = []) => old.map(applyUpdate)
+      );
+
+      // Optimistically update people cache (covers answered tracking, etc.)
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.people(_userId, _dateStr),
+        (old = []) => old.map(applyUpdate)
+      );
+
+      return { previousPrayers, previousPeoplePrayers };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       Logger.error('Error updating prayer', err as Error, {
       component: 'usePrayerData',
     });
-      // If the mutation fails, use the context to roll back
+      // Roll back both caches on failure
       if (context?.previousPrayers) {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
+        );
+      }
+      if (context?.previousPeoplePrayers) {
+        queryClient.setQueryData(
+          queryKeys.prayers.people(_userId, _dateStr),
+          context.previousPeoplePrayers
         );
       }
     },
@@ -342,6 +379,10 @@ export const useUpdatePrayer = () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      // Invalidate people cache so server state is consistent
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
       });
       // Also refresh unprayed requests for dashboard in case an item transitioned
       // into/out of the unprayed requests set (e.g., marking prayed or toggling request flag)

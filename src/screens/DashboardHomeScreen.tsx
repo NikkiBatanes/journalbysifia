@@ -1046,6 +1046,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const createPrayerMutation = useCreatePrayer();
 
   const handleOpenPrayer = (req: any) => {
+    // Guard: don't navigate if prayer request is still an optimistic (temp) entry
+    if (!req.id || req.id.startsWith('temp-')) { return; }
     triggerLightHaptic();
     // Navigate to PrayerEditorScreen instead of showing modal
     navigation.navigate('PrayerEditor' as any, {

@@ -269,6 +269,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   const handleAddToMyList = (prayerEntry: PersonPrayer) => {
     // Navigate to the full-screen prayer editor for this prayer request
+    // Always use the current journal dateStr (not the prayer request's original date)
+    // so the new "prayed for" prayer is saved for the currently viewed date and
+    // the optimistic update populates the correct cache key.
     if (navigation) {
       navigation.navigate('PrayerEditor', {
         prayerRequest: {
@@ -276,7 +279,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           content: prayerEntry.content || '',
           id: prayerEntry.id,
           user_id: prayerEntry.user_id,
-          selected_date: prayerEntry.selected_date,
+          selected_date: dateStr,
         },
       });
     }
@@ -340,8 +343,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         selected_date: new Date().toLocaleDateString('en-CA'),
       });
 
-      // Mark the prayer request as prayed
-      if (selectedPrayerRequest?.id) {
+      // Mark the prayer request as prayed (skip if still an optimistic temp ID)
+      if (selectedPrayerRequest?.id && !selectedPrayerRequest.id.startsWith('temp-')) {
         await markPrayedMutation.mutateAsync({
           id: selectedPrayerRequest.id,
           isPrayed: true,
@@ -376,9 +379,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     triggerLightHaptic();
     // Navigate to walkthrough instead of showing modal
     if (navigation) {
-      navigation.navigate('PrayersForPeopleWalkthrough');
+      navigation.navigate('PrayersForPeopleWalkthrough', { selectedDate: selectedDate.toISOString() });
     }
-  }, [navigation]);
+  }, [navigation, selectedDate]);
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
@@ -850,7 +853,13 @@ const SwipeablePrayerCard: React.FC<{
             </TouchableOpacity>
           )}
           {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
-          {prayer.metadata?.track_answered === true && prayer.status !== 'answered' && prayer.is_prayer_request === false && (
+          {(() => {
+            const hasTracking = prayer.metadata?.track_answered === true || !prayer.metadata?.hasOwnProperty('track_answered');
+            const notAnswered = prayer.status !== 'answered';
+            const isNotRequest = prayer.is_prayer_request !== true;
+            
+            return hasTracking && notAnswered && isNotRequest;
+          })() && (
             <View style={styles.answeredActionContainer}>
               <TouchableOpacity
                 style={styles.answeredActionButton}

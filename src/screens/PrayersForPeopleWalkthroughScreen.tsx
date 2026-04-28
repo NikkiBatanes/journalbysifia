@@ -1135,6 +1135,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     }
   }, [route.params]);
 
+  // Use selectedDate from route params or today's date
+  const currentDate = new Date();
+  const selectedDate = route.params?.selectedDate ? new Date(route.params.selectedDate) : currentDate;
+  const dateStr = toLocalDateString(selectedDate);
+
   const handleNext = () => {
     if (currentStep === 0) {
       // Move to name input step
@@ -1166,9 +1171,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
   const savePrayer = async () => {
     try {
-      const currentDate = new Date();
-      const dateStr = toLocalDateString(currentDate);
-
       let content = '';
       if (selectedType?.id === 'prayer-request') {
         content = `🙏🏼 Prayer Request for ${personName}\n\nNeed: ${prayerNeed}`;
@@ -1220,7 +1222,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         content: prayerNeed,
         id: savedPrayerId,
         user_id: user?.id,
-        selected_date: toLocalDateString(new Date()),
+        selected_date: dateStr,
       },
     });
   };
@@ -1244,11 +1246,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           original_request_content: selectedPrayerRequest?.content,
           prayer_request_display: selectedPrayerRequest?.content,
         },
-        selected_date: new Date().toLocaleDateString('en-CA'),
+        selected_date: dateStr,
       });
 
-      // Mark the prayer request as prayed
-      if (selectedPrayerRequest?.id) {
+      // Mark the prayer request as prayed (skip if still an optimistic temp ID)
+      if (selectedPrayerRequest?.id && !selectedPrayerRequest.id.startsWith('temp-')) {
         await markPrayedMutation.mutateAsync({
           id: selectedPrayerRequest.id,
           isPrayed: true,

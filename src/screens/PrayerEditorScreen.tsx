@@ -8,7 +8,7 @@ import { Fonts } from '../theme/fonts';
 import { triggerSelectionHaptic, triggerSuccessHaptic, triggerMediumHaptic, triggerLightHaptic } from '../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/common/ThemedText';
-import { useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
@@ -82,7 +82,6 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   }, []);
 
   const createPrayerMutation = useCreatePrayer();
-  const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
 
   // Animation refs for completion step
@@ -125,31 +124,39 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     outputRange: ['0deg', '360deg'],
   });
 
-  const handleSaveModalPrayer = async () => {
-    if (!modalPrayerRequest.trim()) {
-      Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
-      return;
-    }
+  const handleSavePrayer = () => {
+    // Step 1 → Step 2: just validate and advance to tracking question
+    if (!modalPrayerRequest.trim()) { return; }
+    triggerLightHaptic();
+    setCurrentStep(2);
+  };
 
-    setSavingModalPrayer(true);
+  const handleTrackingNext = async () => {
+    // Step 2 → Step 3: save the prayer NOW with the chosen trackAnswered value
     try {
-      // Create the prayer
+      triggerMediumHaptic();
+      setSavingModalPrayer(true);
+
+      // Use the prayer request's selected_date if available, otherwise use today's date
+      const dateStr = prayerRequest.selected_date || new Date().toLocaleDateString('en-CA');
+
+      // Create the prayer with the tracking choice already made
       await createPrayerMutation.mutateAsync({
         user_id: user!.id,
         prayer_type: 'people' as const,
         content: modalPrayerRequest,
         person_name: prayerRequest.person_name,
         metadata: {
-          prayer_type: 'prayer-request',
+          prayer_type: 'pray-for-someone',
           original_request_content: prayerRequest.content,
           prayer_request_display: prayerRequest.content,
           track_answered: trackAnswered,
         },
-        selected_date: new Date().toLocaleDateString('en-CA'),
+        selected_date: dateStr,
       });
 
-      // Mark the prayer request as prayed
-      if (prayerRequest?.id) {
+      // Mark the original prayer request as prayed (skip if still an optimistic temp ID)
+      if (prayerRequest?.id && !prayerRequest.id.startsWith('temp-')) {
         await markPrayedMutation.mutateAsync({
           id: prayerRequest.id,
           isPrayed: true,
@@ -160,39 +167,12 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
       triggerSuccessHaptic();
       setSavingModalPrayer(false);
-      setCurrentStep(2); // Move to tracking confirmation step
+      setCurrentStep(3); // Move to completion step
     } catch (e) {
       console.error('Failed to save prayer', e);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
       setSavingModalPrayer(false);
     }
-  };
-
-  const handleTrackingNext = async () => {
-    triggerMediumHaptic();
-    
-    // Update the prayer with the track_answered value after tracking choice
-    if (prayerRequest?.id) {
-      try {
-        await updatePrayerMutation.mutateAsync({
-          id: prayerRequest.id,
-          updates: {
-            metadata: {
-              prayer_type: 'prayer-request',
-              original_request_content: prayerRequest.content,
-              prayer_request_display: prayerRequest.content,
-              track_answered: trackAnswered,
-            },
-          },
-          _userId: user?.id || '',
-          _dateStr: new Date().toLocaleDateString('en-CA'),
-        });
-      } catch (error) {
-        console.error('Failed to update prayer with tracking status:', error);
-      }
-    }
-    
-    setCurrentStep(3); // Move to completion step
   };
 
   const handleCompletionDone = () => {
@@ -262,7 +242,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
       <TouchableOpacity
         style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
-        onPress={handleSaveModalPrayer}
+        onPress={handleSavePrayer}
         disabled={savingModalPrayer || !modalPrayerRequest.trim()}
       >
         <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
@@ -331,9 +311,12 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         <TouchableOpacity
           onPress={handleTrackingNext}
           activeOpacity={0.7}
+          disabled={savingModalPrayer}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          {savingModalPrayer
+            ? <Ionicons name="hourglass-outline" size={20} color={Colors.hopeWhite} />
+            : <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />}
         </TouchableOpacity>
       </View>
 

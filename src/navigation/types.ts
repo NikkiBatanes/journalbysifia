@@ -127,6 +127,7 @@ export type RootStackParamList = {
   PrayersForPeopleWalkthrough: {
     initialPersonName?: string;
     initialPrayerRequest?: string;
+    selectedDate?: string;
   } | undefined;
 
   // Prayer Editor Screen
