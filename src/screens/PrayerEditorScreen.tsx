@@ -8,7 +8,7 @@ import { Fonts } from '../theme/fonts';
 import { triggerSelectionHaptic, triggerSuccessHaptic, triggerMediumHaptic, triggerLightHaptic } from '../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/common/ThemedText';
-import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
@@ -82,6 +82,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   }, []);
 
   const createPrayerMutation = useCreatePrayer();
+  const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
 
   // Animation refs for completion step
@@ -167,8 +168,30 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     }
   };
 
-  const handleTrackingNext = () => {
+  const handleTrackingNext = async () => {
     triggerMediumHaptic();
+    
+    // Update the prayer with the track_answered value after tracking choice
+    if (prayerRequest?.id) {
+      try {
+        await updatePrayerMutation.mutateAsync({
+          id: prayerRequest.id,
+          updates: {
+            metadata: {
+              prayer_type: 'prayer-request',
+              original_request_content: prayerRequest.content,
+              prayer_request_display: prayerRequest.content,
+              track_answered: trackAnswered,
+            },
+          },
+          _userId: user?.id || '',
+          _dateStr: new Date().toLocaleDateString('en-CA'),
+        });
+      } catch (error) {
+        console.error('Failed to update prayer with tracking status:', error);
+      }
+    }
+    
     setCurrentStep(3); // Move to completion step
   };
 
