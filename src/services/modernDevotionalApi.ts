@@ -441,6 +441,20 @@ async function generateDevotionalInternal(
         // Don't fail the generation if tracking fails
       }
 
+      // Award faith points for devotional generation (critical for streak tracking)
+      try {
+        const { faithPointsService } = await import('./faithPointsService');
+        if (session.user?.id) {
+          await faithPointsService.awardPoints(session.user.id, 'devotional_generated', {
+            isOnboarding: isOnboarding || false,
+            suppressNotification: false,
+          });
+        }
+      } catch (pointsError) {
+        Logger.warn('[ModernDevotionalApi] Failed to award faith points', { component: 'modernDevotionalApi', data: pointsError });
+        // Don't fail the generation if faith points award fails
+      }
+
       // Track successful generation
       monitoring.trackEvent('devotional_generated', {
         success: true,
