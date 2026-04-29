@@ -46,6 +46,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [svH, setSvH] = useState<number>(0);
   const [contentH, setContentH] = useState<number>(0);
   const scrollRef = useRef<ScrollView | null>(null);
+  const firstNameInputRef = useRef<any>(null);
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
   // Responsive logo sizing for different devices
@@ -215,6 +216,13 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, []);
 
+  // Auto-focus first name input on mount
+  useEffect(() => {
+    setTimeout(() => {
+      firstNameInputRef.current?.focus();
+    }, 100);
+  }, []);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -231,7 +239,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            automaticallyAdjustKeyboardInsets
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             bounces={false}
             alwaysBounceVertical={false}
@@ -281,6 +288,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             <View style={[styles.inputContainer, styles.nameInput]}>
               <Ionicons name="person" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
               <ThemedTextInput
+                ref={firstNameInputRef}
                 style={styles.input}
                 placeholder="First Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"

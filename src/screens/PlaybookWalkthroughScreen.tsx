@@ -43,6 +43,8 @@ import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepComple
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
@@ -496,8 +498,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
   const createPrayerMutation = useCreateDevotionalPrayer();
+
+  // Success modal for journal saves
+  const successModal = useSuccessModal(
+    () => {
+      // Done callback - advance to next step
+      advanceStep(true);
+    },
+    () => {
+      // Edit callback - reopen the modal
+      setActiveJournalModal(activeJournalModal);
+    }
+  );
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
@@ -953,13 +966,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             ))}
           </Animated.View>
 
-          {/* Brief "Saved" feedback shown after journaling before advancing */}
-          {savedFeedback && (
-            <View style={styles.savedFeedbackRow}>
-              <Ionicons name="checkmark-circle" size={13} color={Colors.growthGreen} />
-              <ThemedText style={styles.savedFeedbackText}>{savedFeedback}</ThemedText>
-            </View>
-          )}
 
           <View style={styles.doneSkipRow}>
             {/* Journal trigger circle */}
@@ -1018,7 +1024,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Reflection saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
+          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Reflection Saved', message: 'Your reflection has been saved to your journal.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1032,7 +1038,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Prayer saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
+          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Prayer Saved', message: 'Your prayer has been saved.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1048,7 +1054,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Gratitude saved'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
+          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Gratitude Saved', message: 'Your gratitude has been saved.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1057,10 +1063,18 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           visible={true}
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
-          onSave={() => { setActiveJournalModal(null); setSavedFeedback('Scheduled'); setTimeout(() => { setSavedFeedback(null); advanceStep(true); }, 500); }}
+          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Scheduled', message: 'Your time block has been scheduled.', showEditButton: false }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
+
+      {/* Success modal for journal saves */}
+      <NewSuccessModal
+        visible={successModal.isVisible}
+        config={successModal.config}
+        onDone={successModal.handleDone}
+        onEdit={successModal.handleEdit}
+      />
     </>
   );
 };
