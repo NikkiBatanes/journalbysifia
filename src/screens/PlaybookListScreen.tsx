@@ -949,8 +949,32 @@ const PickerModal = React.memo(({
 });
 
 const PlaybookListScreen = ({ navigation }: any) => {
-  // Get user info with fallback mechanisms
+  // Get user info with fallback mechanisms - MUST be before early return
   const { user, session, isAuthenticated } = useAuth();
+
+  // Multiple fallback mechanisms for userId - MUST be before early return
+  const userId = user?.id || session?.user?.id;
+
+  // Early return for unauthenticated state - BEFORE any hooks are called
+  if (!userId || !isAuthenticated) {
+    const theme = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
+    const insets = useSafeAreaInsets();
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['left','right']}>
+        <View style={styles.container}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.listContent, styles.pageInner]}
+          >
+            <PlaybookSkeleton />
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Now safe to call hooks - all paths above have returned
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
@@ -991,9 +1015,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
     'Spiritual',
     'Custom',
   ];
-
-  // Multiple fallback mechanisms for userId
-  const userId = user?.id || session?.user?.id;
 
   // Subtle haptic feedback, gated by user preference
   // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
@@ -2010,10 +2031,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 color="rgba(255,255,255,0.8)"
                 style={styles.heroIcon}
               />
-              <ThemedText weight="semiBold" style={styles.heroOverline}>No Playbooks</ThemedText>
-              <ThemedText weight="semiBold" style={styles.heroTitle}>Create a New Playbook</ThemedText>
+              <ThemedText weight="semiBold" style={styles.heroOverline}>NO PLAYBOOKS</ThemedText>
+              <ThemedText weight="semiBold" style={styles.heroTitle}>Start a New Playbook</ThemedText>
               <ThemedText style={styles.heroSubtitle}>
-                Share what you're going through in detail. The more context, the better we can help.
+                Share what happened and what feels tangled. The more honest context you give, the more grounded your playbook can be.
               </ThemedText>
 
               <TouchableOpacity
@@ -2021,8 +2042,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 activeOpacity={0.85}
                 style={styles.heroOutlineButton}
               >
-                <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
+                <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a Playbook</ThemedText>
               </TouchableOpacity>
 
                 {/* Hint before bullets */}
@@ -2036,11 +2057,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 </View>
                 <View style={styles.stepItem}>
                   <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>2</ThemedText></View>
-                  <ThemedText style={styles.stepText}>Your pain</ThemedText>
+                  <ThemedText style={styles.stepText}>What feels painful or heavy</ThemedText>
                 </View>
                 <View style={styles.stepItem}>
                   <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>3</ThemedText></View>
-                  <ThemedText style={styles.stepText}>A situation or struggle</ThemedText>
+                  <ThemedText style={styles.stepText}>The situation or struggle</ThemedText>
                 </View>
                 <View style={styles.stepItem}>
                   <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>4</ThemedText></View>
@@ -2048,7 +2069,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 </View>
                 </View>
                 {/* Subtle deliverable hint below bullets */}
-                <ThemedText weight="medium" style={styles.stepsFootnote}>We’ll turn this into a personalized playbook.</ThemedText>
+                <ThemedText weight="medium" style={styles.stepsFootnote}>We'll turn this into a personalized playbook.</ThemedText>
                 </View>
               </View>
             </View>
