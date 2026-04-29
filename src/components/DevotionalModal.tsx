@@ -3,7 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing, Image } from 'react-native';
+import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme';

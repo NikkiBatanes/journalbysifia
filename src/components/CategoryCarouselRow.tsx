@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Animated, ScrollView } from 'react-native';
+import { View, Animated } from 'react-native';
 import ThemedText from './common/ThemedText';
 
 // Default carousel constants (can be overridden via props)

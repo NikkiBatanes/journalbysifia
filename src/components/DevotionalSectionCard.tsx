@@ -2,7 +2,7 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet } from 'react-native';
 
-import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, CARD_HORIZONTAL_PADDING } from '../theme';
 import ThemedText from './common/ThemedText';
 
 interface DevotionalSectionCardProps {

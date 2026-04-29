@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
-import { faithPointsService } from '../services/faithPointsService';
 
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
