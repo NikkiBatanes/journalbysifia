@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform, Animated } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -107,6 +107,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const inputRef = useRef<TextInput>(null);
   const shouldFocusInput = useRef(false); // Track when we need to focus
 
+  // Add button animation — conditionally mounted so it never takes layout space when hidden
+  const buttonGroupAnim = useRef(new Animated.Value(0)).current;
+  const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+  const [addButtonMounted, setAddButtonMounted] = useState(false);
+
   const toggleCalendar = () => {
     triggerLightHaptic();
     setShowCalendar(!showCalendar);
@@ -121,6 +126,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+
+  // Show add (+) button only when the input field has content
+  const shouldShowAddButton = newTodo.trim().length > 0;
 
   // Auth and date context
   const { user } = useAuth();
@@ -200,6 +208,38 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setShowCompletedAtBottom(false);
     setShowOnlyPriorities(false);
   }, [dateStr, refreshKey]);
+
+  // Reset add button mount state when form opens/closes
+  useEffect(() => {
+    setAddButtonMounted(false);
+    buttonGroupAnim.stopAnimation();
+    buttonGroupAnim.setValue(0);
+  }, [shouldShowAddingMode, buttonGroupAnim]);
+
+  // Mount add button before animating in, unmount after animating out
+  useEffect(() => {
+    if (!shouldShowAddingMode) { return; }
+    if (shouldShowAddButton) {
+      setAddButtonMounted(true);
+      buttonGroupAnim.setValue(0);
+      Animated.spring(buttonGroupAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 12,
+      }).start();
+    } else {
+      Animated.spring(buttonGroupAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 12,
+      }).start(({ finished }) => {
+        if (finished) { setAddButtonMounted(false); }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldShowAddButton, shouldShowAddingMode]);
 
   // Focus input field when it's rendered and we need to focus
   useEffect(() => {
@@ -943,23 +983,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             />
           </View>
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                handleAddInput();
-              }}
-              style={[styles.button, styles.addAnotherButton]}
-              accessibilityRole="button"
-              accessibilityLabel="Add another todo"
-              accessibilityHint="Adds the current todo and allows you to add another one"
-            >
-              <View style={styles.plusIcon}>
-                <Ionicons name="add" size={17} color={Colors.alertCoral} />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.buttonGroup}>
+            <View style={styles.actionButtonsGroup}>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, styles.inlineCancelButton]}
                 onPress={() => {
                   triggerLightHaptic();
                   cancelAdding();
@@ -971,6 +997,26 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
+              {addButtonMounted && (
+                <Animated.View
+                  style={{ opacity: buttonGroupAnim, transform: [{ scale: addButtonScale }] }}
+                >
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerLightHaptic();
+                      handleAddInput();
+                    }}
+                    style={[styles.button, styles.addAnotherButton]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add another todo"
+                    accessibilityHint="Adds the current todo and allows you to add another one"
+                  >
+                    <View style={styles.plusIcon}>
+                      <Ionicons name="add" size={17} color={Colors.alertCoral} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   triggerLightHaptic();
@@ -1437,7 +1483,7 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 12,
     padding: 0,
@@ -1445,6 +1491,16 @@ const styles = StyleSheet.create({
   buttonGroup: {
     flexDirection: 'row',
     gap: 8,
+  },
+  actionButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inlineCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   button: {
     width: 24,

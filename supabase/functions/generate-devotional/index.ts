@@ -390,14 +390,29 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     ];
 
 
-    // Define valid categories
+    // Define valid categories (matching guided playbook categories)
     const validCategories = [
-      'Marriage', 'Family', 'Parenting', 'Work', 'Career', 'Business',
-      'Finance', 'Stewardship', 'Giving', 'Time Management', 'Health',
-      'Mental Health', 'Self-Care', 'Anxiety/Worry', 'Purpose', 'Calling',
-      'Ministry', 'Worship', 'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution',
-      'Forgiveness', 'Gratitude', 'Grief', 'Evangelism', 'Discipleship',
-      'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment',
+      'Relationships',
+      'Family',
+      'Marriage',
+      'Singleness',
+      'Friendship',
+      'Work & Career',
+      'Calling & Purpose',
+      'Finance & Stewardship',
+      'Decision-Making',
+      'Conflict & Boundaries',
+      'Hurt & Forgiveness',
+      'Faith & Obedience',
+      'Church & Ministry',
+      'Parenting',
+      'Emotions & Inner Life',
+      'Health & Wellness',
+      'Anxiety & Peace',
+      'Fear & Trust',
+      'Waiting & Uncertainty',
+      'Grief & Loss',
+      'Shame & Guilt',
     ];
 
     // Extract category with multiple patterns

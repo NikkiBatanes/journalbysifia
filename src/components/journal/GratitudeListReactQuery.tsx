@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
@@ -82,8 +82,17 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const inputRefs = useRef<(TextInput | null)[]>([]); // Refs for input fields
   const shouldFocusInput = useRef(false); // Track when we need to focus
 
+  // Animation for add button appearing/disappearing between cancel and save
+  const buttonGroupAnim = useRef(new Animated.Value(0)).current;
+  const cancelTranslateX = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] })).current;
+  const saveTranslateX = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] })).current;
+  const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
+
+  // Show add (+) button only when the 3rd input field has content
+  const shouldShowAddButton = (newItems[2]?.trim().length ?? 0) > 0;
 
   // Auth and date context
   const { user } = useAuth();
@@ -172,6 +181,23 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setIsEditing(false);
     setVisibleCount(5);
   }, [dateStr]);
+
+  // Always reset to 0 when form opens or closes so there's no stale visibility
+  useEffect(() => {
+    buttonGroupAnim.setValue(0);
+  }, [shouldShowAddingMode, buttonGroupAnim]);
+
+  // Animate add button after the form is open and shouldShowAddButton changes
+  useEffect(() => {
+    if (!shouldShowAddingMode) {return;}
+    Animated.spring(buttonGroupAnim, {
+      toValue: shouldShowAddButton ? 1 : 0,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 12,
+    }).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldShowAddButton, shouldShowAddingMode]);
 
   // Focus input field when it's rendered and we need to focus
   useEffect(() => {
@@ -706,48 +732,54 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             </React.Fragment>
           )}
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={addAnotherField}
-              style={[
-                styles.button,
-                styles.addAnotherButton,
-              ]}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Add another gratitude field"
-              accessibilityHint="Adds another input field for gratitude items"
-            >
-              <View style={styles.plusIcon}>
-                <Ionicons name="add" size={17} color={Colors.alertCoral} />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.buttonGroup}>
-              <TouchableOpacity
-                onPress={cancelAdding}
-                style={[styles.button, styles.cancelButton]}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Cancel adding gratitude items"
-                accessibilityHint="Cancels the current gratitude input and closes the form"
+            <View style={styles.actionButtonsGroup}>
+              <Animated.View style={{ transform: [{ translateX: cancelTranslateX }] }}>
+                <TouchableOpacity
+                  onPress={cancelAdding}
+                  style={[styles.button, styles.cancelButton]}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel adding gratitude items"
+                  accessibilityHint="Cancels the current gratitude input and closes the form"
+                >
+                  <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View
+                pointerEvents={shouldShowAddButton ? 'auto' : 'none'}
+                style={{ opacity: buttonGroupAnim, transform: [{ scale: addButtonScale }] }}
               >
-                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={saveGratitudeItems}
-                style={[
-                  styles.button,
-                  styles.saveButton,
-                  !newItems.some(item => item.trim()) && styles.disabledButton,
-                ]}
-                disabled={!newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Save gratitude items"
-                accessibilityHint="Saves your gratitude items and closes the form"
-                accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending }}
-              >
-                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={addAnotherField}
+                  style={[styles.button, styles.addAnotherButton]}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add another gratitude field"
+                  accessibilityHint="Adds another input field for gratitude items"
+                >
+                  <View style={styles.plusIcon}>
+                    <Ionicons name="add" size={17} color={Colors.alertCoral} />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View style={{ transform: [{ translateX: saveTranslateX }] }}>
+                <TouchableOpacity
+                  onPress={saveGratitudeItems}
+                  style={[
+                    styles.button,
+                    styles.saveButton,
+                    !newItems.some(item => item.trim()) && styles.disabledButton,
+                  ]}
+                  disabled={!newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save gratitude items"
+                  accessibilityHint="Saves your gratitude items and closes the form"
+                  accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending }}
+                >
+                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
         </View>
@@ -870,9 +902,14 @@ const createStyles = (fonts: any) => StyleSheet.create({
   // Button styles
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 12,
+  },
+  actionButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   button: {
     backgroundColor: 'transparent',

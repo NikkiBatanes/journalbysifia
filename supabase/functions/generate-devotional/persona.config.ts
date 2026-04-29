@@ -39,12 +39,12 @@ export const devotionalAdvisorPersona: Persona = {
 CATEGORY: [REQUIRED - Choose ONE word from the list below]
 
 Valid Categories:
-- Marriage, Family, Parenting
-- Work, Career, Business, Finance, Stewardship, Giving
-- Time Management, Health, Mental Health, Self-Care, Anxiety/Worry
-- Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace
-- Conflict Resolution, Forgiveness, Gratitude, Grief, Evangelism
-- Discipleship, Mission, Community, Relationships, Leadership, Contentment
+- Relationships, Family, Marriage, Singleness, Friendship
+- Work & Career, Calling & Purpose, Finance & Stewardship
+- Decision-Making, Conflict & Boundaries, Hurt & Forgiveness
+- Faith & Obedience, Church & Ministry, Parenting
+- Emotions & Inner Life, Health & Wellness, Anxiety & Peace
+- Fear & Trust, Waiting & Uncertainty, Grief & Loss, Shame & Guilt
 
 Example: CATEGORY: Family
 
@@ -246,12 +246,12 @@ In Jesus' Name, Amen
 CATEGORY: [REQUIRED - Choose ONE word from the list below]
 
 Valid Categories:
-- Marriage, Family, Parenting
-- Work, Career, Business, Finance, Stewardship, Giving
-- Time Management, Health, Mental Health, Self-Care, Anxiety/Worry
-- Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace
-- Conflict Resolution, Forgiveness, Gratitude, Grief, Evangelism
-- Discipleship, Mission, Community, Relationships, Leadership, Contentment
+- Relationships, Family, Marriage, Singleness, Friendship
+- Work & Career, Calling & Purpose, Finance & Stewardship
+- Decision-Making, Conflict & Boundaries, Hurt & Forgiveness
+- Faith & Obedience, Church & Ministry, Parenting
+- Emotions & Inner Life, Health & Wellness, Anxiety & Peace
+- Fear & Trust, Waiting & Uncertainty, Grief & Loss, Shame & Guilt
 
 Example: CATEGORY: Family
 

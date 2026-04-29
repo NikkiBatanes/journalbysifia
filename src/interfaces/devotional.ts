@@ -57,30 +57,50 @@ export interface Devotional {
 }
 
 export type DevotionalCategory =
-  | 'Prayer'
-  | 'Growth'
-  | 'Healing'
-  | 'Wisdom'
   | 'Relationships'
-  | 'Purpose'
-  | 'Career'
-  | 'Finances'
-  | 'Mental Health'
+  | 'Family'
+  | 'Marriage'
+  | 'Singleness'
+  | 'Friendship'
+  | 'Work & Career'
+  | 'Calling & Purpose'
+  | 'Finance & Stewardship'
+  | 'Decision-Making'
+  | 'Conflict & Boundaries'
+  | 'Hurt & Forgiveness'
+  | 'Faith & Obedience'
+  | 'Church & Ministry'
   | 'Parenting'
-  | 'Health';
+  | 'Emotions & Inner Life'
+  | 'Health & Wellness'
+  | 'Anxiety & Peace'
+  | 'Fear & Trust'
+  | 'Waiting & Uncertainty'
+  | 'Grief & Loss'
+  | 'Shame & Guilt';
 
 export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
-  'Prayer',
-  'Growth',
-  'Healing',
-  'Wisdom',
   'Relationships',
-  'Purpose',
-  'Career',
-  'Finances',
-  'Mental Health',
+  'Family',
+  'Marriage',
+  'Singleness',
+  'Friendship',
+  'Work & Career',
+  'Calling & Purpose',
+  'Finance & Stewardship',
+  'Decision-Making',
+  'Conflict & Boundaries',
+  'Hurt & Forgiveness',
+  'Faith & Obedience',
+  'Church & Ministry',
   'Parenting',
-  'Health',
+  'Emotions & Inner Life',
+  'Health & Wellness',
+  'Anxiety & Peace',
+  'Fear & Trust',
+  'Waiting & Uncertainty',
+  'Grief & Loss',
+  'Shame & Guilt',
 ];
 
 export interface DevotionalCreationParams {

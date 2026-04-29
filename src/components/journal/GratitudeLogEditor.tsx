@@ -11,6 +11,7 @@ import {
   Alert,
   Keyboard,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -498,6 +499,14 @@ const GratitudeLogEditorInner = (
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
 
+  // Add button: show only when the 3rd input (index 2) is non-empty
+  const shouldShowAddButton = (gratitudeItems[2] ?? '').trim().length > 0;
+
+  // Add button spring animation — conditionally mounted so it never takes layout space when hidden
+  const buttonGroupAnim = useRef(new Animated.Value(0)).current;
+  const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+  const [addButtonMounted, setAddButtonMounted] = React.useState(false);
+
   // Refs for inputs and scrollview
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -559,6 +568,29 @@ const GratitudeLogEditorInner = (
   }, [initialItems, removeNumbersFromItems, hasUserMadeChanges]);
 
 
+
+  // Mount add button before animating in, unmount after animating out
+  useEffect(() => {
+    if (shouldShowAddButton) {
+      setAddButtonMounted(true);
+      buttonGroupAnim.setValue(0);
+      Animated.spring(buttonGroupAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 14,
+      }).start();
+    } else {
+      Animated.spring(buttonGroupAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 14,
+      }).start(({ finished }) => {
+        if (finished) { setAddButtonMounted(false); }
+      });
+    }
+  }, [shouldShowAddButton, buttonGroupAnim]);
 
   // Optimized text formatting function - no longer adds numbers since they're displayed separately
   const formatText = useCallback((text: string): string => {
@@ -747,25 +779,31 @@ const GratitudeLogEditorInner = (
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
                 onPress={() => {
-                  triggerLightHaptic(); // Add haptic feedback for FAB
+                  triggerLightHaptic();
                   _onCancel();
                 }}
               >
                 <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
-              {/* Add More FAB - Plus button */}
-              <TouchableOpacity
-                style={[s.fab, s.addFab]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  addGratitudeItem();
-                }}
-              >
-                <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
-              </TouchableOpacity>
+              {/* Add More FAB — only mounted when 3rd field is filled, springs in/out */}
+              {addButtonMounted && (
+                <Animated.View
+                  style={{ opacity: buttonGroupAnim, transform: [{ scale: addButtonScale }] }}
+                >
+                  <TouchableOpacity
+                    style={[s.fab, s.addFab]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      addGratitudeItem();
+                    }}
+                  >
+                    <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
 
-              {/* Save FAB */}
+              {/* Save FAB — always at its natural position */}
               <TouchableOpacity
                 style={[
                   s.fab,
@@ -774,7 +812,7 @@ const GratitudeLogEditorInner = (
                 ]}
                 disabled={!isFormValid || isLoading}
                 onPress={() => {
-                  triggerLightHaptic(); // Add haptic feedback for FAB
+                  triggerLightHaptic();
                   handleSave();
                 }}
               >
