@@ -718,7 +718,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               accessibilityHint="Adds another input field for gratitude items"
             >
               <View style={styles.plusIcon}>
-                <Ionicons name="close" size={13} color={Colors.alertCoral} style={[styles.closeIcon, { transform: [{ rotate: '45deg' }] }]} />
+                <Ionicons name="add" size={17} color={Colors.alertCoral} />
               </View>
             </TouchableOpacity>
             <View style={styles.buttonGroup}>
@@ -900,9 +900,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  closeIcon: {
-    fontFamily: fonts.bold,
   },
   buttonGroup: {
     flexDirection: 'row',

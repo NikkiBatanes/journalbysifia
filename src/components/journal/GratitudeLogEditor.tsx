@@ -435,9 +435,6 @@ const defaultStyles = {
   lastItemMarginBottom: {
     marginBottom: 0,
   },
-  rotateIcon: {
-    transform: [{ rotate: '45deg' }],
-  },
   boldIcon: {
     // fontWeight handled by ThemedText weight="bold"
   },
@@ -765,7 +762,7 @@ const GratitudeLogEditorInner = (
                   addGratitudeItem();
                 }}
               >
-                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" style={{ transform: [{ rotate: '45deg' }] }} />
+                <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}

@@ -954,7 +954,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               accessibilityHint="Adds the current todo and allows you to add another one"
             >
               <View style={styles.plusIcon}>
-                <Ionicons name="close" size={13} color={Colors.alertCoral} style={[styles.closeIcon, { transform: [{ rotate: '45deg' }] }]} />
+                <Ionicons name="add" size={17} color={Colors.alertCoral} />
               </View>
             </TouchableOpacity>
             <View style={styles.buttonGroup}>
@@ -1345,9 +1345,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
     marginBottom: 4,
     width: '100%',
-  },
-  closeIcon: {
-    fontWeight: 'bold',
   },
   todoText: {
     flex: 1,
