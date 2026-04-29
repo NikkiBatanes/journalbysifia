@@ -173,8 +173,8 @@ const extractIncompleteFaithfulActions = (playbooks: Playbook[]): FaithfulAction
             playbookTitle: playbook.title,
             playbookCategory: getCategory(playbook),
             actionIndex: i + 1,
-            actionTitle: step.title || (subTask as any).title || `Faithful Action ${i + 1}`,
-            actionDescription: (subTask as any).description || step.description || '',
+            actionTitle: subTask.text || step.title || `Faithful Action ${i + 1}`,
+            actionDescription: step.description || '',
             completed: false,
             totalActions: total,
             completedActions: completed,
@@ -276,15 +276,12 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
   return (
     <TouchableOpacity style={st.carouselCardTouch} onPress={() => onPress(item)} activeOpacity={0.85}>
       <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
-        <View style={st.gradientContainer}>
-          <View style={st.categoryLabel}>
-            <ThemedText weight="bold" style={st.categoryLabelText}>{item.playbookCategory}</ThemedText>
-          </View>
-        </View>
-
         <View style={st.dateWithBadge}>
           {updatedDateStr ? (
-            <ThemedText style={st.carouselDate}>{updatedDateStr}</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="calendar" size={12} color="rgba(255,255,255,0.5)" />
+              <ThemedText style={st.carouselDate}> Started {updatedDateStr}</ThemedText>
+            </View>
           ) : null}
         </View>
 
@@ -294,13 +291,26 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
 
         <View style={st.faithfulActionDivider} />
 
-        <ThemedText style={st.faithfulActionFrom}>From: {item.playbookTitle}</ThemedText>
+        <ThemedText style={st.faithfulActionFrom}>FROM PLAYBOOK</ThemedText>
+
+        <ThemedText style={st.faithfulActionTitle}>{item.playbookTitle}</ThemedText>
 
         <View style={st.faithfulActionDivider} />
 
-        <ThemedText style={st.faithfulActionMeta}>{item.completedActions} of {item.totalActions} faithful actions acted on</ThemedText>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <ThemedText style={st.faithfulActionMeta}>{item.completedActions} of {item.totalActions} faithful actions acted on</ThemedText>
+          <ThemedText style={st.faithfulActionMeta}>{Math.round((item.completedActions / item.totalActions) * 100)}%</ThemedText>
+        </View>
+        
+        <View style={{ height: 6, width: '100%', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+          <View style={{ height: '100%', width: `${(item.completedActions / item.totalActions) * 100}%`, backgroundColor: Colors.growthGreen, borderRadius: 2 }} />
+        </View>
+        
         {updatedDateStr && (
-          <ThemedText style={st.faithfulActionMeta}>Updated {updatedDateStr}</ThemedText>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons name="clock" size={12} color="rgba(255,255,255,0.5)" />
+            <ThemedText style={[st.faithfulActionMeta, { marginLeft: 4 }]}>Updated {updatedDateStr}</ThemedText>
+          </View>
         )}
 
         <TouchableOpacity style={st.faithfulActionContinueButton} onPress={() => onPress(item)}>
