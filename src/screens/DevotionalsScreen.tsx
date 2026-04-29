@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import {
@@ -964,8 +965,8 @@ const DevotionalsScreen = () => {
                   <View style={styles.carouselSection}>
                     <ThemedText weight="bold" style={styles.carouselTitle}>
                       {suggested.length === 1
-                        ? 'Start a devotional from this playbook'
-                        : 'Start a devotional from these playbooks'}
+                        ? 'Turn this playbook into a devotional'
+                        : 'Turn these playbooks into devotionals'}
                     </ThemedText>
                     <FlatList
                       data={suggested}
@@ -978,37 +979,57 @@ const DevotionalsScreen = () => {
                       decelerationRate="fast"
                       snapToAlignment="start"
                       renderItem={({ item }) => (
-                        <View style={styles.card}>
-                          <MaterialCommunityIcons name="clipboard-text-play" size={22} color={Colors.alertCoral} style={styles.cardIcon} />
-                          <ThemedText weight="bold" style={styles.cardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
-                          {item.truthInLove?.summary ? (
-                            <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{replaceAllNamePlaceholders(
-                              item.truthInLove.summary,
-                              {
-                                displayName: (user as any)?.displayName || (user as any)?.user_metadata?.full_name,
-                                firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name,
-                                lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name,
-                              }
-                            )}</ThemedText>
-                          ) : null}
-                          <TouchableOpacity
-                            style={[styles.cardCTA, showDevotionalModal && styles.cardCTADisabled]}
-                            activeOpacity={showDevotionalModal ? 1 : 0.9}
-                            disabled={showDevotionalModal}
-                            onPress={() => {
-                              if (showDevotionalModal) {
-                                return; // Prevent multiple taps
-                              }
-                              try { triggerLightHaptic(); } catch {}
-                              setSelectedPlaybookId(item.id);
-                              // Use the actual user input captured when creating the playbook
-                              setSelectedPlaybookInfo(item.userInput);
-                              setShowDevotionalModal(true);
-                            }}
-                          >
-                            <ThemedText weight="bold" style={styles.cardCTAText}>Create a Devotional</ThemedText>
-                          </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                          style={styles.carouselCardTouch}
+                          activeOpacity={0.85}
+                          onPress={() => {
+                            if (showDevotionalModal) {
+                              return; // Prevent multiple taps
+                            }
+                            try { triggerLightHaptic(); } catch {}
+                            setSelectedPlaybookId(item.id);
+                            setSelectedPlaybookInfo(item.userInput);
+                            setShowDevotionalModal(true);
+                          }}
+                          disabled={showDevotionalModal}
+                        >
+                          <View style={styles.carouselCard}>
+                            <View style={styles.gradientContainer}>
+                              <View style={styles.categoryLabel}>
+                                <ThemedText weight="bold" style={styles.categoryLabelText}>{item.category || 'Playbook'}</ThemedText>
+                              </View>
+                            </View>
+
+                            <View style={styles.dateWithBadge}>
+                              {item.updatedAt && (
+                                <ThemedText style={styles.carouselDate}>
+                                  {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
+                                </ThemedText>
+                              )}
+                            </View>
+
+                            <ThemedText weight="semiBold" style={styles.carouselCardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
+                            {item.truthInLove?.summary ? (
+                              <ThemedText style={styles.carouselCardDescription} numberOfLines={3}>{replaceAllNamePlaceholders(
+                                item.truthInLove.summary,
+                                {
+                                  displayName: (user as any)?.displayName || (user as any)?.user_metadata?.full_name,
+                                  firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name,
+                                  lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name,
+                                }
+                              )}</ThemedText>
+                            ) : null}
+
+                            <TouchableOpacity
+                              style={[styles.cardCTA, showDevotionalModal && styles.cardCTADisabled, { width: '100%' }]}
+                              activeOpacity={showDevotionalModal ? 1 : 0.9}
+                              disabled={showDevotionalModal}
+                            >
+                              <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                              <ThemedText weight="bold" style={styles.cardCTAText}>Turn this into a devotional</ThemedText>
+                            </TouchableOpacity>
+                          </View>
+                        </TouchableOpacity>
                       )}
                     />
                   </View>
@@ -1473,6 +1494,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+    marginBottom: 12,
   },
   headerBlue: {
     backgroundColor: Colors.anchorBlue,
@@ -2092,7 +2114,7 @@ const styles = StyleSheet.create({
   },
   carouselSection: {
     width: '100%',
-    marginTop: 24,
+    marginTop: 0,
     marginBottom: 16,
     paddingHorizontal: SIDE_INSET, // gutters for section title and spacing
   },
@@ -2141,8 +2163,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: 20,
     marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardCTADisabled: {
     backgroundColor: Colors.anchorBlue,
@@ -2152,6 +2177,32 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontWeight: '700',
     fontSize: 14,
+  },
+  carouselCardTouch: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
+  },
+  carouselCard: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 26,
+    padding: 16,
+  },
+  carouselDate: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
+  },
+  carouselCardTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  carouselCardDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 6,
   },
 });
 

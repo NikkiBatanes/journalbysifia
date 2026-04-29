@@ -2367,8 +2367,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
               ) : (
                 <>
                   {completedPlaybooks.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
+                    <View style={styles.emptyStateContainer}>
+                      <View style={styles.heroCard}>
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={32}
+                          color={Colors.growthGreen}
+                          style={styles.heroIcon}
+                        />
+                        <ThemedText weight="semiBold" style={styles.heroOverline}>NO COMPLETED PLAYBOOKS</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.heroTitle}>No Completed Playbooks Yet</ThemedText>
+                        <ThemedText style={styles.heroSubtitle}>
+                          You haven't finished a playbook yet. Return to your in-progress playbooks when you're ready to keep going.
+                        </ThemedText>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setFilter('ongoing');
+                          }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View In Progress</ThemedText>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ) : (
                     <CategoryCarouselRow
@@ -2385,21 +2409,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
                       onDevotionalPress={handleDevotionalPress}
-                      triggerHaptic={triggerLightHaptic}
-                    />
-                  )}
-                  {incompleteFaithfulActions.length > 0 && (
-                    <FaithfulActionsCarouselRow
-                      faithfulActions={incompleteFaithfulActions}
-                      cardStyles={styles}
-                      onPress={(action) => {
-                        triggerLightHaptic();
-                        navigation.navigate('PlaybookWalkthrough', {
-                          playbook: { id: action.playbookId },
-                          initialStep: 3,
-                          initialActionIndex: action.actionIndex - 1,
-                        });
-                      }}
                       triggerHaptic={triggerLightHaptic}
                     />
                   )}
@@ -2486,7 +2495,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         triggerHaptic={triggerLightHaptic}
                       />
                     ))}
-                    {incompleteFaithfulActions.length > 0 && (
+                    {deferredFilter !== 'completed' && incompleteFaithfulActions.length > 0 && (
                       <FaithfulActionsCarouselRow
                         faithfulActions={incompleteFaithfulActions}
                         cardStyles={styles}
@@ -2574,7 +2583,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 ) : null
               }
               ListFooterComponent={
-                deferredFilter !== 'faithful' && incompleteFaithfulActions.length > 0 ? (
+                deferredFilter !== 'completed' && incompleteFaithfulActions.length > 0 ? (
                   <FaithfulActionsCarouselRow
                     faithfulActions={incompleteFaithfulActions}
                     cardStyles={styles}
