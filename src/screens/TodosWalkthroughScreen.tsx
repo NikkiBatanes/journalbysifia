@@ -7,16 +7,12 @@ import {
   ScrollView,
   Animated,
   Keyboard,
-  Platform,
-  UIManager,
-  LayoutAnimation,
   StatusBar,
   Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -37,7 +33,6 @@ type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -88,7 +83,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const { selectedDate: selectedDateStr, existingEntry } = route.params || {};
+  const { selectedDate: selectedDateStr, existingEntry: _existingEntry } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
   // Parse existing entry content to initialize state
@@ -204,7 +199,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       tension: 50,
       friction: 7,
     }).start();
-  }, [todos]);
+  }, [todos, saveButtonOpacity, saveButtonScale]);
 
   // Keyboard visibility tracking
   useEffect(() => {
@@ -236,7 +231,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [_keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
 
   useEffect(() => {
@@ -245,7 +240,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       duration: 400,
       useNativeDriver: false,
     }).start();
-  }, []);
+  }, [verticalLineHeight]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
