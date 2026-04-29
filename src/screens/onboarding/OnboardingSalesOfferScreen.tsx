@@ -467,7 +467,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
