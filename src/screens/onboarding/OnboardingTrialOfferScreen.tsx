@@ -1044,14 +1044,6 @@ const OnboardingTrialOfferScreen = () => {
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={handleRestorePurchase}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
               onPress={handleTermsOfService}
               activeOpacity={0.7}
             >
@@ -1122,6 +1114,15 @@ const OnboardingTrialOfferScreen = () => {
             {isStartingTrial ? 'Starting Trial...' : 'Start 3-day Free Trial'}
           </ThemedText>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestorePurchase}
+          activeOpacity={0.7}
+        >
+          <ThemedText weight="medium" style={styles.restoreButtonText}>Restore Purchases</ThemedText>
+        </TouchableOpacity>
+
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
           Try 3 days free. No payment now. Cancel anytime.
         </ThemedText>
@@ -1831,6 +1832,26 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
+  },
+  restoreButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    borderRadius: 50,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    width: '100%',
+    maxWidth: 720,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   footerText: {
     fontSize: 12,

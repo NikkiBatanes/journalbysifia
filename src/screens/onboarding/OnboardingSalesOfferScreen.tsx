@@ -1568,14 +1568,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={handleRestorePurchase}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
               onPress={handleTermsOfService}
               activeOpacity={0.7}
             >
@@ -1749,6 +1741,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                                   : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestorePurchase}
+          activeOpacity={0.7}
+        >
+          <ThemedText weight="medium" style={styles.restoreButtonText}>Restore Purchases</ThemedText>
+        </TouchableOpacity>
+
         <View style={styles.footerRow}>
           {!isAnnual && <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />}
           {isAnnual ? (
@@ -2289,6 +2290,25 @@ const styles = StyleSheet.create({
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'center',
+  },
+  restoreButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    borderRadius: 50,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    width: '100%',
+    maxWidth: 720,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   footerContainer: {
     position: 'absolute',
