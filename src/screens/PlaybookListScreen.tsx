@@ -949,32 +949,8 @@ const PickerModal = React.memo(({
 });
 
 const PlaybookListScreen = ({ navigation }: any) => {
-  // Get user info with fallback mechanisms - MUST be before early return
   const { user, session, isAuthenticated } = useAuth();
-
-  // Multiple fallback mechanisms for userId - MUST be before early return
   const userId = user?.id || session?.user?.id;
-
-  // Early return for unauthenticated state - BEFORE any hooks are called
-  if (!userId || !isAuthenticated) {
-    const theme = useTheme();
-    const styles = useMemo(() => createStyles(theme), [theme]);
-    const insets = useSafeAreaInsets();
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['left','right']}>
-        <View style={styles.container}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.listContent, styles.pageInner]}
-          >
-            <PlaybookSkeleton />
-          </ScrollView>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Now safe to call hooks - all paths above have returned
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
@@ -1990,6 +1966,47 @@ const PlaybookListScreen = ({ navigation }: any) => {
     );
   }, [handleCardPress, handleCardLongPress, scrollX, sessionStates, menuVisible, devotionalsCount, triggerLightHaptic, handleDelete]);
 
+  // Stable renderItem for the date-view FlatList.
+  // Defined with useCallback so its reference only changes when actual data/handlers change —
+  // not on every parent render. Without this, FlatList re-renders ALL visible items on each
+  // unrelated state change (e.g. menuVisible toggle, searchQuery keystroke).
+  const renderDateSectionItem = useCallback(({ item }: { item: DateSectionItem }) => {
+    if (item.isEmpty) {
+      return (
+        <View style={styles.continueEmptyContainer}>
+          <ThemedText style={styles.continueEmptyText}>
+            No playbooks in this date range.
+          </ThemedText>
+        </View>
+      );
+    }
+    return (
+      <View>
+        {item.showYear && item.year != null && (
+          <View style={styles.dateSectionYearHeader}>
+            <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{item.year}</ThemedText>
+          </View>
+        )}
+        <CategoryCarouselRow
+          category={item.category}
+          playbooks={item.playbooks}
+          cardStyles={styles}
+          sessionStates={sessionStates}
+          devotionalsCount={devotionalsCount}
+          menuVisible={menuVisible}
+          onPress={handleCardPress}
+          onLongPress={handleCardLongPress}
+          onMenuToggle={setMenuVisible}
+          onDelete={handleDelete}
+          onRenamePress={handleRenamePress}
+          onTagPress={handleTagPress}
+          onDevotionalPress={handleDevotionalPress}
+          triggerHaptic={triggerLightHaptic}
+        />
+      </View>
+    );
+  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, triggerLightHaptic]);
+
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
     return (
@@ -2078,47 +2095,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
       </SafeAreaView>
     );
   }
-
-  // Stable renderItem for the date-view FlatList.
-  // Defined with useCallback so its reference only changes when actual data/handlers change —
-  // not on every parent render. Without this, FlatList re-renders ALL visible items on each
-  // unrelated state change (e.g. menuVisible toggle, searchQuery keystroke).
-  const renderDateSectionItem = useCallback(({ item }: { item: DateSectionItem }) => {
-    if (item.isEmpty) {
-      return (
-        <View style={styles.continueEmptyContainer}>
-          <ThemedText style={styles.continueEmptyText}>
-            No playbooks in this date range.
-          </ThemedText>
-        </View>
-      );
-    }
-    return (
-      <View>
-        {item.showYear && item.year != null && (
-          <View style={styles.dateSectionYearHeader}>
-            <ThemedText weight="semiBold" style={styles.dateSectionYearText}>{item.year}</ThemedText>
-          </View>
-        )}
-        <CategoryCarouselRow
-          category={item.category}
-          playbooks={item.playbooks}
-          cardStyles={styles}
-          sessionStates={sessionStates}
-          devotionalsCount={devotionalsCount}
-          menuVisible={menuVisible}
-          onPress={handleCardPress}
-          onLongPress={handleCardLongPress}
-          onMenuToggle={setMenuVisible}
-          onDelete={handleDelete}
-          onRenamePress={handleRenamePress}
-          onTagPress={handleTagPress}
-          onDevotionalPress={handleDevotionalPress}
-          triggerHaptic={triggerLightHaptic}
-        />
-      </View>
-    );
-  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, triggerLightHaptic]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right']}>
