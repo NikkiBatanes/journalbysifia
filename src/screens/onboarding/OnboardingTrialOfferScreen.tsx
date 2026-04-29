@@ -805,7 +805,7 @@ const OnboardingTrialOfferScreen = () => {
 
 
 
-  const getTrialBenefits = () => {
+  const getTrialBenefits = useCallback(() => {
     switch (selectedTierId) {
       case 'growth':
         return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
@@ -816,7 +816,7 @@ const OnboardingTrialOfferScreen = () => {
       default:
         return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
     }
-  };
+  }, [selectedTierId]);
 
   const formatDateRange = (startDate: Date, endDate: Date) => {
     const start = startDate;

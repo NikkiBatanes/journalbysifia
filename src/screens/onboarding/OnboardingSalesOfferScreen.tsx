@@ -121,7 +121,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [_expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const monthlyScale = useRef(new Animated.Value(1)).current;
@@ -486,7 +486,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         setSelectedTier(target.id);
       }
     }
-  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier]);
+  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {

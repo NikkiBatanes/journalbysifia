@@ -24,7 +24,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ScrollView,
   StatusBar,
   KeyboardAvoidingView,
@@ -40,7 +39,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
-import { useWindowDimensions } from 'react-native';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -228,7 +226,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const routeParams = route.params as { name?: string; step?: number; rewriteData?: any } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
@@ -252,12 +249,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
   const [currentStep, setCurrentStep] = useState(detailsOnlyFlow ? 1 : (routeParams?.step || 1));
   const [name, setName] = React.useState(routeParams?.name || '');
-  const greetingName = React.useMemo(() => {
-    if (!name) {return '';}
-    const trimmed = name.trim();
-    if (!trimmed) {return '';}
-    return trimmed.split(/\s+/)[0];
-  }, [name]);
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -539,9 +530,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const MIN_INPUT_HEIGHT = 44;
   const MAX_INPUT_HEIGHT = 150;
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
-  const [scrollY, setScrollY] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [showOptionalHelper, setShowOptionalHelper] = useState(false);
   const askBoxYRef = useRef(0);
 
   const handleContentSizeChange = (event: any) => {
@@ -627,8 +616,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const trickleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const generationAbortRef = useRef(false);
   const isMountedRef = useRef(true);
-  const [generationMessage, setGenerationMessage] = useState<string | null>(null);
-
   // Generation steps tracking (from UserInputScreen)
   type StepStatus = 'completed' | 'active' | 'inactive';
   type GenerationStep = { key: string; title: string; status: StepStatus };
@@ -689,7 +676,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     } else {
       pulsingDotAnims.forEach((anim) => anim.setValue(0));
     }
-  }, [isGenerating]);
+  }, [isGenerating, pulsingDotAnims]);
 
   // ── Animated dots + text-opacity shimmer on "Building your playbook..." ──────
   useEffect(() => {
@@ -709,27 +696,27 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
     // Shimmer = the letters themselves breathing bright → dim → bright
     buildingTextOpacity.setValue(0.55);
-    const shimmerLoop = Animated.loop(
+    const opacityLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(buildingTextOpacity, {
-          toValue: 1,
-          duration: 900,
+          toValue: 0.95,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(buildingTextOpacity, {
           toValue: 0.55,
-          duration: 900,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
     );
-    shimmerLoop.start();
+    opacityLoop.start();
 
     return () => {
       clearInterval(dotInterval);
-      shimmerLoop.stop();
+      opacityLoop.stop();
     };
-  }, [isGenerating]);
+  }, [isGenerating, buildingTextOpacity]);
 
   const resetToInputState = () => {
     inputCollapseAnim.setValue(0);
@@ -934,7 +921,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     setGenerationSteps(() => buildInitialGenerationSteps());
     setGenerationCurrentStep(1);
     progressAnim.setValue(0);
-    setGenerationMessage(null);
     generationAbortRef.current = false;
     currentPhaseRef.current = 0;
   };
@@ -1651,10 +1637,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   };
 
-  const handleScroll = (event: any) => {
-    setScrollY(event.nativeEvent.contentOffset.y);
-  };
-
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
       <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Which stage of life are you in right now?</ThemedText>
@@ -2238,8 +2220,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               style={dynamicStyles.scrollContainer}
               contentContainerStyle={styles.reducedPaddingBottom}
               showsVerticalScrollIndicator={false}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
             >
               {detailsOnlyFlow ? (

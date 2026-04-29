@@ -113,7 +113,7 @@ const UserInputScreen: React.FC = () => {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const generationAbortRef = useRef(false);
   const isMountedRef = useRef(true);
-  const [generationMessage, setGenerationMessage] = useState<string | null>(null);
+  const [_generationMessage, setGenerationMessage] = useState<string | null>(null);
   // Tracks which phase the trickle should stay below — raised by updateStepStatus
   const currentPhaseRef = useRef(0);
 
@@ -167,7 +167,7 @@ const UserInputScreen: React.FC = () => {
       }).start(() => resolve());
     });
 
-  const completeAllSteps = async () => {
+  const _completeAllSteps = async () => {
     // Mark all steps as completed and animate check icons
     setGenerationSteps((prev) =>
       prev.map((step, index) => {
@@ -224,7 +224,7 @@ const UserInputScreen: React.FC = () => {
     await animateProgressTo(100, 600);
   };
 
-  const getTargetProgressForStep = (stepIndex: number) => PHASE_PROGRESS_TARGETS[Math.min(stepIndex, PHASE_PROGRESS_TARGETS.length - 1)] || 95;
+  const _getTargetProgressForStep = (stepIndex: number) => PHASE_PROGRESS_TARGETS[Math.min(stepIndex, PHASE_PROGRESS_TARGETS.length - 1)] || 95;
 
   const updateStepStatus = (stepIndex: number) => {
     // Raise trickle ceiling so the bar is now allowed to approach this phase's target
@@ -359,7 +359,7 @@ const UserInputScreen: React.FC = () => {
   // Transition animations
   const inputCollapseAnim       = useRef(new Animated.Value(0)).current;
   const generatingFadeAnim      = useRef(new Animated.Value(0)).current;
-  const generatingSlideAnim     = useRef(new Animated.Value(0)).current;   // unused slide — kept for compat
+  const _generatingSlideAnim    = useRef(new Animated.Value(0)).current;   // unused slide — kept for compat
   const generatingScaleAnim     = useRef(new Animated.Value(0.92)).current; // container scale spring
   const inputScaleAnim          = useRef(new Animated.Value(1)).current;
 
@@ -405,7 +405,7 @@ const UserInputScreen: React.FC = () => {
     } else {
       pulsingDotAnims.forEach((anim) => anim.setValue(0));
     }
-  }, [isGenerating]);
+  }, [isGenerating, pulsingDotAnims]);
 
   // ── Animated dots + text-opacity shimmer on "Building your playbook..." ──────
   useEffect(() => {
@@ -446,7 +446,7 @@ const UserInputScreen: React.FC = () => {
       clearInterval(dotInterval);
       shimmerLoop.stop();
     };
-  }, [isGenerating]);
+  }, [isGenerating, buildingTextOpacity]);
 
   // Load saved draft or initial text on mount
   useEffect(() => {
@@ -608,7 +608,7 @@ const UserInputScreen: React.FC = () => {
     }
   };
 
-  const getSeekerDisplayText = () => {
+  const _getSeekerDisplayText = () => {
     const seekerType = getSeekerType();
 
     switch (seekerType) {
@@ -623,7 +623,7 @@ const UserInputScreen: React.FC = () => {
     }
   };
 
-  const getTierDisplayName = (subscription: any) => {
+  const _getTierDisplayName = (subscription: any) => {
     // Use subscription_display_name if available (e.g., "siFia Spark Trial")
     if (subscription?.subscription_display_name) {
 
