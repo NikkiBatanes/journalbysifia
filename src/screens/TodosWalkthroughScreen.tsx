@@ -83,7 +83,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const { selectedDate: selectedDateStr, existingEntry: _existingEntry } = route.params || {};
+  const { selectedDate: selectedDateStr } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
   // Parse existing entry content to initialize state
