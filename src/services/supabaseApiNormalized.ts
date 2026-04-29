@@ -155,10 +155,12 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         completed_at,
         playbook_action_steps (
           id,
+          text,
           completed,
           order_index,
           playbook_sub_tasks (
             id,
+            text,
             completed,
             is_example,
             order_index
@@ -237,7 +239,7 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         .sort((a: any, b: any) => a.order_index - b.order_index)
         .map((step: any) => ({
           id: step.id,
-          title: lightweight ? '' : (step.text || ''),
+          title: step.text || '',
           examples: lightweight ? '' : (step.examples || ''),
           completed: step.completed,
           orderIndex: step.order_index,
@@ -245,7 +247,7 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
             .sort((a: any, b: any) => a.order_index - b.order_index)
             .map((subTask: any) => ({
               id: subTask.id,
-              text: lightweight ? '' : (subTask.text || ''),
+              text: subTask.text || '',
               completed: subTask.completed,
               is_example: subTask.is_example,
               example_interactive: lightweight ? false : (subTask.example_interactive || false),

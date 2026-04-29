@@ -293,7 +293,7 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
 
         <ThemedText style={st.faithfulActionFrom}>FROM PLAYBOOK</ThemedText>
 
-        <ThemedText style={st.faithfulActionTitle}>{item.playbookTitle}</ThemedText>
+        <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.playbookTitle}</ThemedText>
 
         <View style={st.faithfulActionDivider} />
 
@@ -313,9 +313,6 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
           </View>
         )}
 
-        <TouchableOpacity style={st.faithfulActionContinueButton} onPress={() => onPress(item)}>
-          <ThemedText weight="semiBold" style={{ fontSize: 14, color: Colors.hopeWhite, fontFamily: Fonts.semiBold }}>CONTINUE</ThemedText>
-        </TouchableOpacity>
       </Animated.View>
     </TouchableOpacity>
   );
