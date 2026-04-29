@@ -87,6 +87,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const cancelTranslateX = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] })).current;
   const saveTranslateX = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] })).current;
   const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+  const closeButtonScale = useRef(new Animated.Value(1)).current;
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
@@ -277,6 +278,23 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setTimeout(() => {
       scrollToSection('reflect-carousel', -100);
     }, 100);
+  };
+
+  const handleCloseButtonPress = () => {
+    Animated.spring(closeButtonScale, {
+      toValue: 0.85,
+      useNativeDriver: true,
+      tension: 150,
+      friction: 10,
+    }).start(() => {
+      Animated.spring(closeButtonScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 150,
+        friction: 10,
+      }).start();
+    });
+    cancelAdding();
   };
 
   const addAnotherField = useCallback(() => {
@@ -734,16 +752,18 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           <View style={styles.buttonRow}>
             <View style={styles.actionButtonsGroup}>
               <Animated.View style={{ transform: [{ translateX: cancelTranslateX }] }}>
-                <TouchableOpacity
-                  onPress={cancelAdding}
-                  style={[styles.button, styles.cancelButton]}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel adding gratitude items"
-                  accessibilityHint="Cancels the current gratitude input and closes the form"
-                >
-                  <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
+                <Animated.View style={{ transform: [{ scale: closeButtonScale }] }}>
+                  <TouchableOpacity
+                    onPress={handleCloseButtonPress}
+                    style={[styles.button, styles.cancelButton]}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel adding gratitude items"
+                    accessibilityHint="Cancels the current gratitude input and closes the form"
+                  >
+                    <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                  </TouchableOpacity>
+                </Animated.View>
               </Animated.View>
               <Animated.View
                 pointerEvents={shouldShowAddButton ? 'auto' : 'none'}
