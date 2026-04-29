@@ -570,23 +570,6 @@ const UserInputScreen: React.FC = () => {
   // Override hasAccess based on actual usage data
   const canGeneratePlaybook = hasAccess && (subscriptionData.isUnlimited || subscriptionData.playbooksRemaining > 0);
 
-  // Determine seeker type based on subscription history
-  const getSeekerType = () => {
-    const { subscription } = subscriptionData;
-    if (!subscription) {return 'fresh';}
-
-    const hasTrialHistory = subscription.trial_start_date && subscription.trial_end_date;
-    const hasPaidHistory = subscription.subscription_start_date;
-
-    if (hasPaidHistory) {
-      return 'cancelled_subscription'; // Had paid plan, now cancelled
-    } else if (hasTrialHistory) {
-      return 'expired_trial'; // Used trial, didn't convert
-    } else {
-      return 'fresh'; // Never tried trial
-    }
-  };
-
   // const userId = user?.id; // Unused, commented out
   const fullName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
   const userName = fullName.split(' ')[0] || 'User';

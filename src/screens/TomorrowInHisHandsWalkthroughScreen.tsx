@@ -863,20 +863,20 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
 
     try {
       // Parse existing content to preserve data when only editing one field
-      let existingText = '';
-      let existingEmotionId = '';
-      let existingEmotionName = '';
-      let existingCustomEmotion = '';
+      let _existingText = '';
+      let _existingEmotionId = '';
+      let _existingEmotionName = '';
+      let _existingCustomEmotion = '';
 
       if (existingEntry?.content) {
         try {
           const parsedContent = typeof existingEntry.content === 'string'
             ? JSON.parse(existingEntry.content)
             : existingEntry.content;
-          existingText = parsedContent.entry?.text || '';
-          existingEmotionId = parsedContent.emotionId || '';
-          existingEmotionName = parsedContent.emotionName || '';
-          existingCustomEmotion = parsedContent.customEmotion || '';
+          _existingText = parsedContent.entry?.text || '';
+          _existingEmotionId = parsedContent.emotionId || '';
+          _existingEmotionName = parsedContent.emotionName || '';
+          _existingCustomEmotion = parsedContent.customEmotion || '';
         } catch (error) {
           console.error('Error parsing existing content:', error);
         }
@@ -969,7 +969,7 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
     }
   };
 
-  const handleClose = () => {
+  const _handleClose = () => {
     navigation.goBack();
   };
 
