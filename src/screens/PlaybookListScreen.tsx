@@ -2286,28 +2286,45 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   )}
                 </>
               ) : (
-                completedPlaybooks.length === 0 ? (
-                  <View style={styles.continueEmptyContainer}>
-                    <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
-                  </View>
-                ) : (
-                  <CategoryCarouselRow
-                    category={`REVISIT YOUR COMPLETED PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
-                    playbooks={completedPlaybooks}
-                    cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
-                    triggerHaptic={triggerLightHaptic}
-                  />
-                )
+                <>
+                  {completedPlaybooks.length === 0 ? (
+                    <View style={styles.continueEmptyContainer}>
+                      <ThemedText style={styles.continueEmptyText}>No completed playbooks yet.</ThemedText>
+                    </View>
+                  ) : (
+                    <CategoryCarouselRow
+                      category={`REVISIT YOUR COMPLETED PLAYBOOK${completedPlaybooks.length !== 1 ? 'S' : ''}`}
+                      playbooks={completedPlaybooks}
+                      cardStyles={styles}
+                      sessionStates={sessionStates}
+                      devotionalsCount={devotionalsCount}
+                      menuVisible={menuVisible}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                      onMenuToggle={setMenuVisible}
+                      onDelete={handleDelete}
+                      onRenamePress={handleRenamePress}
+                      onTagPress={handleTagPress}
+                      onDevotionalPress={handleDevotionalPress}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )}
+                  {incompleteFaithfulActions.length > 0 && (
+                    <FaithfulActionsCarouselRow
+                      faithfulActions={incompleteFaithfulActions}
+                      cardStyles={styles}
+                      onPress={(action) => {
+                        triggerLightHaptic();
+                        navigation.navigate('PlaybookWalkthrough', {
+                          playbook: { id: action.playbookId },
+                          initialStep: 3,
+                          initialActionIndex: action.actionIndex - 1,
+                        });
+                      }}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )}
+                </>
               )}
             </ScrollView>
           ) : deferredContentView === 'category' ? (
@@ -2347,21 +2364,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         </ThemedText>
                       </View>
                     )}
-                    {deferredFilter === 'ongoing' && incompleteFaithfulActions.length > 0 && (
-                      <FaithfulActionsCarouselRow
-                        faithfulActions={incompleteFaithfulActions}
-                        cardStyles={styles}
-                        onPress={(action) => {
-                          triggerLightHaptic();
-                          navigation.navigate('PlaybookWalkthrough', {
-                            playbook: { id: action.playbookId },
-                            initialStep: 3,
-                            initialActionIndex: action.actionIndex - 1,
-                          });
-                        }}
-                        triggerHaptic={triggerLightHaptic}
-                      />
-                    )}
                     {categorySections.map(({ category, playbooks: catPlaybooks }) => (
                       <CategoryCarouselRow
                         key={category}
@@ -2381,6 +2383,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         triggerHaptic={triggerLightHaptic}
                       />
                     ))}
+                    {incompleteFaithfulActions.length > 0 && (
+                      <FaithfulActionsCarouselRow
+                        faithfulActions={incompleteFaithfulActions}
+                        cardStyles={styles}
+                        onPress={(action) => {
+                          triggerLightHaptic();
+                          navigation.navigate('PlaybookWalkthrough', {
+                            playbook: { id: action.playbookId },
+                            initialStep: 3,
+                            initialActionIndex: action.actionIndex - 1,
+                          });
+                        }}
+                        triggerHaptic={triggerLightHaptic}
+                      />
+                    )}
                   </>
                 )}
               </ScrollView>
@@ -2422,28 +2439,28 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     />
                   )
                 ) : deferredFilter === 'ongoing' ? (
-                  <>
-                    <View style={styles.carouselTitleContainer}>
-                      <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                        CONTINUE YOUR PLAYBOOKS
-                      </ThemedText>
-                    </View>
-                    {incompleteFaithfulActions.length > 0 && (
-                      <FaithfulActionsCarouselRow
-                        faithfulActions={incompleteFaithfulActions}
-                        cardStyles={styles}
-                        onPress={(action) => {
-                          triggerLightHaptic();
-                          navigation.navigate('PlaybookWalkthrough', {
-                            playbook: { id: action.playbookId },
-                            initialStep: 3,
-                            initialActionIndex: action.actionIndex - 1,
-                          });
-                        }}
-                        triggerHaptic={triggerLightHaptic}
-                      />
-                    )}
-                  </>
+                  <View style={styles.carouselTitleContainer}>
+                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                      CONTINUE YOUR PLAYBOOKS
+                    </ThemedText>
+                  </View>
+                ) : null
+              }
+              ListFooterComponent={
+                deferredFilter !== 'faithful' && incompleteFaithfulActions.length > 0 ? (
+                  <FaithfulActionsCarouselRow
+                    faithfulActions={incompleteFaithfulActions}
+                    cardStyles={styles}
+                    onPress={(action) => {
+                      triggerLightHaptic();
+                      navigation.navigate('PlaybookWalkthrough', {
+                        playbook: { id: action.playbookId },
+                        initialStep: 3,
+                        initialActionIndex: action.actionIndex - 1,
+                      });
+                    }}
+                    triggerHaptic={triggerLightHaptic}
+                  />
                 ) : null
               }
             />
