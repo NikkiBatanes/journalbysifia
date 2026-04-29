@@ -639,7 +639,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       nudgeTimerRefs.current.forEach(id => clearTimeout(id));
       nudgeTimerRefs.current = [];
     };
-  }, [actionStepIndex]);
+  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerRotation, triggerScale]);
 
   const animateToNext = useCallback(
     (callback: () => void) => {

@@ -14,7 +14,6 @@ import {
   LayoutAnimation,
   Keyboard,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -38,15 +37,10 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TodaysWinWalkthrough'>;
 
-interface RouteParams {
-  selectedDate?: string;
-}
-
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -294,7 +288,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -322,7 +316,6 @@ const WinTypeSelectionStep: React.FC<{
   const buttonScale = useRef(new Animated.Value(0)).current;
   const chooseAgainScale = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
-  const screenHeight = useRef(0).current;
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -371,7 +364,7 @@ const WinTypeSelectionStep: React.FC<{
     } else {
       chooseAgainScale.setValue(0);
     }
-  }, [isOtherSelected]);
+  }, [isOtherSelected, chooseAgainScale]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -501,7 +494,7 @@ const WinTypeSelectionStep: React.FC<{
               <View style={styles.winTypesGrid}>
                 {!isExpanded ? (
                   // Collapsed state: Show core 7
-                  CORE_WIN_TYPES.map((winType, index) => {
+                  CORE_WIN_TYPES.map((winType) => {
                     const isSelected = selectedWinType?.id === winType.id;
                     return (
                       <TouchableOpacity
@@ -530,7 +523,7 @@ const WinTypeSelectionStep: React.FC<{
                   ) : (
                     WIN_TYPES.filter(
                       (winType) => winType.category === selectedCategory
-                    ).map((winType, index) => {
+                    ).map((winType) => {
                       const isSelected = selectedWinType?.id === winType.id;
                       return (
                         <TouchableOpacity
@@ -653,7 +646,7 @@ const QuietWinStep: React.FC<{
   selectedWinType: WinType | null;
   customWin: string;
   dateContext: DateContext;
-}> = ({ quietWin, onChange, onNext, onBack, insets, navigation, selectedWinType, customWin, dateContext }) => {
+}> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, navigation, selectedWinType, customWin, dateContext }) => {
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -664,7 +657,7 @@ const QuietWinStep: React.FC<{
       duration: 400,
       useNativeDriver: false,
     }).start();
-  }, []);
+  }, [verticalLineHeight]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -808,11 +801,11 @@ const CompletionStep: React.FC<{
   navigation: any;
   customWin: string;
   dateContext: DateContext;
-}> = ({ winType, quietWin, onDone, insets, navigation, customWin, dateContext }) => {
+}> = ({ winType, quietWin, onDone, insets, navigation: _navigation, customWin, dateContext }) => {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
-  const [completionMessage, setCompletionMessage] = useState('');
+  const [, setCompletionMessage] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
 
   useEffect(() => {
@@ -868,7 +861,7 @@ const CompletionStep: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [checkmarkScale, iconRotation, iconScale]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],

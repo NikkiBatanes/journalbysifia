@@ -486,7 +486,7 @@ const DevotionalsScreen = () => {
           </TouchableOpacity>
       </View>
     );
-  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm]);
+  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm, filter]);
 
   // Filter-specific empty state component
   const renderFilterEmptyState = useCallback(() => {
