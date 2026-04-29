@@ -488,6 +488,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             initialPrayerRequest={initialPrayerRequest}
             stepBody={stepBody}
             stepExample={stepExample}
+            selectedDate={selectedDate}
             dateString={(function() {
               const now = new Date();
               const year = now.getFullYear();
