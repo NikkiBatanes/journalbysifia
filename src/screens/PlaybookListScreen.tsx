@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo, createRef, useDeferredValue } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2260,8 +2261,29 @@ const PlaybookListScreen = ({ navigation }: any) => {
               ) : deferredFilter === 'ongoing' ? (
                 <>
                   {continuePlaybooks.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
+                    <View style={styles.emptyStateContainer}>
+                      <View style={styles.heroCard}>
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={32}
+                          color={Colors.growthGreen}
+                          style={styles.heroIcon}
+                        />
+                        <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.heroTitle}>All Playbooks Completed</ThemedText>
+                        <ThemedText style={styles.heroSubtitle}>
+                          You've finished the playbooks in this space. Begin a new one when another moment needs clarity.
+                        </ThemedText>
+
+                        <TouchableOpacity
+                          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a New Playbook</ThemedText>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ) : (
                     <CategoryCarouselRow
