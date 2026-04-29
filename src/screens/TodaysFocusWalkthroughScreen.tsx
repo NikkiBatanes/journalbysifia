@@ -770,12 +770,11 @@ const CompletionStep: React.FC<{
   priorities: string[];
   onDone: () => void;
   insets: { top: number; bottom: number };
-  navigation: any;
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
   dateContext: DateContext;
-}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType, customFocus, dateContext }) => {
+}> = ({ category, personalText, priorities, onDone, insets, icon, iconType, customFocus, dateContext }) => {
   const validPriorities = priorities.filter((p: string) => p.trim() !== '');
 
   // Animation refs
@@ -820,7 +819,7 @@ const CompletionStep: React.FC<{
         useNativeDriver: true,
       })
     )).start();
-  }, []);
+  }, [checkmarkScale, iconScale, iconRotation, priorityAnims]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],
@@ -1223,7 +1222,6 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           priorities={priorities}
           onDone={handleSave}
           insets={insets}
-          navigation={navigation}
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
           customFocus={customFocus}
