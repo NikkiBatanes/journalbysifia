@@ -32,6 +32,7 @@ import { toLocalDateString } from '../utils/date';
 import { useCreateTodayWinEntry, useUpdateTodayWinEntry, useTodayWinData } from '../services/hooks/useJournalData';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -40,6 +41,18 @@ type Props = NativeStackScreenProps<RootStackParamList, 'TodaysWinWalkthrough'>;
 interface RouteParams {
   selectedDate?: string;
 }
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 // Win Type Data
 interface WinType {
@@ -299,7 +312,8 @@ const WinTypeSelectionStep: React.FC<{
   navigation: any;
   customWin: string;
   setCustomWin: (text: string) => void;
-}> = ({ selectedWinType, onSelect, onNext, insets, navigation, customWin, setCustomWin }) => {
+  dateContext: DateContext;
+}> = ({ selectedWinType, onSelect, onNext, insets, navigation, customWin, setCustomWin, dateContext }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
@@ -385,6 +399,31 @@ const WinTypeSelectionStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S WIN";
+      case 'yesterday': return "YESTERDAY'S WIN";
+      case 'earlier': return "EARLIER WIN";
+    }
+  };
+
+  const getTitle = () => {
+    if (isOtherSelected) {
+      switch (dateContext) {
+        case 'today': return 'What was your win today?';
+        case 'yesterday': return 'What was your win yesterday?';
+        case 'earlier': return 'What was your win on this day?';
+      }
+    } else {
+      switch (dateContext) {
+        case 'today': return 'What kind of win did\ntoday hold?';
+        case 'yesterday': return 'What kind of win did\nyesterday hold?';
+        case 'earlier': return 'What kind of win did\nthis day hold?';
+      }
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -395,14 +434,14 @@ const WinTypeSelectionStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="emoji-events" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S WIN</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              {isOtherSelected ? 'What was your win today?' : 'What kind of win did\ntoday hold?'}
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -613,7 +652,8 @@ const QuietWinStep: React.FC<{
   navigation: any;
   selectedWinType: WinType | null;
   customWin: string;
-}> = ({ quietWin, onChange, onNext, onBack, insets, navigation, selectedWinType, customWin }) => {
+  dateContext: DateContext;
+}> = ({ quietWin, onChange, onNext, onBack, insets, navigation, selectedWinType, customWin, dateContext }) => {
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -652,6 +692,23 @@ const QuietWinStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S WIN";
+      case 'yesterday': return "YESTERDAY'S WIN";
+      case 'earlier': return "EARLIER WIN";
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (dateContext) {
+      case 'today': return 'Name one moment from today and thank God for it...';
+      case 'yesterday': return 'Name one moment from yesterday...';
+      case 'earlier': return 'Name one moment from this day...';
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -663,7 +720,7 @@ const QuietWinStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="emoji-events" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S WIN</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
@@ -680,7 +737,7 @@ const QuietWinStep: React.FC<{
             style={styles.quietWinInput}
             value={quietWin}
             onChangeText={onChange}
-            placeholder="Name one moment from today and thank God for it..."
+            placeholder={getPlaceholder()}
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
             textAlignVertical="top"
@@ -750,7 +807,8 @@ const CompletionStep: React.FC<{
   insets: { top: number; bottom: number };
   navigation: any;
   customWin: string;
-}> = ({ winType, quietWin, onDone, insets, navigation, customWin }) => {
+  dateContext: DateContext;
+}> = ({ winType, quietWin, onDone, insets, navigation, customWin, dateContext }) => {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
@@ -817,6 +875,23 @@ const CompletionStep: React.FC<{
     outputRange: ['0deg', '360deg'],
   });
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S WIN";
+      case 'yesterday': return "YESTERDAY'S WIN";
+      case 'earlier': return "EARLIER WIN";
+    }
+  };
+
+  const getSaveButtonText = () => {
+    switch (dateContext) {
+      case 'today': return 'Save for today';
+      case 'yesterday': return 'Save for yesterday';
+      case 'earlier': return 'Save for this day';
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -827,7 +902,7 @@ const CompletionStep: React.FC<{
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <MaterialIcons name="emoji-events" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            TODAY'S WIN
+            {getEyebrowLabel()}
           </ThemedText>
         </StepFadeIn>
 
@@ -884,7 +959,7 @@ const CompletionStep: React.FC<{
           style={styles.completionButton}
         >
           <ThemedText weight="semiBold" style={styles.completionButtonText}>
-            Save for today
+            {getSaveButtonText()}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -907,6 +982,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
 
   const dateStr = toLocalDateString(selectedDate);
+  const dateContext = getDateContext(selectedDate);
 
   const createMutation = useCreateTodayWinEntry();
   const updateMutation = useUpdateTodayWinEntry();
@@ -1028,6 +1104,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           navigation={navigation}
           customWin={customWin}
           setCustomWin={setCustomWin}
+          dateContext={dateContext}
         />
       )}
 
@@ -1041,6 +1118,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           navigation={navigation}
           selectedWinType={selectedWinType}
           customWin={customWin}
+          dateContext={dateContext}
         />
       )}
 
@@ -1052,6 +1130,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           insets={insets}
           navigation={navigation}
           customWin={customWin}
+          dateContext={dateContext}
         />
       )}
     </View>

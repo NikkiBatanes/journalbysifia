@@ -27,10 +27,23 @@ import ThemedText from '../components/common/ThemedText';
 import { Colors } from '../theme/colors';
 import { getFontFamily } from '../theme/fonts';
 import { useTheme } from '../hooks/useTheme';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TodosWalkthrough'>;
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 // StepFadeIn component
 interface StepFadeInProps {
@@ -114,6 +127,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasLoadedInitialTodos = useRef(false);
 
   const dateStr = toLocalDateString(selectedDate);
+  const dateContext = getDateContext(selectedDate);
 
   const createMutation = useCreateTodoEntry();
   const deleteMutation = useDeleteTodoEntry();
@@ -121,6 +135,15 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const inputRefs = useRef<(TextInput | null)[]>([]).current;
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Dynamic title based on date context
+  const getTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'What needs to get done today?';
+      case 'yesterday': return 'What needed to get done yesterday?';
+      case 'earlier': return 'What needed to get done on this day?';
+    }
+  };
 
   // Update todos when existingTodos data loads
   useEffect(() => {
@@ -330,7 +353,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         <StepFadeIn delay={40}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              What needs to get done today?
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>

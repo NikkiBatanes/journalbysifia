@@ -37,10 +37,24 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreateJournalEntry, useUpdateJournalEntry } from '../services/hooks/useJournalData';
 import { analytics } from '../utils/analytics';
+import { isToday, isYesterday, isAfter, startOfDay } from 'date-fns';
 
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TodaysFocusWalkthrough'>;
+
+type DateContext = 'today' | 'yesterday' | 'earlier' | 'upcoming';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  if (isAfter(day, today)) return 'upcoming';
+  return 'earlier';
+};
 
 // Focus Category Data
 interface FocusCategory {
@@ -125,7 +139,8 @@ const CategorySelectionStep: React.FC<{
   customFocus: string;
   setCustomFocus: (text: string) => void;
   fontKey: string;
-}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus, fontKey }) => {
+  dateContext: DateContext;
+}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus, fontKey, dateContext }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
@@ -237,6 +252,34 @@ const CategorySelectionStep: React.FC<{
     });
   };
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S FOCUS";
+      case 'yesterday': return "YESTERDAY'S FOCUS";
+      case 'earlier': return "PREVIOUS FOCUS";
+      case 'upcoming': return "UPCOMING FOCUS";
+    }
+  };
+
+  const getMainTitle = () => {
+    if (isOtherSelected) {
+      switch (dateContext) {
+        case 'today': return 'What is your focus today?';
+        case 'yesterday': return 'What was your focus yesterday?';
+        case 'earlier': return 'What was your focus on this day?';
+        case 'upcoming': return 'What will your focus be?';
+      }
+    } else {
+      switch (dateContext) {
+        case 'today': return 'Choose your focus for today';
+        case 'yesterday': return 'What was your focus yesterday?';
+        case 'earlier': return 'What was your focus on this day?';
+        case 'upcoming': return 'What will your focus be?';
+      }
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -247,14 +290,14 @@ const CategorySelectionStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              {isOtherSelected ? 'What is your focus today?' : 'Choose your focus for today'}
+              {getMainTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -402,7 +445,8 @@ const PersonalTextInputStep: React.FC<{
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
   fontKey: string;
-}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus, fontKey }) => {
+  dateContext: DateContext;
+}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus, fontKey, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -441,6 +485,26 @@ const PersonalTextInputStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S FOCUS";
+      case 'yesterday': return "YESTERDAY'S FOCUS";
+      case 'earlier': return "PREVIOUS FOCUS";
+      case 'upcoming': return "UPCOMING FOCUS";
+    }
+  };
+
+  const getTitle = () => {
+    const categoryText = category.id === 'other' ? 'this' : category.name.toLowerCase();
+    switch (dateContext) {
+      case 'today': return `What matters most in ${categoryText} today?`;
+      case 'yesterday': return `What mattered most in ${categoryText} yesterday?`;
+      case 'earlier': return `What mattered most in ${categoryText} on this day?`;
+      case 'upcoming': return `What will matter most in ${categoryText}?`;
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -452,14 +516,14 @@ const PersonalTextInputStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TODAY'S FOCUS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              What matters most in {category.id === 'other' ? 'this' : category.name.toLowerCase()} today?
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -555,7 +619,8 @@ const PrioritiesInputStep: React.FC<{
   category: FocusCategory;
   customFocus: string;
   fontKey: string;
-}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus, fontKey }) => {
+  dateContext: DateContext;
+}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus, fontKey, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -652,7 +717,13 @@ const PrioritiesInputStep: React.FC<{
                 )}
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                Add up to 3 priorities for today.
+                {dateContext === 'today'
+                  ? 'Add up to 3 priorities for today.'
+                  : dateContext === 'yesterday'
+                  ? 'Add up to 3 priorities from yesterday.'
+                  : dateContext === 'upcoming'
+                  ? 'Add up to 3 priorities for this day.'
+                  : 'Add up to 3 priorities from this day.'}
               </ThemedText>
             </View>
           </View>
@@ -703,7 +774,8 @@ const CompletionStep: React.FC<{
   icon: string;
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
-}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType, customFocus }) => {
+  dateContext: DateContext;
+}> = ({ category, personalText, priorities, onDone, insets, navigation, icon, iconType, customFocus, dateContext }) => {
   const validPriorities = priorities.filter((p: string) => p.trim() !== '');
 
   // Animation refs
@@ -755,6 +827,43 @@ const CompletionStep: React.FC<{
     outputRange: ['0deg', '360deg'],
   });
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S FOCUS";
+      case 'yesterday': return "YESTERDAY'S FOCUS";
+      case 'earlier': return "PREVIOUS FOCUS";
+      case 'upcoming': return "UPCOMING FOCUS";
+    }
+  };
+
+  const getSubtext = () => {
+    switch (dateContext) {
+      case 'today': return 'Your focus is set for today';
+      case 'yesterday': return 'Your focus from yesterday';
+      case 'earlier': return 'Your focus from this day';
+      case 'upcoming': return 'Your focus for this day';
+    }
+  };
+
+  const getFooterText = () => {
+    switch (dateContext) {
+      case 'today': return 'A simple daily anchor before you move into the rest of your day.';
+      case 'yesterday': return 'A reflection on what you focused on yesterday.';
+      case 'earlier': return 'A reflection on what you focused on this day.';
+      case 'upcoming': return 'A plan set ahead in faith.';
+    }
+  };
+
+  const getSaveButtonText = () => {
+    switch (dateContext) {
+      case 'today': return 'Save for today';
+      case 'yesterday': return 'Save for yesterday';
+      case 'earlier': return 'Save for this day';
+      case 'upcoming': return 'Save this plan';
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -765,7 +874,7 @@ const CompletionStep: React.FC<{
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <MaterialIcons name="filter-center-focus" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            TODAY'S FOCUS
+            {getEyebrowLabel()}
           </ThemedText>
         </StepFadeIn>
 
@@ -794,7 +903,7 @@ const CompletionStep: React.FC<{
               <ThemedText weight="semiBold" style={styles.completionCategory}>
                 {category.id === 'other' && customFocus.trim() ? customFocus.trim() : category.name}
               </ThemedText>
-              <ThemedText style={styles.completionSubtext}>Your focus is set for today</ThemedText>
+              <ThemedText style={styles.completionSubtext}>{getSubtext()}</ThemedText>
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
@@ -832,7 +941,7 @@ const CompletionStep: React.FC<{
 
           <View style={styles.completionFooter}>
             <ThemedText style={styles.completionFooterText}>
-              A simple daily anchor before you move into the rest of your day.
+              {getFooterText()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -850,7 +959,7 @@ const CompletionStep: React.FC<{
           style={styles.completionButton}
         >
           <ThemedText weight="semiBold" style={styles.completionButtonText}>
-            Save for today
+            {getSaveButtonText()}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -921,6 +1030,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   const updateMutation = useUpdateJournalEntry();
 
   const dateStr = toLocalDateString(selectedDate);
+  const dateContext = getDateContext(selectedDate);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(
@@ -1064,6 +1174,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           customFocus={customFocus}
           setCustomFocus={setCustomFocus}
           fontKey={fontKey}
+          dateContext={dateContext}
         />
       )}
 
@@ -1080,6 +1191,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           iconType={selectedCategory.iconType}
           customFocus={customFocus}
           fontKey={fontKey}
+          dateContext={dateContext}
         />
       )}
 
@@ -1100,6 +1212,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           category={selectedCategory}
           customFocus={customFocus}
           fontKey={fontKey}
+          dateContext={dateContext}
         />
       )}
 
@@ -1114,6 +1227,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
           customFocus={customFocus}
+          dateContext={dateContext}
         />
       )}
     </View>

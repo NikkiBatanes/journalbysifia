@@ -35,10 +35,23 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreateLookingForwardEntry, useUpdateLookingForwardEntry } from '../services/hooks/useJournalData';
 import { analytics } from '../utils/analytics';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TomorrowInHisHandsWalkthrough'>;
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 // Emotion Data
 interface Emotion {
@@ -158,7 +171,8 @@ const EmotionSelectionStep: React.FC<{
   navigation: any;
   customEmotion: string;
   setCustomEmotion: (text: string) => void;
-}> = ({ selectedEmotion, onSelect, onNext, insets, navigation, customEmotion, setCustomEmotion }) => {
+  dateContext: DateContext;
+}> = ({ selectedEmotion, onSelect, onNext, insets, navigation, customEmotion, setCustomEmotion, dateContext }) => {
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const [showAllEmotions, setShowAllEmotions] = React.useState(false);
@@ -252,6 +266,31 @@ const EmotionSelectionStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return 'LOOKING FORWARD TO';
+      case 'yesterday': return 'LOOKED FORWARD TO';
+      case 'earlier': return 'LOOKED FORWARD TO';
+    }
+  };
+
+  const getTitle = () => {
+    if (isOtherSelected) {
+      switch (dateContext) {
+        case 'today': return 'How does tomorrow feel?';
+        case 'yesterday': return 'How did yesterday feel?';
+        case 'earlier': return 'How did this day feel?';
+      }
+    } else {
+      switch (dateContext) {
+        case 'today': return 'How does tomorrow feel right now?';
+        case 'yesterday': return 'How did yesterday feel?';
+        case 'earlier': return 'How did this day feel?';
+      }
+    }
+  };
+
   const handleChooseAgain = () => {
     triggerLightHaptic();
     LayoutAnimation.configureNext({
@@ -282,14 +321,14 @@ const EmotionSelectionStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="wb-sunny" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>LOOKING FORWARD TO</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              {isOtherSelected ? 'How does tomorrow feel?' : 'How does tomorrow feel right now?'}
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -433,7 +472,8 @@ const LookingAheadInputStep: React.FC<{
   navigation: any;
   icon: string;
   customEmotion: string;
-}> = ({ emotion, lookingAheadText, onChange, onNext, onBack, insets, navigation, icon, customEmotion }) => {
+  dateContext: DateContext;
+}> = ({ emotion, lookingAheadText, onChange, onNext, onBack, insets, navigation, icon, customEmotion, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -472,6 +512,39 @@ const LookingAheadInputStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return 'LOOKING FORWARD TO';
+      case 'yesterday': return 'LOOKED FORWARD TO';
+      case 'earlier': return 'LOOKED FORWARD TO';
+    }
+  };
+
+  const getTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'What are you looking ahead to?';
+      case 'yesterday': return 'What were you looking forward to?';
+      case 'earlier': return 'What were you looking forward to?';
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (dateContext) {
+      case 'today': return 'I am looking forward to...';
+      case 'yesterday': return 'I was looking forward to...';
+      case 'earlier': return 'I was looking forward to...';
+    }
+  };
+
+  const getMetadataNote = () => {
+    switch (dateContext) {
+      case 'today': return 'Name what tomorrow holds, and place it before God.';
+      case 'yesterday': return 'Name what yesterday held, and place it before God.';
+      case 'earlier': return 'Name what this day held, and place it before God.';
+    }
+  };
+
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -483,14 +556,14 @@ const LookingAheadInputStep: React.FC<{
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
             <MaterialIcons name="wb-sunny" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>LOOKING FORWARD TO</ThemedText>
+            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              What are you looking ahead to?
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -500,7 +573,7 @@ const LookingAheadInputStep: React.FC<{
             style={styles.personalInput}
             value={lookingAheadText}
             onChangeText={onChange}
-            placeholder="I am looking forward to..."
+            placeholder={getPlaceholder()}
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
             textAlignVertical="top"
@@ -525,7 +598,7 @@ const LookingAheadInputStep: React.FC<{
                 )}
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                Name what tomorrow holds, and place it before God.
+                {getMetadataNote()}
               </ThemedText>
             </View>
           </View>
@@ -574,7 +647,8 @@ const CompletionStep: React.FC<{
   navigation: any;
   icon: string;
   customEmotion: string;
-}> = ({ emotion, lookingAheadText, onDone, insets, navigation, icon, customEmotion }) => {
+  dateContext: DateContext;
+}> = ({ emotion, lookingAheadText, onDone, insets, navigation, icon, customEmotion, dateContext }) => {
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -627,6 +701,23 @@ const CompletionStep: React.FC<{
     outputRange: ['0deg', '360deg'],
   });
 
+  // Dynamic labels based on date context
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return 'LOOKING FORWARD TO';
+      case 'yesterday': return 'LOOKED FORWARD TO';
+      case 'earlier': return 'LOOKED FORWARD TO';
+    }
+  };
+
+  const getSaveButtonText = () => {
+    switch (dateContext) {
+      case 'today': return 'Save this';
+      case 'yesterday': return 'Save this';
+      case 'earlier': return 'Save this';
+    }
+  };
+
   const displayEmotion = emotion.id === 'other' && customEmotion.trim() ? customEmotion.trim() : emotion.name;
 
   return (
@@ -639,7 +730,7 @@ const CompletionStep: React.FC<{
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <MaterialIcons name="wb-sunny" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-            LOOKING FORWARD TO
+            {getEyebrowLabel()}
           </ThemedText>
         </StepFadeIn>
 
@@ -695,7 +786,7 @@ const CompletionStep: React.FC<{
           style={styles.completionButton}
         >
           <ThemedText weight="semiBold" style={styles.completionButtonText}>
-            Save this
+            {getSaveButtonText()}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -746,10 +837,11 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
   const [customEmotion, setCustomEmotion] = useState(initialState.customEmotion);
   const [lookingAheadText, setLookingAheadText] = useState(initialState.lookingAheadText);
 
+  const dateStr = toLocalDateString(selectedDate);
+  const dateContext = getDateContext(selectedDate);
+
   const createMutation = useCreateLookingForwardEntry();
   const updateMutation = useUpdateLookingForwardEntry();
-
-  const dateStr = toLocalDateString(selectedDate);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(
@@ -917,6 +1009,7 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
           navigation={navigation}
           customEmotion={customEmotion}
           setCustomEmotion={setCustomEmotion}
+          dateContext={dateContext}
         />
       )}
 
@@ -931,6 +1024,7 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
           navigation={navigation}
           icon={selectedEmotion.icon}
           customEmotion={customEmotion}
+          dateContext={dateContext}
         />
       )}
 
@@ -943,6 +1037,7 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
           navigation={navigation}
           icon={selectedEmotion.icon}
           customEmotion={customEmotion}
+          dateContext={dateContext}
         />
       )}
     </View>
