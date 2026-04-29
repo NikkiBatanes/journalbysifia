@@ -643,8 +643,6 @@ const CompletionStep: React.FC<{
   lookingAheadText: string;
   onDone: () => void;
   insets: { top: number; bottom: number };
-  navigation: any;
-  icon: string;
   customEmotion: string;
   dateContext: DateContext;
 }> = ({ emotion, lookingAheadText, onDone, insets, customEmotion, dateContext }) => {
@@ -1009,8 +1007,6 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
           lookingAheadText={lookingAheadText}
           onDone={handleSave}
           insets={insets}
-          navigation={navigation}
-          icon={selectedEmotion.icon}
           customEmotion={customEmotion}
           dateContext={dateContext}
         />
