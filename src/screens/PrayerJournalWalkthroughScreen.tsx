@@ -1009,10 +1009,9 @@ const CompletionStep: React.FC<{
   openPrayerText: string;
   onDone: () => void;
   insets: { top: number; bottom: number };
-  navigation: any;
   supplicationTrackAnswered: boolean;
   openPrayerTrackAnswered: boolean;
-}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, navigation, supplicationTrackAnswered, openPrayerTrackAnswered }) => {
+}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered }) => {
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
@@ -1041,7 +1040,7 @@ const CompletionStep: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [checkmarkScale, iconScale, iconRotation]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],
@@ -1369,7 +1368,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             openPrayerText={openPrayerText}
             onDone={handleSave}
             insets={insets}
-            navigation={navigation}
             supplicationTrackAnswered={supplicationTrackAnswered}
             openPrayerTrackAnswered={openPrayerTrackAnswered}
           />
