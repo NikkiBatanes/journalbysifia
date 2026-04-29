@@ -10,8 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/common/ThemedText';
 import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../services/queryKeys';
 
 type RootStackParamList = {
   PrayerEditor: {
@@ -55,7 +53,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -68,8 +66,6 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   const { prayerRequest } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-
   const [currentStep, setCurrentStep] = useState(1);
   const [modalPrayerRequest, setModalPrayerRequest] = useState('');
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
@@ -117,7 +113,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         }),
       ]).start();
     }
-  }, [currentStep]);
+  }, [currentStep, checkmarkScale, iconRotation, iconScale]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],

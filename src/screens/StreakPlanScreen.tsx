@@ -14,7 +14,6 @@ import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
-import { streakTrackingService } from '../services/streakTrackingService';
 import { supabase } from '../services/supabaseClient';
 
 interface RouteParams {
@@ -33,8 +32,6 @@ const StreakPlanScreen: React.FC = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // State for streak data
-  const [streakData, setStreakData] = useState<any>(null);
   const [streakCount, setStreakCount] = useState(1);
   const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Sunday');
   const [dayStates, setDayStates] = useState<DayState[]>([]);
@@ -121,7 +118,7 @@ const StreakPlanScreen: React.FC = () => {
     };
 
     initialize();
-  }, [user?.id]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
   const toLocalDate = (d: Date): string => {

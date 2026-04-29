@@ -311,7 +311,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       .catch((e) => {
         Logger.error('[DevotionalCompletionModal] Rating submission failed', e as Error, { component: 'DevotionalCompletionModal' });
       });
-  }, [onRatingSubmit]);
+  }, [onRatingSubmit, starAnims]);
 
   const renderStars = () => {
     return (

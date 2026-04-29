@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
-import { Colors } from '../../theme';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;

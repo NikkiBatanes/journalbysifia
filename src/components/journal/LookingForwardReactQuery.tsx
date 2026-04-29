@@ -3,8 +3,6 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-// SwipeableTodoItem handles the gesture handler imports
-import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -12,7 +10,6 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -22,7 +19,6 @@ import {
   useLookingForwardData,
   useCreateLookingForwardEntry,
   useUpdateLookingForwardEntry,
-  useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
@@ -52,9 +48,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Dynamic theming for fonts
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-
-  // Get query client for direct cache manipulation
-  const queryClient = useQueryClient();
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -126,67 +119,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   const createMutation = useCreateLookingForwardEntry();
   const updateMutation = useUpdateLookingForwardEntry();
-  const deleteMutation = useDeleteLookingForwardEntry();
 
   // Get the first entry (LookingForward typically has only one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-
-  // Handler for swipe-to-delete
-  const handleEntryDelete = (id: string) => {
-    Alert.alert(
-      'Delete Looking Forward?',
-      'Are you sure you want to delete your Looking Forward entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            triggerSelectionHaptic();
-
-            // Immediately remove from cache for instant UI update
-            const currentQueryKey = ['journal', 'lookingForward', userId, dateStr];
-
-            // Get current data and filter out the deleted entry
-            const currentData = queryClient.getQueryData(currentQueryKey);
-            if (currentData && Array.isArray(currentData)) {
-              const filteredData = currentData.filter((entryToDelete: any) => entryToDelete.id !== id);
-              queryClient.setQueryData(currentQueryKey, filteredData);
-
-              // CRITICAL: Also clear AsyncStorage cache to prevent entry from coming back on refresh
-              try {
-                const { JournalCache } = await import('../../services/cache/journalCache');
-                await JournalCache.clearCache(userId, dateStr, 'looking_forward');
-              } catch (cacheError) {
-                Logger.error('Failed to clear AsyncStorage cache:', cacheError as Error, {
-                  component: 'LookingForwardReactQuery',
-                });
-              }
-            }
-
-            deleteMutation.mutate(id, {
-              onSuccess: () => {
-                triggerSuccessHaptic();
-                // Don't refetch - trust our cache manipulation since API succeeded
-              },
-              onError: (deleteError: any) => {
-                Logger.error('Failed to delete entry:', deleteError as Error, {
-                  component: 'LookingForwardReactQuery',
-                  entryId: id,
-                });
-                triggerErrorHaptic();
-                // Only refetch if delete failed to restore the original data
-                refetch();
-              },
-              onSettled: () => {
-                // Delete operation completed
-              },
-            });
-          },
-        },
-      ]
-    );
-  };
 
   // Individual item edit handlers
   // editLookingForwardEntry removed - was defined but never called

@@ -8,7 +8,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
-import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';

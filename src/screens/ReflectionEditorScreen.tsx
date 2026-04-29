@@ -12,7 +12,6 @@ import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useEditModeSafe } from '../systems/journal/context/EditModeContext';
-import ThemedText from '../components/common/ThemedText';
 
 interface RouteParams {
   selectedDate?: string; // ISO date string
@@ -49,9 +48,8 @@ const ReflectionEditorScreen: React.FC = () => {
   const deleteMutation = useDeleteReflection();
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
-  const isEditing = !!params.existingReflection;
 
-  const [editingId, setEditingId] = useState<string | null>(params.existingReflection?.id || null);
+  const [editingId] = useState<string | null>(params.existingReflection?.id || null);
 
   // Success modal handlers
   const successModal = useSuccessModal(

@@ -10,7 +10,6 @@ import {
   TextInput,
   Alert,
   Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -27,7 +26,6 @@ import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { useTheme } from '../theme/ThemeContext';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -84,7 +82,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -139,7 +137,7 @@ const PrayerTypeSelectionStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={160} style={styles.categoriesGrid}>
-          {PRAYER_TYPES.map((type, index) => {
+          {PRAYER_TYPES.map((type) => {
             const isSelected = selectedType?.id === type.id;
             return (
               <TouchableOpacity
@@ -232,7 +230,7 @@ const PrayerRequestNameStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, onPersonNameChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName, onPersonNameChange, onNext, onBack: _onBack, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -354,7 +352,7 @@ const PrayerRequestPrayerFocusStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, prayerNeed, onPrayerNeedChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName, prayerNeed, onPrayerNeedChange, onNext, onBack: _onBack, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -479,7 +477,7 @@ const PrayerRequestTrackOptionStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, prayerNeed, trackAnswered, onTrackAnsweredChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName: _personName, prayerNeed: _prayerNeed, trackAnswered, onTrackAnsweredChange, onNext, onBack: _onBack, insets, navigation }) => {
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -576,7 +574,7 @@ const PrayForSomeoneNameStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, onPersonNameChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName, onPersonNameChange, onNext, onBack: _onBack, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -698,7 +696,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -823,7 +821,7 @@ const PrayForSomeoneTrackOptionStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, prayerText, trackAnswered, onTrackAnsweredChange, onNext, onBack, insets, navigation }) => {
+}> = ({ personName: _personName, prayerText: _prayerText, trackAnswered, onTrackAnsweredChange, onNext, onBack: _onBack, insets, navigation }) => {
   return (
     <View style={styles.stepContainer}>
       <ScrollView
@@ -923,7 +921,7 @@ const CompletionStep: React.FC<{
   onPrayNow: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerType, personName, prayerNeed, prayerText, trackAnswered, onDone, onPrayNow, insets, navigation }) => {
+}> = ({ prayerType, personName, prayerNeed, prayerText, trackAnswered, onDone, onPrayNow, insets, navigation: _navigation }) => {
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -955,7 +953,7 @@ const CompletionStep: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [checkmarkScale, iconRotation, iconScale]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],
@@ -1171,13 +1169,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
   const savePrayer = async () => {
     try {
-      let content = '';
-      if (selectedType?.id === 'prayer-request') {
-        content = `🙏🏼 Prayer Request for ${personName}\n\nNeed: ${prayerNeed}`;
-      } else {
-        content = `🙏🏼 Prayer for ${personName}\n\nPrayer: ${prayerText}`;
-      }
-
       const prayerData = {
         user_id: user?.id || '',
         prayer_type: 'people' as const,

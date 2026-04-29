@@ -3,7 +3,6 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
 import {
   View,
   StyleSheet,
@@ -32,7 +31,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import DevotionalModal from '../components/DevotionalModal';
 import CategoryCarouselRow from '../components/CategoryCarouselRow';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
@@ -62,14 +60,12 @@ const SIDE_INSET = Math.max(
   0,
   isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
-const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { user } = useAuth();
   const userId = user?.id;
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
 
@@ -490,7 +486,7 @@ const DevotionalsScreen = () => {
           </TouchableOpacity>
       </View>
     );
-  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, filter]);
+  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm]);
 
   // Filter-specific empty state component
   const renderFilterEmptyState = useCallback(() => {
@@ -601,13 +597,13 @@ const DevotionalsScreen = () => {
 
     // Content view filter - category-based filtering
     // Only applies when contentView is 'category' and categories are selected
-    if (contentView === 'category' && selectedCategories.length > 0) {
+    if (deferredContentView === 'category' && selectedCategories.length > 0) {
       result = result.filter(d => d.category && selectedCategories.includes(d.category));
     }
 
     // Date view filter - time-based filtering
     // Supports multiple date ranges: weekly, monthly, yearly, custom
-    if (contentView === 'date') {
+    if (deferredContentView === 'date') {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -646,7 +642,7 @@ const DevotionalsScreen = () => {
     }
 
     return result;
-  }, [devotionals, filter, searchQuery, contentView, selectedCategories, dateViewMode, customDateFrom, customDateTo]);
+  }, [devotionals, filter, searchQuery, deferredContentView, selectedCategories, dateViewMode, customDateFrom, customDateTo]);
 
   // All devotionals sorted newest first (for date views)
   const allDevotionalsSorted = useMemo(() =>
@@ -881,31 +877,8 @@ const DevotionalsScreen = () => {
 
   useScreenStatusBar(isTrulyEmpty ? 'light' : 'auto', isTrulyEmpty ? Colors.anchorBlue : undefined);
 
-  // Prefetch detail data for visible items
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: Devotional }> }) => {
-    try {
-      const ids = viewableItems.map(v => v.item?.id).filter(Boolean) as string[];
-      ids.slice(0, 6).forEach((id) => {
-        const key = ['devotionals', 'detail', userId || '', id];
-        if (!queryClient.getQueryData(key)) {
-          queryClient.prefetchQuery({
-            queryKey: key,
-            queryFn: async () => {
-              // lightweight prefetch: return existing cached list item if any
-              const fromList = (devotionals || []).find(d => d.id === id);
-              return fromList || null;
-            },
-            staleTime: 10 * 60 * 1000,
-          });
-        }
-      });
-    } catch {}
-  }).current;
-
   // Show empty state when we have no devotionals and we're not in initial loading state
   if (totalDevotionalsAll === 0 && !isInitialLoading && userId) {
-    const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
-
     return (
       <SafeAreaView style={[styles.container, styles.containerBlue]} edges={['left','right']}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
@@ -1160,7 +1133,7 @@ const DevotionalsScreen = () => {
           <View style={[styles.listContent, styles.pageInner]}>
             <DevotionalCarouselSkeleton />
           </View>
-        ) : contentView === 'all' ? (
+        ) : deferredContentView === 'all' ? (
           // All view: Continue devotionals carousel + Completed devotionals carousel
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -1191,7 +1164,7 @@ const DevotionalsScreen = () => {
             {sortedDevotionals.length === 0 && renderFilterEmptyState()}
             <View style={{ height: Math.max(insets.bottom, 8) + 80 }} />
           </ScrollView>
-        ) : contentView === 'category' ? (
+        ) : deferredContentView === 'category' ? (
           // Category view: Horizontal carousels per category
           <ScrollView
             showsVerticalScrollIndicator={false}

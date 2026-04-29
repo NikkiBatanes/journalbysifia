@@ -1,14 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-// SwipeableTodoItem handles the gesture handler imports
-import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { useTheme } from '../../hooks/useTheme';
-import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { Trophy as LuTrophy, Pencil as LuPencil } from 'lucide-react-native';
 
@@ -16,7 +11,6 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useTodayWinData,
-  useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -32,13 +26,7 @@ const WIN_TYPE_NAMES: Record<string, string> = {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
-import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
-import {
-  triggerLightHaptic,
-  triggerSelectionHaptic,
-  triggerSuccessHaptic,
-  triggerErrorHaptic,
-} from '../../utils/haptics';
+import { triggerLightHaptic } from '../../utils/haptics';
 import { useNavigation } from '@react-navigation/native';
 
 interface TodayWinProps {
@@ -50,12 +38,6 @@ interface TodayWinProps {
 
 const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
   const navigation = useNavigation();
-  // Global edit mode context (only for inline view)
-  // Global edit mode context - safe version that handles missing provider
-  const globalEditMode = useEditModeSafe();
-  // Dynamic theming for fonts
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
   const [displayWin, setDisplayWin] = useState<{ id: string; text: string; winType?: string } | null>(null);
@@ -151,36 +133,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       Alert.alert('Error', 'Failed to load today\'s win.');
     }
   }, [error, dateStr, user?.id]);
-  const deleteMutation = useDeleteTodayWinEntry();
 
   // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-
-  // Handler for swipe-to-delete
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      'Delete Today\'s Win?',
-      'Are you sure you want to delete your Today\'s Win entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            triggerSelectionHaptic();
-            deleteMutation.mutate(id, {
-              onSuccess: () => {
-                triggerSuccessHaptic();
-              },
-              onError: () => {
-                triggerErrorHaptic();
-              },
-            });
-          },
-        },
-      ]
-    );
-  };
 
   // Memoize the win object to prevent infinite re-renders - moved before early returns
   const win = React.useMemo(() => {

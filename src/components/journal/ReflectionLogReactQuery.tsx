@@ -14,7 +14,6 @@ import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
 
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
-import { styles as reflectionLogStyles } from './reflectionStyles';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
@@ -1103,4 +1102,3 @@ return (
     </>
   );
 };
-

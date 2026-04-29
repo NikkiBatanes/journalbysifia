@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Easing, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';

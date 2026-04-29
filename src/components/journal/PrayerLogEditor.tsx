@@ -10,24 +10,8 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { toLocalDateString } from '../../utils/date';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
 import PlaybookMetaSection from './PlaybookMetaSection';
-import { isToday, isYesterday, startOfDay } from 'date-fns';
-
-type DateContext = 'today' | 'yesterday' | 'earlier';
-
-// Helper to compute date context from selected date
-const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
-  const day = startOfDay(selectedDate);
-
-  if (isToday(day)) {return 'today';}
-  if (isYesterday(day)) {return 'yesterday';}
-  return 'earlier';
-};
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -383,7 +367,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
     initialContent = '',
     subtaskTitle: _subtaskTitle,
     subtaskId,
@@ -403,7 +386,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   },
   ref
 ) => {
-  const dateContext = getDateContext(selectedDate);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
@@ -443,8 +425,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   // Dynamic title font sizing - fixed size based on line count
   // Original: 22px, reduce to 18px if > 3 lines
   const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
   const s = {
     ...defaultStyles,
     ...styles,

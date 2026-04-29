@@ -63,7 +63,6 @@ interface DevotionalModalProps {
 const DevotionalModal: React.FC<DevotionalModalProps> = ({
   visible,
   onClose,
-  onSelectDuration,
   playbookInfo,
   playbookId,
   userInput,
@@ -145,8 +144,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Generating UI state (progress bar, shimmering step text, animated dots)
   const progressAnim = React.useRef(new Animated.Value(0)).current; // 0..100
   const shimmerOpacity = React.useRef(new Animated.Value(0.85)).current;
-  const [dotCount, setDotCount] = useState(0);
-  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
   // Step status tracking for step cards
@@ -213,7 +210,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         handleSelectDuration(3);
       }
     }
-  }, [visible, rotateAnim, isCreating, isSuccess, justCompleted, isOnboarding]);
+  }, [visible, rotateAnim, isCreating, isSuccess, justCompleted, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
 
@@ -243,13 +240,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       shimmerOpacity.stopAnimation();
     };
   }, [isCreating, isOnboardingCreating, isSuccess, shimmerOpacity]);
-
-  // Animated dots while creating
-  React.useEffect(() => {
-    if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
-    const id = setInterval(() => setDotCount(prev => (prev + 1) % 4), 500);
-    return () => clearInterval(id);
-  }, [isCreating, isOnboardingCreating, isSuccess]);
 
   // Shimmer animation for building text
   React.useEffect(() => {
@@ -484,7 +474,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }, getStepDuration());
     return () => clearInterval(stepInterval);
-  }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]);
+  }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const measureContent = () => {
     if (contentRef.current) {

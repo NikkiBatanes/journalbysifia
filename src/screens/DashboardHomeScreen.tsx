@@ -27,7 +27,6 @@ import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
@@ -826,7 +825,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     };
 
     loadDailyMessage();
-  }, []);
+  }, [motivationalMessages.length]);
 
   // Reset image load state when user changes
   useEffect(() => {
@@ -952,10 +951,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     } catch {}
   }, [user]);
 
-  // Collapsing Playbook label
-  const playbookWidth = useRef(new Animated.Value(0)).current;
-  const [playbookMeasuredWidth, setPlaybookMeasuredWidth] = useState(0);
-
   // ScrollView ref to reset position on focus
   const scrollRef = useRef<ScrollView | null>(null);
   // Dashboard mount animation (fade + subtle slide up)
@@ -1008,15 +1003,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           DeviceEventEmitter.emit('dashboard_focused', {} as any);
         }
       } catch {}
-
-      // Collapsing Playbook label
-      if (playbookMeasuredWidth > 0) {
-        playbookWidth.setValue(playbookMeasuredWidth);
-        Animated.timing(playbookWidth, { toValue: 0, duration: 400, useNativeDriver: false }).start();
-      }
     }, [
-      playbookMeasuredWidth,
-      playbookWidth,
       refreshSubscription,
       queryClient,
       user?.id,
@@ -1407,7 +1394,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <Image
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
-                onError={(error) => {
+                onError={() => {
                   setImageLoadFailed(true);
                 }}
                 onLoad={() => {

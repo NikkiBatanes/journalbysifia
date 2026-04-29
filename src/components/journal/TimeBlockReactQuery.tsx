@@ -234,7 +234,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   // Local state
   const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>({});
-  const [isAdding, setIsAdding] = useState(false);
+  const [, setIsAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(3);
   const [showTitleError, setShowTitleError] = useState(false);
@@ -257,8 +257,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [_inputValue, setInputValue] = useState('1');
 
   // Track if we're editing a virtual (expanded) instance of a repeating block
-  const [editIsVirtualInstance, setEditIsVirtualInstance] = useState<boolean>(false);
-  const [editInstanceDate, setEditInstanceDate] = useState<string | null>(null);
+  const [editIsVirtualInstance] = useState<boolean>(false);
+  const [editInstanceDate] = useState<string | null>(null);
 
   const [newBlock, setNewBlock] = useState<{
     title: string;

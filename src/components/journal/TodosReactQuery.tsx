@@ -29,7 +29,6 @@ import {
   useTodosData,
   useCreateTodoEntry,
   useUpdateTodoEntry,
-  useDeleteTodoEntry,
 } from '../../services/hooks/useJournalData';
 
 interface TodoItem {
@@ -174,7 +173,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const createTodoMutation = useCreateTodoEntry();
   const updateTodoMutation = useUpdateTodoEntry();
-  const deleteTodoMutation = useDeleteTodoEntry();
 
   // Transform API data to local TodoItem format
   const todos: TodoItem[] = todosData.map(entry => {
@@ -306,41 +304,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       });
       Alert.alert('Error', 'Failed to save todo. Please try again.');
     }
-  };
-
-  // Remove a todo (with confirmation + haptics)
-  const removeTodo = (id: string) => {
-    const todo = todos.find(t => t.id === id);
-    try { triggerLightHaptic(); } catch {}
-    Alert.alert(
-      'Delete To-do',
-      'Are you sure you want to delete this to-do?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try { triggerLightHaptic(); } catch {}
-            try {
-              await deleteTodoMutation.mutateAsync(id);
-              if (todo) {
-                analytics.trackTodoEvent('todo_deleted', {
-                  todo_id: id,
-                  was_completed: todo.completed,
-                  date: dateStr,
-                }, user?.id);
-              }
-            } catch (deleteError) {
-              Logger.error('Failed to delete todo', deleteError as Error, {
-        component: 'TodosReactQuery',
-      });
-              Alert.alert('Error', 'Failed to delete todo. Please try again.');
-            }
-          },
-        },
-      ]
-    );
   };
 
   const addTodo = async (value: string): Promise<boolean> => {

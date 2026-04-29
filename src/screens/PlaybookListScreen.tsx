@@ -1,22 +1,18 @@
-import React, { useRef, useCallback, useState, useEffect, useMemo, createRef, useDeferredValue } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   StyleSheet,
   Alert,
-  SectionList,
   FlatList,
   Animated,
   Pressable,
   TouchableOpacity,
   NativeModules,
-  Image,
-  PanResponder,
   Dimensions,
   ScrollView,
   DeviceEventEmitter,
@@ -55,7 +51,6 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { useScroll } from '../context/ScrollContext';
 
-import PlaybookCard from '../components/PlaybookCard';
 import DevotionalModal from '../components/DevotionalModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import { Colors, Fonts } from '../theme';
@@ -119,15 +114,6 @@ export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
   }
 
   return { completed, total };
-};
-
-/**
- * Formats a date into a human-readable month and year string
- * @param {Date} date - The date to format
- * @returns {string} Formatted date string in 'Month YYYY' format (e.g., 'June 2023')
- */
-const formatDate = (date: Date): string => {
-  return format(date, 'MMMM yyyy');
 };
 
 // Helper function to get category from playbook (AI-generated, with fallback)
@@ -260,10 +246,9 @@ interface FaithfulActionCardProps {
   scrollX: Animated.AnimatedInterpolation<number>;
   cardStyles: any;
   onPress: (item: FaithfulAction) => void;
-  triggerHaptic: () => void;
 }
 
-const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, onPress, triggerHaptic }: FaithfulActionCardProps) => {
+const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, onPress }: FaithfulActionCardProps) => {
   const scale = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
   const opacity = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' }), [scrollX, index]);
   const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [2, 0, 2], extrapolate: 'clamp' }), [scrollX, index]);
@@ -351,8 +336,9 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [2,    0,   2],    extrapolate: 'clamp' }), [scrollX, index]);
 
   const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
-  const category = useMemo(() => getCategory(item), [item.id]);
-  const tilReadTime = useMemo(() => estimateReadTime((item.truthInLove as any)?.text || ''), [(item.truthInLove as any)?.text]);
+  const category = useMemo(() => getCategory(item), [item]);
+  const truthInLoveText = (item.truthInLove as any)?.text || '';
+  const tilReadTime = useMemo(() => estimateReadTime(truthInLoveText), [truthInLoveText]);
 
   // Memoize formatted dates — avoids 6 Date allocations per render
   const updatedDateStr = useMemo(() => {
@@ -548,7 +534,7 @@ const FaithfulActionsCarouselRow = React.memo(({
   faithfulActions,
   cardStyles: st,
   onPress,
-  triggerHaptic,
+  triggerHaptic: _triggerHaptic,
 }: FaithfulActionsCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
 
@@ -559,9 +545,8 @@ const FaithfulActionsCarouselRow = React.memo(({
       scrollX={rowScrollX}
       cardStyles={st}
       onPress={onPress}
-      triggerHaptic={triggerHaptic}
     />
-  ), [rowScrollX, st, onPress, triggerHaptic]);
+  ), [rowScrollX, st, onPress]);
 
   const getFAItemLayout = useCallback((_: any, index: number) => ({
     length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
@@ -957,9 +942,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const tabBarHeight = useBottomTabBarHeight();
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  // Visible bar height excluding safe area bottom, plus a small cushion
-  const bottomClearance = Math.max(12, Math.max(0, tabBarHeight - insets.bottom) + 12);
 
   // State for creating a devotional from a playbook via long-press
   const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
@@ -1055,7 +1037,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Listen for playbook action step updates from PlaybookWalkthrough and ActionStepsCard
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('playbookProgressUpdate', (data) => {
+    const subscription = DeviceEventEmitter.addListener('playbookProgressUpdate', () => {
       // Force immediate refetch to get updated data
       // Small delay to ensure database update completes
       setTimeout(() => {
@@ -1200,7 +1182,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const { contentView, dateViewMode, selectedCategories, customDateFrom, customDateTo } = pickerState;
   // Time filter for "Continue your playbooks" section (legacy, kept for continuePlaybooks memo)
   const [continueTimeFilter] = useState<'latest'>('latest');
-  const [showContinueTimeDropdown, setShowContinueTimeDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   // Native-driver anim used only for the search icon button scale (not height)
@@ -1282,10 +1263,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Component renders with current state
 
-  // Refs
-  const rowRefs = useRef<{ [key: string]: any }>({});
-
-
   // Removed loadPlaybooksCallback - React Query handles data fetching automatically
 
   // DISABLED: Entrance animations cause ghosting/fading during data updates
@@ -1358,9 +1335,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Fetch devotionals count for each playbook — stable dep: playbooks.length, not the full array ref
   const playbooksLengthRef = useRef(0);
+  const devotionalsCountLoadedRef = useRef(false);
   useEffect(() => {
     if (!userId || playbooks.length === 0) {return;}
-    if (playbooks.length === playbooksLengthRef.current && Object.keys(devotionalsCount).length > 0) {return;}
+    if (playbooks.length === playbooksLengthRef.current && devotionalsCountLoadedRef.current) {return;}
     playbooksLengthRef.current = playbooks.length;
 
     const fetchDevotionalsCount = async () => {
@@ -1380,6 +1358,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         });
 
         setDevotionalsCount(counts);
+        devotionalsCountLoadedRef.current = true;
       } catch (err) {
         Logger.error('Error fetching devotionals count', err as Error, { component: 'PlaybookListScreen' });
       }
@@ -1710,261 +1689,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const handleDevotionalPress = useCallback((pb: Playbook) => {
     setMenuVisible(null); handleCardLongPress(pb);
   }, [handleCardLongPress]);
-
-  const renderItem = useCallback(({ item, index }: { item: Playbook; index: number }) => {
-    // Safety check for item
-    if (!item || typeof item !== 'object') {
-      Logger.warn('Invalid item in renderItem', { component: 'PlaybookListScreen', data: item });
-      return null;
-    }
-
-    const inputRange = [
-      (index - 1) * ITEM_SIZE,
-      index * ITEM_SIZE,
-      (index + 1) * ITEM_SIZE,
-    ];
-    const scale = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.96, 1, 0.96],
-      extrapolate: 'clamp',
-    });
-    const opacity = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.9, 1, 0.9],
-      extrapolate: 'clamp',
-    });
-    const translateY = scrollX.interpolate({
-      inputRange,
-      outputRange: [2, 0, 2],
-      extrapolate: 'clamp',
-    });
-
-    // Calculate progress
-    const { completed, total } = calculateTaskStats(item.actionSteps);
-    const progress = total > 0 ? (completed / total) * 100 : 0;
-    const category = getCategory(item);
-    const isCardCompleted = item.status === 'completed';
-    const wp = item.walkthroughProgress ?? -1; // -1 = not started, 0–5 = last completed step
-    const tilReadTime = estimateReadTime((item.truthInLove as any)?.text || '');
-
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={styles.carouselCardTouch}
-        onPress={() => handleCardPress(item)}
-        onLongPress={() => handleCardLongPress(item)}
-        activeOpacity={0.85}
-      >
-        <Animated.View
-          style={[
-            styles.carouselCard,
-            { transform: [{ scale }, { translateY }], opacity },
-          ]}
-        >
-          <View style={styles.gradientContainer}>
-            <View style={styles.categoryLabel}>
-              <ThemedText weight="bold" style={styles.categoryLabelText}>{category}</ThemedText>
-            </View>
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setMenuVisible(menuVisible === item.id ? null : item.id);
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
-            </TouchableOpacity>
-            {menuVisible === item.id && (
-              <View style={styles.dropdownMenu}>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    setSelectedPlaybookForRename(item);
-                    setRenameModalVisible(true);
-                  }}
-                >
-                  <ThemedText style={styles.dropdownItemText}>Rename</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    setSelectedPlaybookForTag(item);
-                    setTagModalVisible(true);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <ThemedText style={styles.dropdownItemText}>Tag</ThemedText>
-                    {item.tag && (
-                      <View style={styles.dropdownBadge}>
-                        <ThemedText style={styles.dropdownBadgeText}>{item.tag}</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    handleCardLongPress(item);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <ThemedText style={styles.dropdownItemText}>Turn into devotional</ThemedText>
-                    {devotionalsCount[item.id] > 0 && (
-                      <View style={styles.dropdownBadge}>
-                        <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
-                        {devotionalsCount[item.id] >= 2 && (
-                          <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[item.id]}</ThemedText>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dropdownItem, styles.dropdownItemLast]}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(null);
-                    handleDelete(item.id);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
-                    <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-            {menuVisible === item.id && (
-              <TouchableOpacity
-                style={styles.menuBackdrop}
-                onPress={() => setMenuVisible(null)}
-                activeOpacity={1}
-              />
-            )}
-          </View>
-
-          <View style={styles.dateWithBadge}>
-            {!isCardCompleted && item.updatedAt ? (
-              <ThemedText style={styles.carouselDate}>
-                {format(new Date(item.updatedAt), new Date(item.updatedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
-              </ThemedText>
-            ) : null}
-          </View>
-
-          <ThemedText weight="semiBold" style={styles.carouselCardTitle}>{item.title}</ThemedText>
-          {item.userInput && <ThemedText style={styles.carouselCardDescription} numberOfLines={3}>{item.userInput}</ThemedText>}
-          {/* Completed card: hide step sections, show action count summary with date */}
-          {isCardCompleted ? (
-            <View style={styles.completedSummary}>
-              <View style={styles.completedSummaryTop}>
-                <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
-                <ThemedText style={styles.completedSummaryText}>
-                  {completed} of {total} faithful actions acted on
-                </ThemedText>
-              </View>
-              {item.completedAt && (
-                <View style={styles.completedSummaryDateRow}>
-                  <Ionicons name="calendar-outline" size={12} color={Colors.growthGreen} />
-                  <ThemedText style={styles.completedDateText}>
-                    Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-          ) : (
-            /* All non-completed cards show sections — ✓/◐/○ based on walkthroughProgress */
-            <View style={styles.sectionsContainer}>
-              {([
-                { label: 'Intro',               step: 0 },
-                { label: 'Truth in Love',        step: 1, meta: tilReadTime, metaIcon: 'time-outline' },
-                { label: 'Scripture to Anchor',  step: 2 },
-                { label: 'Faithful Actions',     step: 3, meta: total > 0 ? `${completed} of ${total} acted on` : undefined },
-                { label: 'Prayer',               step: 4, metaIcon: 'pray-outline', actionIcon: 'hands-pray', actionIconType: 'material', actionIconState: sessionStates[item.id]?.hasPrayed },
-                { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons', actionIconState: sessionStates[item.id]?.hasRead },
-              ] as { label: string; step: number; meta?: string; metaIcon?: string; actionIcon?: string; actionIconType?: 'material' | 'ionicons'; actionIconState?: boolean }[]).map(({ label, step, meta, metaIcon, actionIcon, actionIconType, actionIconState }) => {
-                const state = getSectionState(step, wp, completed, total, sessionStates, item.id);
-                return (
-                  <View key={label} style={styles.sectionItem}>
-                    <View style={[
-                      styles.statusPill,
-                      state === 'completed' && styles.statusPillCompleted,
-                      state === 'viewed'    && styles.statusPillViewed,
-                      state === 'unreached' && styles.statusPillUnreached,
-                    ]}>
-                      {state === 'completed' ? (
-                        <View style={[
-                          styles.statusPillFill,
-                          state === 'completed' && styles.statusPillFillCompleted,
-                        ]} />
-                      ) : (
-                        <ThemedText style={[
-                          styles.statusPillText,
-                          state === 'viewed'    && styles.statusPillTextViewed,
-                          state === 'unreached' && styles.statusPillTextUnreached,
-                        ]}>
-                          {state === 'viewed' ? '◐' : '○'}
-                        </ThemedText>
-                      )}
-                    </View>
-                    <View style={styles.sectionContent}>
-                      <ThemedText style={[
-                        styles.sectionLabel,
-                        state === 'unreached' && styles.sectionLabelMuted,
-                      ]}>
-                        {label}
-                      </ThemedText>
-                      {meta && (
-                        <View style={styles.sectionMetaContainer}>
-                          {metaIcon && (
-                            <Ionicons
-                              name={metaIcon as any}
-                              size={12}
-                              color={'rgba(255,255,255,0.4)'}
-                              style={styles.sectionMetaIcon}
-                            />
-                          )}
-                          <ThemedText style={[
-                            styles.sectionInfo,
-                            state !== 'completed' && styles.sectionInfoMuted,
-                          ]}>
-                            {meta}
-                          </ThemedText>
-                        </View>
-                      )}
-                      {actionIcon && !meta && (
-                        actionIconType === 'ionicons' ? (
-                          <Ionicons
-                            name={actionIcon as any}
-                            size={14}
-                            color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
-                            style={styles.sectionActionIcon}
-                          />
-                        ) : (
-                          <MaterialCommunityIcons
-                            name={actionIcon as any}
-                            size={14}
-                            color={actionIconState ? Colors.alertCoral : 'rgba(255,255,255,0.4)'}
-                            style={styles.sectionActionIcon}
-                          />
-                        )
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  }, [handleCardPress, handleCardLongPress, scrollX, sessionStates, menuVisible, devotionalsCount, triggerLightHaptic, handleDelete]);
 
   // Stable renderItem for the date-view FlatList.
   // Defined with useCallback so its reference only changes when actual data/handlers change —

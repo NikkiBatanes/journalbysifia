@@ -10,7 +10,6 @@ import {
   Dimensions,
   TouchableOpacity,
   Animated,
-  RefreshControl,
   DeviceEventEmitter,
   Alert,
 } from 'react-native';
@@ -19,7 +18,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { supabase } from '../../services/supabaseClient';
@@ -73,7 +71,6 @@ const getSectionState = (
   sectionStep: number,
   wp: number,
   completedSteps?: number,
-  totalSteps?: number,
 ): 'completed' | 'viewed' | 'unreached' => {
   if (wp < 0 && (!completedSteps || completedSteps === 0)) { return 'unreached'; }
   if (wp >= sectionStep) { return 'completed'; }
@@ -212,7 +209,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 }) => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const queryClient = useQueryClient();
   const scrollX = useRef(new Animated.Value(0)).current;
   const [content, setContent] = useState<CombinedContent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -241,8 +237,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     try {
       await deleteDevotional(devotionalId);
       setMenuVisible(null);
-    } catch (error) {
-      console.error('Error deleting devotional', error);
+    } catch (deleteError) {
+      console.error('Error deleting devotional', deleteError);
     }
   };
 
@@ -314,19 +310,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       subscription.remove();
     };
   }, []);
-
-  const formatFinishedDate = (dateStr?: string): string | undefined => {
-    if (!dateStr) { return undefined; }
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) { return undefined; }
-    const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
-    const month = d.toLocaleDateString(undefined, { month: 'long' });
-    const day = d.getDate();
-    const year = d.getFullYear();
-    const currentYear = new Date().getFullYear();
-    const yearPart = year === currentYear ? '' : `, ${year}`;
-    return `${weekday}, ${month} ${day}${yearPart}`;
-  };
 
   const fetchContent = useCallback(async () => {
     if (!user) { return; }
@@ -592,7 +575,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   // Listen for playbook action step updates from PlaybookWalkthrough
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
+    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', () => {
       fetchContent();
     });
 
@@ -688,18 +671,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       }
     };
   }, [user?.id, scheduleRefetch, fetchContent]);
-
-  const getProgressColor = (progress: number) => {
-    if (progress === 0) { return 'rgba(255, 255, 255, 0.16)'; }
-    if (progress === 100) { return Colors.growthGreen; }
-    return Colors.alertCoral;
-  };
-
-  const getProgressText = (progress: number) => {
-    if (progress === 0) { return 'Not started'; }
-    if (progress === 100) { return 'Complete'; }
-    return `${progress}% Complete`;
-  };
 
   const renderPlaybookCard = (playbook: PlaybookContent, index: number) => {
     const inputRange = [

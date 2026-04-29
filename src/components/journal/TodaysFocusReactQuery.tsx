@@ -17,7 +17,6 @@ import {
   useTodaysFocusData,
   useCreateJournalEntry,
   useUpdateJournalEntry,
-  useDeleteTodaysFocusEntry,
 } from '../../services/hooks/useJournalData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
@@ -86,7 +85,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
-  const deleteMutation = useDeleteTodaysFocusEntry();
 
   // Refetch data when screen comes back into focus (after saving in walkthrough)
   useFocusEffect(
@@ -431,56 +429,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     setData(prev => ({ ...prev, focus: text }));
   };
 
-  const clearFocus = async () => {
-    // Check if there are any priorities with text
-    const hasPriorities = data.priorities.some(p => p.text.trim() !== '');
-
-    if (existingEntry?.id && !hasPriorities) {
-      // Only delete the entire entry if there are no priorities
-      try {
-        await deleteMutation.mutateAsync(existingEntry.id);
-        // Mark as deleted and reset to empty state
-        setWasDeleted(true);
-        setData({
-          focus: '',
-          personalText: '',
-          priorities: [
-            { id: '1', text: '', completed: false },
-            { id: '2', text: '', completed: false },
-            { id: '3', text: '', completed: false },
-          ],
-        });
-        setIsEditing(false);
-      } catch (deleteError) {
-        Logger.error('Error deleting focus entry', deleteError as Error, {
-          component: 'TodaysFocusReactQuery',
-        });
-      }
-    } else {
-      // If there are priorities, just clear the focus text and update the entry
-      setData(prev => ({ ...prev, focus: '' }));
-      if (existingEntry?.id && hasPriorities) {
-        // Update the entry with empty focus but keep priorities
-        try {
-          const updatedContent = {
-            focus: '',
-            priorities: data.priorities,
-          };
-          await updateMutation.mutateAsync({
-            id: existingEntry.id,
-            updates: {
-              content: JSON.stringify(updatedContent),
-            },
-          });
-        } catch (updateError) {
-          Logger.error('Error updating focus entry', updateError as Error, {
-            component: 'TodaysFocusReactQuery',
-          });
-        }
-      }
-    }
-  };
-
   const updatePriority = (index: number, text: string) => {
     setData(prev => ({
       ...prev,
@@ -519,32 +467,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     // Persist to database and wait for completion before emitting event
     // This ensures Moments screen fetches updated data
     await saveFocus(updated).catch(() => {});
-  };
-
-  const removePriority = (priorityId: string) => {
-    try { triggerLightHaptic(); } catch {}
-    Alert.alert(
-      'Remove Priority',
-      'Are you sure you want to remove this priority?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try { triggerLightHaptic(); } catch {}
-            const updated = {
-              ...data,
-              priorities: data.priorities.filter(p => p.id !== priorityId),
-            };
-            // Update local state immediately
-            setData(updated);
-            // Persist deletion and wait for completion
-            await saveFocus(updated).catch(() => {});
-          },
-        },
-      ]
-    );
   };
 
   // Individual priority edit handlers

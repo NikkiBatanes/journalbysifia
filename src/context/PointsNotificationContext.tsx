@@ -4,9 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useRef, useCallback, ReactNode, useEffect } from 'react';
-import { View, StyleSheet, Modal } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
-import AnimatedPointsNotification from '../components/ui/AnimatedPointsNotification';
 import { notificationService } from '../services/notificationService';
 // Removed unused imports: useEffect, useCallback, Animated, Easing, StyleProp, ViewStyle, notificationService
 
@@ -22,19 +20,6 @@ interface PointsNotificationContextType {
 }
 
 const PointsNotificationContext = createContext<PointsNotificationContextType | undefined>(undefined);
-
-const styles = StyleSheet.create({
-  notificationOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999999999,
-    elevation: 999999999,
-    pointerEvents: 'none',
-  },
-});
 
 interface PointsNotificationProviderProps {
   children: ReactNode;
@@ -111,31 +96,6 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       Object.values(currentTimeouts).forEach(clearTimeout);
     };
   }, [showPointsNotification]);
-
-  const handleAnimationComplete = useCallback((id: string) => {
-    if (!isMounted.current) {return;}
-
-    // Capture current timeout value to avoid stale closure
-    const currentTimeout = timeouts.current[id];
-
-    // Use requestAnimationFrame to defer the state update
-    requestAnimationFrame(() => {
-      if (isMounted.current) {
-        setNotifications(prev => {
-
-          const filtered = prev.filter(n => n.id !== id);
-
-          return filtered;
-        });
-
-        // Clear any pending timeout for this notification
-        if (currentTimeout) {
-          clearTimeout(currentTimeout);
-          delete timeouts.current[id];
-        }
-      }
-    });
-  }, []);
 
   return (
     <PointsNotificationContext.Provider value={{ showPointsNotification }}>

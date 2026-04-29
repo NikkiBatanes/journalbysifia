@@ -27,7 +27,6 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
@@ -120,7 +119,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -193,7 +192,7 @@ const CategorySelectionStep: React.FC<{
     } else {
       chooseAgainScale.setValue(0);
     }
-  }, [isOtherSelected]);
+  }, [isOtherSelected, chooseAgainScale]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -321,7 +320,7 @@ const CategorySelectionStep: React.FC<{
 
         {!isOtherSelected && (
           <StepFadeIn delay={160} style={styles.categoriesGrid}>
-          {displayedCategories.map((category, index) => {
+          {displayedCategories.map((category) => {
             const isSelected = selectedCategory?.id === category.id;
             return (
               <TouchableOpacity
@@ -446,7 +445,7 @@ const PersonalTextInputStep: React.FC<{
   customFocus: string;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ category, personalText, onChange, onNext, onBack, insets, navigation, icon, iconType, customFocus, fontKey, dateContext }) => {
+}> = ({ category, personalText, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, customFocus, fontKey, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -457,7 +456,7 @@ const PersonalTextInputStep: React.FC<{
       duration: 400,
       useNativeDriver: false,
     }).start();
-  }, []);
+  }, [verticalLineHeight]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -620,7 +619,7 @@ const PrioritiesInputStep: React.FC<{
   customFocus: string;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ priorities, onChange, onNext, onBack, insets, navigation, icon, iconType, category, customFocus, fontKey, dateContext }) => {
+}> = ({ priorities, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, category, customFocus, fontKey, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -631,7 +630,7 @@ const PrioritiesInputStep: React.FC<{
       duration: 400,
       useNativeDriver: false,
     }).start();
-  }, []);
+  }, [verticalLineHeight]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -1130,10 +1129,6 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     } else {
       navigation.goBack();
     }
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
   };
 
   // Swipe gesture handlers

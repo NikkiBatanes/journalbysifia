@@ -499,7 +499,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
-  const [journalExpanded, setJournalExpanded] = useState(false);
+  const [, setJournalExpanded] = useState(false);
   const createPrayerMutation = useCreateDevotionalPrayer();
 
   // Success modal for journal saves
@@ -587,7 +587,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setJournalText('');
     setJournalSaved(false);
     setSelectedChoice(null);
-  }, [actionStepIndex]);
+  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerRotation, triggerScale]);
 
   // Auto-nudge: expand journal icons on first step, then collapse — one time only per session.
   // ALL inner timers are tracked in nudgeTimerRefs so they can be cancelled on unmount or
@@ -680,7 +680,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         saveCurrentSession();
       });
     },
-    [isLastStep, onNext, animateToNext, actionStepIndex]
+    [isLastStep, onNext, animateToNext, actionStepIndex, setActionStepIndex]
   );
 
   const handleSaveJournal = useCallback(() => {
@@ -1598,7 +1598,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const [journalExpanded, setJournalExpanded] = useState(false);
-  const [journalCollapseComplete, setJournalCollapseComplete] = useState(true);
+  const [, setJournalCollapseComplete] = useState(true);
 
   const userName: string =
     (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
@@ -1955,9 +1955,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Derive data
   const prayerText = playbook.prayer || '';
-
-  // If no prayer exists (old playbooks), skip step 4 entirely
-  const hasPrayer = prayerText.length > 0;
 
   // Gentle transition phrases — rotate based on playbook id so each playbook gets a
   // consistent phrase, but it varies across different playbooks.

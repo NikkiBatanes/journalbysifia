@@ -14,11 +14,7 @@ import {
 } from 'react-native';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../common/ThemedText';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
@@ -50,7 +46,6 @@ type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -455,7 +450,6 @@ const GratitudeLogEditorInner = (
   const {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
     initialItems = [],
     subtaskTitle: _subtaskTitle,
     playbookTitle,
@@ -469,8 +463,6 @@ const GratitudeLogEditorInner = (
   } = props;
 
   const dateContext = getDateContext(selectedDate);
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');

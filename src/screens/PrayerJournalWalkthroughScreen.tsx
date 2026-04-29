@@ -9,9 +9,6 @@ import {
   StatusBar,
   TextInput,
   Alert,
-  LayoutAnimation,
-  Platform,
-  UIManager,
   Keyboard,
   useWindowDimensions,
 } from 'react-native';
@@ -41,7 +38,6 @@ type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -110,7 +106,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -175,7 +171,7 @@ const PrayerPathSelectionStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={160} style={styles.categoriesGrid}>
-          {PRAYER_PATHS.map((path, index) => {
+          {PRAYER_PATHS.map((path) => {
             const isSelected = selectedPath?.id === path.id;
             return (
               <TouchableOpacity
@@ -1277,10 +1273,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     } else {
       navigation.goBack();
     }
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
   };
 
   // Swipe gesture handlers

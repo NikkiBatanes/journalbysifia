@@ -27,9 +27,6 @@ import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { LocationSelector } from '../LocationSelector';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 interface TimeBlockLogEditorProps {
@@ -86,7 +83,7 @@ export interface TimeBlockLogEditorRef {
 }
 
 // Styles matching app design (PlaybookListScreen & PlaybookWalkthroughScreen)
-const createDefaultStyles = (fonts: any) => ({
+const createDefaultStyles = (_fonts: any) => ({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -800,8 +797,6 @@ function TimeBlockLogEditorInner(
   const {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
-    subtaskTitle: _subtaskTitle,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
@@ -814,8 +809,6 @@ function TimeBlockLogEditorInner(
   } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
   const { user } = useAuth();
 
   // Get user's week start preference from metadata (default to Sunday/0)
@@ -851,7 +844,6 @@ function TimeBlockLogEditorInner(
   // Reorder day labels based on week start preference
   const dayLabels = useMemo(() => {
     const allDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const allDayIndices = [0, 1, 2, 3, 4, 5, 6];
 
     // Reorder arrays based on week start day
     const reorderedLabels = [];
@@ -972,21 +964,6 @@ function TimeBlockLogEditorInner(
       keyboardWillHideListener.remove();
     };
   }, [fabBottomPosition]);
-
-  // Calculate estimated line count based on text length and newlines
-  const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
-    if (!text || text.trim().length === 0) {return 1;}
-    const newlineCount = (text.match(/\n/g) || []).length;
-    const textWithoutNewlines = text.replace(/\n/g, '');
-    const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);
-    return newlineCount + wrappedLines;
-  };
-
-  // Dynamic title font sizing - fixed size based on line count
-  // Header title: Original 22px, reduce to 18px if > 3 lines
-  // Input title: Original 18px (consistent with other editors)
-  const headerTitleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const inputTitleFontSize = 18; // Input field uses 18px (consistent with other editors)
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;

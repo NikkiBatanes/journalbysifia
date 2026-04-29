@@ -56,7 +56,7 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
   // Create animated values for each day (stable across renders)
   const scaleAnims = useMemo(
     () => orderedDays.map(() => new Animated.Value(0)),
-    [weekStart]
+    [orderedDays]
   );
 
   // Trigger staggered spring animations when dayStates loads

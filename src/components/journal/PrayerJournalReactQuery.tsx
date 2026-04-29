@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -9,21 +9,16 @@ import {
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Check, Pencil } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 // import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts'; // Unused
 import { JournalCard } from './JournalCard';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../../services/queryKeys';
 import {
   useACTSPrayerData,
-  useCreatePrayer,
   useMarkSupplicationAnswered,
-  useDeletePrayer,
-  useUpdatePrayer,
 } from '../../services/hooks/usePrayerData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -37,7 +32,6 @@ import {
   triggerErrorHaptic,
 } from '../../utils/haptics';
 import type { PluginFilters } from '../../systems/journal/types';
-import { faithPointsService } from '../../services/faithPointsService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -252,19 +246,11 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const dateCategory = getDateCategory(selectedDate);
 
   // React Query hooks
-  const queryClient = useQueryClient();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
-  const createMutation = useCreatePrayer();
   const markAnsweredMutation = useMarkSupplicationAnswered();
-  const deleteMutation = useDeletePrayer();
-  const updateMutation = useUpdatePrayer();
 
   // Local state
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
-  const [prayerText, setPrayerText] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
 
   // Transform API data to local format
   const existingPrayers = useMemo(() => {
@@ -336,8 +322,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
     if (isEditing) {
-      const selectedType = PRAYER_TYPES.find(t => t.key === selectedPrayerType);
-      return selectedType?.method === 'ACTS' ? 'CAST Method Prayer' : 'Open Prayer';
+      return 'CAST Method & Open Prayer';
     }
     if (hasContent) {
       // Count ACTS prayer sessions (1 CAST prayer = 1 prayer, not per step)
@@ -399,116 +384,14 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [navigation, selectedDate]);
 
-  // Handle prayer type selection
-  const handlePrayerTypeSelect = useCallback((type: string) => {
-    setSelectedPrayerType(type);
-  }, []);
-
   // Handle cancel editing
   const handleCancelEdit = useCallback(() => {
-    setPrayerText('');
-    // Ensure no selection remains when cancelling add/edit
-    setSelectedPrayerType('');
     setIsEditing(false);
 
     if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
       globalEditMode.setGlobalEditMode(false);
     }
   }, [globalEditMode, viewMode]);
-
-  // Handle save prayer
-  const handleSavePrayer = useCallback(async () => {
-    if (!prayerText.trim()) {
-      Alert.alert('Empty Prayer', 'Please enter your prayer before saving.');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      if (editingPrayerId) {
-        // Update existing prayer
-        await updateMutation.mutateAsync({
-          id: editingPrayerId,
-          updates: {
-            content: prayerText.trim(),
-          },
-          _userId: user?.id || '',
-          _dateStr: dateStr,
-        });
-
-        // Manually invalidate ACTS prayer cache to ensure UI updates
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.acts(user?.id || '', dateStr),
-        });
-
-        analytics.track('prayer_journal_entry_updated', {
-          prayer_id: editingPrayerId,
-          date: dateStr,
-          content_length: prayerText.trim().length,
-        });
-      } else {
-        // Require the user to choose a prayer type before creating
-        if (!selectedPrayerType) {
-          Alert.alert('Choose Prayer Type', 'Please select a prayer type (ACTS or Open Prayer) before saving.');
-          setIsSaving(false);
-          return;
-        }
-        // Create new prayer
-        await createMutation.mutateAsync({
-          user_id: user?.id || '',
-          selected_date: dateStr,
-          prayer_type: 'journal',
-          journal_category: selectedPrayerType === 'freeform' ? 'personal_prayer' : selectedPrayerType as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
-          content: prayerText.trim(),
-          status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
-        });
-
-        if (user?.id) {
-          const activityKey: Parameters<typeof faithPointsService.awardPoints>[1] =
-            selectedPrayerType === 'freeform' ? 'prayer_journal_open' : 'prayer_journal_acts';
-
-          faithPointsService
-            .awardPoints(user.id, activityKey, {
-              suppressNotification: true,
-              source: 'prayer_journal',
-              journal_category: selectedPrayerType,
-              selected_date: dateStr,
-            })
-            .catch(error => {
-              Logger.warn('[PrayerJournalReactQuery] Failed to award prayer journal faith points', { component: 'PrayerJournalReactQuery', data: error });
-            });
-        }
-
-        analytics.track('prayer_journal_entry_created', {
-          prayer_type: selectedPrayerType,
-          date: dateStr,
-          content_length: prayerText.trim().length,
-        });
-      }
-
-      // Success feedback only after confirmed mutation success
-      triggerSuccessHaptic();
-
-      // Reset form
-      setPrayerText('');
-      setSelectedPrayerType('');
-      setIsEditing(false);
-      setEditingPrayerId(null);
-
-      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-        globalEditMode.setGlobalEditMode(false);
-      }
-    } catch (saveError) {
-      Logger.error('Error saving prayer', saveError as Error, {
-        component: 'PrayerJournalReactQuery',
-      });
-      Alert.alert('Error', 'Failed to save prayer. Please try again.');
-      // Error feedback
-      triggerErrorHaptic();
-    } finally {
-      setIsSaving(false);
-    }
-  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode, queryClient]);
 
   // Handle mark prayer as answered
   const handleMarkAnswered = useCallback(async (prayerId: string, isAnswered: boolean) => {
@@ -544,8 +427,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       setIsEditing(true);
     } else if (viewMode === 'inline' && !globalEditMode?.isGlobalEditMode && isEditing) {
       setIsEditing(false);
-      setPrayerText('');
-      setSelectedPrayerType('');
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
 

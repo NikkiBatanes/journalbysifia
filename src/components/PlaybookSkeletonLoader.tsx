@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, ViewStyle, Animated, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
@@ -66,58 +66,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
   );
 };
 
-// Animated progress bar skeleton component
-const _AnimatedProgressBarSkeleton = () => {
-  const progressAnim = useRef(new Animated.Value(0.25)).current;
-
-  useEffect(() => {
-    const animateProgress = () => {
-      Animated.sequence([
-        Animated.timing(progressAnim, {
-          toValue: 0.6,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(progressAnim, {
-          toValue: 0.25,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]).start((finished) => {
-        // Only continue if component is still mounted and animation finished properly
-        if (finished) {
-          animateProgress();
-        }
-      });
-    };
-
-    // Start animation
-    animateProgress();
-
-    // Cleanup function to prevent memory leaks
-    return () => {
-      progressAnim.stopAnimation();
-      // Mark as finished to prevent recursive calls
-      (progressAnim as any)._finished = true;
-    };
-  }, [progressAnim]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.progressBarFill,
-        styles.progressBarFillLight,
-        styles.progressBarEmpty,
-        { opacity: progressAnim },
-      ]}
-    />
-  );
-};
-
 const PlaybookSkeletonLoader = () => {
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>

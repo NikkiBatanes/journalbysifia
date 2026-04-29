@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pencil } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useDeletePrayer, useMarkPrayerRequestPrayed } from '../../services/hooks/usePrayerData';
+import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -73,7 +73,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
-  const deleteMutation = useDeletePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const insets = useSafeAreaInsets();
 
@@ -455,20 +454,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     // Show only unprayed requests in the Requests section
     const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true && item.prayed !== true);
     const prayedForPrayers = peoplePrayers.filter(item => item.is_prayer_request !== true);
-
-    // Calculate display limits for inline view
-    const hasRequests = localPrayerRequests.length > 0;
-    const hasPersonal = prayedForPrayers.length > 0;
-
-    // Default: 1 of each type, but if one is missing, show 2 of the other
-    let requestsLimit = hasRequests ? 1 : 0;
-    let personalLimit = hasPersonal ? 1 : 0;
-
-    if (!hasRequests && hasPersonal) {
-      personalLimit = 2;
-    } else if (hasRequests && !hasPersonal) {
-      requestsLimit = 2;
-    }
 
     // Apply limits
     const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
