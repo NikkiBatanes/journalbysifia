@@ -167,24 +167,6 @@ const UserInputScreen: React.FC = () => {
       }).start(() => resolve());
     });
 
-  const _completeAllSteps = async () => {
-    // Mark all steps as completed and animate check icons
-    setGenerationSteps((prev) =>
-      prev.map((step, index) => {
-        // Animate check icon for each completed step
-        Animated.spring(checkIconAnims[index], {
-          toValue: 1,
-          tension: 80,
-          friction: 8,
-          useNativeDriver: true,
-        }).start();
-        return { ...step, status: 'completed' };
-      })
-    );
-    setCurrentStep(4);
-    await animateProgressTo(100, 600);
-  };
-
   const completeProgress = async () => {
     // Mark all steps as completed and animate check icons
     setGenerationSteps((prev) =>
@@ -223,8 +205,6 @@ const UserInputScreen: React.FC = () => {
     setCurrentStep(4);
     await animateProgressTo(100, 600);
   };
-
-  const _getTargetProgressForStep = (stepIndex: number) => PHASE_PROGRESS_TARGETS[Math.min(stepIndex, PHASE_PROGRESS_TARGETS.length - 1)] || 95;
 
   const updateStepStatus = (stepIndex: number) => {
     // Raise trickle ceiling so the bar is now allowed to approach this phase's target
@@ -359,7 +339,6 @@ const UserInputScreen: React.FC = () => {
   // Transition animations
   const inputCollapseAnim       = useRef(new Animated.Value(0)).current;
   const generatingFadeAnim      = useRef(new Animated.Value(0)).current;
-  const _generatingSlideAnim    = useRef(new Animated.Value(0)).current;   // unused slide — kept for compat
   const generatingScaleAnim     = useRef(new Animated.Value(0.92)).current; // container scale spring
   const inputScaleAnim          = useRef(new Animated.Value(1)).current;
 
@@ -606,55 +585,6 @@ const UserInputScreen: React.FC = () => {
     } else {
       return 'fresh'; // Never tried trial
     }
-  };
-
-  const _getSeekerDisplayText = () => {
-    const seekerType = getSeekerType();
-
-    switch (seekerType) {
-      case 'fresh':
-        return 'No Playbooks'; // Never had access to playbooks
-      case 'expired_trial':
-        return 'No Playbooks Remaining'; // Had access during trial
-      case 'cancelled_subscription':
-        return 'No Playbooks Remaining'; // Had access with paid plan
-      default:
-        return 'No Playbooks'; // Default to no access message
-    }
-  };
-
-  const _getTierDisplayName = (subscription: any) => {
-    // Use subscription_display_name if available (e.g., "siFia Spark Trial")
-    if (subscription?.subscription_display_name) {
-
-      return subscription.subscription_display_name;
-    }
-
-    // Fallback to tier-based logic
-    const tier = subscription?.tier;
-    const chosenTier = subscription?.trial_chosen_tier;
-
-    // Handle trial display logic with chosen tier
-    if (tier === 'free_trial' && chosenTier) {
-      const tierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
-
-      return `siFia ${tierName} Trial`;
-    } else if (tier === 'free_trial') {
-      return 'siFia Trial';
-    }
-
-    // Handle other tier displays using consistent naming
-    const tierDisplayMap: Record<string, string> = {
-      'seeker': 'siFia Seeker',
-      'spark': 'siFia Spark',
-      'growth': 'siFia Growth',
-      'transformation': 'siFia Transformation',
-      'family': 'siFia Family',
-    };
-
-    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ') || 'siFia Seeker';
-
-    return displayName;
   };
 
   // const userId = user?.id; // Unused, commented out

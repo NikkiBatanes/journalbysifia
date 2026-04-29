@@ -871,7 +871,7 @@ const OnboardingTrialOfferScreen = () => {
         isCompleted: false,
       },
     ];
-  }, [selectedTierId, isAnnual, getTrialBenefits]);
+  }, [isAnnual, getTrialBenefits]);
 
 // ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {

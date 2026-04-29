@@ -486,7 +486,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         setSelectedTier(target.id);
       }
     }
-  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
+  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier, isDevotionalDurationLocked]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
