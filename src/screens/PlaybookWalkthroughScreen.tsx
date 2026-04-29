@@ -1517,17 +1517,27 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const routePlaybook = route.params?.playbook;
   const source = route.params?.source;
+  const initialStep = route.params?.initialStep;
+  const initialActionIndex = route.params?.initialActionIndex;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [stepIndex, setStepIndex] = useState(() => {
+    if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
+      return initialStep;
+    }
     if (!routePlaybook || routePlaybook.status === 'completed') { return 0; }
     const wp = routePlaybook.walkthroughProgress ?? -1;
     if (wp < 0) { return 0; }
     // wp = last step where Next was pressed → resume at wp + 1, capped at step 5 (never auto-land on completion)
     return Math.min(wp + 1, TOTAL_STEPS - 2);
   });
-  const [actionStepIndex, setActionStepIndex] = useState(persistedActionStepIndex);
+  const [actionStepIndex, setActionStepIndex] = useState(() => {
+    if (initialActionIndex !== undefined && initialActionIndex >= 0) {
+      return initialActionIndex;
+    }
+    return persistedActionStepIndex;
+  });
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
 
@@ -1613,6 +1623,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             persistedCompletionChoice = session.completionChoice ?? null;
             // Don't restore journalNudgeFired — always let the nudge run fresh
             journalNudgeFired = false;
+            // If we navigated here with a specific action index, honor it instead of session
+            if (initialActionIndex !== undefined && initialActionIndex >= 0) {
+              persistedActionStepIndex = initialActionIndex;
+            }
             setActionStepIndex(persistedActionStepIndex);
           } catch (_) {
             // Corrupted data — fall through to reset below
@@ -1621,12 +1635,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           // Different (or new) playbook — clear all state
           persistedPlaybookId = playbookId;
           persistedCommittedSteps = {};
-          persistedActionStepIndex = 0;
+          persistedActionStepIndex = initialActionIndex !== undefined && initialActionIndex >= 0
+            ? initialActionIndex
+            : 0;
           persistedHasPrayed = false;
           persistedHasRead = false;
           persistedCompletionChoice = null;
           journalNudgeFired = false;
-          setActionStepIndex(0);
+          setActionStepIndex(persistedActionStepIndex);
         }
         setSessionLoaded(true);
       })

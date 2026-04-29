@@ -77,6 +77,20 @@ interface TaskStats {
   total: number;
 }
 
+interface FaithfulAction {
+  id: string;
+  playbookId: string;
+  playbookTitle: string;
+  playbookCategory: string;
+  actionIndex: number;
+  actionTitle: string;
+  actionDescription: string;
+  completed: boolean;
+  totalActions: number;
+  completedActions: number;
+  playbookUpdatedAt: string;
+}
+
 // Calculate completed and total tasks for a playbook's action steps (optimized)
 export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
   // Early return for empty or invalid input
@@ -128,6 +142,72 @@ const estimateReadTime = (text: string): string => {
   return `${minutes} min read`;
 };
 
+// Extract incomplete faithful actions from in-progress playbooks
+const extractIncompleteFaithfulActions = (playbooks: Playbook[]): FaithfulAction[] => {
+  const actions: FaithfulAction[] = [];
+
+  for (const playbook of playbooks) {
+    // Only process in-progress playbooks
+    if (playbook.status === 'completed') continue;
+    if (!playbook.actionSteps || !Array.isArray(playbook.actionSteps)) continue;
+
+    const { completed, total } = calculateTaskStats(playbook.actionSteps);
+
+    // Iterate through action steps to find incomplete ones
+    for (let i = 0; i < playbook.actionSteps.length; i++) {
+      const step = playbook.actionSteps[i];
+      if (!step) continue;
+
+      // Check if this step is incomplete
+      const isStepIncomplete = !step.completed;
+
+      // Handle subtasks if present
+      if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
+        for (let j = 0; j < step.subTasks.length; j++) {
+          const subTask = step.subTasks[j];
+          if (!subTask || subTask.completed) continue;
+
+          actions.push({
+            id: `${playbook.id}-${i}-${j}`,
+            playbookId: playbook.id,
+            playbookTitle: playbook.title,
+            playbookCategory: getCategory(playbook),
+            actionIndex: i + 1,
+            actionTitle: step.title || (subTask as any).title || `Faithful Action ${i + 1}`,
+            actionDescription: (subTask as any).description || step.description || '',
+            completed: false,
+            totalActions: total,
+            completedActions: completed,
+            playbookUpdatedAt: playbook.updatedAt || playbook.createdAt || new Date().toISOString(),
+          });
+        }
+      } else if (isStepIncomplete) {
+        // Top-level step that's incomplete
+        actions.push({
+          id: `${playbook.id}-${i}`,
+          playbookId: playbook.id,
+          playbookTitle: playbook.title,
+          playbookCategory: getCategory(playbook),
+          actionIndex: i + 1,
+          actionTitle: step.title || `Faithful Action ${i + 1}`,
+          actionDescription: step.description || '',
+          completed: false,
+          totalActions: total,
+          completedActions: completed,
+          playbookUpdatedAt: playbook.updatedAt || playbook.createdAt || new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  // Sort by most recently updated playbook
+  return actions.sort((a, b) => {
+    const dateA = new Date(a.playbookUpdatedAt).getTime();
+    const dateB = new Date(b.playbookUpdatedAt).getTime();
+    return dateB - dateA;
+  });
+};
+
 // Derive per-section state from walkthrough_progress and action step completion
 // completed = Next was pressed on that step OR all action steps in that section are completed
 // viewed = user was there but didn't press Next OR some action steps are completed OR prayed/read for Prayer/Words
@@ -172,6 +252,64 @@ const CARD_SECTIONS: CardSection[] = [
   { label: 'Prayer',               step: 4, metaIcon: 'pray-outline',        actionIcon: 'hands-pray',             actionIconType: 'material' },
   { label: 'Words to Speak',       step: 5, metaIcon: 'volume-high-outline', actionIcon: 'chatbubble-ellipses-outline', actionIconType: 'ionicons' },
 ];
+
+interface FaithfulActionCardProps {
+  item: FaithfulAction;
+  index: number;
+  scrollX: Animated.AnimatedInterpolation<number>;
+  cardStyles: any;
+  onPress: (item: FaithfulAction) => void;
+  triggerHaptic: () => void;
+}
+
+const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, onPress, triggerHaptic }: FaithfulActionCardProps) => {
+  const scale = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
+  const opacity = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' }), [scrollX, index]);
+  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [2, 0, 2], extrapolate: 'clamp' }), [scrollX, index]);
+
+  const updatedDateStr = useMemo(() => {
+    if (!item.playbookUpdatedAt) return null;
+    const d = new Date(item.playbookUpdatedAt);
+    return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
+  }, [item.playbookUpdatedAt]);
+
+  return (
+    <TouchableOpacity style={st.carouselCardTouch} onPress={() => onPress(item)} activeOpacity={0.85}>
+      <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
+        <View style={st.gradientContainer}>
+          <View style={st.categoryLabel}>
+            <ThemedText weight="bold" style={st.categoryLabelText}>{item.playbookCategory}</ThemedText>
+          </View>
+        </View>
+
+        <View style={st.dateWithBadge}>
+          {updatedDateStr ? (
+            <ThemedText style={st.carouselDate}>{updatedDateStr}</ThemedText>
+          ) : null}
+        </View>
+
+        <ThemedText weight="regular" style={st.faithfulActionLabel}>Faithful Action {item.actionIndex}</ThemedText>
+        <ThemedText weight="semiBold" style={st.faithfulActionTitle}>{item.actionTitle}</ThemedText>
+        <ThemedText style={st.faithfulActionDescription} numberOfLines={3}>{item.actionDescription}</ThemedText>
+
+        <View style={st.faithfulActionDivider} />
+
+        <ThemedText style={st.faithfulActionFrom}>From: {item.playbookTitle}</ThemedText>
+
+        <View style={st.faithfulActionDivider} />
+
+        <ThemedText style={st.faithfulActionMeta}>{item.completedActions} of {item.totalActions} faithful actions acted on</ThemedText>
+        {updatedDateStr && (
+          <ThemedText style={st.faithfulActionMeta}>Updated {updatedDateStr}</ThemedText>
+        )}
+
+        <TouchableOpacity style={st.faithfulActionContinueButton} onPress={() => onPress(item)}>
+          <ThemedText weight="semiBold" style={{ fontSize: 14, color: Colors.hopeWhite, fontFamily: Fonts.semiBold }}>CONTINUE</ThemedText>
+        </TouchableOpacity>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+});
 
 interface CarouselCardProps {
   item: Playbook;
@@ -371,12 +509,68 @@ const CategoryCarouselRow = React.memo(({
   );
 });
 
+// ── Faithful Actions horizontal carousel row ──────────────────────────────────
+interface FaithfulActionsCarouselRowProps {
+  faithfulActions: FaithfulAction[];
+  cardStyles: any;
+  onPress: (item: FaithfulAction) => void;
+  triggerHaptic: () => void;
+}
+
+const FaithfulActionsCarouselRow = React.memo(({
+  faithfulActions,
+  cardStyles: st,
+  onPress,
+  triggerHaptic,
+}: FaithfulActionsCarouselRowProps) => {
+  const rowScrollX = useRef(new Animated.Value(0)).current;
+  return (
+    <View style={st.categorySection}>
+      <View style={st.categorySectionHeader}>
+        <ThemedText weight="semiBold" style={st.categorySectionTitle}>CONTINUE FAITHFUL ACTIONS</ThemedText>
+        <View style={st.categorySectionCount}>
+          <ThemedText style={st.categorySectionCountText}>{faithfulActions.length}</ThemedText>
+        </View>
+      </View>
+      <Animated.ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={CAROUSEL_CONTENT_STYLE}
+        decelerationRate="fast"
+        snapToInterval={ITEM_SIZE}
+        snapToAlignment="center"
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: rowScrollX } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
+        directionalLockEnabled={true}
+        disableIntervalMomentum={false}
+        bounces={false}
+        removeClippedSubviews={true}
+      >
+        {faithfulActions.map((action, index) => (
+          <FaithfulActionCard
+            key={action.id}
+            item={action}
+            index={index}
+            scrollX={rowScrollX}
+            cardStyles={st}
+            onPress={onPress}
+            triggerHaptic={triggerHaptic}
+          />
+        ))}
+      </Animated.ScrollView>
+    </View>
+  );
+});
+
 // ─── Picker Modal ─────────────────────────────────────────────────────────────
 // Extracted as React.memo so pill taps ONLY re-render this small component,
 // never the full PlaybookListScreen.
 type PickerModalProps = {
   visible: boolean;
-  filter: 'ongoing' | 'completed';
+  filter: 'ongoing' | 'completed' | 'faithful';
   initContentView: 'all' | 'category' | 'date';
   initDateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom';
   initSelectedCategories: string[];
@@ -384,7 +578,7 @@ type PickerModalProps = {
   initCustomDateTo: Date;
   availableCategories: string[];
   onClose: () => void;
-  onFilterChange: (f: 'ongoing' | 'completed') => void;
+  onFilterChange: (f: 'ongoing' | 'completed' | 'faithful') => void;
   onApply: (
     contentView: 'all' | 'category' | 'date',
     dateViewMode: 'weekly' | 'monthly' | 'yearly' | 'custom',
@@ -498,11 +692,13 @@ const PickerModal = React.memo(({
     pillActive: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
     pillActiveOngoing: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
     pillActiveCompleted: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
+    pillActiveFaithful: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
     pillPressed: { transform: [{ scale: 0.93 }] as any, opacity: 0.75 },
     pillText: { fontSize: 13, fontFamily: Fonts.regular, color: 'rgba(255, 255, 255, 0.5)' },
     pillTextActive: { color: Colors.hopeWhite },
     pillTextOngoing: { color: Colors.hopeWhite },
     pillTextCompleted: { color: Colors.hopeWhite },
+    pillTextFaithful: { color: Colors.hopeWhite },
     divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', marginHorizontal: 16, marginVertical: 14 },
     applyBtn: {
       marginHorizontal: 16, marginTop: 12, marginBottom: 2,
@@ -684,23 +880,24 @@ const PickerModal = React.memo(({
           {/* ── STATUS ───────────────────────────────── */}
           <ThemedText weight="semiBold" style={pickerStyles.sectionLabel}>Status</ThemedText>
           <View style={pickerStyles.pillRow}>
-            {(['ongoing', 'completed'] as const).map(s => {
+            {(['ongoing', 'completed', 'faithful'] as const).map(s => {
               const active = filter === s;
               const ongoing = s === 'ongoing';
+              const faithful = s === 'faithful';
               return (
                 <Pressable key={s}
                   style={({ pressed }) => [
                     pickerStyles.pill,
-                    active && (ongoing ? pickerStyles.pillActiveOngoing : pickerStyles.pillActiveCompleted),
+                    active && (ongoing ? pickerStyles.pillActiveOngoing : faithful ? pickerStyles.pillActiveFaithful : pickerStyles.pillActiveCompleted),
                     pressed && pickerStyles.pillPressed,
                   ]}
                   onPress={() => { onHaptic(); onFilterChange(s); onClose(); }}
                 >
                   <ThemedText weight={active ? 'semiBold' : 'regular'} style={[
                     pickerStyles.pillText,
-                    active && (ongoing ? pickerStyles.pillTextOngoing : pickerStyles.pillTextCompleted),
+                    active && (ongoing ? pickerStyles.pillTextOngoing : faithful ? pickerStyles.pillTextFaithful : pickerStyles.pillTextCompleted),
                   ]}>
-                    {ongoing ? 'In Progress' : 'Completed'}
+                    {ongoing ? 'In Progress' : faithful ? 'Faithful Actions' : 'Completed'}
                   </ThemedText>
                 </Pressable>
               );
@@ -944,7 +1141,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [selectedPlaybookForTag, selectedTag, customTag, triggerLightHaptic, refetch]);
 
   // Status filter
-  const [filter, setFilter] = useState<'ongoing' | 'completed'>('ongoing');
+  const [filter, setFilter] = useState<'ongoing' | 'completed' | 'faithful'>('ongoing');
   const [showStatusPicker, setShowStatusPicker] = useState(false);
 
   // All picker/view state batched into one object — a single setState = a single re-render
@@ -1038,7 +1235,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, []);
 
   const handlePickerClose = useCallback(() => setShowStatusPicker(false), []);
-  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed') => setFilter(f), []);
+  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed' | 'faithful') => setFilter(f), []);
 
   // Component renders with current state
 
@@ -1105,6 +1302,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
       return { playbook, progress, isCompleted };
     });
+  }, [playbooks]);
+
+  // Extract incomplete faithful actions from in-progress playbooks
+  const incompleteFaithfulActions = useMemo(() => {
+    if (!Array.isArray(playbooks) || playbooks.length === 0) {
+      return [];
+    }
+    return extractIncompleteFaithfulActions(playbooks);
   }, [playbooks]);
 
   // Fetch devotionals count for each playbook — stable dep: playbooks.length, not the full array ref
@@ -1860,14 +2065,16 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     styles.statusDropdownBtn,
                     filter === 'ongoing' && styles.statusDropdownBtnOngoing,
                     filter === 'completed' && styles.statusDropdownBtnCompleted,
+                    filter === 'faithful' && styles.statusDropdownBtnFaithful,
                   ]}
                 >
                   <ThemedText weight="semiBold" style={[
                     styles.statusDropdownBtnText,
                     filter === 'ongoing' && styles.statusDropdownBtnTextOngoing,
                     filter === 'completed' && styles.statusDropdownBtnTextCompleted,
+                    filter === 'faithful' && styles.statusDropdownBtnTextFaithful,
                   ]}>
-                    {filter === 'ongoing' ? 'In Progress' : 'Completed'}
+                    {filter === 'ongoing' ? 'In Progress' : filter === 'completed' ? 'Completed' : 'Faithful Actions'}
                   </ThemedText>
                 </View>
 
@@ -1980,29 +2187,66 @@ const PlaybookListScreen = ({ navigation }: any) => {
           ) : deferredContentView === 'all' ? (
             /* ── ALL VIEW: Respects header filter ─────────────── */
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
-              {deferredFilter === 'ongoing' ? (
-                continuePlaybooks.length === 0 ? (
+              {deferredFilter === 'faithful' ? (
+                incompleteFaithfulActions.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
-                    <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
+                    <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
                   </View>
                 ) : (
-                  <CategoryCarouselRow
-                    category={`CONTINUE YOUR PLAYBOOK${continuePlaybooks.length !== 1 ? 'S' : ''}`}
-                    playbooks={continuePlaybooks}
+                  <FaithfulActionsCarouselRow
+                    faithfulActions={incompleteFaithfulActions}
                     cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
+                    onPress={(action) => {
+                      triggerLightHaptic();
+                      navigation.navigate('PlaybookWalkthrough', {
+                        playbook: { id: action.playbookId },
+                        initialStep: 3,
+                        initialActionIndex: action.actionIndex - 1,
+                      });
+                    }}
                     triggerHaptic={triggerLightHaptic}
                   />
                 )
+              ) : deferredFilter === 'ongoing' ? (
+                <>
+                  {continuePlaybooks.length === 0 ? (
+                    <View style={styles.continueEmptyContainer}>
+                      <ThemedText style={styles.continueEmptyText}>All your playbooks are completed.</ThemedText>
+                    </View>
+                  ) : (
+                    <CategoryCarouselRow
+                      category={`CONTINUE YOUR PLAYBOOK${continuePlaybooks.length !== 1 ? 'S' : ''}`}
+                      playbooks={continuePlaybooks}
+                      cardStyles={styles}
+                      sessionStates={sessionStates}
+                      devotionalsCount={devotionalsCount}
+                      menuVisible={menuVisible}
+                      onPress={handleCardPress}
+                      onLongPress={handleCardLongPress}
+                      onMenuToggle={setMenuVisible}
+                      onDelete={handleDelete}
+                      onRenamePress={handleRenamePress}
+                      onTagPress={handleTagPress}
+                      onDevotionalPress={handleDevotionalPress}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )}
+                  {incompleteFaithfulActions.length > 0 && (
+                    <FaithfulActionsCarouselRow
+                      faithfulActions={incompleteFaithfulActions}
+                      cardStyles={styles}
+                      onPress={(action) => {
+                        triggerLightHaptic();
+                        navigation.navigate('PlaybookWalkthrough', {
+                          playbook: { id: action.playbookId },
+                          initialStep: 3,
+                          initialActionIndex: action.actionIndex - 1,
+                        });
+                      }}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )}
+                </>
               ) : (
                 completedPlaybooks.length === 0 ? (
                   <View style={styles.continueEmptyContainer}>
@@ -2036,32 +2280,71 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
-                {deferredFilter === 'ongoing' && (
-                  <View style={styles.carouselTitleContainer}>
-                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                      CONTINUE YOUR PLAYBOOKS
-                    </ThemedText>
-                  </View>
+                {deferredFilter === 'faithful' ? (
+                  incompleteFaithfulActions.length === 0 ? (
+                    <View style={styles.continueEmptyContainer}>
+                      <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
+                    </View>
+                  ) : (
+                    <FaithfulActionsCarouselRow
+                      faithfulActions={incompleteFaithfulActions}
+                      cardStyles={styles}
+                      onPress={(action) => {
+                        triggerLightHaptic();
+                        navigation.navigate('PlaybookWalkthrough', {
+                          playbook: { id: action.playbookId },
+                          initialStep: 3,
+                          initialActionIndex: action.actionIndex - 1,
+                        });
+                      }}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )
+                ) : (
+                  <>
+                    {deferredFilter === 'ongoing' && (
+                      <View style={styles.carouselTitleContainer}>
+                        <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                          CONTINUE YOUR PLAYBOOKS
+                        </ThemedText>
+                      </View>
+                    )}
+                    {deferredFilter === 'ongoing' && incompleteFaithfulActions.length > 0 && (
+                      <FaithfulActionsCarouselRow
+                        faithfulActions={incompleteFaithfulActions}
+                        cardStyles={styles}
+                        onPress={(action) => {
+                          triggerLightHaptic();
+                          navigation.navigate('PlaybookWalkthrough', {
+                            playbook: { id: action.playbookId },
+                            initialStep: 3,
+                            initialActionIndex: action.actionIndex - 1,
+                          });
+                        }}
+                        triggerHaptic={triggerLightHaptic}
+                      />
+                    )}
+                    {categorySections.map(({ category, playbooks: catPlaybooks }) => (
+                      <CategoryCarouselRow
+                        key={category}
+                        category={category}
+                        playbooks={catPlaybooks}
+                        cardStyles={styles}
+                        sessionStates={sessionStates}
+                        devotionalsCount={devotionalsCount}
+                        menuVisible={menuVisible}
+                        onPress={handleCardPress}
+                        onLongPress={handleCardLongPress}
+                        onMenuToggle={setMenuVisible}
+                        onDelete={handleDelete}
+                        onRenamePress={handleRenamePress}
+                        onTagPress={handleTagPress}
+                        onDevotionalPress={handleDevotionalPress}
+                        triggerHaptic={triggerLightHaptic}
+                      />
+                    ))}
+                  </>
                 )}
-                {categorySections.map(({ category, playbooks: catPlaybooks }) => (
-                  <CategoryCarouselRow
-                    key={category}
-                    category={category}
-                    playbooks={catPlaybooks}
-                    cardStyles={styles}
-                    sessionStates={sessionStates}
-                    devotionalsCount={devotionalsCount}
-                    menuVisible={menuVisible}
-                    onPress={handleCardPress}
-                    onLongPress={handleCardLongPress}
-                    onMenuToggle={setMenuVisible}
-                    onDelete={handleDelete}
-                    onRenamePress={handleRenamePress}
-                    onTagPress={handleTagPress}
-                    onDevotionalPress={handleDevotionalPress}
-                    triggerHaptic={triggerLightHaptic}
-                  />
-                ))}
               </ScrollView>
             )
           ) : (
@@ -2080,12 +2363,49 @@ const PlaybookListScreen = ({ navigation }: any) => {
               windowSize={3}
               removeClippedSubviews={true}
               ListHeaderComponent={
-                deferredFilter === 'ongoing' ? (
-                  <View style={styles.carouselTitleContainer}>
-                    <ThemedText weight="semiBold" style={styles.carouselTitle}>
-                      CONTINUE YOUR PLAYBOOKS
-                    </ThemedText>
-                  </View>
+                deferredFilter === 'faithful' ? (
+                  incompleteFaithfulActions.length === 0 ? (
+                    <View style={styles.continueEmptyContainer}>
+                      <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
+                    </View>
+                  ) : (
+                    <FaithfulActionsCarouselRow
+                      faithfulActions={incompleteFaithfulActions}
+                      cardStyles={styles}
+                      onPress={(action) => {
+                        triggerLightHaptic();
+                        navigation.navigate('PlaybookWalkthrough', {
+                          playbook: { id: action.playbookId },
+                          initialStep: 3,
+                          initialActionIndex: action.actionIndex - 1,
+                        });
+                      }}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )
+                ) : deferredFilter === 'ongoing' ? (
+                  <>
+                    <View style={styles.carouselTitleContainer}>
+                      <ThemedText weight="semiBold" style={styles.carouselTitle}>
+                        CONTINUE YOUR PLAYBOOKS
+                      </ThemedText>
+                    </View>
+                    {incompleteFaithfulActions.length > 0 && (
+                      <FaithfulActionsCarouselRow
+                        faithfulActions={incompleteFaithfulActions}
+                        cardStyles={styles}
+                        onPress={(action) => {
+                          triggerLightHaptic();
+                          navigation.navigate('PlaybookWalkthrough', {
+                            playbook: { id: action.playbookId },
+                            initialStep: 3,
+                            initialActionIndex: action.actionIndex - 1,
+                          });
+                        }}
+                        triggerHaptic={triggerLightHaptic}
+                      />
+                    )}
+                  </>
                 ) : null
               }
             />
@@ -2303,6 +2623,46 @@ const createStyles = (_theme: any) => StyleSheet.create({
     lineHeight: 17,
     color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 6,
+  },
+  // Faithful Action Card Styles
+  faithfulActionLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  faithfulActionTitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    marginTop: 4,
+  },
+  faithfulActionDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  faithfulActionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginVertical: 12,
+  },
+  faithfulActionFrom: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  faithfulActionMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 2,
+  },
+  faithfulActionContinueButton: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 12,
   },
   carouselProgressSection: {
     marginBottom: 12,
@@ -3213,6 +3573,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
   statusDropdownBtnCompleted: {
     backgroundColor: 'rgba(95, 138, 104, 0.07)',
   },
+  statusDropdownBtnFaithful: {
+    backgroundColor: 'rgba(59, 130, 246, 0.07)',
+  },
   statusDropdownBtnText: {
     fontSize: 13,
     fontFamily: Fonts.semiBold,
@@ -3223,6 +3586,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   statusDropdownBtnTextCompleted: {
     color: Colors.growthGreen,
+  },
+  statusDropdownBtnTextFaithful: {
+    color: Colors.anchorBlue,
   },
   // Status picker modal
   statusPickerOverlay: {
