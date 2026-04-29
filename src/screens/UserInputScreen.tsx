@@ -1682,26 +1682,8 @@ const UserInputScreen: React.FC = () => {
                     onBlur={handleBlur}
                     blurOnSubmit={false}
                   />
-                  {/* Bottom row overlays: status on left, buttons on right */}
+                  {/* Bottom row overlays: buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">
-                    {!subscriptionData.isUnlimited && (
-                      <View style={styles.statusInlineWithMinWidth} pointerEvents="none">
-                        <Text style={[styles.statusText, font]} numberOfLines={1} ellipsizeMode="tail">
-                          {subscriptionData.isLoading
-                            ? 'Loading subscription...'
-                            : !subscriptionData.subscription || subscriptionData.isSeeker
-                              ? getSeekerDisplayText()
-                              : subscriptionData.playbooksRemaining === 0
-                                ? 'No Playbooks Remaining'
-                                : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} Playbooks Remaining`}
-                        </Text>
-                        <View style={styles.charCounterWrapperSmall}>
-                          <Text style={[styles.charCounterText, font]} numberOfLines={1} ellipsizeMode="tail">
-                            {getTierDisplayName(subscriptionData.subscription)}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
                     <View style={styles.actionsRight}>
                       <View style={styles.charCounterWrapper}>
                         <Text style={[styles.charCounterText, font]}>
