@@ -45,7 +45,6 @@ type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const _today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -473,7 +472,7 @@ const LookingAheadInputStep: React.FC<{
   icon: string;
   customEmotion: string;
   dateContext: DateContext;
-}> = ({ emotion, lookingAheadText, onChange, onNext, _onBack, insets, navigation, icon, customEmotion, dateContext }) => {
+}> = ({ emotion, lookingAheadText, onChange, onNext, insets, navigation, icon, customEmotion, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
