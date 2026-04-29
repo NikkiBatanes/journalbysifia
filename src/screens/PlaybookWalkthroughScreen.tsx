@@ -996,7 +996,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               }}
               activeOpacity={0.85}
             >
-              <ThemedText weight="semiBold" style={[styles.doneButtonText, isCommitted && styles.doneButtonTextCommitted]}>
+              <ThemedText weight="semiBold" style={[styles.doneButtonText, isCommitted && styles.doneButtonTextCommitted, { textAlign: 'center' }]} numberOfLines={0}>
                 {primaryLabel}
               </ThemedText>
             </TouchableOpacity>
@@ -1006,7 +1006,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               activeOpacity={0.7}
               style={styles.skipButton}
             >
-              <ThemedText style={styles.skipButtonText}>
+              <ThemedText style={[styles.skipButtonText, { textAlign: 'center' }]} numberOfLines={0}>
                 {secondaryLabel}
               </ThemedText>
             </TouchableOpacity>
