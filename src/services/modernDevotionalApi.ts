@@ -329,16 +329,15 @@ async function generateDevotionalInternal(
 
       // Validate the response structure
       if (!result || !Array.isArray(result.days) || result.days.length === 0) {
-        throw new Error('Invalid devotional format received from server');
+        throw new Error('Invalid devotional response: missing or empty days array');
       }
 
-      // Choose a category: prefer result.category/categories if present, else derive from title/description
-      // Database constraint now matches guided playbook categories
-      const deriveCategory = (payload: any): DevotionalCategory => {
+      const deriveCategory = (result: any): DevotionalCategory => {
         try {
-          const fromResult: string | undefined = (payload?.category as string) || (Array.isArray(payload?.categories) ? payload.categories[0] : undefined);
-
-          // Validate that the category from result is allowed by database constraint (matching guided playbook categories)
+          // Try to get category from the AI result first
+          const fromResult = result?.category || result?.categories?.[0];
+          
+          // Validate that the category from result is allowed
           const allowedCategories = [
             'Relationships',
             'Family',
@@ -366,26 +365,19 @@ async function generateDevotionalInternal(
             return fromResult as DevotionalCategory;
           }
 
-          const base = `${payload?.title || ''} ${payload?.description || ''}`.toLowerCase();
-          if (base.includes('love') || base.includes('relationship') || base.includes('family')) {return 'Relationships' as DevotionalCategory;}
-          if (base.includes('anxiety') || base.includes('worry') || base.includes('stress') || base.includes('peace')) {return 'Anxiety & Peace' as DevotionalCategory;}
-          if (base.includes('fear') || base.includes('trust')) {return 'Fear & Trust' as DevotionalCategory;}
-          if (base.includes('grief') || base.includes('loss')) {return 'Grief & Loss' as DevotionalCategory;}
-          if (base.includes('shame') || base.includes('guilt')) {return 'Shame & Guilt' as DevotionalCategory;}
-          if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) {return 'Calling & Purpose' as DevotionalCategory;}
-          if (base.includes('career') || base.includes('work') || base.includes('job')) {return 'Work & Career' as DevotionalCategory;}
-          if (base.includes('money') || base.includes('financial') || base.includes('finances') || base.includes('stewardship')) {return 'Finance & Stewardship' as DevotionalCategory;}
-          if (base.includes('parent') || base.includes('child') || base.includes('kids')) {return 'Parenting' as DevotionalCategory;}
-          if (base.includes('health') || base.includes('physical') || base.includes('body') || base.includes('wellness')) {return 'Health & Wellness' as DevotionalCategory;}
-          if (base.includes('marriage') || base.includes('spouse') || base.includes('husband') || base.includes('wife')) {return 'Marriage' as DevotionalCategory;}
-          if (base.includes('church') || base.includes('ministry') || base.includes('worship')) {return 'Church & Ministry' as DevotionalCategory;}
-          if (base.includes('decision') || base.includes('choice')) {return 'Decision-Making' as DevotionalCategory;}
-          if (base.includes('conflict') || base.includes('boundary') || base.includes('boundaries')) {return 'Conflict & Boundaries' as DevotionalCategory;}
-          if (base.includes('hurt') || base.includes('forgiveness') || base.includes('forgive')) {return 'Hurt & Forgiveness' as DevotionalCategory;}
-          if (base.includes('faith') || base.includes('obedience') || base.includes('obey')) {return 'Faith & Obedience' as DevotionalCategory;}
-          if (base.includes('emotion') || base.includes('emotional') || base.includes('inner')) {return 'Emotions & Inner Life' as DevotionalCategory;}
-          if (base.includes('wait') || base.includes('waiting') || base.includes('uncertainty')) {return 'Waiting & Uncertainty' as DevotionalCategory;}
-          if (base.includes('single') || base.includes('singleness')) {return 'Singleness' as DevotionalCategory;}
+          // Fallback: derive from title/description content
+          const content = `${result?.title || ''} ${result?.description || ''}`.toLowerCase();
+          const base = content.replace(/[^a-z\s]/g, '').trim();
+          
+          // Map content to allowed categories
+          if (base.includes('relationship') || base.includes('family') || base.includes('marriage') || base.includes('spouse') || base.includes('partner')) {return 'Relationships' as DevotionalCategory;}
+          if (base.includes('work') || base.includes('career') || base.includes('job') || base.includes('calling') || base.includes('vocation')) {return 'Work & Career' as DevotionalCategory;}
+          if (base.includes('money') || base.includes('finance') || base.includes('stewardship') || base.includes('financial') || base.includes('debt')) {return 'Finance & Stewardship' as DevotionalCategory;}
+          if (base.includes('health') || base.includes('wellness') || base.includes('body') || base.includes('physical')) {return 'Health & Wellness' as DevotionalCategory;}
+          if (base.includes('emotion') || base.includes('feeling') || base.includes('inner') || base.includes('heart')) {return 'Emotions & Inner Life' as DevotionalCategory;}
+          if (base.includes('anxiety') || base.includes('worry') || base.includes('stress') || base.includes('peace') || base.includes('calm')) {return 'Anxiety & Peace' as DevotionalCategory;}
+          if (base.includes('fear') || base.includes('trust') || base.includes('courage') || base.includes('brave')) {return 'Fear & Trust' as DevotionalCategory;}
+          if (base.includes('parent') || base.includes('child') || base.includes('father') || base.includes('mother')) {return 'Parenting' as DevotionalCategory;}
           if (base.includes('friend') || base.includes('friendship')) {return 'Friendship' as DevotionalCategory;}
           // Default to Relationships for general content
           return 'Relationships' as DevotionalCategory;
@@ -395,6 +387,17 @@ async function generateDevotionalInternal(
       };
 
       const computedCategory = deriveCategory(result);
+
+      Logger.info('Computed devotional category', {
+        component: 'modernDevotionalApi',
+        data: {
+          computedCategory,
+          resultCategory: result?.category,
+          resultCategories: result?.categories,
+          title: result?.title,
+          description: result?.description,
+        },
+      });
 
       // Save the generated devotional to the database
       const { data: savedDevotional, error: saveError } = await supabase

@@ -13,13 +13,18 @@ interface SkeletonBoxProps {
 const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgroundColor = 'rgba(255,255,255,0.18)' }) => {
   // Dark-theme friendly shimmer range
   const pulseAnim = useRef(new Animated.Value(0.25)).current;
+  const isMounted = useRef(true);
   const widthAsNumber = typeof width === 'string' ? parseFloat(width) : width;
   const widthStyle = typeof width === 'string' && width.endsWith('%')
     ? { width: width as `${number}%` }
     : { width: widthAsNumber };
 
   useEffect(() => {
+    isMounted.current = true;
+    
     const pulse = () => {
+      if (!isMounted.current) return;
+      
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 0.6,
@@ -32,8 +37,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
           useNativeDriver: true,
         }),
       ]).start((finished) => {
-        // Only continue if component is still mounted and animation finished properly
-        if (finished) {
+        if (finished && isMounted.current) {
           pulse();
         }
       });
@@ -44,9 +48,8 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
 
     // Cleanup function to prevent memory leaks
     return () => {
+      isMounted.current = false;
       pulseAnim.stopAnimation();
-      // Mark as finished to prevent recursive calls
-      (pulseAnim as any)._finished = true;
     };
   }, [pulseAnim]);
 

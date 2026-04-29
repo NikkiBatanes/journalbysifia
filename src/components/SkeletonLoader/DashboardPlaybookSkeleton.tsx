@@ -10,9 +10,14 @@ const SIDE_PADDING = Math.round((width - ITEM_WIDTH) / 2);
 
 const DashboardPlaybookSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
 
   React.useEffect(() => {
-    const animation = Animated.loop(
+    isMounted.current = true;
+    
+    const animate = () => {
+      if (!isMounted.current) return;
+      
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
@@ -24,10 +29,19 @@ const DashboardPlaybookSkeleton: React.FC = () => {
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+    
+    animate();
+    
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
   }, [animatedValue]);
 
   const opacity = animatedValue.interpolate({
