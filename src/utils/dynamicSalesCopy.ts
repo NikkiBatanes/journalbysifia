@@ -49,11 +49,11 @@ function getTierDisplayName(tier: SubscriptionTier): string {
  */
 function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals'): number {
   const limits = {
-    'seeker': { playbooks: 0, devotionals: 0 },
+    'seeker': { playbooks: 2, devotionals: 1 },
     'free_trial': { playbooks: 15, devotionals: 15 }, // Default, actual limits depend on trial_chosen_tier
     'spark': { playbooks: 10, devotionals: 10 },
     'growth': { playbooks: 25, devotionals: 25 },
-    'transformation': { playbooks: -1, devotionals: -1 }, // unlimited
+    'transformation': { playbooks: 60, devotionals: 60 },
     // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1 },
   } as Record<SubscriptionTier, { playbooks: number; devotionals: number }>;
   return limits[tier][featureType];
@@ -133,18 +133,18 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
   const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : 'Devotionals';
   const hasNoRemaining = remaining === 0;
 
-  // CASE 1: Seeker tier (no access at all)
-  if (currentTier === 'seeker') {
-    const title = featureType === 'playbooks' ? 'Unlock more playbooks' : 'Continue with Devotionals';
+  // CASE 1: Seeker tier - monthly free access used up (2 PB / 1 DEV per month)
+  if (currentTier === 'seeker' && hasNoRemaining) {
+    const title = featureType === 'playbooks' ? 'Monthly Playbooks Used' : 'Monthly Devotional Used';
     const message = featureType === 'playbooks'
-      ? "You're trying to bring a real moment before God. Upgrade to keep going with playbooks, devotionals, and Bible studies when new situations come up."
-      : 'Devotionals are part of the siFia Journey. \nThey help you slow down, reflect with Scripture, and respond faithfully when real moments come up. Devotionals are available at the pace you\'re ready for — shorter when you need clarity, longer when you want to linger.';
+      ? "You've used your 2 free playbooks for this month. Your allowance resets monthly.\n\nUpgrade to unlock more — up to 10 playbooks per month with Spark."
+      : "You've used your 1 free devotional for this month. Your allowance resets monthly.\n\nUpgrade to unlock more — up to 10 devotionals per month with Spark.";
 
     return {
       title,
       message,
       primaryCta: 'View Plans',
-      recommendedTier: 'growth',
+      recommendedTier: 'spark',
       showUpgradeOptions: true,
     };
   }
@@ -154,11 +154,9 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     const effectiveTier = trialChosenTier || 'spark';
     const tierName = getTierDisplayName(effectiveTier);
     const fullLimit = getTierLimits(effectiveTier, featureType);
-    const fullLimitText = fullLimit === -1
-      ? `unlimited ${featureType}`
-      : fullLimit === 1
-        ? `1 ${featureType.slice(0, -1)}`
-        : `${fullLimit} ${featureType}`;
+    const fullLimitText = fullLimit === 1
+      ? `1 ${featureType.slice(0, -1)}`
+      : `${fullLimit} ${featureType}`;
 
     // Calculate when subscription starts
     const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
@@ -172,19 +170,6 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
     const limitText = limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
 
-    // Check if unlimited trial
-    const isUnlimitedTrial = effectiveTier === 'transformation'; // POST-LAUNCH: || effectiveTier === 'family'
-
-    if (isUnlimitedTrial) {
-      return {
-        title: `No ${featureNamePlural} Remaining`,
-        message: `You have used all ${limitText} available during your free trial.\n\nYour siFia ${tierName} Plan subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDateStr}, and you'll be able to generate ${fullLimitText}.`,
-        primaryCta: 'Got it',
-        recommendedTier: effectiveTier,
-        showUpgradeOptions: false,
-      };
-    }
-
     return {
       title: `No ${featureNamePlural} Remaining`,
       message: `You have used all ${limitText} available during your free trial.\n\nYour siFia ${tierName} Plan subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDateStr}, and you'll be able to generate ${fullLimitText}.\n\nWant more now? Upgrade to a different plan.`,
@@ -195,8 +180,8 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     };
   }
 
-  // CASE 3: Paid user - no remaining (Spark or Growth)
-  if (hasNoRemaining && (currentTier === 'spark' || currentTier === 'growth')) {
+  // CASE 3: Paid user - no remaining (Spark, Growth, or Transformation)
+  if (hasNoRemaining && (currentTier === 'spark' || currentTier === 'growth' || currentTier === 'transformation' || currentTier === 'transformation_annual')) {
     const resetDate = getNextMonthlyResetDate(subscriptionStartDate);
     const daysUntilReset = getDaysUntilReset(resetDate);
     const dayText = daysUntilReset === 1 ? 'day' : 'days';
@@ -208,7 +193,6 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
     const limitText = limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
 
-    // Different messaging based on current tier
     if (currentTier === 'spark') {
       return {
         title: `No ${featureNamePlural} Remaining`,
@@ -217,6 +201,15 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'growth',
         showUpgradeOptions: true,
+      };
+    } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
+      return {
+        title: `No ${featureNamePlural} Remaining`,
+        message: `You have used all ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText} on ${resetDateStr}.`,
+        primaryCta: 'Got it',
+        secondaryCta: 'Wait for Refresh',
+        recommendedTier: 'transformation',
+        showUpgradeOptions: false,
       };
     } else {
       // Growth tier

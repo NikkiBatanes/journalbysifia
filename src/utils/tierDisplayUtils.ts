@@ -76,7 +76,7 @@ export const getTierDisplayName = (tier: SubscriptionTier): string => {
     'growth': 'siFia Growth',
     'growth_annual': 'siFia Growth',
 
-    // Transformation (premium) - unlimited
+    // Transformation (premium) - 60 playbooks, 60 devotionals, up to 7-day devotionals
     'transformation': 'siFia Transformation',
     'transformation_annual': 'siFia Transformation',
 

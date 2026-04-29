@@ -236,18 +236,31 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           });
         } else {
 
-          // Create default Seeker subscription for new user
+          // Create default Seeker subscription for new user (skip if already exists)
           try {
+            const { data: existingSub } = await supabase
+              .from('user_subscriptions_new')
+              .select('user_id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (existingSub) {
+              // Subscription already exists — nothing to do
+            } else {
             const { error: subscriptionError } = await supabase
               .rpc('create_default_seeker_subscription', {
                 target_user_id: user.id,
               });
 
             if (subscriptionError) {
-              Logger.error('Error creating default subscription', subscriptionError as Error, {
+              Logger.error('Error creating default subscription', new Error(
+                subscriptionError.message || subscriptionError.details || JSON.stringify(subscriptionError)
+              ), {
                 component: 'AuthContext',
                 action: 'create_default_subscription',
                 userId: user.id,
+                code: subscriptionError.code,
+                details: subscriptionError.details,
               });
             } else {
               Logger.info('Default subscription created successfully', {
@@ -275,9 +288,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .from('user_subscriptions_new')
                     .update({
                       tier: 'seeker',
-                      // Preserve other important fields to avoid NULLing them
                       playbooks_limit: 2,
-                      devotionals_limit: 2,
+                      devotionals_limit: 1,
                       playbooks_used: 0,
                       devotionals_used: 0,
                       smart_journaling_enabled: false,
@@ -298,6 +310,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 });
               }
             }
+            } // end existingSub else
           } catch (e) {
             Logger.error('Failed to create default subscription', e as Error, {
               component: 'AuthContext',

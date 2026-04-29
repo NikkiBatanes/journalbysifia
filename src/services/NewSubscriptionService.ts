@@ -79,8 +79,8 @@ export class NewSubscriptionService {
     switch (baseTier) {
       case 'seeker':
         return {
-          playbooks_limit: 0,
-          devotionals_limit: 0,
+          playbooks_limit: 2,
+          devotionals_limit: 1,
           smart_journaling_enabled: false,
           show_dashboard_counts: true,
         };
@@ -110,10 +110,10 @@ export class NewSubscriptionService {
         };
       case 'transformation':
         return {
-          playbooks_limit: 999999, // Effectively unlimited, but database-compatible
-          devotionals_limit: 999999, // Effectively unlimited, but database-compatible
+          playbooks_limit: 60,
+          devotionals_limit: 60,
           smart_journaling_enabled: true,
-          show_dashboard_counts: false, // Hide counts for unlimited
+          show_dashboard_counts: true,
         };
       // POST-LAUNCH: Family tier
       // case 'family':
@@ -194,11 +194,50 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Only reset for active paid subscriptions
-      // Skip if: Seeker tier, free_trial, or monthly (monthly handled by webhook)
-      if (subscription.tier === 'seeker' || subscription.tier === 'free_trial') {
-        return false; // No resets for seeker or trial
+      // Skip free_trial — no resets during trial period
+      if (subscription.tier === 'free_trial') {
+        return false;
       }
+
+      // Seeker: monthly reset (2 PB / 1 DEV per month, no rollover)
+      if (subscription.tier === 'seeker') {
+        const anchor = new Date(subscription.created_at);
+        const now = new Date();
+        const daysSinceCreation = (now.getTime() - anchor.getTime()) / (1000 * 60 * 60 * 24);
+        const currentPeriod = Math.floor(daysSinceCreation / 30);
+        const currentPeriodStart = new Date(anchor.getTime() + currentPeriod * 30 * 24 * 60 * 60 * 1000);
+        const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
+
+        if (lastReset < currentPeriodStart) {
+          const { error: resetError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              playbooks_used: 0,
+              devotionals_used: 0,
+              last_usage_reset: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (resetError) {
+            Logger.error('[NewSubscriptionService] Failed to reset seeker monthly usage', resetError as Error, {
+              component: 'NewSubscriptionService',
+              userId,
+            });
+            return false;
+          }
+
+          Logger.info('[NewSubscriptionService] Seeker monthly usage reset', {
+            component: 'NewSubscriptionService',
+            userId,
+            period: currentPeriod + 1,
+          });
+          return true;
+        }
+        return false;
+      }
+
+      // Monthly paid subs: handled by DID_RENEW webhook; annual handled below
 
       const isAnnual = subscription.billing_cycle === 'annual' ||
                        subscription.tier?.includes('_annual');
