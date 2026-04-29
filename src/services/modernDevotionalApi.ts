@@ -27,6 +27,37 @@ interface DevotionalGenerationParams {
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
 
+function extractFunctionErrorMessage(error: any): string | null {
+  const candidates = [
+    error?.message,
+    error?.context?._bodyInit,
+    error?.context?._bodyText,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string' || !candidate.trim()) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(candidate);
+      if (typeof parsed?.message === 'string' && parsed.message.trim()) {
+        return parsed.message;
+      }
+      if (typeof parsed?.error === 'string' && parsed.error.trim()) {
+        return parsed.error;
+      }
+    } catch {
+      // Plain-text error payloads should still surface.
+      if (candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Internal devotional generation function
  * Wrapped by public API with enterprise resilience
@@ -148,14 +179,20 @@ async function generateDevotionalInternal(
 
           // Transform Supabase SDK response
           if (sdkResponse.error) {
+            const functionMessage = extractFunctionErrorMessage(sdkResponse.error);
             Logger.error('Supabase SDK error', new Error(sdkResponse.error.message || 'Devotional generation failed'), {
               component: 'modernDevotionalApi',
               data: {
                 error: sdkResponse.error,
                 errorDetails: JSON.stringify(sdkResponse.error, null, 2),
+                functionMessage,
               },
             });
-            throw new Error(sdkResponse.error.message || 'We\'re having trouble creating your devotional right now. Please try again.');
+            throw new Error(
+              functionMessage ||
+              sdkResponse.error.message ||
+              'We\'re having trouble creating your devotional right now. Please try again.'
+            );
           }
 
           if (!sdkResponse.data) {
@@ -201,7 +238,7 @@ async function generateDevotionalInternal(
                 'Authorization': `Bearer ${session.access_token}`,
               },
               body: JSON.stringify({
-                duration,
+                duration: finalDuration,
                 playbookId,
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
@@ -219,11 +256,20 @@ async function generateDevotionalInternal(
 
           if (!response.ok) {
             const errorText = await response.text();
+            let backendMessage = errorText;
+            try {
+              const parsed = JSON.parse(errorText);
+              backendMessage = parsed?.message || parsed?.error || errorText;
+            } catch {}
             Logger.error('Fallback fetch also failed', new Error(`Fallback failed: ${response.status}`), {
               component: 'modernDevotionalApi',
-              data: { status: response.status, errorText },
+              data: { status: response.status, errorText, backendMessage },
             });
-            throw new Error('Network connection issue detected. Please check your connection and try again.');
+            throw new Error(
+              response.status >= 500
+                ? (backendMessage || 'We\'re having trouble creating your devotional right now. Please try again.')
+                : (backendMessage || 'Network connection issue detected. Please check your connection and try again.')
+            );
           }
 
           result = await response.json();
