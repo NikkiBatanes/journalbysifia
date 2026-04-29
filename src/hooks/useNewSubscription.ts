@@ -1,9 +1,11 @@
 // New Subscription Hook for React Components
 // Created: 2025-08-20
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
+import { billingNotificationService } from '../services/billingNotificationService';
 import {
   Subscription,
   SubscriptionCheck,
@@ -45,6 +47,7 @@ interface UseSubscriptionResult {
 export function useNewSubscription(userId: string): UseSubscriptionResult {
   const queryClient = useQueryClient();
   const [usageCheck, setUsageCheck] = useState<SubscriptionCheck | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   // Query for subscription data
   const {
@@ -156,6 +159,27 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   useEffect(() => {
     updateUsageCheck();
   }, [updateUsageCheck]);
+
+  // Issue 3 fix: trigger reset check when app comes to foreground
+  useEffect(() => {
+    if (!userId) {return;}
+    const appStateSub = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextState;
+      if (prev.match(/inactive|background/) && nextState === 'active') {
+        const didReset = await NewSubscriptionService.checkAndResetMonthlyUsage(userId);
+        if (didReset) {
+          queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
+        }
+        // Issue 10 fix: check for billing_issue on foreground and notify user
+        const sub = await NewSubscriptionService.getUserSubscription(userId, true);
+        if ((sub as any).billing_issue) {
+          billingNotificationService.handlePaymentFailure(userId).catch(() => {});
+        }
+      }
+    });
+    return () => appStateSub.remove();
+  }, [userId, queryClient]);
 
   // Action functions
   const startTrial = useCallback(async (options: Partial<TrialStartOptions> = {}) => {

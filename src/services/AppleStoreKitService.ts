@@ -529,6 +529,29 @@ export class AppleStoreKitService {
     try {
       await this.initialize();
 
+      // Issue 6 fix: Enforce trial eligibility before showing the Apple payment sheet.
+      // Apple's App Store already enforces one trial per account at the store level,
+      // but this client-side gate prevents duplicate DB rows and confusing UX.
+      if (productId.includes('freetrial')) {
+        const { data: existingSub } = await supabase
+          .from('user_subscriptions_new')
+          .select('tier, trial_start_date')
+          .eq('user_id', userId)
+          .single();
+        if (existingSub?.trial_start_date) {
+          Logger.warn('[StoreKit] Trial eligibility rejected - user already used a trial', {
+            component: 'AppleStoreKitService',
+            userId,
+            previousTrialStart: existingSub.trial_start_date,
+            productId,
+          });
+          return {
+            success: false,
+            error: 'You have already used your free trial. Please choose a paid subscription.',
+          };
+        }
+      }
+
       // CRITICAL: Ensure listeners are set up
       if (!this.purchaseUpdateSubscription || !this.purchaseErrorSubscription) {
         Logger.warn('[StoreKit] Purchase listeners not set up, re-initializing', {
@@ -1048,15 +1071,11 @@ export class AppleStoreKitService {
         return true;
       }
     } catch (error) {
-      Logger.error('[StoreKit] Receipt validation error', error as Error, {
-      component: 'AppleStoreKitService',
-      action: 'error',
-    });
-      // Don't fail the purchase if validation errors out
-      Logger.warn('[StoreKit] Proceeding with purchase despite validation error', {
-      component: 'AppleStoreKitService',
-    });
-      return true;
+      Logger.error('[StoreKit] Receipt validation error - rejecting purchase', error as Error, {
+        component: 'AppleStoreKitService',
+        action: 'error',
+      });
+      return false;
     }
   }
 

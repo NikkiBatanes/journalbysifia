@@ -158,21 +158,27 @@ export class TrialManagementService {
       const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
       const paidLimits = NewSubscriptionService.getTierLimits(chosenTier);
 
+      const conversionNow = new Date().toISOString();
+      // Issue 13 fix: billing_cycle must match the tier suffix to keep reset logic consistent
+      const billingCycle = chosenTier.includes('_annual') ? 'annual' : 'monthly';
+
       // Convert to paid tier with full limits
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
           tier: chosenTier,
+          billing_cycle: billingCycle,
           subscription_display_name: `siFia ${this.getTierName(chosenTier)}`,
           playbooks_limit: paidLimits.playbooks_limit,
           devotionals_limit: paidLimits.devotionals_limit,
           playbooks_used: 0, // Reset usage on conversion
           devotionals_used: 0,
+          last_usage_reset: conversionNow, // Initialize reset anchor for first billing cycle
           smart_journaling_enabled: paidLimits.smart_journaling_enabled,
           platform_transaction_id: transactionId,
-          subscription_start_date: new Date().toISOString(), // New start date for paid
-          trial_converted_date: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          subscription_start_date: conversionNow, // New start date for paid
+          trial_converted_date: conversionNow,
+          updated_at: conversionNow,
         })
         .eq('user_id', userId)
         .select()

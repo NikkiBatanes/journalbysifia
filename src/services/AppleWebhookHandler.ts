@@ -6,6 +6,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { TrialManagementService } from './TrialManagementService';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
+import { billingNotificationService } from './billingNotificationService';
 
 export interface AppleWebhookPayload {
   notificationType: string;
@@ -126,6 +127,7 @@ export class AppleWebhookHandler {
       } else {
         // Regular renewal - update transaction ID, clear billing issues, and reset monthly usage
         // This handles both monthly and yearly subscriptions (yearly gets monthly usage refresh)
+        const renewalNow = new Date().toISOString();
         await supabase
           .from('user_subscriptions_new')
           .update({
@@ -134,8 +136,9 @@ export class AppleWebhookHandler {
             grace_period_end_date: null,
             playbooks_used: 0, // Reset monthly usage counter
             devotionals_used: 0, // Reset monthly usage counter
-            subscription_start_date: new Date().toISOString(), // Update to new billing cycle start
-            updated_at: new Date().toISOString(),
+            last_usage_reset: renewalNow, // Issue 7: sync anchor so client-side fallback doesn't re-trigger
+            subscription_start_date: renewalNow, // Update to new billing cycle start
+            updated_at: renewalNow,
           })
           .eq('user_id', userId);
 
@@ -229,6 +232,14 @@ export class AppleWebhookHandler {
         Logger.info('[AppleWebhook] ✅ Grace period activated', {
           userId,
           gracePeriodEnd: result.gracePeriodEnd,
+        });
+        // Issue 10 fix: notify user immediately when payment fails
+        billingNotificationService.handlePaymentFailure(userId, subtype).catch((notifErr: unknown) => {
+          Logger.warn('[AppleWebhook] Failed to send payment failure notification', {
+            component: 'AppleWebhookHandler',
+            userId,
+            errorMessage: notifErr instanceof Error ? notifErr.message : String(notifErr),
+          });
         });
         return { success: true, message: 'Grace period activated' };
       } else {

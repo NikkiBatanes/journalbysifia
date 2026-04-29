@@ -294,16 +294,18 @@ export class NewSubscriptionService {
       // - Keeps annual badge/tier until expiration
       // - On Day 365: EXPIRED webhook downgrades to Seeker
 
-      // For annual: Calculate from billing anchor (subscription_start_date)
+      // Issue 8 fix: Use calendar-month arithmetic instead of 30-day rolling periods
+      // to avoid drift (e.g., buy on Jan 15 → reset on Feb 15, Mar 15, not Feb 14, Mar 16)
       const billingAnchor = new Date(subscription.subscription_start_date || subscription.created_at);
       const now = new Date();
-      const daysSinceAnchor = (now.getTime() - billingAnchor.getTime()) / (1000 * 60 * 60 * 24);
+      const anchorDay = billingAnchor.getDate();
 
-      // Calculate which 30-day period we're in (0-based)
-      const currentPeriod = Math.floor(daysSinceAnchor / 30);
-
-      // Calculate when the current period started
-      const currentPeriodStart = new Date(billingAnchor.getTime() + (currentPeriod * 30 * 24 * 60 * 60 * 1000));
+      let currentPeriodStart: Date;
+      if (now.getDate() >= anchorDay) {
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), anchorDay);
+      } else {
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, anchorDay);
+      }
 
       // Check if we already reset for this period
       const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
@@ -332,8 +334,7 @@ export class NewSubscriptionService {
           component: 'NewSubscriptionService',
           userId,
           tier: subscription.tier,
-          period: currentPeriod + 1,
-          daysSinceAnchor: Math.floor(daysSinceAnchor),
+          periodStart: currentPeriodStart.toISOString(),
         });
 
         return true;
@@ -422,11 +423,12 @@ export class NewSubscriptionService {
       const tierDisplayName = this.getTierDisplayName(chosenTier);
       const displayName = `${tierDisplayName} Trial`;
 
+      const trialNow = new Date().toISOString();
       const subscriptionData = {
         user_id: user_id,
         status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
         tier: 'free_trial', // Set tier to 'free_trial' during trial period
-        trial_start_date: new Date().toISOString(),
+        trial_start_date: trialNow,
         trial_end_date: trialEndDate.toISOString(),
         trial_chosen_tier: chosenTier, // Remember which tier they want after trial
         billing_cycle: billing_cycle || 'monthly', // Store billing cycle for conversion
@@ -436,7 +438,8 @@ export class NewSubscriptionService {
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
-        updated_at: new Date().toISOString(),
+        last_usage_reset: trialNow, // Issue 7: initialize so first foreground check has a valid anchor
+        updated_at: trialNow,
         // CRITICAL: Store transaction IDs for webhook lookup
         platform_transaction_id: platform_transaction_id,
         original_transaction_id: original_transaction_id,
@@ -881,26 +884,51 @@ export class NewSubscriptionService {
                        action === 'devotional' ? 'devotionals_used' : null;
 
     if (updateField) {
-      // Get current value and increment manually to avoid RPC issues
-      const { data: currentSub } = await supabase
-        .from('user_subscriptions_new')
-        .select(`${updateField}`)
-        .eq('user_id', userId)
-        .single();
+      // Issue 9 fix: optimistic-lock increment to guard against fast double-tap races.
+      // Read current value, then UPDATE WHERE user_id = ? AND field = currentValue.
+      // If 0 rows updated (race was lost), re-read once and retry.
+      const doAtomicIncrement = async (): Promise<void> => {
+        const { data: currentSub } = await supabase
+          .from('user_subscriptions_new')
+          .select(`${updateField}`)
+          .eq('user_id', userId)
+          .single();
 
-      const currentValue = (currentSub as any)?.[updateField] || 0;
+        const currentValue = (currentSub as any)?.[updateField] || 0;
 
-      const { error } = await supabase
-        .from('user_subscriptions_new')
-        .update({
-          [updateField]: currentValue + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
+        const { data: updated, error } = await supabase
+          .from('user_subscriptions_new')
+          .update({
+            [updateField]: currentValue + 1,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq(updateField, currentValue) // Optimistic lock: only matches if nobody else incremented
+          .select(updateField)
+          .maybeSingle();
 
-      if (error) {
-        throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
-      }
+        if (error) {
+          throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
+        }
+
+        if (!updated) {
+          // Race: another request already incremented — re-read and retry once
+          const { error: retryError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              [updateField]: currentValue + 2,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq(updateField, currentValue + 1);
+
+          if (retryError) {
+            throw new SubscriptionError(`Failed to increment usage on retry: ${retryError.message}`, 'USAGE_UPDATE_ERROR', retryError);
+          }
+        }
+      };
+
+      await doAtomicIncrement();
     }
 
     // Also update usage tracking table (but skip for onboarding)
