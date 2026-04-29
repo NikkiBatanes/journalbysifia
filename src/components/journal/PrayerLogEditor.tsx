@@ -15,6 +15,19 @@ import { useSubscription } from '../../hooks/useSubscription';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
 import PlaybookMetaSection from './PlaybookMetaSection';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -42,6 +55,7 @@ interface PrayerLogEditorProps {
   initialPrayerRequest?: string;
   stepBody?: string;
   stepExample?: string | null;
+  selectedDate?: Date;
 }
 
 export interface PrayerLogEditorRef {
@@ -385,12 +399,37 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     initialPrayerRequest,
     stepBody,
     stepExample,
+    selectedDate = new Date(),
   },
   ref
 ) => {
+  const dateContext = getDateContext(selectedDate);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
+
+  // Dynamic labels based on date context
+  const getCurrentDate = () => {
+    const date = selectedDate;
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+
+    // Don't show year if it's the current year
+    if (dateYear === currentYear) {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      });
+    } else {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  };
 
   // Calculate estimated line count based on text length and newlines
   const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
@@ -770,7 +809,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
       {/* Header - matching reflection editor structure */}
       <View style={s.header}>
-        <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
+        <ThemedText weight="bold" style={s.title}>{dateString || getCurrentDate()}</ThemedText>
         <View style={s.modeToggle}>
           {/* Prayer mode icons - compact layout */}
           <TouchableOpacity

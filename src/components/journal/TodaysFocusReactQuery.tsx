@@ -201,7 +201,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ? (hasEntry ? 'Update your focus and priorities' : 'Set your focus and priorities')
           : (hasEntry
               ? 'Stay focused on what matters'
-              : 'Set your focus and priorities to make today count in faith and action—then begin'),
+              : 'Set your focus and priorities to make today count in faith and action. Then begin.'),
         ctaLabel: hasEntry ? 'Update Focus' : 'Begin',
         ctaAction: hasEntry ? 'update' : 'begin',
       };

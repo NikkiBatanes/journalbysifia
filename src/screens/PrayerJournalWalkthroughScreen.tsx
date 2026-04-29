@@ -33,8 +33,21 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 import type { RootStackParamList } from '../navigation/types';
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayerJournalWalkthrough'>;
 
@@ -113,7 +126,8 @@ const PrayerPathSelectionStep: React.FC<{
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ selectedPath, onSelect, onNext, insets, navigation }) => {
+  dateContext: DateContext;
+}> = ({ selectedPath, onSelect, onNext, insets, navigation, dateContext }) => {
   const buttonScale = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -128,6 +142,15 @@ const PrayerPathSelectionStep: React.FC<{
       buttonScale.setValue(0);
     }
   }, [selectedPath, buttonScale]);
+
+  // Dynamic labels based on date context
+  const getTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'Which prayer path\ndo you want today?';
+      case 'yesterday': return 'Which prayer path\ndid you want yesterday?';
+      case 'earlier': return 'Which prayer path\ndid you want on this day?';
+    }
+  };
 
   return (
     <View style={styles.stepContainer}>
@@ -146,7 +169,7 @@ const PrayerPathSelectionStep: React.FC<{
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
             <ThemedText weight="semiBold" style={styles.stepTitle}>
-              Which prayer path{'\n'}do you want today?
+              {getTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -1149,6 +1172,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const queryClient = useQueryClient();
   const { selectedDate: selectedDateStr } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+  const dateContext = getDateContext(selectedDate);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
@@ -1292,6 +1316,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onNext={handleNext}
             insets={insets}
             navigation={navigation}
+            dateContext={dateContext}
           />
         )}
 
