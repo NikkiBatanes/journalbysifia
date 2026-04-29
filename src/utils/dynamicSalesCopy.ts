@@ -137,8 +137,8 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
   if (currentTier === 'seeker' && hasNoRemaining) {
     const title = featureType === 'playbooks' ? 'Upgrade to Keep Going' : 'Upgrade to Keep Going';
     const message = featureType === 'playbooks'
-      ? "Your free playbooks for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to bring new moments before God, with up to 25 playbooks each month."
-      : "Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.";
+      ? 'Your free playbooks for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to bring new moments before God, with up to 25 playbooks each month.'
+      : 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.';
 
     return {
       title,
