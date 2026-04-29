@@ -1408,7 +1408,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
                 onError={(error) => {
-                  console.log('Dashboard avatar image load error:', error);
                   setImageLoadFailed(true);
                 }}
                 onLoad={() => {

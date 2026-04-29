@@ -25,7 +25,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { supabase } from '../../services/supabaseClient';
-import { Logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { format } from 'date-fns';
 import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -303,7 +303,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   // Listen for prayer/reads updates from PlaybookWalkthrough
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('playbookPrayerReadUpdated', (data) => {
-      console.log('📡 CombinedContentCarousel: Received playbookPrayerReadUpdated event:', data);
       setSessionStates(prev => ({
         ...prev,
         [data.playbookId]: {
@@ -352,7 +351,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         .limit(10);
 
       if (devotionalsQuery.error) {
-        Logger.error('Error fetching devotionals', devotionalsQuery.error as Error, {
+        logger.error('Error fetching devotionals', devotionalsQuery.error as Error, {
           component: 'CombinedContentCarousel',
         });
       }
@@ -536,7 +535,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               nextDayTitle,
             };
           } catch (err) {
-            Logger.warn('Error processing devotional', { component: 'CombinedContentCarousel', data: err });
+            logger.warn('Error processing devotional', { component: 'CombinedContentCarousel', data: err });
             return {
               type: 'devotional' as const,
               id: devotional.id,
@@ -572,7 +571,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
       setContent(combined);
     } catch (err) {
-      Logger.error('Error fetching content', err as Error, {
+      logger.error('Error fetching content', err as Error, {
         component: 'CombinedContentCarousel',
       });
       setError('Unable to load content');
@@ -596,29 +595,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   // Listen for playbook action step updates from PlaybookWalkthrough
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
-      console.log('📡 CombinedContentCarousel: Received playbookActionStepUpdated event:', data);
-      console.log('📡 CombinedContentCarousel: Current content count:', content.length);
-      const playbookBefore = content.find(p => p.id === data.playbookId && p.type === 'playbook');
-      if (playbookBefore && playbookBefore.type === 'playbook') {
-        console.log('📡 CombinedContentCarousel: Playbook before refetch:', {
-          id: playbookBefore.id,
-          completedSteps: playbookBefore.completedSteps,
-          totalSteps: playbookBefore.totalSteps,
-        });
-      }
-      console.log('📡 CombinedContentCarousel: Calling fetchContent()...');
-      fetchContent().then(() => {
-        console.log('📡 CombinedContentCarousel: Fetch completed');
-        console.log('📡 CombinedContentCarousel: Content count after fetch:', content.length);
-        const playbookAfter = content.find(p => p.id === data.playbookId && p.type === 'playbook');
-        if (playbookAfter && playbookAfter.type === 'playbook') {
-          console.log('📡 CombinedContentCarousel: Playbook after fetch:', {
-            id: playbookAfter.id,
-            completedSteps: playbookAfter.completedSteps,
-            totalSteps: playbookAfter.totalSteps,
-          });
-        }
-      });
+      fetchContent();
     });
 
     return () => {
@@ -861,10 +838,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const meta = step === 1 ? tilReadTime
                            : step === 3 ? `${completed} of ${total} acted on`
                            : undefined;
-                // Debug logging for Faithful Actions meta
-                if (step === 3) {
-                  console.log('🔍 Faithful Actions debug:', { step, completed, total, meta, wp, shouldRenderMeta: !!meta });
-                }
                 // Use hasPrayed/hasRead flags for Prayer/Words to Speak icons
                 const actionIconState = step === 4 ? sessionStates[playbook.id]?.hasPrayed ?? false
                                           : step === 5 ? sessionStates[playbook.id]?.hasRead ?? false

@@ -31,8 +31,6 @@ const TimeBlockEditorScreen: React.FC = () => {
   const updateMutation = useUpdateTimeBlock();
 
   const handleSave = async (data: any) => {
-    console.log('TimeBlock saved:', data);
-
     try {
       // Create full datetime objects for the selected date
       let startDateTime: Date;

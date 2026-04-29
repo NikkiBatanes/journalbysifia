@@ -238,7 +238,6 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
               source={{ uri: safeAvatarUrl }}
               style={styles.avatar}
               onError={(error) => {
-                console.log('Avatar image load error:', error);
                 setImageLoadFailed(true);
               }}
               onLoad={() => {

@@ -1816,7 +1816,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   source={{ uri: displayAvatarUrl }}
                   style={styles.modalAvatar}
                   onError={(error) => {
-                    console.log('Modal avatar image load error:', error);
                     setModalImageLoadFailed(true);
                   }}
                   onLoad={() => {

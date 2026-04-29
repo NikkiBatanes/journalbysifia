@@ -370,7 +370,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
                     ? JSON.parse(currentGratitudeEntry.content)
                     : currentGratitudeEntry.content;
                   const items = parsedContent.items || [];
-                  console.log('SmartJournalingGratitudeModal - Parsed initialItems:', items);
                   return items;
                 } catch (error) {
                   Logger.error('Error parsing gratitude content for initialItems', error as Error, {
@@ -379,7 +378,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
                   return [];
                 }
               }
-              console.log('SmartJournalingGratitudeModal - No currentGratitudeEntry.content, initialItems will be undefined');
               return undefined;
             })()}
             subtaskTitle={preservedSubtaskTitle}

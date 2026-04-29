@@ -580,10 +580,8 @@ export const useCreateTodayWinEntry = () => {
       // Error handling is now managed at component level
     },
     onSuccess: (data, variables) => {
-      console.log('🏆 useCreateTodayWinEntry onSuccess:', { data, variables });
       // Invalidate query to force refetch from database
       const queryKey = queryKeys.journal.todayWin(variables.user_id, variables.selected_date);
-      console.log('🏆 Invalidating query for:', queryKey);
       queryClient.invalidateQueries({ queryKey });
 
       // Clear local cache

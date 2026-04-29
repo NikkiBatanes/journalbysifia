@@ -559,7 +559,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             if (__DEV__ && error.message?.includes('Circuit breaker is OPEN')) {
               import('../../utils/circuitBreaker').then(({ resetCircuit }) => {
                 resetCircuit('openai-generation');
-                console.log('🔄 Circuit breaker reset for development');
               });
             }
           });

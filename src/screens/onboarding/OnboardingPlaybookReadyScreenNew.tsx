@@ -466,16 +466,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const createCarouselCards = (): PlaybookCard[] => {
     const cards: PlaybookCard[] = [];
 
-    // Debug: Log the entire playbook object to see what data we have
-    console.log('🔍 createCarouselCards - Full playbook object:', JSON.stringify(playbook, null, 2));
-    console.log('🔍 createCarouselCards - bibleVerse specifically:', {
-      exists: !!playbook.bibleVerse,
-      value: playbook.bibleVerse,
-      type: typeof playbook.bibleVerse,
-      text: playbook.bibleVerse?.text,
-      reference: playbook.bibleVerse?.reference,
-    });
-
     // Truth in Love card
     if (playbook.truthInLove) {
       const truthData = typeof playbook.truthInLove === 'string'
@@ -705,13 +695,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
-
-  // Debug: Log the final cards array
-  console.log('🔍 Final carouselCards array:', {
-    totalCards: carouselCards.length,
-    cardIds: carouselCards.map(c => c.id),
-    cardTypes: carouselCards.map(c => c.type),
-  });
 
   // Initialize animated values for each card
   useEffect(() => {

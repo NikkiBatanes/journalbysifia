@@ -304,14 +304,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   };
 
   const handleUpgradePress = () => {
-    try {
-      triggerLightHaptic();
-    } catch {}
-
-    console.log('SubscriptionPlanModal: handleUpgradePress called', { navigation: !!navigation, tier: subscription?.tier });
-
-    if (navigation && navigation.navigate) {
-      console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
+    if (navigation) {
       // Don't close modal immediately - let user close it manually
 
       // For annual users, show only annual plans to prevent downgrading to monthly
@@ -332,7 +325,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         forceAnnualOnly: isAnnualUser, // Show only annual plans for current tier
       });
     } else {
-      console.log('SubscriptionPlanModal: Navigation not available');
       onClose();
     }
   };

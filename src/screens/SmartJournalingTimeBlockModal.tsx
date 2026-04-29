@@ -217,10 +217,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     isEditing?: boolean;
     existingId?: string;
   }) => {
-    console.log('[SmartTBModal] saveTimeBlock CALLED with title:', timeBlockData.title);
     try {
       if (!user) {
-        console.log('[SmartTBModal] saveTimeBlock EARLY RETURN: no user');
         Alert.alert('Error', 'You must be logged in to save time blocks.');
         return;
       }
@@ -268,16 +266,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       let result;
       if (isEditSession && existingTimeBlock?.id) {
-        console.log('[SmartTBModal] calling updateTimeBlockMutation.mutateAsync');
         result = await updateTimeBlockMutation.mutateAsync({
           id: existingTimeBlock.id,
           updates: timeBlockEntry,
         });
-        console.log('[SmartTBModal] updateTimeBlockMutation SUCCESS');
       } else {
-        console.log('[SmartTBModal] calling createTimeBlockMutation.mutateAsync');
         result = await createTimeBlockMutation.mutateAsync(timeBlockEntry);
-        console.log('[SmartTBModal] createTimeBlockMutation SUCCESS');
       }
 
       // Mark subtask as completed and protected immediately since data is saved (only for new time blocks)
@@ -286,10 +280,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         handleAutoCheckStep(stepId, subtaskId);
       }
 
-      console.log('[SmartTBModal] calling parent onSave(result)');
       // Notify parent of successful save
       onSave(result);
-      console.log('[SmartTBModal] parent onSave returned');
 
       // CRITICAL FIX: Emit timeblock event to refresh Moments screen
       DeviceEventEmitter.emit('timeblock_saved', { timeblock: result });
@@ -305,7 +297,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }, 100);
 
     } catch (error: any) {
-      console.log('[SmartTBModal] saveTimeBlock CAUGHT ERROR:', error?.message, error);
       Logger.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED', error as Error, { component: 'SmartJournalingTimeBlockModal' });
       Alert.alert(
         'Error',
@@ -316,9 +307,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   };
 
   const handleCancel = () => {
-    console.log('[SmartTBModal] handleCancel called - calling parent onCancel', typeof onCancel);
     onCancel();
-    console.log('[SmartTBModal] parent onCancel returned');
   };
 
   // Note: Removed unused _handleSuccessModalClose and _handleEdit functions

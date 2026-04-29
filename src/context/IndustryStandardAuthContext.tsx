@@ -1453,15 +1453,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       const { identityToken, nonce, fullName } = appleAuthRequestResponse;
 
-      // Log Apple-provided data for debugging
-      console.log('🍎 Apple Sign-In Response:', {
-        hasIdentityToken: !!identityToken,
-        hasNonce: !!nonce,
-        fullName: fullName,
-        givenName: fullName?.givenName,
-        familyName: fullName?.familyName,
-      });
-
       if (!identityToken) {
         // Treat as user cancellation or benign failure: do not surface an error
 
@@ -1494,10 +1485,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Use existing name if available (metadata takes priority, then profile, then Apple-provided)
       if (existingMetadataName && existingMetadataName.trim().length > 0) {
         appleProvidedName = existingMetadataName.trim();
-        console.log('🔄 Using existing name from user metadata:', appleProvidedName);
       } else if (existingProfile?.first_name) {
         appleProvidedName = existingProfile.first_name;
-        console.log('🔄 Using existing name from database:', appleProvidedName);
       } else if (fullName?.givenName && fullName.givenName.trim().length > 0) {
         try {
           const givenName = fullName.givenName.trim();
@@ -1533,11 +1522,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             // CRITICAL: Refetch user to ensure metadata is in context
             const { data: { user: refreshedUser } } = await supabase.auth.getUser();
             if (refreshedUser) {
-              console.log('🔄 User refetched after metadata update:', {
-                hasFirstName: !!refreshedUser.user_metadata?.first_name,
-                firstName: refreshedUser.user_metadata?.first_name,
-              });
-
               // CRITICAL: Also save to user_profiles table immediately for onboarding access
               try {
                 const { error: profileError } = await supabase
@@ -1602,7 +1586,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           session: freshSession,
           loading: false,
         }));
-        console.log('✅ Auth state updated with fresh user metadata before navigation');
       } else {
         setAuthState(prev => ({ ...prev, loading: false }));
       }
@@ -1639,7 +1622,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
           // Route to personalization for unregistered/incomplete users
           // IMPORTANT: Pass the Apple-provided name through params so it's immediately available
-          console.log('🍎 Routing to OnboardingPersonalization with name:', appleProvidedName);
           await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
             target: 'OnboardingPersonalization',
             params: {

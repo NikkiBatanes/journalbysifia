@@ -232,9 +232,6 @@ const StreakPlanScreen: React.FC = () => {
     weekStartDate.setDate(today.getDate() - daysSinceWeekStart);
     weekStartDate.setHours(0, 0, 0, 0);
 
-    console.log('🔍 Activity Dates:', Array.from(activityDates));
-    console.log('📅 Week start:', toLocalDate(weekStartDate), '| Today:', todayString, '| UserWeekStart:', userWeekStart);
-
     // Generate state for each day in the current week (weekStart + 0..6)
     const dayStates: DayState[] = [];
     for (let i = 0; i < 7; i++) {
@@ -254,7 +251,6 @@ const StreakPlanScreen: React.FC = () => {
       }
 
       dayStates.push(state);
-      console.log(`  Day ${i} (${dateString}): ${state}`);
     }
 
     return { dayStates, activityDates };

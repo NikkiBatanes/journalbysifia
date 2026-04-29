@@ -1073,9 +1073,7 @@ function TimeBlockLogEditorInner(
   };
 
   const onCancel = () => {
-    console.log('[TBEditor] local onCancel - calling _onCancel prop', typeof _onCancel);
     _onCancel();
-    console.log('[TBEditor] _onCancel prop returned');
   };
 
   const formatTime = (date: Date): string => {
@@ -1708,11 +1706,9 @@ function TimeBlockLogEditorInner(
             <TouchableOpacity
               style={[s.fab, s.cancelFab]}
               hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              onPressIn={() => { console.log('[TimeBlockFAB] Cancel onPressIn'); }}
               onPress={() => {
-                console.log('[TimeBlockFAB] Cancel onPress - firing onCancel');
-                triggerLightHaptic();
                 onCancel();
+                triggerLightHaptic();
               }}
             >
               <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
@@ -1727,11 +1723,9 @@ function TimeBlockLogEditorInner(
               ]}
               disabled={!title.trim() || !category || category === 'Select a category' || isLoading}
               hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              onPressIn={() => { console.log('[TimeBlockFAB] Save onPressIn, disabled=', !title.trim() || !category || category === 'Select a category' || isLoading); }}
               onPress={() => {
-                console.log('[TimeBlockFAB] Save onPress - firing handleSave');
-                triggerLightHaptic();
                 handleSave();
+                triggerLightHaptic();
               }}
             >
               {isLoading ? (
