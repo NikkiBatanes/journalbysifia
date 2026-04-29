@@ -49,8 +49,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
   return 'earlier';
 };
 
@@ -404,7 +404,7 @@ const WinTypeSelectionStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S WIN";
       case 'yesterday': return "YESTERDAY'S WIN";
-      case 'earlier': return "EARLIER WIN";
+      case 'earlier': return 'EARLIER WIN';
     }
   };
 
@@ -697,7 +697,7 @@ const QuietWinStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S WIN";
       case 'yesterday': return "YESTERDAY'S WIN";
-      case 'earlier': return "EARLIER WIN";
+      case 'earlier': return 'EARLIER WIN';
     }
   };
 
@@ -880,7 +880,7 @@ const CompletionStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S WIN";
       case 'yesterday': return "YESTERDAY'S WIN";
-      case 'earlier': return "EARLIER WIN";
+      case 'earlier': return 'EARLIER WIN';
     }
   };
 
@@ -926,7 +926,7 @@ const CompletionStep: React.FC<{
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
-              { transform: [{ scale: checkmarkScale }] }
+              { transform: [{ scale: checkmarkScale }] },
             ]}>
               <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
             </Animated.View>

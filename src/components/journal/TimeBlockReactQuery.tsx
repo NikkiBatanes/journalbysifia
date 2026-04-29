@@ -1162,7 +1162,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 style={styles.editActionBtn}
                 onPress={() => {
                   triggerSelectionHaptic();
-                  (navigation as any).navigate('TimeBlockEditor', { 
+                  (navigation as any).navigate('TimeBlockEditor', {
                     selectedDate: dateStr,
                     existingTimeBlock: {
                       id: block.id,
@@ -1174,7 +1174,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       location: block.location,
                       all_day: block.isAllDay,
                       alert: block.alert,
-                    }
+                    },
                   });
                 }}
                 activeOpacity={0.7}

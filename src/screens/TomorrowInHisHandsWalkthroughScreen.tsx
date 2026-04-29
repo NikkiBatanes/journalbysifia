@@ -48,8 +48,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
   return 'earlier';
 };
 
@@ -367,7 +367,7 @@ const EmotionSelectionStep: React.FC<{
                 <View style={styles.emotionIconContainer}>
                   <View style={[
                     styles.emotionIconCircle,
-                    isSelected && styles.emotionIconCircleSelected
+                    isSelected && styles.emotionIconCircleSelected,
                   ]}>
                     <MaterialCommunityIcons
                       name={emotion.icon as any}

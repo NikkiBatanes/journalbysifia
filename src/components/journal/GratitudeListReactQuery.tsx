@@ -644,7 +644,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             // Create a synthetic entry object with all items
             const syntheticEntry = gratitudeEntries.length > 0 ? {
               ...gratitudeEntries[0],
-              content: JSON.stringify({ items: allItems })
+              content: JSON.stringify({ items: allItems }),
             } : undefined;
             onBegin(syntheticEntry, selectedDate);
           } else {

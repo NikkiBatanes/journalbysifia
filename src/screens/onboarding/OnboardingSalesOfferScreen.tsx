@@ -1476,8 +1476,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
           {routeParams?.onboardingFlow && (
-            <View>
-            </View>
+            <View />
           )}
 
           {/* Feature Bullets - hide for onboarding flow */}

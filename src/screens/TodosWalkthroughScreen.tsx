@@ -40,8 +40,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
   return 'earlier';
 };
 
@@ -102,13 +102,13 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             : entry.content;
           return parsedContent.text || '';
         }).filter(text => text.trim() !== '');
-        
+
         // Ensure we always have at least 3 task slots
         const paddedTodos = [...savedTodos];
         while (paddedTodos.length < 3) {
           paddedTodos.push('');
         }
-        
+
         return {
           todos: paddedTodos,
         };
@@ -154,23 +154,23 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           : entry.content;
         return parsedContent.text || '';
       }).filter(text => text.trim() !== '');
-      
+
       const paddedTodos = [...savedTodos];
       while (paddedTodos.length < 3) {
         paddedTodos.push('');
       }
-      
+
       // Check if all fields are filled out
       const allFilled = paddedTodos.every(todo => todo.trim() !== '');
-      
+
       if (allFilled) {
         // Add a new empty field if all are filled
         paddedTodos.push('');
       }
-      
+
       setTodos(paddedTodos);
       hasLoadedInitialTodos.current = true;
-      
+
       // Focus the first empty field and scroll to it
       setTimeout(() => {
         const firstEmptyIndex = paddedTodos.findIndex(todo => todo.trim() === '');
@@ -281,7 +281,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       const validTodos = todos.filter((t: string) => t.trim() !== '');
-      
+
       if (validTodos.length === 0) {
         Alert.alert('No Tasks', 'Please add at least one task before saving.');
         return;

@@ -50,9 +50,9 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
-  if (isAfter(day, today)) return 'upcoming';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
+  if (isAfter(day, today)) {return 'upcoming';}
   return 'earlier';
 };
 
@@ -257,8 +257,8 @@ const CategorySelectionStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S FOCUS";
       case 'yesterday': return "YESTERDAY'S FOCUS";
-      case 'earlier': return "PREVIOUS FOCUS";
-      case 'upcoming': return "UPCOMING FOCUS";
+      case 'earlier': return 'PREVIOUS FOCUS';
+      case 'upcoming': return 'UPCOMING FOCUS';
     }
   };
 
@@ -336,7 +336,7 @@ const CategorySelectionStep: React.FC<{
                 <View style={styles.categoryIconContainer}>
                   <View style={[
                     styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected
+                    isSelected && styles.categoryIconCircleSelected,
                   ]}>
                     {category.iconType === 'ionicons' && (
                       <Ionicons
@@ -490,8 +490,8 @@ const PersonalTextInputStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S FOCUS";
       case 'yesterday': return "YESTERDAY'S FOCUS";
-      case 'earlier': return "PREVIOUS FOCUS";
-      case 'upcoming': return "UPCOMING FOCUS";
+      case 'earlier': return 'PREVIOUS FOCUS';
+      case 'upcoming': return 'UPCOMING FOCUS';
     }
   };
 
@@ -533,7 +533,7 @@ const PersonalTextInputStep: React.FC<{
             style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={personalText}
             onChangeText={onChange}
-            placeholder={`Bring this before God first...`}
+            placeholder={'Bring this before God first...'}
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             multiline
             textAlignVertical="top"
@@ -832,8 +832,8 @@ const CompletionStep: React.FC<{
     switch (dateContext) {
       case 'today': return "TODAY'S FOCUS";
       case 'yesterday': return "YESTERDAY'S FOCUS";
-      case 'earlier': return "PREVIOUS FOCUS";
-      case 'upcoming': return "UPCOMING FOCUS";
+      case 'earlier': return 'PREVIOUS FOCUS';
+      case 'upcoming': return 'UPCOMING FOCUS';
     }
   };
 
@@ -987,19 +987,19 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         const parsedContent = typeof existingEntry.content === 'string'
           ? JSON.parse(existingEntry.content)
           : existingEntry.content;
-        
+
         // Handle backward compatibility for old entries without focusCategory
         const categoryId = parsedContent.focusCategory || null;
         // Find the full category object from the category list
         const categoryObj = categoryId ? FOCUS_CATEGORIES.find(cat => cat.id === categoryId) : null;
-        
+
         const savedPriorities = parsedContent.priorities?.map((p: any) => p.text) || [];
         // Ensure we always have exactly 3 priority slots
         const paddedPriorities = [...savedPriorities];
         while (paddedPriorities.length < 3) {
           paddedPriorities.push('');
         }
-        
+
         return {
           category: categoryObj || null,
           customFocus: parsedContent.customFocus || '',

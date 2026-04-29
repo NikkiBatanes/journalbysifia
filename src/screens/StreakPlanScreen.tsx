@@ -73,7 +73,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Fetch data first, then animate content in — prevents snapping/popping
     const initialize = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {return;}
       try {
         const metadata = (user as any)?.user_metadata;
         const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';

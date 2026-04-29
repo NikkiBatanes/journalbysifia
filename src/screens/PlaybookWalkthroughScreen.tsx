@@ -593,7 +593,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   // ALL inner timers are tracked in nudgeTimerRefs so they can be cancelled on unmount or
   // if the user interacts before the nudge completes (preventing stale state updates).
   useEffect(() => {
-    if (actionStepIndex !== 0 || journalNudgeFired) return;
+    if (actionStepIndex !== 0 || journalNudgeFired) {return;}
     journalNudgeFired = true;
 
     const t1 = setTimeout(() => {
@@ -744,7 +744,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
     actionType === 'text_input' ? 'Save to Journal' :
-    "Done"
+    'Done'
   );
 
   const isCommitted = !!committedSteps[actionStepIndex];
@@ -836,7 +836,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           <View style={styles.actionProgressBar}>
             <View style={[
               styles.actionProgressFill,
-              { width: `${(Object.values(committedSteps).filter(v => v).length / totalSteps) * 100}%` }
+              { width: `${(Object.values(committedSteps).filter(v => v).length / totalSteps) * 100}%` },
             ]} />
           </View>
         </StepFadeIn>
@@ -1412,7 +1412,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
     // Always show "Before you close:" — inject if not already present
     const hasContext = lines.some(l => /^before you/i.test(l));
-    if (!hasContext) lines.unshift('Before you close:');
+    if (!hasContext) {lines.unshift('Before you close:');}
 
     const contextLine = lines.find(l => /^before you/i.test(l));
     const questionLine = lines.find(l => l.endsWith('?'));
@@ -1590,7 +1590,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (source === 'onboarding') {
       setShowReadyOverlay(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [source]);
 
   const handleDismissReadyOverlay = useCallback(() => {

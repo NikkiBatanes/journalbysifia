@@ -24,8 +24,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
   return 'earlier';
 };
 

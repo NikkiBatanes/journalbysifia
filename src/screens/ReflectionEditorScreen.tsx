@@ -79,7 +79,7 @@ const ReflectionEditorScreen: React.FC = () => {
   };
 
   const normalizeOutgoing = useCallback((text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   }, []);
 

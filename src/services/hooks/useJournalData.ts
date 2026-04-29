@@ -846,7 +846,7 @@ export const useUpdateTodoEntry = () => {
 
       // Snapshot the previous value
       let previousData: JournalApiEntry[] | undefined;
-      
+
       // Try to find the entry being updated to get user_id and selected_date
       const allQueries = queryClient.getQueriesData({ queryKey: ['journal', 'todos'] });
       for (const [queryKey, data] of allQueries) {

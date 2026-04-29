@@ -366,8 +366,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
         // Update step statuses
         setGenerationSteps(steps => steps.map((step, index) => {
-          if (index < nextStep) return { ...step, status: 'completed' as StepStatus };
-          if (index === nextStep) return { ...step, status: 'active' as StepStatus };
+          if (index < nextStep) {return { ...step, status: 'completed' as StepStatus };}
+          if (index === nextStep) {return { ...step, status: 'active' as StepStatus };}
           return { ...step, status: 'inactive' as StepStatus };
         }));
 
@@ -576,7 +576,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]);
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {

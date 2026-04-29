@@ -154,7 +154,7 @@ const PrayerTypeSelectionStep: React.FC<{
                 <View style={styles.categoryIconContainer}>
                   <View style={[
                     styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected
+                    isSelected && styles.categoryIconCircleSelected,
                   ]}>
                     <Ionicons
                       name={type.icon as any}

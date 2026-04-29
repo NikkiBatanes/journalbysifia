@@ -149,15 +149,15 @@ const extractIncompleteFaithfulActions = (playbooks: Playbook[]): FaithfulAction
 
   for (const playbook of playbooks) {
     // Only process in-progress playbooks
-    if (playbook.status === 'completed') continue;
-    if (!playbook.actionSteps || !Array.isArray(playbook.actionSteps)) continue;
+    if (playbook.status === 'completed') {continue;}
+    if (!playbook.actionSteps || !Array.isArray(playbook.actionSteps)) {continue;}
 
     const { completed, total } = calculateTaskStats(playbook.actionSteps);
 
     // Iterate through action steps to find incomplete ones
     for (let i = 0; i < playbook.actionSteps.length; i++) {
       const step = playbook.actionSteps[i];
-      if (!step) continue;
+      if (!step) {continue;}
 
       // Check if this step is incomplete
       const isStepIncomplete = !step.completed;
@@ -166,7 +166,7 @@ const extractIncompleteFaithfulActions = (playbooks: Playbook[]): FaithfulAction
       if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
         for (let j = 0; j < step.subTasks.length; j++) {
           const subTask = step.subTasks[j];
-          if (!subTask || subTask.completed) continue;
+          if (!subTask || subTask.completed) {continue;}
 
           actions.push({
             id: `${playbook.id}-${i}-${j}`,
@@ -264,12 +264,12 @@ interface FaithfulActionCardProps {
 }
 
 const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, onPress, triggerHaptic }: FaithfulActionCardProps) => {
-  const scale = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
-  const opacity = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' }), [scrollX, index]);
-  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [2, 0, 2], extrapolate: 'clamp' }), [scrollX, index]);
+  const scale = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
+  const opacity = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' }), [scrollX, index]);
+  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [2, 0, 2], extrapolate: 'clamp' }), [scrollX, index]);
 
   const updatedDateStr = useMemo(() => {
-    if (!item.playbookUpdatedAt) return null;
+    if (!item.playbookUpdatedAt) {return null;}
     const d = new Date(item.playbookUpdatedAt);
     return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   }, [item.playbookUpdatedAt]);
@@ -309,11 +309,11 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
           <ThemedText style={st.faithfulActionMeta}>{item.completedActions} of {item.totalActions} faithful actions acted on</ThemedText>
           <ThemedText style={st.faithfulActionMeta}>{Math.round((item.completedActions / item.totalActions) * 100)}%</ThemedText>
         </View>
-        
+
         <View style={{ height: 6, width: '100%', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
           <View style={{ height: '100%', width: `${(item.completedActions / item.totalActions) * 100}%`, backgroundColor: Colors.growthGreen, borderRadius: 2 }} />
         </View>
-        
+
         {updatedDateStr && (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MaterialCommunityIcons name="clock" size={12} color="rgba(255,255,255,0.5)" />
@@ -346,9 +346,9 @@ const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
 const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
   // Interpolation input range depends only on index — stable dep
-  const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
-  const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
-  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index-1)*ITEM_SIZE, index*ITEM_SIZE, (index+1)*ITEM_SIZE], outputRange: [2,    0,   2],    extrapolate: 'clamp' }), [scrollX, index]);
+  const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
+  const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
+  const translateY = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [2,    0,   2],    extrapolate: 'clamp' }), [scrollX, index]);
 
   const { completed, total } = useMemo(() => calculateTaskStats(item.actionSteps), [item.actionSteps]);
   const category = useMemo(() => getCategory(item), [item.id]);
@@ -356,12 +356,12 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
 
   // Memoize formatted dates — avoids 6 Date allocations per render
   const updatedDateStr = useMemo(() => {
-    if (!item.updatedAt) return null;
+    if (!item.updatedAt) {return null;}
     const d = new Date(item.updatedAt);
     return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   }, [item.updatedAt]);
   const completedDateStr = useMemo(() => {
-    if (!item.completedAt) return null;
+    if (!item.completedAt) {return null;}
     const d = new Date(item.completedAt);
     return format(d, d.getFullYear() === CURRENT_YEAR ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   }, [item.completedAt]);
@@ -473,40 +473,40 @@ const CategoryCarouselRow = React.memo(({
 }: CategoryCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
 
-  const renderCard = useCallback(({ item, index }: { item: Playbook; index: number }) => ( 
-    <CarouselCard 
-      item={item} 
-      index={index} 
-      scrollX={rowScrollX} 
-      isMenuOpen={menuVisible === item.id} 
-      hasPrayed={sessionStates[item.id]?.hasPrayed ?? false} 
-      hasRead={sessionStates[item.id]?.hasRead ?? false} 
-      devotionalCount={devotionalsCount[item.id] ?? 0} 
-      cardStyles={st} 
-      sessionStates={sessionStates} 
-      onPress={onPress} 
-      onLongPress={onLongPress} 
-      onMenuToggle={onMenuToggle} 
-      onDelete={onDelete} 
-      onRenamePress={onRenamePress} 
-      onTagPress={onTagPress} 
-      onDevotionalPress={onDevotionalPress} 
-      triggerHaptic={triggerHaptic} 
-    /> 
-  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic]); 
+  const renderCard = useCallback(({ item, index }: { item: Playbook; index: number }) => (
+    <CarouselCard
+      item={item}
+      index={index}
+      scrollX={rowScrollX}
+      isMenuOpen={menuVisible === item.id}
+      hasPrayed={sessionStates[item.id]?.hasPrayed ?? false}
+      hasRead={sessionStates[item.id]?.hasRead ?? false}
+      devotionalCount={devotionalsCount[item.id] ?? 0}
+      cardStyles={st}
+      sessionStates={sessionStates}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onMenuToggle={onMenuToggle}
+      onDelete={onDelete}
+      onRenamePress={onRenamePress}
+      onTagPress={onTagPress}
+      onDevotionalPress={onDevotionalPress}
+      triggerHaptic={triggerHaptic}
+    />
+  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic]);
 
-  const getItemLayout = useCallback((_: any, index: number) => ({ 
-    length: ITEM_SIZE, offset: ITEM_SIZE * index, index, 
-  }), []); 
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
+  }), []);
 
-  return ( 
-    <View style={st.categorySection}> 
-      <View style={st.categorySectionHeader}> 
-        <ThemedText weight="semiBold" style={st.categorySectionTitle}>{category.toUpperCase()}</ThemedText> 
-        <View style={st.categorySectionCount}> 
-          <ThemedText style={st.categorySectionCountText}>{playbooks.length}</ThemedText> 
-        </View> 
-      </View> 
+  return (
+    <View style={st.categorySection}>
+      <View style={st.categorySectionHeader}>
+        <ThemedText weight="semiBold" style={st.categorySectionTitle}>{category.toUpperCase()}</ThemedText>
+        <View style={st.categorySectionCount}>
+          <ThemedText style={st.categorySectionCountText}>{playbooks.length}</ThemedText>
+        </View>
+      </View>
       <Animated.FlatList
         horizontal
         data={playbooks}
@@ -530,19 +530,19 @@ const CategoryCarouselRow = React.memo(({
         disableIntervalMomentum={false}
         bounces={false}
         removeClippedSubviews={true}
-      /> 
-    </View> 
-  ); 
-}); 
+      />
+    </View>
+  );
+});
 
 
-// ── Faithful Actions horizontal carousel row ────────────────────────────────── 
-interface FaithfulActionsCarouselRowProps { 
-  faithfulActions: FaithfulAction[]; 
-  cardStyles: any; 
-  onPress: (item: FaithfulAction) => void; 
-  triggerHaptic: () => void; 
-} 
+// ── Faithful Actions horizontal carousel row ──────────────────────────────────
+interface FaithfulActionsCarouselRowProps {
+  faithfulActions: FaithfulAction[];
+  cardStyles: any;
+  onPress: (item: FaithfulAction) => void;
+  triggerHaptic: () => void;
+}
 
 const FaithfulActionsCarouselRow = React.memo(({
   faithfulActions,
@@ -757,7 +757,7 @@ const PickerModal = React.memo(({
       color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase' as const, letterSpacing: 0.8,
     },
     customDateValue: { fontSize: 13, fontFamily: Fonts.semiBold, color: Colors.hopeWhite },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }), []); // static — only computed once
 
   return (
@@ -1127,7 +1127,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Handle rename playbook
   const handleRenamePlaybook = useCallback(async () => {
-    if (!selectedPlaybookForRename || !newTitle.trim()) return;
+    if (!selectedPlaybookForRename || !newTitle.trim()) {return;}
 
     try {
       triggerLightHaptic();
@@ -1136,7 +1136,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         .update({ title: newTitle.trim(), updated_at: new Date().toISOString() })
         .eq('id', selectedPlaybookForRename.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Refetch to update data
       refetch();
@@ -1152,10 +1152,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Handle tag playbook
   const handleTagPlaybook = useCallback(async () => {
-    if (!selectedPlaybookForTag) return;
+    if (!selectedPlaybookForTag) {return;}
 
     const finalTag = selectedTag === 'Custom' ? customTag.trim() : selectedTag;
-    if (!finalTag) return;
+    if (!finalTag) {return;}
 
     try {
       triggerLightHaptic();
@@ -1164,7 +1164,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         .update({ tag: finalTag, updated_at: new Date().toISOString() })
         .eq('id', selectedPlaybookForTag.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Refetch to update data
       refetch();
@@ -1359,8 +1359,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Fetch devotionals count for each playbook — stable dep: playbooks.length, not the full array ref
   const playbooksLengthRef = useRef(0);
   useEffect(() => {
-    if (!userId || playbooks.length === 0) return;
-    if (playbooks.length === playbooksLengthRef.current && Object.keys(devotionalsCount).length > 0) return;
+    if (!userId || playbooks.length === 0) {return;}
+    if (playbooks.length === playbooksLengthRef.current && Object.keys(devotionalsCount).length > 0) {return;}
     playbooksLengthRef.current = playbooks.length;
 
     const fetchDevotionalsCount = async () => {
@@ -1370,7 +1370,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           .select('playbook_id')
           .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         const counts: Record<string, number> = {};
         devotionals?.forEach((devotional: any) => {
@@ -1429,7 +1429,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (filteredPlaybooks.length > 0 && userId) {
       const idKey = filteredPlaybooks.slice(0, 5).map(p => p.id).join(',');
-      if (idKey === lastPrefetchedIdsRef.current) return;
+      if (idKey === lastPrefetchedIdsRef.current) {return;}
       lastPrefetchedIdsRef.current = idKey;
       const raf = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame
@@ -1447,7 +1447,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // In-progress playbooks for "Continue" section — time-filtered, newest activity first
   const continuePlaybooks = useMemo(() => {
-    if (deferredFilter === 'completed') return [];
+    if (deferredFilter === 'completed') {return [];}
     let list = playbooksWithProgress
       .filter(({ isCompleted }) => !isCompleted)
       .sort((a, b) => {
@@ -1481,11 +1481,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const categorySections = useMemo(() => {
     const map = new Map<string, Playbook[]>();
     playbooksWithProgress.forEach(({ playbook, isCompleted }) => {
-      if (deferredFilter === 'ongoing' && isCompleted) return;
-      if (deferredFilter === 'completed' && !isCompleted) return;
+      if (deferredFilter === 'ongoing' && isCompleted) {return;}
+      if (deferredFilter === 'completed' && !isCompleted) {return;}
       const cat = getCategory(playbook);
       // If specific categories are selected, skip others
-      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) return;
+      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) {return;}
       if (!map.has(cat)) { map.set(cat, []); }
       map.get(cat)!.push(playbook);
     });
@@ -1509,7 +1509,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // All completed playbooks sorted by latest activity
   const completedPlaybooks = useMemo(() => {
-    if (deferredFilter === 'ongoing') return [];
+    if (deferredFilter === 'ongoing') {return [];}
     return playbooksWithProgress
       .filter(({ isCompleted }) => isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
@@ -2655,7 +2655,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   key={tag}
                   style={[
                     styles.tagItem,
-                    selectedTag === tag && styles.tagItemSelected
+                    selectedTag === tag && styles.tagItemSelected,
                   ]}
                   onPress={() => {
                     if (tag === 'Custom') {
@@ -2668,7 +2668,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 >
                   <ThemedText style={[
                     styles.tagItemText,
-                    selectedTag === tag && styles.tagItemTextSelected
+                    selectedTag === tag && styles.tagItemTextSelected,
                   ]}>
                     {tag}
                   </ThemedText>

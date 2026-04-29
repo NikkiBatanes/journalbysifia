@@ -45,7 +45,7 @@ interface LookingForwardProps {
 const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
   // Navigation
   const navigation = useNavigation<any>();
-  
+
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();

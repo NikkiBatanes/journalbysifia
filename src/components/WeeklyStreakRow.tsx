@@ -61,7 +61,7 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
 
   // Trigger staggered spring animations when dayStates loads
   useEffect(() => {
-    if (!dayStates || dayStates.length === 0) return;
+    if (!dayStates || dayStates.length === 0) {return;}
 
     scaleAnims.forEach((anim, index) => {
       anim.setValue(0);

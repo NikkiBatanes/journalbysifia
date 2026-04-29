@@ -534,7 +534,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
   const detailsInputRef = useRef<TextInput>(null);
-  
+
   // Dynamic input height
   const MIN_INPUT_HEIGHT = 44;
   const MAX_INPUT_HEIGHT = 150;
@@ -1962,8 +1962,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                           inputRange: [36, 240],
                           outputRange: ['0deg', '-90deg'],
                           extrapolate: 'clamp',
-                        })
-                      }]
+                        }),
+                      }],
                     }}>
                       <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
                     </Animated.View>

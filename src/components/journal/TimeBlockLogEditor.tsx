@@ -852,7 +852,7 @@ function TimeBlockLogEditorInner(
   const dayLabels = useMemo(() => {
     const allDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const allDayIndices = [0, 1, 2, 3, 4, 5, 6];
-    
+
     // Reorder arrays based on week start day
     const reorderedLabels = [];
     const reorderedIndices = [];
@@ -861,7 +861,7 @@ function TimeBlockLogEditorInner(
       reorderedLabels.push(allDays[dayIndex]);
       reorderedIndices.push(dayIndex);
     }
-    
+
     return { labels: reorderedLabels, indices: reorderedIndices };
   }, [weekStartDay]);
 
@@ -1116,8 +1116,8 @@ function TimeBlockLogEditorInner(
                   {context === 'faithful-actions' ? 'Set a time' : 'Time Block'}
                 </ThemedText>
                 <ThemedText style={s.subtext}>
-                  {context === 'faithful-actions' 
-                    ? 'Choose when you want to come back to this.' 
+                  {context === 'faithful-actions'
+                    ? 'Choose when you want to come back to this.'
                     : 'Schedule and organize your day.'}
                 </ThemedText>
               </View>

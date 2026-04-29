@@ -277,7 +277,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   useEffect(() => {
     const loadSessionStates = async () => {
       const playbookIds = content.filter(c => c.type === 'playbook').map(c => c.id);
-      if (playbookIds.length === 0) return;
+      if (playbookIds.length === 0) {return;}
 
       const entries: Record<string, { hasPrayed: boolean; hasRead: boolean }> = {};
       await Promise.all(

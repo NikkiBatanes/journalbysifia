@@ -44,8 +44,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
   const today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
-  if (isToday(day)) return 'today';
-  if (isYesterday(day)) return 'yesterday';
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
   return 'earlier';
 };
 
@@ -60,15 +60,15 @@ interface PrayerPath {
 }
 
 const PRAYER_PATHS: PrayerPath[] = [
-  { 
-    id: 'acts', 
-    name: 'CAST Method', 
+  {
+    id: 'acts',
+    name: 'CAST Method',
     description: 'Confession · Adoration · Supplication · Thanksgiving',
     icon: 'layers',
   },
-  { 
-    id: 'open', 
-    name: 'Open Prayer', 
+  {
+    id: 'open',
+    name: 'Open Prayer',
     description: 'Pray in your own words without a fixed structure.',
     icon: 'chatbubble-ellipses-outline',
   },
@@ -190,7 +190,7 @@ const PrayerPathSelectionStep: React.FC<{
                 <View style={styles.categoryIconContainer}>
                   <View style={[
                     styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected
+                    isSelected && styles.categoryIconCircleSelected,
                   ]}>
                     <Ionicons
                       name={path.icon as any}
@@ -231,7 +231,7 @@ const PrayerPathSelectionStep: React.FC<{
         <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
           <Animated.View style={[
             styles.primaryButtonInner,
-            { transform: [{ scale: buttonScale }] }
+            { transform: [{ scale: buttonScale }] },
           ]}>
             <TouchableOpacity
               onPress={() => {
@@ -353,9 +353,9 @@ const CASTDescriptionStep: React.FC<{
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, 310],
-              }) }
+              }) },
             ]} />
-            
+
             {prayerSteps.map((step, index) => (
               <Animated.View
                 key={step.label}
@@ -368,12 +368,12 @@ const CASTDescriptionStep: React.FC<{
               >
                 <Animated.View style={[
                   styles.timelineDot,
-                  { transform: [{ scale: dotScaleAnims[index] }] }
+                  { transform: [{ scale: dotScaleAnims[index] }] },
                 ]}>
                   {step.icon === 'hand-right' ? (
-                    <Ionicons 
-                      name={step.icon as any} 
-                      size={16} 
+                    <Ionicons
+                      name={step.icon as any}
+                      size={16}
                       color={Colors.hopeWhite}
                       style={{ transform: [{ rotate: '30deg' }] }}
                     />
@@ -383,7 +383,7 @@ const CASTDescriptionStep: React.FC<{
                 </Animated.View>
                 <Animated.View style={[
                   styles.timelineContentContainer,
-                  { opacity: fadeAnims[index] }
+                  { opacity: fadeAnims[index] },
                 ]}>
                   <ThemedText weight="semiBold" style={styles.timelineLabel}>{step.label}</ThemedText>
                   <ThemedText style={styles.timelineDescription}>{step.description}</ThemedText>
@@ -516,9 +516,9 @@ const OpenPrayerDescriptionStep: React.FC<{
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, 310],
-              }) }
+              }) },
             ]} />
-            
+
             {prayerSteps.map((step, index) => (
               <Animated.View
                 key={step.label}
@@ -531,13 +531,13 @@ const OpenPrayerDescriptionStep: React.FC<{
               >
                 <Animated.View style={[
                   styles.timelineDot,
-                  { transform: [{ scale: dotScaleAnims[index] }] }
+                  { transform: [{ scale: dotScaleAnims[index] }] },
                 ]}>
                   <Ionicons name={step.icon as any} size={16} color={Colors.hopeWhite} />
                 </Animated.View>
                 <Animated.View style={[
                   styles.timelineContentContainer,
-                  { opacity: fadeAnims[index] }
+                  { opacity: fadeAnims[index] },
                 ]}>
                   <ThemedText weight="semiBold" style={styles.timelineLabel}>{step.label}</ThemedText>
                   <ThemedText style={styles.timelineDescription}>{step.description}</ThemedText>
@@ -631,7 +631,7 @@ const ACTSPrayerSlidesStep: React.FC<{
 
   useEffect(() => {
     const shouldShowTracking = currentStep.key === 'supplication' && prayerTexts[currentStep.key]?.trim();
-    
+
     if (shouldShowTracking) {
       Animated.parallel([
         Animated.timing(trackingOpacity, {
@@ -687,7 +687,7 @@ const ACTSPrayerSlidesStep: React.FC<{
       onNext();
       return;
     }
-    
+
     // Animate tracking button out if on supplication step
     if (currentStep.key === 'supplication') {
       Animated.parallel([
@@ -738,7 +738,7 @@ const ACTSPrayerSlidesStep: React.FC<{
           <View style={styles.actionProgressBar}>
             <View style={[
               styles.actionProgressFill,
-              { width: `${((actsStepIndex + 1) / ACTS_STEPS.length) * 100}%` }
+              { width: `${((actsStepIndex + 1) / ACTS_STEPS.length) * 100}%` },
             ]} />
           </View>
         </StepFadeIn>
@@ -772,14 +772,14 @@ const ACTSPrayerSlidesStep: React.FC<{
 
       <Animated.View style={[
         styles.trackingFloatingButton,
-        { bottom: buttonPosition }
+        { bottom: buttonPosition },
       ]}>
         <Animated.View style={[
           styles.trackingFloatingButtonInner,
           {
             opacity: trackingOpacity,
             transform: [{ scale: trackingScale }],
-          }
+          },
         ]}>
           <TouchableOpacity
             onPress={() => {
@@ -801,11 +801,11 @@ const ACTSPrayerSlidesStep: React.FC<{
 
       <Animated.View style={[
         styles.primaryButton,
-        { bottom: buttonPosition }
+        { bottom: buttonPosition },
       ]}>
         <Animated.View style={[
           styles.primaryButtonInner,
-          { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 }
+          { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
         ]}>
           <TouchableOpacity
             onPress={handleNext}
@@ -946,7 +946,7 @@ const OpenPrayerStep: React.FC<{
       <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition }]}>
         <Animated.View style={[
           styles.trackingFloatingButtonInner,
-          { opacity: trackingOpacity, transform: [{ scale: trackingScale }] }
+          { opacity: trackingOpacity, transform: [{ scale: trackingScale }] },
         ]}>
           <TouchableOpacity
             onPress={() => {
@@ -969,7 +969,7 @@ const OpenPrayerStep: React.FC<{
       <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <Animated.View style={[
           styles.primaryButtonInner,
-          { opacity: prayerText?.trim() ? 1 : 0 }
+          { opacity: prayerText?.trim() ? 1 : 0 },
         ]}>
           <TouchableOpacity
             onPress={() => {
@@ -1075,7 +1075,7 @@ const CompletionStep: React.FC<{
   };
 
   const renderOpenPrayer = () => {
-    if (!openPrayerText || openPrayerText.trim() === '') return null;
+    if (!openPrayerText || openPrayerText.trim() === '') {return null;}
 
     return (
       <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
@@ -1238,8 +1238,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
 
       analytics.trackPrayerEvent('prayer_created', {
         prayer_type: selectedPath?.id === 'acts' ? 'supplication' : 'adoration',
-        content_length: selectedPath?.id === 'acts' 
-          ? Object.values(prayerTexts).join('').length 
+        content_length: selectedPath?.id === 'acts'
+          ? Object.values(prayerTexts).join('').length
           : openPrayerText.length,
         date: dateStr,
       }, user.id);

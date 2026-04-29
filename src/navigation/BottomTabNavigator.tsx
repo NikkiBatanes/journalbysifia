@@ -79,7 +79,7 @@ const CustomTabBarComponent = ({
   const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
   const updateSelectorPosition = React.useCallback((index: number) => {
-    if (tabLayouts.length === 0) return;
+    if (tabLayouts.length === 0) {return;}
     const tab = tabLayouts[index];
     Animated.parallel([
       Animated.spring(selectorPosition, {

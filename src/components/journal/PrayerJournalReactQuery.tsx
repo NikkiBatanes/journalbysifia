@@ -576,7 +576,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             <View style={styles.castStepsContainer}>
               {['confession', 'adoration', 'supplication', 'thanksgiving'].map((step) => {
                 const stepPrayers = actsPrayers.filter((p: any) => p.type === step);
-                if (stepPrayers.length === 0) return null;
+                if (stepPrayers.length === 0) {return null;}
 
                 return (
                   <View key={step} style={styles.castStepSection}>

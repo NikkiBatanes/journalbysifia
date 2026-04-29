@@ -1472,16 +1472,16 @@ const UserInputScreen: React.FC = () => {
 
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }] }]}>
             {!isGenerating && (
-              <Animated.Image 
-                source={require('../../assets/icons/siFia-logo-white.png')} 
+              <Animated.Image
+                source={require('../../assets/icons/siFia-logo-white.png')}
                 style={[
-                  styles.logo, 
-                  { 
-                    opacity: headerIntroOpacity, 
+                  styles.logo,
+                  {
+                    opacity: headerIntroOpacity,
                     transform: [{ scale: headerScale }],
                   },
-                ]} 
-                resizeMode="contain" 
+                ]}
+                resizeMode="contain"
               />
             )}
             {!isGenerating && (

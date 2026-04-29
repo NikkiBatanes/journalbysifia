@@ -99,7 +99,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [notes, setNotes] = useState('');
   const [selectedPrayerType, setSelectedPrayerType] = useState<string>('mine');
   const [currentRequestedBy, setCurrentRequestedBy] = useState('');
-  
+
   // Show more / show less state for inline display
   const [requestsDisplayLimit, setRequestsDisplayLimit] = useState(2);
   const [personalDisplayLimit, setPersonalDisplayLimit] = useState(2);
@@ -287,12 +287,12 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const handleMarkAsAnswered = async (prayerId: string) => {
     try {
       triggerLightHaptic();
-      
+
       // Optimistically update the cache
       queryClient.setQueryData(
         queryKeys.prayers.people(user?.id || '', dateStr),
         (old: PersonPrayer[] | undefined) => {
-          if (!old) return old;
+          if (!old) {return old;}
           return old.map(prayer =>
             prayer.id === prayerId
               ? { ...prayer, status: 'answered' as const, answered_date: new Date().toISOString() }
@@ -459,21 +459,21 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     // Calculate display limits for inline view
     const hasRequests = localPrayerRequests.length > 0;
     const hasPersonal = prayedForPrayers.length > 0;
-    
+
     // Default: 1 of each type, but if one is missing, show 2 of the other
     let requestsLimit = hasRequests ? 1 : 0;
     let personalLimit = hasPersonal ? 1 : 0;
-    
+
     if (!hasRequests && hasPersonal) {
       personalLimit = 2;
     } else if (hasRequests && !hasPersonal) {
       requestsLimit = 2;
     }
-    
+
     // Apply limits
     const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
     const displayedPersonal = prayedForPrayers.slice(0, personalDisplayLimit);
-    
+
     // Check if we need to show show more/less button
     const hasMoreRequests = localPrayerRequests.length > requestsDisplayLimit;
     const hasMorePersonal = prayedForPrayers.length > personalDisplayLimit;
@@ -519,7 +519,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             </>
           )}
         </View>
-        
+
         {/* Show More / Show Less Button */}
         {(hasMoreItems || canShowLess) && (
           <View style={styles.paginationContainer}>
@@ -527,8 +527,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               {hasMoreItems && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => { 
-                    triggerSelectionHaptic(); 
+                  onPress={() => {
+                    triggerSelectionHaptic();
                     setRequestsDisplayLimit((prev: number) => Math.min(prev + 3, localPrayerRequests.length));
                     setPersonalDisplayLimit((prev: number) => Math.min(prev + 3, prayedForPrayers.length));
                   }}
@@ -543,8 +543,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               {canShowLess && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => { 
-                    triggerSelectionHaptic(); 
+                  onPress={() => {
+                    triggerSelectionHaptic();
                     setRequestsDisplayLimit(2);
                     setPersonalDisplayLimit(2);
                   }}
@@ -826,7 +826,7 @@ const SwipeablePrayerCard: React.FC<{
             const hasTracking = prayer.metadata?.track_answered === true;
             const notAnswered = prayer.status !== 'answered';
             const isNotRequest = prayer.is_prayer_request !== true;
-            
+
             return hasTracking && notAnswered && isNotRequest;
           })() && (
             <View style={styles.answeredActionContainer}>
@@ -865,7 +865,7 @@ const SwipeablePrayerCard: React.FC<{
                     const date = new Date(prayer.answered_date);
                     const currentYear = new Date().getFullYear();
                     const isCurrentYear = date.getFullYear() === currentYear;
-                    
+
                     return date.toLocaleDateString('en-US', {
                       weekday: 'short',
                       month: 'short',

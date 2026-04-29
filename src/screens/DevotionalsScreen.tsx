@@ -77,7 +77,7 @@ const DevotionalsScreen = () => {
   const [filter, setFilter] = useState<FilterType>('ongoing');
   const [showStatusPicker, setShowStatusPicker] = useState(false);
 
-  // All picker/view state batched into one object — 
+  // All picker/view state batched into one object —
   // Picker state for advanced filtering
   // This state manages the advanced filter modal configuration:
   // - contentView: Determines what filter type is active (all/category/date)
@@ -636,7 +636,7 @@ const DevotionalsScreen = () => {
         case 'custom': {
           // User-defined date range
           result = result.filter(d => {
-            if (!d.createdAt) return false;
+            if (!d.createdAt) {return false;}
             const date = new Date(d.createdAt);
             return date >= customDateFrom && date <= customDateTo;
           });
@@ -774,11 +774,11 @@ const DevotionalsScreen = () => {
   const categorySections = useMemo(() => {
     const map = new Map<string, Devotional[]>();
     devotionals.forEach(d => {
-      if (deferredFilter === 'ongoing' && d.completed) return;
-      if (deferredFilter === 'completed' && !d.completed) return;
+      if (deferredFilter === 'ongoing' && d.completed) {return;}
+      if (deferredFilter === 'completed' && !d.completed) {return;}
       const cat = d.category || 'Uncategorized';
       // If specific categories are selected, skip others
-      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) return;
+      if (deferredSelectedCategories.length > 0 && !deferredSelectedCategories.includes(cat)) {return;}
       if (!map.has(cat)) { map.set(cat, []); }
       map.get(cat)!.push(d);
     });
