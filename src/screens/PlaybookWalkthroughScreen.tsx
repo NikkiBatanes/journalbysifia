@@ -426,6 +426,7 @@ interface FaithfulActionsStepProps {
   playbookTitle?: string;
   userId: string;
   onNext: () => void;
+  onGoBack?: () => void;
   insets: { top: number };
   actionStepIndex: number;
   setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
@@ -485,6 +486,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   playbookTitle,
   userId,
   onNext,
+  onGoBack,
   insets,
   actionStepIndex,
   setActionStepIndex,
@@ -1012,6 +1014,20 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
         </View>
         </StepFadeIn>
+
+        {/* Back button — below the button row, right-aligned, shown from step 2 onwards */}
+        {actionStepIndex >= 1 && onGoBack && (
+          <View style={styles.backButtonRow}>
+            <TouchableOpacity
+              style={styles.journalTrigger}
+              onPress={onGoBack}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="chevron-back" size={18} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+          </View>
+        )}
     </View>
 
       {activeJournalModal === 'reflection' && (
@@ -1569,8 +1585,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     setShowReadyOverlay(false);
   }, []);
 
-  const backButtonAnim = useRef(new Animated.Value(0)).current;
-  const backButtonPositionAnim = useRef(new Animated.Value(0)).current;
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [journalCollapseComplete, setJournalCollapseComplete] = useState(true);
 
@@ -1733,25 +1747,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [stepIndex, screen0CloseAnim, screen0NextAnim]);
 
-  // Animate back button — visible only on Faithful Actions step 2+ (actionStepIndex >= 1) AND when journal is not expanded AND collapse is complete
-  useEffect(() => {
-    const shouldShow = stepIndex === 3 && actionStepIndex >= 1 && !journalExpanded && journalCollapseComplete;
-    if (shouldShow) {
-      Animated.spring(backButtonAnim, {
-        toValue: 1,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      // Hide immediately when journal expands or leaving step
-      Animated.timing(backButtonAnim, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [stepIndex, actionStepIndex, journalExpanded, journalCollapseComplete, backButtonAnim]);
 
   // Reset journalCollapseComplete when journal expands
   useEffect(() => {
@@ -2056,6 +2051,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 playbookTitle={playbook.title}
                 userId={userId}
                 onNext={goNext}
+                onGoBack={goBackActionStep}
                 insets={insets}
                 actionStepIndex={actionStepIndex}
                 setActionStepIndex={setActionStepIndex}
@@ -2165,39 +2161,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       )}
 
-      {/* Animated back button — below skip button, aligned with close button at screen level */}
-      {stepIndex === 3 && actionStepIndex >= 1 && (
-        <Animated.View
-          pointerEvents="auto"
-          style={[
-            styles.closeButton,
-            { right: 20, bottom: insets.bottom + 200 },
-            {
-              opacity: backButtonAnim,
-              transform: [
-                {
-                  translateY: backButtonPositionAnim,
-                },
-                {
-                  scale: backButtonAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.6, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={goBackActionStep}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="chevron-back" size={17} color="rgba(255,255,255,0.65)" />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
 
 
       {/* Floating coral next button — bottom right */}
@@ -2676,6 +2639,11 @@ const styles = StyleSheet.create({
   },
   buttonArea: {
     marginTop: 20,
+  },
+  backButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
   },
   savedFeedbackRow: {
     flexDirection: 'row' as const,
