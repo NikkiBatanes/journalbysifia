@@ -1418,10 +1418,17 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       l.length > 0 && !/^before you/i.test(l) && !l.endsWith('?')
     );
 
-    // Choice pills: 2-4 very short lines (under 6 words) with choice language
+    // Choice pills: 2-4 short mutually-exclusive options.
+    // Require the *question* to explicitly ask for a selection, OR the items to use "or"
+    // as an explicit alternative connector — never trigger on imperative-step verbs like
+    // "Choose patience…" which are sequential actions, not selectable options.
     const isChoicePills = actionLines.length >= 2 && actionLines.length <= 4 &&
                           actionLines.every(l => l.split(' ').length <= 6) &&
-                          actionLines.some(l => l.toLowerCase().includes('or') || l.toLowerCase().includes('choose'));
+                          (
+                            (questionLine !== undefined &&
+                              /\bwhich\b|\bpick one\b|\bchoose one\b|\bwhat will you choose\b/i.test(questionLine)) ||
+                            actionLines.some(l => /\bor\b/i.test(l))
+                          );
 
     return { contextLine, questionLine, actionLines, isChoicePills };
   };
