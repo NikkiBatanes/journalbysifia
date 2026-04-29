@@ -802,7 +802,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           ) : (
             <View style={styles.sectionsContainer}>
               {CARD_SECTIONS.map(({ label, step, metaIcon, actionIcon, actionIconType }) => {
-                const state = getSectionState(step, wp, completed, total);
+                const state = getSectionState(step, wp, completed);
                 // Derive dynamic values per section to match PlaybookListScreen
                 const meta = step === 1 ? tilReadTime
                            : step === 3 ? `${completed} of ${total} acted on`
