@@ -285,7 +285,9 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
           ) : null}
         </View>
 
-        <ThemedText weight="regular" style={st.faithfulActionLabel}>Faithful Action {item.actionIndex}</ThemedText>
+        <View style={st.faithfulActionBadge}>
+          <ThemedText weight="regular" style={st.faithfulActionLabel}>Faithful Action {item.actionIndex}</ThemedText>
+        </View>
         <ThemedText weight="semiBold" style={st.faithfulActionTitle}>{item.actionTitle}</ThemedText>
         <ThemedText style={st.faithfulActionDescription} numberOfLines={3}>{item.actionDescription}</ThemedText>
 
@@ -1506,13 +1508,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
       .map(({ playbook }) => playbook);
   }, [playbooksWithProgress, deferredFilter]);
 
-  // All playbooks sorted newest first (for date views)
+  // All playbooks sorted newest first (for date views) — no status filter so the
+  // date view is a complete historical timeline regardless of ongoing/completed status
   const allPlaybooksSorted = useMemo(() =>
     [...playbooksWithProgress]
-      .filter(({ isCompleted }) => deferredFilter === 'ongoing' ? !isCompleted : isCompleted)
       .sort((a, b) => new Date(b.playbook.updatedAt || b.playbook.createdAt || 0).getTime() - new Date(a.playbook.updatedAt || a.playbook.createdAt || 0).getTime())
       .map(({ playbook }) => playbook),
-    [playbooksWithProgress, deferredFilter],
+    [playbooksWithProgress],
   );
 
   const currentYear = new Date().getFullYear();
@@ -2680,22 +2682,32 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 6,
   },
   // Faithful Action Card Styles
+  faithfulActionBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    marginBottom: 2,
+  },
   faithfulActionLabel: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.7)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   faithfulActionTitle: {
     fontSize: 15,
     color: Colors.hopeWhite,
-    marginTop: 4,
+    marginTop: 0,
   },
   faithfulActionDescription: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
-    marginTop: 8,
+    marginTop: 4,
   },
   faithfulActionDivider: {
     height: 1,
