@@ -745,7 +745,7 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <MaterialCommunityIcons name={icon as any} size={24} color={Colors.alertCoral} />
+              <MaterialIcons name="wb-sunny" size={24} color={Colors.alertCoral} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText style={styles.completionSubtext}>{completionMessage}</ThemedText>

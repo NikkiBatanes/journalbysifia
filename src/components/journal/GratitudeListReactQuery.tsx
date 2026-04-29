@@ -49,7 +49,7 @@ interface GratitudeListProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
-  onBegin?: (existingEntry?: any) => void;
+  onBegin?: (existingEntry?: any, selectedDate?: Date) => void;
 }
 
 export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onBegin }) => {
@@ -490,8 +490,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={() => {
+              triggerLightHaptic();
               if (onBegin) {
-                onBegin();
+                onBegin(undefined, selectedDate);
               } else {
                 startAdding();
               }
@@ -645,7 +646,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               ...gratitudeEntries[0],
               content: JSON.stringify({ items: allItems })
             } : undefined;
-            onBegin(syntheticEntry);
+            onBegin(syntheticEntry, selectedDate);
           } else {
             if (gratitudeItems.length > 0) {
               startEditing();

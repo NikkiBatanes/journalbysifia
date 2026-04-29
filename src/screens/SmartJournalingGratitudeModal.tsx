@@ -32,6 +32,7 @@ interface SmartJournalingGratitudeModalProps {
   onCancel: () => void;
   stepBody?: string;
   stepExample?: string | null;
+  selectedDate?: Date;
 }
 
 const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps> = ({
@@ -49,6 +50,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   onCancel,
   stepBody,
   stepExample,
+  selectedDate = new Date(),
 }) => {
 
 
@@ -94,7 +96,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   }, [playbookTitle]);
 
   // Fetch existing gratitude data for this subtask
-  const dateStr = toLocalDateString(new Date());
+  const dateStr = toLocalDateString(selectedDate);
   const { data: existingGratitudeEntries = [] } = useQuery({
     queryKey: ['gratitude', user?.id, dateStr, subtaskId],
     queryFn: async () => {
@@ -360,6 +362,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             onSave={saveGratitude}
             onCancel={onCancel}
             onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
+            selectedDate={selectedDate}
             initialItems={(() => {
               if (currentGratitudeEntry?.content) {
                 try {

@@ -23,6 +23,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import PlaybookMetaSection from './PlaybookMetaSection';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -42,7 +43,20 @@ interface GratitudeLogEditorProps {
   styles?: any;
   stepBody?: string;
   stepExample?: string | null;
+  selectedDate?: Date;
 }
+
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const today = startOfDay(new Date());
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) return 'today';
+  if (isYesterday(day)) return 'yesterday';
+  return 'earlier';
+};
 
 export interface GratitudeLogEditorRef {
   focusInput: () => void;
@@ -451,7 +465,10 @@ const GratitudeLogEditorInner = (
     styles,
     stepBody,
     stepExample,
+    selectedDate = new Date(),
   } = props;
+
+  const dateContext = getDateContext(selectedDate);
   const navigation = useNavigation();
   const { subscription } = useSubscription();
   const { currentFont } = useTheme();
@@ -459,6 +476,23 @@ const GratitudeLogEditorInner = (
   const fontRegular = getFontFamily(fontKey, 'regular');
 
   const s = { ...defaultStyles, ...styles };
+
+  // Dynamic labels based on date context
+  const getTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'What are you grateful for today?';
+      case 'yesterday': return 'What were you grateful for yesterday?';
+      case 'earlier': return 'What were you grateful for on this day?';
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (dateContext) {
+      case 'today': return "I'm grateful for...";
+      case 'yesterday': return 'I was grateful for...';
+      case 'earlier': return 'I was grateful for...';
+    }
+  };
 
   // Helper function to remove number prefixes from items (for backward compatibility)
   const removeNumbersFromItems = useCallback((items: string[]): string[] => {
@@ -573,19 +607,19 @@ const GratitudeLogEditorInner = (
   }, []);
 
   const getCurrentDate = () => {
-    const today = new Date();
+    const date = selectedDate;
     const currentYear = new Date().getFullYear();
-    const todayYear = today.getFullYear();
+    const dateYear = date.getFullYear();
 
     // Don't show year if it's the current year
-    if (todayYear === currentYear) {
-      return today.toLocaleDateString('en-US', {
+    if (dateYear === currentYear) {
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
       });
     } else {
-      return today.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
@@ -655,7 +689,7 @@ const GratitudeLogEditorInner = (
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
               <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
-                What are you grateful for today?
+                {getTitle()}
               </ThemedText>
             </View>
             {/* Gratitude items */}
@@ -675,7 +709,7 @@ const GratitudeLogEditorInner = (
                   <TextInput
                     ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
                     style={[s.gratitudeItemInput, { fontFamily: fontRegular }]}
-                    placeholder="I'm grateful for..."
+                    placeholder={getPlaceholder()}
                     placeholderTextColor={Colors.textGray}
                     value={item}
                     onChangeText={(text) => {

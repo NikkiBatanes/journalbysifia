@@ -75,6 +75,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showGratitudeModal, setShowGratitudeModal] = useState(false);
   const [existingGratitudeEntry, setExistingGratitudeEntry] = useState<any | undefined>(undefined);
+  const [selectedDateForModal, setSelectedDateForModal] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
 
@@ -640,8 +641,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                       refreshKey={refreshKey}
                       initialScrollIndex={carouselIndices.reflect}
                       onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, reflect: index })); }}
-                      onGratitudeBegin={(existingEntry) => {
+                      onGratitudeBegin={(existingEntry, selectedDate) => {
                         setExistingGratitudeEntry(existingEntry);
+                        setSelectedDateForModal(selectedDate || currentDate);
                         setShowGratitudeModal(true);
                       }}
                     />
@@ -761,6 +763,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       <SmartJournalingGratitudeModal
         visible={showGratitudeModal}
         existingGratitude={existingGratitudeEntry}
+        selectedDate={selectedDateForModal}
         onSave={() => {
           // Modal will handle its own success flow
           setRefreshKey(prev => prev + 1);
