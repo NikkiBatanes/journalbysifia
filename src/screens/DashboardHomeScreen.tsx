@@ -811,13 +811,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
         if (storedDate !== today) {
           // New day, rotate to next message
-          const newIndex = storedIndex ? (parseInt(storedIndex) + 1) % motivationalMessages.length : 0;
+          const newIndex = storedIndex ? (parseInt(storedIndex, 10) + 1) % motivationalMessages.length : 0;
           await AsyncStorage.setItem('motivationalMessageDate', today);
           await AsyncStorage.setItem('motivationalMessageIndex', newIndex.toString());
           setRotationalMessage(newIndex);
         } else if (storedIndex !== null) {
           // Same day, use stored index
-          setRotationalMessage(parseInt(storedIndex));
+          setRotationalMessage(parseInt(storedIndex, 10));
         }
       } catch (error) {
         console.error('Failed to load daily motivational message:', error);

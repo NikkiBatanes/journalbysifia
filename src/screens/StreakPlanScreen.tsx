@@ -230,7 +230,7 @@ const StreakPlanScreen: React.FC = () => {
     weekStartDate.setHours(0, 0, 0, 0);
 
     // Generate state for each day in the current week (weekStart + 0..6)
-    const dayStates: DayState[] = [];
+    const currentWeekDayStates: DayState[] = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStartDate);
       date.setDate(weekStartDate.getDate() + i);
@@ -247,10 +247,10 @@ const StreakPlanScreen: React.FC = () => {
         state = 'missed';
       }
 
-      dayStates.push(state);
+      currentWeekDayStates.push(state);
     }
 
-    return { dayStates, activityDates };
+    return { dayStates: currentWeekDayStates, activityDates };
   };
 
   // Get streak message based on milestone or rotation

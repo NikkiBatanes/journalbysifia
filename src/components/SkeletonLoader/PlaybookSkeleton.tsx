@@ -12,6 +12,132 @@ const SIDE_INSET = Math.max(
   _isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
 
+type SkeletonOpacity = Animated.AnimatedInterpolation<number>;
+
+interface SkeletonProps {
+  opacity: SkeletonOpacity;
+}
+
+const CarouselCardSkeleton: React.FC<SkeletonProps> = ({ opacity }) => (
+  <View style={styles.carouselCardTouch}>
+    <Animated.View style={[styles.carouselCard, { opacity }]}>
+      {/* Category label */}
+      <Animated.View style={[styles.categoryLabelSkeleton, { opacity }]} />
+
+      {/* Menu button */}
+      <Animated.View style={[styles.menuButtonSkeleton, { opacity }]} />
+
+      {/* Date */}
+      <Animated.View style={[styles.dateSkeleton, { opacity }]} />
+
+      {/* Title */}
+      <Animated.View style={[styles.titleSkeleton, { opacity }]} />
+
+      {/* Description */}
+      <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
+
+      {/* Sections container */}
+      <View style={styles.sectionsContainer}>
+        {[1, 2, 3, 4, 5, 6].map((item) => (
+          <View key={item} style={styles.sectionItem}>
+            <Animated.View style={[styles.statusPillSkeleton, { opacity }]} />
+            <View style={styles.sectionContent}>
+              <Animated.View style={[styles.sectionLabelSkeleton, { opacity }]} />
+            </View>
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  </View>
+);
+
+const FaithfulActionCardSkeleton: React.FC<SkeletonProps> = ({ opacity }) => (
+  <View style={styles.carouselCardTouch}>
+    <Animated.View style={[styles.carouselCard, { opacity }]}>
+      {/* Date row with icon */}
+      <Animated.View style={[styles.faDateRowSkeleton, { opacity }]} />
+
+      {/* "FAITHFUL ACTION" badge */}
+      <Animated.View style={[styles.faBadgeSkeleton, { opacity }]} />
+
+      {/* Title row: number badge + title text */}
+      <View style={styles.faTitleRow}>
+        <Animated.View style={[styles.faNumberBadgeSkeleton, { opacity }]} />
+        <Animated.View style={[styles.faTitleTextSkeleton, { opacity }]} />
+      </View>
+
+      {/* Description lines */}
+      <Animated.View style={[styles.faDescLine, { opacity, width: '95%' }]} />
+      <Animated.View style={[styles.faDescLine, { opacity, width: '85%' }]} />
+      <Animated.View style={[styles.faDescLine, { opacity, width: '70%', marginBottom: 12 }]} />
+
+      {/* Divider */}
+      <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
+
+      {/* "FROM PLAYBOOK" label */}
+      <Animated.View style={[styles.faFromLabelSkeleton, { opacity }]} />
+
+      {/* Playbook title */}
+      <Animated.View style={[styles.faPlaybookTitleSkeleton, { opacity }]} />
+
+      {/* Divider */}
+      <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
+
+      {/* Progress meta row */}
+      <View style={styles.faProgressMetaRow}>
+        <Animated.View style={[styles.faProgressMetaText, { opacity }]} />
+        <Animated.View style={[styles.faProgressPercent, { opacity }]} />
+      </View>
+
+      {/* Progress bar */}
+      <View style={styles.faProgressBarTrack}>
+        <Animated.View style={[styles.faProgressBarFill, { opacity }]} />
+      </View>
+
+      {/* Updated date row */}
+      <Animated.View style={[styles.faDateRowSkeleton, { opacity, width: '50%' }]} />
+    </Animated.View>
+  </View>
+);
+
+const SectionSkeleton: React.FC<SkeletonProps> = ({ opacity }) => (
+  <View style={styles.categorySection}>
+    {/* Section Header */}
+    <View style={styles.categorySectionHeader}>
+      <Animated.View style={[styles.categorySectionTitle, { opacity }]} />
+      <Animated.View style={[styles.categorySectionCount, { opacity }]} />
+    </View>
+
+    {/* Horizontal Carousel */}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+    >
+      <CarouselCardSkeleton opacity={opacity} />
+    </ScrollView>
+  </View>
+);
+
+const FaithfulActionsSectionSkeleton: React.FC<SkeletonProps> = ({ opacity }) => (
+  <View style={styles.categorySection}>
+    {/* Section Header */}
+    <View style={styles.categorySectionHeader}>
+      <Animated.View style={[styles.categorySectionTitle, { opacity, width: '65%' }]} />
+      <Animated.View style={[styles.categorySectionCount, { opacity }]} />
+    </View>
+
+    {/* Horizontal Carousel */}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+    >
+      <FaithfulActionCardSkeleton opacity={opacity} />
+    </ScrollView>
+  </View>
+);
+
 export const PlaybookSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 
@@ -39,132 +165,12 @@ export const PlaybookSkeleton: React.FC = () => {
     outputRange: [0.3, 0.8],
   });
 
-  const CarouselCardSkeleton = () => (
-    <View style={styles.carouselCardTouch}>
-      <Animated.View style={[styles.carouselCard, { opacity }]}>
-        {/* Category label */}
-        <Animated.View style={[styles.categoryLabelSkeleton, { opacity }]} />
-
-        {/* Menu button */}
-        <Animated.View style={[styles.menuButtonSkeleton, { opacity }]} />
-
-        {/* Date */}
-        <Animated.View style={[styles.dateSkeleton, { opacity }]} />
-
-        {/* Title */}
-        <Animated.View style={[styles.titleSkeleton, { opacity }]} />
-
-        {/* Description */}
-        <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
-
-        {/* Sections container */}
-        <View style={styles.sectionsContainer}>
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <View key={item} style={styles.sectionItem}>
-              <Animated.View style={[styles.statusPillSkeleton, { opacity }]} />
-              <View style={styles.sectionContent}>
-                <Animated.View style={[styles.sectionLabelSkeleton, { opacity }]} />
-              </View>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-    </View>
-  );
-
-  const FaithfulActionCardSkeleton = () => (
-    <View style={styles.carouselCardTouch}>
-      <Animated.View style={[styles.carouselCard, { opacity }]}>
-        {/* Date row with icon */}
-        <Animated.View style={[styles.faDateRowSkeleton, { opacity }]} />
-
-        {/* "FAITHFUL ACTION" badge */}
-        <Animated.View style={[styles.faBadgeSkeleton, { opacity }]} />
-
-        {/* Title row: number badge + title text */}
-        <View style={styles.faTitleRow}>
-          <Animated.View style={[styles.faNumberBadgeSkeleton, { opacity }]} />
-          <Animated.View style={[styles.faTitleTextSkeleton, { opacity }]} />
-        </View>
-
-        {/* Description lines */}
-        <Animated.View style={[styles.faDescLine, { opacity, width: '95%' }]} />
-        <Animated.View style={[styles.faDescLine, { opacity, width: '85%' }]} />
-        <Animated.View style={[styles.faDescLine, { opacity, width: '70%', marginBottom: 12 }]} />
-
-        {/* Divider */}
-        <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
-
-        {/* "FROM PLAYBOOK" label */}
-        <Animated.View style={[styles.faFromLabelSkeleton, { opacity }]} />
-
-        {/* Playbook title */}
-        <Animated.View style={[styles.faPlaybookTitleSkeleton, { opacity }]} />
-
-        {/* Divider */}
-        <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
-
-        {/* Progress meta row */}
-        <View style={styles.faProgressMetaRow}>
-          <Animated.View style={[styles.faProgressMetaText, { opacity }]} />
-          <Animated.View style={[styles.faProgressPercent, { opacity }]} />
-        </View>
-
-        {/* Progress bar */}
-        <View style={styles.faProgressBarTrack}>
-          <Animated.View style={[styles.faProgressBarFill, { opacity }]} />
-        </View>
-
-        {/* Updated date row */}
-        <Animated.View style={[styles.faDateRowSkeleton, { opacity, width: '50%' }]} />
-      </Animated.View>
-    </View>
-  );
-
-  const SectionSkeleton = () => (
-    <View style={styles.categorySection}>
-      {/* Section Header */}
-      <View style={styles.categorySectionHeader}>
-        <Animated.View style={[styles.categorySectionTitle, { opacity }]} />
-        <Animated.View style={[styles.categorySectionCount, { opacity }]} />
-      </View>
-
-      {/* Horizontal Carousel */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
-      >
-        <CarouselCardSkeleton />
-      </ScrollView>
-    </View>
-  );
-
-  const FaithfulActionsSectionSkeleton = () => (
-    <View style={styles.categorySection}>
-      {/* Section Header */}
-      <View style={styles.categorySectionHeader}>
-        <Animated.View style={[styles.categorySectionTitle, { opacity, width: '65%' }]} />
-        <Animated.View style={[styles.categorySectionCount, { opacity }]} />
-      </View>
-
-      {/* Horizontal Carousel */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
-      >
-        <FaithfulActionCardSkeleton />
-      </ScrollView>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       {/* Faithful Actions Carousel */}
-      <FaithfulActionsSectionSkeleton />
+      <FaithfulActionsSectionSkeleton opacity={opacity} />
       {/* Playbook Category Carousel */}
-      <SectionSkeleton />
+      <SectionSkeleton opacity={opacity} />
     </View>
   );
 };

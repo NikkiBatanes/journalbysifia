@@ -810,7 +810,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <Animated.View
           style={[
             styles.cardContent,
-            // eslint-disable-next-line react-native/no-inline-styles
             {
               // Collapse by default; expand when toggled
               // Exception: Truth, Affirmations, Direct Challenge on iPad portrait show full content
@@ -936,7 +935,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           contentContainerStyle={[
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
-            // eslint-disable-next-line react-native/no-inline-styles
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
@@ -953,7 +951,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
 
         {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
@@ -1152,7 +1149,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </ScrollView>
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)}          style={[
             styles.footerContainer,
             {

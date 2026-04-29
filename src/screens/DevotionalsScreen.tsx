@@ -1183,11 +1183,11 @@ const DevotionalsScreen = () => {
                     CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
                   </ThemedText>
                 </View>
-                {categorySections.map(({ category, devotionals }) => (
+                {categorySections.map(({ category, devotionals: categoryDevotionals }) => (
                   <CategoryCarouselRow
                     key={category}
                     category={category}
-                    items={devotionals}
+                    items={categoryDevotionals}
                     cardStyles={styles}
                     renderItem={(item) => renderDevotionalItem({ item })}
                     itemSize={ITEM_SIZE}

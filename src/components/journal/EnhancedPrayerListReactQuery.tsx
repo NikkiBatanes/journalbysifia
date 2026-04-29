@@ -310,8 +310,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         _dateStr: dateStr,
       });
       triggerSuccessHaptic();
-    } catch (error) {
-      console.error('Failed to mark prayer as answered:', error);
+    } catch (markAnsweredError) {
+      console.error('Failed to mark prayer as answered:', markAnsweredError);
       // Revert optimistic update on error
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
@@ -351,8 +351,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 _dateStr: dateStr,
               });
               triggerSuccessHaptic();
-            } catch (error) {
-              console.error('Failed to mark prayer as unanswered:', error);
+            } catch (markUnansweredError) {
+              console.error('Failed to mark prayer as unanswered:', markUnansweredError);
               queryClient.invalidateQueries({
                 queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
               });
