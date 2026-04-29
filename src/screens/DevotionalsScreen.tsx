@@ -177,6 +177,7 @@ const DevotionalsScreen = () => {
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [selectedPlaybookInfo, setSelectedPlaybookInfo] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [processingPlaybookId, setProcessingPlaybookId] = useState<string | null>(null);
   const {
     devotionals,
     deleteDevotional,
@@ -983,15 +984,16 @@ const DevotionalsScreen = () => {
                           style={styles.carouselCardTouch}
                           activeOpacity={0.85}
                           onPress={() => {
-                            if (showDevotionalModal) {
+                            if (processingPlaybookId) {
                               return; // Prevent multiple taps
                             }
                             try { triggerLightHaptic(); } catch {}
                             setSelectedPlaybookId(item.id);
                             setSelectedPlaybookInfo(item.userInput);
+                            setProcessingPlaybookId(item.id);
                             setShowDevotionalModal(true);
                           }}
-                          disabled={showDevotionalModal}
+                          disabled={processingPlaybookId !== null}
                         >
                           <View style={styles.carouselCard}>
                             <View style={styles.gradientContainer}>
@@ -1021,9 +1023,19 @@ const DevotionalsScreen = () => {
                             ) : null}
 
                             <TouchableOpacity
-                              style={[styles.cardCTA, showDevotionalModal && styles.cardCTADisabled, { width: '100%' }]}
-                              activeOpacity={showDevotionalModal ? 1 : 0.9}
-                              disabled={showDevotionalModal}
+                              style={[styles.cardCTA, { width: '100%' }]}
+                              activeOpacity={processingPlaybookId === item.id ? 1 : 0.9}
+                              disabled={processingPlaybookId === item.id}
+                              onPress={() => {
+                                if (processingPlaybookId) {
+                                  return;
+                                }
+                                try { triggerLightHaptic(); } catch {}
+                                setSelectedPlaybookId(item.id);
+                                setSelectedPlaybookInfo(item.userInput);
+                                setProcessingPlaybookId(item.id);
+                                setShowDevotionalModal(true);
+                              }}
                             >
                               <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
                               <ThemedText weight="bold" style={styles.cardCTAText}>Turn this into a devotional</ThemedText>
@@ -1041,7 +1053,10 @@ const DevotionalsScreen = () => {
           {/* Devotional creation modal triggered from empty-state playbook cards */}
           <DevotionalModal
             visible={showDevotionalModal}
-            onClose={() => setShowDevotionalModal(false)}
+            onClose={() => {
+              setShowDevotionalModal(false);
+              setProcessingPlaybookId(null);
+            }}
             playbookId={selectedPlaybookId || undefined}
             playbookInfo={selectedPlaybookInfo || undefined}
             userInput={selectedPlaybookInfo || undefined}
