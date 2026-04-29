@@ -248,11 +248,16 @@ export class NewSubscriptionService {
         const now = new Date();
 
         // Find the start of the current billing period (same calendar day, this or last month)
+        // Clamp billing day to last day of current/prior month to prevent overflow (e.g., Feb 31 → Mar 3)
+        const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const clampedDay = Math.min(billingDay, lastDayOfCurrentMonth);
         let periodStart: Date;
         if (now.getDate() >= billingDay) {
-          periodStart = new Date(now.getFullYear(), now.getMonth(), billingDay);
+          periodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
         } else {
-          periodStart = new Date(now.getFullYear(), now.getMonth() - 1, billingDay);
+          const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+          const clampedPriorDay = Math.min(billingDay, lastDayOfPriorMonth);
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 1, clampedPriorDay);
         }
 
         const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
@@ -300,11 +305,16 @@ export class NewSubscriptionService {
       const now = new Date();
       const anchorDay = billingAnchor.getDate();
 
+      // Clamp anchor day to last day of current/prior month to prevent overflow (e.g., Feb 31 → Mar 3)
+      const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const clampedDay = Math.min(anchorDay, lastDayOfCurrentMonth);
       let currentPeriodStart: Date;
       if (now.getDate() >= anchorDay) {
-        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), anchorDay);
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
       } else {
-        currentPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, anchorDay);
+        const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        const clampedPriorDay = Math.min(anchorDay, lastDayOfPriorMonth);
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, clampedPriorDay);
       }
 
       // Check if we already reset for this period
@@ -517,7 +527,10 @@ export class NewSubscriptionService {
         // Force correct the tier one last time
         await supabase
           .from('user_subscriptions_new')
-          .update({ tier: 'free_trial' })
+          .update({
+            tier: 'free_trial',
+            last_usage_reset: new Date().toISOString(), // Ensure billing anchor is set
+          })
           .eq('user_id', user_id);
 
         return await this.getUserSubscription(user_id);
@@ -559,6 +572,7 @@ export class NewSubscriptionService {
           playbooks_used: 0, // Reset usage when converting from trial to paid
           devotionals_used: 0,
           subscription_start_date: new Date().toISOString(),
+          last_usage_reset: new Date().toISOString(), // Initialize reset anchor for paid billing cycle
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
@@ -1260,9 +1274,6 @@ export class NewSubscriptionService {
     }
   }
 
-  /**
-   * Check smart journaling access
-   */
   private static checkSmartJournalingLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
@@ -1276,9 +1287,6 @@ export class NewSubscriptionService {
     };
   }
 
-  /**
-   * Check export limit (no limits for now)
-   */
   private static checkExportLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
