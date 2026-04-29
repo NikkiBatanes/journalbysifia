@@ -12,8 +12,6 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Keyboard,
-  Modal,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Colors } from '../theme/colors';

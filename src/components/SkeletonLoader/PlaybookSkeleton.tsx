@@ -5,12 +5,12 @@ import { Colors } from '../../theme';
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
 const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
-const isTablet = width >= 768;
-const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
+const _isTablet = width >= 768;
+const ITEM_WIDTH = _isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
 const ITEM_SPACING = 8;
 const SIDE_INSET = Math.max(
   0,
-  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+  _isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
 
 export const PlaybookSkeleton: React.FC = () => {

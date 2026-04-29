@@ -67,7 +67,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
 };
 
 // Animated progress bar skeleton component
-const AnimatedProgressBarSkeleton = () => {
+const _AnimatedProgressBarSkeleton = () => {
   const progressAnim = useRef(new Animated.Value(0.25)).current;
 
   useEffect(() => {

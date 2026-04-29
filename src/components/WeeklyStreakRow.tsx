@@ -4,7 +4,7 @@
  * Respects user's week start preference and shows completion states
  */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme/colors';
