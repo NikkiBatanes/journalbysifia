@@ -286,9 +286,14 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, cardStyles: st, o
         </View>
 
         <View style={st.faithfulActionBadge}>
-          <ThemedText weight="regular" style={st.faithfulActionLabel}>Faithful Action {item.actionIndex}</ThemedText>
+          <ThemedText weight="regular" style={st.faithfulActionLabel}>FAITHFUL ACTION</ThemedText>
         </View>
-        <ThemedText weight="semiBold" style={st.faithfulActionTitle}>{item.actionTitle}</ThemedText>
+        <View style={st.faithfulActionTitleRow}>
+          <View style={st.faithfulActionNumberBadge}>
+            <ThemedText weight="bold" style={st.faithfulActionNumber}>{item.actionIndex}</ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={st.faithfulActionTitle}>{item.actionTitle}</ThemedText>
+        </View>
         <ThemedText style={st.faithfulActionDescription} numberOfLines={3}>{item.actionDescription}</ThemedText>
 
         <View style={st.faithfulActionDivider} />
@@ -1040,7 +1045,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return getPlaybooks(userId || '', { lightweight: true });
     },
     enabled: !!userId && isAuthenticated, // Only run when we have a valid userId and are authenticated
-    staleTime: 30 * 1000, // 30s grace period — prevents refetch on every tab switch
+    staleTime: 0, // No stale time - always refetch for real-time updates
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache for 5 minutes
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Enable automatic refetch on focus to update walkthrough_progress
@@ -1050,10 +1055,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
     },
   });
 
-  // Listen for playbook action step updates from PlaybookWalkthrough
+  // Listen for playbook action step updates from PlaybookWalkthrough and ActionStepsCard
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('playbookActionStepUpdated', (data) => {
-      refetch();
+    const subscription = DeviceEventEmitter.addListener('playbookProgressUpdate', (data) => {
+      // Force immediate refetch to get updated data
+      // Small delay to ensure database update completes
+      setTimeout(() => {
+        refetch();
+      }, 100);
     });
 
     return () => {
@@ -1291,13 +1300,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
   //   }
   // }, [playbooks.length]);
 
-  // Set to In Progress tab on focus; React Query staleTime handles background refetching automatically
+  // Refetch data whenever screen gains focus (e.g. returning from PlaybookWalkthrough after marking actions done)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       setFilter('ongoing'); // React bails out (no re-render) when value is already 'ongoing'
+      refetch(); // Always refetch fresh data on screen focus
     });
     return () => { unsubscribe(); };
-  }, [navigation]);
+  }, [navigation, refetch]);
 
   // Additional effect to handle userId changes and ensure data loading
   useEffect(() => {
@@ -2656,7 +2666,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   dateWithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   devotionalsBadge: {
     flexDirection: 'row',
@@ -2687,10 +2697,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    marginBottom: 2,
+    marginBottom: 12,
   },
   faithfulActionLabel: {
     fontSize: 11,
@@ -2698,21 +2708,43 @@ const createStyles = (_theme: any) => StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  faithfulActionNumberBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  faithfulActionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  faithfulActionNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    lineHeight: 18,
+  },
   faithfulActionTitle: {
     fontSize: 15,
     color: Colors.hopeWhite,
     marginTop: 0,
+    marginBottom: 0,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   faithfulActionDescription: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
-    marginTop: 4,
+    marginTop: 0,
   },
   faithfulActionDivider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 12,
+    marginVertical: 6,
   },
   faithfulActionFrom: {
     fontSize: 11,

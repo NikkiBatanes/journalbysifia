@@ -73,6 +73,55 @@ export const PlaybookSkeleton: React.FC = () => {
     </View>
   );
 
+  const FaithfulActionCardSkeleton = () => (
+    <View style={styles.carouselCardTouch}>
+      <Animated.View style={[styles.carouselCard, { opacity }]}>
+        {/* Date row with icon */}
+        <Animated.View style={[styles.faDateRowSkeleton, { opacity }]} />
+
+        {/* "FAITHFUL ACTION" badge */}
+        <Animated.View style={[styles.faBadgeSkeleton, { opacity }]} />
+
+        {/* Title row: number badge + title text */}
+        <View style={styles.faTitleRow}>
+          <Animated.View style={[styles.faNumberBadgeSkeleton, { opacity }]} />
+          <Animated.View style={[styles.faTitleTextSkeleton, { opacity }]} />
+        </View>
+
+        {/* Description lines */}
+        <Animated.View style={[styles.faDescLine, { opacity, width: '95%' }]} />
+        <Animated.View style={[styles.faDescLine, { opacity, width: '85%' }]} />
+        <Animated.View style={[styles.faDescLine, { opacity, width: '70%', marginBottom: 12 }]} />
+
+        {/* Divider */}
+        <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
+
+        {/* "FROM PLAYBOOK" label */}
+        <Animated.View style={[styles.faFromLabelSkeleton, { opacity }]} />
+
+        {/* Playbook title */}
+        <Animated.View style={[styles.faPlaybookTitleSkeleton, { opacity }]} />
+
+        {/* Divider */}
+        <Animated.View style={[styles.faDividerSkeleton, { opacity }]} />
+
+        {/* Progress meta row */}
+        <View style={styles.faProgressMetaRow}>
+          <Animated.View style={[styles.faProgressMetaText, { opacity }]} />
+          <Animated.View style={[styles.faProgressPercent, { opacity }]} />
+        </View>
+
+        {/* Progress bar */}
+        <View style={styles.faProgressBarTrack}>
+          <Animated.View style={[styles.faProgressBarFill, { opacity }]} />
+        </View>
+
+        {/* Updated date row */}
+        <Animated.View style={[styles.faDateRowSkeleton, { opacity, width: '50%' }]} />
+      </Animated.View>
+    </View>
+  );
+
   const SectionSkeleton = () => (
     <View style={styles.categorySection}>
       {/* Section Header */}
@@ -92,9 +141,30 @@ export const PlaybookSkeleton: React.FC = () => {
     </View>
   );
 
+  const FaithfulActionsSectionSkeleton = () => (
+    <View style={styles.categorySection}>
+      {/* Section Header */}
+      <View style={styles.categorySectionHeader}>
+        <Animated.View style={[styles.categorySectionTitle, { opacity, width: '65%' }]} />
+        <Animated.View style={[styles.categorySectionCount, { opacity }]} />
+      </View>
+
+      {/* Horizontal Carousel */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+      >
+        <FaithfulActionCardSkeleton />
+      </ScrollView>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      {/* Single Carousel Section */}
+      {/* Faithful Actions Carousel */}
+      <FaithfulActionsSectionSkeleton />
+      {/* Playbook Category Carousel */}
       <SectionSkeleton />
     </View>
   );
@@ -209,5 +279,96 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     width: '50%',
+  },
+
+  // ── Faithful Action card skeleton styles ──
+  faDateRowSkeleton: {
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    width: '55%',
+    marginBottom: 8,
+  },
+  faBadgeSkeleton: {
+    height: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    width: 110,
+    marginBottom: 8,
+  },
+  faTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  faNumberBadgeSkeleton: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  faTitleTextSkeleton: {
+    flex: 1,
+    height: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 4,
+  },
+  faDescLine: {
+    height: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    marginBottom: 5,
+  },
+  faDividerSkeleton: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 10,
+  },
+  faFromLabelSkeleton: {
+    height: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    width: 90,
+    marginBottom: 6,
+  },
+  faPlaybookTitleSkeleton: {
+    height: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 4,
+    width: '80%',
+    marginBottom: 2,
+  },
+  faProgressMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  faProgressMetaText: {
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    width: '60%',
+  },
+  faProgressPercent: {
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
+    width: 30,
+  },
+  faProgressBarTrack: {
+    height: 6,
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  faProgressBarFill: {
+    height: '100%',
+    width: '45%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
   },
 });

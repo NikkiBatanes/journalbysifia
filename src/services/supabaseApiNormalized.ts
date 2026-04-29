@@ -657,6 +657,12 @@ export async function updatePlaybookSubTask(
       throw updateError;
     }
 
+    // Update the playbook's updated_at timestamp to reflect the sub-task change
+    await supabase
+      .from('playbooks')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', playbookId);
+
     // PERFORMANCE: Don't fetch entire playbook - let optimistic update handle UI
     // Return minimal data for confirmation
     return { playbookId, stepId, subTaskId, completed };
@@ -802,6 +808,22 @@ export async function updateActionStepCompleted(
   actionStepId: string,
 ): Promise<void> {
   try {
+    // First, get the playbook_id for this action step
+    const { data: stepData } = await supabase
+      .from('playbook_action_steps')
+      .select('playbook_id')
+      .eq('id', actionStepId)
+      .single();
+
+    if (stepData?.playbook_id) {
+      // Update the playbook's updated_at timestamp
+      await supabase
+        .from('playbooks')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', stepData.playbook_id);
+    }
+
+    // Then update the action step
     await supabase
       .from('playbook_action_steps')
       .update({ completed: true, updated_at: new Date().toISOString() })

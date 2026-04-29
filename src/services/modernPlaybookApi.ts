@@ -882,6 +882,13 @@ export async function updatePlaybookActionSteps(
       return { success: false, error: 'Playbook not found or access denied' };
     }
 
+    // Update the playbook's updated_at timestamp to reflect the action step changes
+    await supabase
+      .from('playbooks')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', playbookId)
+      .eq('user_id', userId);
+
     // Instead of deleting and recreating, update existing action steps
     if (actionSteps && actionSteps.length > 0) {
       for (let index = 0; index < actionSteps.length; index++) {

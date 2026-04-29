@@ -2051,6 +2051,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                   updateActionStepCompleted(stepId).catch(() => {});
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
                   queryClient.invalidateQueries({ queryKey: ['playbooks', userId] });
+                  DeviceEventEmitter.emit('playbookProgressUpdate', { stepId, playbookId: playbook?.id });
                 }}
                 onJournalExpanded={setJournalExpanded}
                 onJournalCollapseComplete={() => setJournalCollapseComplete(true)}

@@ -254,6 +254,10 @@ export const useUpdateActionStep = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.playbooks.all(variables.userId),
       });
+      // Also explicitly invalidate lightweight variant
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.playbooks.all(variables.userId), 'lightweight'],
+      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.playbooks.detail(variables.userId, variables.playbookId),
       });
@@ -439,6 +443,10 @@ export const useUpdateSubTask = () => {
 
       queryClient.invalidateQueries({
         queryKey: queryKeys.playbooks.all(variables.userId),
+      });
+      // Also explicitly invalidate lightweight variant
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.playbooks.all(variables.userId), 'lightweight'],
       });
     },
 
