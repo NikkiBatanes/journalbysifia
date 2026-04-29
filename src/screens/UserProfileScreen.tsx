@@ -404,6 +404,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Load subscription and usage data separately to avoid blocking UI
       try {
+        // Check and apply monthly reset before reading — ensures profile always shows
+        // current-period counts even if the billing webhook hasn't fired yet.
+        await NewSubscriptionService.checkAndResetMonthlyUsage(user.id);
+
         const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
         setSubscription(subscriptionData as any);
 

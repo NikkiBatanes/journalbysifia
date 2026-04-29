@@ -237,17 +237,55 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Monthly paid subs: handled by DID_RENEW webhook; annual handled below
-
       const isAnnual = subscription.billing_cycle === 'annual' ||
                        subscription.tier?.includes('_annual');
 
+      // Monthly paid subs: webhook is primary reset mechanism, but perform a
+      // client-side calendar check as a fallback so the profile never shows stale counts.
       if (!isAnnual) {
-        return false; // Monthly subs reset via DID_RENEW webhook only
-        // CANCELLATION BEHAVIOR FOR MONTHLY:
-        // - User cancels → No more DID_RENEW webhooks fire
-        // - Therefore NO resets after cancellation
-        // - On expiration: EXPIRED webhook downgrades to Seeker
+        const anchor = new Date(subscription.subscription_start_date || subscription.created_at);
+        const billingDay = anchor.getDate(); // e.g. 15th of every month
+        const now = new Date();
+
+        // Find the start of the current billing period (same calendar day, this or last month)
+        let periodStart: Date;
+        if (now.getDate() >= billingDay) {
+          periodStart = new Date(now.getFullYear(), now.getMonth(), billingDay);
+        } else {
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 1, billingDay);
+        }
+
+        const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
+
+        if (lastReset < periodStart) {
+          const { error: resetError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              playbooks_used: 0,
+              devotionals_used: 0,
+              last_usage_reset: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (resetError) {
+            Logger.error('[NewSubscriptionService] Failed to reset monthly paid usage', resetError as Error, {
+              component: 'NewSubscriptionService',
+              userId,
+            });
+            return false;
+          }
+
+          Logger.info('[NewSubscriptionService] Monthly paid subscription client-side reset', {
+            component: 'NewSubscriptionService',
+            userId,
+            tier: subscription.tier,
+            billingDay,
+            periodStart: periodStart.toISOString(),
+          });
+          return true;
+        }
+        return false;
       }
 
       // CANCELLATION BEHAVIOR FOR ANNUAL:
