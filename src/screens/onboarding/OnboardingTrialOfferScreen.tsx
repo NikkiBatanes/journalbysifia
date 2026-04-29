@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -59,8 +59,6 @@ const OnboardingTrialOfferScreen = () => {
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
 
-  const fromExportRestriction = (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
-
   // Detect if from registration onboarding vs upgrade/profile
   const fromRegistrationOnboarding = routeParams?.onboardingFlow === true && !routeParams?.source && !routeParams?.returnTo;
   const fromUpgradeOrProfile = !fromRegistrationOnboarding; // Any other source (upgrade, profile, feature locks, etc.)
@@ -78,8 +76,8 @@ const OnboardingTrialOfferScreen = () => {
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
 
-  const animateToggle = (isAnnual: boolean) => {
-    if (isAnnual) {
+  const animateToggle = useCallback((toAnnual: boolean) => {
+    if (toAnnual) {
       Animated.spring(monthlyScale, {
         toValue: 1,
         useNativeDriver: true,
@@ -106,11 +104,11 @@ const OnboardingTrialOfferScreen = () => {
         friction: 7,
       }).start();
     }
-  };
+  }, [monthlyScale, annualScale]);
 
   useEffect(() => {
     animateToggle(isAnnual);
-  }, [isAnnual]);
+  }, [isAnnual, animateToggle]);
   // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
@@ -795,10 +793,6 @@ const OnboardingTrialOfferScreen = () => {
   };
 
 
-  const formatShortDate = (date: Date) => {
-    return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const addDays = (base: Date, days: number) => {
     const d = new Date(base);
     d.setDate(d.getDate() + days);
@@ -877,7 +871,7 @@ const OnboardingTrialOfferScreen = () => {
         isCompleted: false,
       },
     ];
-  }, [selectedTierId, isAnnual]);
+  }, [selectedTierId, isAnnual, getTrialBenefits]);
 
 // ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {

@@ -47,6 +47,7 @@ const OnboardingNotificationSetupScreen = () => {
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown'); // Used in lines 83-89
 
   // Derive display name for welcome message (first name only)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const displayName = (() => {
     // Try first_name first
     const firstName = (user as any)?.user_metadata?.first_name?.trim();

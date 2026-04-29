@@ -1559,15 +1559,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         }
         // Continue with navigation regardless of completion update success
 
-        // Use main playbook generation UI with onboarding data
-        const userInput = challengeDetails.trim();
-
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
-
-        const ageGroupForNavigation = selectedAgeGroup || 'adult';
-        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
-        const challengeForNavigation = selectedChallenge || 'relationships';
 
         // Trigger transition animation before navigation
         Keyboard.dismiss();
@@ -1655,26 +1648,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         });
       }
-    }
-  };
-
-  const canContinue = () => {
-    if (detailsOnlyFlow) {
-      return challengeDetails.trim().length > 0;
-    }
-
-    // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
-    switch (currentStep) {
-      case 1:
-        return selectedAgeGroup !== '';
-      case 2:
-        return selectedFaithJourney !== '';
-      case 3:
-        return selectedChallenge !== '';
-      case 4:
-        return challengeDetails.trim().length > 0;
-      default:
-        return false;
     }
   };
 

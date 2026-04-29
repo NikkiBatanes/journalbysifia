@@ -1,5 +1,4 @@
 import React from 'react';
-import type { NavigationProp } from '@react-navigation/native';
 
 export type ViewMode = 'carousel' | 'inline' | 'moments';
 export type JournalCategory = 'plan' | 'reflect' | 'pray';

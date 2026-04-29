@@ -20,7 +20,6 @@ import {
   Switch,
   Image,
 } from 'react-native';
-import { Pencil as LuPencil } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';

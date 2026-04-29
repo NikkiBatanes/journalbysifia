@@ -139,8 +139,7 @@ export function getUpgradeMessage(
 export function checkDevotionalAccess(
   tier: SubscriptionTier,
   duration: number,
-  context: 'onboarding' | 'inApp' = 'inApp',
-  isOnboarding: boolean = false
+  context: 'onboarding' | 'inApp' = 'inApp'
 ): DevotionalAccessCheck {
   const isLocked = isDevotionalDurationLocked(tier, duration);
   const canGenerate = !isLocked;

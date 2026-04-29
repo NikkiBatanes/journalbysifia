@@ -1,6 +1,5 @@
 import React from 'react';
 import { View } from 'react-native';
-import type { NavigationProp } from '@react-navigation/native';
 import { PluginRenderProps } from './types';
 
 export const PluginRenderer: React.FC<PluginRenderProps> = ({

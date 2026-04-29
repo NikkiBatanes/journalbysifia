@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   Linking,
@@ -128,8 +127,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
 
-  const animateToggle = (isAnnual: boolean) => {
-    if (isAnnual) {
+  const animateToggle = useCallback((toAnnual: boolean) => {
+    if (toAnnual) {
       Animated.spring(monthlyScale, {
         toValue: 1,
         useNativeDriver: true,
@@ -156,11 +155,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         friction: 7,
       }).start();
     }
-  };
+  }, [monthlyScale, annualScale]);
 
   useEffect(() => {
     animateToggle(isAnnual);
-  }, [isAnnual]);
+  }, [isAnnual, animateToggle]);
 
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -170,7 +169,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
   const requestedDuration = routeParams?.requestedDuration;
-  const [isAboutGrowthExpanded, setIsAboutGrowthExpanded] = useState(false);
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
   const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
@@ -1185,31 +1183,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
 
-  const getMonthlyEquivalent = (tier: PricingTier) => {
-    const price = isAnnual ? (tier.annualPrice / 12) : tier.monthlyPrice;
-    // Remove .00 for PHP whole numbers
-    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
-      return Math.floor(price).toString();
-    }
-    return price.toFixed(2);
-  };
-
-  const toggleCardExpansion = (tierId: string) => {
-    const newExpanded = new Set(expandedCards);
-    if (newExpanded.has(tierId)) {
-      newExpanded.delete(tierId);
-    } else {
-      newExpanded.add(tierId);
-    }
-    setExpandedCards(newExpanded);
-  };
-
-
   const renderPricingCard = (tier: PricingTier) => {
     const isSelected = selectedTier === tier.id;
     // Only highlight the currently selected tier, not always the growth tier
     const isFocused = isSelected; // Remove hardcoded growth tier focus
-    const isExpanded = expandedCards.has(tier.id);
 
     return (
       <View key={tier.id} style={styles.cardWrapper}>
