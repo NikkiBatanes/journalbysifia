@@ -45,7 +45,7 @@ type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate: Date): DateContext => {
-  const today = startOfDay(new Date());
+  const _today = startOfDay(new Date());
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
@@ -153,7 +153,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
       ]).start();
     }, delay);
     return () => clearTimeout(t);
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
@@ -225,7 +225,7 @@ const EmotionSelectionStep: React.FC<{
     } else {
       chooseAgainScale.setValue(0);
     }
-  }, [isOtherSelected]);
+  }, [isOtherSelected, chooseAgainScale]);
 
   React.useEffect(() => {
     if (!isOtherSelected && EMOTIONS.length > INITIAL_EMOTION_COUNT) {
@@ -238,7 +238,7 @@ const EmotionSelectionStep: React.FC<{
     } else {
       showMoreScale.setValue(0);
     }
-  }, [isOtherSelected]);
+  }, [isOtherSelected, showMoreScale]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -352,7 +352,7 @@ const EmotionSelectionStep: React.FC<{
 
         {!isOtherSelected && (
           <StepFadeIn delay={240} style={styles.emotionsGrid}>
-          {EMOTIONS.slice(0, showAllEmotions ? EMOTIONS.length : INITIAL_EMOTION_COUNT).map((emotion, index) => {
+          {EMOTIONS.slice(0, showAllEmotions ? EMOTIONS.length : INITIAL_EMOTION_COUNT).map((emotion, _index) => {
             const isSelected = selectedEmotion?.id === emotion.id;
             return (
               <TouchableOpacity
@@ -473,7 +473,7 @@ const LookingAheadInputStep: React.FC<{
   icon: string;
   customEmotion: string;
   dateContext: DateContext;
-}> = ({ emotion, lookingAheadText, onChange, onNext, onBack, insets, navigation, icon, customEmotion, dateContext }) => {
+}> = ({ emotion, lookingAheadText, onChange, onNext, _onBack, insets, navigation, icon, customEmotion, dateContext }) => {
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
