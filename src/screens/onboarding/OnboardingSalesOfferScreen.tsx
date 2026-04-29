@@ -110,7 +110,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               (route.params as any)?.selectedTier ? (route.params as any).selectedTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
-                              'spark'; // Default to spark
+                              'growth'; // Default to growth
 
   // Debug logging
   logger.debug('Sales offer screen debug', {
