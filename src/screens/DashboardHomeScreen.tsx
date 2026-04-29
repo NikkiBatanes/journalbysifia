@@ -30,6 +30,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
 import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
@@ -1474,10 +1475,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             <CombinedContentCarousel
               onPlaybookPress={(playbook) => {
                 triggerLightHaptic();
+                // Track playbook view for analytics
+                if (user?.id) {
+                  adminAnalyticsService.trackFeatureUsage(user.id, 'playbook_view', { playbook_id: playbook.id, playbook_title: playbook.title });
+                }
                 navigation.navigate('PlaybookWalkthrough' as any, { playbook });
               }}
               onDevotionalPress={(devotional) => {
                 triggerLightHaptic();
+                // Track devotional view for analytics
+                if (user?.id) {
+                  adminAnalyticsService.trackFeatureUsage(user.id, 'devotional_view', { devotional_id: devotional.id, devotional_title: devotional.title });
+                }
                 navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
               }}
               onEmpty={() => setHasContent(false)}
@@ -1489,6 +1498,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             onQuestionPress={(q: any) => {
 
               triggerLightHaptic();
+              // Track reflection usage for analytics
+              if (user?.id) {
+                adminAnalyticsService.trackFeatureUsage(user.id, 'reflection', { question_id: q.id, question: q.question });
+              }
               // Include enriched metadata for devotional reflections
               setSelectedReflection({
                 question: q.question,

@@ -30,6 +30,7 @@ import { supabase } from './supabaseClient';
 import { ENV } from '../config/environment';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { SubscriptionTier } from '../types/subscription';
+import { adminAnalyticsService } from './adminAnalyticsService';
 
 export interface StoreProduct {
   productId: string;
@@ -825,6 +826,20 @@ export class AppleStoreKitService {
             productId: purchase.productId,
           });
 
+          // Track payment failure for analytics
+          if (this.currentUserId) {
+            await adminAnalyticsService.trackPaymentEvent({
+              user_id: this.currentUserId,
+              transaction_id: purchase.transactionId || 'unknown',
+              product_id: purchase.productId,
+              amount: 0,
+              status: 'failed',
+              failure_reason: 'Receipt validation failed',
+              platform: 'ios',
+              is_trial: purchase.productId.includes('freetrial'),
+            });
+          }
+
           // CRITICAL: Reject the purchase promise
           const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
           if (resolver) {
@@ -843,6 +858,20 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           productId: purchase.productId,
         });
+
+        // Track payment success for analytics
+        if (this.currentUserId) {
+          await adminAnalyticsService.trackPaymentEvent({
+            user_id: this.currentUserId,
+            transaction_id: purchase.transactionId || 'unknown',
+            product_id: purchase.productId,
+            amount: 0, // Amount will be updated from subscription service
+            status: 'success',
+            platform: 'ios',
+            is_trial: purchase.productId.includes('freetrial'),
+            receipt_data: { transactionDate: purchase.transactionDate },
+          });
+        }
       }
 
       // Map product ID to subscription tier

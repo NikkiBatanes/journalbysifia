@@ -93,6 +93,7 @@ import {useNotificationSetup} from './src/utils/notificationSetup';
 import {initializeSentry} from './src/config/sentry';
 import * as Sentry from '@sentry/react-native';
 import { realtimeManager } from './src/utils/supabaseRealtimeManager';
+import { adminAnalyticsService } from './src/services/adminAnalyticsService';
 
 // Initialize Sentry with proper configuration from environment variables
 initializeSentry();
@@ -109,6 +110,7 @@ function AppWithAuth({
   const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(
     undefined,
   );
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
@@ -137,6 +139,26 @@ function AppWithAuth({
 
   // Initialize notification system (deep links, scheduling, badges)
   useNotificationSetup(user?.id, navigationRef);
+
+  // Track app state changes for analytics (session tracking)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState === 'active' && nextAppState.match(/inactive|background/)) {
+        // App going to background - track session end
+        if (isAuthenticated && user?.id) {
+          adminAnalyticsService.trackSessionEnd(user.id);
+        }
+      } else if (appState.match(/inactive|background/) && nextAppState === 'active') {
+        // App coming to foreground - track new session
+        if (isAuthenticated && user?.id) {
+          adminAnalyticsService.trackAppOpen(user.id);
+        }
+      }
+      setAppState(nextAppState);
+    });
+
+    return () => subscription.remove();
+  }, [appState, isAuthenticated, user?.id]);
 
   const HIDE_NETWORK_ON = React.useMemo(
     () =>
@@ -167,6 +189,11 @@ function AppWithAuth({
     // Initialize app-level services
     if (__DEV__) {
       console.log(' siFia App initialized');
+    }
+
+    // Track app open for analytics when user is authenticated
+    if (isAuthenticated && user?.id) {
+      adminAnalyticsService.trackAppOpen(user.id);
     }
 
     // CRITICAL: Initialize IAP system on app start

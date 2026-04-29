@@ -6,6 +6,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
 import { SubscriptionTier } from '../types/subscription';
+import { adminAnalyticsService } from './adminAnalyticsService';
 
 export interface TrialCreationResult {
   success: boolean;
@@ -100,6 +101,9 @@ export class TrialManagementService {
         };
       }
 
+      // Track trial activation for analytics
+      await adminAnalyticsService.trackTrialActivation(userId, chosenTier);
+
       Logger.info('[TrialManagement] ✅ Trial created successfully', {
         userId,
         tier: 'free_trial',
@@ -193,6 +197,14 @@ export class TrialManagementService {
           error: error.message,
         };
       }
+
+      // Track subscription conversion for analytics
+      await adminAnalyticsService.trackSubscriptionConversion(
+        userId,
+        'free_trial',
+        chosenTier,
+        billingCycle
+      );
 
       Logger.info('[TrialManagement] ✅ Trial converted to paid successfully', {
         userId,

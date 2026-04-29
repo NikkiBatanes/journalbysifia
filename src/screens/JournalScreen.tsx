@@ -23,6 +23,7 @@ import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 // Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -93,6 +94,15 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       deletedSubscription.remove();
     };
   }, []);
+
+  // Track journal screen focus for analytics
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        adminAnalyticsService.trackFeatureUsage(user.id, 'journal', { screen: 'JournalScreen' });
+      }
+    }, [user?.id])
+  );
 
   // Removed: global edit mode (inline view no longer used)
 

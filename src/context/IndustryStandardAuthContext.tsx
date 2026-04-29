@@ -8,6 +8,7 @@ import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
 import { Logger } from '../utils/ProductionLogger';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 
 // Industry-standard auth types
 interface AuthState {
@@ -844,6 +845,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Auth state will be updated by the onAuthStateChange listener
       // Profile creation will be handled by the auth state change handler
       // Don't set loading to false here - let the listener handle it
+
+      // Track user signup for analytics
+      if (data.user?.id) {
+        adminAnalyticsService.trackSignup(data.user.id, 'email');
+      }
 
       return { error: null };
     } catch (error) {
