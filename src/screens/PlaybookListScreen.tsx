@@ -255,13 +255,15 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
         {item.userInput && <ThemedText style={st.carouselCardDescription} numberOfLines={1}>{item.userInput}</ThemedText>}
         {isCardCompleted ? (
           <View style={st.completedSummary}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
-            <ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText>
+            <View style={st.completedSummaryTop}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+              <ThemedText style={st.completedSummaryText}>{completed} of {total} faithful actions acted on</ThemedText>
+            </View>
             {completedDateStr && (
-              <>
-                <View style={st.completedSummaryDivider} />
-                <ThemedText style={st.completedDateText}>{completedDateStr}</ThemedText>
-              </>
+              <View style={st.completedSummaryDateRow}>
+                <Ionicons name="calendar-outline" size={12} color={Colors.growthGreen} />
+                <ThemedText style={st.completedDateText}>Completed {completedDateStr}</ThemedText>
+              </View>
             )}
           </View>
         ) : (
@@ -1608,17 +1610,19 @@ const PlaybookListScreen = ({ navigation }: any) => {
           {/* Completed card: hide step sections, show action count summary with date */}
           {isCardCompleted ? (
             <View style={styles.completedSummary}>
-              <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
-              <ThemedText style={styles.completedSummaryText}>
-                {completed} of {total} faithful actions acted on
-              </ThemedText>
+              <View style={styles.completedSummaryTop}>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.growthGreen} />
+                <ThemedText style={styles.completedSummaryText}>
+                  {completed} of {total} faithful actions acted on
+                </ThemedText>
+              </View>
               {item.completedAt && (
-                <>
-                  <View style={styles.completedSummaryDivider} />
+                <View style={styles.completedSummaryDateRow}>
+                  <Ionicons name="calendar-outline" size={12} color={Colors.growthGreen} />
                   <ThemedText style={styles.completedDateText}>
-                    {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
+                    Completed {format(new Date(item.completedAt), new Date(item.completedAt).getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy')}
                   </ThemedText>
-                </>
+                </View>
               )}
             </View>
           ) : (
@@ -2811,26 +2815,30 @@ const createStyles = (_theme: any) => StyleSheet.create({
   completedDate: {
     color: Colors.growthGreen,
   },
-  completedSummaryDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 8,
-  },
   completedDateText: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
   },
   completedSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginTop: 8,
-    gap: 5,
+    gap: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
+  },
+  completedSummaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  completedSummaryDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   completedSummaryText: {
     fontSize: 12,
