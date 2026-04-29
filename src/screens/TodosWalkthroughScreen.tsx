@@ -179,6 +179,9 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const saveButtonOpacity = useRef(new Animated.Value(showSaveButton ? 1 : 0)).current;
   const saveButtonScale = useRef(new Animated.Value(showSaveButton ? 1 : 0.8)).current;
+  const saveButtonTranslateX = useRef(new Animated.Value(0)).current;
+  const addButtonOpacity = useRef(new Animated.Value(todos[2]?.trim() !== '' ? 1 : 0)).current;
+  const addButtonScale = useRef(new Animated.Value(todos[2]?.trim() !== '' ? 1 : 0.8)).current;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Animate save button visibility
@@ -200,6 +203,33 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       friction: 7,
     }).start();
   }, [todos, saveButtonOpacity, saveButtonScale]);
+
+  // Animate add button visibility based on 3rd field
+  useEffect(() => {
+    const shouldShow = todos[2]?.trim() !== '';
+
+    Animated.spring(addButtonOpacity, {
+      toValue: shouldShow ? 1 : 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+
+    Animated.spring(addButtonScale, {
+      toValue: shouldShow ? 1 : 0.8,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+
+    // Move save button to add button position when add button is hidden
+    Animated.spring(saveButtonTranslateX, {
+      toValue: shouldShow ? 0 : 54, // 42px button + 12px gap
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
+  }, [todos, addButtonOpacity, addButtonScale, saveButtonTranslateX]);
 
   // Keyboard visibility tracking
   useEffect(() => {
@@ -401,7 +431,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         <Animated.View
           style={{
             opacity: saveButtonOpacity,
-            transform: [{ scale: saveButtonScale }],
+            transform: [{ scale: saveButtonScale }, { translateX: saveButtonTranslateX }],
           }}
         >
           <TouchableOpacity
@@ -412,13 +442,20 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             <ThemedText weight="semiBold" style={styles.saveButtonText}>Save To-dos</ThemedText>
           </TouchableOpacity>
         </Animated.View>
-        <TouchableOpacity
-          onPress={handleAddField}
-          activeOpacity={0.7}
-          style={styles.addButton}
+        <Animated.View
+          style={{
+            opacity: addButtonOpacity,
+            transform: [{ scale: addButtonScale }],
+          }}
         >
-          <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleAddField}
+            activeOpacity={0.7}
+            style={styles.addButton}
+          >
+            <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </Animated.View>
       </Animated.View>
 
       {/* Close button - top right */}
