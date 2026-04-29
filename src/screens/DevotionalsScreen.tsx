@@ -926,65 +926,26 @@ const DevotionalsScreen = () => {
                     color={Colors.holyGlow}
                     style={styles.heroIcon}
                   />
-                  <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>
+                  <ThemedText weight="bold" style={styles.heroOverline}>NO DEVOTIONALS</ThemedText>
                   <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
                   <ThemedText style={styles.heroSubtitle}>
-                    {(() => {
-                      const count = !isLoadingPlaybooks && Array.isArray(playbooks) ? playbooks.length : 0;
-                      if (count > 0) {
-                        return count === 1
-                          ? 'You already have a playbook—turn it into a daily devotional.'
-                          : 'You already have playbooks—turn one into a daily devotional.';
-                      }
-                      return "Create a playbook for what you're facing, then build a daily devotional from it.";
-                    })()}
+                    You already have a playbook. Turn it into a devotional you can return to each day.
                   </ThemedText>
-
-                  {/* Create Playbook CTA (only when there are no playbooks) */}
-                  {!hasPlaybooks && (
-                    <TouchableOpacity
-                      onPress={() => { triggerLightHaptic(); (navigation as any).navigate('UserInput'); }}
-                      activeOpacity={0.85}
-                      style={styles.heroOutlineButton}
-                    >
-                      <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                      <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
-                    </TouchableOpacity>
-                  )}
 
                   {/* Guided steps */}
                   <View style={styles.stepsContainer}>
-                    {hasPlaybooks ? (
-                      <>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Pick a Playbook</ThemedText>
-                        </View>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Create Your Devotional</ThemedText>
-                        </View>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Return each day—read, reflect, pray</ThemedText>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Create a Playbook</ThemedText>
-                        </View>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Add Scriptures and prompts</ThemedText>
-                        </View>
-                        <View style={styles.stepItem}>
-                          <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
-                          <ThemedText style={styles.stepText}>Start your Daily Devotional</ThemedText>
-                        </View>
-                      </>
-                    )}
+                    <View style={styles.stepItem}>
+                      <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
+                      <ThemedText style={styles.stepText}>Pick a Playbook</ThemedText>
+                    </View>
+                    <View style={styles.stepItem}>
+                      <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
+                      <ThemedText style={styles.stepText}>Create Your Devotional</ThemedText>
+                    </View>
+                    <View style={styles.stepItem}>
+                      <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
+                      <ThemedText style={styles.stepText}>Return each day to read, reflect, and pray</ThemedText>
+                    </View>
                   </View>
                 </View>
               </View>

@@ -2240,8 +2240,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
             <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
               {deferredFilter === 'faithful' ? (
                 incompleteFaithfulActions.length === 0 ? (
-                  <View style={styles.continueEmptyContainer}>
-                    <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
+                  <View style={styles.emptyStateContainer}>
+                    <View style={styles.heroCard}>
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={32}
+                        color={Colors.growthGreen}
+                        style={styles.heroIcon}
+                      />
+                      <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
+                      <ThemedText weight="semiBold" style={styles.heroTitle}>All Faithful Actions Completed</ThemedText>
+                      <ThemedText style={styles.heroSubtitle}>
+                        You've completed all the faithful actions in this space. Return when another faithful step is ready.
+                      </ThemedText>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setFilter(continuePlaybooks.length > 0 ? 'ongoing' : 'completed');
+                        }}
+                        activeOpacity={0.85}
+                        style={styles.heroOutlineButton}
+                      >
+                        <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View Playbooks</ThemedText>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
                   <FaithfulActionsCarouselRow
@@ -2371,8 +2395,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
               <ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={100} contentContainerStyle={scrollContentStyle}>
                 {deferredFilter === 'faithful' ? (
                   incompleteFaithfulActions.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
+                    <View style={styles.emptyStateContainer}>
+                      <View style={styles.heroCard}>
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={32}
+                          color={Colors.growthGreen}
+                          style={styles.heroIcon}
+                        />
+                        <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.heroTitle}>All Faithful Actions Completed</ThemedText>
+                        <ThemedText style={styles.heroSubtitle}>
+                          You've completed all the faithful actions in this space. Return when another faithful step is ready.
+                        </ThemedText>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setFilter(continuePlaybooks.length > 0 ? 'ongoing' : 'completed');
+                          }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View Playbooks</ThemedText>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ) : (
                     <FaithfulActionsCarouselRow
@@ -2454,8 +2502,32 @@ const PlaybookListScreen = ({ navigation }: any) => {
               ListHeaderComponent={
                 deferredFilter === 'faithful' ? (
                   incompleteFaithfulActions.length === 0 ? (
-                    <View style={styles.continueEmptyContainer}>
-                      <ThemedText style={styles.continueEmptyText}>No incomplete faithful actions.</ThemedText>
+                    <View style={styles.emptyStateContainer}>
+                      <View style={styles.heroCard}>
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={32}
+                          color={Colors.growthGreen}
+                          style={styles.heroIcon}
+                        />
+                        <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
+                        <ThemedText weight="semiBold" style={styles.heroTitle}>All Faithful Actions Completed</ThemedText>
+                        <ThemedText style={styles.heroSubtitle}>
+                          You've completed all the faithful actions in this space. Return when another faithful step is ready.
+                        </ThemedText>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setFilter(continuePlaybooks.length > 0 ? 'ongoing' : 'completed');
+                          }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View Playbooks</ThemedText>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ) : (
                     <FaithfulActionsCarouselRow
