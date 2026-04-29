@@ -74,6 +74,7 @@ export class AppleStoreKitService {
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
   private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
   private currentPurchaseEligibility: boolean | undefined; // Store trial eligibility for current purchase
+  private productsInFlight: Promise<StoreProduct[]> | null = null; // Dedup concurrent product fetches
 
   // Product IDs for subscription tiers
   // All iOS products now use .freetrial SKUs; App Store enforces one-time trials.
@@ -315,9 +316,25 @@ export class AppleStoreKitService {
 
   /**
    * Get available subscription products from the App Store
-   * ENHANCED: Added retry logic and better error handling
+   * ENHANCED: Added retry logic, better error handling, and concurrent-call deduplication
    */
   async getAvailableProducts(): Promise<StoreProduct[]> {
+    // If a fetch is already in-flight, return that same promise so concurrent
+    // callers don't fire competing SKProductsRequests (which RNIap cancels).
+    if (this.productsInFlight) {
+      Logger.info('[StoreKit] Product fetch already in-flight, reusing existing request', {
+        component: 'AppleStoreKitService',
+      });
+      return this.productsInFlight;
+    }
+
+    this.productsInFlight = this._fetchProducts().finally(() => {
+      this.productsInFlight = null;
+    });
+    return this.productsInFlight;
+  }
+
+  private async _fetchProducts(): Promise<StoreProduct[]> {
     let lastError: Error | null = null;
 
     // Retry up to 3 times for network resilience

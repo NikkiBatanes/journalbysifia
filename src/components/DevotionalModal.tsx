@@ -80,6 +80,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const { createDevotional, isCreating } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  // Refs so the slide-animation effect can read current values without re-triggering
+  const isCreatingRef = React.useRef(isCreating);
+  const isOnboardingCreatingRef = React.useRef(isOnboardingCreating);
+  const isSuccessRef = React.useRef(false); // updated below
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
@@ -129,6 +133,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+
+  // Keep refs in sync with state so slide effect never re-fires on these changes
+  React.useEffect(() => { isCreatingRef.current = isCreating; }, [isCreating]);
+  React.useEffect(() => { isOnboardingCreatingRef.current = isOnboardingCreating; }, [isOnboardingCreating]);
+  React.useEffect(() => { isSuccessRef.current = isSuccess; }, [isSuccess]);
 
   // Tooltip state
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -506,8 +515,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     if (visible) {
       setIsVisible(true);
-      // Only reset progress animation when modal opens if no creation is in progress
-      if (!isCreating && !isOnboardingCreating && !isSuccess) {
+      // Only reset progress animation when modal first opens with no active generation
+      if (!isCreatingRef.current && !isOnboardingCreatingRef.current && !isSuccessRef.current) {
         progressAnim.setValue(0);
         setCurrentStep(0);
       }
@@ -567,7 +576,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, progressAnim, isCreating, isSuccess]);
+  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {
