@@ -1363,6 +1363,7 @@ interface CompletionStepProps {
   onFinish: () => void;
   insets: { top: number };
   onTurnIntoDevotional?: () => void;
+  devotionalGenerated?: boolean;
 }
 
 const CompletionStep: React.FC<CompletionStepProps> = ({
@@ -1371,6 +1372,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   onFinish,
   insets,
   onTurnIntoDevotional,
+  devotionalGenerated = false,
 }) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(persistedCompletionChoice);
   const headerAnim = useRef(new Animated.Value(40)).current;
@@ -1531,18 +1533,20 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.secondaryButton, styles.devotionalButton]}
-            onPress={() => {
-              triggerLightHaptic();
-              onTurnIntoDevotional?.();
-            }}
-            activeOpacity={0.85}
-          >
-            <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-              Turn this into a devotional
-            </ThemedText>
-          </TouchableOpacity>
+          {!devotionalGenerated && (
+            <TouchableOpacity
+              style={[styles.secondaryButton, styles.devotionalButton]}
+              onPress={() => {
+                triggerLightHaptic();
+                onTurnIntoDevotional?.();
+              }}
+              activeOpacity={0.85}
+            >
+              <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+                Turn this into a devotional
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       </StepFadeIn>
     </View>
@@ -1577,6 +1581,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   });
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [devotionalGenerated, setDevotionalGenerated] = useState(false);
 
   // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
   const [showReadyOverlay, setShowReadyOverlay] = useState(false);
@@ -2102,6 +2107,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onFinish={handleFinish}
                 insets={insets}
                 onTurnIntoDevotional={() => setShowDevotionalModal(true)}
+                devotionalGenerated={devotionalGenerated}
               />
             )}
           </Animated.View>
@@ -2215,6 +2221,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       isOnboarding={source === 'onboarding'}
       onDevotionalCreated={(devotionalId) => {
         setShowDevotionalModal(false);
+        setDevotionalGenerated(true);
         navigation.navigate('DevotionalDetail', { devotionalId });
       }}
     />

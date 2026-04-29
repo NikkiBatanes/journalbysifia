@@ -623,6 +623,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       dayMatches = [[null, '1', content]];
     }
 
+    // Extract reflection questions from the end of the entire response (shared across all days)
+    let sharedReflectionQuestions: ReflectionQuestion[] = [];
+    const globalQuestionsMatch = content.match(/REFLECTION QUESTIONS:\s*([\s\S]*?)(?=PRAYER:|$)/i);
+    if (globalQuestionsMatch) {
+      const questionsRaw = globalQuestionsMatch[1];
+      sharedReflectionQuestions = questionsRaw
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q && q.match(/^\d+\./))
+        .map((q, i) => ({
+          id: `q${i + 1}`,
+          text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
+        }));
+      console.log(`[DEVOTIONAL PARSER] Extracted ${sharedReflectionQuestions.length} shared reflection questions from end of response`);
+    }
+
     for (const [, dayNum, dayContent] of dayMatches) {
       try {
         const dayNumber = parseInt(dayNum, 10);
@@ -902,10 +918,15 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           }
         }
         
-        // If we still have no questions, treat as a hard parse error
+        // If we still have no questions, use shared questions from end of response
         if (reflectionQuestions.length === 0) {
-          console.error(`[DEVOTIONAL PARSER] Day ${dayNum} has no reflection questions - this is not allowed`);
-          throw new Error(`Failed to parse reflection questions for Day ${dayNum}. AI must provide properly formatted questions.`);
+          if (sharedReflectionQuestions.length > 0) {
+            reflectionQuestions = sharedReflectionQuestions;
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using shared reflection questions from end of response`);
+          } else {
+            console.error(`[DEVOTIONAL PARSER] Day ${dayNum} has no reflection questions - this is not allowed`);
+            throw new Error(`Failed to parse reflection questions for Day ${dayNum}. AI must provide properly formatted questions.`);
+          }
         }
 
         // Extract prayer text - first try day-specific, then fall back to series-level prayer

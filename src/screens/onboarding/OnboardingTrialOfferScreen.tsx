@@ -1463,7 +1463,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   selectedPlanContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
