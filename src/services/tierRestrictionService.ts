@@ -90,12 +90,12 @@ class TierRestrictionService {
     // Basic content generation
     {
       feature: 'playbook_generation',
-      requiredTier: 'free_trial',
+      requiredTier: 'seeker',
       usageType: 'playbooks',
     },
     {
       feature: 'devotional_generation',
-      requiredTier: 'free_trial',
+      requiredTier: 'seeker',
       usageType: 'devotionals',
     },
 

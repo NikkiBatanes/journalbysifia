@@ -37,7 +37,7 @@ interface UseSubscriptionResult {
   startTrial: (options?: Partial<TrialStartOptions>) => Promise<void>;
   upgradeSubscription: (options: SubscriptionUpgradeOptions) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  incrementUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => Promise<void>;
+  incrementUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => Promise<void>;
   checkUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => Promise<SubscriptionCheck>;
   refreshSubscription: () => Promise<void>;
 }
@@ -106,8 +106,8 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
   // Increment usage mutation
   const incrementUsageMutation = useMutation({
-    mutationFn: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') =>
-      NewSubscriptionService.incrementUsage(userId, action),
+    mutationFn: ({ action, isOnboarding }: { action: 'playbook' | 'devotional' | 'smart_journal' | 'export'; isOnboarding?: boolean }) =>
+      NewSubscriptionService.incrementUsage(userId, action, isOnboarding),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
       // Refresh usage check
@@ -200,9 +200,9 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     }
   }, [cancelSubscriptionMutation]);
 
-  const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => {
+  const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => {
     try {
-      await incrementUsageMutation.mutateAsync(action);
+      await incrementUsageMutation.mutateAsync({ action, isOnboarding });
     } catch (catchError) {
       throw new SubscriptionError(
         `Failed to increment usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
