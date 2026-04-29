@@ -1220,6 +1220,7 @@ export default function ActionStepsCard({
           actionStepNumber={selectedActionStep?.stepNumber}
           actionStepTitle={selectedActionStep?.stepTitle}
           existingPrayer={null}
+          selectedDate={new Date()}
           onSave={handlePrayerSave}
           onCancel={() => {
             setActiveModal(null);
