@@ -484,7 +484,7 @@ const LookingAheadInputStep: React.FC<{
       duration: 400,
       useNativeDriver: false,
     }).start();
-  }, []);
+  }, [verticalLineHeight]);
 
   React.useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
@@ -648,7 +648,7 @@ const CompletionStep: React.FC<{
   icon: string;
   customEmotion: string;
   dateContext: DateContext;
-}> = ({ emotion, lookingAheadText, onDone, insets, navigation, icon, customEmotion, dateContext }) => {
+}> = ({ emotion, lookingAheadText, onDone, insets, customEmotion, dateContext }) => {
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -694,7 +694,7 @@ const CompletionStep: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [checkmarkScale, iconScale, iconRotation]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],
@@ -862,26 +862,6 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
     }
 
     try {
-      // Parse existing content to preserve data when only editing one field
-      let _existingText = '';
-      let _existingEmotionId = '';
-      let _existingEmotionName = '';
-      let _existingCustomEmotion = '';
-
-      if (existingEntry?.content) {
-        try {
-          const parsedContent = typeof existingEntry.content === 'string'
-            ? JSON.parse(existingEntry.content)
-            : existingEntry.content;
-          _existingText = parsedContent.entry?.text || '';
-          _existingEmotionId = parsedContent.emotionId || '';
-          _existingEmotionName = parsedContent.emotionName || '';
-          _existingCustomEmotion = parsedContent.customEmotion || '';
-        } catch (error) {
-          console.error('Error parsing existing content:', error);
-        }
-      }
-
       // Use new values if changed, otherwise keep existing values
       // If user selected a new emotion, clear the text. If user entered text, clear the emotion.
       const emotionIdToSave = selectedEmotion ? selectedEmotion.id : '';
@@ -967,10 +947,6 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
     } else {
       navigation.goBack();
     }
-  };
-
-  const _handleClose = () => {
-    navigation.goBack();
   };
 
   // Swipe gesture handlers
