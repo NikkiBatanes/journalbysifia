@@ -467,16 +467,50 @@ const CategoryCarouselRow = React.memo(({
   onRenamePress, onTagPress, onDevotionalPress, triggerHaptic,
 }: CategoryCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
-  return (
-    <View style={st.categorySection}>
-      <View style={st.categorySectionHeader}>
-        <ThemedText weight="semiBold" style={st.categorySectionTitle}>{category.toUpperCase()}</ThemedText>
-        <View style={st.categorySectionCount}>
-          <ThemedText style={st.categorySectionCountText}>{playbooks.length}</ThemedText>
-        </View>
-      </View>
-      <Animated.ScrollView
+
+  const renderCard = useCallback(({ item, index }: { item: Playbook; index: number }) => ( 
+    <CarouselCard 
+      item={item} 
+      index={index} 
+      scrollX={rowScrollX} 
+      isMenuOpen={menuVisible === item.id} 
+      hasPrayed={sessionStates[item.id]?.hasPrayed ?? false} 
+      hasRead={sessionStates[item.id]?.hasRead ?? false} 
+      devotionalCount={devotionalsCount[item.id] ?? 0} 
+      cardStyles={st} 
+      sessionStates={sessionStates} 
+      onPress={onPress} 
+      onLongPress={onLongPress} 
+      onMenuToggle={onMenuToggle} 
+      onDelete={onDelete} 
+      onRenamePress={onRenamePress} 
+      onTagPress={onTagPress} 
+      onDevotionalPress={onDevotionalPress} 
+      triggerHaptic={triggerHaptic} 
+    /> 
+  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic]); 
+
+  const getItemLayout = useCallback((_: any, index: number) => ({ 
+    length: ITEM_SIZE, offset: ITEM_SIZE * index, index, 
+  }), []); 
+
+  return ( 
+    <View style={st.categorySection}> 
+      <View style={st.categorySectionHeader}> 
+        <ThemedText weight="semiBold" style={st.categorySectionTitle}>{category.toUpperCase()}</ThemedText> 
+        <View style={st.categorySectionCount}> 
+          <ThemedText style={st.categorySectionCountText}>{playbooks.length}</ThemedText> 
+        </View> 
+      </View> 
+      <Animated.FlatList
         horizontal
+        data={playbooks}
+        keyExtractor={(p: Playbook) => p.id}
+        renderItem={renderCard}
+        getItemLayout={getItemLayout}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={CAROUSEL_CONTENT_STYLE}
         decelerationRate="fast"
@@ -491,41 +525,19 @@ const CategoryCarouselRow = React.memo(({
         disableIntervalMomentum={false}
         bounces={false}
         removeClippedSubviews={true}
-      >
-        {playbooks.map((playbook, index) => (
-          <CarouselCard
-            key={playbook.id}
-            item={playbook}
-            index={index}
-            scrollX={rowScrollX}
-            isMenuOpen={menuVisible === playbook.id}
-            hasPrayed={sessionStates[playbook.id]?.hasPrayed ?? false}
-            hasRead={sessionStates[playbook.id]?.hasRead ?? false}
-            devotionalCount={devotionalsCount[playbook.id] ?? 0}
-            cardStyles={st}
-            sessionStates={sessionStates}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            onMenuToggle={onMenuToggle}
-            onDelete={onDelete}
-            onRenamePress={onRenamePress}
-            onTagPress={onTagPress}
-            onDevotionalPress={onDevotionalPress}
-            triggerHaptic={triggerHaptic}
-          />
-        ))}
-      </Animated.ScrollView>
-    </View>
-  );
-});
+      /> 
+    </View> 
+  ); 
+}); 
 
-// ── Faithful Actions horizontal carousel row ──────────────────────────────────
-interface FaithfulActionsCarouselRowProps {
-  faithfulActions: FaithfulAction[];
-  cardStyles: any;
-  onPress: (item: FaithfulAction) => void;
-  triggerHaptic: () => void;
-}
+
+// ── Faithful Actions horizontal carousel row ────────────────────────────────── 
+interface FaithfulActionsCarouselRowProps { 
+  faithfulActions: FaithfulAction[]; 
+  cardStyles: any; 
+  onPress: (item: FaithfulAction) => void; 
+  triggerHaptic: () => void; 
+} 
 
 const FaithfulActionsCarouselRow = React.memo(({
   faithfulActions,
@@ -534,6 +546,22 @@ const FaithfulActionsCarouselRow = React.memo(({
   triggerHaptic,
 }: FaithfulActionsCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
+
+  const renderFACard = useCallback(({ item, index }: { item: FaithfulAction; index: number }) => (
+    <FaithfulActionCard
+      item={item}
+      index={index}
+      scrollX={rowScrollX}
+      cardStyles={st}
+      onPress={onPress}
+      triggerHaptic={triggerHaptic}
+    />
+  ), [rowScrollX, st, onPress, triggerHaptic]);
+
+  const getFAItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
+  }), []);
+
   return (
     <View style={st.categorySection}>
       <View style={st.categorySectionHeader}>
@@ -542,8 +570,15 @@ const FaithfulActionsCarouselRow = React.memo(({
           <ThemedText style={st.categorySectionCountText}>{faithfulActions.length}</ThemedText>
         </View>
       </View>
-      <Animated.ScrollView
+      <Animated.FlatList
         horizontal
+        data={faithfulActions}
+        keyExtractor={(a: FaithfulAction) => a.id}
+        renderItem={renderFACard}
+        getItemLayout={getFAItemLayout}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={CAROUSEL_CONTENT_STYLE}
         decelerationRate="fast"
@@ -558,19 +593,7 @@ const FaithfulActionsCarouselRow = React.memo(({
         disableIntervalMomentum={false}
         bounces={false}
         removeClippedSubviews={true}
-      >
-        {faithfulActions.map((action, index) => (
-          <FaithfulActionCard
-            key={action.id}
-            item={action}
-            index={index}
-            scrollX={rowScrollX}
-            cardStyles={st}
-            onPress={onPress}
-            triggerHaptic={triggerHaptic}
-          />
-        ))}
-      </Animated.ScrollView>
+      />
     </View>
   );
 });
@@ -1018,7 +1041,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return getPlaybooks(userId || '', { lightweight: true });
     },
     enabled: !!userId && isAuthenticated, // Only run when we have a valid userId and are authenticated
-    staleTime: 0, // Always consider data stale to ensure real-time updates
+    staleTime: 30 * 1000, // 30s grace period — prevents refetch on every tab switch
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache for 5 minutes
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Enable automatic refetch on focus to update walkthrough_progress
@@ -1037,7 +1060,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return () => {
       subscription.remove();
     };
-  }, [refetch, playbooks]);
+  }, [refetch]);
 
   // Advanced prefetching for lightning-fast navigation
   const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
@@ -1179,6 +1202,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const searchInputRef = useRef<TextInput>(null);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const menuVisibleRef = useRef<string | null>(null);
+  useEffect(() => { menuVisibleRef.current = menuVisible; }, [menuVisible]);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
 
   // Auto-close dropdown menu when navigating away
@@ -1245,7 +1270,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, []);
 
   const handlePickerClose = useCallback(() => setShowStatusPicker(false), []);
-  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed' | 'faithful') => setFilter(f), []);
+  const handlePickerFilterChange = useCallback((f: 'ongoing' | 'completed' | 'faithful') => {
+    setTimeout(() => setFilter(f), 260);
+  }, []);
 
   // Component renders with current state
 
@@ -1390,9 +1417,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [playbooksWithProgress, deferredFilter, searchQuery]);
 
   // Intelligent prefetching: prefetch visible playbooks for instant navigation
+  // Gate with a ref so background re-fetches of the same list don't fire 20+ duplicate DB calls
+  const lastPrefetchedIdsRef = useRef<string>('');
   useEffect(() => {
     if (filteredPlaybooks.length > 0 && userId) {
-      // ENTERPRISE-GRADE: Defer prefetching to after navigation transition completes
+      const idKey = filteredPlaybooks.slice(0, 5).map(p => p.id).join(',');
+      if (idKey === lastPrefetchedIdsRef.current) return;
+      lastPrefetchedIdsRef.current = idKey;
       const raf = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame
         : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
@@ -1649,13 +1680,13 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
     // Don't navigate if menu is open for this card
-    if (menuVisible === playbook.id) {
+    if (menuVisibleRef.current === playbook.id) {
       setMenuVisible(null);
       return;
     }
     triggerLightHaptic();
     navigation.navigate('PlaybookWalkthrough', { playbook });
-  }, [navigation, triggerLightHaptic, menuVisible]);
+  }, [navigation, triggerLightHaptic]);
 
   const handleCardLongPress = useCallback((playbook: Playbook) => {
     try { triggerLightHaptic(); } catch {}
