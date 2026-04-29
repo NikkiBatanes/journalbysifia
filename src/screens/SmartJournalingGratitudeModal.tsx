@@ -151,6 +151,16 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [prevActive, setPrevActive] = useState(false); // Start with false to detect initial activation
   const [prevVisible, setPrevVisible] = useState(false); // Start with false to detect initial visibility
 
+  // Check if metadata is present (from faithful actions pencil tooltip)
+  const hasMetadata = Boolean(
+    preservedSubtaskTitle ||
+    preservedPlaybookTitle ||
+    preservedActionStepNumber ||
+    preservedActionStepTitle ||
+    stepBody ||
+    stepExample
+  );
+
   useEffect(() => {
     // Focus when modal becomes active (either through visibility change or isActive prop change)
     if (isActive && !prevActive) {
@@ -159,12 +169,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Use a longer delay to ensure modal is fully rendered and keyboard is ready
       setTimeout(() => {
         if (gratitudeEditorRef.current) {
-          gratitudeEditorRef.current.focusInput();
+          // Skip scroll to bottom when metadata is present (from faithful actions)
+          gratitudeEditorRef.current.focusInput(hasMetadata);
         }
       }, 800); // Increased delay for better reliability
     }
     setPrevActive(isActive);
-  }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+  }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId, hasMetadata]);
 
   // Also trigger focus when visible prop changes (for dashboard usage)
   useEffect(() => {
@@ -175,12 +186,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Use a longer delay to ensure modal is fully rendered and keyboard is ready
       setTimeout(() => {
         if (gratitudeEditorRef.current) {
-          gratitudeEditorRef.current.focusInput();
+          // Skip scroll to bottom when metadata is present (from faithful actions)
+          gratitudeEditorRef.current.focusInput(hasMetadata);
         }
       }, 800); // Increased delay for better reliability
     }
     setPrevVisible(visible);
-  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId, hasMetadata]);
 
   // React Query mutations
   const createMutation = useCreateJournalEntry();
@@ -335,7 +347,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (gratitudeEditorRef.current) {
-        gratitudeEditorRef.current.focusInput();
+        // Skip scroll to bottom when metadata is present (from faithful actions)
+        gratitudeEditorRef.current.focusInput(hasMetadata);
       }
     }, 300); // Small delay to allow modal to close
     // Keep modal open for continued editing

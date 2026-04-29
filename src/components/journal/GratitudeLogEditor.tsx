@@ -59,7 +59,7 @@ const getDateContext = (selectedDate: Date): DateContext => {
 };
 
 export interface GratitudeLogEditorRef {
-  focusInput: () => void;
+  focusInput: (skipScroll?: boolean) => void;
   reset: () => void;
 }
 
@@ -515,7 +515,7 @@ const GratitudeLogEditorInner = (
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
-    focusInput: () => {
+    focusInput: (skipScroll = false) => {
       // Ensure input refs array is properly initialized
       if (!inputRefs.current || inputRefs.current.length === 0) {
         inputRefs.current = [null, null, null];
@@ -529,7 +529,7 @@ const GratitudeLogEditorInner = (
         setTimeout(() => {
           if (inputRefs.current[inputRefs.current.length - 1]) {
             inputRefs.current[inputRefs.current.length - 1]!.focus();
-            // Scroll to the bottom of the content
+            // Scroll to the bottom of the content (always scroll when adding new item)
             setTimeout(() => {
               scrollViewRef.current?.scrollToEnd({ animated: true });
             }, 100);
@@ -540,10 +540,12 @@ const GratitudeLogEditorInner = (
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             inputRefs.current[targetIndex]!.focus();
-            // Scroll to the bottom of the content
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            // Only scroll to bottom if skipScroll is false
+            if (!skipScroll) {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }
           }
         }, 200);
       }

@@ -212,7 +212,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({ playbo
             progress: stats.completed / Math.max(stats.total, 1),
             updatedAt: new Date().toISOString(),
             totalTasks: stats.total,
-            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+            status: currentPlaybook.status === 'completed' ? 'completed' : 'inProgress',
           };
           updatePlaybook(updatedPlaybook);
         }
@@ -284,7 +284,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({ playbo
             progress: stats.completed / Math.max(stats.total, 1),
             updatedAt: new Date().toISOString(),
             totalTasks: stats.total,
-            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+            status: currentPlaybook.status === 'completed' ? 'completed' : 'inProgress',
           };
           updatePlaybook(updatedPlaybook);
         }
