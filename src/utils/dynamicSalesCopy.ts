@@ -151,7 +151,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       : 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.';
 
     // Dynamic CTA based on trial usage
-    const primaryCta = hasEverStartedTrial ? 'Upgrade to Growth' : 'Start 3-Day Free Trial';
+    const primaryCta = hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial';
 
     return {
       title,
@@ -219,7 +219,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
-        primaryCta: 'Upgrade to Growth',
+        primaryCta: `Upgrade to ${getTierDisplayName('growth')}`,
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'growth',
         showUpgradeOptions: true,
@@ -240,7 +240,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
-        primaryCta: 'Upgrade to Transformation',
+        primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
@@ -256,7 +256,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         return {
           title: 'Unlock 5-Day\nDevotionals',
           message: `5-day devotionals are available with Growth or Transformation. Upgrade to unlock 5-day devotionals, or choose another duration.`,
-          primaryCta: hasEverStartedTrial ? 'Upgrade to Growth' : 'Start 3-Day Free Trial',
+          primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
           showUpgradeOptions: true,
@@ -266,7 +266,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       return {
         title: 'Unlock 7-Day\nDevotionals',
         message: `7-day devotionals are available with Transformation. Upgrade to unlock 7-day devotionals, or choose another duration.`,
-        primaryCta: hasEverStartedTrial ? 'Upgrade to Transformation' : 'Start 3-Day Free Trial',
+        primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('transformation')}` : 'Start 3-Day Free Trial',
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
@@ -278,7 +278,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         return {
           title: 'Unlock 5-Day\nDevotionals',
           message: `5-day devotionals are available with Growth or Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
-          primaryCta: 'Upgrade to Growth',
+          primaryCta: `Upgrade to ${getTierDisplayName('growth')}`,
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
           showUpgradeOptions: true,
@@ -289,7 +289,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         return {
           title: 'Unlock 7-Day\nDevotionals',
           message: `7-day devotionals are available with Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
-          primaryCta: 'Upgrade to Transformation',
+          primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'transformation',
           showUpgradeOptions: true,
@@ -300,7 +300,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       return {
         title: 'Unlock 7-Day\nDevotionals',
         message: `7-day devotionals are available with Transformation. Growth includes up to 25 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
-        primaryCta: 'Upgrade to Transformation',
+        primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
@@ -310,11 +310,12 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
   }
 
   // CASE 5: Default fallback
+  const recommendedTier = 'growth';
   return {
     title: 'Upgrade Your Plan',
-    message: `Unlock more ${featureType} with a higher tier plan.`,
-    primaryCta: 'View Plans',
-    recommendedTier: 'growth',
+    message: 'Get more room for playbooks and devotionals with a higher plan.',
+    primaryCta: `Upgrade to ${getTierDisplayName(recommendedTier)}`,
+    recommendedTier,
     showUpgradeOptions: true,
   };
 }

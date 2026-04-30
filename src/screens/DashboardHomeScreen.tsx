@@ -60,6 +60,7 @@ import { queryKeys } from '../services/queryKeys';
 import { toLocalDateString } from '../utils/date';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
+import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
 
@@ -807,6 +808,28 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
   const [notifSimulatedDay, setNotifSimulatedDay] = useState<number | null>(null);
   const [salesCopyModalVisible, setSalesCopyModalVisible] = useState(false);
+  const [subscriptionPlanModalVisible, setSubscriptionPlanModalVisible] = useState(false);
+  const [subscriptionTestMode, setSubscriptionTestMode] = useState<any>(null);
+
+  const openSalesOfferFromSalesCopy = useCallback((params: any) => {
+    const normalizedParams = {
+      ...params,
+      currentTier: params?.currentTier || params?.testModeTier,
+    };
+
+    if (normalizedParams.testModeTier === 'free_trial') {
+      normalizedParams.currentTier = 'free_trial';
+      normalizedParams.testModeIsOnTrial = normalizedParams.testModeIsOnTrial ?? true;
+      normalizedParams.testModeHasStartedTrial = normalizedParams.testModeHasStartedTrial ?? true;
+      normalizedParams.currentTrialChosenTier = normalizedParams.currentTrialChosenTier || normalizedParams.testModeTrialChosenTier;
+      normalizedParams.currentTrialBillingCycle = normalizedParams.currentTrialBillingCycle || normalizedParams.testModeBillingCycle;
+    }
+
+    setSalesCopyModalVisible(false);
+    setTimeout(() => {
+      navigation.navigate('OnboardingSalesOffer' as any, normalizedParams);
+    }, 250);
+  }, [navigation]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -852,8 +875,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       Alert.alert('Error', 'Failed to send notification.');
     } finally {
       setNotifSending(null);
-      if (notifTestTab === 'queue' || notifTestTab === 'history') {
-        loadNotifData(notifTestTab);
+      // History reloads via 'notification_saved' event when the notification actually fires (~2 s)
+      // Queue tab: reload now since engine writes to queue synchronously
+      if (notifTestTab === 'queue') {
+        loadNotifData('queue');
       }
     }
   }, [user?.id, notifSimulatedDay, notifTestTab, loadNotifData]);
@@ -1099,6 +1124,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       try { subPlaybook.remove(); } catch {}
     };
   }, []);
+
+  // Auto-reload History tab when a notification is actually saved (fires ~2s after Send tap)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notification_saved', () => {
+      if (notifTestModalVisible && notifTestTab === 'history') {
+        loadNotifData('history');
+      }
+    });
+    return () => sub.remove();
+  }, [notifTestModalVisible, notifTestTab, loadNotifData]);
 
   // Fetch unprayed prayer requests for current user (across all dates)
   const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests } = useUnprayedPrayerRequests(user?.id || '');
@@ -2069,7 +2104,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'seeker',
@@ -2087,7 +2122,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'seeker',
@@ -2105,7 +2140,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2123,7 +2158,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2144,7 +2179,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'free_trial',
@@ -2169,7 +2204,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'free_trial',
@@ -2194,7 +2229,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'free_trial',
@@ -2219,7 +2254,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'free_trial',
@@ -2244,7 +2279,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'free_trial',
@@ -2269,7 +2304,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 setSalesCopyModalVisible(false);
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 3);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'free_trial',
@@ -2304,7 +2339,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'spark',
@@ -2331,7 +2366,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'growth',
@@ -2358,7 +2393,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'playbooks',
                   testModeTier: 'transformation',
@@ -2386,7 +2421,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2416,7 +2451,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2446,7 +2481,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2476,7 +2511,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'seeker',
@@ -2506,7 +2541,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'spark',
@@ -2534,7 +2569,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'spark',
@@ -2562,7 +2597,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: true,
                   featureType: 'devotionals',
                   testModeTier: 'growth',
@@ -2595,7 +2630,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'planning_lock',
                   feature: 'future_planning',
@@ -2612,7 +2647,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'planning_lock',
                   feature: 'future_planning',
@@ -2629,7 +2664,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'copy_todos_lock',
                   feature: 'copy_todos',
@@ -2647,7 +2682,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'copy_todos_lock',
                   feature: 'copy_todos',
@@ -2665,7 +2700,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'pdf_export_restriction',
                   feature: 'export_pdf',
@@ -2682,7 +2717,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'pdf_export_restriction',
                   feature: 'export_pdf',
@@ -2699,7 +2734,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'repeat_options',
                   feature: 'repeat_options',
@@ -2716,7 +2751,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'repeat_options',
                   feature: 'repeat_options',
@@ -2733,7 +2768,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'calendar_auto_sync',
                   feature: 'calendar_sync',
@@ -2750,7 +2785,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'calendar_auto_sync',
                   feature: 'calendar_sync',
@@ -2767,7 +2802,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'calendar_auto_sync',
                   feature: 'calendar_sync',
@@ -2784,7 +2819,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'guided_prompts_lock',
                   feature: 'guided_prompts',
@@ -2802,7 +2837,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
-                navigation.navigate('OnboardingSalesOffer' as any, {
+                openSalesOfferFromSalesCopy({
                   upgradeMode: false,
                   source: 'guided_prompts_lock',
                   feature: 'guided_prompts',
@@ -2816,9 +2851,190 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you'll also unlock more room for playbooks and devotionals. Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
+            {/* Subscription Flow Scenarios */}
+            <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 16, marginTop: 24, marginBottom: 12 }}>Subscription Flow Scenarios</ThemedText>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'seeker', testModeStatus: 'active', testModeHasUsedTrial: false });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker (Eligible for Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Free Plan. Button: Continue with siFia</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'seeker', testModeStatus: 'active', testModeHasUsedTrial: true });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker (Not Eligible for Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Free Plan. Button: Continue with siFia</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'spark', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'spark', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'growth', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'growth', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'transformation', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan to Annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'transformation', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: No button (highest tier)</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'growth' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>10 playbooks, 10 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'growth' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>10 playbooks, 10 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'spark' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Spark Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5 playbooks, 5 devotionals. Secondary: View Other Plans - Growth monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'spark' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Spark Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5 playbooks, 5 devotionals. Secondary: View Other Plans - Growth annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'transformation' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'transformation' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
+            </TouchableOpacity>
+
           </ScrollView>
         </SafeAreaView>
       </Modal>
+    )}
+
+    {/* Subscription Plan Modal */}
+    {subscriptionPlanModalVisible && (
+      <SubscriptionPlanModal
+        visible={subscriptionPlanModalVisible}
+        onClose={() => setSubscriptionPlanModalVisible(false)}
+        navigation={navigation}
+        {...subscriptionTestMode}
+      />
     )}
 
     </SafeAreaView>

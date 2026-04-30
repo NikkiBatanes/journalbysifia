@@ -37,10 +37,43 @@ import { triggerLightHaptic } from '../../utils/haptics';
 
 // Use PricingTier from pricingService to avoid drift
 type PricingTier = ServicePricingTier;
+type BillingCycle = 'monthly' | 'annual';
+type PaidPlanTier = 'spark' | 'growth' | 'transformation';
+
+const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
+
+const normalizePaidPlanTier = (tier?: string | null): PaidPlanTier | undefined => {
+  const normalized = String(tier || '').toLowerCase().replace(/_annual$/, '');
+  return PAID_PLAN_ORDER.includes(normalized as PaidPlanTier) ? normalized as PaidPlanTier : undefined;
+};
+
+const getNextPaidPlanTier = (tier?: string | null): PaidPlanTier => {
+  const current = normalizePaidPlanTier(tier);
+  if (!current) {
+    return 'growth';
+  }
+
+  const currentIndex = PAID_PLAN_ORDER.indexOf(current);
+  return PAID_PLAN_ORDER[Math.min(currentIndex + 1, PAID_PLAN_ORDER.length - 1)];
+};
+
+const normalizeBillingCycle = (billingCycle?: string | null): BillingCycle => {
+  const normalized = String(billingCycle || '').toLowerCase();
+  return normalized === 'annual' || normalized === 'yearly' || normalized === 'year' ? 'annual' : 'monthly';
+};
+
+const getPaidPlanRank = (tier?: string | null): number => {
+  const normalized = normalizePaidPlanTier(tier);
+  return normalized ? PAID_PLAN_ORDER.indexOf(normalized) : -1;
+};
 
 interface RouteParams {
   upgradeMode?: boolean;
   currentTier?: string;
+  selectedTier?: string;
+  billingCycle?: BillingCycle;
+  currentTrialBillingCycle?: BillingCycle;
+  selectedBillingCycle?: BillingCycle;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
   featureType?: 'playbooks' | 'devotionals'; // explicitly mark which feature triggered the upgrade
   // Navigation context flags
@@ -56,6 +89,17 @@ interface RouteParams {
   forceTransformationAnnual?: boolean; // Show only annual transformation option
   forceAnnualOnly?: boolean; // Show only annual plans for current tier
   onboardingFlow?: boolean; // True when in initial registration onboarding
+  currentTrialChosenTier?: string;
+  profileTrialViewPlans?: boolean;
+  testModeTier?: string;
+  testModeIsOnTrial?: boolean;
+  testModeHasStartedTrial?: boolean;
+  testModeHasEverStartedTrial?: boolean;
+  testModeTrialChosenTier?: string;
+  testModeTrialEndDate?: string;
+  testModeBillingCycle?: BillingCycle;
+  testModeRemaining?: number;
+  testModeLimit?: number;
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -92,24 +136,45 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const [footerHeight, setFooterHeight] = useState(0);
 
-  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly || false);
-
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
+  const subscription = devotionalGating.subscription;
+  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
+  const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
+
+  // Test mode: override trial status if provided
+  const testModeIsOnTrial = routeParams?.testModeIsOnTrial;
+  const testModeHasStartedTrial = routeParams?.testModeHasStartedTrial ?? routeParams?.testModeHasEverStartedTrial;
+  const testModeTrialEndDate = routeParams?.testModeTrialEndDate;
+  const testModeTier = routeParams?.testModeTier;
+  const routeIndicatesTrial = routeParams?.currentTier === 'free_trial' || routeParams?.tier === 'free_trial' || routeParams?.profileTrialViewPlans === true;
+
+  const effectiveIsCurrentlyOnTrial = testModeIsOnTrial !== undefined ? testModeIsOnTrial : (isCurrentlyOnTrial || routeIndicatesTrial);
+  const effectiveHasEverStartedTrial = testModeHasStartedTrial !== undefined ? testModeHasStartedTrial : hasEverStartedTrial;
+  const effectiveTrialChosenTier = (routeParams?.testModeTrialChosenTier || routeParams?.currentTrialChosenTier || subscription?.trial_chosen_tier) as SubscriptionTier | undefined;
+  const effectiveTrialPlanTier = normalizePaidPlanTier(effectiveTrialChosenTier);
+  const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
+  const effectiveCurrentTrialBillingCycle = routeParams?.currentTrialBillingCycle || routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle || 'monthly';
+  const routeBillingCycle = routeParams?.selectedBillingCycle || routeParams?.billingCycle || routeParams?.currentTrialBillingCycle || routeParams?.testModeBillingCycle;
+  const initialIsAnnual = routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly || routeBillingCycle === 'annual';
+
+  const [isAnnual, setIsAnnual] = useState(Boolean(initialIsAnnual));
 
   // Check if coming from profile to preselect current tier
-  const isFromProfile = (route.params as any)?.source === 'profile';
+  const isFromProfile = routeParams?.source === 'profile';
 
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
                               (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
-  const initialSelectedTier = (route.params as any)?.forceTransformationAnnual ? 'transformation' :
-                              (route.params as any)?.forceAnnualOnly ? currentUserTier :
-                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
-                              (route.params as any)?.testModeTrialChosenTier ? (route.params as any).testModeTrialChosenTier :
-                              (route.params as any)?.selectedTier ? (route.params as any).selectedTier :
-                              (route.params as any)?.requestedDuration === 7 ? 'transformation' :
-                              (route.params as any)?.requestedDuration ? 'growth' :
+  const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
+  const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
+                              routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
+                              routeParams?.forceAnnualOnly ? getNextPaidPlanTier(currentUserTier) :
+                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? normalizePaidPlanTier(currentUserTier) || currentUserTier :
+                              routeParams?.profileTrialViewPlans && effectiveIsCurrentlyOnTrial ? trialUpgradeTier :
+                              routeParams?.testModeTrialChosenTier ? normalizePaidPlanTier(routeParams.testModeTrialChosenTier) || routeParams.testModeTrialChosenTier :
+                              routeParams?.requestedDuration === 7 ? 'transformation' :
+                              routeParams?.requestedDuration ? 'growth' :
                               'growth';
 
   // Debug logging
@@ -118,10 +183,36 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     currentUserTier,
     initialSelectedTier,
     routeParams: route.params,
-    requestedDuration: (route.params as any)?.requestedDuration,
+    requestedDuration: routeParams?.requestedDuration,
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
+  const selectedPlanTier = normalizePaidPlanTier(selectedTier) || selectedTier;
+
+  useEffect(() => {
+    if (!hasManualTierSelection && selectedPlanTier !== selectedTier) {
+      setSelectedTier(selectedPlanTier);
+    }
+  }, [hasManualTierSelection, selectedPlanTier, selectedTier]);
+
+  useEffect(() => {
+    if (!hasManualTierSelection && selectedPlanTier !== initialSelectedTier) {
+      setSelectedTier(initialSelectedTier);
+    }
+  }, [hasManualTierSelection, initialSelectedTier, selectedPlanTier]);
+
+  // Helper function to get tier display name
+  const getTierDisplayName = (tier: string): string => {
+    const tierNames = {
+      'seeker': 'Seeker',
+      'free_trial': 'Trial',
+      'spark': 'Spark',
+      'growth': 'Growth',
+      'transformation': 'Transformation',
+      'transformation_annual': 'Transformation',
+    } as Record<string, string>;
+    return tierNames[tier] || tier;
+  };
   const [_expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -162,6 +253,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     animateToggle(isAnnual);
   }, [isAnnual, animateToggle]);
 
+  useEffect(() => {
+    setIsAnnual(Boolean(initialIsAnnual));
+  }, [initialIsAnnual]);
+
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
@@ -173,23 +268,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
-  const subscription = devotionalGating.subscription;
-  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
-  const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-
-  // Test mode: override trial status if provided
-  const testModeIsOnTrial = (routeParams as any)?.testModeIsOnTrial;
-  const testModeHasStartedTrial = (routeParams as any)?.testModeHasStartedTrial ?? (routeParams as any)?.testModeHasEverStartedTrial;
-  const testModeTrialEndDate = (routeParams as any)?.testModeTrialEndDate;
-  const testModeTier = (routeParams as any)?.testModeTier;
-
-  const effectiveIsCurrentlyOnTrial = testModeIsOnTrial !== undefined ? testModeIsOnTrial : isCurrentlyOnTrial;
-  const effectiveHasEverStartedTrial = testModeHasStartedTrial !== undefined ? testModeHasStartedTrial : hasEverStartedTrial;
-  const effectiveTrialChosenTier = ((routeParams as any)?.testModeTrialChosenTier || subscription?.trial_chosen_tier) as SubscriptionTier | undefined;
-  const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
   const effectiveCurrentUserTier = (testModeTier || currentUserTier) as string;
   const effectiveIsSeekerTier = effectiveCurrentUserTier === 'seeker' || !effectiveCurrentUserTier;
   const guidedPromptsTier = routeParams?.tier || effectiveCurrentUserTier;
+  const isProfileTrialViewPlans = Boolean(routeParams?.profileTrialViewPlans);
+  const shouldUseTrialPlanSwitcher = isUpgradeMode && effectiveIsCurrentlyOnTrial && Boolean(effectiveTrialPlanTier);
+  const isCurrentTransformationPlan = normalizePaidPlanTier(effectiveCurrentUserTier) === 'transformation'
+    || effectiveTrialPlanTier === 'transformation'
+    || Boolean(routeParams?.forceTransformationAnnual);
+  const profileTrialTier = effectiveTrialPlanTier || normalizePaidPlanTier(effectiveTrialChosenTier) || 'spark';
+  const profileTrialTierName = getTierDisplayName(profileTrialTier);
+
+  const customProfileTrialTitle = 'View other plans';
+  const customProfileTrialSubtitle = `You're currently on the ${profileTrialTierName} trial. You can continue with this trial or explore other plans.`;
+  const customProfileTrialNote = 'Changing plans during your trial may start your new plan right away.';
 
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && effectiveIsSeekerTier;
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
@@ -208,22 +300,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Generate dynamic sales copy for playbook/devotional gating
   const dynamicSalesCopy = React.useMemo(() => {
-    if (!isUpgradeMode || !subscription) {return null;}
+    if (!isUpgradeMode || isProfileTrialViewPlans) {return null;}
 
     // Use explicit featureType from route params if provided, otherwise infer from requestedDuration
     const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
-    const isOnTrial = subscription.tier === 'free_trial';
 
     // Test mode: use override values from route params if provided
-    const testModeRemaining = (routeParams as any)?.testModeRemaining;
-    const testModeLimit = (routeParams as any)?.testModeLimit;
-    const testModeHasEverStartedTrial = (routeParams as any)?.testModeHasEverStartedTrial;
+    const testModeRemaining = routeParams?.testModeRemaining;
+    const testModeLimit = routeParams?.testModeLimit;
+    const testModeHasEverStartedTrial = routeParams?.testModeHasEverStartedTrial;
 
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
-    const playbooksUsed = subscription.playbooks_used || 0;
-    const devotionalsUsed = subscription.devotionals_used || 0;
-    const playbooksLimit = subscription.playbooks_limit || 0;
-    const devotionalsLimit = subscription.devotionals_limit || 0;
+    const playbooksUsed = subscription?.playbooks_used || 0;
+    const devotionalsUsed = subscription?.devotionals_used || 0;
+    const playbooksLimit = subscription?.playbooks_limit || 0;
+    const devotionalsLimit = subscription?.devotionals_limit || 0;
 
     const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
     const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
@@ -246,11 +337,33 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       isOnTrial: effectiveIsCurrentlyOnTrial,
       trialChosenTier: effectiveTrialChosenTier,
       trialEndDate: effectiveTrialEndDate,
-      subscriptionStartDate: subscription.subscription_start_date,
+      subscriptionStartDate: subscription?.subscription_start_date,
       requestedDuration,
       hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : effectiveHasEverStartedTrial,
     });
-  }, [isUpgradeMode, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, (routeParams as any)?.testModeRemaining, (routeParams as any)?.testModeLimit, (routeParams as any)?.testModeHasEverStartedTrial, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+
+  const selectedBillingCycle = isAnnual ? 'annual' : 'monthly';
+  const currentPaidPlanTier = normalizePaidPlanTier(effectiveCurrentUserTier);
+  const currentPaidBillingCycle = normalizeBillingCycle(
+    effectiveCurrentUserTier?.includes('_annual') || routeParams?.forceAnnualOnly
+      ? 'annual'
+      : routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle
+  );
+  const currentComparableTier = effectiveIsCurrentlyOnTrial ? effectiveTrialPlanTier : currentPaidPlanTier;
+  const currentComparableBillingCycle = effectiveIsCurrentlyOnTrial
+    ? normalizeBillingCycle(effectiveCurrentTrialBillingCycle)
+    : currentPaidBillingCycle;
+  const currentComparableRank = getPaidPlanRank(currentComparableTier);
+  const selectedComparableRank = getPaidPlanRank(selectedPlanTier);
+  const hasComparableCurrentPlan = Boolean(currentComparableTier) && currentComparableRank >= 0;
+  const isCurrentSelection = hasComparableCurrentPlan
+    && currentComparableTier === selectedPlanTier
+    && currentComparableBillingCycle === selectedBillingCycle;
+  const isHigherTierSelection = hasComparableCurrentPlan
+    ? selectedComparableRank > currentComparableRank
+    : selectedComparableRank >= 0;
+  const shouldDisableUnlockButton = isCurrentSelection && !dynamicSalesCopy?.closeOnPrimaryCta;
 
   // Debug trial eligibility
   logger.debug('Trial eligibility debug', {
@@ -357,13 +470,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
           // However, if isCurrentTier is set (paid user hit limits), show all tiers to include current tier
-          if (dynamicSalesCopy?.isCurrentTier) {
-            logger.debug('Loading all tiers for paid user with current tier', { currentUserTier, isCurrentTier: dynamicSalesCopy.isCurrentTier });
+          // Trial plan browsing also starts from all tiers so we can show the current trial tier
+          // after "See All Plans" is opened while still preselecting the next upgrade.
+          if (dynamicSalesCopy?.isCurrentTier || shouldUseTrialPlanSwitcher) {
+            logger.debug('Loading all tiers for current/trial tier display', {
+              currentUserTier,
+              effectiveCurrentUserTier,
+              isCurrentTier: dynamicSalesCopy?.isCurrentTier,
+              shouldUseTrialPlanSwitcher,
+            });
             tiers = await pricingService.getLocationAdjustedPricing();
-            logger.debug('All tiers loaded for current tier display', { count: tiers.length });
+            logger.debug('All tiers loaded for current/trial tier display', { count: tiers.length });
           } else {
-            logger.debug('Loading upgrade tiers for', { currentUserTier });
-            tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
+            const upgradeTier = normalizePaidPlanTier(effectiveCurrentUserTier) || effectiveCurrentUserTier;
+            logger.debug('Loading upgrade tiers for', { currentUserTier, effectiveCurrentUserTier, upgradeTier });
+            tiers = await pricingService.getLocationAdjustedUpgradeTiers(upgradeTier);
             logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
           }
         } else {
@@ -374,34 +495,51 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         // Filter to only show selected tier in onboarding flow when collapsed (unless showAllPlans is true)
         if (routeParams?.onboardingFlow && !showAllPlans) {
-          tiers = tiers.filter(t => t.id === selectedTier);
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
           logger.debug('Filtered to show selected tier when collapsed in onboarding flow', {
-            selectedTier,
+            selectedTier: selectedPlanTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
         // Filter to only show selected tier in non-onboarding flow when collapsed (unless showAllPlans is true)
         if (!routeParams?.onboardingFlow && !showAllPlans && !isUpgradeMode) {
-          tiers = tiers.filter(t => t.id === selectedTier);
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
           logger.debug('Filtered to show selected tier when collapsed in non-onboarding flow', {
-            selectedTier,
+            selectedTier: selectedPlanTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
-        // Filter to only show selected tier for Seeker users in upgrade mode when collapsed (unless showAllPlans is true)
-        if (isUpgradeMode && currentUserTier === 'seeker' && !showAllPlans) {
-          tiers = tiers.filter(t => t.id === selectedTier);
-          logger.debug('Filtered to show selected tier when collapsed for Seeker in upgrade mode', {
-            selectedTier,
+        // Filter tiers based on current trial tier to prevent downgrades.
+        // Keep the current trial tier available when the user expands all plans.
+        if (shouldUseTrialPlanSwitcher && effectiveTrialPlanTier) {
+          const trialIndex = PAID_PLAN_ORDER.indexOf(effectiveTrialPlanTier);
+          tiers = tiers.filter(t => {
+            const tierIndex = PAID_PLAN_ORDER.indexOf(t.id as PaidPlanTier);
+            return tierIndex >= trialIndex;
+          });
+          logger.debug('Filtered tiers for trial plan browsing', {
+            trialTier: effectiveTrialPlanTier,
+            trialIndex,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
+        // Filter to only show selected tier for Seeker/trial users in upgrade mode when collapsed (unless showAllPlans is true)
+        if (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher) && !showAllPlans) {
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
+          logger.debug('Filtered to show selected tier when collapsed in upgrade mode', {
+            selectedTier: selectedPlanTier,
+            effectiveIsSeekerTier,
+            shouldUseTrialPlanSwitcher,
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
 
         // Filter to only show Transformation annual when forced (unless showAllPlans is true)
-        if ((route.params as any)?.forceTransformationAnnual && !showAllPlans) {
+        if (routeParams?.forceTransformationAnnual && !showAllPlans) {
           tiers = tiers.filter(t => t.id === 'transformation');
           logger.debug('Filtered to only show Transformation annual', {
             remainingTiers: tiers.map(t => t.id),
@@ -409,14 +547,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
 
         // Filter to show only annual plans at or above current tier when forced (unless showAllPlans is true)
-        if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker' && !showAllPlans) {
-          const baseTier = currentUserTier.replace('_annual', '');
-          const tierHierarchy = ['spark', 'growth', 'transformation'];
-          const currentTierIndex = tierHierarchy.indexOf(baseTier);
+        if (routeParams?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
+          const baseTier = normalizePaidPlanTier(currentUserTier);
+          const currentTierIndex = baseTier ? PAID_PLAN_ORDER.indexOf(baseTier) : -1;
 
           // Show current tier and higher tiers (allow upgrades, prevent downgrades)
           tiers = tiers.filter(t => {
-            const tierIndex = tierHierarchy.indexOf(t.id);
+            const tierIndex = PAID_PLAN_ORDER.indexOf(t.id as PaidPlanTier);
             return tierIndex >= currentTierIndex;
           });
 
@@ -426,25 +563,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             currentTierIndex,
             remainingTiers: tiers.map(t => t.id),
           });
-        }
-
-        // Filter tiers based on current trial tier to prevent downgrades
-        if (isUpgradeMode && effectiveIsCurrentlyOnTrial && effectiveTrialChosenTier) {
-          const trialTier = effectiveTrialChosenTier;
-          const tierHierarchy = ['spark', 'growth', 'transformation'];
-          const trialIndex = tierHierarchy.indexOf(trialTier);
-          if (trialIndex !== -1) {
-            // Only show tiers at or above the current trial tier
-            tiers = tiers.filter(t => {
-              const tierIndex = tierHierarchy.indexOf(t.id);
-              return tierIndex >= trialIndex;
-            });
-            logger.debug('Filtered tiers for trial upgrade mode', {
-              trialTier,
-              trialIndex,
-              remainingTiers: tiers.map(t => t.id),
-            });
-          }
         }
 
         const currency = await pricingService.getCurrencyInfo();
@@ -468,6 +586,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // - Else prefer POPULAR, then 'growth', then first available
           if (!hasManualTierSelection && tiers.length > 0) {
             let chosen: PricingTier | undefined;
+
+            if (routeParams?.selectedTier) {
+              const routeSelectedTier = normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier;
+              chosen = tiers.find(t => t.id === routeSelectedTier);
+              logger.debug('Route selected tier - selecting explicitly requested tier', { selectedTier: routeSelectedTier, found: chosen?.id });
+            }
+
+            if (!chosen && shouldUseTrialPlanSwitcher) {
+              chosen = tiers.find(t => t.id === trialUpgradeTier);
+              logger.debug('Trial plan browsing - selecting next upgrade tier', {
+                currentTrialTier: effectiveTrialPlanTier,
+                trialUpgradeTier,
+                found: chosen?.id,
+              });
+            }
 
             // If coming from profile with paid tier, select current tier
             if (isFromProfile && currentUserTier && currentUserTier !== 'seeker') {
@@ -497,7 +630,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier, dynamicSalesCopy?.isCurrentTier]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -520,14 +653,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Preselect recommended tier for paid users who hit limits
   useEffect(() => {
-    if (!hasManualTierSelection && dynamicSalesCopy?.recommendedTier && isUpgradeMode) {
+    if (!hasManualTierSelection && dynamicSalesCopy?.recommendedTier && isUpgradeMode && !shouldUseTrialPlanSwitcher) {
       const recommendedTier = dynamicSalesCopy.recommendedTier;
       const tierExists = pricingTiers.find(t => t.id === recommendedTier);
       if (tierExists && selectedTier !== recommendedTier) {
         setSelectedTier(recommendedTier);
       }
     }
-  }, [hasManualTierSelection, dynamicSalesCopy?.recommendedTier, isUpgradeMode, pricingTiers, selectedTier]);
+  }, [hasManualTierSelection, dynamicSalesCopy?.recommendedTier, isUpgradeMode, pricingTiers, selectedTier, shouldUseTrialPlanSwitcher]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
@@ -699,7 +832,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     try {
       triggerLightHaptic();
-      const purchaseTier = selectedTier;
+      const purchaseTier = selectedPlanTier;
 
       logger.debug('handleUnlockPlan called', {
         isUpgradeMode,
@@ -773,7 +906,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // App Store enforces trial eligibility - users already on trial will be charged
       // validate-receipt will detect upgrade vs new trial based on user's current tier
       const trialProduct = products.find(p =>
-        p.tier === selectedTier &&
+        p.tier === selectedPlanTier &&
         p.productId.includes(billing) &&
         p.productId.includes('.freetrial')
       );
@@ -788,7 +921,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         });
       } else {
         // Construct trial product ID
-        productId = `app.sifia.com.${selectedTier}.${billing}.freetrial`;
+        productId = `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
         logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
       }
 
@@ -851,7 +984,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             if (shouldUseTrialProduct && result.transactionId) {
               logger.info('🎯 Creating free trial subscription (UPGRADE MODE)', {
                 userId: user?.id,
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
@@ -859,7 +992,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               await NewSubscriptionService.startFreeTrial({
                 user_id: user?.id || '',
                 duration_days: 3,
-                trial_chosen_tier: selectedTier as SubscriptionTier,
+                trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.transactionId,
                 original_transaction_id: result.transactionId,
@@ -868,7 +1001,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               logger.info('✅ Trial created successfully (UPGRADE MODE)', {
                 tier: 'free_trial',
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
               });
             }
 
@@ -883,7 +1016,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
-              : isAnnual ? `${selectedTier}_annual` : selectedTier;
+              : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
             let updatedSubscription;
             let retryCount = 0;
@@ -1063,7 +1196,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             if (shouldUseTrialProduct && result.transactionId) {
               logger.info('🎯 Creating free trial subscription (ONBOARDING MODE)', {
                 userId: user?.id,
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
@@ -1071,7 +1204,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               await NewSubscriptionService.startFreeTrial({
                 user_id: user?.id || '',
                 duration_days: 3,
-                trial_chosen_tier: selectedTier as SubscriptionTier,
+                trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.transactionId,
                 original_transaction_id: result.transactionId,
@@ -1080,7 +1213,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               logger.info('✅ Trial created successfully (ONBOARDING MODE)', {
                 tier: 'free_trial',
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
               });
             }
 
@@ -1094,7 +1227,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
-              : isAnnual ? `${selectedTier}_annual` : selectedTier;
+              : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
             let updatedSubscription;
             let retryCount = 0;
@@ -1219,15 +1352,84 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const getCurrentPrice = () => {
-    const tier = pricingTiers.find(t => t.id === selectedTier);
+    const tier = pricingTiers.find(t => t.id === selectedPlanTier);
     return tier ? (isAnnual ? tier.annualPrice : tier.monthlyPrice) : 0;
   };
 
+  const getSelectedPlanActionLabel = () => {
+    if (isCurrentSelection) {
+      return effectiveIsCurrentlyOnTrial ? 'Current Trial' : 'Current Plan';
+    }
+
+    const action = isHigherTierSelection ? 'Upgrade to' : 'Switch to';
+    const billingSuffix = selectedBillingCycle === 'annual' ? ' Annual' : (!isHigherTierSelection ? ' Monthly' : '');
+    return `${action} ${getTierDisplayName(selectedPlanTier)}${billingSuffix}`;
+  };
+
+  const getUnlockButtonLabel = () => {
+    if (isPurchasing) {
+      return 'Processing...';
+    }
+
+    if (dynamicSalesCopy?.closeOnPrimaryCta) {
+      return dynamicSalesCopy.primaryCta;
+    }
+
+    if (shouldUseTrialProduct && !effectiveHasEverStartedTrial) {
+      return 'Start 3-Day Free Trial';
+    }
+
+    if (isCurrentSelection) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (routeParams?.forceTransformationAnnual) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (routeParams?.forceAnnualOnly) {
+      return getSelectedPlanActionLabel();
+    }
+
+    const shouldShowDynamicUpgradeLabel =
+      shouldUseTrialProduct ||
+      fromExportRestriction ||
+      isUpgradeMode ||
+      fromPlanningLock ||
+      (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ||
+      fromCalendarAutoSync ||
+      fromCopyTodosLock ||
+      fromGuidedPromptsLock;
+
+    if (shouldShowDynamicUpgradeLabel) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (dynamicSalesCopy?.primaryCta) {
+      return dynamicSalesCopy.primaryCta;
+    }
+
+    return 'Continue My Journey';
+  };
 
   const renderPricingCard = (tier: PricingTier) => {
-    const isSelected = selectedTier === tier.id;
+    const isSelected = selectedPlanTier === tier.id;
+    const cardBillingCycle = isAnnual ? 'annual' : 'monthly';
+    const isCurrentTrialCard = shouldUseTrialPlanSwitcher
+      && effectiveTrialPlanTier === tier.id
+      && normalizeBillingCycle(effectiveCurrentTrialBillingCycle) === cardBillingCycle;
+    const isCurrentPaidPlanCard = !effectiveIsCurrentlyOnTrial
+      && normalizePaidPlanTier(dynamicSalesCopy?.isCurrentTier) === tier.id
+      && currentComparableBillingCycle === cardBillingCycle;
     // Only highlight the currently selected tier, not always the growth tier
     const isFocused = isSelected; // Remove hardcoded growth tier focus
+    const tierDescription = tier.id === 'spark'
+      ? 'For getting started'
+      : tier.id === 'growth'
+        ? 'For steady growth'
+        : tier.id === 'transformation'
+          ? 'For ongoing use'
+          : tier.description;
 
     return (
       <View key={tier.id} style={styles.cardWrapper}>
@@ -1267,12 +1469,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="semiBold" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
-          {dynamicSalesCopy?.isCurrentTier && tier.id === dynamicSalesCopy?.isCurrentTier ? (
+          {isCurrentPaidPlanCard ? (
             <View style={styles.recommendedBadge}>
               <Ionicons name="checkmark-circle" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Current Plan</ThemedText>
             </View>
-          ) : dynamicSalesCopy?.isCurrentTrial && tier.id === dynamicSalesCopy?.recommendedTier ? (
+          ) : isCurrentTrialCard ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
+            </View>
+          ) : dynamicSalesCopy?.isCurrentTrial
+            && tier.id === dynamicSalesCopy?.recommendedTier
+            && normalizeBillingCycle(effectiveCurrentTrialBillingCycle) === cardBillingCycle ? (
             <View style={styles.recommendedBadge}>
               <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
@@ -1301,7 +1510,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         </View>
 
         <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
-          {tier.description}
+          {tierDescription}
         </ThemedText>
 
         {tier.secondaryDescription && (
@@ -1441,7 +1650,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       >
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
-            {dynamicSalesCopy
+            {isProfileTrialViewPlans
+              ? customProfileTrialTitle
+              : dynamicSalesCopy
               ? dynamicSalesCopy.title
               : isUpgradeMode
                 ? 'Keep walking—grace for the next step'
@@ -1457,18 +1668,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           ? 'Unlock Guided Prompts'
                           : fromExportRestriction
                             ? 'Save your reflection as a PDF'
-                              : (route.params as any)?.forceTransformationAnnual
+                              : routeParams?.forceTransformationAnnual
                                 ? 'Upgrade to annual for maximum savings'
-                                : (route.params as any)?.forceAnnualOnly
+                                : routeParams?.forceAnnualOnly
                                   ? 'Continue with annual billing for maximum savings'
-                                  : 'Keep this space open'}
+                                  : 'Unlock more room\nto keep going'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {dynamicSalesCopy
+            {isProfileTrialViewPlans
+              ? customProfileTrialSubtitle
+              : dynamicSalesCopy
               ? dynamicSalesCopy.message
-              : (route.params as any)?.forceTransformationAnnual
+              : routeParams?.forceTransformationAnnual
                 ? 'Save the equivalent of 2 months when you choose annual billing. Continue your spiritual journey with all premium features.'
-                : (route.params as any)?.forceAnnualOnly
+                : routeParams?.forceAnnualOnly
                   ? 'You are currently on an annual plan. Continue with the same great value and maximum savings.'
                   : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
@@ -1486,8 +1699,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                               ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow
                                 ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
-                                : 'Gentle structure for faithful living'}
+                                : 'Get more space for playbooks, devotionals, and guided reflection as new moments come up.'}
           </ThemedText>
+          {isProfileTrialViewPlans && (
+            <View style={styles.profileTrialNoteBox}>
+              <ThemedText weight="semiBold" style={styles.profileTrialNoteTitle}>
+                Note
+              </ThemedText>
+              <ThemedText style={styles.profileTrialNoteText}>
+                {customProfileTrialNote}
+              </ThemedText>
+            </View>
+          )}
           {fromExportRestriction && (
             <View style={styles.exportGrowthSection}>
               <ThemedText weight="semiBold" style={styles.exportGrowthTitle}>
@@ -1612,7 +1835,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
-            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && !dynamicSalesCopy?.closeOnPrimaryCta && (
+            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher)) || routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly) && !isCurrentTransformationPlan && !dynamicSalesCopy?.closeOnPrimaryCta && (
               <TouchableOpacity
                 style={styles.seeAllPlansButton}
                 onPress={() => {
@@ -1681,7 +1904,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </View>
 
           {(() => {
-            const tier = pricingTiers.find(t => t.id === selectedTier)
+            const tier = pricingTiers.find(t => t.id === selectedPlanTier)
               || pricingTiers.find(t => t.id === 'growth')
               || pricingTiers[0];
             if (!tier) {return null;}
@@ -1731,19 +1954,31 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.unlockButton,
-            isPurchasing && styles.dimmedOpacity,
+            (isPurchasing || shouldDisableUnlockButton) && styles.dimmedOpacity,
           ]}
           onPress={() => {
             try { triggerLightHaptic(); } catch {} // Immediate button press feedback
             logger.info('🔥 BUTTON TAPPED: Unlock Plan button pressed', {
               isPurchasing,
-              selectedTier,
+              selectedTier: selectedPlanTier,
               isAnnual,
+              selectedBillingCycle,
+              isCurrentSelection,
               timestamp: new Date().toISOString(),
             });
 
             if (isPurchasing) {
               logger.debug('Button disabled - purchase already in progress');
+              return;
+            }
+
+            if (shouldDisableUnlockButton) {
+              logger.debug('Button disabled - selected plan is already current', {
+                selectedTier: selectedPlanTier,
+                selectedBillingCycle,
+                currentTier: currentComparableTier,
+                currentBillingCycle: currentComparableBillingCycle,
+              });
               return;
             }
 
@@ -1764,11 +1999,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               hasEverStartedTrial: effectiveHasEverStartedTrial,
               isSeekerTier: effectiveIsSeekerTier,
               currentUserTier: effectiveCurrentUserTier,
-              buttonText: shouldUseTrialProduct
-                ? effectiveHasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                  : 'Start 3-Day Free Trial'
-                : 'Regular purchase',
+              buttonText: getUnlockButtonLabel(),
             });
 
             // Navigate to trial offer screen if user is eligible for trial and hasn't used it yet
@@ -1776,7 +2007,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.info('Navigating to trial offer screen - user is trial eligible');
               try {
                 (navigation as any).navigate('OnboardingTrialOffer', {
-                  selectedTierId: selectedTier,
+                  selectedTierId: selectedPlanTier,
                   billing: isAnnual ? 'annual' : 'monthly',
                   skipNotificationPreference: routeParams?.skipNotificationPreference,
                   onboardingFlow: routeParams?.onboardingFlow,
@@ -1794,48 +2025,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
           }}
           activeOpacity={0.9}
-          disabled={isPurchasing}
+          disabled={isPurchasing || shouldDisableUnlockButton}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing
-              ? 'Processing...'
-              : dynamicSalesCopy?.primaryCta
-                ? dynamicSalesCopy.primaryCta
-                : shouldUseTrialProduct && effectiveHasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : shouldUseTrialProduct && !effectiveHasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
-                : fromExportRestriction
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : isUpgradeMode
-                  ? 'Upgrade and Continue'
-                : fromPlanningLock
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : fromCalendarAutoSync
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : fromCopyTodosLock
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : fromGuidedPromptsLock
-                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
-                    ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Growth'
-                : (route.params as any)?.forceTransformationAnnual
-                  ? 'Upgrade Plan to Annual'
-                  : (route.params as any)?.forceAnnualOnly
-                    ? 'Continue with Annual Plan'
-                    : 'Continue My Journey'}
+            {getUnlockButtonLabel()}
           </ThemedText>
         </TouchableOpacity>
 
@@ -2124,6 +2317,29 @@ const styles = StyleSheet.create({
   activeToggleText: {
     color: Colors.hopeWhite,
     // weight handled by ThemedText
+  },
+  profileTrialNoteBox: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 24,
+  },
+  profileTrialNoteTitle: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 6,
+  },
+  profileTrialNoteText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.82,
+    lineHeight: 21,
   },
   cardsContainer: {
     marginBottom: 16,
