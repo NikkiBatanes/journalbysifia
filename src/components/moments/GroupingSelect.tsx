@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 30, padding: 20 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
-  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4 },
+  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4 },
   activeOption: { backgroundColor: Colors.alertCoral },
   optionText: { color: Colors.hopeWhite, fontSize: 14 },
 });

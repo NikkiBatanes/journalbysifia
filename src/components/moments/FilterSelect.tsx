@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   sheetHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
   clearText: { color: Colors.hopeWhite, opacity: 0.8 },
-  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   activeOption: { backgroundColor: Colors.alertCoral },
   optionText: { color: Colors.hopeWhite, fontSize: 14 },
 });
