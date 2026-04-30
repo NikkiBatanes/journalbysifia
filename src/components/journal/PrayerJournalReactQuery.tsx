@@ -580,14 +580,16 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   return Math.abs(pTime - prayerTime) <= SESSION_WINDOW_MS;
                 });
 
-                // Delete all prayers in the session
-                for (const p of sessionPrayers) {
-                  await deletePrayerMutation.mutateAsync({
-                    id: p.id,
-                    _userId: user?.id || '',
-                    _dateStr: dateStr,
-                  });
-                }
+                // Delete all prayers in the session in parallel to avoid sequential animations
+                await Promise.all(
+                  sessionPrayers.map(p =>
+                    deletePrayerMutation.mutateAsync({
+                      id: p.id,
+                      _userId: user?.id || '',
+                      _dateStr: dateStr,
+                    })
+                  )
+                );
               } else {
                 // For open prayers, delete individually
                 await deletePrayerMutation.mutateAsync({
