@@ -1773,7 +1773,7 @@ const styles = StyleSheet.create({
   actionProgressBar: {
     height: 6,
     width: 120,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 3,
     marginBottom: 24,
     overflow: 'hidden' as const,
@@ -1785,7 +1785,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   actsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'transparent',
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
