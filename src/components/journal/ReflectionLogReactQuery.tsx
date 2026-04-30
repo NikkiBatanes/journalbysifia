@@ -187,21 +187,21 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 12,
     marginBottom: 8,
   },
   devotionalEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   guidedEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
   },
   freeFormEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
   },
   guidedPromptRow: {
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   devotionalPromptContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 24,
     paddingHorizontal: 6,
     paddingVertical: 2,
     marginRight: 8,

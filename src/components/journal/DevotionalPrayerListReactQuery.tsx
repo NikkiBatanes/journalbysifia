@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   horizontalPrayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
     padding: 12, // Slightly reduced padding to match reflections
-    borderRadius: 14, // Match reflection's 14px border radius
+    borderRadius: 24, // Match prayer request's 24px border radius
     minHeight: 180,
     flex: 1,
     justifyContent: 'flex-start',
@@ -341,16 +341,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.hopeWhite,
   },
+  verticalPrayerItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
+    padding: 12, // Slightly reduced padding to match reflections
+    borderRadius: 24, // Match prayer request's 24px border radius
+    marginBottom: 12,
+    minHeight: 120, // Ensure consistent height
+  },
   prayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
     padding: 12, // Slightly reduced padding to match reflections
-    borderRadius: 14, // Match reflection's 14px border radius
+    borderRadius: 24, // Match prayer request's 24px border radius
     marginBottom: 12,
     minHeight: 120, // Ensure consistent height
   },
   prayerContentContainer: {
     backgroundColor: 'rgba(26, 60, 109, 0.05)', // Light blue background for prayer content
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 12,
     paddingBottom: 8,
     marginBottom: 0,

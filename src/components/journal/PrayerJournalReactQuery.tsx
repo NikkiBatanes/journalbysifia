@@ -887,8 +887,8 @@ const styles = StyleSheet.create({
     maxHeight: 200,
   },
   combinedCASTCard: {
-    backgroundColor: '#35537e',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
     padding: 14,
     gap: 12,
   },
@@ -1027,8 +1027,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   prayerItem: {
-    backgroundColor: '#35537e',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
     padding: 14,
   },
   prayerContent: {
