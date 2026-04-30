@@ -46,6 +46,7 @@ interface EnhancedPrayerListReactQueryProps {
   expanded?: boolean;
   onExpand?: () => void;
   navigation?: NativeStackNavigationProp<RootStackParamList>;
+  filters?: { hideEmptyComponents?: boolean };
 }
 
 const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> = ({
@@ -55,6 +56,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   expanded,
   onExpand,
   navigation,
+  filters,
 }) => {
 
   const { user } = useAuth();
@@ -502,6 +504,33 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true && item.prayed !== true);
     const prayedForPrayers = peoplePrayers.filter(item => item.is_prayer_request !== true);
 
+    if (localPrayerRequests.length === 0 && prayedForPrayers.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyIconContainer}>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons name="account-heart-outline" size={40} color={Colors.alertCoral} style={styles.emptyStateIcon} />
+            </View>
+            <ThemedText weight="medium" style={styles.sectionLabel}>Prayer List</ThemedText>
+          </View>
+          <View style={styles.titleContainer}>
+            <ThemedText weight="semiBold" style={styles.emptyStateTitle}>
+              {isPast ? pastEmptyTitle : 'No People in Prayer List'}
+            </ThemedText>
+          </View>
+          <ThemedText weight="regular" style={styles.emptyStateSubtext}>
+            {isPast ? pastEmptySubtitle : 'Add the people you want to pray for and keep track of prayer requests here.'}
+          </ThemedText>
+          {!isPastDate && (
+            <TouchableOpacity style={styles.emptyStateButton} onPress={handleOpenModal} activeOpacity={0.8}>
+              <Ionicons name="add" size={18} color={Colors.hopeWhite} style={styles.buttonIcon} />
+              <ThemedText weight="semiBold" style={styles.emptyStateButtonText}>Add Person</ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
     // Apply limits
     const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
     const displayedPersonal = prayedForPrayers.slice(0, personalDisplayLimit);
@@ -608,28 +637,71 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     );
   }
 
+  if ((viewMode === 'moments' || filters?.hideEmptyComponents) && !hasVisibleContent) {
+    return null;
+  }
+
   return (
     <ErrorBoundary>
       <JournalCard
-        icon={
+        icon={hasVisibleContent ? (
           <MaterialCommunityIcons
             name="account-heart-outline"
             size={24}
             color={Colors.alertCoral}
           />
-        }
-        title="PRAYER LIST FOR PEOPLE"
-        subtitle={getSubtitle()}
+        ) : undefined}
+        title={hasVisibleContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
+        subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={showAddInHeader}
+        showAddButton={showAddInHeader && hasVisibleContent}
         onAdd={handleOpenModal}
         isAdding={false}
         onCancelAdd={handleCloseModal}
       >
-        {renderExistingPrayers()}
+        {hasVisibleContent ? renderExistingPrayers() : (viewMode === 'inline' || viewMode === 'moments') ? null : (
+          <View style={styles.emptyStateContainer}>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons
+                name="account-heart-outline"
+                size={32}
+                color={Colors.textGray}
+                style={styles.emptyStateIcon}
+              />
+              <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
+                PRAYER LIST FOR PEOPLE
+              </ThemedText>
+            </View>
+            <View style={styles.titleContainer}>
+              <ThemedText
+                style={styles.emptyStateTitle}
+                accessibilityRole="header"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                weight="semiBold"
+              >
+                {isPast ? pastEmptyTitle : 'No People in Prayer List'}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.emptyStateSubtext}>
+              {isPast ? pastEmptySubtitle : 'Add the people you want to pray for and keep track of prayer requests here.'}
+            </ThemedText>
+            {!isPastDate && (
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={() => { triggerLightHaptic(); handleOpenModal(); }}
+              >
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                <ThemedText style={styles.emptyStateButtonText} weight="medium">
+                  Begin
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </JournalCard>
 
         {/* People Prayer Modal */}

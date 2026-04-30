@@ -20,6 +20,7 @@ export interface PluginFilters {
   answeredOnly?: boolean;
   allowedJournalCategories?: string[];
   excludeJournalCategories?: string[];
+  hideEmptyComponents?: boolean;
 }
 
 export interface ViewConfiguration {

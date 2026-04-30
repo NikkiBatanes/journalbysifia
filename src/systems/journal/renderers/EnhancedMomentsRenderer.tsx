@@ -1995,7 +1995,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2104,7 +2104,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                                 selectedDate={entry.date}
                                 refreshKey={refreshKey}
                                 viewMode="inline"
-                                filters={pluginFilters}
+                                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
                                 navigation={navigation}
                               />
                             </View>
@@ -2166,7 +2166,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2254,7 +2254,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} navigation={navigation} />
+                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                           </View>
                         </View>
                       </View>
@@ -2306,7 +2306,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2389,7 +2389,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 selectedDate={entry.date}
                 refreshKey={refreshKey}
                 viewMode="inline"
-                filters={pluginFilters}
+                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
                 navigation={navigation}
               />
             </View>
