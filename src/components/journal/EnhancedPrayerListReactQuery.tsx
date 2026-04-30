@@ -950,13 +950,29 @@ const SwipeablePrayerCard: React.FC<{
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name="checkmark"
+                  name={prayer.status === 'answered' ? "check-circle" : "checkmark"}
                   size={18}
                   color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
                 />
                 <ThemedText style={[styles.answeredActionText, prayer.status === 'answered' && styles.answeredActionTextActive]} weight="medium">
                   {prayer.status === 'answered' ? 'Answered' : 'Mark Answered'}
                 </ThemedText>
+                {prayer.status === 'answered' && prayer.answered_date && (
+                  <ThemedText style={styles.answeredDate}>
+                    {(() => {
+                      const date = new Date(prayer.answered_date);
+                      const currentYear = new Date().getFullYear();
+                      const isCurrentYear = date.getFullYear() === currentYear;
+
+                      return date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        ...(isCurrentYear ? {} : { year: 'numeric' }),
+                      });
+                    })()}
+                  </ThemedText>
+                )}
               </TouchableOpacity>
             </View>
           )}

@@ -134,10 +134,15 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           }}
           activeOpacity={0.8}
         >
-          <Ionicons name="checkmark" size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <Ionicons name={prayer.answered_at ? "check-circle" : "checkmark"} size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
           <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
             {prayer.answered_at ? 'Answered' : 'Mark Answered'}
           </ThemedText>
+          {prayer.answered_at && (
+            <ThemedText style={styles.answeredDateText}>
+              {formatAnsweredDate(prayer.answered_at)}
+            </ThemedText>
+          )}
         </TouchableOpacity>
       )}
 
@@ -219,10 +224,15 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name="checkmark" size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <Ionicons name={supplicationPrayer.answered_at ? "check-circle" : "checkmark"} size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
             <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
               {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
             </ThemedText>
+            {supplicationPrayer.answered_at && (
+              <ThemedText style={styles.answeredDateText}>
+                {formatAnsweredDate(supplicationPrayer.answered_at)}
+              </ThemedText>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -1008,6 +1018,11 @@ const styles = StyleSheet.create({
   },
   markAnsweredTextActive: {
     color: Colors.alertCoral,
+  },
+  answeredDateText: {
+    color: 'rgba(255, 107, 107, 0.9)',
+    fontSize: 10,
+    marginLeft: 6,
   },
   answeredIndicator: {
     flexDirection: 'row',
