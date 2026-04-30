@@ -101,6 +101,8 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [isPressed, setIsPressed] = useState(false);
+
   return (
     <TouchableOpacity
       style={[
@@ -126,14 +128,17 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
       {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
       {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.metadata?.track_answered === true) && (
         <TouchableOpacity
-          style={styles.markAnsweredButton}
+          style={[styles.markAnsweredButton, isPressed && styles.markAnsweredButtonActive]}
           onPress={() => {
             // Directly mark as answered (no confirmation)
             onMarkAnswered(prayer.id, true);
           }}
+          onPressIn={() => setIsPressed(true)}
+          onPressOut={() => setIsPressed(false)}
+          activeOpacity={0.8}
         >
-          <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
-          <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
+          <Ionicons name="checkmark" size={18} color={isPressed ? Colors.alertCoral : Colors.hopeWhite} />
+          <ThemedText style={[styles.markAnsweredText, isPressed && styles.markAnsweredTextActive]} weight="medium">Mark Answered</ThemedText>
         </TouchableOpacity>
       )}
 
@@ -186,6 +191,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [isPressed, setIsPressed] = useState(false);
   // Get prayers in order (confession, adoration, supplication, thanksgiving)
   const order = ['confession', 'adoration', 'supplication', 'thanksgiving'];
   const orderedPrayers = order
@@ -239,13 +245,16 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
           {/* Mark as Answered Button */}
           {!supplicationPrayer.answered_at && (
             <TouchableOpacity
-              style={styles.markAnsweredButton}
+              style={[styles.markAnsweredButton, isPressed && styles.markAnsweredButtonActive]}
               onPress={() => {
                 onMarkAnswered(supplicationPrayer.id, true);
               }}
+              onPressIn={() => setIsPressed(true)}
+              onPressOut={() => setIsPressed(false)}
+              activeOpacity={0.8}
             >
-              <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
-              <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
+              <Ionicons name="checkmark" size={18} color={isPressed ? Colors.alertCoral : Colors.hopeWhite} />
+              <ThemedText style={[styles.markAnsweredText, isPressed && styles.markAnsweredTextActive]} weight="medium">Mark Answered</ThemedText>
             </TouchableOpacity>
           )}
 
@@ -1040,17 +1049,25 @@ const styles = StyleSheet.create({
   markAnsweredButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 107, 107, 0.12)',
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    gap: 6,
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 8,
+  },
+  markAnsweredButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   markAnsweredText: {
-    fontSize: 12,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  markAnsweredTextActive: {
     color: Colors.alertCoral,
   },
   answeredIndicator: {

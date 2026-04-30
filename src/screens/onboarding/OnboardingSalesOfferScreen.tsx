@@ -1669,7 +1669,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                         : fromGuidedPromptsLock
                           ? 'Unlock Guided Prompts'
                           : fromExportRestriction
-                            ? 'Save your reflection as a PDF'
+                            ? 'Save your reflection\nas a PDF'
                               : routeParams?.forceTransformationAnnual
                                 ? 'Upgrade to annual for maximum savings'
                                 : routeParams?.forceAnnualOnly

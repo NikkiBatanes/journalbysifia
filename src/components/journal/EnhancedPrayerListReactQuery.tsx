@@ -823,6 +823,7 @@ const SwipeablePrayerCard: React.FC<{
   onDelete?: (prayer: PersonPrayer) => void;
 }> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit, onDelete }) => {
   const actionButtonPressedRef = React.useRef(false);
+  const [isPressed, setIsPressed] = React.useState(false);
 
   return (
     <TouchableOpacity
@@ -939,19 +940,21 @@ const SwipeablePrayerCard: React.FC<{
           })() && (
             <View style={styles.answeredActionContainer}>
               <TouchableOpacity
-                style={styles.answeredActionButton}
+                style={[styles.answeredActionButton, isPressed && styles.answeredActionButtonActive]}
                 onPress={() => {
                   actionButtonPressedRef.current = true;
                   handleMarkAsAnswered(prayer.id);
                 }}
-                activeOpacity={0.7}
+                onPressIn={() => setIsPressed(true)}
+                onPressOut={() => setIsPressed(false)}
+                activeOpacity={0.8}
               >
                 <Ionicons
                   name="checkmark"
-                  size={14}
-                  color={Colors.alertCoral}
+                  size={18}
+                  color={isPressed ? Colors.alertCoral : Colors.hopeWhite}
                 />
-                <ThemedText style={styles.answeredActionText} weight="medium">Mark Answered</ThemedText>
+                <ThemedText style={[styles.answeredActionText, isPressed && styles.answeredActionTextActive]} weight="medium">Mark Answered</ThemedText>
               </TouchableOpacity>
             </View>
           )}
@@ -1441,15 +1444,25 @@ const styles = StyleSheet.create({
   answeredActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 107, 107, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-end',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 8,
+  },
+  answeredActionButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   answeredActionText: {
-    fontSize: 12,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  answeredActionTextActive: {
     color: Colors.alertCoral,
   },
   answeredBadgeContainer: {
