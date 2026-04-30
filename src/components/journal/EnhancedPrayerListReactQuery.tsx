@@ -610,71 +610,29 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   return (
     <ErrorBoundary>
-      <JournalCard
-        icon={hasVisibleContent ? (
-          <MaterialCommunityIcons
-            name="account-heart-outline"
-            size={24}
-            color={Colors.alertCoral}
-          />
-        ) : undefined}
-        title={hasVisibleContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
-        subtitle={hasVisibleContent ? getSubtitle() : undefined}
-        variant={variant}
-        viewMode={viewMode}
-        expanded={expanded}
-        onExpand={onExpand}
-        showAddButton={showAddInHeader}
-        onAdd={handleOpenModal}
-        isAdding={false}
-        onCancelAdd={handleCloseModal}
-      >
-        {hasVisibleContent ? (
-          renderExistingPrayers()
-        ) : (
-          <View style={styles.emptyStateContainer}>
-            <View style={styles.emptyIconContainer}>
-              <View style={styles.iconContainer}>
-                <MaterialCommunityIcons
-                  name="account-heart-outline"
-                  size={32}
-                  color={Colors.textGray}
-                  style={[styles.emptyStateIcon, styles.flippedIcon]}
-                />
-              </View>
-              <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
-                PRAYER LIST FOR PEOPLE
-              </ThemedText>
-            </View>
-            <View style={styles.titleContainer}>
-              <ThemedText
-                style={styles.emptyStateTitle}
-                accessibilityRole="header"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                weight="semiBold"
-              >
-                {isPast ? pastEmptyTitle : 'Start Your Prayer List'}
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
-              {isPast
-                ? pastEmptySubtitle
-                : "Add people you'd like to pray for or prayer requests from others"}
-            </ThemedText>
-            {!isPast && (
-              <TouchableOpacity
-                style={styles.emptyStateButton}
-                onPress={() => { triggerLightHaptic(); handleOpenModal(); }}
-                accessibilityRole="button"
-                accessibilityLabel="Begin creating prayer list"
-              >
-                <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <ThemedText style={styles.emptyStateButtonText} weight="medium">Begin</ThemedText>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+      {hasVisibleContent && (
+        <JournalCard
+          icon={
+            <MaterialCommunityIcons
+              name="account-heart-outline"
+              size={24}
+              color={Colors.alertCoral}
+            />
+          }
+          title="PRAYER LIST FOR PEOPLE"
+          subtitle={getSubtitle()}
+          variant={variant}
+          viewMode={viewMode}
+          expanded={expanded}
+          onExpand={onExpand}
+          showAddButton={showAddInHeader}
+          onAdd={handleOpenModal}
+          isAdding={false}
+          onCancelAdd={handleCloseModal}
+        >
+          {renderExistingPrayers()}
+        </JournalCard>
+      )}
 
         {/* People Prayer Modal */}
         <PeoplePrayerModal
@@ -765,7 +723,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             </View>
           </KeyboardAvoidingView>
         </Modal>
-      </JournalCard>
     </ErrorBoundary>
   );
 };
