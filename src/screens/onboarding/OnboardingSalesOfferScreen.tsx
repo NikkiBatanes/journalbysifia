@@ -189,14 +189,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
   const effectiveCurrentUserTier = (testModeTier || currentUserTier) as string;
   const effectiveIsSeekerTier = effectiveCurrentUserTier === 'seeker' || !effectiveCurrentUserTier;
+  const guidedPromptsTier = routeParams?.tier || effectiveCurrentUserTier;
 
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && effectiveIsSeekerTier;
   const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
-  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && effectiveIsSeekerTier;
+  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && (guidedPromptsTier === 'seeker' || !guidedPromptsTier);
   const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
   const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
   const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
-  const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
+  const fromCalendarAutoSync = !isUpgradeMode && (routeParams?.source === 'calendar_auto_sync' || routeParams?.source === 'calendar_sync');
 
   const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && effectiveIsSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
@@ -1453,7 +1454,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       : fromCalendarAutoSync
                         ? 'Unlock Calendar Auto-Sync'
                         : fromGuidedPromptsLock
-                          ? 'Unlock Unlimited Guided Prompts'
+                          ? 'Unlock Guided Prompts'
                           : fromExportRestriction
                             ? 'Save your reflection as a PDF'
                               : (route.params as any)?.forceTransformationAnnual
@@ -1476,11 +1477,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   : fromCopyTodosLock
                     ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features, playbooks, and devotionals.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                      ? 'Create recurring time blocks to build consistent rhythms. Also unlock playbooks, devotionals, calendar sync, and more powerful planning features.'
+                      ? 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.'
                       : fromCalendarAutoSync
-                        ? 'Automatically sync your time blocks to your device calendar. Also unlock recurring time blocks, playbooks, and devotionals.'
+                        ? 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.'
                         : fromGuidedPromptsLock
-                          ? 'Access guided reflection prompts to deepen your walk with God, and playbooks and devotionals.'
+                          ? 'Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you’ll also unlock more room for playbooks and devotionals.'
                           : fromExportRestriction
                               ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow

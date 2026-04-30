@@ -84,14 +84,18 @@ export class NotificationTester {
       getPlaybooks(userId).catch(() => [] as any[]),
       supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
       supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').order('created_at', { ascending: true }).limit(10),
-      // Tester: no 7-day minimum. Explicit .in() avoids chained .or() PostgREST ambiguity.
-      supabase.from('prayers').select('id, content, person_name, is_prayer_request, created_at').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(5),
+      // Tester: no 7-day minimum. Fetch broad set, filter in JS (same logic as resolver).
+      supabase.from('prayers').select('id, content, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(10),
       supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
     ]);
 
     const devotionals: any[] = devotionalsResult.data || [];
     const prayers: any[] = prayersResult.data || [];
-    const unansweredPrayers: any[] = unansweredPrayersResult.data || [];
+    const unansweredPrayers: any[] = (unansweredPrayersResult.data || []).filter((p: any) => {
+      if (p.prayer_type === 'journal' && p.journal_category !== 'supplication') {return false;}
+      if (p.is_prayer_request === true && p.prayed !== true) {return false;}
+      return true;
+    });
     const sub = subResult.data;
 
     // Extract wordToSpeak from Playbook object (wordToSpeak field or directChallenge JSONB)

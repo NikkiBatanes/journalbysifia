@@ -39,6 +39,7 @@ import { getFontFamily } from '../theme/fonts';
 import { Logger } from '../utils/ProductionLogger';
 import { NotificationTester } from '../utils/notificationTester';
 import { SMART_NOTIFICATION_TYPES } from '../services/notifications/notificationTypes';
+import { generateSalesCopy, type SalesCopyParams } from '../utils/dynamicSalesCopy';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -851,8 +852,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       Alert.alert('Error', 'Failed to send notification.');
     } finally {
       setNotifSending(null);
+      if (notifTestTab === 'queue' || notifTestTab === 'history') {
+        loadNotifData(notifTestTab);
+      }
     }
-  }, [user?.id, notifSimulatedDay]);
+  }, [user?.id, notifSimulatedDay, notifTestTab, loadNotifData]);
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -2280,7 +2284,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Transformation)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 25 devotionals included in your free trial. Your Transformation plan starts soon with 60 devotionals each month.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'free_trial',
+                  remaining: 0,
+                  limit: 25,
+                  isOnTrial: true,
+                  trialChosenTier: 'transformation',
+                  trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             {/* Paid User - No Remaining */}
@@ -2298,7 +2314,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - No Remaining</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month. Want more?</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'spark',
+                  remaining: 0,
+                  limit: 10,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2315,7 +2341,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - No Remaining</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month. Want more?</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'growth',
+                  remaining: 0,
+                  limit: 25,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2332,7 +2368,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation - No Remaining</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'transformation',
+                  remaining: 0,
+                  limit: 60,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             {/* Devotional Duration Locked */}
@@ -2345,13 +2391,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'devotionals',
                   testModeTier: 'spark',
                   testModeRemaining: 5,
-                  testModeLimit: 8,
+                  testModeLimit: 10,
                   requestedDuration: 5,
                 });
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 5-Day Devotional Locked</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5-day devotionals are available with Growth Plan or higher.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  remaining: 5,
+                  limit: 10,
+                  requestedDuration: 5,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2363,13 +2419,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'devotionals',
                   testModeTier: 'spark',
                   testModeRemaining: 5,
-                  testModeLimit: 8,
+                  testModeLimit: 10,
                   requestedDuration: 7,
                 });
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 7-Day Devotional Locked</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>7-day devotionals are available with Transformation Plan.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  remaining: 5,
+                  limit: 10,
+                  requestedDuration: 7,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2381,13 +2447,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'devotionals',
                   testModeTier: 'growth',
                   testModeRemaining: 10,
-                  testModeLimit: 20,
+                  testModeLimit: 25,
                   requestedDuration: 7,
                 });
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - 7-Day Devotional Locked</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>7-day devotionals are available with Transformation Plan.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'growth',
+                  remaining: 10,
+                  limit: 25,
+                  requestedDuration: 7,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
             </TouchableOpacity>
 
             {/* Context-based scenarios */}
@@ -2409,7 +2485,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Gently prepare for what's ahead with guided planning inside your journal. Button: Upgrade to Growth</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2426,7 +2502,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Not Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Gently prepare for what's ahead with guided planning inside your journal. Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2444,7 +2520,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Copy 5 incomplete to-dos to future dates, and unlock advanced planning features, playbooks, and devotionals. Button: Upgrade to Growth</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2462,7 +2538,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Not Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Copy 5 incomplete to-dos to future dates, and unlock advanced planning features, playbooks, and devotionals. Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2479,7 +2555,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection. PDF export is available with Growth and Transformation. Button: Upgrade to Growth</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2496,7 +2572,94 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Not Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection. PDF export is available with Growth and Transformation. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'repeat_options',
+                  feature: 'repeat_options',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Recurring Time Blocks (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Create recurring time blocks to build steady rhythms in your week. With an upgrade, you'll also have more room for playbooks and devotionals. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'repeat_options',
+                  feature: 'repeat_options',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Recurring Time Blocks (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Create recurring time blocks to build steady rhythms in your week. With an upgrade, you'll also have more room for playbooks and devotionals. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'spark',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Spark Locked)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'guided_prompts_lock',
+                  feature: 'guided_prompts',
+                  tier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Guided Prompts (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you'll also unlock more room for playbooks and devotionals. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'guided_prompts_lock',
+                  feature: 'guided_prompts',
+                  tier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Guided Prompts (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you'll also unlock more room for playbooks and devotionals. Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
           </ScrollView>

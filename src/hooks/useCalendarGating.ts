@@ -66,27 +66,20 @@ export const useCalendarGating = (): CalendarGatingState => {
   }, [subscription, user]);
 
   const isSeeker = currentTier === 'seeker';
+  const effectiveTier = currentTier === 'free_trial' && subscription?.trial_chosen_tier
+    ? subscription.trial_chosen_tier
+    : currentTier;
+  const canAccessPaidFeatures = effectiveTier !== 'seeker';
+  const canAccessGrowthFeatures = effectiveTier === 'growth' || effectiveTier === 'transformation' || effectiveTier === 'transformation_annual';
 
   const permissions = useMemo(() => {
-
-    // Seeker (freemium) restrictions
-    if (isSeeker) {
-      return {
-        canSyncToCalendar: false,
-        canUseRepeat: false,
-        canUseLocationServices: false, // Only manual entry
-        canDeleteSeries: false, // Only single delete
-      };
-    }
-
-    // All paid tiers get full access
     return {
-      canSyncToCalendar: true,
-      canUseRepeat: true,
-      canUseLocationServices: true,
-      canDeleteSeries: true,
+      canSyncToCalendar: canAccessGrowthFeatures,
+      canUseRepeat: canAccessPaidFeatures,
+      canUseLocationServices: canAccessPaidFeatures,
+      canDeleteSeries: canAccessPaidFeatures,
     };
-  }, [isSeeker]);
+  }, [canAccessGrowthFeatures, canAccessPaidFeatures]);
 
   // When user becomes seeker (cancelled or downgraded), automatically turn off calendar auto-sync
   useEffect(() => {
@@ -126,8 +119,8 @@ export const useCalendarGating = (): CalendarGatingState => {
 
     // Navigate to upgrade screen
     (navigation as any).navigate('OnboardingSalesOffer', {
-      source: 'calendar_sync',
-      feature: 'Calendar Sync',
+      source: 'calendar_auto_sync',
+      feature: 'calendar_sync',
       context: 'timeblock',
       skipNotificationPreference: true,
     });
@@ -142,7 +135,7 @@ export const useCalendarGating = (): CalendarGatingState => {
     // Navigate to upgrade screen with skip notification flag
     (navigation as any).navigate('OnboardingSalesOffer', {
       source: 'repeat_options',
-      feature: 'Repeat Options',
+      feature: 'repeat_options',
       context: 'timeblock',
       skipNotificationPreference: true,
     });
@@ -154,10 +147,10 @@ export const useCalendarGating = (): CalendarGatingState => {
     }, user?.id);
 
     (navigation as any).navigate('OnboardingSalesOffer', {
-      source: 'calendar_upgrade_prompt',
-      feature: 'Calendar Sync',
+      source: 'calendar_auto_sync',
+      feature: 'calendar_sync',
       context: 'timeblock',
-      message: 'Sync your time blocks to your device calendar and never miss what matters most.',
+      message: 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.',
       skipNotificationPreference: true,
     });
   };
@@ -169,9 +162,9 @@ export const useCalendarGating = (): CalendarGatingState => {
 
     (navigation as any).navigate('OnboardingSalesOffer', {
       source: 'repeat_upgrade_prompt',
-      feature: 'Recurring Time Blocks',
+      feature: 'repeat_options',
       context: 'timeblock',
-      message: 'Create recurring time blocks and build consistent spiritual habits.',
+      message: 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.',
       skipNotificationPreference: true,
     });
   };
@@ -180,7 +173,7 @@ export const useCalendarGating = (): CalendarGatingState => {
     ...permissions,
     currentTier,
     isSeeker,
-    showCalendarLock: isSeeker,
+    showCalendarLock: !canAccessGrowthFeatures,
     showRepeatLock: isSeeker,
     handleCalendarLockTap,
     handleRepeatLockTap,

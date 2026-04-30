@@ -250,7 +250,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       if (requestedDuration === 5) {
         return {
           title: 'Unlock 5-Day\nDevotionals',
-          message: `5-day devotionals are available with Growth or Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
+          message: `5-day devotionals are available with Growth or Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
           primaryCta: 'Upgrade to Growth',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
@@ -261,7 +261,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         // 7-day
         return {
           title: 'Unlock 7-Day\nDevotionals',
-          message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+          message: `7-day devotionals are available with Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
           primaryCta: 'Upgrade to Transformation',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'transformation',
@@ -272,7 +272,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     } else if (currentTier === 'growth' && requestedDuration === 7) {
       return {
         title: 'Unlock 7-Day\nDevotionals',
-        message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+        message: `7-day devotionals are available with Transformation. Growth includes up to 25 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
         primaryCta: 'Upgrade to Transformation',
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',

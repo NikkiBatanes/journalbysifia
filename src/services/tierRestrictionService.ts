@@ -114,7 +114,7 @@ class TierRestrictionService {
     // Copy incomplete todos
     {
       feature: 'copy_incomplete_todos',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       featureFlag: 'copyIncompleteTodosEnabled',
     },
 
@@ -128,12 +128,12 @@ class TierRestrictionService {
     // Guided prompts
     {
       feature: 'guided_prompts',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       usageType: 'guidedPrompts',
     },
     {
       feature: 'unlimited_guided_prompts',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       usageType: 'guidedPrompts',
     },
   ];

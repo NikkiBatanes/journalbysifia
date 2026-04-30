@@ -81,6 +81,9 @@ type UnansweredPrayer = {
   content?: string | null;
   person_name?: string | null;
   is_prayer_request?: boolean | null;
+  prayed?: boolean | null;
+  prayer_type?: string | null;
+  journal_category?: string | null;
   created_at: string;
 };
 
@@ -358,18 +361,13 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
 
   const { data, error } = await supabase
     .from('prayers')
-    .select('id, content, person_name, is_prayer_request, created_at')
+    .select('id, content, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at')
     .eq('user_id', userId)
-    // Explicit inclusion: 'journal' = CAST prayers (Confession/Adoration/Supplication/Thanksgiving),
-    // 'people' = prayer for/from someone. Excludes 'devotional' and 'guided_playbook' types.
     .in('prayer_type', ['journal', 'people'])
-    // Filter to only include supplication prayers for prayer answered check notifications
-    .eq('journal_category', 'supplication')
-    // Single .or() — chaining two .or() calls sends duplicate query params that PostgREST may not AND reliably
     .or('status.is.null,status.neq.answered')
     .lte('created_at', sevenDaysAgo)
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(20);
 
   if (error) {
     Logger.warn('[SmartNotifications] Unable to read unanswered prayer state', {
@@ -380,7 +378,16 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
     return [];
   }
 
-  return (data || []) as UnansweredPrayer[];
+  // Filter in JS to avoid complex chained PostgREST OR conditions:
+  // - journal type: only supplication (CAST S). Exclude adoration/confession/thanksgiving.
+  // - prayer requests: only include if already prayed. Unprayed requests haven't been engaged yet.
+  const filtered = (data || []).filter((prayer: any) => {
+    if (prayer.prayer_type === 'journal' && prayer.journal_category !== 'supplication') {return false;}
+    if (prayer.is_prayer_request === true && prayer.prayed !== true) {return false;}
+    return true;
+  }).slice(0, 10);
+
+  return filtered as UnansweredPrayer[];
 };
 
 const getPlaybooks = async (userId: string): Promise<PlaybookRowLike[]> => {

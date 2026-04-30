@@ -167,18 +167,18 @@ export function buildSmartNotificationCopy(
       if (context.personName) {
         if (context.isPrayerRequest) {
           return {
-            title: 'Was this prayer answered?',
-            message: compact(`Has ${context.personName}'s prayer request been answered?`),
+            title: compact(`Still praying for ${context.personName}?`, 58),
+            message: compact('Has their prayer request been answered?'),
           };
         }
         return {
-          title: 'Was this prayer answered?',
-          message: compact(`Check in on your prayer for ${context.personName}.`),
+          title: compact(`Following up on your prayer for ${context.personName}`, 58),
+          message: compact('Has God moved in this? Mark it answered when the time comes.'),
         };
       }
       return {
         title: 'Was this prayer answered?',
-        message: compact(context.prayerText || 'Has this prayer been answered?'),
+        message: compact(context.prayerText || 'Take a moment to check — has God answered?'),
       };
     }
 

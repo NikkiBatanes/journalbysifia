@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -359,6 +360,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Refresh whenever the screen comes back into focus (handles navigate-back case)
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications])
+  );
 
   // Track opened analytics when notifications change
   useEffect(() => {
