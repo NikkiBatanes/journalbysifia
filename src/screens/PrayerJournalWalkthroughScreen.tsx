@@ -29,7 +29,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreatePrayer, useACTSPrayerData } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useUpdatePrayer, useACTSPrayerData, useDeletePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
 
@@ -1230,9 +1230,12 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(false);
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name, Amen');
+  const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
 
   const dateStr = toLocalDateString(selectedDate);
   const createMutation = useCreatePrayer();
+  const updateMutation = useUpdatePrayer();
+  const deletePrayerMutation = useDeletePrayer();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
 
   // Pre-select prayer path and load existing data when editing
@@ -1253,35 +1256,22 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             const allPrayers = [
               ...(prayerData.confession || []),
               ...(prayerData.adoration || []),
-              ...(prayerData.supplication || []),
               ...(prayerData.thanksgiving || []),
+              ...(prayerData.supplication || []),
             ];
-
-            // Find the prayer being edited and its session
             const editingPrayer = allPrayers.find((p: any) => p.id === editingPrayerId);
             if (editingPrayer) {
-              // Group prayers by session (within 2 minutes)
-              const SESSION_WINDOW_MS = 2 * 60 * 1000;
-              const editingTime = new Date(editingPrayer.created_at).getTime();
-
-              // Load prayers from the same session
-              const sessionPrayers = allPrayers.filter((p: any) => {
-                const prayerTime = new Date(p.created_at).getTime();
-                return Math.abs(prayerTime - editingTime) <= SESSION_WINDOW_MS;
-              });
-
-              // Pre-fill prayer texts
               const texts: { [key: string]: string } = {};
-              sessionPrayers.forEach((p: any) => {
-                const type = p.journal_category || 'adoration';
-                texts[type] = p.content;
-
-                // Load tracking settings for supplication
-                if (type === 'supplication' && p.metadata?.track_answered) {
+              const ids: { [key: string]: string } = {};
+              allPrayers.forEach((p: any) => {
+                texts[p.journal_category] = p.content;
+                ids[p.journal_category] = p.id;
+                if (p.journal_category === 'supplication' && p.metadata?.track_answered) {
                   setSupplicationTrackAnswered(true);
                 }
               });
               setPrayerTexts(texts);
+              setExistingPrayerIds(ids);
             }
           } else if (initialPrayerType === 'open') {
             // Load open prayer data
@@ -1289,6 +1279,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             const editingPrayer = openPrayers.find((p: any) => p.id === editingPrayerId);
             if (editingPrayer) {
               setOpenPrayerText(editingPrayer.content);
+              setExistingPrayerIds({ freeform: editingPrayer.id });
               if (editingPrayer.metadata?.track_answered) {
                 setOpenPrayerTrackAnswered(true);
               }
@@ -1318,40 +1309,74 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     }
 
     try {
+      const isEditing = !!editingPrayerId;
+
       if (selectedPath?.id === 'acts') {
         // Save each ACTS prayer as separate entries
         for (const step of ACTS_STEPS) {
           const text = prayerTexts[step.key];
+          const existingId = existingPrayerIds[step.key];
+          
           if (text && text.trim()) {
-            await createMutation.mutateAsync({
-              user_id: user.id,
-              selected_date: dateStr,
-              prayer_type: 'journal',
-              journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
-              content: text.trim(),
-              status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
-              metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
-            });
+            if (isEditing && existingId) {
+              // Update existing prayer
+              await updateMutation.mutateAsync({
+                id: existingId,
+                updates: {
+                  content: text.trim(),
+                  status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
+                  metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
+                },
+              });
+            } else {
+              // Create new prayer
+              await createMutation.mutateAsync({
+                user_id: user.id,
+                selected_date: dateStr,
+                prayer_type: 'journal',
+                journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+                content: text.trim(),
+                status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
+                metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
+              });
+            }
+          } else if (isEditing && existingId) {
+            // Delete empty prayer if editing
+            await deletePrayerMutation.mutateAsync(existingId);
           }
         }
       } else if (selectedPath?.id === 'open' && openPrayerText.trim()) {
-        // Save open prayer
-        await createMutation.mutateAsync({
-          user_id: user.id,
-          selected_date: dateStr,
-          prayer_type: 'journal',
-          journal_category: 'personal_prayer',
-          content: openPrayerText.trim(),
-          status: openPrayerTrackAnswered ? 'pending' : undefined,
-          metadata: { track_answered: openPrayerTrackAnswered },
-        });
+        const existingId = existingPrayerIds.freeform;
+        
+        if (isEditing && existingId) {
+          // Update existing open prayer
+          await updateMutation.mutateAsync({
+            id: existingId,
+            updates: {
+              content: openPrayerText.trim(),
+              status: openPrayerTrackAnswered ? 'pending' : undefined,
+              metadata: { track_answered: openPrayerTrackAnswered },
+            },
+          });
+        } else {
+          // Create new open prayer
+          await createMutation.mutateAsync({
+            user_id: user.id,
+            selected_date: dateStr,
+            prayer_type: 'journal',
+            journal_category: 'personal_prayer',
+            content: openPrayerText.trim(),
+            status: openPrayerTrackAnswered ? 'pending' : undefined,
+            metadata: { track_answered: openPrayerTrackAnswered },
+          });
+        }
       }
 
       // Invalidate cache to ensure UI updates with new data
       await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
-      analytics.trackPrayerEvent('prayer_created', {
+      analytics.trackPrayerEvent(isEditing ? 'prayer_updated' : 'prayer_created', {
         prayer_type: selectedPath?.id === 'acts' ? 'supplication' : 'adoration',
         content_length: selectedPath?.id === 'acts'
           ? Object.values(prayerTexts).join('').length
