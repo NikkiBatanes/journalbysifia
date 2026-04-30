@@ -746,7 +746,9 @@ const ACTSPrayerSlidesStep: React.FC<{
             <View style={styles.actsCard}>
               {/* Display suggested opening on confession step */}
               {actsStepIndex === 0 && (
-                <ThemedText style={styles.suggestedText}>{castOpening}</ThemedText>
+                <View style={styles.suggestedTextContainer}>
+                  <ThemedText style={styles.suggestedText}>{castOpening}</ThemedText>
+                </View>
               )}
 
               <View style={styles.actsCardHeader}>
@@ -768,7 +770,9 @@ const ACTSPrayerSlidesStep: React.FC<{
 
               {/* Display suggested closing on thanksgiving step */}
               {isLastStep && (
-                <ThemedText style={styles.suggestedText}>{castClosing}</ThemedText>
+                <View style={styles.suggestedTextContainer}>
+                  <ThemedText style={styles.suggestedText}>{castClosing}</ThemedText>
+                </View>
               )}
             </View>
           </StepFadeIn>
@@ -1022,8 +1026,8 @@ const CompletionStep: React.FC<{
   isEditing?: boolean;
   castOpening: string;
   castClosing: string;
-  onCastOpeningChange?: (text: string) => void;
-  onCastClosingChange?: (text: string) => void;
+  onCastOpeningChange: (value: string) => void;
+  onCastClosingChange: (value: string) => void;
 }> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false, castOpening, castClosing, onCastOpeningChange, onCastClosingChange }) => {
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -1061,33 +1065,29 @@ const CompletionStep: React.FC<{
   });
 
   const renderACTSPrayer = () => {
-    const validSteps = ACTS_STEPS.filter(step => prayerTexts[step.key]?.trim());
+    const validSteps = ACTS_STEPS.filter(step => prayerTexts[step.key]);
+    if (validSteps.length === 0) return null;
 
     return (
       <>
-        {/* Editable opening */}
         <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>OPENING</ThemedText>
-          {onCastOpeningChange ? (
-            <TextInput
-              style={styles.completionTextInput}
-              value={castOpening}
-              onChangeText={onCastOpeningChange}
-              placeholder="Heavenly Father,"
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <ThemedText style={styles.completionSectionText}>{castOpening}</ThemedText>
-          )}
+          <TextInput
+            style={styles.completionInput}
+            value={castOpening}
+            onChangeText={onCastOpeningChange}
+            placeholder="e.g., Heavenly Father,"
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            keyboardAppearance="dark"
+          />
         </View>
 
         {validSteps.map((step, index) => {
           const text = prayerTexts[step.key];
+          const isLast = index === validSteps.length - 1;
 
           return (
-            <View key={step.key} style={styles.completionSection}>
+            <View key={step.key} style={[styles.completionSection, isLast && { borderBottomWidth: 0 }]}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
               <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
               {step.key === 'supplication' && supplicationTrackAnswered && (
@@ -1105,22 +1105,16 @@ const CompletionStep: React.FC<{
           );
         })}
 
-        {/* Editable closing */}
-        <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
+        <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>CLOSING</ThemedText>
-          {onCastClosingChange ? (
-            <TextInput
-              style={styles.completionTextInput}
-              value={castClosing}
-              onChangeText={onCastClosingChange}
-              placeholder="In Jesus' Name, Amen"
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <ThemedText style={styles.completionSectionText}>{castClosing}</ThemedText>
-          )}
+          <TextInput
+            style={styles.completionInput}
+            value={castClosing}
+            onChangeText={onCastClosingChange}
+            placeholder="e.g., In Jesus' Name, Amen"
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            keyboardAppearance="dark"
+          />
         </View>
       </>
     );
@@ -1805,11 +1799,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     letterSpacing: 0.3,
   },
+  suggestedTextContainer: {
+    marginBottom: 12,
+  },
   suggestedText: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.6)',
     fontStyle: 'italic',
-    marginBottom: 12,
   },
   actsCardDescription: {
     fontSize: 14,
@@ -1942,84 +1938,45 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   completionCategory: {
-    fontSize: 18,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   completionSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 20,
+    marginTop: 2,
   },
   completionCheckmark: {
     marginLeft: 12,
   },
   completionSection: {
-    marginBottom: 8,
-    paddingBottom: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   completionSectionLabel: {
-    fontSize: 11,
-    letterSpacing: 2,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 8,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '600',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   completionSectionText: {
     fontSize: 16,
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
-  completionTextInput: {
+  completionInput: {
     fontSize: 15,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  markAnsweredButton: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 149, 0, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 149, 0, 0.3)',
-  },
-  markAnsweredButtonText: {
-    fontSize: 12,
-    color: '#FF9500',
-  },
-  trackAnsweredToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    marginTop: 12,
-  },
-  trackAnsweredCheckbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  trackAnsweredCheckboxChecked: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
-  },
-  trackAnsweredText: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
   },
   completionSectionSmall: {
     marginBottom: 0,
@@ -2059,7 +2016,45 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    overflow: 'hidden',
+  },
+  markAnsweredButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 149, 0, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 149, 0, 0.3)',
+  },
+  markAnsweredButtonText: {
+    fontSize: 12,
+    color: '#FF9500',
+  },
+  trackAnsweredToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  trackAnsweredCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  trackAnsweredCheckboxChecked: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  trackAnsweredText: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });
 
