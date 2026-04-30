@@ -351,7 +351,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
@@ -1871,10 +1871,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderInner}>
-              <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-              <ThemedText weight="semiBold" style={styles.sectionTitle}>
-                {section.title}
-              </ThemedText>
+              <View style={styles.sectionHeaderRow}>
+                <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                  {section.title}
+                </ThemedText>
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -1891,10 +1893,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderInner}>
-              <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-              <ThemedText weight="semiBold" style={styles.sectionTitle}>
-                {section.title}
-              </ThemedText>
+              <View style={styles.sectionHeaderRow}>
+                <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                  {section.title}
+                </ThemedText>
+              </View>
             </View>
           </View>
         </TouchableOpacity>

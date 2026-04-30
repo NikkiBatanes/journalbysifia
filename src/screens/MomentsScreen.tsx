@@ -216,8 +216,8 @@ export const MomentsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Hidden GroupingSelect and FilterSelect for ref functionality */}
-      <View style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
+      {/* GroupingSelect and FilterSelect - rendered off-screen for ref functionality */}
+      <View style={{ position: 'absolute', left: -9999, top: -9999 }}>
         <GroupingSelect ref={groupingRef} value={groupingMode} onChange={setGroupingMode} compact={false} />
         <FilterSelect
           ref={filterRef}
