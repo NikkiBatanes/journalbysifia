@@ -1971,9 +1971,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   completionInput: {
-    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
