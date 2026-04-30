@@ -300,59 +300,40 @@ const UsageTooltipModal: React.FC<Props> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.tooltipContainer}>
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                  <MaterialCommunityIcons
-                    name={content.icon}
-                    size={24}
-                    color={content.iconColor}
-                  />
-                  <ThemedText weight="bold" style={styles.title}>
-                    {content.title}
-                  </ThemedText>
-                </View>
-                <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <MaterialCommunityIcons name="close" size={24} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Content */}
-              <View style={styles.content}>
-                <ThemedText weight="regular" style={styles.description}>
-                  {content.description}
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={styles.modalContainer}>
+          <ThemedText weight="medium" style={styles.modalTitle}>{content.title}</ThemedText>
+          <View style={styles.content}>
+            <ThemedText weight="regular" style={styles.description}>
+              {content.description}
+            </ThemedText>
+          </View>
+          {showUpgradeButton ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.primaryButton} onPress={handleUpgrade} activeOpacity={0.7}>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                  Upgrade Now
                 </ThemedText>
-              </View>
-
-              {/* Footer */}
-              {showUpgradeButton ? (
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade} activeOpacity={0.7}>
-                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
-                      Upgrade Now
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.secondaryButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
-                    <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-                      Maybe Later
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.closeButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
-                  <ThemedText weight="semiBold" style={styles.closeButtonText}>
-                    Got it!
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
+                <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+                  Maybe Later
+                </ThemedText>
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+          ) : (
+            <TouchableOpacity style={styles.fullWidthButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                Got it!
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableWithoutFeedback>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -363,85 +344,72 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
-  tooltipContainer: {
+  modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderRadius: 24,
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    maxWidth: 340,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
+  modalTitle: {
+    fontSize: 16,
     color: Colors.hopeWhite,
+    marginBottom: 16,
+    textTransform: 'uppercase',
   },
   content: {
-    padding: 20,
+    marginBottom: 20,
   },
   description: {
     fontSize: 15,
     lineHeight: 24,
     color: Colors.hopeWhite,
   },
-  closeButton: {
-    backgroundColor: Colors.alertCoral,
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    margin: 20,
-    marginTop: 0,
+    gap: 16,
+    marginTop: 8,
   },
-  upgradeButton: {
+  fullWidthButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  primaryButton: {
     flex: 1,
     backgroundColor: Colors.alertCoral,
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     alignItems: 'center',
+    minHeight: 48,
   },
-  upgradeButtonText: {
-    fontSize: 16,
+  primaryButtonText: {
+    fontSize: 14,
     color: Colors.hopeWhite,
   },
   secondaryButton: {
     flex: 1,
-    backgroundColor: 'transparent',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.hopeWhite,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 48,
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
   },
 });
