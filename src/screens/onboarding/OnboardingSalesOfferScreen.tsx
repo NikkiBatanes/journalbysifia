@@ -218,6 +218,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const animateToggle = useCallback((toAnnual: boolean) => {
     if (toAnnual) {
@@ -1638,6 +1639,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       {/* Pricing Cards - Scrollable */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.pricingScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -1841,6 +1843,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 onPress={() => {
                   try { triggerLightHaptic(); } catch {}
                   setShowAllPlans(!showAllPlans);
+                  scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
                 }}
                 activeOpacity={0.8}
               >
