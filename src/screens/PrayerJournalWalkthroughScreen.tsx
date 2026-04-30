@@ -1165,7 +1165,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
@@ -1178,6 +1178,18 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
 
   const createMutation = useCreatePrayer();
   const dateStr = toLocalDateString(selectedDate);
+
+  // Pre-select prayer path if editing
+  useEffect(() => {
+    if (initialPrayerType) {
+      const path = PRAYER_PATHS.find(p => p.id === initialPrayerType);
+      if (path) {
+        setSelectedPath(path);
+        // Skip to step 1 (prayer entry) when editing
+        setCurrentStep(1);
+      }
+    }
+  }, [initialPrayerType]);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(

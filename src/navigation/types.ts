@@ -123,6 +123,8 @@ export type RootStackParamList = {
   // Prayer Journal Walkthrough
   PrayerJournalWalkthrough: {
     selectedDate?: string;
+    initialPrayerType?: 'acts' | 'open_prayer';
+    editingPrayerId?: string;
   } | undefined;
 
   // Prayers for People Walkthrough

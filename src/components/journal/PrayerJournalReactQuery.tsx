@@ -19,6 +19,7 @@ import { toLocalDateString } from '../../utils/date';
 import {
   useACTSPrayerData,
   useMarkSupplicationAnswered,
+  useDeletePrayer,
 } from '../../services/hooks/usePrayerData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -89,19 +90,36 @@ interface SwipeablePrayerCardProps {
   prayer: any;
   type: any;
   onMarkAnswered: (id: string, isAnswered: boolean) => void;
+  onEdit?: (prayer: any) => void;
+  onDelete?: (prayer: any) => void;
 }
 
 const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   prayer,
   type,
   onMarkAnswered,
+  onEdit,
+  onDelete,
 }) => {
   return (
-    <View
+    <TouchableOpacity
       style={[
         styles.prayerItem,
         prayer.answered_at && styles.prayerItemAnswered,
       ]}
+      onPress={() => {
+        if (onEdit) {
+          triggerLightHaptic();
+          onEdit(prayer);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete) {
+          triggerLightHaptic();
+          onDelete(prayer);
+        }
+      }}
+      activeOpacity={0.7}
     >
       <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
 
@@ -148,7 +166,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           )}
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -157,12 +175,16 @@ interface CombinedCASTPrayerCardProps {
   allPrayers: any[];
   supplicationPrayer: any | null;
   onMarkAnswered: (id: string, isAnswered: boolean) => void;
+  onEdit?: (prayer: any) => void;
+  onDelete?: (prayer: any) => void;
 }
 
 const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
   allPrayers,
   supplicationPrayer,
   onMarkAnswered,
+  onEdit,
+  onDelete,
 }) => {
   // Get prayers in order (confession, adoration, supplication, thanksgiving)
   const order = ['confession', 'adoration', 'supplication', 'thanksgiving'];
@@ -176,7 +198,22 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
   const afterSupplication = orderedPrayers.slice(supplicationIndex + 1);
 
   return (
-    <View style={styles.combinedCASTCard}>
+    <TouchableOpacity
+      style={styles.combinedCASTCard}
+      onPress={() => {
+        if (onEdit && orderedPrayers.length > 0) {
+          triggerLightHaptic();
+          onEdit(orderedPrayers[0]);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete && orderedPrayers.length > 0) {
+          triggerLightHaptic();
+          onDelete(orderedPrayers[0]);
+        }
+      }}
+      activeOpacity={0.7}
+    >
       {/* Content before supplication (confession, adoration) */}
       {beforeSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
@@ -243,7 +280,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
           <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
         </View>
       ))}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -343,6 +380,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // React Query hooks
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
   const markAnsweredMutation = useMarkSupplicationAnswered();
+  const deletePrayerMutation = useDeletePrayer();
 
   // Local state
   const [isEditing, setIsEditing] = useState(false);
@@ -516,6 +554,50 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [markAnsweredMutation, dateStr, user?.id]);
 
+  // Handle delete prayer
+  const handleDeletePrayer = useCallback((prayer: any) => {
+    Alert.alert(
+      'Delete Prayer',
+      'Are you sure you want to delete this prayer?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              triggerLightHaptic();
+              await deletePrayerMutation.mutateAsync({
+                id: prayer.id,
+                _userId: user?.id || '',
+                _dateStr: dateStr,
+              });
+              triggerSuccessHaptic();
+            } catch (error) {
+              console.error('Failed to delete prayer:', error);
+              Alert.alert('Error', 'Failed to delete prayer. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }, [deletePrayerMutation, dateStr, user?.id]);
+
+  // Handle edit prayer - navigate to walkthrough with pre-selected type
+  const handleEditPrayer = useCallback((prayer: any) => {
+    if (!navigation) return;
+
+    // Determine prayer type: 'acts' for CAST method, 'freeform' for open prayer
+    const prayerType = prayer.type === 'freeform' ? 'open_prayer' : 'acts';
+
+    // Navigate to walkthrough with pre-selected type
+    navigation.navigate('PrayerJournalWalkthrough', {
+      selectedDate: dateStr,
+      initialPrayerType: prayerType,
+      editingPrayerId: prayer.id,
+    });
+  }, [navigation, dateStr]);
+
   // Handle global edit mode changes for inline view
   React.useEffect(() => {
     if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode && !isEditing) {
@@ -583,6 +665,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                     allPrayers={session}
                     supplicationPrayer={supplication || null}
                     onMarkAnswered={handleMarkAnswered}
+                    onEdit={handleEditPrayer}
+                    onDelete={handleDeletePrayer}
                   />
                 );
               })}
@@ -611,6 +695,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                     prayer={prayer}
                     type={type}
                     onMarkAnswered={handleMarkAnswered}
+                    onEdit={handleEditPrayer}
+                    onDelete={handleDeletePrayer}
                   />
                 );
               })}
