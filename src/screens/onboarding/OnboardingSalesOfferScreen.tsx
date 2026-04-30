@@ -1481,7 +1481,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                         : fromGuidedPromptsLock
                           ? 'Access guided reflection prompts to deepen your walk with God, and playbooks and devotionals.'
                           : fromExportRestriction
-                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
+                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow
                                 ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
                                 : 'Gentle structure for faithful living'}
@@ -1495,7 +1495,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 'More playbooks and devotionals for ongoing situations',
                 'Smart journaling to help you reflect and notice patterns',
                 'Gentle guidance for faithful next steps',
-                'A consistent space to return when moments resurface',
+                'A consistent space to return to when moments resurface',
               ].map((item) => (
                 <View key={item} style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
