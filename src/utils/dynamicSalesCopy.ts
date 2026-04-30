@@ -245,31 +245,34 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       if (requestedDuration === 5) {
         return {
           title: 'Unlock 5-Day Devotionals',
-          message: `5-day devotionals are available with Growth and Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
-          primaryCta: 'View Upgrade Options',
+          message: `5-day devotionals are available with Growth or Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
+          primaryCta: 'Upgrade to Growth',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
           showUpgradeOptions: true,
+          isCurrentTier: 'spark',
         };
       } else {
         // 7-day
         return {
           title: 'Unlock 7-Day Devotionals',
-          message: `7-day devotionals are available with Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
-          primaryCta: 'View Upgrade Options',
+          message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+          primaryCta: 'Upgrade to Transformation',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'transformation',
           showUpgradeOptions: true,
+          isCurrentTier: 'spark',
         };
       }
     } else if (currentTier === 'growth' && requestedDuration === 7) {
       return {
         title: 'Unlock 7-Day Devotionals',
-        message: `7-day devotionals are available with Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
-        primaryCta: 'View Upgrade Options',
+        message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+        primaryCta: 'Upgrade to Transformation',
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
+        isCurrentTier: 'growth',
       };
     }
   }

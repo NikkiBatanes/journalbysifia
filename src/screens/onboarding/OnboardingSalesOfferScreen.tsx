@@ -1273,7 +1273,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
             </View>
-          ) : tier.id === 'growth' && (
+          ) : dynamicSalesCopy?.recommendedTier && tier.id === dynamicSalesCopy?.recommendedTier ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
+            </View>
+          ) : tier.id === 'growth' && !dynamicSalesCopy?.recommendedTier && (
             <View style={styles.recommendedBadge}>
               <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
