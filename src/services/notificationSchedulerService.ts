@@ -475,6 +475,30 @@ class NotificationSchedulerService {
   }
 
   /**
+   * Schedule subscription renewal / plan replenishment notification.
+   * Sent after a successful billing cycle renewal so the user knows their room is restored.
+   */
+  async scheduleSubscriptionRenewalNotification(userId: string, tier: string): Promise<boolean> {
+    const notification: NotificationQueueItem = {
+      user_id: userId,
+      type: 'subscription_renewed',
+      title: 'Your room is restored',
+      message: `Your ${tier} plan renewed. Fresh room for playbooks and devotionals — keep going.`,
+      data: {
+        deep_link: 'sifia://dashboard',
+        tier,
+      },
+      scheduled_for: null as any, // deliver immediately
+      priority: 'normal',
+    };
+
+    return await this.scheduleNotification(notification, {
+      priority: 'normal',
+      batchWithOthers: false,
+    });
+  }
+
+  /**
    * Schedule subscription cancelled notification
    */
   async scheduleSubscriptionCancelledNotification(userId: string, endDate: Date): Promise<boolean> {

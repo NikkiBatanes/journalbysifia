@@ -286,14 +286,59 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                                 chosenTier === 'transformation' ? 'Access 1-day, 3-day, 5-day, and 7-day devotionals' :
                                 'Access 1-day and 3-day devotionals';
 
+        // Get tier-specific features based on chosen tier
+        const tierFeatures = chosenTier === 'spark' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day and 3-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+        ] : chosenTier === 'growth' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day, 3-day, and 5-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+          'Calendar Auto-Sync',
+          'Export to PDF',
+        ] : chosenTier === 'transformation' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day, 3-day, 5-day, and 7-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+          'Calendar Auto-Sync',
+          'Export to PDF',
+          'Priority support',
+        ] : [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day and 3-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+        ];
+
         return {
-          name: 'siFia Transformation Annual Trial',
-          description: '3-day free trial with full access to all tiers',
+          name: `siFia ${chosenTierName}${billingCycle} Trial`,
+          description: `3-day free trial with full access to ${chosenTierName}`,
           features: [
-            '3 days free on Spark, Growth, and Transformation',
-            'All tiers included: Spark, Growth, and Transformation',
-            'Access all devotionals: 1-day, 3-day, 5-day, and 7-day',
-            'Try all features before choosing your plan',
+            ...tierFeatures,
             'Cancel anytime before trial ends',
           ],
           limits: trialLimits,
@@ -471,7 +516,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, showUpgradeButton && styles.scrollContentWithFooter]}
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
@@ -546,56 +591,57 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 ))}
               </View>
-
-              {/* Upgrade Button */}
-              {showUpgradeButton && (
-                <>
-                  {tierBase === 'free_trial' ? (
-                    <>
-                      {/* Primary button for trial users: Continue with siFia */}
-                      <TouchableOpacity
-                        style={styles.upgradeButton}
-                        onPress={() => {
-                          onClose();
-                          if (navigation) {
-                            navigation.navigate('DashboardHome' as any);
-                          }
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <ThemedText weight="bold" style={styles.upgradeButtonText}>
-                          Continue with siFia
-                        </ThemedText>
-                      </TouchableOpacity>
-
-                      {showTrialViewOtherPlans && (
-                        <TouchableOpacity
-                          style={styles.viewPlansButton}
-                          onPress={handleUpgradePress}
-                          activeOpacity={0.85}
-                        >
-                          <ThemedText weight="bold" style={styles.viewPlansButtonText}>
-                            View Other Plans
-                          </ThemedText>
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.upgradeButton}
-                      onPress={handleUpgradePress}
-                      activeOpacity={0.85}
-                    >
-                      <ThemedText weight="bold" style={styles.upgradeButtonText}>
-                        {getUpgradeButtonText()}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
             </>
           )}
         </ScrollView>
+
+        {/* Sticky Footer with Buttons */}
+        {showUpgradeButton && (
+          <SafeAreaView style={styles.stickyFooter}>
+            {tierBase === 'free_trial' ? (
+              <>
+                {/* Primary button for trial users: Continue with siFia */}
+                <TouchableOpacity
+                  style={styles.upgradeButton}
+                  onPress={() => {
+                    onClose();
+                    if (navigation) {
+                      navigation.navigate('DashboardHome' as any);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <ThemedText weight="bold" style={styles.upgradeButtonText}>
+                    Continue with siFia
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {/* Secondary button for trial users: View Other Plans */}
+                {showTrialViewOtherPlans && (
+                  <TouchableOpacity
+                    style={styles.viewPlansButton}
+                    onPress={handleUpgradePress}
+                    activeOpacity={0.85}
+                  >
+                    <ThemedText weight="bold" style={styles.viewPlansButtonText}>
+                      View Other Plans
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={handleUpgradePress}
+                activeOpacity={0.85}
+              >
+                <ThemedText weight="bold" style={styles.upgradeButtonText}>
+                  {getUpgradeButtonText()}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </SafeAreaView>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -631,14 +677,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 32,
+  },
+  scrollContentWithFooter: {
+    paddingBottom: 180,
+  },
+  stickyFooter: {
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   loadingContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: 40,
   },
   loadingText: {
     fontSize: 18,

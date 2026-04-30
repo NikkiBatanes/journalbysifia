@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { notificationManagementService } from '../services/notificationManagementService';
 import { pushNotificationService } from '../services/pushNotificationService';
@@ -274,6 +275,14 @@ export function useNotificationBadge() {
     }, 5 * 60 * 1000); // 5 minutes
 
     return () => clearInterval(interval);
+  }, [fetchBadgeCount]);
+
+  // Instant badge refresh when a notification is saved in-process
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notification_saved', () => {
+      fetchBadgeCount();
+    });
+    return () => sub.remove();
   }, [fetchBadgeCount]);
 
   // Cleanup timeout and clearing flag on unmount

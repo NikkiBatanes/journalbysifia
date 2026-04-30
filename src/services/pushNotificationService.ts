@@ -1,4 +1,4 @@
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert, DeviceEventEmitter, Linking, Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
@@ -617,6 +617,8 @@ class PushNotificationService {
           notificationType: notification.type,
           mappedType,
         });
+        // Notify in-app screens (NotificationsScreen, badge hook) instantly — no Supabase realtime required
+        DeviceEventEmitter.emit('notification_saved', { userId });
       }
     } catch (error) {
       Logger.error('[PushNotification] Failed to save notification to history', error as Error, {

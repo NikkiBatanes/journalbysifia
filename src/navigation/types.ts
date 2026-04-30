@@ -31,10 +31,25 @@ export type RootStackParamList = {
   OnboardingSalesOffer: {
     upgradeMode?: boolean;
     currentTier?: string;
+    selectedTier?: string;
+    billingCycle?: 'monthly' | 'annual';
+    currentTrialBillingCycle?: 'monthly' | 'annual';
+    selectedBillingCycle?: 'monthly' | 'annual';
     source?: string;
     feature?: string;
     tier?: string;
     skipNotificationPreference?: boolean;
+    currentTrialChosenTier?: string;
+    profileTrialViewPlans?: boolean;
+    testModeTier?: string;
+    testModeIsOnTrial?: boolean;
+    testModeHasStartedTrial?: boolean;
+    testModeHasEverStartedTrial?: boolean;
+    testModeTrialChosenTier?: string;
+    testModeTrialEndDate?: string;
+    testModeBillingCycle?: 'monthly' | 'annual';
+    testModeRemaining?: number;
+    testModeLimit?: number;
   } | undefined;
   // RE-ENABLED: Trial Offer screen for trial flow navigation
   OnboardingTrialOffer: {

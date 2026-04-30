@@ -695,6 +695,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
       onClose(); // Close the devotional modal first
       navigation.navigate('OnboardingSalesOffer' as any, {
+        upgradeMode: true,
+        currentTier: devotionalGating.tier,
+        requestedDuration: days,
+        skipNotificationPreference: true,
+        featureType: 'devotionals',
+        source: 'devotional_duration_lock',
+        feature: 'devotionals',
       });
       return;
     }

@@ -8,7 +8,7 @@ import { notificationSchedulerService } from './notificationSchedulerService';
 import { NewSubscriptionService } from './NewSubscriptionService';
 
 export interface BillingEvent {
-  type: 'payment_failed' | 'grace_period' | 'payment_successful' | 'subscription_cancelled' | 'renewal_reminder';
+  type: 'payment_failed' | 'grace_period' | 'payment_successful' | 'subscription_cancelled' | 'renewal_reminder' | 'subscription_renewed';
   userId: string;
   data?: any;
 }
@@ -140,6 +140,26 @@ class BillingNotificationService {
   }
 
   /**
+   * Handle successful subscription renewal (plan replenishment) and notify the user.
+   */
+  async handleSubscriptionRenewal(userId: string, tier: string): Promise<void> {
+    try {
+      Logger.info('Handling subscription renewal notification', {
+        component: 'billingNotificationService',
+        userId,
+        tier,
+      });
+
+      await notificationSchedulerService.scheduleSubscriptionRenewalNotification(userId, tier);
+    } catch (error) {
+      Logger.error('Failed to send subscription renewal notification', error as Error, {
+        component: 'billingNotificationService',
+        userId,
+      });
+    }
+  }
+
+  /**
    * Handle trial expiry and schedule notifications
    */
   async handleTrialExpiry(userId: string, expiryDate: Date): Promise<void> {
@@ -199,6 +219,10 @@ class BillingNotificationService {
 
         case 'renewal_reminder':
           await this.scheduleRenewalReminder(event.userId);
+          break;
+
+        case 'subscription_renewed':
+          await this.handleSubscriptionRenewal(event.userId, event.data?.tier || 'your plan');
           break;
 
         default:

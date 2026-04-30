@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   StyleSheet,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -315,12 +316,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         .eq('user_id', user.id)
         .eq('status', 'sent');
 
+      // NULL scheduled_for rows: lte() silently skips NULLs in Postgres, so include them explicitly
       const { error: queueDueError } = await supabase
         .from('notification_queue')
         .update({ status: 'read', read_at: nowIso })
         .eq('user_id', user.id)
         .eq('status', 'pending')
-        .lte('scheduled_for', nowIso);
+        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
 
       const queueError = queueSentError || queueDueError;
       if (queueError) {
@@ -367,6 +369,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       fetchNotifications();
     }, [fetchNotifications])
   );
+
+  // Instant refresh when a notification is saved in-process (bypasses Supabase realtime)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notification_saved', () => {
+      fetchNotifications();
+    });
+    return () => sub.remove();
+  }, [fetchNotifications]);
 
   // Track opened analytics when notifications change
   useEffect(() => {

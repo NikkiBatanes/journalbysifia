@@ -544,6 +544,7 @@ class NotificationManagementService {
         .eq('user_id', userId)
         .eq('status', 'sent');
 
+      // NULL scheduled_for rows: lte() silently skips NULLs in Postgres, so include them explicitly
       const { error: duePendingError } = await supabase
         .from('notification_queue')
         .update({
@@ -552,7 +553,7 @@ class NotificationManagementService {
         })
         .eq('user_id', userId)
         .eq('status', 'pending')
-        .lte('scheduled_for', nowIso);
+        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
 
       const error = sentError || duePendingError;
       if (error) {
@@ -590,7 +591,7 @@ class NotificationManagementService {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('status', 'pending')
-        .lte('scheduled_for', nowIso);
+        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
 
       const error = sentError || duePendingError;
       if (error) {

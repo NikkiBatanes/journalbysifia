@@ -148,6 +148,16 @@ export class AppleWebhookHandler {
           resetUsage: true,
         });
 
+        // Notify the user that their plan refreshed and room is restored
+        const tierName = subscription.subscription_display_name || subscription.tier || 'your plan';
+        billingNotificationService.handleSubscriptionRenewal(userId, tierName).catch((notifErr: unknown) => {
+          Logger.warn('[AppleWebhook] Failed to send renewal notification (non-fatal)', {
+            component: 'AppleWebhookHandler',
+            userId,
+            error: notifErr,
+          });
+        });
+
         return { success: true, message: 'Renewal processed successfully with usage reset' };
       }
     } catch (error) {

@@ -559,6 +559,23 @@ export class PrayerApi {
     });
       throw new Error(`Failed to delete prayer: ${error.message}`);
     }
+
+    // Cancel any pending prayer_answered_check notifications for this prayer so they
+    // don't fire after deletion. Non-fatal if this fails.
+    const { error: cancelError } = await supabase
+      .from('notification_queue')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('status', 'pending')
+      .eq('type', 'prayer_answered_check')
+      .filter('data->>source_id', 'eq', id);
+
+    if (cancelError) {
+      Logger.warn('Failed to cancel prayer_answered_check queue items after prayer delete', {
+        component: 'prayerApi',
+        prayerId: id,
+        error: cancelError,
+      });
+    }
   }
 
   // Mark supplication as answered
