@@ -256,21 +256,36 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             <View style={[styles.featureItem, styles.hiddenFeature]} />
             <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
 
-            {/* Button */}
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                styles.finishButton,
-                !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
-                isLoading && OnboardingStyles.buttonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={isLoading}
-            >
-              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-                {isLoading ? 'Continuing...' : 'Continue'}
-              </ThemedText>
-            </TouchableOpacity>
+            {/* Button and Login Container */}
+            <View style={!isTablet ? { marginBottom: Math.max(52, insets.bottom + 20) } : {}}>
+              {/* Button */}
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.finishButton,
+                  isLoading && OnboardingStyles.buttonDisabled,
+                ]}
+                onPress={handleContinue}
+                disabled={isLoading}
+              >
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                  {isLoading ? 'Continuing...' : 'Continue'}
+                </ThemedText>
+              </TouchableOpacity>
+
+              {/* Already have an account */}
+              <View style={styles.signInRow}>
+                <ThemedText style={styles.signInText}>Already have an account? </ThemedText>
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerLightHaptic();
+                    navigation.navigate('Auth' as any, { screen: 'Login' });
+                  }}
+                >
+                  <ThemedText style={styles.signInLink}>Login</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
 
           </View>
         </View>

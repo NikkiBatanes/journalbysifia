@@ -67,14 +67,14 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 250 : 310,
-      height: isVerySmallPhone ? 250 : 310,
+      width: isVerySmallPhone ? 220 : 260,
+      height: isVerySmallPhone ? 220 : 260,
       marginTop: isVerySmallPhone ? -100 : -100,
     },
     titleContainer: {
       alignItems: 'center',
       marginBottom: isVerySmallPhone ? 6 : 20,
-      marginTop: isVerySmallPhone ? -60 : -80,
+      marginTop: isVerySmallPhone ? -40 : -60,
     },
     title: {
       fontSize: isVerySmallPhone ? 22 : 28,
@@ -301,14 +301,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                   if (!hasAutoScrolled) {
                     setHasAutoScrolled(true);
                     setTimeout(() => {
-                      if (ctaY != null && svH > 0) {
-                        const safety = 8;
-                        const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
-                        const clamped = Math.min(Math.max(0, raw), maxScrollableY);
-                        scrollRef.current?.scrollTo({ y: clamped, animated: true });
-                      } else {
-                        scrollRef.current?.scrollTo({ y: maxScrollableY, animated: true });
-                      }
+                      scrollRef.current?.scrollTo({ y: 20, animated: true });
                     }, 140);
                   }
                 }}

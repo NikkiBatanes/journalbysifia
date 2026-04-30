@@ -44,7 +44,7 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="EmailRegister"
         component={EmailRegisterScreen as any}
-        options={{ title: 'Create an Account' }}
+        options={{ title: 'Create an Account', animation: 'fade' }}
       />
       <Stack.Screen
         name="ForgotPassword"

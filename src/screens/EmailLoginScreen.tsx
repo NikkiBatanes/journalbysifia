@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LottieView from 'lottie-react-native';
 import {
@@ -12,6 +12,7 @@ import {
   StatusBar,
   Image,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -34,6 +35,9 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
   const { signIn, loading } = useAuth();
 
   // Responsive logo sizing for different devices
@@ -54,8 +58,8 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 250 : 310,
-      height: isVerySmallPhone ? 250 : 310,
+      width: isVerySmallPhone ? 220 : 260,
+      height: isVerySmallPhone ? 220 : 260,
       marginTop: isVerySmallPhone ? -80 : -100,
     },
     titleContainer: {
@@ -74,7 +78,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: isVerySmallPhone ? 13 : 16,
       color: Colors.white,
       textAlign: 'center',
-      marginBottom: isVerySmallPhone ? 12 : 32,
+      marginBottom: isVerySmallPhone ? -4 : 0,
       opacity: 0.8,
     },
     formContainer: {
@@ -101,6 +105,30 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       alignItems: 'center',
     },
   }), [isVerySmallPhone]);
+
+  // Keyboard event listeners for scroll functionality
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: any) => {
+      const h = e?.endCoordinates?.height ?? 0;
+      setKeyboardHeight(h);
+    };
+
+    const onHide = () => {
+      setKeyboardHeight(0);
+      setHasAutoScrolled(false);
+    };
+
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
 
   const handleLogin = async () => {
     triggerLightHaptic();
@@ -161,7 +189,11 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <ScrollView contentContainerStyle={dynamicStyles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={dynamicStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* Header */}
           <View style={styles.header}>
@@ -204,6 +236,14 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(t) => {
                   setEmail(t);
                   if (error) {setError('');}
+                }}
+                onFocus={() => {
+                  if (!hasAutoScrolled) {
+                    setHasAutoScrolled(true);
+                    setTimeout(() => {
+                      scrollRef.current?.scrollTo({ y: 14, animated: true });
+                    }, 140);
+                  }
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
