@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pencil } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed } from '../../services/hooks/usePrayerData';
+import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed, useDeletePrayer } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -74,6 +74,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const deletePrayerMutation = useDeletePrayer();
   const insets = useSafeAreaInsets();
 
   // Check if the selected date is in the past
@@ -434,6 +435,34 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     });
   };
 
+  const handleDeletePrayer = (prayer: PersonPrayer) => {
+    Alert.alert(
+      'Delete Prayer',
+      `Are you sure you want to delete this prayer for ${prayer.person_name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              triggerLightHaptic();
+              await deletePrayerMutation.mutateAsync({
+                id: prayer.id,
+                _userId: user?.id || '',
+                _dateStr: dateStr,
+              });
+              triggerSuccessHaptic();
+            } catch (error) {
+              console.error('Failed to delete prayer:', error);
+              Alert.alert('Error', 'Failed to delete prayer. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Modal handlers
   const handleOpenModal = useCallback(() => {
     triggerLightHaptic();
@@ -491,6 +520,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         handleMarkAsAnswered={handleMarkAsAnswered}
         handleMarkAsUnanswered={handleMarkAsUnanswered}
         onEdit={handleEditPrayer}
+        onDelete={handleDeletePrayer}
       />
     );
 
@@ -747,7 +777,8 @@ const SwipeablePrayerCard: React.FC<{
   handleMarkAsAnswered: (id: string) => void;
   handleMarkAsUnanswered: (id: string) => void;
   onEdit?: (prayer: PersonPrayer) => void;
-}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit }) => {
+  onDelete?: (prayer: PersonPrayer) => void;
+}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit, onDelete }) => {
   return (
     <TouchableOpacity
       style={styles.prayerItem}
@@ -755,6 +786,12 @@ const SwipeablePrayerCard: React.FC<{
         if (onEdit) {
           triggerLightHaptic();
           onEdit(prayer);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete) {
+          triggerLightHaptic();
+          onDelete(prayer);
         }
       }}
       activeOpacity={0.7}
