@@ -2403,12 +2403,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'planning_lock',
                   feature: 'future_planning',
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start Planning Ahead</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2419,11 +2420,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'planning_lock',
                   feature: 'future_planning',
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: false,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Not Used Trial)</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Not Used Trial)</ThemedText>
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
@@ -2436,12 +2438,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   source: 'copy_todos_lock',
                   feature: 'copy_todos',
                   incompleteTodosCount: 5,
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Used Trial)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Copy To-Dos</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2453,11 +2456,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   source: 'copy_todos_lock',
                   feature: 'copy_todos',
                   incompleteTodosCount: 5,
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: false,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Not Used Trial)</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Not Used Trial)</ThemedText>
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
@@ -2469,11 +2473,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'pdf_export_restriction',
                   feature: 'export_pdf',
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Used Trial)</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Used Trial)</ThemedText>
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
             </TouchableOpacity>
 
@@ -2485,11 +2490,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'pdf_export_restriction',
                   feature: 'export_pdf',
+                  testModeTier: 'seeker',
                   testModeHasEverStartedTrial: false,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Not Used Trial)</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Not Used Trial)</ThemedText>
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 

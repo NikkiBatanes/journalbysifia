@@ -1624,11 +1624,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
-              style={styles.linkButton}
+              style={styles.seeAllPlansButton}
               onPress={handleTermsOfService}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.seeAllPlansButton}
+              onPress={handleRestorePurchase}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -1797,28 +1804,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   ? 'Upgrade to Growth'
                 : shouldUseTrialProduct && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
-                : fromExportRestriction && hasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : fromExportRestriction && !hasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
+                : fromExportRestriction
+                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Upgrade to Growth'
                 : isUpgradeMode
                   ? 'Upgrade and Continue'
-                : fromPlanningLock && hasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : fromPlanningLock && !hasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
-                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && hasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && !hasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
-                : fromCalendarAutoSync && hasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : fromCalendarAutoSync && !hasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
-                : fromCopyTodosLock && hasEverStartedTrial
-                  ? 'Upgrade to Growth'
-                : fromCopyTodosLock && !hasEverStartedTrial
-                  ? 'Start 3-Day Free Trial'
+                : fromPlanningLock
+                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Start Planning Ahead'
+                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Upgrade to Repeat Options'
+                : fromCalendarAutoSync
+                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Upgrade to Auto-Sync'
+                : fromCopyTodosLock
+                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Upgrade to Copy To-Dos'
                 : (route.params as any)?.forceTransformationAnnual
                   ? 'Upgrade Plan to Annual'
                   : (route.params as any)?.forceAnnualOnly
@@ -1826,33 +1833,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
-
-        {!dynamicSalesCopy?.closeOnPrimaryCta && (
-          <TouchableOpacity
-            style={styles.restoreButton}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              if (dynamicSalesCopy?.secondaryCta) {
-                if (dynamicSalesCopy.secondaryCta === 'Choose Another Duration') {
-                  navigation.goBack();
-                  return;
-                }
-                if (dynamicSalesCopy.secondaryCta === 'Wait for Refresh') {
-                  handleClose();
-                  return;
-                }
-                handleClose();
-                return;
-              }
-              handleRestorePurchase();
-            }}
-            activeOpacity={0.7}
-          >
-            <ThemedText weight="medium" style={styles.restoreButtonText}>
-              {dynamicSalesCopy?.secondaryCta || 'Restore Purchases'}
-            </ThemedText>
-          </TouchableOpacity>
-        )}
 
         {!dynamicSalesCopy?.closeOnPrimaryCta && (
           <View style={styles.footerRow}>
