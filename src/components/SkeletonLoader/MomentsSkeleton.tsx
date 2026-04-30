@@ -127,12 +127,12 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   card: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardTitle: {
     height: 16,
