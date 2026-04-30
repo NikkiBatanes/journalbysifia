@@ -1801,6 +1801,7 @@ const styles = StyleSheet.create({
   },
   suggestedTextContainer: {
     marginBottom: 12,
+    backgroundColor: 'transparent',
   },
   suggestedText: {
     fontSize: 15,
