@@ -895,7 +895,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       const copyMap: Record<string, { title: string; message: string }> = {
         subscription_renewed: { title: 'Your room is restored', message: `Your ${tier} plan renewed. Fresh room for playbooks and devotionals — keep going.` },
         payment_failed: { title: 'Payment Failed 💳', message: 'Your payment method failed. Please update it to continue your subscription.' },
-        subscription_cancelled: { title: 'Subscription Cancelled 📋', message: `We'll miss you! Your benefits continue until your plan expires.` },
+        subscription_cancelled: { title: 'Subscription Cancelled 📋', message: 'We\'ll miss you! Your benefits continue until your plan expires.' },
         payment_successful: { title: `Welcome to ${tier}! 🌸`, message: 'Your payment was successful. Enjoy your enhanced spiritual journey!' },
       };
       const copy = copyMap[type] || { title: type, message: 'Billing event fired' };
