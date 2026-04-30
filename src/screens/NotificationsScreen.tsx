@@ -726,7 +726,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           style={styles.backButton}
           onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
+          <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
