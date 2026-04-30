@@ -18,6 +18,7 @@ export interface SalesCopyParams {
   trialEndDate?: string | null;
   subscriptionStartDate?: string | null;
   requestedDuration?: number; // For devotionals - which duration was requested
+  hasEverStartedTrial?: boolean; // Whether user has ever started a 3-day trial
 }
 
 export interface SalesCopyResult {
@@ -131,6 +132,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     trialEndDate,
     subscriptionStartDate,
     requestedDuration,
+    hasEverStartedTrial = false,
   } = params;
 
   const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : 'Devotionals';
@@ -143,10 +145,13 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       ? 'Your free playbooks for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to bring new moments before God, with up to 25 playbooks each month.'
       : 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.';
 
+    // Dynamic CTA based on trial usage
+    const primaryCta = hasEverStartedTrial ? 'Upgrade to Growth' : 'Start 3-Day Free Trial';
+
     return {
       title,
       message,
-      primaryCta: 'View Plans',
+      primaryCta,
       recommendedTier: 'growth',
       showUpgradeOptions: true,
     };

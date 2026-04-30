@@ -2071,11 +2071,30 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   testModeTier: 'seeker',
                   testModeRemaining: 0,
                   testModeLimit: 2,
+                  testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free playbooks for this month have been used. More will open again next month.</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 2,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2088,11 +2107,30 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   testModeTier: 'seeker',
                   testModeRemaining: 0,
                   testModeLimit: 1,
+                  testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free devotional for this month has been used. More will open again next month.</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 1,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             {/* Trial User - No Remaining - Chosen Spark */}

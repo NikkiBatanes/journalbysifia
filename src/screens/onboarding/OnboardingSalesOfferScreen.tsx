@@ -215,6 +215,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const testModeTier = (routeParams as any)?.testModeTier;
     const testModeRemaining = (routeParams as any)?.testModeRemaining;
     const testModeLimit = (routeParams as any)?.testModeLimit;
+    const testModeHasEverStartedTrial = (routeParams as any)?.testModeHasEverStartedTrial;
 
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
     const playbooksUsed = subscription.playbooks_used || 0;
@@ -245,6 +246,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       trialEndDate: effectiveTrialEndDate,
       subscriptionStartDate: subscription.subscription_start_date,
       requestedDuration,
+      hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : hasEverStartedTrial,
     });
   }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, (routeParams as any)?.testModeTier, (routeParams as any)?.testModeRemaining, (routeParams as any)?.testModeLimit, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
 
@@ -1442,7 +1444,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               : isUpgradeMode
                 ? 'Keep walking—grace for the next step'
                 : fromPlanningLock
-                  ? 'Upgrade to Plan Ahead'
+                  ? 'Unlock Plan Ahead'
                   : fromCopyTodosLock
                     ? 'Unlock Copy To-Dos & More'
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
@@ -1469,7 +1471,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
-                  ? 'Gently prepare for what’s ahead with guided journaling, playbooks, and devotionals.'
+                  ? 'Gently prepare for what\'s ahead with guided planning inside your journal.'
                   : fromCopyTodosLock
                     ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features, playbooks, and devotionals.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
@@ -1530,21 +1532,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Hold decisions and to-dos in a calm, prayerful structure
+                    Hold decisions and to-dos in a calm, guided structure
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Build steady rhythms through guided journaling
+                    Map out what's ahead with more clarity
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Return to playbooks and devotionals as situations unfold
+                    Return to your plans as the week unfolds
                   </ThemedText>
                 </View>
+                <ThemedText style={styles.extraLine}>
+                  With an upgrade, you'll also unlock more playbooks and devotionals each month.
+                </ThemedText>
                 </>
               ) : fromCopyTodosLock ? (
                 <>
@@ -1751,11 +1756,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               hasEverStartedTrial,
               isSeekerTier,
               currentUserTier,
-              buttonText: shouldUseTrialProduct ? 'Start 3-Day Free Trial' : 'Regular purchase',
+              buttonText: shouldUseTrialProduct
+                ? hasEverStartedTrial
+                  ? 'Upgrade to Growth'
+                  : 'Start 3-Day Free Trial'
+                : 'Regular purchase',
             });
 
-            // Navigate to trial offer screen if user is eligible for trial
-            if (shouldUseTrialProduct) {
+            // Navigate to trial offer screen if user is eligible for trial and hasn't used it yet
+            if (shouldUseTrialProduct && !hasEverStartedTrial) {
               logger.info('Navigating to trial offer screen - user is trial eligible');
               try {
                 (navigation as any).navigate('OnboardingTrialOffer', {
@@ -1785,7 +1794,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               : dynamicSalesCopy?.primaryCta
                 ? dynamicSalesCopy.primaryCta
                 : shouldUseTrialProduct
-                  ? 'Start 3-Day Free Trial'
+                  ? hasEverStartedTrial
+                    ? 'Upgrade to Growth'
+                    : 'Start 3-Day Free Trial'
                   : fromExportRestriction
                     ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
                     : isUpgradeMode
@@ -2032,8 +2043,9 @@ const styles = StyleSheet.create({
   },
   featureBulletLabel: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 8,
+    marginTop: 8,
   },
   exportGrowthSection: {
     marginTop: 16,
@@ -2046,10 +2058,14 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginLeft: 12,
-    flex: 1,
-    lineHeight: 20,
+  },
+  extraLine: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
   trialBenefitText: {
     fontSize: 14,
