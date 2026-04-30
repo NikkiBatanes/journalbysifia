@@ -7,10 +7,10 @@ const DashboardAffirmationSkeleton: React.FC = () => {
 
   React.useEffect(() => {
     isMounted.current = true;
-    
+
     const animate = () => {
-      if (!isMounted.current) return;
-      
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
         Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
@@ -20,9 +20,9 @@ const DashboardAffirmationSkeleton: React.FC = () => {
         }
       });
     };
-    
+
     animate();
-    
+
     return () => {
       isMounted.current = false;
       animatedValue.stopAnimation();

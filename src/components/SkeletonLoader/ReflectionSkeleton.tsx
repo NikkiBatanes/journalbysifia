@@ -11,10 +11,10 @@ export const ReflectionSkeleton: React.FC<ReflectionSkeletonProps> = ({ count = 
 
   React.useEffect(() => {
     isMounted.current = true;
-    
+
     const animate = () => {
-      if (!isMounted.current) return;
-      
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
@@ -32,9 +32,9 @@ export const ReflectionSkeleton: React.FC<ReflectionSkeletonProps> = ({ count = 
         }
       });
     };
-    
+
     animate();
-    
+
     return () => {
       isMounted.current = false;
       animatedValue.stopAnimation();

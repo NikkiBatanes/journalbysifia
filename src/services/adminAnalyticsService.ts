@@ -1,6 +1,6 @@
 /**
  * Admin Analytics Service - Phase 2
- * 
+ *
  * Comprehensive event tracking for admin dashboard analytics
  * Tracks user signups, app opens, feature usage, payments, and conversions
  */
@@ -9,7 +9,7 @@ import { supabase } from './supabaseClient';
 import { Platform } from 'react-native';
 
 // Event types for analytics tracking
-export type AnalyticsEventType = 
+export type AnalyticsEventType =
   | 'user_signup'
   | 'app_open'
   | 'session_end'
@@ -25,7 +25,7 @@ export type AnalyticsEventType =
   | 'payment_pending'
   | 'payment_refunded';
 
-export type EventCategory = 
+export type EventCategory =
   | 'acquisition'
   | 'engagement'
   | 'conversion'
@@ -169,7 +169,7 @@ class AdminAnalyticsService {
         user_id: userId,
         event_type: 'session_end',
         event_category: 'engagement',
-        properties: { 
+        properties: {
           session_duration_seconds: Math.floor(sessionDuration / 1000),
           platform: this.platform,
         },
@@ -195,8 +195,8 @@ class AdminAnalyticsService {
         user_id: userId,
         event_type: 'feature_used',
         event_category: 'engagement',
-        properties: { 
-          feature, 
+        properties: {
+          feature,
           ...details,
           platform: this.platform,
         },
@@ -235,9 +235,9 @@ class AdminAnalyticsService {
    * Track subscription conversion (trial to paid)
    */
   async trackSubscriptionConversion(
-    userId: string, 
-    fromTier: string, 
-    toTier: string, 
+    userId: string,
+    fromTier: string,
+    toTier: string,
     billingCycle: 'monthly' | 'annual',
     amount?: number
   ) {
@@ -353,10 +353,10 @@ class AdminAnalyticsService {
         receipt_data: event.receipt_data,
       });
 
-      console.log('✅ Analytics: Payment event tracked', { 
-        userId: event.user_id, 
-        transactionId: event.transaction_id, 
-        status: event.status 
+      console.log('✅ Analytics: Payment event tracked', {
+        userId: event.user_id,
+        transactionId: event.transaction_id,
+        status: event.status,
       });
     } catch (error) {
       console.error('❌ Analytics: Failed to track payment event', error);
@@ -372,7 +372,7 @@ class AdminAnalyticsService {
     devotionalUsed: boolean = false
   ) {
     try {
-      if (!playbookUsed && !devotionalUsed) return;
+      if (!playbookUsed && !devotionalUsed) {return;}
 
       await supabase.from('subscription_analytics').insert({
         user_id: userId,

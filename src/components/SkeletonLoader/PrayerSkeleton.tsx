@@ -15,10 +15,10 @@ const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({
 
   React.useEffect(() => {
     isMounted.current = true;
-    
+
     const animate = () => {
-      if (!isMounted.current) return;
-      
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
@@ -36,9 +36,9 @@ const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({
         }
       });
     };
-    
+
     animate();
-    
+
     return () => {
       isMounted.current = false;
       animatedValue.stopAnimation();

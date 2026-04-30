@@ -1,6 +1,6 @@
 /**
  * Admin Dashboard Service - Phase 3
- * 
+ *
  * Comprehensive analytics queries and aggregation functions for the admin dashboard
  * Calls Supabase RPC functions to fetch aggregated analytics data
  */
@@ -90,7 +90,7 @@ class AdminDashboardService {
         end_date: endDate.toISOString().split('T')[0],
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data || [];
     } catch (error) {
       console.error('Failed to get user signups:', error);
@@ -108,7 +108,7 @@ class AdminDashboardService {
         end_date: endDate.toISOString().split('T')[0],
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data?.[0] || {
         total_signups: 0,
         trial_activations: 0,
@@ -135,7 +135,7 @@ class AdminDashboardService {
     try {
       const { data, error } = await supabase.rpc('get_subscription_breakdown');
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data || [];
     } catch (error) {
       console.error('Failed to get subscription breakdown:', error);
@@ -153,7 +153,7 @@ class AdminDashboardService {
         end_date: endDate.toISOString().split('T')[0],
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data || [];
     } catch (error) {
       console.error('Failed to get daily active users:', error);
@@ -171,7 +171,7 @@ class AdminDashboardService {
         end_date: endDate.toISOString().split('T')[0],
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data?.[0] || {
         total_payments: 0,
         successful_payments: 0,
@@ -200,7 +200,7 @@ class AdminDashboardService {
     try {
       const { data, error } = await supabase.rpc('get_renewal_metrics');
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data?.[0] || {
         total_subscriptions: 0,
         renewed_subscriptions: 0,
@@ -227,7 +227,7 @@ class AdminDashboardService {
     try {
       const { data, error } = await supabase.rpc('get_free_access_usage');
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data?.[0] || {
         total_free_playbooks_used: 0,
         total_free_devotionals_used: 0,
@@ -312,7 +312,7 @@ class AdminDashboardService {
     });
 
     return Object.entries(aggregated)
-      .map(([period, count]) => ({ date: period, count }))
+      .map(([periodKey, count]) => ({ date: periodKey, count }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 

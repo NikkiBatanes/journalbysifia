@@ -144,10 +144,10 @@ export const PlaybookSkeleton: React.FC = () => {
 
   React.useEffect(() => {
     isMounted.current = true;
-    
+
     const animate = () => {
-      if (!isMounted.current) return;
-      
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
@@ -165,9 +165,9 @@ export const PlaybookSkeleton: React.FC = () => {
         }
       });
     };
-    
+
     animate();
-    
+
     return () => {
       isMounted.current = false;
       animatedValue.stopAnimation();

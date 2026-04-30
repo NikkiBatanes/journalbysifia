@@ -21,10 +21,10 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
 
   useEffect(() => {
     isMounted.current = true;
-    
+
     const pulse = () => {
-      if (!isMounted.current) return;
-      
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 0.6,

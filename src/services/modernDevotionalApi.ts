@@ -332,11 +332,11 @@ async function generateDevotionalInternal(
         throw new Error('Invalid devotional response: missing or empty days array');
       }
 
-      const deriveCategory = (result: any): DevotionalCategory => {
+      const deriveCategory = (devotionalResult: any): DevotionalCategory => {
         try {
           // Try to get category from the AI result first
-          const fromResult = result?.category || result?.categories?.[0];
-          
+          const fromResult = devotionalResult?.category || devotionalResult?.categories?.[0];
+
           // Validate that the category from result is allowed
           const allowedCategories = [
             'Relationships',
@@ -366,9 +366,9 @@ async function generateDevotionalInternal(
           }
 
           // Fallback: derive from title/description content
-          const content = `${result?.title || ''} ${result?.description || ''}`.toLowerCase();
+          const content = `${devotionalResult?.title || ''} ${devotionalResult?.description || ''}`.toLowerCase();
           const base = content.replace(/[^a-z\s]/g, '').trim();
-          
+
           // Map content to allowed categories
           if (base.includes('relationship') || base.includes('family') || base.includes('marriage') || base.includes('spouse') || base.includes('partner')) {return 'Relationships' as DevotionalCategory;}
           if (base.includes('work') || base.includes('career') || base.includes('job') || base.includes('calling') || base.includes('vocation')) {return 'Work & Career' as DevotionalCategory;}
