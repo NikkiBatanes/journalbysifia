@@ -1793,27 +1793,37 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               ? 'Processing...'
               : dynamicSalesCopy?.primaryCta
                 ? dynamicSalesCopy.primaryCta
-                : shouldUseTrialProduct
-                  ? hasEverStartedTrial
-                    ? 'Upgrade to Growth'
-                    : 'Start 3-Day Free Trial'
-                  : fromExportRestriction
-                    ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                    : isUpgradeMode
-                        ? 'Upgrade and Continue'
-                        : fromPlanningLock
-                          ? 'Start Planning Ahead'
-                          : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                            ? 'Upgrade to Repeat Options'
-                            : fromCalendarAutoSync
-                              ? 'Upgrade to Auto-Sync'
-                              : fromCopyTodosLock
-                                ? 'Upgrade to Copy To-Dos'
-                                : (route.params as any)?.forceTransformationAnnual
-                                  ? 'Upgrade Plan to Annual'
-                                  : (route.params as any)?.forceAnnualOnly
-                                    ? 'Continue with Annual Plan'
-                                    : 'Continue My Journey'}
+                : shouldUseTrialProduct && hasEverStartedTrial
+                  ? 'Upgrade to Growth'
+                : shouldUseTrialProduct && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : fromExportRestriction && hasEverStartedTrial
+                  ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                : fromExportRestriction && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : isUpgradeMode
+                  ? 'Upgrade and Continue'
+                : fromPlanningLock && hasEverStartedTrial
+                  ? 'Start Planning Ahead'
+                : fromPlanningLock && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && hasEverStartedTrial
+                  ? 'Upgrade to Repeat Options'
+                : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : fromCalendarAutoSync && hasEverStartedTrial
+                  ? 'Upgrade to Auto-Sync'
+                : fromCalendarAutoSync && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : fromCopyTodosLock && hasEverStartedTrial
+                  ? 'Upgrade to Copy To-Dos'
+                : fromCopyTodosLock && !hasEverStartedTrial
+                  ? 'Start 3-Day Free Trial'
+                : (route.params as any)?.forceTransformationAnnual
+                  ? 'Upgrade Plan to Annual'
+                  : (route.params as any)?.forceAnnualOnly
+                    ? 'Continue with Annual Plan'
+                    : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
 
