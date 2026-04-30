@@ -170,33 +170,35 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
   const requestedDuration = routeParams?.requestedDuration;
-  const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
-  const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
-  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
-  const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
-  const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
-  const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
-  const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
-  // Derived: trial eligibility (only offer trial if user hasn't started one yet AND is currently on Seeker tier)
   const subscription = devotionalGating.subscription;
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-  const isSeekerTier = currentUserTier === 'seeker' || !currentUserTier; // !currentUserTier treats undefined as seeker
 
   // Test mode: override trial status if provided
   const testModeIsOnTrial = (routeParams as any)?.testModeIsOnTrial;
   const testModeHasStartedTrial = (routeParams as any)?.testModeHasStartedTrial;
   const testModeTrialEndDate = (routeParams as any)?.testModeTrialEndDate;
+  const testModeTier = (routeParams as any)?.testModeTier;
 
   const effectiveIsCurrentlyOnTrial = testModeIsOnTrial !== undefined ? testModeIsOnTrial : isCurrentlyOnTrial;
   const effectiveHasEverStartedTrial = testModeHasStartedTrial !== undefined ? testModeHasStartedTrial : hasEverStartedTrial;
   const effectiveTrialChosenTier = ((routeParams as any)?.testModeTrialChosenTier || subscription?.trial_chosen_tier) as SubscriptionTier | undefined;
   const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
+  const effectiveCurrentUserTier = (testModeTier || currentUserTier) as string;
+  const effectiveIsSeekerTier = effectiveCurrentUserTier === 'seeker' || !effectiveCurrentUserTier;
 
-  const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && isSeekerTier;
+  const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && effectiveIsSeekerTier;
+  const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
+  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && effectiveIsSeekerTier;
+  const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
+  const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
+  const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
+  const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
+
+  const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && effectiveIsSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
 
   // Detect if coming from devotional gating
@@ -212,7 +214,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const isOnTrial = subscription.tier === 'free_trial';
 
     // Test mode: use override values from route params if provided
-    const testModeTier = (routeParams as any)?.testModeTier;
     const testModeRemaining = (routeParams as any)?.testModeRemaining;
     const testModeLimit = (routeParams as any)?.testModeLimit;
     const testModeHasEverStartedTrial = (routeParams as any)?.testModeHasEverStartedTrial;
@@ -238,7 +239,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     return generateSalesCopy({
       featureType,
-      currentTier: (testModeTier || currentUserTier) as SubscriptionTier,
+      currentTier: effectiveCurrentUserTier as SubscriptionTier,
       remaining,
       limit,
       isOnTrial: effectiveIsCurrentlyOnTrial,
@@ -246,9 +247,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       trialEndDate: effectiveTrialEndDate,
       subscriptionStartDate: subscription.subscription_start_date,
       requestedDuration,
-      hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : hasEverStartedTrial,
+      hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : effectiveHasEverStartedTrial,
     });
-  }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, (routeParams as any)?.testModeTier, (routeParams as any)?.testModeRemaining, (routeParams as any)?.testModeLimit, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+  }, [isUpgradeMode, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, (routeParams as any)?.testModeRemaining, (routeParams as any)?.testModeLimit, (routeParams as any)?.testModeHasEverStartedTrial, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
 
   // Debug trial eligibility
   logger.debug('Trial eligibility debug', {
@@ -1758,19 +1759,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('Button pressed - checking trial eligibility', {
               shouldUseTrialProduct,
               canOfferTrial,
-              isCurrentlyOnTrial,
-              hasEverStartedTrial,
-              isSeekerTier,
-              currentUserTier,
+              isCurrentlyOnTrial: effectiveIsCurrentlyOnTrial,
+              hasEverStartedTrial: effectiveHasEverStartedTrial,
+              isSeekerTier: effectiveIsSeekerTier,
+              currentUserTier: effectiveCurrentUserTier,
               buttonText: shouldUseTrialProduct
-                ? hasEverStartedTrial
+                ? effectiveHasEverStartedTrial
                   ? 'Upgrade to Growth'
                   : 'Start 3-Day Free Trial'
                 : 'Regular purchase',
             });
 
             // Navigate to trial offer screen if user is eligible for trial and hasn't used it yet
-            if (shouldUseTrialProduct && !hasEverStartedTrial) {
+            if (shouldUseTrialProduct && !effectiveHasEverStartedTrial) {
               logger.info('Navigating to trial offer screen - user is trial eligible');
               try {
                 (navigation as any).navigate('OnboardingTrialOffer', {
@@ -1799,30 +1800,30 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               ? 'Processing...'
               : dynamicSalesCopy?.primaryCta
                 ? dynamicSalesCopy.primaryCta
-                : shouldUseTrialProduct && hasEverStartedTrial
+                : shouldUseTrialProduct && effectiveHasEverStartedTrial
                   ? 'Upgrade to Growth'
-                : shouldUseTrialProduct && !hasEverStartedTrial
+                : shouldUseTrialProduct && !effectiveHasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : fromExportRestriction
-                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : isUpgradeMode
                   ? 'Upgrade and Continue'
                 : fromPlanningLock
-                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : fromCalendarAutoSync
-                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : fromCopyTodosLock
-                  ? currentUserTier === 'seeker' && !hasEverStartedTrial
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : (route.params as any)?.forceTransformationAnnual
