@@ -950,7 +950,7 @@ const SwipeablePrayerCard: React.FC<{
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name={prayer.status === 'answered' ? "sparkle" : "checkmark"}
+                  name={prayer.status === 'answered' ? "sparkles" : "checkmark"}
                   size={18}
                   color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
                 />

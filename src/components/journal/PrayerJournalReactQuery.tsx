@@ -134,7 +134,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           }}
           activeOpacity={0.8}
         >
-          <Ionicons name={prayer.answered_at ? "sparkle" : "checkmark"} size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <Ionicons name={prayer.answered_at ? "sparkles" : "checkmark"} size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
           <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
             {prayer.answered_at ? 'Answered' : 'Mark Answered'}
           </ThemedText>
@@ -224,7 +224,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name={supplicationPrayer.answered_at ? "sparkle" : "checkmark"} size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <Ionicons name={supplicationPrayer.answered_at ? "sparkles" : "checkmark"} size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
             <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
               {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
             </ThemedText>
