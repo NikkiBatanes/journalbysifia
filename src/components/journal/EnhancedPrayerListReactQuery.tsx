@@ -341,47 +341,35 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   };
 
   const handleMarkAsUnanswered = async (prayerId: string) => {
-    Alert.alert(
-      'Mark as Unanswered',
-      'Mark this prayer as unanswered?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Unanswered',
-          onPress: async () => {
-            try {
-              triggerLightHaptic();
-              queryClient.setQueryData(
-                queryKeys.prayers.people(user?.id || '', dateStr),
-                (old: PersonPrayer[] | undefined) => {
-                  if (!old) {return old;}
-                  return old.map(prayer =>
-                    prayer.id === prayerId
-                      ? { ...prayer, status: 'pending' as const, answered_date: null }
-                      : prayer
-                  );
-                }
-              );
-              await updatePrayerMutation.mutateAsync({
-                id: prayerId,
-                updates: {
-                  status: 'pending' as const,
-                  answered_date: null,
-                },
-                _userId: user?.id || '',
-                _dateStr: dateStr,
-              });
-              triggerSuccessHaptic();
-            } catch (markUnansweredError) {
-              console.error('Failed to mark prayer as unanswered:', markUnansweredError);
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
-              });
-            }
-          },
+    try {
+      triggerLightHaptic();
+      queryClient.setQueryData(
+        queryKeys.prayers.people(user?.id || '', dateStr),
+        (old: PersonPrayer[] | undefined) => {
+          if (!old) {return old;}
+          return old.map(prayer =>
+            prayer.id === prayerId
+              ? { ...prayer, status: 'pending' as const, answered_date: null }
+              : prayer
+          );
+        }
+      );
+      await updatePrayerMutation.mutateAsync({
+        id: prayerId,
+        updates: {
+          status: 'pending' as const,
+          answered_date: null,
         },
-      ]
-    );
+        _userId: user?.id || '',
+        _dateStr: dateStr,
+      });
+      triggerSuccessHaptic();
+    } catch (markUnansweredError) {
+      console.error('Failed to mark prayer as unanswered:', markUnansweredError);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+      });
+    }
   };
 
   const handleSaveModalPrayer = async () => {
@@ -950,8 +938,8 @@ const SwipeablePrayerCard: React.FC<{
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name={prayer.status === 'answered' ? "sparkles" : "checkmark"}
-                  size={18}
+                  name={prayer.status === 'answered' ? "sparkles" : "checkmark-circle-outline"}
+                  size={14}
                   color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
                 />
                 <ThemedText style={[styles.answeredActionText, prayer.status === 'answered' && styles.answeredActionTextActive]} weight="medium">
@@ -1426,12 +1414,12 @@ const styles = StyleSheet.create({
   answeredActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    gap: 4,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     backgroundColor: 'rgba(26,60,109,0.15)',
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
     marginBottom: 8,
@@ -1441,7 +1429,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   answeredActionText: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.hopeWhite,
   },
   answeredActionTextActive: {
@@ -1463,9 +1451,9 @@ const styles = StyleSheet.create({
     color: Colors.growthGreen,
   },
   answeredDate: {
-    color: 'rgba(76, 175, 80, 0.9)',
-    fontSize: 10,
-    marginLeft: 4,
+    color: 'rgba(255, 107, 107, 0.9)',
+    fontSize: 12,
+    marginLeft: 6,
   },
   prayedButton: {
     opacity: 0.7,

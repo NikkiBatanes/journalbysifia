@@ -134,7 +134,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           }}
           activeOpacity={0.8}
         >
-          <Ionicons name={prayer.answered_at ? "sparkles" : "checkmark"} size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <Ionicons name={prayer.answered_at ? "sparkles" : "checkmark-circle-outline"} size={14} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
           <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
             {prayer.answered_at ? 'Answered' : 'Mark Answered'}
           </ThemedText>
@@ -224,7 +224,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name={supplicationPrayer.answered_at ? "sparkles" : "checkmark"} size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <Ionicons name={supplicationPrayer.answered_at ? "sparkles" : "checkmark-circle-outline"} size={14} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
             <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
               {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
             </ThemedText>
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
   },
   combinedOpeningText: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.hopeWhite,
     fontStyle: 'italic',
     lineHeight: 22,
   },
@@ -998,12 +998,12 @@ const styles = StyleSheet.create({
   markAnsweredButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    gap: 4,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     backgroundColor: 'rgba(26,60,109,0.15)',
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
     marginBottom: 8,
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   markAnsweredText: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.hopeWhite,
   },
   markAnsweredTextActive: {
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   answeredDateText: {
     color: 'rgba(255, 107, 107, 0.9)',
-    fontSize: 10,
+    fontSize: 12,
     marginLeft: 6,
   },
   answeredIndicator: {
