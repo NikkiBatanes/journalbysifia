@@ -1520,7 +1520,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               // Onboarding benefits (limit to 3, aligned copy)
               fromPlanningLock ? (
                 <>
-                  <ThemedText style={styles.featureBulletLabel}>
+                  <ThemedText weight="semiBold" style={styles.featureBulletLabel}>
                   With Plan Ahead, you can:
                 </ThemedText>
                 <View style={styles.featureBullet}>
