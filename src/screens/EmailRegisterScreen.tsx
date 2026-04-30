@@ -153,22 +153,8 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const { error: signUpError } = await signUp(emailTrim, password, {
-      firstName: first,
-      lastName: last,
-    });
-
-    if (signUpError) {
-      Logger.error('❌ Email registration failed', signUpError as Error, {
-        component: 'EmailRegisterScreen',
-      });
-      // Stay on this page and show inline error so user can fix inputs
-      triggerErrorHaptic();
-      setError(signUpError.message || 'Registration failed. Please try again.');
-      return;
-    }
-
-    // Set a post-auth redirect so Root/Splash can route instantly without flicker
+    // Write the redirect BEFORE signUp so Splash always finds it, even if the
+    // auth-state-change fires before the await below returns.
     const displayName = first || emailTrim.split('@')[0] || '';
     try {
       await AsyncStorage.setItem(
@@ -178,12 +164,27 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           params: { name: displayName, registrationMethod: 'email' },
         })
       );
-
     } catch (e) {
       Logger.warn('Could not set post-auth redirect flag', { component: 'EmailRegisterScreen', data: e });
     }
-    // Do not navigate here; the auth state change will switch stacks and Splash will redirect immediately
-    return;
+
+    Keyboard.dismiss();
+    const { error: signUpError } = await signUp(emailTrim, password, {
+      firstName: first,
+      lastName: last,
+    });
+
+    if (signUpError) {
+      Logger.error('❌ Email registration failed', signUpError as Error, {
+        component: 'EmailRegisterScreen',
+      });
+      // Undo the redirect so a retry doesn't accidentally route to Personalization
+      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+      triggerErrorHaptic();
+      setError(signUpError.message || 'Registration failed. Please try again.');
+      return;
+    }
+    // Auth state change switches stacks; Splash reads post_auth_redirect and navigates to OnboardingPersonalization.
   };
 
   const handleLogin = () => {

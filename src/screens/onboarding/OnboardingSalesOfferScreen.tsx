@@ -1467,7 +1467,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         {null}
 
         <View style={styles.cardHeader}>
-          <ThemedText weight="semiBold" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
+          <ThemedText weight="semiBold" style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
           {isCurrentPaidPlanCard ? (
@@ -1501,7 +1501,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         </View>
 
         <View style={styles.priceContainer}>
-          <ThemedText weight="bold" style={[tier.id === 'growth' ? styles.growthCurrentPrice : styles.currentPrice, isSelected && styles.selectedText]} numberOfLines={1}>
+          <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]} numberOfLines={1}>
             {(() => {
               const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
               const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
@@ -1522,30 +1522,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         <View style={styles.featuresContainer}>
           {(() => {
-            // Special formatting for Growth tier
-            if (tier.id === 'growth' && tier.features.length >= 6) {
-              return (
-                <>
-                  <View style={styles.featureRow}>
-                    <ThemedText style={styles.featureText}>
-                      {tier.features[0]} · {tier.features[1]}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.featureRow}>
-                    <ThemedText style={styles.featureText}>
-                      {tier.features[2]} · {tier.features[3]} · {tier.features[4]}
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.featureRow, { marginBottom: 0 }]}>
-                    <ThemedText style={styles.featureText}>
-                      {tier.features[5]}
-                    </ThemedText>
-                  </View>
-                </>
-              );
-            }
-
-            // Default formatting for other tiers
+            // Default formatting for all tiers
             const processed: string[] = [];
             const first = tier.features[0]?.trim() || '';
             const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
@@ -1558,6 +1535,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               } else if (tier.id === 'spark') {
                 processed.push('Access 1-day & 3-day devotionals');
               } else if (tier.id === 'transformation') {
+                processed.push('Access all devotional durations (1-7 days)');
+              } else if (tier.id === 'growth') {
                 processed.push('Access all devotional durations (1-7 days)');
               }
               // POST-LAUNCH: || tier.id === 'family'
