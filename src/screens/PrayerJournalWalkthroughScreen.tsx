@@ -1327,6 +1327,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                   status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
                   metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
                 },
+                _userId: user.id,
+                _dateStr: dateStr,
               });
             } else {
               // Create new prayer
@@ -1342,7 +1344,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             }
           } else if (isEditing && existingId) {
             // Delete empty prayer if editing
-            await deletePrayerMutation.mutateAsync(existingId);
+            await deletePrayerMutation.mutateAsync({
+              id: existingId,
+              _userId: user.id,
+              _dateStr: dateStr,
+            });
           }
         }
       } else if (selectedPath?.id === 'open' && openPrayerText.trim()) {
@@ -1357,6 +1363,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               status: openPrayerTrackAnswered ? 'pending' : undefined,
               metadata: { track_answered: openPrayerTrackAnswered },
             },
+            _userId: user.id,
+            _dateStr: dateStr,
           });
         } else {
           // Create new open prayer

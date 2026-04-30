@@ -154,7 +154,7 @@ export class AppleWebhookHandler {
           Logger.warn('[AppleWebhook] Failed to send renewal notification (non-fatal)', {
             component: 'AppleWebhookHandler',
             userId,
-            error: notifErr,
+            errorMessage: notifErr instanceof Error ? notifErr.message : String(notifErr),
           });
         });
 
