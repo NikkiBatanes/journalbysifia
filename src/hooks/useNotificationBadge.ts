@@ -7,6 +7,36 @@ import { pushNotificationService } from '../services/pushNotificationService';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
+const getNotificationData = (notification: any): Record<string, any> => {
+  return notification?.data && typeof notification.data === 'object' ? notification.data : {};
+};
+
+const getNotificationIdentity = (notification: any): string => {
+  const data = getNotificationData(notification);
+  const queueNotificationId = data.notification_id || data.queue_notification_id;
+  if (typeof queueNotificationId === 'string' && queueNotificationId.length > 0) {
+    return `queue:${queueNotificationId}`;
+  }
+
+  if (typeof data.dedupe_key === 'string' && data.dedupe_key.length > 0) {
+    return `dedupe:${data.dedupe_key}`;
+  }
+
+  const sourceKey = data.source_id || data.deep_link || '';
+  return [
+    notification.title || '',
+    notification.message || '',
+    sourceKey,
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
+
+const getLooseNotificationIdentity = (notification: any): string => {
+  return [
+    notification.title || '',
+    notification.message || '',
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
+
 /**
  * Hook for managing notification badge count
  * Use this to show unread notification count in UI
@@ -64,8 +94,19 @@ export function useNotificationBadge() {
         // POST-LAUNCH: Family invitations count
       ]);
 
-      const pushNotificationsCount = pushNotificationsUnread.data?.length || 0;
-      const count = pendingQueue.length + inAppUnread.length + pushNotificationsCount; // POST-LAUNCH: + familyInvites.length
+      const pushNotificationsData = pushNotificationsUnread.data || [];
+      const pushNotificationKeys = new Set(
+        pushNotificationsData.flatMap(notification => [
+          getNotificationIdentity(notification),
+          getLooseNotificationIdentity(notification),
+        ])
+      );
+      const visiblePendingQueue = pendingQueue.filter(notification => {
+        return !pushNotificationKeys.has(getNotificationIdentity(notification)) &&
+          !pushNotificationKeys.has(getLooseNotificationIdentity(notification));
+      });
+      const pushNotificationsCount = pushNotificationsData.length;
+      const count = visiblePendingQueue.length + inAppUnread.length + pushNotificationsCount; // POST-LAUNCH: + familyInvites.length
 
       setBadgeCount(count);
 
@@ -76,7 +117,7 @@ export function useNotificationBadge() {
         component: 'useNotificationBadge',
         count,
         breakdown: {
-          pendingQueue: pendingQueue.length,
+          pendingQueue: visiblePendingQueue.length,
           inAppUnread: inAppUnread.length,
           pushNotificationsUnread: pushNotificationsCount,
         },

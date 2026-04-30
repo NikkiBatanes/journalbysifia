@@ -28,6 +28,40 @@ interface NotificationsScreenProps {
   navigation: any;
 }
 
+const getNotificationTimestamp = (notification: any): string => {
+  return notification.created_at || notification.scheduled_for || new Date(0).toISOString();
+};
+
+const getNotificationData = (notification: any): Record<string, any> => {
+  return notification?.data && typeof notification.data === 'object' ? notification.data : {};
+};
+
+const getNotificationIdentity = (notification: any): string => {
+  const data = getNotificationData(notification);
+  const queueNotificationId = data.notification_id || data.queue_notification_id;
+  if (typeof queueNotificationId === 'string' && queueNotificationId.length > 0) {
+    return `queue:${queueNotificationId}`;
+  }
+
+  if (typeof data.dedupe_key === 'string' && data.dedupe_key.length > 0) {
+    return `dedupe:${data.dedupe_key}`;
+  }
+
+  const sourceKey = data.source_id || data.deep_link || '';
+  return [
+    notification.title || '',
+    notification.message || '',
+    sourceKey,
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
+
+const getLooseNotificationIdentity = (notification: any): string => {
+  return [
+    notification.title || '',
+    notification.message || '',
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
+
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
   const { fetchBadgeCount, clearBadge } = useNotificationBadge();
@@ -127,10 +161,20 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         ...notification,
         _notification_source: 'queue',
       }));
+      const pushNotificationKeys = new Set(
+        pushNotificationsData.flatMap((notification: any) => [
+          getNotificationIdentity(notification),
+          getLooseNotificationIdentity(notification),
+        ])
+      );
+      const visibleQueuedNotificationsData = queuedNotificationsData.filter((notification: any) => {
+        return !pushNotificationKeys.has(getNotificationIdentity(notification)) &&
+          !pushNotificationKeys.has(getLooseNotificationIdentity(notification));
+      });
 
       // Merge all notification sources and sort by timestamp (newest first)
       // POST-LAUNCH: Add familyInvitations back
-      const mergedNotifications = [...inAppNotifications, ...queuedNotificationsData, ...pushNotificationsData].sort((a, b) => {
+      const mergedNotifications = [...inAppNotifications, ...visibleQueuedNotificationsData, ...pushNotificationsData].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
@@ -170,9 +214,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
         // Update local state to reflect the change immediately
         setNotifications(prev =>
-          prev.map(n =>
-            n.id === notification.id ? { ...n, is_read: true } : n
-          )
+          prev.filter(n => !(n.id === notification.id && n._notification_source === 'notifications'))
         );
       }
 
@@ -256,7 +298,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             }
           } else if (notification._notification_source === 'queue') {
             // This is from notification_queue table
-            await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+            const markedRead = await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+            if (markedRead) {
+              setNotifications(prev =>
+                prev.filter(n => !(n.id === notification.id && n._notification_source === 'queue'))
+              );
+            }
           }
         }
       } catch (error) {
@@ -309,34 +356,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       }
 
       // Mark delivered queue notifications as read without cancelling future reminders.
-      const nowIso = new Date().toISOString();
-      const { error: queueSentError } = await supabase
-        .from('notification_queue')
-        .update({ status: 'read', read_at: nowIso })
-        .eq('user_id', user.id)
-        .eq('status', 'sent');
-
-      // NULL scheduled_for rows: lte() silently skips NULLs in Postgres, so include them explicitly
-      const { error: queueDueError } = await supabase
-        .from('notification_queue')
-        .update({ status: 'read', read_at: nowIso })
-        .eq('user_id', user.id)
-        .eq('status', 'pending')
-        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
-
-      const queueError = queueSentError || queueDueError;
-      if (queueError) {
-        Logger.error('Failed to clear delivered notifications from queue', queueError, {
+      const clearedQueue = await notificationManagementService.markAllNotificationsAsRead(user.id);
+      if (clearedQueue) {
+        Logger.info('Marked delivered queue notifications as read', {
           component: 'NotificationsScreen',
-          errorDetails: {
-            message: queueError.message,
-            details: queueError.details,
-            hint: queueError.hint,
-            code: queueError.code,
-          },
+          userId: user.id,
         });
       } else {
-        Logger.info('Marked delivered queue notifications as read', {
+        Logger.error('Failed to clear delivered notifications from queue', undefined, {
           component: 'NotificationsScreen',
           userId: user.id,
         });
@@ -713,12 +740,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       return Colors.alertCoral;
     }
     return Colors.anchorBlue;
-  };
-
-  const getNotificationTimestamp = (notification: any): string => {
-    // Prefer created_at (when notification was created) over scheduled_for (when it will be sent)
-    // For display purposes, we want to show when the notification actually happened
-    return notification.created_at || notification.scheduled_for || new Date(0).toISOString();
   };
 
   // Format time ago

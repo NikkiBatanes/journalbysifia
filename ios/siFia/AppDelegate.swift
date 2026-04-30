@@ -118,7 +118,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     print("📬 Received notification in foreground: \(notification.request.content.title)")
     
     // Send to React Native
-    let userInfo = notification.request.content.userInfo
+    var userInfo = notification.request.content.userInfo
+    userInfo["userInteraction"] = false
+    userInfo["foreground"] = true
     RCTPushNotificationBridge.shared?.didReceiveRemoteNotification(userInfo)
     
     // Show notification even when app is in foreground
@@ -139,7 +141,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     print("📱 User tapped notification: \(userInfo)")
     
     // Send to React Native via bridge
-    RCTPushNotificationBridge.shared?.didReceiveRemoteNotification(userInfo)
+    var tappedUserInfo = userInfo
+    tappedUserInfo["userInteraction"] = true
+    tappedUserInfo["foreground"] = false
+    RCTPushNotificationBridge.shared?.didReceiveRemoteNotification(tappedUserInfo)
     
     // Also send via NotificationCenter for legacy support
     NotificationCenter.default.post(

@@ -504,7 +504,7 @@ class NotificationManagementService {
         .from('notification_queue')
         .update({
           status: 'read',
-          read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', notificationId)
         .eq('user_id', userId);
@@ -539,7 +539,7 @@ class NotificationManagementService {
         .from('notification_queue')
         .update({
           status: 'read',
-          read_at: nowIso,
+          updated_at: nowIso,
         })
         .eq('user_id', userId)
         .eq('status', 'sent');
@@ -549,7 +549,7 @@ class NotificationManagementService {
         .from('notification_queue')
         .update({
           status: 'read',
-          read_at: nowIso,
+          updated_at: nowIso,
         })
         .eq('user_id', userId)
         .eq('status', 'pending')

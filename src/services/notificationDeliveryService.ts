@@ -132,6 +132,26 @@ class NotificationDeliveryService {
    */
   private async deliverNotification(notification: any): Promise<void> {
     try {
+      const cancellationReason = await this.getCancellationReason(notification);
+      if (cancellationReason) {
+        await supabase
+          .from('notification_queue')
+          .update({
+            status: 'cancelled',
+            error_message: cancellationReason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', notification.id);
+
+        Logger.info(`Cancelled stale notification ${notification.id}`, {
+          component: 'NotificationDeliveryService',
+          notificationId: notification.id,
+          type: notification.type,
+          reason: cancellationReason,
+        });
+        return;
+      }
+
       Logger.info(`Delivering notification ${notification.id}`, {
         component: 'NotificationDeliveryService',
         notificationId: notification.id,
@@ -190,11 +210,57 @@ class NotificationDeliveryService {
         .from('notification_queue')
         .update({
           status: 'failed',
-          error: (error as Error).message,
+          error_message: (error as Error).message,
           updated_at: new Date().toISOString(),
         })
         .eq('id', notification.id);
     }
+  }
+
+  private async getCancellationReason(notification: any): Promise<string | null> {
+    if (notification.type !== 'prayer_answered_check') {
+      return null;
+    }
+
+    const prayerId = notification.data?.source_id;
+    if (typeof prayerId !== 'string' || prayerId.length === 0) {
+      return null;
+    }
+
+    const { data: prayer, error } = await supabase
+      .from('prayers')
+      .select('id, status, prayed, is_prayer_request, metadata')
+      .eq('id', prayerId)
+      .eq('user_id', notification.user_id)
+      .maybeSingle();
+
+    if (error) {
+      Logger.warn('Unable to validate prayer before notification delivery', {
+        component: 'NotificationDeliveryService',
+        notificationId: notification.id,
+        prayerId,
+        error,
+      });
+      return null;
+    }
+
+    if (!prayer) {
+      return 'prayer_not_found';
+    }
+
+    if (prayer.status === 'answered') {
+      return 'prayer_already_answered';
+    }
+
+    if (prayer.metadata?.track_answered !== true) {
+      return 'answered_tracking_disabled';
+    }
+
+    if (prayer.is_prayer_request === true && prayer.prayed !== true) {
+      return 'prayer_request_not_prayed';
+    }
+
+    return null;
   }
 
   /**
@@ -202,11 +268,18 @@ class NotificationDeliveryService {
    */
   private async deliverLocalNotification(notification: any): Promise<void> {
     await pushNotificationService.scheduleLocalNotification({
+      id: notification.id,
       title: notification.title,
       message: notification.message,
       badge: notification.badge,
       sound: notification.sound || 'default',
-      data: notification.data || {},
+      data: {
+        ...(notification.data || {}),
+        notification_id: notification.id,
+        queue_notification_id: notification.id,
+        user_id: notification.user_id,
+        type: notification.type,
+      },
     }, new Date());
   }
 
@@ -231,12 +304,17 @@ class NotificationDeliveryService {
       // we'll deliver as local notification but with push-like behavior
       // In a real implementation, this would integrate with FCM/APNS
       await pushNotificationService.scheduleLocalNotification({
+        id: notification.id,
         title: notification.title,
         message: notification.message,
         badge: notification.badge,
         sound: notification.sound || 'default',
         data: {
           ...notification.data,
+          notification_id: notification.id,
+          queue_notification_id: notification.id,
+          user_id: notification.user_id,
+          type: notification.type,
           push_notification: true,
           device_token: deviceToken.token,
         },

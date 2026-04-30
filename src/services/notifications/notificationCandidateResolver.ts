@@ -79,6 +79,7 @@ type PendingPrayerRequest = {
 type UnansweredPrayer = {
   id: string;
   content?: string | null;
+  metadata?: Record<string, unknown> | null;
   person_name?: string | null;
   is_prayer_request?: boolean | null;
   prayed?: boolean | null;
@@ -361,7 +362,7 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
 
   const { data, error } = await supabase
     .from('prayers')
-    .select('id, content, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at')
+    .select('id, content, metadata, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at')
     .eq('user_id', userId)
     .in('prayer_type', ['journal', 'people'])
     .or('status.is.null,status.neq.answered')
@@ -379,10 +380,15 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
   }
 
   // Filter in JS to avoid complex chained PostgREST OR conditions:
-  // - journal type: only supplication (CAST S). Exclude adoration/confession/thanksgiving.
+  // - only prayers the user explicitly asked to track for answered-prayer follow-up.
+  // - journal type: supplication (CAST S) or open prayer. Exclude adoration/confession/thanksgiving.
   // - prayer requests: only include if already prayed. Unprayed requests haven't been engaged yet.
   const filtered = (data || []).filter((prayer: any) => {
-    if (prayer.prayer_type === 'journal' && prayer.journal_category !== 'supplication') {return false;}
+    if (prayer.metadata?.track_answered !== true) {return false;}
+    if (
+      prayer.prayer_type === 'journal' &&
+      !['supplication', 'personal_prayer'].includes(prayer.journal_category)
+    ) {return false;}
     if (prayer.is_prayer_request === true && prayer.prayed !== true) {return false;}
     return true;
   }).slice(0, 10);

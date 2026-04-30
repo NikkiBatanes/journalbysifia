@@ -150,6 +150,8 @@ serve(async (req) => {
           data: {
             type,
             ...data,
+            user_id,
+            ...(notification_id ? { notification_id, queue_notification_id: notification_id } : {}),
           },
           priority: priority === 'critical' ? 'high' : 'normal',
           sound: 'default',

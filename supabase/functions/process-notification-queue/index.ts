@@ -56,6 +56,25 @@ serve(async (req) => {
     for (const notification of pendingNotifications || []) {
       try {
         const userId = notification.user_id;
+        const cancellationReason = await getCancellationReason(supabase, notification);
+        if (cancellationReason) {
+          console.log(`Cancelling notification ${notification.id}: ${cancellationReason}`);
+          await supabase
+            .from('notification_queue')
+            .update({
+              status: 'cancelled',
+              error_message: cancellationReason,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', notification.id);
+
+          results.push({
+            id: notification.id,
+            success: false,
+            reason: cancellationReason,
+          });
+          continue;
+        }
         
         // Check if we already sent a notification to this user in THIS batch
         if (usersProcessedInThisBatch.has(userId)) {
@@ -235,3 +254,44 @@ serve(async (req) => {
     );
   }
 });
+
+async function getCancellationReason(supabase: any, notification: any): Promise<string | null> {
+  if (notification.type !== 'prayer_answered_check') {
+    return null;
+  }
+
+  const prayerId = notification.data?.source_id;
+  if (typeof prayerId !== 'string' || prayerId.length === 0) {
+    return null;
+  }
+
+  const { data: prayer, error } = await supabase
+    .from('prayers')
+    .select('id, status, prayed, is_prayer_request, metadata')
+    .eq('id', prayerId)
+    .eq('user_id', notification.user_id)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(`Unable to validate prayer ${prayerId} before notification delivery:`, error.message);
+    return null;
+  }
+
+  if (!prayer) {
+    return 'prayer_not_found';
+  }
+
+  if (prayer.status === 'answered') {
+    return 'prayer_already_answered';
+  }
+
+  if (prayer.metadata?.track_answered !== true) {
+    return 'answered_tracking_disabled';
+  }
+
+  if (prayer.is_prayer_request === true && prayer.prayed !== true) {
+    return 'prayer_request_not_prayed';
+  }
+
+  return null;
+}
