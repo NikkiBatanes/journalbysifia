@@ -761,7 +761,7 @@ const ACTSPrayerSlidesStep: React.FC<{
                 style={styles.personalInput}
                 value={prayerTexts[currentStep.key] || ''}
                 onChangeText={(text) => onChange(currentStep.key, text)}
-                placeholder={currentStep.placeholder || "Write your prayer here..."}
+                placeholder={currentStep.placeholder || 'Write your prayer here...'}
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 multiline
                 textAlignVertical="top"
@@ -1068,7 +1068,7 @@ const CompletionStep: React.FC<{
 
   const renderACTSPrayer = () => {
     const validSteps = ACTS_STEPS.filter(step => prayerTexts[step.key]);
-    if (validSteps.length === 0) return null;
+    if (validSteps.length === 0) {return null;}
 
     return (
       <>
@@ -1316,7 +1316,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         for (const step of ACTS_STEPS) {
           const text = prayerTexts[step.key];
           const existingId = existingPrayerIds[step.key];
-          
+
           if (text && text.trim()) {
             if (isEditing && existingId) {
               // Update existing prayer
@@ -1347,7 +1347,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         }
       } else if (selectedPath?.id === 'open' && openPrayerText.trim()) {
         const existingId = existingPrayerIds.freeform;
-        
+
         if (isEditing && existingId) {
           // Update existing open prayer
           await updateMutation.mutateAsync({

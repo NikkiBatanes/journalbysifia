@@ -78,7 +78,7 @@ class SmartNotificationEngine {
   private selectByTimeWindow(candidates: SmartNotificationCandidate[]): SmartNotificationCandidate[] {
     const MAX_PER_WINDOW = 3;
     const MAX_TOTAL = 10;
-    
+
     const byWindow = new Map<SmartNotificationTimeWindow, SmartNotificationCandidate[]>();
 
     [...candidates]
@@ -93,7 +93,7 @@ class SmartNotificationEngine {
 
     // Flatten all candidates and sort by time window
     const allCandidates = Array.from(byWindow.entries())
-      .flatMap(([timeWindow, windowCandidates]) => windowCandidates)
+      .flatMap(([_timeWindow, windowCandidates]) => windowCandidates)
       .sort((a, b) => {
         const aDate = getNextWindowDate(a.timeWindow).getTime();
         const bDate = getNextWindowDate(b.timeWindow).getTime();

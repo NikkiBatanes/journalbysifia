@@ -420,7 +420,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   };
 
   const handleEditPrayer = (prayer: PersonPrayer) => {
-    if (!navigation) return;
+    if (!navigation) {return;}
 
     // Determine the prayer type
     const prayerType = prayer.is_prayer_request === true ? 'prayer-request' : 'pray-for-someone';
@@ -455,8 +455,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 _dateStr: dateStr,
               });
               triggerSuccessHaptic();
-            } catch (error) {
-              console.error('Failed to delete prayer:', error);
+            } catch (deleteError) {
+              console.error('Failed to delete prayer:', deleteError);
               Alert.alert('Error', 'Failed to delete prayer. Please try again.');
             }
           },

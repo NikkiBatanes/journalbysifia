@@ -98,26 +98,19 @@ export class NotificationTester {
     const getWords = (pb: any): string[] => {
       if (pb.wordToSpeak) {
         const lines = String(pb.wordToSpeak).split(/\n+/).map((l: string) => strip(l.replace(/^[-*]\s*/, '').trim())).filter(Boolean);
-        if (lines.length) return lines.slice(0, 5);
+        if (lines.length) {return lines.slice(0, 5);}
       }
       const dc = pb.directChallenge;
       if (dc && typeof dc === 'object' && dc.wordToSpeak) {
         const lines = String(dc.wordToSpeak).split(/\n+/).map((l: string) => strip(l.replace(/^[-*]\s*/, '').trim())).filter(Boolean);
-        if (lines.length) return lines.slice(0, 5);
+        if (lines.length) {return lines.slice(0, 5);}
       }
       return (pb.affirmations || []).map((a: any) => strip(safeStr(a.text))).filter(Boolean).slice(0, 5);
     };
 
-    const getPrayer = (pb: any): string => {
-      if (pb.prayer) return strip(String(pb.prayer));
-      const dc = pb.directChallenge;
-      if (dc && typeof dc === 'object' && dc.prayer) return strip(String(dc.prayer));
-      return '';
-    };
-
     const getVerse = (pb: any): { reference: string; text: string } => {
       const bv = pb.bibleVerse || pb.bible_verse;
-      if (bv && typeof bv === 'object') return { reference: strip(safeStr(bv.reference)), text: strip(safeStr(bv.text)) };
+      if (bv && typeof bv === 'object') {return { reference: strip(safeStr(bv.reference)), text: strip(safeStr(bv.text)) };}
       return { reference: '', text: '' };
     };
 
@@ -136,7 +129,7 @@ export class NotificationTester {
         .order('order_index', { ascending: true })
         .limit(10);
       const firstStep = (stepsData || []).find((s: any) => s.text?.trim());
-      if (firstStep) actionText = strip(String(firstStep.text));
+      if (firstStep) {actionText = strip(String(firstStep.text));}
     }
 
     const activeDevotional = devotionals.find((d: any) => {
@@ -155,8 +148,8 @@ export class NotificationTester {
         ctx.title = ctx.totalDays === 1 ? activeDevotional.title : dayObj.title;
         const bv = dayObj.scripture;
         if (bv) { ctx.verseReference = strip(safeStr(bv.reference)); ctx.verseText = strip(safeStr(bv.text)); }
-        const q = (dayObj.reflectionQuestions || []).find((q: any) => safeStr(q?.text));
-        if (q) ctx.questionText = strip(safeStr(q.text));
+        const q = (dayObj.reflectionQuestions || []).find((question: any) => safeStr(question?.text));
+        if (q) {ctx.questionText = strip(safeStr(q.text));}
       }
     }
 
@@ -165,7 +158,7 @@ export class NotificationTester {
       ctx.wordToSpeak = words[new Date().getDate() % words.length];
     }
 
-    if (actionText) ctx.actionText = actionText;
+    if (actionText) {ctx.actionText = actionText;}
 
     // Store playbook verse separately so it isn't overwritten by devotional verse
     if (pbWithVerse) {
@@ -197,7 +190,7 @@ export class NotificationTester {
       ctx.remainingCount = Math.min(pbRem, devRem);
       const anchor = new Date(sub.subscription_start_date || new Date());
       const next = new Date(anchor);
-      while (next <= new Date()) next.setMonth(next.getMonth() + 1);
+      while (next <= new Date()) {next.setMonth(next.getMonth() + 1);}
       ctx.refreshDate = next.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
@@ -212,7 +205,7 @@ export class NotificationTester {
       }
     } catch (e) {
       // Fallback to playbook title if guided prompt fails
-      if (playbooks[0]?.title) ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
+      if (playbooks[0]?.title) {ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;}
     }
 
     const debug = [
@@ -612,7 +605,7 @@ export class NotificationTester {
       for (const devotional of incompleteDevotionals.slice(0, 3)) {
         const days = Array.isArray(devotional.days) ? devotional.days : [];
         const incompleteDay = days.find((d: any) => d?.completed !== true) || days[0];
-        
+
         if (incompleteDay) {
           const dayNumber = typeof incompleteDay.dayNumber === 'number' ? incompleteDay.dayNumber : days.indexOf(incompleteDay) + 1;
           const copy = buildSmartNotificationCopy('devotional_day_ready', {
@@ -657,10 +650,10 @@ export class NotificationTester {
 
       const { supabase } = await import('../services/supabaseClient');
       const { getPlaybooks } = await import('../services/modernPlaybookApi');
-      
+
       const playbooks = await getPlaybooks(userId).catch(() => []);
       const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
-      
+
       if (!ongoingPlaybook) {
         Logger.warn('No ongoing playbook found', { component: 'NotificationTester' });
         return 0;
@@ -678,15 +671,15 @@ export class NotificationTester {
       let count = 0;
 
       for (const step of steps) {
-        if (count >= 3) break;
-        
+        if (count >= 3) {break;}
+
         const subTasks = step.playbook_sub_tasks || [];
         if ((step as any).completed === true && subTasks.every((st: any) => st.completed === true)) {
           continue;
         }
 
         const actionText = step.text?.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim() || '';
-        if (!actionText) continue;
+        if (!actionText) {continue;}
 
         const copy = buildSmartNotificationCopy('playbook_faithful_action', { actionText });
 
@@ -725,10 +718,10 @@ export class NotificationTester {
 
       const { supabase } = await import('../services/supabaseClient');
       const { getPlaybooks } = await import('../services/modernPlaybookApi');
-      
+
       const playbooks = await getPlaybooks(userId).catch(() => []);
       const playbooksWithVerses = playbooks.filter((pb: any) => pb.bible_verse?.text);
-      
+
       if (playbooksWithVerses.length === 0) {
         Logger.warn('No playbooks with verses found', { component: 'NotificationTester' });
         return;
@@ -746,12 +739,12 @@ export class NotificationTester {
 
       // Find available verses
       const availableVerses = playbooksWithVerses.filter((pb: any) => !notifiedVerses.includes(pb.id));
-      
+
       if (availableVerses.length === 0) {
         Logger.info('All verses have been notified - resetting tracking', {
           component: 'NotificationTester',
         });
-        
+
         // Reset tracking
         await supabase
           .from('user_profiles')
@@ -763,7 +756,7 @@ export class NotificationTester {
             },
           })
           .eq('user_id', userId);
-        
+
         return;
       }
 
@@ -821,7 +814,7 @@ export class NotificationTester {
       });
 
       const { getPlaybooks } = await import('../services/modernPlaybookApi');
-      
+
       const playbooks = await getPlaybooks(userId).catch(() => []);
       const playbooksWithWords = playbooks.filter((pb: any) => {
         const words = pb.wordToSpeak || pb.directChallenge?.wordToSpeak || pb.affirmations;
@@ -837,7 +830,7 @@ export class NotificationTester {
       let count = 0;
 
       for (const timeWindow of timeWindows) {
-        if (count >= playbooksWithWords.length) break;
+        if (count >= playbooksWithWords.length) {break;}
 
         const playbook = playbooksWithWords[count];
         let words: string[] = [];
@@ -850,7 +843,7 @@ export class NotificationTester {
           words = (playbook as any).affirmations.map((a: any) => a.text?.trim()).filter(Boolean);
         }
 
-        if (words.length === 0) continue;
+        if (words.length === 0) {continue;}
 
         const wordIndex = (new Date().getDate() + count) % words.length;
         const wordToSpeak = words[wordIndex];
@@ -891,7 +884,7 @@ export class NotificationTester {
       });
 
       const { smartNotificationEngine } = await import('../services/notifications/smartNotificationEngine');
-      
+
       const decision = await smartNotificationEngine.scheduleForUser(userId);
 
       Logger.info('✅ Smart notification engine test complete', {
@@ -921,7 +914,7 @@ export class NotificationTester {
       });
 
       const { supabase } = await import('../services/supabaseClient');
-      
+
       const { data: userData } = await supabase
         .from('user_profiles')
         .select('metadata')

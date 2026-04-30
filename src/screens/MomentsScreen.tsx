@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, Dimensions, DeviceEventEmitter, TextInput, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Feather, Search, X as CloseIcon, ChevronDown } from 'lucide-react-native';
+import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
@@ -57,7 +57,6 @@ export const MomentsScreen: React.FC = () => {
 
   // Search and filter modal visibility
   const [showSearch, setShowSearch] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Refs to programmatically open modals
   const groupingRef = useRef<GroupingSelectHandle>(null);
@@ -114,7 +113,6 @@ export const MomentsScreen: React.FC = () => {
 
   // Get all available plugins
   const plugins = getAllPlugins();
-  const isSmallScreen = Dimensions.get('window').width <= 360;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

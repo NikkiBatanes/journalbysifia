@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { View, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
+import { View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -26,7 +26,6 @@ const OPTIONS: { value: GroupingMode; label: string }[] = [
 const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ value, onChange, compact = false }, ref) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
   const fontMedium = getFontFamily(fontKey, 'medium');
   const [open, setOpen] = useState(false);
 

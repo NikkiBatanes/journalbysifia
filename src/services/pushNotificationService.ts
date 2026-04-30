@@ -438,8 +438,8 @@ class PushNotificationService {
   async scheduleLocalNotification(payload: NotificationPayload, date?: Date): Promise<void> {
     try {
       // Get current user ID from Supabase auth (more reliable than AsyncStorage)
-      const { supabase } = await import('./supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
+      const { supabase: supabaseClient } = await import('./supabaseClient');
+      const { data: { user } } = await supabaseClient.auth.getUser();
       const userId = user?.id;
 
       if (Platform.OS === 'ios') {

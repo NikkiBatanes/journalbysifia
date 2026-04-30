@@ -796,7 +796,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
   const { badgeCount, fetchBadgeCount } = useNotificationBadge();
-  const [isTestingNotifications, setIsTestingNotifications] = useState(false);
+  const [isTestingNotifications, _setIsTestingNotifications] = useState(false);
   const [notifTestModalVisible, setNotifTestModalVisible] = useState(false);
   const [notifTestTab, setNotifTestTab] = useState<'types' | 'queue' | 'history'>('types');
   const [notifQueueItems, setNotifQueueItems] = useState<any[]>([]);
@@ -805,6 +805,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [notifSending, setNotifSending] = useState<string | null>(null);
   const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
   const [notifSimulatedDay, setNotifSimulatedDay] = useState<number | null>(null);
+  const [salesCopyModalVisible, setSalesCopyModalVisible] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -813,13 +814,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   );
 
   const handleTestAllNotifications = useCallback(() => {
-    if (!__DEV__) return;
+    if (!__DEV__) {return;}
     setNotifTestTab('types');
     setNotifTestModalVisible(true);
   }, []);
 
   const loadNotifData = useCallback(async (tab: 'queue' | 'history') => {
-    if (!user?.id) return;
+    if (!user?.id) {return;}
     setNotifDataLoading(true);
     try {
       if (tab === 'queue') {
@@ -1891,7 +1892,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 key={tab}
                 onPress={() => {
                   setNotifTestTab(tab);
-                  if (tab === 'queue' || tab === 'history') loadNotifData(tab);
+                  if (tab === 'queue' || tab === 'history') {loadNotifData(tab);}
                 }}
                 style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: notifTestTab === tab ? Colors.anchorBlue : 'rgba(255,255,255,0.08)' }}
               >
@@ -2020,6 +2021,224 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               ))}
             </ScrollView>
           )}
+        </SafeAreaView>
+      </Modal>
+    )}
+
+    {/* Sales Copy Viewer Modal */}
+    {salesCopyModalVisible && (
+      <Modal
+        visible={salesCopyModalVisible}
+        onRequestClose={() => setSalesCopyModalVisible(false)}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.anchorBlue }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' }}>
+            <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 16 }}>Sales Copy Scenarios</ThemedText>
+            <TouchableOpacity onPress={() => setSalesCopyModalVisible(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 16 }}>
+              Tap a scenario to open the actual sales offer screen with those parameters
+            </ThemedText>
+
+            {/* Seeker Tier - Monthly Free Access Used Up */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  currentTier: 'seeker',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free playbooks for this month have been used.</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free devotional for this month has been used.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  currentTier: 'free_trial',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial User - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all available during your free trial.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Paid User - No Remaining */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  currentTier: 'spark',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month. Want more?</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  currentTier: 'growth',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month. Want more?</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  currentTier: 'transformation',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all for this month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Devotional Duration Locked */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  requestedDuration: 5,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 5-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5-day devotionals are available with Growth Plan or higher.</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  requestedDuration: 7,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 7-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>7-day devotionals are available with Transformation Plan.</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  currentTier: 'growth',
+                  requestedDuration: 7,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - 7-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>7-day devotionals are available with Transformation Plan.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Context-based scenarios */}
+            <ThemedText weight="semiBold" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 24, marginBottom: 8, textTransform: 'uppercase' }}>
+              Context-Based Scenarios
+            </ThemedText>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'planning_lock',
+                  feature: 'future_planning',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Upgrade to Plan Ahead</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'copy_todos_lock',
+                  feature: 'copy_todos',
+                  incompleteTodosCount: 5,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Unlock Copy To-Dos & More</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'pdf_export_restriction',
+                  feature: 'export_pdf',
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Save your reflection as a PDF</ThemedText>
+            </TouchableOpacity>
+
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     )}
