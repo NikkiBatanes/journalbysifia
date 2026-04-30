@@ -2053,7 +2053,7 @@ const styles = StyleSheet.create({
   },
   featureBulletLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.hopeWhite,
     marginBottom: 8,
     marginTop: 8,
   },
