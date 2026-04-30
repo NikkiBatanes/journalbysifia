@@ -23,6 +23,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { useTheme } from '../hooks/useTheme';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
@@ -1029,6 +1030,7 @@ const CompletionStep: React.FC<{
   onCastOpeningChange: (value: string) => void;
   onCastClosingChange: (value: string) => void;
 }> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false, castOpening, castClosing, onCastOpeningChange, onCastClosingChange }) => {
+  const theme = useTheme();
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
@@ -1072,16 +1074,14 @@ const CompletionStep: React.FC<{
       <>
         <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>OPENING</ThemedText>
-          <View style={styles.completionInputContainer}>
-            <TextInput
-              style={styles.completionInput}
-              value={castOpening}
-              onChangeText={onCastOpeningChange}
-              placeholder="e.g., Heavenly Father,"
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
-              keyboardAppearance="dark"
-            />
-          </View>
+          <TextInput
+            style={[styles.completionInput, { fontFamily: theme.currentFont }]}
+            value={castOpening}
+            onChangeText={onCastOpeningChange}
+            placeholder="e.g., Heavenly Father,"
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            keyboardAppearance="dark"
+          />
         </View>
 
         {validSteps.map((step, index) => {
@@ -1109,16 +1109,14 @@ const CompletionStep: React.FC<{
 
         <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>CLOSING</ThemedText>
-          <View style={styles.completionInputContainer}>
-            <TextInput
-              style={styles.completionInput}
-              value={castClosing}
-              onChangeText={onCastClosingChange}
-              placeholder="e.g., In Jesus' Name, Amen"
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
-              keyboardAppearance="dark"
-            />
-          </View>
+          <TextInput
+            style={[styles.completionInput, { fontFamily: theme.currentFont }]}
+            value={castClosing}
+            onChangeText={onCastClosingChange}
+            placeholder="e.g., In Jesus' Name, Amen"
+            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            keyboardAppearance="dark"
+          />
         </View>
       </>
     );
@@ -1974,20 +1972,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
-  completionInputContainer: {
-    height: 50,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    marginTop: 8,
-  },
   completionInput: {
-    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 24,
-    paddingHorizontal: 12,
-    fontFamily: Fonts.regular,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
   },
   completionSectionSmall: {
     marginBottom: 0,
