@@ -746,9 +746,7 @@ const ACTSPrayerSlidesStep: React.FC<{
             <View style={styles.actsCard}>
               {/* Display suggested opening on confession step */}
               {actsStepIndex === 0 && (
-                <View style={styles.suggestedTextContainer}>
-                  <ThemedText style={styles.suggestedText}>{castOpening}</ThemedText>
-                </View>
+                <ThemedText style={styles.suggestedText}>{castOpening}</ThemedText>
               )}
 
               <View style={styles.actsCardHeader}>
@@ -770,9 +768,7 @@ const ACTSPrayerSlidesStep: React.FC<{
 
               {/* Display suggested closing on thanksgiving step */}
               {isLastStep && (
-                <View style={styles.suggestedTextContainer}>
-                  <ThemedText style={styles.suggestedText}>{castClosing}</ThemedText>
-                </View>
+                <ThemedText style={styles.suggestedText}>{castClosing}</ThemedText>
               )}
             </View>
           </StepFadeIn>
@@ -1024,7 +1020,11 @@ const CompletionStep: React.FC<{
   supplicationTrackAnswered: boolean;
   openPrayerTrackAnswered: boolean;
   isEditing?: boolean;
-}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false }) => {
+  castOpening: string;
+  castClosing: string;
+  onCastOpeningChange?: (text: string) => void;
+  onCastClosingChange?: (text: string) => void;
+}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false, castOpening, castClosing, onCastOpeningChange, onCastClosingChange }) => {
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
@@ -1062,28 +1062,68 @@ const CompletionStep: React.FC<{
 
   const renderACTSPrayer = () => {
     const validSteps = ACTS_STEPS.filter(step => prayerTexts[step.key]?.trim());
-    return validSteps.map((step, index) => {
-      const text = prayerTexts[step.key];
-      const isLast = index === validSteps.length - 1;
 
-      return (
-        <View key={step.key} style={[styles.completionSection, isLast && { borderBottomWidth: 0 }]}>
-          <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
-          <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
-          {step.key === 'supplication' && supplicationTrackAnswered && (
-            <View style={[styles.completionSection, styles.completionSectionSmall]}>
-              <View style={styles.trackingRow}>
-                <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
-                <View style={styles.trackingBadgeContainer}>
-                  <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
-                  <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
-                </View>
-              </View>
-            </View>
+    return (
+      <>
+        {/* Editable opening */}
+        <View style={styles.completionSection}>
+          <ThemedText weight="medium" style={styles.completionSectionLabel}>OPENING</ThemedText>
+          {onCastOpeningChange ? (
+            <TextInput
+              style={styles.completionTextInput}
+              value={castOpening}
+              onChangeText={onCastOpeningChange}
+              placeholder="Heavenly Father,"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              multiline
+              textAlignVertical="top"
+            />
+          ) : (
+            <ThemedText style={styles.completionSectionText}>{castOpening}</ThemedText>
           )}
         </View>
-      );
-    });
+
+        {validSteps.map((step, index) => {
+          const text = prayerTexts[step.key];
+
+          return (
+            <View key={step.key} style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
+              {step.key === 'supplication' && supplicationTrackAnswered && (
+                <View style={[styles.completionSection, styles.completionSectionSmall]}>
+                  <View style={styles.trackingRow}>
+                    <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
+                    <View style={styles.trackingBadgeContainer}>
+                      <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
+                      <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        {/* Editable closing */}
+        <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
+          <ThemedText weight="medium" style={styles.completionSectionLabel}>CLOSING</ThemedText>
+          {onCastClosingChange ? (
+            <TextInput
+              style={styles.completionTextInput}
+              value={castClosing}
+              onChangeText={onCastClosingChange}
+              placeholder="In Jesus' Name, Amen"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              multiline
+              textAlignVertical="top"
+            />
+          ) : (
+            <ThemedText style={styles.completionSectionText}>{castClosing}</ThemedText>
+          )}
+        </View>
+      </>
+    );
   };
 
   const renderOpenPrayer = () => {
@@ -1449,6 +1489,10 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             supplicationTrackAnswered={supplicationTrackAnswered}
             openPrayerTrackAnswered={openPrayerTrackAnswered}
             isEditing={!!editingPrayerId}
+            castOpening={castOpening}
+            castClosing={castClosing}
+            onCastOpeningChange={setCastOpening}
+            onCastClosingChange={setCastClosing}
           />
         )}
       </View>
@@ -1761,16 +1805,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     letterSpacing: 0.3,
   },
-  suggestedTextContainer: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
   suggestedText: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.6)',
     fontStyle: 'italic',
+    marginBottom: 12,
   },
   actsCardDescription: {
     fontSize: 14,
@@ -1932,6 +1971,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     lineHeight: 24,
+  },
+  completionTextInput: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   markAnsweredButton: {
     marginTop: 12,

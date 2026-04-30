@@ -214,6 +214,13 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       }}
       activeOpacity={0.7}
     >
+      {/* Opening */}
+      {orderedPrayers.length > 0 && (
+        <View style={styles.combinedContentSection}>
+          <ThemedText style={styles.suggestedPrayerText}>Heavenly Father,</ThemedText>
+        </View>
+      )}
+
       {/* Content before supplication (confession, adoration) */}
       {beforeSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
@@ -280,6 +287,13 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
           <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
         </View>
       ))}
+
+      {/* Closing */}
+      {orderedPrayers.length > 0 && (
+        <View style={styles.combinedContentSection}>
+          <ThemedText style={styles.suggestedPrayerText}>In Jesus' Name, Amen</ThemedText>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -826,6 +840,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
     letterSpacing: 0.1,
+  },
+  suggestedPrayerText: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontStyle: 'italic',
+    lineHeight: 22,
   },
   supplicationSection: {
     gap: 8,
