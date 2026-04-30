@@ -1187,8 +1187,9 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       const path = PRAYER_PATHS.find(p => p.id === initialPrayerType);
       if (path) {
         setSelectedPath(path);
-        // Skip to step 1 (prayer entry) when editing
-        setCurrentStep(1);
+        // Skip to step 1 (CAST prayer entry) or step 2 (open prayer entry)
+        const targetStep = initialPrayerType === 'acts' ? 1 : 2;
+        setCurrentStep(targetStep);
 
         // Load existing prayer data if editingPrayerId is provided
         if (editingPrayerId && prayerEntries) {
