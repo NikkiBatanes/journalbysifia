@@ -236,6 +236,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Tracking indicator for supplication - shown right after supplication */}
       {supplicationPrayer && supplicationPrayer.metadata?.track_answered === true && (
         <View style={styles.trackingSection}>
+          <ThemedText style={styles.trackingLabel} weight="medium">Supplication Tracking</ThemedText>
           {/* Mark as Answered Button */}
           {!supplicationPrayer.answered_at && (
             <TouchableOpacity
@@ -830,6 +831,12 @@ const styles = StyleSheet.create({
   trackingSection: {
     marginTop: 12,
     marginBottom: 12,
+  },
+  trackingLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    marginBottom: 8,
   },
   combinedPrayerText: {
     fontSize: 16,
