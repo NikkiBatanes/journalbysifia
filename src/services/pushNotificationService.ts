@@ -459,13 +459,16 @@ class PushNotificationService {
           _message: payload.message,
         };
 
+        // UNCalendarNotificationTrigger silently drops requests whose fire time is already past.
+        // Ensure we always schedule at least 1 second in the future.
+        const fireDate = date ? Math.max(date.getTime(), Date.now() + 1000) : Date.now() + 1000;
         await PushNotificationBridge.scheduleLocalNotification({
           title: payload.title,
           body: payload.message,
           badge: payload.badge,
           sound: payload.sound || 'default',
           userInfo,
-          fireDate: date ? date.getTime() : Date.now() + 1000,
+          fireDate,
           id: notificationId,
         });
       } else if (Platform.OS === 'android' && PushNotification) {

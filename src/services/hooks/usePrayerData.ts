@@ -82,11 +82,15 @@ export const useAllDevotionalPrayerData = (userId: string) => {
 export const useUnprayedPrayerRequests = (userId: string) => {
   return useQuery({
     queryKey: queryKeys.prayers.unprayedRequests(userId),
-    queryFn: () => PrayerApi.getUnprayedPrayerRequests(userId),
-    staleTime: 30 * 1000, // 30 seconds - refetch periodically to ensure UI is up-to-date after marking as prayed
+    queryFn: () => {
+      console.log('[useUnprayedPrayerRequests] Fetching prayer requests for user:', userId);
+      return PrayerApi.getUnprayedPrayerRequests(userId);
+    },
+    staleTime: 0, // Always consider stale to ensure immediate updates after deletion
     enabled: !!userId,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
-    refetchOnMount: false, // Don't always refetch on mount to prevent skeleton loader from showing when no requests exist
+    refetchOnMount: true, // Refetch on mount to ensure dashboard shows latest data
+    refetchOnWindowFocus: true, // Refetch when app comes to foreground
   });
 };
 
@@ -527,6 +531,7 @@ export const useDeletePrayer = () => {
       }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
+      console.log('[useDeletePrayer] onSettled called - invalidating caches for user:', _userId);
       // Always refetch after error or success to ensure all views update
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
@@ -543,6 +548,7 @@ export const useDeletePrayer = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
+      console.log('[useDeletePrayer] Cache invalidation complete');
     },
   });
 };

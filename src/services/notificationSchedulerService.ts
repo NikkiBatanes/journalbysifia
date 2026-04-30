@@ -479,11 +479,12 @@ class NotificationSchedulerService {
    * Sent after a successful billing cycle renewal so the user knows their room is restored.
    */
   async scheduleSubscriptionRenewalNotification(userId: string, tier: string): Promise<boolean> {
+    const displayTier = (tier === 'seeker' || tier === 'siFia Seeker') ? 'siFia Free' : tier;
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'subscription_renewed',
       title: 'Your room is restored',
-      message: `Your ${tier} plan renewed. Fresh room for playbooks and devotionals — keep going.`,
+      message: `Your ${displayTier} plan renewed. Fresh room for playbooks and devotionals — keep going.`,
       data: {
         deep_link: 'sifia://dashboard',
         tier,

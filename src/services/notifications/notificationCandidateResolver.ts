@@ -382,14 +382,15 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
   // Filter in JS to avoid complex chained PostgREST OR conditions:
   // - only prayers the user explicitly asked to track for answered-prayer follow-up.
   // - journal type: supplication (CAST S) or open prayer. Exclude adoration/confession/thanksgiving.
-  // - prayer requests: only include if already prayed. Unprayed requests haven't been engaged yet.
+  // - prayer requests (is_prayer_request=true) are never in the answered check — the pray-for-someone
+  //   entry created when the user actually prays (via PrayerEditorScreen) carries track_answered.
   const filtered = (data || []).filter((prayer: any) => {
     if (prayer.metadata?.track_answered !== true) {return false;}
+    if (prayer.is_prayer_request === true) {return false;}
     if (
       prayer.prayer_type === 'journal' &&
       !['supplication', 'personal_prayer'].includes(prayer.journal_category)
     ) {return false;}
-    if (prayer.is_prayer_request === true && prayer.prayed !== true) {return false;}
     return true;
   }).slice(0, 10);
 

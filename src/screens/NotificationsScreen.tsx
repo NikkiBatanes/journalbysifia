@@ -23,6 +23,7 @@ import { notificationDeepLinkService } from '../services/notificationDeepLinkSer
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -78,7 +79,15 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     try {
       setLoading(true);
 
-      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+      // Clear notification cache
+      try {
+        await AsyncStorage.removeItem('notification_queue');
+        await AsyncStorage.removeItem('notifications:lastScheduled');
+      } catch (e) {
+        console.log('Failed to clear cache:', e);
+      }
+
+      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any)?.email).trim().toLowerCase() : null;
 
       const [queuedNotifications, inAppNotificationsRaw, pushNotifications] = await Promise.all([
         // POST-LAUNCH: familyInvitations
@@ -179,6 +188,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
       });
+
+      console.log('🔔 DEBUG: Final notifications count:', mergedNotifications.length);
+      console.log('🔔 DEBUG: Full notification details:', JSON.stringify(mergedNotifications, null, 2));
 
       setNotifications(mergedNotifications);
     } catch (error) {

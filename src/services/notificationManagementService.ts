@@ -538,7 +538,7 @@ class NotificationManagementService {
       const { error: sentError } = await supabase
         .from('notification_queue')
         .update({
-          status: 'read',
+          status: 'cancelled',
           updated_at: nowIso,
         })
         .eq('user_id', userId)
@@ -548,7 +548,7 @@ class NotificationManagementService {
       const { error: duePendingError } = await supabase
         .from('notification_queue')
         .update({
-          status: 'read',
+          status: 'cancelled',
           updated_at: nowIso,
         })
         .eq('user_id', userId)
@@ -560,6 +560,12 @@ class NotificationManagementService {
         Logger.error('Error marking all notifications as read', error as Error, {
           component: 'notificationManagementService',
           userId,
+          errorDetails: {
+            message: (error as any).message,
+            code: (error as any).code,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          },
         });
         return false;
       }

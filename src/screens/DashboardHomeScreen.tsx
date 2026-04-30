@@ -39,6 +39,8 @@ import { getFontFamily } from '../theme/fonts';
 import { Logger } from '../utils/ProductionLogger';
 import { NotificationTester } from '../utils/notificationTester';
 import { SMART_NOTIFICATION_TYPES } from '../services/notifications/notificationTypes';
+import { billingNotificationService } from '../services/billingNotificationService';
+import { pushNotificationService } from '../services/pushNotificationService';
 import { generateSalesCopy, type SalesCopyParams } from '../utils/dynamicSalesCopy';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
@@ -882,6 +884,51 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       }
     }
   }, [user?.id, notifSimulatedDay, notifTestTab, loadNotifData]);
+
+  const handleSendBillingType = useCallback(async (type: string) => {
+    if (!user?.id) {return;}
+    setNotifSending(type);
+    setNotifLastSent(null);
+    try {
+      const rawTier = subscription?.subscription_display_name || subscription?.tier || 'your plan';
+      const tier = (rawTier === 'seeker' || rawTier === 'siFia Seeker') ? 'siFia Free' : rawTier;
+      const copyMap: Record<string, { title: string; message: string }> = {
+        subscription_renewed: { title: 'Your room is restored', message: `Your ${tier} plan renewed. Fresh room for playbooks and devotionals — keep going.` },
+        payment_failed: { title: 'Payment Failed 💳', message: 'Your payment method failed. Please update it to continue your subscription.' },
+        subscription_cancelled: { title: 'Subscription Cancelled 📋', message: `We'll miss you! Your benefits continue until your plan expires.` },
+        payment_successful: { title: `Welcome to ${tier}! 🌸`, message: 'Your payment was successful. Enjoy your enhanced spiritual journey!' },
+      };
+      const copy = copyMap[type] || { title: type, message: 'Billing event fired' };
+
+      // Fire the push directly (2 s delay) so the banner appears immediately during testing
+      await pushNotificationService.scheduleLocalNotification(
+        { title: copy.title, message: copy.message, data: { type, deep_link: 'sifia://dashboard', test: true } },
+        new Date(Date.now() + 2000),
+      );
+
+      // Also queue through billing service so it persists in the notification screen
+      switch (type) {
+        case 'subscription_renewed':
+          billingNotificationService.handleSubscriptionRenewal(user.id, tier).catch(() => {});
+          break;
+        case 'payment_failed':
+          billingNotificationService.handlePaymentFailure(user.id, 'test failure').catch(() => {});
+          break;
+        case 'subscription_cancelled':
+          billingNotificationService.handleSubscriptionCancellation(user.id).catch(() => {});
+          break;
+        case 'payment_successful':
+          billingNotificationService.handlePaymentSuccess(user.id, tier, 0).catch(() => {});
+          break;
+      }
+
+      setNotifLastSent({ type, title: copy.title, message: copy.message, debug: 'push fires in ~2 s' });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send billing notification.');
+    } finally {
+      setNotifSending(null);
+    }
+  }, [user?.id, subscription]);
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -2022,6 +2069,31 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                         onPress={() => handleSendSingleType(type)}
                         disabled={sending || notifSending !== null}
                         style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : Colors.anchorBlue, opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Billing notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  BILLING
+                </ThemedText>
+                {(['subscription_renewed', 'payment_failed', 'subscription_cancelled', 'payment_successful'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendBillingType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#7c3aed', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
                       >
                         {sending ? (
                           <ActivityIndicator size="small" color="#fff" />

@@ -103,8 +103,21 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [currentRequestedBy, setCurrentRequestedBy] = useState('');
 
   // Show more / show less state for inline display
-  const [requestsDisplayLimit, setRequestsDisplayLimit] = useState(2);
-  const [personalDisplayLimit, setPersonalDisplayLimit] = useState(2);
+  // Initial display: 1 prayer request + 1 prayed for, or 2 of one type if the other is empty
+  const [requestsDisplayLimit, setRequestsDisplayLimit] = useState(() => {
+    const hasRequests = peoplePrayers.some(p => p.is_prayer_request === true && p.prayed !== true);
+    const hasPersonal = peoplePrayers.some(p => p.is_prayer_request !== true);
+    if (hasRequests && hasPersonal) return 1;
+    if (hasRequests) return 2;
+    return 0;
+  });
+  const [personalDisplayLimit, setPersonalDisplayLimit] = useState(() => {
+    const hasRequests = peoplePrayers.some(p => p.is_prayer_request === true && p.prayed !== true);
+    const hasPersonal = peoplePrayers.some(p => p.is_prayer_request !== true);
+    if (hasRequests && hasPersonal) return 1;
+    if (hasPersonal) return 2;
+    return 0;
+  });
 
   // Computed values
   // Only count requests that are not yet prayed
@@ -806,10 +819,16 @@ const SwipeablePrayerCard: React.FC<{
   onEdit?: (prayer: PersonPrayer) => void;
   onDelete?: (prayer: PersonPrayer) => void;
 }> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit, onDelete }) => {
+  const actionButtonPressedRef = React.useRef(false);
+
   return (
     <TouchableOpacity
       style={styles.prayerItem}
       onPress={() => {
+        if (actionButtonPressedRef.current) {
+          actionButtonPressedRef.current = false;
+          return;
+        }
         if (onEdit) {
           triggerLightHaptic();
           onEdit(prayer);
@@ -886,18 +905,26 @@ const SwipeablePrayerCard: React.FC<{
           </View>
           {/* Show Pray for Now button for any prayer request that is not prayed for */}
           {prayer.is_prayer_request === true && prayer.prayed !== true && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => { triggerLightHaptic(); handleAddToMyList(prayer); }}
-            >
-              <Ionicons
-                name="add-circle-outline"
-                size={18}
-                color={Colors.hopeWhite}
-                style={styles.iconMargin}
-              />
-              <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
-            </TouchableOpacity>
+            <View style={styles.addButtonContainer}>
+              <View style={styles.addButtonDivider} />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                  actionButtonPressedRef.current = true;
+                  triggerLightHaptic();
+                  handleAddToMyList(prayer);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={18}
+                  color={Colors.hopeWhite}
+                  style={styles.iconMargin}
+                />
+                <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
+              </TouchableOpacity>
+            </View>
           )}
           {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
           {(() => {
@@ -911,6 +938,7 @@ const SwipeablePrayerCard: React.FC<{
               <TouchableOpacity
                 style={styles.answeredActionButton}
                 onPress={() => {
+                  actionButtonPressedRef.current = true;
                   handleMarkAsAnswered(prayer.id);
                 }}
                 activeOpacity={0.7}
@@ -926,34 +954,39 @@ const SwipeablePrayerCard: React.FC<{
           )}
           {/* Show Answered badge for prayers that are already answered - tappable to mark as unanswered */}
           {prayer.status === 'answered' && (
-            <TouchableOpacity
-              style={styles.answeredBadgeContainer}
-              onPress={() => handleMarkAsUnanswered(prayer.id)}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="hand-heart"
-                size={14}
-                color={Colors.growthGreen}
-              />
-              <ThemedText style={styles.answeredBadgeText} weight="medium">Answered</ThemedText>
-              {prayer.answered_date && (
-                <ThemedText style={styles.answeredDate}>
-                  {(() => {
-                    const date = new Date(prayer.answered_date);
-                    const currentYear = new Date().getFullYear();
-                    const isCurrentYear = date.getFullYear() === currentYear;
+            <View style={styles.answeredBadgeWrapper}>
+              <TouchableOpacity
+                style={styles.answeredBadgeContainer}
+                onPress={() => {
+                  actionButtonPressedRef.current = true;
+                  handleMarkAsUnanswered(prayer.id);
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="hand-heart"
+                  size={14}
+                  color={Colors.growthGreen}
+                />
+                <ThemedText style={styles.answeredBadgeText} weight="medium">Answered</ThemedText>
+                {prayer.answered_date && (
+                  <ThemedText style={styles.answeredDate}>
+                    {(() => {
+                      const date = new Date(prayer.answered_date);
+                      const currentYear = new Date().getFullYear();
+                      const isCurrentYear = date.getFullYear() === currentYear;
 
-                    return date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      ...(isCurrentYear ? {} : { year: 'numeric' }),
-                    });
-                  })()}
-                </ThemedText>
-              )}
-            </TouchableOpacity>
+                      return date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        ...(isCurrentYear ? {} : { year: 'numeric' }),
+                      });
+                    })()}
+                  </ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
           )}
     </TouchableOpacity>
   );
@@ -1279,6 +1312,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     padding: 20,
     minHeight: 60,
+    marginBottom: 12,
     // Make the prayer row a distinct card (like completionCard)
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
@@ -1376,11 +1410,24 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
     width: '100%',
+  },
+  addButtonDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+  },
+  addButtonContainer: {
+    width: '100%',
+  },
+  answeredBadgeWrapper: {
+    alignSelf: 'flex-start',
   },
   answeredButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',

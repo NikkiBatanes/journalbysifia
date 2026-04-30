@@ -204,6 +204,7 @@ export class PrayerApi {
    * Criteria: is_prayer_request = true AND prayed != true
    */
   static async getUnprayedPrayerRequests(userId: string): Promise<PrayerApiEntry[]> {
+    console.log('[PrayerApi.getUnprayedPrayerRequests] Fetching for user:', userId);
     const session = await ensureAuthenticated();
 
     if (userId !== session.user.id) {
@@ -225,12 +226,13 @@ export class PrayerApi {
 
     if (error) {
       Logger.error('Error fetching unprayed prayer requests', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
+        component: 'prayerApi',
+        action: 'error',
     });
       throw new Error(`Failed to fetch unprayed prayer requests: ${error.message}`);
     }
 
+    console.log('[PrayerApi.getUnprayedPrayerRequests] Found', data?.length || 0, 'unprayed requests');
     return (data || []).map((p) => ({
       ...p,
       type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'devotional'),
@@ -623,6 +625,7 @@ export class PrayerApi {
 
   // Delete a prayer
   static async deletePrayer(id: string): Promise<void> {
+    console.log('[PrayerApi.deletePrayer] Deleting prayer with id:', id);
     const session = await ensureAuthenticated();
     const userId = session?.user?.id;
 
@@ -638,6 +641,7 @@ export class PrayerApi {
     const { error } = await deleteQuery;
 
     if (error) {
+      console.error('[PrayerApi.deletePrayer] Error deleting prayer:', error);
       Logger.error('Error deleting prayer', error as Error, {
       component: 'prayerApi',
       action: 'error',
@@ -645,6 +649,7 @@ export class PrayerApi {
       throw new Error(`Failed to delete prayer: ${error.message}`);
     }
 
+    console.log('[PrayerApi.deletePrayer] Successfully deleted prayer from database');
     // Cancel queue rows and hide history rows tied to this prayer so deleted
     // prayers cannot keep surfacing in notification center.
     await this.suppressAnsweredCheckNotifications(id, userId);

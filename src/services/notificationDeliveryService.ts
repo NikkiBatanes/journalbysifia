@@ -252,12 +252,12 @@ class NotificationDeliveryService {
       return 'prayer_already_answered';
     }
 
-    if (prayer.metadata?.track_answered !== true) {
-      return 'answered_tracking_disabled';
+    if (prayer.is_prayer_request === true) {
+      return 'prayer_request_not_tracked';
     }
 
-    if (prayer.is_prayer_request === true && prayer.prayed !== true) {
-      return 'prayer_request_not_prayed';
+    if (prayer.metadata?.track_answered !== true) {
+      return 'answered_tracking_disabled';
     }
 
     return null;
