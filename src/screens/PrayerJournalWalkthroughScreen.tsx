@@ -1072,14 +1072,16 @@ const CompletionStep: React.FC<{
       <>
         <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>OPENING</ThemedText>
-          <TextInput
-            style={styles.completionInput}
-            value={castOpening}
-            onChangeText={onCastOpeningChange}
-            placeholder="e.g., Heavenly Father,"
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            keyboardAppearance="dark"
-          />
+          <View style={styles.completionInputContainer}>
+            <TextInput
+              style={styles.completionInput}
+              value={castOpening}
+              onChangeText={onCastOpeningChange}
+              placeholder="e.g., Heavenly Father,"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              keyboardAppearance="dark"
+            />
+          </View>
         </View>
 
         {validSteps.map((step, index) => {
@@ -1107,14 +1109,16 @@ const CompletionStep: React.FC<{
 
         <View style={styles.completionSection}>
           <ThemedText weight="medium" style={styles.completionSectionLabel}>CLOSING</ThemedText>
-          <TextInput
-            style={styles.completionInput}
-            value={castClosing}
-            onChangeText={onCastClosingChange}
-            placeholder="e.g., In Jesus' Name, Amen"
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            keyboardAppearance="dark"
-          />
+          <View style={styles.completionInputContainer}>
+            <TextInput
+              style={styles.completionInput}
+              value={castClosing}
+              onChangeText={onCastClosingChange}
+              placeholder="e.g., In Jesus' Name, Amen"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              keyboardAppearance="dark"
+            />
+          </View>
         </View>
       </>
     );
@@ -1970,16 +1974,20 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
   },
+  completionInputContainer: {
+    height: 50,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    marginTop: 8,
+  },
   completionInput: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 14,
-    marginTop: 8,
     fontFamily: Fonts.regular,
+    backgroundColor: 'transparent',
   },
   completionSectionSmall: {
     marginBottom: 0,
