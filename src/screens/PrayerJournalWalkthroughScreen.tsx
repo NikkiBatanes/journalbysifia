@@ -1979,7 +1979,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 8,
     fontFamily: Fonts.regular,
-    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   completionSectionSmall: {
     marginBottom: 0,
