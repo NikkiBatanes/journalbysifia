@@ -2389,6 +2389,126 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 5,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 5-Day Devotional Locked (Trial Eligible)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 5,
+                  hasEverStartedTrial: false,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 5,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 5-Day Devotional Locked (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 5,
+                  hasEverStartedTrial: true,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 7,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 7-Day Devotional Locked (Trial Eligible)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 7,
+                  hasEverStartedTrial: false,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 7,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 7-Day Devotional Locked (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 7,
+                  hasEverStartedTrial: true,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
                   testModeTier: 'spark',
                   testModeRemaining: 5,
                   testModeLimit: 10,
@@ -2624,6 +2744,40 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Spark Locked)</ThemedText>
               <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity

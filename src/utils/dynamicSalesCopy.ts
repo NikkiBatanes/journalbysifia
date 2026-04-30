@@ -137,6 +137,11 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : 'Devotionals';
   const hasNoRemaining = remaining === 0;
+  const effectiveTier = currentTier === 'free_trial' && trialChosenTier
+    ? trialChosenTier
+    : currentTier === 'transformation_annual'
+      ? 'transformation'
+      : currentTier;
 
   // CASE 1: Seeker tier - monthly free access used up (2 PB / 1 DEV per month)
   if (currentTier === 'seeker' && hasNoRemaining) {
@@ -246,7 +251,29 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   // CASE 4: Devotional duration locked (user has remaining, but wants locked duration)
   if (featureType === 'devotionals' && requestedDuration && !hasNoRemaining) {
-    if (currentTier === 'spark' && (requestedDuration === 5 || requestedDuration === 7)) {
+    if (effectiveTier === 'seeker' && (requestedDuration === 5 || requestedDuration === 7)) {
+      if (requestedDuration === 5) {
+        return {
+          title: 'Unlock 5-Day\nDevotionals',
+          message: `5-day devotionals are available with Growth or Transformation. Upgrade to unlock 5-day devotionals, or choose another duration.`,
+          primaryCta: hasEverStartedTrial ? 'Upgrade to Growth' : 'Start 3-Day Free Trial',
+          secondaryCta: 'Choose Another Duration',
+          recommendedTier: 'growth',
+          showUpgradeOptions: true,
+        };
+      }
+
+      return {
+        title: 'Unlock 7-Day\nDevotionals',
+        message: `7-day devotionals are available with Transformation. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+        primaryCta: hasEverStartedTrial ? 'Upgrade to Transformation' : 'Start 3-Day Free Trial',
+        secondaryCta: 'Choose Another Duration',
+        recommendedTier: 'transformation',
+        showUpgradeOptions: true,
+      };
+    }
+
+    if (effectiveTier === 'spark' && (requestedDuration === 5 || requestedDuration === 7)) {
       if (requestedDuration === 5) {
         return {
           title: 'Unlock 5-Day\nDevotionals',
@@ -255,7 +282,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
           showUpgradeOptions: true,
-          isCurrentTier: 'spark',
+          isCurrentTier: isOnTrial ? undefined : 'spark',
         };
       } else {
         // 7-day
@@ -266,10 +293,10 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'transformation',
           showUpgradeOptions: true,
-          isCurrentTier: 'spark',
+          isCurrentTier: isOnTrial ? undefined : 'spark',
         };
       }
-    } else if (currentTier === 'growth' && requestedDuration === 7) {
+    } else if (effectiveTier === 'growth' && requestedDuration === 7) {
       return {
         title: 'Unlock 7-Day\nDevotionals',
         message: `7-day devotionals are available with Transformation. Growth includes up to 25 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
@@ -277,7 +304,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
-        isCurrentTier: 'growth',
+        isCurrentTier: isOnTrial ? undefined : 'growth',
       };
     }
   }

@@ -179,7 +179,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Test mode: override trial status if provided
   const testModeIsOnTrial = (routeParams as any)?.testModeIsOnTrial;
-  const testModeHasStartedTrial = (routeParams as any)?.testModeHasStartedTrial;
+  const testModeHasStartedTrial = (routeParams as any)?.testModeHasStartedTrial ?? (routeParams as any)?.testModeHasEverStartedTrial;
   const testModeTrialEndDate = (routeParams as any)?.testModeTrialEndDate;
   const testModeTier = (routeParams as any)?.testModeTier;
 
@@ -1824,6 +1824,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
                 : fromCopyTodosLock
+                  ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
+                    ? 'Start 3-Day Free Trial'
+                    : 'Upgrade to Growth'
+                : fromGuidedPromptsLock
                   ? effectiveIsSeekerTier && !effectiveHasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
                     : 'Upgrade to Growth'
