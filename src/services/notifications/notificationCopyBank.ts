@@ -192,7 +192,7 @@ export function buildSmartNotificationCopy(
       return {
         title: 'Keep today simple',
         message: compact(context.refreshDate
-          ? `New creation room returns on ${context.refreshDate}. Pray or revisit today\'s focus.`
+          ? `New creation room returns on ${context.refreshDate}. Pray or revisit today's focus.`
           : 'Pray, journal, or revisit a verse while you wait for more creation room.'),
       };
 
