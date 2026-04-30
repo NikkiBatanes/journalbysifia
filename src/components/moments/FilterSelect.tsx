@@ -69,40 +69,34 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.overlay}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
-              <ThemedText weight="semiBold" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>Select Filters</ThemedText>
-              <View style={styles.sheetHeaderRow}>
-                {count > 0 && (
-                  <TouchableOpacity onPress={clearAll}>
-                    <ThemedText style={[styles.clearText, { fontFamily: fontMedium }]}>Clear</ThemedText>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity onPress={() => { triggerLightHaptic(); setOpen(false); }}>
-                  <Ionicons name="close" size={22} color={Colors.hopeWhite} />
+              <ThemedText weight="medium" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>SELECT FILTERS</ThemedText>
+              {count > 0 && (
+                <TouchableOpacity onPress={clearAll} style={styles.clearButton}>
+                  <ThemedText weight="medium" style={[styles.clearText, { fontFamily: fontMedium }]}>Clear</ThemedText>
                 </TouchableOpacity>
-              </View>
+              )}
             </View>
-
-            <FlatList
-              data={FILTER_OPTIONS}
-              keyExtractor={(item) => item.key}
-              renderItem={({ item }) => {
+            <View style={styles.optionsGrid}>
+              {FILTER_OPTIONS.map((item) => {
                 const active = values.includes(item.key);
                 return (
                   <TouchableOpacity
-                    style={[styles.option, active && styles.activeOption]}
+                    key={item.key}
+                    style={[styles.optionPill, active && styles.activeOptionPill]}
                     onPress={() => toggle(item.key)}
                   >
-                    <ThemedText style={[styles.optionText, { fontFamily: fontRegular }]}>{item.label}</ThemedText>
-                    {active && <Ionicons name="checkmark" size={18} color={Colors.hopeWhite} />}
+                    <ThemedText weight={active ? 'semiBold' : 'medium'} style={[styles.optionPillText, active && styles.activeOptionPillText, { fontFamily: fontMedium }]}>
+                      {item.label}
+                    </ThemedText>
                   </TouchableOpacity>
                 );
-              }}
-            />
+              })}
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -126,15 +120,27 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 30, padding: 20 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sheetHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
-  clearText: { color: Colors.hopeWhite, opacity: 0.8 },
-  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  activeOption: { backgroundColor: Colors.alertCoral },
-  optionText: { color: Colors.hopeWhite, fontSize: 14 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  sheet: { backgroundColor: Colors.anchorBlue, borderRadius: 24, padding: 20, maxWidth: 320, alignSelf: 'center' },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  sheetTitle: { fontSize: 16, color: Colors.hopeWhite, textTransform: 'uppercase' },
+  clearButton: { padding: 4 },
+  clearText: { color: Colors.hopeWhite, opacity: 0.8, fontSize: 14 },
+  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  optionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  activeOptionPill: { backgroundColor: Colors.alertCoral, borderColor: Colors.alertCoral },
+  optionPillText: { color: Colors.hopeWhite, fontSize: 14 },
+  activeOptionPillText: { color: Colors.hopeWhite },
 });
 
 export default FilterSelect;
