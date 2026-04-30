@@ -1798,25 +1798,25 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 : shouldUseTrialProduct && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : fromExportRestriction && hasEverStartedTrial
-                  ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                  ? 'Upgrade to Growth'
                 : fromExportRestriction && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : isUpgradeMode
                   ? 'Upgrade and Continue'
                 : fromPlanningLock && hasEverStartedTrial
-                  ? 'Start Planning Ahead'
+                  ? 'Upgrade to Growth'
                 : fromPlanningLock && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && hasEverStartedTrial
-                  ? 'Upgrade to Repeat Options'
+                  ? 'Upgrade to Growth'
                 : (fromRepeatOptionsLock || fromRepeatUpgradePrompt) && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : fromCalendarAutoSync && hasEverStartedTrial
-                  ? 'Upgrade to Auto-Sync'
+                  ? 'Upgrade to Growth'
                 : fromCalendarAutoSync && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : fromCopyTodosLock && hasEverStartedTrial
-                  ? 'Upgrade to Copy To-Dos'
+                  ? 'Upgrade to Growth'
                 : fromCopyTodosLock && !hasEverStartedTrial
                   ? 'Start 3-Day Free Trial'
                 : (route.params as any)?.forceTransformationAnnual
