@@ -1607,22 +1607,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             )}
           </View>
 
-          {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
-          {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && !dynamicSalesCopy?.closeOnPrimaryCta && (
-            <TouchableOpacity
-              style={styles.seeAllPlansButton}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setShowAllPlans(!showAllPlans);
-              }}
-              activeOpacity={0.8}
-            >
-              <ThemedText style={styles.seeAllPlansText}>{showAllPlans ? 'Show Less' : 'See All Plans'}</ThemedText>
-            </TouchableOpacity>
-          )}
-
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
+            {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
+            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && !dynamicSalesCopy?.closeOnPrimaryCta && (
+              <TouchableOpacity
+                style={styles.seeAllPlansButton}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setShowAllPlans(!showAllPlans);
+                }}
+                activeOpacity={0.8}
+              >
+                <ThemedText style={styles.seeAllPlansText}>{showAllPlans ? 'Show Less' : 'See All Plans'}</ThemedText>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.seeAllPlansButton}
               onPress={handleTermsOfService}
@@ -2133,6 +2132,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+    minWidth: 280,
   },
   seeAllPlansText: {
     fontSize: 15,
