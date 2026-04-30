@@ -152,6 +152,86 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   );
 };
 
+// CombinedCASTPrayerCard Component - displays CAST prayers as one whole prayer with supplication separated
+interface CombinedCASTPrayerCardProps {
+  nonSupplicationPrayers: any[];
+  supplicationPrayer: any | null;
+  onMarkAnswered: (id: string, isAnswered: boolean) => void;
+}
+
+const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
+  nonSupplicationPrayers,
+  supplicationPrayer,
+  onMarkAnswered,
+}) => {
+  // Combine non-supplication prayers into one content block
+  const combinedContent = nonSupplicationPrayers
+    .map(p => p.content)
+    .filter(Boolean)
+    .join('\n\n');
+
+  return (
+    <View style={styles.combinedCASTCard}>
+      {/* Main prayer content (Confession, Adoration, Thanksgiving combined) */}
+      {combinedContent && (
+        <View style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>{combinedContent}</ThemedText>
+        </View>
+      )}
+
+      {/* Supplication section - separated for tracking */}
+      {supplicationPrayer && (
+        <View style={styles.supplicationSection}>
+          <View style={styles.supplicationDivider} />
+          <ThemedText style={styles.supplicationLabel}>Supplication</ThemedText>
+          <ThemedText style={styles.supplicationText}>{supplicationPrayer.content}</ThemedText>
+
+          {/* Mark as Answered Button - for supplication with tracking */}
+          {!supplicationPrayer.answered_at && supplicationPrayer.metadata?.track_answered === true && (
+            <TouchableOpacity
+              style={styles.markAnsweredButton}
+              onPress={() => {
+                onMarkAnswered(supplicationPrayer.id, true);
+              }}
+            >
+              <Ionicons name="checkmark" size={14} color={Colors.alertCoral} />
+              <ThemedText style={styles.markAnsweredText} weight="medium">Mark Answered</ThemedText>
+            </TouchableOpacity>
+          )}
+
+          {/* Answered Indicator */}
+          {supplicationPrayer.answered_at && supplicationPrayer.metadata?.track_answered === true && (
+            <TouchableOpacity
+              style={styles.answeredIndicator}
+              onPress={() => {
+                Alert.alert(
+                  'Mark as Unanswered',
+                  'Mark this prayer as unanswered?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Mark Unanswered',
+                      onPress: () => onMarkAnswered(supplicationPrayer.id, false),
+                    },
+                  ]
+                );
+              }}
+            >
+              <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
+              <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
+              {supplicationPrayer.answered_at && (
+                <ThemedText style={styles.answeredTimestamp}>
+                  {formatAnsweredDate(supplicationPrayer.answered_at)}
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
 // Determine date category relative to local time
 const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' => {
   const now = new Date();
@@ -435,6 +515,30 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
     const openPrayers = displayPrayers.filter((p: any) => p.type === 'freeform');
 
+    // Group ACTS prayers by session (within 2 minutes)
+    const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+    const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const actsSessions: any[][] = [];
+    let currentSession: any[] = [];
+
+    for (const prayer of sortedActs) {
+      const prayerTime = new Date(prayer.created_at).getTime();
+      if (currentSession.length === 0) {
+        currentSession.push(prayer);
+      } else {
+        const lastPrayerTime = new Date(currentSession[currentSession.length - 1].created_at).getTime();
+        if (prayerTime - lastPrayerTime <= SESSION_WINDOW_MS) {
+          currentSession.push(prayer);
+        } else {
+          actsSessions.push(currentSession);
+          currentSession = [prayer];
+        }
+      }
+    }
+    if (currentSession.length > 0) {
+      actsSessions.push(currentSession);
+    }
+
     return (
       <View
         style={[
@@ -443,7 +547,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         ]}
       >
         {/* CAST Method Section */}
-        {actsPrayers.length > 0 && (
+        {actsSessions.length > 0 && (
           <View style={styles.prayerPathSection}>
             <View style={styles.prayerPathHeader}>
               <MaterialCommunityIcons
@@ -455,27 +559,17 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <View style={styles.prayerPathDivider} />
             </View>
             <View style={styles.castStepsContainer}>
-              {['confession', 'adoration', 'supplication', 'thanksgiving'].map((step) => {
-                const stepPrayers = actsPrayers.filter((p: any) => p.type === step);
-                if (stepPrayers.length === 0) {return null;}
+              {actsSessions.map((session, sessionIndex) => {
+                const nonSupplication = session.filter((p: any) => p.type !== 'supplication');
+                const supplication = session.find((p: any) => p.type === 'supplication');
 
                 return (
-                  <View key={step} style={styles.castStepSection}>
-                    <ThemedText style={styles.castStepLabel} weight="semiBold">
-                      {step.toUpperCase()}
-                    </ThemedText>
-                    {stepPrayers.map((prayer: any) => {
-                      const type = PRAYER_TYPES.find(t => t.key === step);
-                      return (
-                        <SwipeablePrayerCard
-                          key={prayer.id}
-                          prayer={prayer}
-                          type={type}
-                          onMarkAnswered={handleMarkAnswered}
-                        />
-                      );
-                    })}
-                  </View>
+                  <CombinedCASTPrayerCard
+                    key={`session-${sessionIndex}`}
+                    nonSupplicationPrayers={nonSupplication}
+                    supplicationPrayer={supplication || null}
+                    onMarkAnswered={handleMarkAnswered}
+                  />
                 );
               })}
             </View>
@@ -586,6 +680,42 @@ const styles = StyleSheet.create({
   prayersContainer: {
     gap: 24,
     maxHeight: 200,
+  },
+  combinedCASTCard: {
+    backgroundColor: '#35537e',
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+  },
+  combinedContentSection: {
+    gap: 8,
+  },
+  combinedPrayerText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  supplicationSection: {
+    gap: 8,
+    marginTop: 8,
+  },
+  supplicationDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginVertical: 4,
+  },
+  supplicationLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+  },
+  supplicationText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    letterSpacing: 0.1,
   },
   prayersContainerExpanded: {
     gap: 16,
