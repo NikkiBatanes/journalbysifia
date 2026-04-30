@@ -1437,6 +1437,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             style={styles.devNotificationButton}
             onPress={() => {
               triggerLightHaptic();
+              setSalesCopyModalVisible(true);
+            }}
+          >
+            <Ionicons name="document-text-outline" size={14} color={Colors.hopeWhite} />
+            <ThemedText weight="semiBold" style={styles.devNotificationButtonText}>
+              Sales
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.devNotificationButton}
+            onPress={() => {
+              triggerLightHaptic();
               handleTestAllNotifications();
             }}
             disabled={isTestingNotifications}
@@ -2053,12 +2068,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'playbooks',
-                  currentTier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 2,
                 });
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free playbooks for this month have been used.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free playbooks for this month have been used. More will open again next month.</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2068,28 +2085,164 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'devotionals',
-                  currentTier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 1,
                 });
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free devotional for this month has been used.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Your free devotional for this month has been used. More will open again next month.</ThemedText>
             </TouchableOpacity>
 
-            {/* Trial User - No Remaining */}
+            {/* Trial User - No Remaining - Chosen Spark */}
             <TouchableOpacity
               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
               onPress={() => {
                 setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'playbooks',
-                  currentTier: 'free_trial',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 5,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'spark',
+                  testModeTrialFullLimit: 10,
+                  testModeTrialEndDate: futureDate.toISOString(),
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial User - No Remaining</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You have used all available during your free trial.</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Spark)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 5 playbooks included in your free trial. Your Spark plan starts soon with 10 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining - Chosen Growth */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 10,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'growth',
+                  testModeTrialFullLimit: 25,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Growth)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 10 playbooks included in your free trial. Your Growth plan starts soon with 25 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining - Chosen Transformation */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 25,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'transformation',
+                  testModeTrialFullLimit: 60,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Transformation)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 25 playbooks included in your free trial. Your Transformation plan starts soon with 60 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Spark */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 5,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'spark',
+                  testModeTrialFullLimit: 10,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Spark)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 5 devotionals included in your free trial. Your Spark plan starts soon with 10 devotionals each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Growth */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 10,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'growth',
+                  testModeTrialFullLimit: 25,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Growth)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 10 devotionals included in your free trial. Your Growth plan starts soon with 25 devotionals each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Transformation */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 25,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'transformation',
+                  testModeTrialFullLimit: 60,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Transformation)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 25 devotionals included in your free trial. Your Transformation plan starts soon with 60 devotionals each month.</ThemedText>
             </TouchableOpacity>
 
             {/* Paid User - No Remaining */}
@@ -2100,7 +2253,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'playbooks',
-                  currentTier: 'spark',
+                  testModeTier: 'spark',
+                  testModeRemaining: 0,
+                  testModeLimit: 8,
                 });
               }}
             >
@@ -2115,7 +2270,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'playbooks',
-                  currentTier: 'growth',
+                  testModeTier: 'growth',
+                  testModeRemaining: 0,
+                  testModeLimit: 20,
                 });
               }}
             >
@@ -2130,7 +2287,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'playbooks',
-                  currentTier: 'transformation',
+                  testModeTier: 'transformation',
+                  testModeRemaining: 0,
+                  testModeLimit: 999,
                 });
               }}
             >
@@ -2146,7 +2305,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'devotionals',
-                  currentTier: 'spark',
+                  testModeTier: 'spark',
+                  testModeRemaining: 5,
+                  testModeLimit: 8,
                   requestedDuration: 5,
                 });
               }}
@@ -2162,7 +2323,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'devotionals',
-                  currentTier: 'spark',
+                  testModeTier: 'spark',
+                  testModeRemaining: 5,
+                  testModeLimit: 8,
                   requestedDuration: 7,
                 });
               }}
@@ -2178,7 +2341,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('OnboardingSalesOffer' as any, {
                   upgradeMode: true,
                   featureType: 'devotionals',
-                  currentTier: 'growth',
+                  testModeTier: 'growth',
+                  testModeRemaining: 10,
+                  testModeLimit: 20,
                   requestedDuration: 7,
                 });
               }}

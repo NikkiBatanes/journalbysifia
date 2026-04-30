@@ -106,10 +106,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const initialSelectedTier = (route.params as any)?.forceTransformationAnnual ? 'transformation' :
                               (route.params as any)?.forceAnnualOnly ? currentUserTier :
                               isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
+                              (route.params as any)?.testModeTrialChosenTier ? (route.params as any).testModeTrialChosenTier :
                               (route.params as any)?.selectedTier ? (route.params as any).selectedTier :
                               (route.params as any)?.requestedDuration === 7 ? 'transformation' :
                               (route.params as any)?.requestedDuration ? 'growth' :
-                              'growth'; // Default to growth
+                              'growth';
 
   // Debug logging
   logger.debug('Sales offer screen debug', {
@@ -184,7 +185,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
   const isSeekerTier = currentUserTier === 'seeker' || !currentUserTier; // !currentUserTier treats undefined as seeker
-  const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial && isSeekerTier;
+
+  // Test mode: override trial status if provided
+  const testModeIsOnTrial = (routeParams as any)?.testModeIsOnTrial;
+  const testModeHasStartedTrial = (routeParams as any)?.testModeHasStartedTrial;
+  const testModeTrialEndDate = (routeParams as any)?.testModeTrialEndDate;
+
+  const effectiveIsCurrentlyOnTrial = testModeIsOnTrial !== undefined ? testModeIsOnTrial : isCurrentlyOnTrial;
+  const effectiveHasEverStartedTrial = testModeHasStartedTrial !== undefined ? testModeHasStartedTrial : hasEverStartedTrial;
+  const effectiveTrialChosenTier = ((routeParams as any)?.testModeTrialChosenTier || subscription?.trial_chosen_tier) as SubscriptionTier | undefined;
+  const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
+
+  const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && isSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
 
   // Detect if coming from devotional gating
@@ -199,6 +211,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
     const isOnTrial = subscription.tier === 'free_trial';
 
+    // Test mode: use override values from route params if provided
+    const testModeTier = (routeParams as any)?.testModeTier;
+    const testModeRemaining = (routeParams as any)?.testModeRemaining;
+    const testModeLimit = (routeParams as any)?.testModeLimit;
+
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
     const playbooksUsed = subscription.playbooks_used || 0;
     const devotionalsUsed = subscription.devotionals_used || 0;
@@ -208,26 +225,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
     const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
 
-    const remaining = featureType === 'playbooks'
-      ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
-      : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals);
+    const remaining = testModeRemaining !== undefined
+      ? testModeRemaining
+      : (featureType === 'playbooks'
+          ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
+          : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals));
 
-    const limit = featureType === 'playbooks'
-      ? playbooksLimit
-      : devotionalsLimit;
+    const limit = testModeLimit !== undefined
+      ? testModeLimit
+      : (featureType === 'playbooks' ? playbooksLimit : devotionalsLimit);
 
     return generateSalesCopy({
       featureType,
-      currentTier: currentUserTier as SubscriptionTier,
+      currentTier: (testModeTier || currentUserTier) as SubscriptionTier,
       remaining,
       limit,
-      isOnTrial,
-      trialChosenTier: subscription.trial_chosen_tier as SubscriptionTier,
-      trialEndDate: subscription.trial_end_date,
+      isOnTrial: effectiveIsCurrentlyOnTrial,
+      trialChosenTier: effectiveTrialChosenTier,
+      trialEndDate: effectiveTrialEndDate,
       subscriptionStartDate: subscription.subscription_start_date,
       requestedDuration,
     });
-  }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType]);
+  }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, (routeParams as any)?.testModeTier, (routeParams as any)?.testModeRemaining, (routeParams as any)?.testModeLimit, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
 
   // Debug trial eligibility
   logger.debug('Trial eligibility debug', {
@@ -399,8 +418,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         }
 
         // Filter tiers based on current trial tier to prevent downgrades
-        if (isUpgradeMode && subscription?.tier === 'free_trial' && subscription?.trial_chosen_tier) {
-          const trialTier = subscription.trial_chosen_tier;
+        if (isUpgradeMode && effectiveIsCurrentlyOnTrial && effectiveTrialChosenTier) {
+          const trialTier = effectiveTrialChosenTier;
           const tierHierarchy = ['spark', 'growth', 'transformation'];
           const trialIndex = tierHierarchy.indexOf(trialTier);
           if (trialIndex !== -1) {
@@ -467,7 +486,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -1226,7 +1245,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="semiBold" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
-          {tier.id === 'growth' && (
+          {dynamicSalesCopy?.isCurrentTrial && tier.id === dynamicSalesCopy?.recommendedTier ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
+            </View>
+          ) : tier.id === 'growth' && (
             <View style={styles.recommendedBadge}>
               <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
@@ -1550,8 +1574,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             )}
           </View>
 
-          {/* See All Plans Button - show when in filtered mode */}
-          {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && (
+          {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
+          {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && currentUserTier === 'seeker') || (route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly) && !dynamicSalesCopy?.closeOnPrimaryCta && (
             <TouchableOpacity
               style={styles.seeAllPlansButton}
               onPress={() => {
@@ -1679,6 +1703,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.debug('Button disabled - purchase already in progress');
               return;
             }
+
+            // Check if this is a "Got it" scenario that should close the modal
+            if (dynamicSalesCopy?.closeOnPrimaryCta) {
+              logger.info('Closing modal - closeOnPrimaryCta is true');
+              handleClose();
+              return;
+            }
+
             try { triggerSuccessHaptic(); } catch {} // Success feedback for action completion
 
             // Debug: Log button press and trial eligibility
@@ -1720,34 +1752,49 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="bold" style={styles.unlockButtonText}>
             {isPurchasing
               ? 'Processing...'
-              : shouldUseTrialProduct
-                ? 'Start 3-Day Free Trial'
-                : fromExportRestriction
-                  ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                  : isUpgradeMode
-                      ? 'Upgrade and Continue'
-                      : fromPlanningLock
-                        ? 'Start Planning Ahead'
-                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                          ? 'Upgrade to Repeat Options'
-                          : fromCalendarAutoSync
-                            ? 'Upgrade to Auto-Sync'
-                            : fromCopyTodosLock
-                              ? 'Upgrade to Copy To-Dos'
-                              : (route.params as any)?.forceTransformationAnnual
-                                ? 'Upgrade Plan to Annual'
-                                : (route.params as any)?.forceAnnualOnly
-                                  ? 'Continue with Annual Plan'
-                                  : 'Continue My Journey'}
+              : dynamicSalesCopy?.primaryCta
+                ? dynamicSalesCopy.primaryCta
+                : shouldUseTrialProduct
+                  ? 'Start 3-Day Free Trial'
+                  : fromExportRestriction
+                    ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
+                    : isUpgradeMode
+                        ? 'Upgrade and Continue'
+                        : fromPlanningLock
+                          ? 'Start Planning Ahead'
+                          : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
+                            ? 'Upgrade to Repeat Options'
+                            : fromCalendarAutoSync
+                              ? 'Upgrade to Auto-Sync'
+                              : fromCopyTodosLock
+                                ? 'Upgrade to Copy To-Dos'
+                                : (route.params as any)?.forceTransformationAnnual
+                                  ? 'Upgrade Plan to Annual'
+                                  : (route.params as any)?.forceAnnualOnly
+                                    ? 'Continue with Annual Plan'
+                                    : 'Continue My Journey'}
           </ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.restoreButton}
-          onPress={handleRestorePurchase}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            if (dynamicSalesCopy?.secondaryCta) {
+              if (dynamicSalesCopy.secondaryCta === 'Choose Another Duration') {
+                navigation.goBack();
+                return;
+              }
+              handleClose();
+              return;
+            }
+            handleRestorePurchase();
+          }}
           activeOpacity={0.7}
         >
-          <ThemedText weight="medium" style={styles.restoreButtonText}>Restore Purchases</ThemedText>
+          <ThemedText weight="medium" style={styles.restoreButtonText}>
+            {dynamicSalesCopy?.secondaryCta || 'Restore Purchases'}
+          </ThemedText>
         </TouchableOpacity>
 
         <View style={styles.footerRow}>

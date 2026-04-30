@@ -27,6 +27,8 @@ export interface SalesCopyResult {
   secondaryCta?: string;
   recommendedTier: SubscriptionTier;
   showUpgradeOptions: boolean; // Show multiple tier options vs single upgrade
+  closeOnPrimaryCta?: boolean; // Close modal when primary CTA is tapped (for "Got it" scenarios)
+  isCurrentTrial?: boolean; // Show "Current Trial" label instead of "Recommended"
 }
 
 /**
@@ -158,6 +160,15 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       ? `1 ${featureType.slice(0, -1)}`
       : `${fullLimit} ${featureType}`;
 
+    // Trial limits based on chosen tier
+    const trialLimits = {
+      'spark': 5,
+      'growth': 10,
+      'transformation': 25,
+    };
+    const trialLimit = trialLimits[effectiveTier as keyof typeof trialLimits] || 5;
+    const trialLimitText = trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
+
     // Calculate when subscription starts
     const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
     const daysUntilSubscriptionStarts = getDaysUntilReset(trialEnd);
@@ -168,15 +179,14 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       year: 'numeric',
     });
 
-    const limitText = limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
-
     return {
       title: `No ${featureNamePlural} Remaining`,
-      message: `You have used all ${limitText} available during your free trial.\n\nYour siFia ${tierName} Plan subscription will start in ${daysUntilSubscriptionStarts} ${dayText} on ${subscriptionStartDateStr}, and you'll be able to generate ${fullLimitText}.\n\nWant more now? Upgrade to a different plan.`,
-      primaryCta: 'View Upgrade Options',
-      secondaryCta: 'Wait for Subscription',
-      recommendedTier: 'transformation',
-      showUpgradeOptions: true,
+      message: `You've used all ${trialLimitText} included in your free trial. Your ${tierName} plan starts in ${daysUntilSubscriptionStarts} ${dayText}, on ${subscriptionStartDateStr}, with ${fullLimitText} each month.`,
+      primaryCta: 'Got it',
+      recommendedTier: effectiveTier,
+      showUpgradeOptions: false,
+      closeOnPrimaryCta: true,
+      isCurrentTrial: true,
     };
   }
 
