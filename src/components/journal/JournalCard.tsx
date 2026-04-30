@@ -83,10 +83,6 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Only render header when empty (no content and not editing/adding)
   if (!showContent) {
-    // In inline and moments view, don't show empty components at all
-    if (viewMode === 'inline' || viewMode === 'moments') {
-      return null;
-    }
 
     const getEmptyCardStyle = () => {
       const baseStyle = [styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides];

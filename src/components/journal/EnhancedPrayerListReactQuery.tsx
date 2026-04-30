@@ -105,10 +105,10 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [personalDisplayLimit, setPersonalDisplayLimit] = useState(2);
 
   // Computed values
-  const hasContent = peoplePrayers.length > 0;
   // Only count requests that are not yet prayed
   const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true && p.prayed !== true);
   const personalPrayers = peoplePrayers.filter(p => p.is_prayer_request !== true);
+  const hasVisibleContent = prayerRequests.length > 0 || personalPrayers.length > 0;
 
   // Counts should be by unique people, not entries
   const toName = (p: PersonPrayer) => (p.person_name || '').trim();
@@ -138,11 +138,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     : 'Appears when people were prayed for or prayer requests were added on this day';
 
   // Show header pencil only when there is content and it's not a past date
-  const showAddInHeader = hasContent && !isPastDate;
+  const showAddInHeader = hasVisibleContent && !isPastDate;
 
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
-    if (hasContent) {
+    if (hasVisibleContent) {
       const totalCount = uniqueTotal.size;
       let subtitle = totalCount === 1 ? '1 Person in your prayer list' : `${totalCount} People in your prayer list`;
 
@@ -611,15 +611,15 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   return (
     <ErrorBoundary>
       <JournalCard
-        icon={hasContent ? (
+        icon={hasVisibleContent ? (
           <MaterialCommunityIcons
             name="account-heart-outline"
             size={24}
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
-        subtitle={hasContent ? getSubtitle() : undefined}
+        title={hasVisibleContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
+        subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
@@ -629,9 +629,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         isAdding={false}
         onCancelAdd={handleCloseModal}
       >
-        {hasContent ? (
+        {hasVisibleContent ? (
           renderExistingPrayers()
-        ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
+        ) : (
           <View style={styles.emptyStateContainer}>
             <View style={styles.emptyIconContainer}>
               <View style={styles.iconContainer}>
