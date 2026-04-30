@@ -416,6 +416,24 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     setSavingModalPrayer(false);
   };
 
+  const handleEditPrayer = (prayer: PersonPrayer) => {
+    if (!navigation) return;
+
+    // Determine the prayer type
+    const prayerType = prayer.is_prayer_request === true ? 'prayer-request' : 'pray-for-someone';
+
+    // Navigate to walkthrough with pre-selected type and data
+    navigation.navigate('PrayersForPeopleWalkthrough', {
+      initialPersonName: prayer.person_name,
+      initialPrayerRequest: prayer.is_prayer_request === true ? prayer.content : undefined,
+      initialPrayerText: prayer.is_prayer_request !== true ? prayer.content : undefined,
+      initialPrayerType: prayerType,
+      editingPrayerId: prayer.id,
+      initialTrackAnswered: prayer.metadata?.track_answered,
+      selectedDate: selectedDate.toISOString(),
+    });
+  };
+
   // Modal handlers
   const handleOpenModal = useCallback(() => {
     triggerLightHaptic();
@@ -472,6 +490,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         handleAddToMyList={handleAddToMyList}
         handleMarkAsAnswered={handleMarkAsAnswered}
         handleMarkAsUnanswered={handleMarkAsUnanswered}
+        onEdit={handleEditPrayer}
       />
     );
 
@@ -727,9 +746,19 @@ const SwipeablePrayerCard: React.FC<{
   handleAddToMyList: (prayer: PersonPrayer) => void;
   handleMarkAsAnswered: (id: string) => void;
   handleMarkAsUnanswered: (id: string) => void;
-}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered }) => {
+  onEdit?: (prayer: PersonPrayer) => void;
+}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit }) => {
   return (
-    <View style={styles.prayerItem}>
+    <TouchableOpacity
+      style={styles.prayerItem}
+      onPress={() => {
+        if (onEdit) {
+          triggerLightHaptic();
+          onEdit(prayer);
+        }
+      }}
+      activeOpacity={0.7}
+    >
           <View style={styles.prayerHeader}>
             <View style={styles.prayerHeaderLeft}>
               <View style={styles.prayerTypeIndicator}>
@@ -862,7 +891,7 @@ const SwipeablePrayerCard: React.FC<{
               )}
             </TouchableOpacity>
           )}
-    </View>
+    </TouchableOpacity>
   );
 };
 

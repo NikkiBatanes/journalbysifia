@@ -130,6 +130,10 @@ export type RootStackParamList = {
     initialPersonName?: string;
     initialPrayerRequest?: string;
     selectedDate?: string;
+    editingPrayerId?: string;
+    initialPrayerType?: 'prayer-request' | 'pray-for-someone';
+    initialPrayerText?: string;
+    initialTrackAnswered?: boolean;
   } | undefined;
 
   // Prayer Editor Screen

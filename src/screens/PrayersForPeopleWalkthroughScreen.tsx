@@ -23,7 +23,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic, triggerSelectionHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { Modal, KeyboardAvoidingView, Platform } from 'react-native';
 
@@ -921,7 +921,8 @@ const CompletionStep: React.FC<{
   onPrayNow: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ prayerType, personName, prayerNeed, prayerText, trackAnswered, onDone, onPrayNow, insets, navigation: _navigation }) => {
+  isEditing: boolean;
+}> = ({ prayerType, personName, prayerNeed, prayerText, trackAnswered, onDone, onPrayNow, insets, navigation: _navigation, isEditing }) => {
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -991,10 +992,16 @@ const CompletionStep: React.FC<{
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {prayerType.id === 'prayer-request' ? 'Prayer Request Saved' : `Prayer for ${personName}`}
+                {isEditing
+                  ? (prayerType.id === 'prayer-request' ? 'Prayer Request Updated' : `Prayer for ${personName} Updated`)
+                  : (prayerType.id === 'prayer-request' ? 'Prayer Request Saved' : `Prayer for ${personName}`)
+                }
               </ThemedText>
               <ThemedText style={styles.completionSubtext}>
-                {prayerType.id === 'prayer-request' ? 'You can return to this request anytime and pray' : 'Your prayer has been recorded'}
+                {isEditing
+                  ? (prayerType.id === 'prayer-request' ? 'You can return to this request anytime and pray' : 'Your prayer has been updated')
+                  : (prayerType.id === 'prayer-request' ? 'You can return to this request anytime and pray' : 'Your prayer has been recorded')
+                }
               </ThemedText>
             </View>
             <Animated.View style={[
@@ -1105,6 +1112,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const createPrayerMutation = useCreatePrayer();
+  const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
 
   // State for walkthrough steps
@@ -1114,6 +1122,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [prayerNeed, setPrayerNeed] = useState('');
   const [prayerText, setPrayerText] = useState('');
   const [trackAnswered, setTrackAnswered] = useState(false);
+  const [editingPrayerId, setEditingPrayerId] = useState<string | undefined>(undefined);
 
   // State for prayer modal
   const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
@@ -1130,6 +1139,24 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     }
     if (route.params?.initialPrayerRequest) {
       setPrayerNeed(route.params.initialPrayerRequest);
+    }
+    if (route.params?.initialPrayerText) {
+      setPrayerText(route.params.initialPrayerText);
+    }
+    if (route.params?.initialTrackAnswered !== undefined) {
+      setTrackAnswered(route.params.initialTrackAnswered);
+    }
+    if (route.params?.editingPrayerId) {
+      setEditingPrayerId(route.params.editingPrayerId);
+    }
+    // Pre-select prayer type if provided (editing mode)
+    if (route.params?.initialPrayerType) {
+      const type = PRAYER_TYPES.find(t => t.id === route.params?.initialPrayerType);
+      if (type) {
+        setSelectedType(type);
+        // Skip to step 1 (name input) when editing
+        setCurrentStep(1);
+      }
     }
   }, [route.params]);
 
@@ -1182,7 +1209,20 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         selected_date: dateStr,
       };
 
-      const result = await createPrayerMutation.mutateAsync(prayerData);
+      let result;
+      if (editingPrayerId) {
+        // Update existing prayer
+        result = await updatePrayerMutation.mutateAsync({
+          id: editingPrayerId,
+          updates: prayerData,
+          _userId: user?.id || '',
+          _dateStr: dateStr,
+        });
+      } else {
+        // Create new prayer
+        result = await createPrayerMutation.mutateAsync(prayerData);
+      }
+
       // Store the saved prayer ID for marking as prayed later
       if (result?.id) {
         setSavedPrayerId(result.id);
@@ -1190,7 +1230,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       setCurrentStep(4); // Show completion screen
 
       // Track analytics
-      analytics.trackPrayerEvent('prayer_created', {
+      analytics.trackPrayerEvent(editingPrayerId ? 'prayer_updated' : 'prayer_created', {
         prayer_type: 'people',
         content_length: (selectedType?.id === 'prayer-request' ? prayerNeed : prayerText).length,
         is_request: selectedType?.id === 'prayer-request',
@@ -1371,6 +1411,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           onPrayNow={handlePrayNow}
           insets={insets}
           navigation={navigation}
+          isEditing={!!editingPrayerId}
         />
       )}
 
