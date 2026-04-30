@@ -1946,7 +1946,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'left',
-    marginBottom: 0,
+    marginBottom: 16,
     lineHeight: 24,
   },
   smallMotivationalText: {
