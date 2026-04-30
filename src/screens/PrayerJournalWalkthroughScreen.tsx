@@ -1773,7 +1773,7 @@ const styles = StyleSheet.create({
   actionProgressBar: {
     height: 6,
     width: 120,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'transparent',
     borderRadius: 3,
     marginBottom: 24,
     overflow: 'hidden' as const,
