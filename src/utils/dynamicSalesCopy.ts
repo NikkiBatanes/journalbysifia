@@ -29,6 +29,7 @@ export interface SalesCopyResult {
   showUpgradeOptions: boolean; // Show multiple tier options vs single upgrade
   closeOnPrimaryCta?: boolean; // Close modal when primary CTA is tapped (for "Got it" scenarios)
   isCurrentTrial?: boolean; // Show "Current Trial" label instead of "Recommended"
+  isCurrentTier?: SubscriptionTier; // Show current tier label for paid users
 }
 
 /**
@@ -146,7 +147,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       title,
       message,
       primaryCta: 'View Plans',
-      recommendedTier: 'spark',
+      recommendedTier: 'growth',
       showUpgradeOptions: true,
     };
   }
@@ -183,6 +184,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       title: `No ${featureNamePlural} Remaining`,
       message: `You've used all ${trialLimitText} included in your free trial. Your ${tierName} plan starts in ${daysUntilSubscriptionStarts} ${dayText}, on ${subscriptionStartDateStr}, with ${fullLimitText} each month.`,
       primaryCta: 'Got it',
+      secondaryCta: 'Close',
       recommendedTier: effectiveTier,
       showUpgradeOptions: false,
       closeOnPrimaryCta: true,
@@ -206,30 +208,33 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     if (currentTier === 'spark') {
       return {
         title: `No ${featureNamePlural} Remaining`,
-        message: `You have used all ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText} on ${resetDateStr}.\n\nWant more? Upgrade to a different plan.`,
-        primaryCta: 'View Upgrade Options',
+        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
+        primaryCta: 'Upgrade to Growth',
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'growth',
         showUpgradeOptions: true,
+        isCurrentTier: 'spark',
       };
     } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
       return {
         title: `No ${featureNamePlural} Remaining`,
-        message: `You have used all ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText} on ${resetDateStr}.`,
+        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
         primaryCta: 'Got it',
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'transformation',
         showUpgradeOptions: false,
+        closeOnPrimaryCta: true,
+        isCurrentTier: 'transformation',
       };
     } else {
-      // Growth tier
       return {
         title: `No ${featureNamePlural} Remaining`,
-        message: `You have used all ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText} on ${resetDateStr}.\n\nWant more? Upgrade to a different plan.`,
-        primaryCta: 'View Upgrade Options',
+        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
+        primaryCta: 'Upgrade to Transformation',
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'transformation',
         showUpgradeOptions: true,
+        isCurrentTier: 'growth',
       };
     }
   }
@@ -240,7 +245,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       if (requestedDuration === 5) {
         return {
           title: 'Unlock 5-Day Devotionals',
-          message: `5-day devotionals are available with Growth Plan or higher.\n\nYou currently have ${remaining} of ${limit} devotionals remaining this month.\n\nWant to unlock 5-day devotionals? Upgrade to a different plan.`,
+          message: `5-day devotionals are available with Growth and Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
           primaryCta: 'View Upgrade Options',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
@@ -250,7 +255,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         // 7-day
         return {
           title: 'Unlock 7-Day Devotionals',
-          message: `7-day devotionals are available with Transformation Plan.\n\nYou currently have ${remaining} of ${limit} devotionals remaining this month.\n\nWant to unlock 7-day devotionals? Upgrade to a different plan.`,
+          message: `7-day devotionals are available with Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
           primaryCta: 'View Upgrade Options',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'transformation',
@@ -260,7 +265,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     } else if (currentTier === 'growth' && requestedDuration === 7) {
       return {
         title: 'Unlock 7-Day Devotionals',
-        message: `7-day devotionals are available with Transformation Plan.\n\nYou currently have ${remaining} of ${limit} devotionals remaining this month.\n\nWant to unlock 7-day devotionals? Upgrade to a different plan.`,
+        message: `7-day devotionals are available with Transformation.\n\nYou still have ${remaining} of ${limit} devotionals remaining this month.\n\nChoose another duration, or view higher plans.`,
         primaryCta: 'View Upgrade Options',
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',

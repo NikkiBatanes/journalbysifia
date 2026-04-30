@@ -352,9 +352,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
-          logger.debug('Loading upgrade tiers for', { currentUserTier });
-          tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
-          logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
+          // However, if isCurrentTier is set (paid user hit limits), show all tiers to include current tier
+          if (dynamicSalesCopy?.isCurrentTier) {
+            logger.debug('Loading all tiers for paid user with current tier', { currentUserTier, isCurrentTier: dynamicSalesCopy.isCurrentTier });
+            tiers = await pricingService.getLocationAdjustedPricing();
+            logger.debug('All tiers loaded for current tier display', { count: tiers.length });
+          } else {
+            logger.debug('Loading upgrade tiers for', { currentUserTier });
+            tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
+            logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
+          }
         } else {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
@@ -486,7 +493,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveIsCurrentlyOnTrial, effectiveTrialChosenTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, showAllPlans, selectedTier, dynamicSalesCopy?.isCurrentTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -506,6 +513,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       }
     }
   }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
+
+  // Preselect recommended tier for paid users who hit limits
+  useEffect(() => {
+    if (!hasManualTierSelection && dynamicSalesCopy?.recommendedTier && isUpgradeMode) {
+      const recommendedTier = dynamicSalesCopy.recommendedTier;
+      const tierExists = pricingTiers.find(t => t.id === recommendedTier);
+      if (tierExists && selectedTier !== recommendedTier) {
+        setSelectedTier(recommendedTier);
+      }
+    }
+  }, [hasManualTierSelection, dynamicSalesCopy?.recommendedTier, isUpgradeMode, pricingTiers, selectedTier]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
@@ -1245,7 +1263,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <ThemedText weight="semiBold" style={[tier.id === 'growth' ? styles.growthTierName : styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
-          {dynamicSalesCopy?.isCurrentTrial && tier.id === dynamicSalesCopy?.recommendedTier ? (
+          {dynamicSalesCopy?.isCurrentTier && tier.id === dynamicSalesCopy?.isCurrentTier ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Plan</ThemedText>
+            </View>
+          ) : dynamicSalesCopy?.isCurrentTrial && tier.id === dynamicSalesCopy?.recommendedTier ? (
             <View style={styles.recommendedBadge}>
               <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
               <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
@@ -1610,8 +1633,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }
         }}
       >
-        {/* Growth Price Display */}
-        <View style={styles.footerPriceSection}>
+        {/* Growth Price Display - hide for "Got it" scenarios */}
+        {!dynamicSalesCopy?.closeOnPrimaryCta && (
+          <View style={styles.footerPriceSection}>
           {/* Monthly/Annual Toggle */}
           <View style={styles.footerToggleContainer}>
             <Animated.View style={{ transform: [{ scale: monthlyScale }] }}>
@@ -1684,6 +1708,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             );
           })()}
         </View>
+        )}
 
         <TouchableOpacity
           style={[
@@ -1776,28 +1801,35 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.restoreButton}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            if (dynamicSalesCopy?.secondaryCta) {
-              if (dynamicSalesCopy.secondaryCta === 'Choose Another Duration') {
-                navigation.goBack();
+        {!dynamicSalesCopy?.closeOnPrimaryCta && (
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              if (dynamicSalesCopy?.secondaryCta) {
+                if (dynamicSalesCopy.secondaryCta === 'Choose Another Duration') {
+                  navigation.goBack();
+                  return;
+                }
+                if (dynamicSalesCopy.secondaryCta === 'Wait for Refresh') {
+                  handleClose();
+                  return;
+                }
+                handleClose();
                 return;
               }
-              handleClose();
-              return;
-            }
-            handleRestorePurchase();
-          }}
-          activeOpacity={0.7}
-        >
-          <ThemedText weight="medium" style={styles.restoreButtonText}>
-            {dynamicSalesCopy?.secondaryCta || 'Restore Purchases'}
-          </ThemedText>
-        </TouchableOpacity>
+              handleRestorePurchase();
+            }}
+            activeOpacity={0.7}
+          >
+            <ThemedText weight="medium" style={styles.restoreButtonText}>
+              {dynamicSalesCopy?.secondaryCta || 'Restore Purchases'}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
 
-        <View style={styles.footerRow}>
+        {!dynamicSalesCopy?.closeOnPrimaryCta && (
+          <View style={styles.footerRow}>
           {!isAnnual && <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />}
           {isAnnual ? (
             <ThemedText style={styles.footerText}>Billed yearly after trial unless cancelled.</ThemedText>
@@ -1808,6 +1840,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             </>
           )}
         </View>
+        )}
       </View>
 
     </View>

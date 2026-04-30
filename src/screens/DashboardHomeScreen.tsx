@@ -2255,7 +2255,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'playbooks',
                   testModeTier: 'spark',
                   testModeRemaining: 0,
-                  testModeLimit: 8,
+                  testModeLimit: 10,
                 });
               }}
             >
@@ -2272,7 +2272,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'playbooks',
                   testModeTier: 'growth',
                   testModeRemaining: 0,
-                  testModeLimit: 20,
+                  testModeLimit: 25,
                 });
               }}
             >
@@ -2289,7 +2289,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'playbooks',
                   testModeTier: 'transformation',
                   testModeRemaining: 0,
-                  testModeLimit: 999,
+                  testModeLimit: 60,
                 });
               }}
             >
