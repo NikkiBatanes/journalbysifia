@@ -803,7 +803,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [notifHistoryItems, setNotifHistoryItems] = useState<any[]>([]);
   const [notifDataLoading, setNotifDataLoading] = useState(false);
   const [notifSending, setNotifSending] = useState<string | null>(null);
-  const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string } | null>(null);
+  const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -841,9 +841,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     try {
       const copy = await NotificationTester.sendSingleTypeTest(type as any, user?.id);
       if (copy) {
-        setNotifLastSent({ type, title: copy.title, message: copy.message });
+        setNotifLastSent({ type, title: copy.title, message: copy.message, debug: copy.debug });
       } else {
-        setNotifLastSent({ type, title: '(no copy — conditions not met)', message: '' });
+        setNotifLastSent({ type, title: '(no copy)', message: '', debug: 'no userId' });
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to send notification.');
@@ -1903,42 +1903,55 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Types tab */}
           {notifTestTab === 'types' && (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 8 }}>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
-                Tap Send to fire a single notification using your real account data (arrives in ~2 s)
-              </ThemedText>
-
-              {notifLastSent && (
-                <View style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(76,175,80,0.12)', borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)' }}>
-                  <ThemedText weight="semiBold" style={{ color: '#4caf50', fontSize: 10, marginBottom: 4 }}>SENT · {notifLastSent.type}</ThemedText>
-                  <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 13, marginBottom: 2 }}>{notifLastSent.title}</ThemedText>
-                  {notifLastSent.message ? (
-                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>{notifLastSent.message}</ThemedText>
-                  ) : null}
-                </View>
-              )}
-              {SMART_NOTIFICATION_TYPES.map(type => {
-                const sending = notifSending === type;
+            <View style={{ flex: 1 }}>
+              {/* Sticky Last Sent Container */}
+              {notifLastSent && (() => {
+                const isMiss = !notifLastSent.title || !notifLastSent.message;
+                const accent = isMiss ? '#f44336' : '#4caf50';
+                const bg = isMiss ? 'rgba(244,67,54,0.10)' : 'rgba(76,175,80,0.12)';
+                const label = isMiss ? 'NO DATA' : 'SENT';
                 return (
-                  <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
-                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
-                      {type}
-                    </ThemedText>
-                    <TouchableOpacity
-                      onPress={() => handleSendSingleType(type)}
-                      disabled={sending || notifSending !== null}
-                      style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : Colors.anchorBlue, opacity: notifSending !== null && !sending ? 0.4 : 1 }}
-                    >
-                      {sending ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
-                      )}
-                    </TouchableOpacity>
+                  <View style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 8, padding: 12, borderRadius: 10, backgroundColor: bg, borderWidth: 1, borderColor: `${accent}55` }}>
+                    <ThemedText weight="semiBold" style={{ color: accent, fontSize: 10, marginBottom: 4 }}>{label} · {notifLastSent.type}</ThemedText>
+                    {!isMiss && (
+                      <>
+                        <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 13, marginBottom: 2 }}>{notifLastSent.title}</ThemedText>
+                        <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>{notifLastSent.message}</ThemedText>
+                      </>
+                    )}
+                    {notifLastSent.debug ? (
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 6 }}>{notifLastSent.debug}</ThemedText>
+                    ) : null}
                   </View>
                 );
-              })}
-            </ScrollView>
+              })()}
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}>
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
+                  Tap Send to fire a single notification using your real account data (arrives in ~2 s)
+                </ThemedText>
+                {SMART_NOTIFICATION_TYPES.map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : Colors.anchorBlue, opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
           )}
 
           {/* Queue tab */}

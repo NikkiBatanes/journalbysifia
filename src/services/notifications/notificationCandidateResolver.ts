@@ -583,6 +583,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         copyContext: {
           dayNumber,
           totalDays: activeDevotional.total_days,
+          title: activeDevotional.total_days === 1 ? activeDevotional.title : incompleteDay.title,
         },
         metadata: {
           devotional_title: activeDevotional.title,
@@ -718,28 +719,29 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }));
     }
 
-    const playbookVerseReference = notificationText(ongoingPlaybook.bible_verse?.reference);
-    const playbookVerseText = notificationText(ongoingPlaybook.bible_verse?.text);
-    if (playbookVerseText) {
-      candidates.push(createCandidate({
-        type: 'playbook_verse_revisit',
-        timeWindow: 'evening',
-        score: 58,
-        dedupeKey: buildDedupeKey('playbook_verse_revisit', ongoingPlaybook.id, currentDate),
-        deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/verse`,
-        sourceType: 'playbook',
-        sourceId: ongoingPlaybook.id,
-        copyContext: {
-          verseReference: playbookVerseReference,
-          verseText: playbookVerseText,
-        },
-        metadata: {
-          playbook_title: ongoingPlaybook.title,
-          verse_reference: playbookVerseReference,
-          verse_text: playbookVerseText,
-        },
-      }));
-    }
+  }
+
+  // playbook_verse_revisit: search in-progress first, then completed
+  const verseSource =
+    playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at && notificationText(pb.bible_verse?.text)) ||
+    playbooks.find(pb => notificationText(pb.bible_verse?.text));
+  if (verseSource) {
+    const playbookVerseReference = notificationText(verseSource.bible_verse?.reference);
+    const playbookVerseText = notificationText(verseSource.bible_verse?.text);
+    candidates.push(createCandidate({
+      type: 'playbook_verse_revisit',
+      timeWindow: 'evening',
+      score: 58,
+      dedupeKey: buildDedupeKey('playbook_verse_revisit', verseSource.id, currentDate),
+      deepLink: `sifia://playbooks/${verseSource.id}/walkthrough/verse`,
+      sourceType: 'playbook',
+      sourceId: verseSource.id,
+      copyContext: { verseReference: playbookVerseReference, verseText: playbookVerseText },
+      metadata: { playbook_title: verseSource.title, verse_reference: playbookVerseReference, verse_text: playbookVerseText },
+    }));
+  }
+
+  if (ongoingPlaybook) {
 
     const playbookPrayer = notificationText(ongoingPlaybook.prayer) ||
       (() => {

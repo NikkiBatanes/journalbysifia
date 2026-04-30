@@ -28,6 +28,7 @@ export class NotificationTester {
           const copy = buildSmartNotificationCopy(type, {
             dayNumber: 2,
             totalDays: 7,
+            title: 'Finding Peace in God\'s Presence',
             actionText: 'take one step toward community today',
             verseReference: 'Psalm 23:1',
             verseText: 'The Lord is my shepherd; I shall not want.',
@@ -70,183 +71,131 @@ export class NotificationTester {
    * Fetch real user data from Supabase and build context for any notification type.
    * Bypasses all scheduling/gating conditions — purely for testing copy with real content.
    */
-  private static async buildRealContext(userId: string): Promise<Record<string, any>> {
+  private static async buildRealContext(userId: string): Promise<{ ctx: Record<string, any>; debug: string }> {
+    const { getPlaybooks } = await import('../services/modernPlaybookApi');
     const { supabase } = await import('../services/supabaseClient');
 
-    const [playbooksResult, devotionalsResult, prayersResult, subscriptionResult] = await Promise.all([
-      supabase
-        .from('playbooks')
-        .select('id, title, status, completed_at, bible_verse, word_to_speak, direct_challenge, playbook_action_steps(id, text, order_index), playbook_affirmations(id, text, order_index)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('devotionals')
-        .select('id, title, total_days, days')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('prayers')
-        .select('id, person_name')
-        .eq('user_id', userId)
-        .eq('is_prayer_request', true)
-        .or('prayed.is.null,prayed.eq.false')
-        .limit(5),
-      supabase
-        .from('user_subscriptions_new')
-        .select('tier, playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date')
-        .eq('user_id', userId)
-        .maybeSingle(),
-    ]);
-
-    const playbooks: any[] = playbooksResult.data || [];
-    const devotionals: any[] = devotionalsResult.data || [];
-    const prayers: any[] = prayersResult.data || [];
-    const sub = subscriptionResult.data;
-
+    const strip = (v: string) => v.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim();
     const safeStr = (v: unknown): string =>
       typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '';
 
-    const stripMarkdown = (v: string): string =>
-      v.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim();
+    const [playbooks, devotionalsResult, prayersResult, subResult] = await Promise.all([
+      getPlaybooks(userId).catch(() => [] as any[]),
+      supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+      supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').limit(5),
+      supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date').eq('user_id', userId).maybeSingle(),
+    ]);
 
+    const devotionals: any[] = devotionalsResult.data || [];
+    const prayers: any[] = prayersResult.data || [];
+    const sub = subResult.data;
+
+    // Extract wordToSpeak from Playbook object (wordToSpeak field or directChallenge JSONB)
     const getWords = (pb: any): string[] => {
-      // dedicated column first
-      const direct = safeStr(pb.word_to_speak).split(/\n+/).map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-      if (direct.length) return direct.slice(0, 5);
-      // piggybacked in direct_challenge JSONB
-      try {
-        const dc = typeof pb.direct_challenge === 'string' ? JSON.parse(pb.direct_challenge) : pb.direct_challenge;
-        if (dc && typeof dc === 'object' && dc.wordToSpeak) {
-          const words = safeStr(dc.wordToSpeak).split(/\n+/).map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-          if (words.length) return words.slice(0, 5);
-        }
-      } catch {}
-      // affirmations fallback
-      const aff = (pb.playbook_affirmations || [])
-        .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0))
-        .map((a: any) => safeStr(a.text)).filter(Boolean);
-      return aff.slice(0, 5);
+      if (pb.wordToSpeak) {
+        const lines = String(pb.wordToSpeak).split(/\n+/).map((l: string) => strip(l.replace(/^[-*]\s*/, '').trim())).filter(Boolean);
+        if (lines.length) return lines.slice(0, 5);
+      }
+      const dc = pb.directChallenge;
+      if (dc && typeof dc === 'object' && dc.wordToSpeak) {
+        const lines = String(dc.wordToSpeak).split(/\n+/).map((l: string) => strip(l.replace(/^[-*]\s*/, '').trim())).filter(Boolean);
+        if (lines.length) return lines.slice(0, 5);
+      }
+      return (pb.affirmations || []).map((a: any) => strip(safeStr(a.text))).filter(Boolean).slice(0, 5);
     };
 
     const getPrayer = (pb: any): string => {
-      if (safeStr(pb.prayer)) return safeStr(pb.prayer);
-      try {
-        const dc = typeof pb.direct_challenge === 'string' ? JSON.parse(pb.direct_challenge) : pb.direct_challenge;
-        if (dc && typeof dc === 'object' && dc.prayer) return safeStr(dc.prayer);
-      } catch {}
+      if (pb.prayer) return strip(String(pb.prayer));
+      const dc = pb.directChallenge;
+      if (dc && typeof dc === 'object' && dc.prayer) return strip(String(dc.prayer));
       return '';
     };
 
-    const getBibleVerse = (pb: any): { reference: string; text: string } => {
-      try {
-        const bv = typeof pb.bible_verse === 'string' ? JSON.parse(pb.bible_verse) : pb.bible_verse;
-        if (bv && typeof bv === 'object') return { reference: safeStr(bv.reference), text: safeStr(bv.text) };
-      } catch {}
+    const getVerse = (pb: any): { reference: string; text: string } => {
+      const bv = pb.bibleVerse || pb.bible_verse;
+      if (bv && typeof bv === 'object') return { reference: strip(safeStr(bv.reference)), text: strip(safeStr(bv.text)) };
       return { reference: '', text: '' };
     };
 
-    // Pick the best playbook: in-progress first, then any
-    const inProgressPlaybook = playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at);
-    const anyPlaybook = playbooks[0];
+    const pbWithWords = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt && getWords(pb).length > 0)
+      || playbooks.find((pb: any) => getWords(pb).length > 0);
+    const pbWithVerse = playbooks.find((pb: any) => getVerse(pb).text);
 
-    // Playbook with words (in-progress first)
-    const pbWithWords = playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at && getWords(pb).length > 0)
-      || playbooks.find(pb => getWords(pb).length > 0);
+    // Action steps live in a separate table — fetch them using playbook IDs
+    let actionText = '';
+    if (playbooks.length > 0) {
+      const ids = playbooks.map((pb: any) => pb.id);
+      const { data: stepsData } = await supabase
+        .from('playbook_action_steps')
+        .select('text, order_index')
+        .in('playbook_id', ids)
+        .order('order_index', { ascending: true })
+        .limit(10);
+      const firstStep = (stepsData || []).find((s: any) => s.text?.trim());
+      if (firstStep) actionText = strip(String(firstStep.text));
+    }
 
-    // Playbook with action steps
-    const pbWithActions = playbooks.find(pb => (pb.playbook_action_steps || []).length > 0);
-
-    // Playbook with verse
-    const pbWithVerse = playbooks.find(pb => getBibleVerse(pb).text);
-
-    // Playbook with prayer
-    const pbWithPrayer = playbooks.find(pb => getPrayer(pb));
-
-    // Active devotional
-    const activeDevotional = devotionals.find(d => {
+    const activeDevotional = devotionals.find((d: any) => {
       const days: any[] = Array.isArray(d.days) ? d.days : [];
       return days.some((day: any) => day?.completed !== true);
     }) || devotionals[0];
 
     const ctx: Record<string, any> = {};
 
-    // Devotional context
     if (activeDevotional) {
       const days: any[] = Array.isArray(activeDevotional.days) ? activeDevotional.days : [];
-      const incompleteDay = days.find((d: any) => d?.completed !== true) || days[days.length - 1];
-      const completedDay = [...days].reverse().find((d: any) => d?.completed === true);
-      const dayObj = incompleteDay || days[0];
+      const dayObj = days.find((d: any) => d?.completed !== true) || days[days.length - 1] || days[0];
       if (dayObj) {
         ctx.dayNumber = typeof dayObj.dayNumber === 'number' ? dayObj.dayNumber : days.indexOf(dayObj) + 1;
         ctx.totalDays = activeDevotional.total_days || days.length;
+        ctx.title = ctx.totalDays === 1 ? activeDevotional.title : dayObj.title;
         const bv = dayObj.scripture;
-        if (bv) {
-          ctx.verseReference = stripMarkdown(safeStr(bv.reference));
-          ctx.verseText = stripMarkdown(safeStr(bv.text));
-        }
+        if (bv) { ctx.verseReference = strip(safeStr(bv.reference)); ctx.verseText = strip(safeStr(bv.text)); }
         const q = (dayObj.reflectionQuestions || []).find((q: any) => safeStr(q?.text));
-        if (q) ctx.questionText = stripMarkdown(safeStr(q.text));
-      }
-      if (completedDay) {
-        const bv = completedDay.scripture;
-        if (bv && !ctx.verseText) {
-          ctx.verseReference = stripMarkdown(safeStr(bv.reference));
-          ctx.verseText = stripMarkdown(safeStr(bv.text));
-        }
+        if (q) ctx.questionText = strip(safeStr(q.text));
       }
     }
 
-    // Playbook word to speak
     if (pbWithWords) {
       const words = getWords(pbWithWords);
-      const word = words[new Date().getDate() % words.length];
-      ctx.wordToSpeak = stripMarkdown(word);
+      ctx.wordToSpeak = words[new Date().getDate() % words.length];
     }
 
-    // Playbook action
-    if (pbWithActions) {
-      const steps = (pbWithActions.playbook_action_steps || [])
-        .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0));
-      const step = steps[0];
-      if (step) ctx.actionText = stripMarkdown(safeStr(step.text));
+    if (actionText) ctx.actionText = actionText;
+
+    // Store playbook verse separately so it isn't overwritten by devotional verse
+    if (pbWithVerse) {
+      const bv = getVerse(pbWithVerse);
+      ctx._playbookVerseReference = bv.reference;
+      ctx._playbookVerseText = bv.text;
     }
 
-    // Playbook verse (prefer devotional verse, then playbook verse)
-    if (pbWithVerse && !ctx.verseText) {
-      const bv = getBibleVerse(pbWithVerse);
-      ctx.verseReference = bv.reference;
-      ctx.verseText = bv.text;
-    }
+    // devotional verse is already in ctx.verseText / ctx.verseReference from the devotional block above
 
-    // Prayer request
-    if (prayers.length > 0) {
-      ctx.personName = safeStr(prayers[0].person_name) || undefined;
-    }
+    if (prayers.length > 0) ctx.personName = safeStr(prayers[0].person_name) || undefined;
 
-    // Subscription usage
     if (sub) {
-      const pbRemaining = (sub.playbooks_limit ?? 0) < 0
-        ? 99
-        : Math.max(0, (sub.playbooks_limit ?? 0) - (sub.playbooks_used ?? 0));
-      const devRemaining = (sub.devotionals_limit ?? 0) < 0
-        ? 99
-        : Math.max(0, (sub.devotionals_limit ?? 0) - (sub.devotionals_used ?? 0));
-      ctx.remainingCount = Math.min(pbRemaining, devRemaining);
-
+      const pbRem = (sub.playbooks_limit ?? 0) < 0 ? 99 : Math.max(0, (sub.playbooks_limit ?? 0) - (sub.playbooks_used ?? 0));
+      const devRem = (sub.devotionals_limit ?? 0) < 0 ? 99 : Math.max(0, (sub.devotionals_limit ?? 0) - (sub.devotionals_used ?? 0));
+      ctx.remainingCount = Math.min(pbRem, devRem);
       const anchor = new Date(sub.subscription_start_date || new Date());
-      const nextReset = new Date(anchor);
-      while (nextReset <= new Date()) nextReset.setMonth(nextReset.getMonth() + 1);
-      ctx.refreshDate = nextReset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const next = new Date(anchor);
+      while (next <= new Date()) next.setMonth(next.getMonth() + 1);
+      ctx.refreshDate = next.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    // Heart journal — pick a playbook title as the question theme
-    if (anyPlaybook?.title) {
-      ctx.heartJournalTitle = `How is God meeting you in "${anyPlaybook.title}"?`;
-    }
+    if (playbooks[0]?.title) ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
 
-    return ctx;
+    const debug = [
+      `uid:${userId.slice(0, 8)}`,
+      `pbs:${playbooks.length}`,
+      `words:${ctx.wordToSpeak ? String(ctx.wordToSpeak).slice(0, 25) : 'none'}`,
+      `action:${ctx.actionText ? String(ctx.actionText).slice(0, 25) : 'none'}`,
+      `verse:${ctx.verseText ? String(ctx.verseText).slice(0, 25) : 'none'}`,
+      `devs:${devotionals.length}`,
+    ].join(' | ');
+
+    return { ctx, debug };
   }
 
   /**
@@ -257,22 +206,33 @@ export class NotificationTester {
   static async sendSingleTypeTest(
     type: SmartNotificationType,
     userId?: string,
-  ): Promise<{ title: string; message: string } | null> {
+  ): Promise<{ title: string; message: string; debug?: string } | null> {
     let ctx: Record<string, any> = {};
+    let debugInfo = '';
 
     if (userId) {
       try {
-        ctx = await NotificationTester.buildRealContext(userId);
+        const result = await NotificationTester.buildRealContext(userId);
+        ctx = result.ctx;
+        debugInfo = result.debug;
       } catch (e) {
         Logger.warn('[NotificationTester] Failed to fetch real context', { component: 'NotificationTester', error: e });
+        debugInfo = `fetch error: ${(e as any)?.message ?? e}`;
       }
     }
 
+    // For playbook verse types, use playbook verse (not devotional verse)
+    const resolvedCtx = { ...ctx };
+    if (type === 'playbook_verse_revisit') {
+      resolvedCtx.verseText = ctx._playbookVerseText;
+      resolvedCtx.verseReference = ctx._playbookVerseReference;
+    }
+
     // Check if this type has real data to show
-    const dataRequired: Partial<Record<SmartNotificationType, keyof typeof ctx>> = {
+    const dataRequired: Partial<Record<SmartNotificationType, string>> = {
       playbook_word_to_speak: 'wordToSpeak',
       playbook_faithful_action: 'actionText',
-      playbook_verse_revisit: 'verseText',
+      playbook_verse_revisit: '_playbookVerseText',
       devotional_day_ready: 'dayNumber',
       devotional_reflection_prompt: 'questionText',
       devotional_verse_revisit: 'verseText',
@@ -281,10 +241,10 @@ export class NotificationTester {
 
     const requiredKey = dataRequired[type];
     if (requiredKey && !ctx[requiredKey]) {
-      return null;
+      return { title: '', message: '', debug: `missing:${requiredKey} | ${debugInfo}` };
     }
 
-    const copy = buildSmartNotificationCopy(type, ctx);
+    const copy = buildSmartNotificationCopy(type, resolvedCtx);
 
     await pushNotificationService.scheduleLocalNotification({
       title: copy.title,
@@ -293,7 +253,7 @@ export class NotificationTester {
       priority: 'high',
     }, new Date(Date.now() + 2000));
 
-    return { title: copy.title, message: copy.message };
+    return { title: copy.title, message: copy.message, debug: debugInfo };
   }
 
   /**
