@@ -363,6 +363,8 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
     // Explicit inclusion: 'journal' = CAST prayers (Confession/Adoration/Supplication/Thanksgiving),
     // 'people' = prayer for/from someone. Excludes 'devotional' and 'guided_playbook' types.
     .in('prayer_type', ['journal', 'people'])
+    // Filter to only include supplication prayers for prayer answered check notifications
+    .eq('journal_category', 'supplication')
     // Single .or() — chaining two .or() calls sends duplicate query params that PostgREST may not AND reliably
     .or('status.is.null,status.neq.answered')
     .lte('created_at', sevenDaysAgo)
