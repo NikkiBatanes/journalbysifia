@@ -72,10 +72,10 @@ const PRAYER_PATHS: PrayerPath[] = [
 
 // ACTS Prayer Steps
 const ACTS_STEPS = [
-  { key: 'confession', label: 'CONFESSION', title: 'Confession', description: 'Tell the truth about what you need to lay down.' },
-  { key: 'adoration', label: 'ADORATION', title: 'Adoration', description: 'Name who God is in the middle of this.' },
-  { key: 'supplication', label: 'SUPPLICATION', title: 'Supplication', description: 'Ask for what you need from the Lord.' },
-  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.' },
+  { key: 'confession', label: 'CONFESSION', title: 'Confession', description: 'Tell the truth about what you need to lay down.', placeholder: 'I confess that...' },
+  { key: 'adoration', label: 'ADORATION', title: 'Adoration', description: 'Name who God is in the middle of this.', placeholder: 'I praise You...' },
+  { key: 'supplication', label: 'SUPPLICATION', title: 'Supplication', description: 'Ask for what you need from the Lord.', placeholder: 'I ask for Your help with...' },
+  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.', placeholder: 'I thank You for...' },
 ];
 
 // StepFadeIn component
@@ -587,7 +587,9 @@ const ACTSPrayerSlidesStep: React.FC<{
   navigation: any;
   supplicationTrackAnswered: boolean;
   onSupplicationTrackAnsweredChange: (value: boolean) => void;
-}> = ({ prayerTexts, onChange, onNext, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange }) => {
+  castOpening: string;
+  castClosing: string;
+}> = ({ prayerTexts, onChange, onNext, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange, castOpening, castClosing }) => {
   const [actsStepIndex, setActsStepIndex] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -742,6 +744,13 @@ const ACTSPrayerSlidesStep: React.FC<{
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <StepFadeIn delay={120}>
             <View style={styles.actsCard}>
+              {/* Display suggested opening on confession step */}
+              {actsStepIndex === 0 && (
+                <View style={styles.suggestedTextContainer}>
+                  <ThemedText style={styles.suggestedText}>{castOpening}</ThemedText>
+                </View>
+              )}
+
               <View style={styles.actsCardHeader}>
                 <ThemedText weight="semiBold" style={styles.actsCardTitle}>{currentStep.label}</ThemedText>
                 <ThemedText style={styles.actsCardDescription}>{currentStep.description}</ThemedText>
@@ -751,13 +760,20 @@ const ACTSPrayerSlidesStep: React.FC<{
                 style={styles.personalInput}
                 value={prayerTexts[currentStep.key] || ''}
                 onChangeText={(text) => onChange(currentStep.key, text)}
-                placeholder="Write your prayer here..."
+                placeholder={currentStep.placeholder || "Write your prayer here..."}
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 multiline
                 textAlignVertical="top"
                 autoFocus
                 keyboardAppearance="dark"
               />
+
+              {/* Display suggested closing on thanksgiving step */}
+              {isLastStep && (
+                <View style={styles.suggestedTextContainer}>
+                  <ThemedText style={styles.suggestedText}>{castClosing}</ThemedText>
+                </View>
+              )}
             </View>
           </StepFadeIn>
 
@@ -1176,6 +1192,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [openPrayerText, setOpenPrayerText] = useState('');
   const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(false);
   const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(false);
+  const [castOpening, setCastOpening] = useState('Heavenly Father,');
+  const [castClosing, setCastClosing] = useState('In Jesus\' Name, Amen');
 
   const dateStr = toLocalDateString(selectedDate);
   const createMutation = useCreatePrayer();
@@ -1404,6 +1422,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             navigation={navigation}
             supplicationTrackAnswered={supplicationTrackAnswered}
             onSupplicationTrackAnsweredChange={setSupplicationTrackAnswered}
+            castOpening={castOpening}
+            castClosing={castClosing}
           />
         )}
 
@@ -1727,16 +1747,30 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   actsCard: {
-    borderRadius: 20,
-    padding: 24,
-  },
-  actsCardHeader: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 12,
   },
+  actsCardHeader: {
+    marginBottom: 16,
+  },
   actsCardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  suggestedTextContainer: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  suggestedText: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontStyle: 'italic',
   },
   actsCardDescription: {
     fontSize: 14,
