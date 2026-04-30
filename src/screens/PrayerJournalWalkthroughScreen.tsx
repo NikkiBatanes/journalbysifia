@@ -1975,7 +1975,7 @@ const styles = StyleSheet.create({
   completionInput: {
     color: 'rgba(255, 255, 255, 0.9)',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     marginTop: 8,
   },
