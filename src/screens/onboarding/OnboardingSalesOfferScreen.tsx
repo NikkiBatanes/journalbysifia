@@ -1812,19 +1812,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 : fromPlanningLock
                   ? currentUserTier === 'seeker' && !hasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
-                    : 'Start Planning Ahead'
+                    : 'Upgrade to Growth'
                 : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
                   ? currentUserTier === 'seeker' && !hasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Repeat Options'
+                    : 'Upgrade to Growth'
                 : fromCalendarAutoSync
                   ? currentUserTier === 'seeker' && !hasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Auto-Sync'
+                    : 'Upgrade to Growth'
                 : fromCopyTodosLock
                   ? currentUserTier === 'seeker' && !hasEverStartedTrial
                     ? 'Start 3-Day Free Trial'
-                    : 'Upgrade to Copy To-Dos'
+                    : 'Upgrade to Growth'
                 : (route.params as any)?.forceTransformationAnnual
                   ? 'Upgrade Plan to Annual'
                   : (route.params as any)?.forceAnnualOnly
