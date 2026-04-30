@@ -421,6 +421,26 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }));
   }, [prayerEntries]);
 
+  // Show more / show less state for CAST and Open Prayer
+  const initialLimits = useMemo(() => {
+    const actsPrayers = existingPrayers.filter((p: any) => p.type !== 'freeform');
+    const openPrayers = existingPrayers.filter((p: any) => p.type === 'freeform');
+
+    if (actsPrayers.length > 0 && openPrayers.length > 0) {
+      return { acts: 1, open: 1 };
+    } else if (actsPrayers.length > 0) {
+      return { acts: 2, open: 0 };
+    } else if (openPrayers.length > 0) {
+      return { acts: 0, open: 2 };
+    }
+    return { acts: 0, open: 0 };
+  }, [existingPrayers]);
+
+  const [userExpanded, setUserExpanded] = useState(false);
+
+  const actsDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type !== 'freeform').length : initialLimits.acts;
+  const openDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type === 'freeform').length : initialLimits.open;
+
   // Map filters to local type keys used by this component
   const allowedTypeKeysFromFilters = useMemo(() => {
     if (!filters) {return undefined as string[] | undefined;}
@@ -673,6 +693,16 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       actsSessions.push(currentSession);
     }
 
+    // Apply display limits
+    const displayedActsSessions = actsSessions.slice(0, actsDisplayLimit);
+    const displayedOpenPrayers = openPrayers.slice(0, openDisplayLimit);
+
+    // Check if we need to show show more/less button
+    const hasMoreActs = actsSessions.length > actsDisplayLimit;
+    const hasMoreOpen = openPrayers.length > openDisplayLimit;
+    const hasMoreItems = hasMoreActs || hasMoreOpen;
+    const canShowLess = userExpanded;
+
     return (
       <View
         style={[
@@ -681,7 +711,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         ]}
       >
         {/* CAST Method Section */}
-        {actsSessions.length > 0 && (
+        {displayedActsSessions.length > 0 && (
           <View style={styles.prayerPathSection}>
             <View style={styles.prayerPathHeader}>
               <MaterialCommunityIcons
@@ -693,7 +723,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <View style={styles.prayerPathDivider} />
             </View>
             <View style={styles.castStepsContainer}>
-              {actsSessions.map((session, sessionIndex) => {
+              {displayedActsSessions.map((session, sessionIndex) => {
                 const supplication = session.find((p: any) => p.type === 'supplication');
 
                 return (
@@ -712,7 +742,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         )}
 
         {/* Open Prayer Section */}
-        {openPrayers.length > 0 && (
+        {displayedOpenPrayers.length > 0 && (
           <View style={styles.prayerPathSection}>
             <View style={styles.prayerPathHeader}>
               <Ionicons
@@ -724,7 +754,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <View style={styles.prayerPathDivider} />
             </View>
             <View style={styles.openPrayerContainer}>
-              {openPrayers.map((prayer: any) => {
+              {displayedOpenPrayers.map((prayer: any) => {
                 const type = PRAYER_TYPES.find(t => t.key === 'freeform');
                 return (
                   <SwipeablePrayerCard
@@ -737,6 +767,44 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   />
                 );
               })}
+            </View>
+          </View>
+        )}
+
+        {/* Show More / Show Less Button */}
+        {(hasMoreItems || canShowLess) && (
+          <View style={styles.paginationContainer}>
+            <View style={styles.paginationButtonGroup}>
+              {hasMoreItems && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showMoreButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+              {canShowLess && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showLessButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
@@ -901,6 +969,41 @@ const styles = StyleSheet.create({
   },
   openPrayerContainer: {
     gap: 8,
+  },
+  paginationContainer: {
+    marginTop: 12,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.textGray,
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: 'System',
+    fontWeight: '500',
+    lineHeight: 14,
+    color: Colors.hopeWhite,
   },
   prayerTypeSection: {
     gap: 12,

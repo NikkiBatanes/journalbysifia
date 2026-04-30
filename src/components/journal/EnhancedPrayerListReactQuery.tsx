@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -104,20 +104,25 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   // Show more / show less state for inline display
   // Initial display: 1 prayer request + 1 prayed for, or 2 of one type if the other is empty
-  const [requestsDisplayLimit, setRequestsDisplayLimit] = useState(() => {
+  const initialLimits = useMemo(() => {
     const hasRequests = peoplePrayers.some(p => p.is_prayer_request === true && p.prayed !== true);
     const hasPersonal = peoplePrayers.some(p => p.is_prayer_request !== true);
-    if (hasRequests && hasPersonal) return 1;
-    if (hasRequests) return 2;
-    return 0;
-  });
-  const [personalDisplayLimit, setPersonalDisplayLimit] = useState(() => {
-    const hasRequests = peoplePrayers.some(p => p.is_prayer_request === true && p.prayed !== true);
-    const hasPersonal = peoplePrayers.some(p => p.is_prayer_request !== true);
-    if (hasRequests && hasPersonal) return 1;
-    if (hasPersonal) return 2;
-    return 0;
-  });
+
+    if (hasRequests && hasPersonal) {
+      return { requests: 1, personal: 1 };
+    } else if (hasRequests) {
+      return { requests: 2, personal: 0 };
+    } else if (hasPersonal) {
+      return { requests: 0, personal: 2 };
+    }
+    return { requests: 0, personal: 0 };
+  }, [peoplePrayers]);
+
+  const [userExpanded, setUserExpanded] = useState(false);
+
+  // Use initial limits unless user has expanded
+  const requestsDisplayLimit = userExpanded ? peoplePrayers.filter(p => p.is_prayer_request === true && p.prayed !== true).length : initialLimits.requests;
+  const personalDisplayLimit = userExpanded ? peoplePrayers.filter(p => p.is_prayer_request !== true).length : initialLimits.personal;
 
   // Computed values
   // Only count requests that are not yet prayed
@@ -552,7 +557,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     const hasMoreRequests = localPrayerRequests.length > requestsDisplayLimit;
     const hasMorePersonal = prayedForPrayers.length > personalDisplayLimit;
     const hasMoreItems = hasMoreRequests || hasMorePersonal;
-    const canShowLess = requestsDisplayLimit > 2 || personalDisplayLimit > 2;
+    const canShowLess = userExpanded;
 
     const renderPrayerItem = (item: PersonPrayer) => (
       <SwipeablePrayerCard
@@ -605,8 +610,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                   style={[styles.paginationButton, styles.showMoreButton]}
                   onPress={() => {
                     triggerSelectionHaptic();
-                    setRequestsDisplayLimit((prev: number) => Math.min(prev + 3, localPrayerRequests.length));
-                    setPersonalDisplayLimit((prev: number) => Math.min(prev + 3, prayedForPrayers.length));
+                    setUserExpanded(true);
                   }}
                   activeOpacity={0.7}
                 >
@@ -621,8 +625,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                   style={[styles.paginationButton, styles.showLessButton]}
                   onPress={() => {
                     triggerSelectionHaptic();
-                    setRequestsDisplayLimit(2);
-                    setPersonalDisplayLimit(2);
+                    setUserExpanded(false);
                   }}
                   activeOpacity={0.7}
                 >
