@@ -205,11 +205,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingVertical: 12,
     backgroundColor: Colors.anchorBlue,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionHeaderInner: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    paddingHorizontal: 32,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1826,9 +1832,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (groupBy === 'date') {
       return (
         <View style={styles.sectionHeader}>
-          <ThemedText weight="semiBold" style={styles.sectionTitle}>
-            {section.title}
-          </ThemedText>
+          <View style={styles.sectionHeaderInner}>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>
+              {section.title}
+            </ThemedText>
+          </View>
         </View>
       );
     }
@@ -1862,10 +1870,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionTitle}>
-              {section.title}
-            </ThemedText>
+            <View style={styles.sectionHeaderInner}>
+              <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+              <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                {section.title}
+              </ThemedText>
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -1880,24 +1890,28 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionTitle}>
-              {section.title}
-            </ThemedText>
+            <View style={styles.sectionHeaderInner}>
+              <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+              <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                {section.title}
+              </ThemedText>
+            </View>
           </View>
         </TouchableOpacity>
       );
     }
     return (
       <View style={styles.sectionHeader}>
-        <ThemedText weight="semiBold" style={styles.sectionTitle}>
-          {section.title}
-        </ThemedText>
-        {groupBy !== 'week' && groupBy !== 'month' && groupBy !== 'year' && (
-          <ThemedText style={styles.sectionCount}>
-            {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
+        <View style={styles.sectionHeaderInner}>
+          <ThemedText weight="semiBold" style={styles.sectionTitle}>
+            {section.title}
           </ThemedText>
-        )}
+          {groupBy !== 'week' && groupBy !== 'month' && groupBy !== 'year' && (
+            <ThemedText style={styles.sectionCount}>
+              {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
+            </ThemedText>
+          )}
+        </View>
       </View>
     );
   };
