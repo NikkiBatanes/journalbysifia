@@ -101,7 +101,6 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [isPressed, setIsPressed] = useState(false);
 
   return (
     <TouchableOpacity
@@ -125,52 +124,23 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
     >
       <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
 
-      {/* Mark as Answered Button - for supplication and open prayer when not answered and tracking is enabled */}
-      {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at && prayer.metadata?.track_answered === true) && (
+      {/* Mark as Answered Button - for supplication and open prayer when tracking is enabled */}
+      {((type.key === 'supplication' || type.key === 'freeform') && prayer.metadata?.track_answered === true) && (
         <TouchableOpacity
-          style={[styles.markAnsweredButton, isPressed && styles.markAnsweredButtonActive]}
+          style={[styles.markAnsweredButton, prayer.answered_at && styles.markAnsweredButtonActive]}
           onPress={() => {
-            // Directly mark as answered (no confirmation)
-            onMarkAnswered(prayer.id, true);
+            // Toggle answered state
+            onMarkAnswered(prayer.id, !prayer.answered_at);
           }}
-          onPressIn={() => setIsPressed(true)}
-          onPressOut={() => setIsPressed(false)}
           activeOpacity={0.8}
         >
-          <Ionicons name="checkmark" size={18} color={isPressed ? Colors.alertCoral : Colors.hopeWhite} />
-          <ThemedText style={[styles.markAnsweredText, isPressed && styles.markAnsweredTextActive]} weight="medium">Mark Answered</ThemedText>
+          <Ionicons name="checkmark" size={18} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
+            {prayer.answered_at ? 'Answered' : 'Mark Answered'}
+          </ThemedText>
         </TouchableOpacity>
       )}
 
-      {/* Answered Indicator - Tappable to mark as unanswered */}
-      {prayer.answered_at && ((type.key === 'supplication' || type.key === 'freeform') ? prayer.metadata?.track_answered === true : true) && (
-        <TouchableOpacity
-          style={styles.answeredIndicator}
-          onPress={() => {
-            if ((type.key === 'supplication' || type.key === 'freeform')) {
-              Alert.alert(
-                'Mark as Unanswered',
-                'Mark this prayer as unanswered?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Mark Unanswered',
-                    onPress: () => onMarkAnswered(prayer.id, false),
-                  },
-                ]
-              );
-            }
-          }}
-        >
-          <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
-          <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
-          {prayer.answered_at && (
-            <ThemedText style={styles.answeredTimestamp}>
-              {formatAnsweredDate(prayer.answered_at)}
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      )}
     </TouchableOpacity>
   );
 };
@@ -191,7 +161,6 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [isPressed, setIsPressed] = useState(false);
   // Get prayers in order (confession, adoration, supplication, thanksgiving)
   const order = ['confession', 'adoration', 'supplication', 'thanksgiving'];
   const orderedPrayers = order
@@ -242,49 +211,19 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Tracking indicator for supplication - shown right after supplication */}
       {supplicationPrayer && supplicationPrayer.metadata?.track_answered === true && (
         <View style={styles.trackingSection}>
-          {/* Mark as Answered Button */}
-          {!supplicationPrayer.answered_at && (
-            <TouchableOpacity
-              style={[styles.markAnsweredButton, isPressed && styles.markAnsweredButtonActive]}
-              onPress={() => {
-                onMarkAnswered(supplicationPrayer.id, true);
-              }}
-              onPressIn={() => setIsPressed(true)}
-              onPressOut={() => setIsPressed(false)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="checkmark" size={18} color={isPressed ? Colors.alertCoral : Colors.hopeWhite} />
-              <ThemedText style={[styles.markAnsweredText, isPressed && styles.markAnsweredTextActive]} weight="medium">Mark Answered</ThemedText>
-            </TouchableOpacity>
-          )}
-
-          {/* Answered Indicator */}
-          {supplicationPrayer.answered_at && (
-            <TouchableOpacity
-              style={styles.answeredIndicator}
-              onPress={() => {
-                Alert.alert(
-                  'Mark as Unanswered',
-                  'Mark this prayer as unanswered?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Mark Unanswered',
-                      onPress: () => onMarkAnswered(supplicationPrayer.id, false),
-                    },
-                  ]
-                );
-              }}
-            >
-              <MaterialCommunityIcons name="hand-heart" size={14} color={Colors.growthGreen} />
-              <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
-              {supplicationPrayer.answered_at && (
-                <ThemedText style={styles.answeredTimestamp}>
-                  {formatAnsweredDate(supplicationPrayer.answered_at)}
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-          )}
+          {/* Mark as Answered Button - always visible, toggles state */}
+          <TouchableOpacity
+            style={[styles.markAnsweredButton, supplicationPrayer.answered_at && styles.markAnsweredButtonActive]}
+            onPress={() => {
+              onMarkAnswered(supplicationPrayer.id, !supplicationPrayer.answered_at);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark" size={18} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
+              {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
       )}
 

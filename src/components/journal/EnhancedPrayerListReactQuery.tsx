@@ -823,7 +823,6 @@ const SwipeablePrayerCard: React.FC<{
   onDelete?: (prayer: PersonPrayer) => void;
 }> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit, onDelete }) => {
   const actionButtonPressedRef = React.useRef(false);
-  const [isPressed, setIsPressed] = React.useState(false);
 
   return (
     <TouchableOpacity
@@ -933,64 +932,31 @@ const SwipeablePrayerCard: React.FC<{
           {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
           {(() => {
             const hasTracking = prayer.metadata?.track_answered === true;
-            const notAnswered = prayer.status !== 'answered';
             const isNotRequest = prayer.is_prayer_request !== true;
 
-            return hasTracking && notAnswered && isNotRequest;
+            return hasTracking && isNotRequest;
           })() && (
             <View style={styles.answeredActionContainer}>
               <TouchableOpacity
-                style={[styles.answeredActionButton, isPressed && styles.answeredActionButtonActive]}
+                style={[styles.answeredActionButton, prayer.status === 'answered' && styles.answeredActionButtonActive]}
                 onPress={() => {
                   actionButtonPressedRef.current = true;
-                  handleMarkAsAnswered(prayer.id);
+                  if (prayer.status === 'answered') {
+                    handleMarkAsUnanswered(prayer.id);
+                  } else {
+                    handleMarkAsAnswered(prayer.id);
+                  }
                 }}
-                onPressIn={() => setIsPressed(true)}
-                onPressOut={() => setIsPressed(false)}
                 activeOpacity={0.8}
               >
                 <Ionicons
                   name="checkmark"
                   size={18}
-                  color={isPressed ? Colors.alertCoral : Colors.hopeWhite}
+                  color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
                 />
-                <ThemedText style={[styles.answeredActionText, isPressed && styles.answeredActionTextActive]} weight="medium">Mark Answered</ThemedText>
-              </TouchableOpacity>
-            </View>
-          )}
-          {/* Show Answered badge for prayers that are already answered - tappable to mark as unanswered */}
-          {prayer.status === 'answered' && (
-            <View style={styles.answeredBadgeWrapper}>
-              <TouchableOpacity
-                style={styles.answeredBadgeContainer}
-                onPress={() => {
-                  actionButtonPressedRef.current = true;
-                  handleMarkAsUnanswered(prayer.id);
-                }}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="hand-heart"
-                  size={14}
-                  color={Colors.growthGreen}
-                />
-                <ThemedText style={styles.answeredBadgeText} weight="medium">Answered</ThemedText>
-                {prayer.answered_date && (
-                  <ThemedText style={styles.answeredDate}>
-                    {(() => {
-                      const date = new Date(prayer.answered_date);
-                      const currentYear = new Date().getFullYear();
-                      const isCurrentYear = date.getFullYear() === currentYear;
-
-                      return date.toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        ...(isCurrentYear ? {} : { year: 'numeric' }),
-                      });
-                    })()}
-                  </ThemedText>
-                )}
+                <ThemedText style={[styles.answeredActionText, prayer.status === 'answered' && styles.answeredActionTextActive]} weight="medium">
+                  {prayer.status === 'answered' ? 'Answered' : 'Mark Answered'}
+                </ThemedText>
               </TouchableOpacity>
             </View>
           )}
