@@ -164,12 +164,12 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   // CASE 2: Trial user - no remaining
   if (isOnTrial && hasNoRemaining) {
-    const effectiveTier = trialChosenTier || 'spark';
-    const tierName = getTierDisplayName(effectiveTier);
-    const fullLimit = getTierLimits(effectiveTier, featureType);
+    const trialTier = trialChosenTier || 'spark';
+    const tierName = getTierDisplayName(trialTier);
+    const fullLimit = getTierLimits(trialTier, featureType);
     const fullLimitText = fullLimit === 1
-      ? `1 ${featureType.slice(0, -1)}`
-      : `${fullLimit} ${featureType}`;
+      ? `1 ${featureNamePlural.slice(0, -1)}`
+      : `${fullLimit} ${featureNamePlural}`;
 
     // Trial limits based on chosen tier
     const trialLimits = {
@@ -177,7 +177,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       'growth': 10,
       'transformation': 25,
     };
-    const trialLimit = trialLimits[effectiveTier as keyof typeof trialLimits] || 5;
+    const trialLimit = trialLimits[trialTier as keyof typeof trialLimits] || 5;
     const trialLimitText = trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
 
     // Calculate when subscription starts
@@ -195,7 +195,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       message: `You've used all ${trialLimitText} included in your free trial. Your ${tierName} plan starts in ${daysUntilSubscriptionStarts} ${dayText}, on ${subscriptionStartDateStr}, with ${fullLimitText} each month.`,
       primaryCta: 'Got it',
       secondaryCta: 'Close',
-      recommendedTier: effectiveTier,
+      recommendedTier: trialTier,
       showUpgradeOptions: false,
       closeOnPrimaryCta: true,
       isCurrentTrial: true,
@@ -255,7 +255,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       if (requestedDuration === 5) {
         return {
           title: 'Unlock 5-Day\nDevotionals',
-          message: `5-day devotionals are available with Growth or Transformation. Upgrade to unlock 5-day devotionals, or choose another duration.`,
+          message: '5-day devotionals are available with Growth or Transformation. Upgrade to unlock 5-day devotionals, or choose another duration.',
           primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial',
           secondaryCta: 'Choose Another Duration',
           recommendedTier: 'growth',
@@ -265,7 +265,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
       return {
         title: 'Unlock 7-Day\nDevotionals',
-        message: `7-day devotionals are available with Transformation. Upgrade to unlock 7-day devotionals, or choose another duration.`,
+        message: '7-day devotionals are available with Transformation. Upgrade to unlock 7-day devotionals, or choose another duration.',
         primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('transformation')}` : 'Start 3-Day Free Trial',
         secondaryCta: 'Choose Another Duration',
         recommendedTier: 'transformation',

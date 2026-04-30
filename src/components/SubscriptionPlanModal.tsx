@@ -280,12 +280,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                             chosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
                             { playbooks: 10, devotionals: 10 }; // default to growth
 
-        // Get tier-specific devotional access
-        const devotionalAccess = chosenTier === 'spark' ? 'Access 1-day and 3-day devotionals' :
-                                chosenTier === 'growth' ? 'Access 1-day, 3-day, and 5-day devotionals' :
-                                chosenTier === 'transformation' ? 'Access 1-day, 3-day, 5-day, and 7-day devotionals' :
-                                'Access 1-day and 3-day devotionals';
-
         // Get tier-specific features based on chosen tier
         const tierFeatures = chosenTier === 'spark' ? [
           `${trialLimits.playbooks} playbooks during trial`,
