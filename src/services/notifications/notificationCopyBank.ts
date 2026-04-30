@@ -6,6 +6,11 @@ interface CopyContext {
   title?: string;
   actionText?: string;
   verseReference?: string;
+  verseText?: string;
+  questionText?: string;
+  wordToSpeak?: string;
+  heartJournalTitle?: string;
+  personName?: string;
   remainingCount?: number;
   refreshDate?: string;
 }
@@ -23,10 +28,6 @@ const plural = (count: number, singular: string, pluralValue = `${singular}s`): 
   return count === 1 ? singular : pluralValue;
 };
 
-const verseLine = (reference?: string): string => {
-  return reference ? ` Start with ${reference}.` : '';
-};
-
 export function buildSmartNotificationCopy(
   type: SmartNotificationType,
   context: CopyContext = {}
@@ -36,7 +37,7 @@ export function buildSmartNotificationCopy(
       const day = context.dayNumber ? `Day ${context.dayNumber}` : 'Your next day';
       return {
         title: 'Your devotional is ready',
-        message: compact(`${day} is ready when you are.${verseLine(context.verseReference)}`),
+        message: compact(`${day} is ready when you are.`),
       };
     }
 
@@ -48,16 +49,14 @@ export function buildSmartNotificationCopy(
 
     case 'devotional_reflection_prompt':
       return {
-        title: 'Pause with one question',
-        message: compact('One question from your devotional is ready for your journal.'),
+        title: 'Pause with this question',
+        message: compact(context.questionText || 'One question from your devotional is ready for your journal.'),
       };
 
     case 'devotional_verse_revisit':
       return {
         title: 'Carry this verse today',
-        message: compact(context.verseReference
-          ? `${context.verseReference} is worth revisiting today.`
-          : 'A verse from your devotional is worth revisiting today.'),
+        message: compact(context.verseText || 'A verse from your devotional is worth revisiting today.'),
       };
 
     case 'devotional_completed_reflection':
@@ -68,36 +67,32 @@ export function buildSmartNotificationCopy(
 
     case 'playbook_word_to_speak':
       return {
-        title: 'Speak truth over today',
-        message: compact('One word from your playbook is ready to speak over yourself.'),
+        title: 'Speak this over today',
+        message: compact(context.wordToSpeak || 'One word from your playbook is ready to speak over yourself.'),
       };
 
     case 'playbook_faithful_action':
       return {
         title: 'Take one faithful step',
-        message: compact(context.actionText
-          ? `Your playbook says: ${context.actionText}.`
-          : 'One action from your playbook is ready for today.'),
+        message: compact(context.actionText || 'One action from your playbook is ready for today.'),
       };
 
     case 'playbook_verse_revisit':
       return {
         title: 'Return to the verse',
-        message: compact(context.verseReference
-          ? `${context.verseReference} is worth carrying today.`
-          : 'The verse from your playbook is worth carrying today.'),
+        message: compact(context.verseText || 'The verse from your playbook is worth carrying today.'),
       };
 
     case 'playbook_prayer_revisit':
       return {
         title: 'Pray through your playbook',
-        message: compact('A prayer from your playbook is ready for this moment.'),
+        message: compact('Pray the prayer from your playbook walkthrough.'),
       };
 
     case 'playbook_to_devotional':
       return {
         title: 'Turn this into a devotional',
-        message: compact('This playbook can become a devotional for the season you are walking through.'),
+        message: compact('Your playbook can become a devotional for the season you are walking through.'),
       };
 
     case 'journal_todays_focus':
@@ -132,14 +127,14 @@ export function buildSmartNotificationCopy(
 
     case 'heart_journal_prompt':
       return {
-        title: 'Check in with your heart',
-        message: compact('What is weighing on your heart tonight?'),
+        title: compact(context.heartJournalTitle || 'Check in with your heart', 58),
+        message: compact('Take a quiet moment to answer it.'),
       };
 
     case 'prayer_request_care':
       return {
-        title: 'Lift someone up today',
-        message: compact('Someone on your prayer list needs care today.'),
+        title: compact(context.personName ? `Lift ${context.personName} today` : 'Lift someone up today', 58),
+        message: compact('Take a quiet moment to pray for them.'),
       };
 
     case 'prayer_today':
@@ -151,25 +146,19 @@ export function buildSmartNotificationCopy(
     case 'create_first_devotional':
       return {
         title: 'Start your first devotional',
-        message: compact('Create a devotional for the season you are walking through.'),
-      };
-
-    case 'create_first_playbook':
-      return {
-        title: 'Create a playbook',
-        message: compact('Create a playbook for what you are carrying today.'),
+        message: compact('Start a devotional for the season you are walking through.'),
       };
 
     case 'create_devotional':
       return {
-        title: 'Create a new devotional',
-        message: compact('You still have room to create a devotional this month.'),
+        title: 'Start a new devotional',
+        message: compact('Start a devotional for the season you are walking through.'),
       };
 
     case 'create_playbook':
       return {
-        title: 'Create a new playbook',
-        message: compact('You still have room to create a playbook this month.'),
+        title: 'Start a new playbook',
+        message: compact('Are you going through something today? Start a new playbook.'),
       };
 
     case 'usage_room_devotional': {

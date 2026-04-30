@@ -60,7 +60,9 @@ class PrayerRequestNotificationService {
         scheduledFor.setDate(scheduledFor.getDate() + 1);
       }
 
-      const copy = buildSmartNotificationCopy('prayer_request_care');
+      const copy = buildSmartNotificationCopy('prayer_request_care', {
+        personName: prayerForPerson.trim(),
+      });
       const success = await notificationSchedulerService.scheduleNotification({
         user_id: userId,
         type: 'prayer_request_care',

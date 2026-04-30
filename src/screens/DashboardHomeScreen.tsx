@@ -6,6 +6,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  ActivityIndicator,
   RefreshControl,
   Platform,
   StyleSheet,
@@ -36,6 +37,7 @@ import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 import { Logger } from '../utils/ProductionLogger';
+import { NotificationTester } from '../utils/notificationTester';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -165,6 +167,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       padding: 6,
       borderRadius: 14,
       backgroundColor: 'transparent',
+    },
+    devNotificationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 14,
+      backgroundColor: Colors.anchorBlue,
+    },
+    devNotificationButtonText: {
+      color: Colors.hopeWhite,
+      fontSize: 10,
+      lineHeight: 12,
     },
     profileButton: {
       width: 32,
@@ -779,12 +795,44 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
   const { badgeCount, fetchBadgeCount } = useNotificationBadge();
+  const [isTestingNotifications, setIsTestingNotifications] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchBadgeCount();
     }, [fetchBadgeCount])
   );
+
+  const handleTestAllNotifications = useCallback(() => {
+    if (!__DEV__) {
+      return;
+    }
+
+    Alert.alert(
+      'Test notifications',
+      'This will schedule every smart notification copy as local notifications over the next minute.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Start',
+          onPress: async () => {
+            try {
+              setIsTestingNotifications(true);
+              const count = await NotificationTester.sendAllSmartNotificationCopyTests();
+              Alert.alert('Scheduled', `${count} test notifications were scheduled.`);
+            } catch (error) {
+              Logger.error('Failed to test all notifications', error as Error, {
+                component: 'DashboardHomeScreen',
+              });
+              Alert.alert('Error', 'Failed to schedule test notifications.');
+            } finally {
+              setIsTestingNotifications(false);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -1363,6 +1411,26 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             </TouchableOpacity>
           );
         })()}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.devNotificationButton}
+            onPress={() => {
+              triggerLightHaptic();
+              handleTestAllNotifications();
+            }}
+            disabled={isTestingNotifications}
+          >
+            {isTestingNotifications ? (
+              <ActivityIndicator size="small" color={Colors.hopeWhite} />
+            ) : (
+              <Ionicons name="flask-outline" size={14} color={Colors.hopeWhite} />
+            )}
+            <ThemedText weight="semiBold" style={styles.devNotificationButtonText}>
+              Test
+            </ThemedText>
+          </TouchableOpacity>
+        )}
 
         {/* Notifications */}
         <TouchableOpacity

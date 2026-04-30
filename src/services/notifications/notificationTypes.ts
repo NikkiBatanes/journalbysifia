@@ -2,34 +2,36 @@ import { NotificationPreferences } from '../notificationManagementService';
 
 export const SMART_NOTIFICATION_ENGINE_VERSION = 'state_v1';
 
-export type SmartNotificationType =
-  | 'devotional_day_ready'
-  | 'devotional_prayer_prompt'
-  | 'devotional_reflection_prompt'
-  | 'devotional_verse_revisit'
-  | 'devotional_completed_reflection'
-  | 'playbook_word_to_speak'
-  | 'playbook_faithful_action'
-  | 'playbook_verse_revisit'
-  | 'playbook_prayer_revisit'
-  | 'playbook_to_devotional'
-  | 'journal_todays_focus'
-  | 'journal_todo'
-  | 'journal_gratitude'
-  | 'journal_todays_win'
-  | 'journal_looking_forward'
-  | 'heart_journal_prompt'
-  | 'prayer_request_care'
-  | 'prayer_today'
-  | 'create_devotional'
-  | 'create_playbook'
-  | 'create_first_devotional'
-  | 'create_first_playbook'
-  | 'usage_room_devotional'
-  | 'usage_room_playbook'
-  | 'content_refresh_wait'
-  | 'upgrade_room'
-  | 'recovery_prayer';
+export const SMART_NOTIFICATION_TYPES = [
+  'devotional_day_ready',
+  'devotional_prayer_prompt',
+  'devotional_reflection_prompt',
+  'devotional_verse_revisit',
+  'devotional_completed_reflection',
+  'playbook_word_to_speak',
+  'playbook_faithful_action',
+  'playbook_verse_revisit',
+  'playbook_prayer_revisit',
+  'playbook_to_devotional',
+  'journal_todays_focus',
+  'journal_todo',
+  'journal_gratitude',
+  'journal_todays_win',
+  'journal_looking_forward',
+  'heart_journal_prompt',
+  'prayer_request_care',
+  'prayer_today',
+  'create_devotional',
+  'create_playbook',
+  'create_first_devotional',
+  'usage_room_devotional',
+  'usage_room_playbook',
+  'content_refresh_wait',
+  'upgrade_room',
+  'recovery_prayer',
+] as const;
+
+export type SmartNotificationType = typeof SMART_NOTIFICATION_TYPES[number];
 
 export type SmartNotificationCategory =
   | 'devotional'
@@ -117,7 +119,6 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
   create_devotional: 'devotional_reminders',
   create_playbook: 'playbook_steps',
   create_first_devotional: 'devotional_reminders',
-  create_first_playbook: 'playbook_steps',
   usage_room_devotional: 'devotional_reminders',
   usage_room_playbook: 'playbook_steps',
   content_refresh_wait: 'trial_notifications',

@@ -9,6 +9,27 @@ import { Logger } from '../utils/ProductionLogger';
 class NotificationDeepLinkService {
   private navigationRef: any = null;
 
+  private parseQuery(queryString?: string): Record<string, string> {
+    if (!queryString) {
+      return {};
+    }
+
+    return queryString.split('&').reduce<Record<string, string>>((params, pair) => {
+      const [rawKey, rawValue = ''] = pair.split('=');
+      if (!rawKey) {
+        return params;
+      }
+
+      try {
+        params[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+      } catch {
+        params[rawKey] = rawValue;
+      }
+
+      return params;
+    }, {});
+  }
+
   /**
    * Set the navigation reference for deep linking
    */
@@ -112,7 +133,8 @@ class NotificationDeepLinkService {
       // Parse deep link URL.
       // Supported: sifia://screen/id, sifia://screen/id/day/2, and query params.
       const url = deepLink.replace('sifia://', '');
-      const [path] = url.split('?');
+      const [path, queryString] = url.split('?');
+      const query = this.parseQuery(queryString);
       const parts = path.split('/').filter(Boolean);
       const screen = parts[0];
       const id = parts[1];
@@ -131,9 +153,54 @@ class NotificationDeepLinkService {
 
         case 'playbook':
         case 'playbooks':
-          // Navigate to specific PlaybookDetail screen
           if (id && id !== 'new') {
-            this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
+            const target = parts[2];
+            const walkthroughTarget = parts[3];
+
+            if (target === 'walkthrough') {
+              const stepMap: Record<string, number> = {
+                verse: 2,
+                actions: 3,
+                prayer: 4,
+                words: 5,
+                speak: 5,
+              };
+              const initialStep = stepMap[walkthroughTarget] ?? 0;
+              const rawActionIndex = walkthroughTarget === 'actions' ? Number(parts[4]) : undefined;
+
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep,
+                ...(Number.isFinite(rawActionIndex) ? { initialActionIndex: rawActionIndex } : {}),
+              });
+            } else if (target === 'prayer') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 4,
+              });
+            } else if (target === 'verse') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 2,
+              });
+            } else if (target === 'speak') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 5,
+              });
+            } else if (target === 'action') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 3,
+              });
+            } else {
+              this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
+            }
           } else {
             // Navigate to Playbooks tab if no specific ID
             this.navigationRef.current.navigate('MainTabs', { screen: 'Playbooks' });
@@ -165,8 +232,25 @@ class NotificationDeepLinkService {
           break;
 
         case 'journal':
-          // Navigate to Journal screen directly
-          this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
+          if (id === 'heart' && query.title) {
+            this.navigationRef.current.navigate('MainTabs', {
+              screen: 'Journal',
+              params: {
+                screen: 'ReflectionEditor',
+                params: {
+                  selectedDate: new Date().toISOString(),
+                  initialMode: 'guided',
+                  initialPrompt: query.title,
+                  initialTitle: query.title,
+                  lockTitle: true,
+                  source: 'guided',
+                },
+              },
+            });
+          } else {
+            // Navigate to Journal screen directly
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
+          }
           Logger.info('Navigated to Journal', {
             component: 'notificationDeepLinkService',
           });

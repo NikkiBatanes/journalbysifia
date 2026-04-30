@@ -2,12 +2,70 @@ import { Logger } from './ProductionLogger';
 import { DailyNotificationScheduler } from './dailyNotificationScheduler';
 import { pushNotificationService } from '../services/pushNotificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { buildSmartNotificationCopy } from '../services/notifications/notificationCopyBank';
+import { SMART_NOTIFICATION_TYPES } from '../services/notifications/notificationTypes';
 
 /**
  * Notification Testing Utilities
  * Use these functions to test notification delivery
  */
 export class NotificationTester {
+  /**
+   * Send every smart notification copy as staggered local notifications.
+   * This is intentionally local-only so dev copy testing does not pollute the queue.
+   */
+  static async sendAllSmartNotificationCopyTests(): Promise<number> {
+    try {
+      Logger.info('🧪 Scheduling all smart notification copy tests', {
+        component: 'NotificationTester',
+        count: SMART_NOTIFICATION_TYPES.length,
+      });
+
+      const baseTime = Date.now() + 3000;
+
+      await Promise.all(
+        SMART_NOTIFICATION_TYPES.map(async (type, index) => {
+          const copy = buildSmartNotificationCopy(type, {
+            dayNumber: 2,
+            totalDays: 7,
+            actionText: 'take one step toward community today',
+            verseReference: 'Psalm 23:1',
+            verseText: 'The Lord is my shepherd; I shall not want.',
+            questionText: 'Where do you need to trust God with the next step today?',
+            wordToSpeak: 'I am not alone. God is leading me one faithful step at a time.',
+            heartJournalTitle: 'Am I trusting God with my work or financial concerns?',
+            personName: 'Lisa',
+            remainingCount: 3,
+            refreshDate: 'May 15',
+          });
+
+          await pushNotificationService.scheduleLocalNotification({
+            title: copy.title,
+            message: copy.message,
+            data: {
+              deep_link: 'sifia://dashboard',
+              test: true,
+              notification_type: type,
+            },
+            priority: index < 5 ? 'high' : 'normal',
+          }, new Date(baseTime + index * 2500));
+        })
+      );
+
+      Logger.info('✅ All smart notification copy tests scheduled', {
+        component: 'NotificationTester',
+        count: SMART_NOTIFICATION_TYPES.length,
+      });
+
+      return SMART_NOTIFICATION_TYPES.length;
+    } catch (error) {
+      Logger.error('Failed to schedule all smart notification copy tests', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
   /**
    * Send a test notification immediately
    */
