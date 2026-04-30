@@ -44,6 +44,7 @@ type PlaybookRowLike = {
     text?: string;
   } | null;
   word_to_speak?: string | null;
+  direct_challenge?: unknown;
   prayer?: string | null;
   playbook_action_steps?: Array<{
     id: string;
@@ -351,6 +352,7 @@ const getPlaybooks = async (userId: string): Promise<PlaybookRowLike[]> => {
       completed_at,
       bible_verse,
       word_to_speak,
+      direct_challenge,
       prayer,
       playbook_action_steps (
         id,
@@ -418,6 +420,7 @@ const getFirstIncompleteAction = (playbook: PlaybookRowLike) => {
 };
 
 const getWordsToSpeak = (playbook: PlaybookRowLike): string[] => {
+  // Primary: dedicated word_to_speak column (old schema)
   const directWords = safeText(playbook.word_to_speak)
     .split(/\n+/)
     .map(line => line.replace(/^[-*]\s*/, '').trim())
@@ -427,6 +430,19 @@ const getWordsToSpeak = (playbook: PlaybookRowLike): string[] => {
     return directWords.slice(0, 5);
   }
 
+  // Secondary: wordToSpeak piggybacked inside direct_challenge JSONB (new schema)
+  const dc = parseMaybeJson(playbook.direct_challenge);
+  if (dc && typeof dc === 'object' && !Array.isArray(dc)) {
+    const piggybacked = safeText((dc as Record<string, unknown>).wordToSpeak)
+      .split(/\n+/)
+      .map(line => line.replace(/^[-*]\s*/, '').trim())
+      .filter(Boolean);
+    if (piggybacked.length > 0) {
+      return piggybacked.slice(0, 5);
+    }
+  }
+
+  // Fallback: playbook_affirmations rows
   return sortByOrder(playbook.playbook_affirmations || [])
     .map(item => safeText(item.text))
     .filter(Boolean)
@@ -702,29 +718,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }));
     }
 
-    const wordsToSpeak = getWordsToSpeak(ongoingPlaybook);
-    if (wordsToSpeak.length > 0) {
-      const wordIndex = new Date().getDate() % wordsToSpeak.length;
-      const wordToSpeak = notificationText(wordsToSpeak[wordIndex]);
-      candidates.push(createCandidate({
-        type: 'playbook_word_to_speak',
-        timeWindow: 'afternoon',
-        score: 76,
-        dedupeKey: buildDedupeKey('playbook_word_to_speak', ongoingPlaybook.id, wordIndex, currentDate),
-        deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/words`,
-        sourceType: 'playbook',
-        sourceId: ongoingPlaybook.id,
-        sourceSubId: String(wordIndex),
-        copyContext: {
-          wordToSpeak,
-        },
-        metadata: {
-          playbook_title: ongoingPlaybook.title,
-          word_to_speak: wordToSpeak,
-        },
-      }));
-    }
-
     const playbookVerseReference = notificationText(ongoingPlaybook.bible_verse?.reference);
     const playbookVerseText = notificationText(ongoingPlaybook.bible_verse?.text);
     if (playbookVerseText) {
@@ -748,7 +741,14 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }));
     }
 
-    if (notificationText(ongoingPlaybook.prayer).length > 0) {
+    const playbookPrayer = notificationText(ongoingPlaybook.prayer) ||
+      (() => {
+        const dc = parseMaybeJson(ongoingPlaybook.direct_challenge);
+        return dc && typeof dc === 'object' && !Array.isArray(dc)
+          ? notificationText((dc as Record<string, unknown>).prayer)
+          : '';
+      })();
+    if (playbookPrayer.length > 0) {
       candidates.push(createCandidate({
         type: 'playbook_prayer_revisit',
         timeWindow: 'night',
@@ -762,6 +762,31 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         },
       }));
     }
+  }
+
+  // playbook_word_to_speak: search in-progress first, then completed — words apply regardless of status
+  const wordSource =
+    playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at && getWordsToSpeak(pb).length > 0) ||
+    playbooks.find(pb => getWordsToSpeak(pb).length > 0);
+  if (wordSource) {
+    const wordsToSpeak = getWordsToSpeak(wordSource);
+    const wordIndex = new Date().getDate() % wordsToSpeak.length;
+    const wordToSpeak = notificationText(wordsToSpeak[wordIndex]);
+    candidates.push(createCandidate({
+      type: 'playbook_word_to_speak',
+      timeWindow: 'afternoon',
+      score: 76,
+      dedupeKey: buildDedupeKey('playbook_word_to_speak', wordSource.id, wordIndex, currentDate),
+      deepLink: `sifia://playbooks/${wordSource.id}/walkthrough/words`,
+      sourceType: 'playbook',
+      sourceId: wordSource.id,
+      sourceSubId: String(wordIndex),
+      copyContext: { wordToSpeak },
+      metadata: {
+        playbook_title: wordSource.title,
+        word_to_speak: wordToSpeak,
+      },
+    }));
   }
 
   const completedPlaybookWithoutDevotional = playbooks.find(playbook => (

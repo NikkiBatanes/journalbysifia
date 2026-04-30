@@ -507,8 +507,14 @@ class PushNotificationService {
         .insert({
           user_id: userId,
           type: mappedType,
-          title: notification.title || 'Notification',
-          message: notification.message || '',
+          title: notification.title
+            || notification.aps?.alert?.title
+            || (typeof notification.aps?.alert === 'string' ? notification.aps.alert : null)
+            || 'Notification',
+          message: notification.message
+            || notification.body
+            || notification.aps?.alert?.body
+            || '',
           data: notification.data || {},
           is_read: false,
           created_at: new Date().toISOString(),

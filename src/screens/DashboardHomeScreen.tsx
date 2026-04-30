@@ -38,6 +38,7 @@ import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 import { Logger } from '../utils/ProductionLogger';
 import { NotificationTester } from '../utils/notificationTester';
+import { SMART_NOTIFICATION_TYPES } from '../services/notifications/notificationTypes';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -796,6 +797,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const tabBarCollapsedRef = useRef(false);
   const { badgeCount, fetchBadgeCount } = useNotificationBadge();
   const [isTestingNotifications, setIsTestingNotifications] = useState(false);
+  const [notifTestModalVisible, setNotifTestModalVisible] = useState(false);
+  const [notifTestTab, setNotifTestTab] = useState<'types' | 'queue' | 'history'>('types');
+  const [notifQueueItems, setNotifQueueItems] = useState<any[]>([]);
+  const [notifHistoryItems, setNotifHistoryItems] = useState<any[]>([]);
+  const [notifDataLoading, setNotifDataLoading] = useState(false);
+  const [notifSending, setNotifSending] = useState<string | null>(null);
+  const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string } | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -804,35 +812,45 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   );
 
   const handleTestAllNotifications = useCallback(() => {
-    if (!__DEV__) {
-      return;
-    }
-
-    Alert.alert(
-      'Test notifications',
-      'This will schedule every smart notification copy as local notifications over the next minute.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Start',
-          onPress: async () => {
-            try {
-              setIsTestingNotifications(true);
-              const count = await NotificationTester.sendAllSmartNotificationCopyTests();
-              Alert.alert('Scheduled', `${count} test notifications were scheduled.`);
-            } catch (error) {
-              Logger.error('Failed to test all notifications', error as Error, {
-                component: 'DashboardHomeScreen',
-              });
-              Alert.alert('Error', 'Failed to schedule test notifications.');
-            } finally {
-              setIsTestingNotifications(false);
-            }
-          },
-        },
-      ]
-    );
+    if (!__DEV__) return;
+    setNotifTestTab('types');
+    setNotifTestModalVisible(true);
   }, []);
+
+  const loadNotifData = useCallback(async (tab: 'queue' | 'history') => {
+    if (!user?.id) return;
+    setNotifDataLoading(true);
+    try {
+      if (tab === 'queue') {
+        const items = await NotificationTester.fetchMyQueue(user.id);
+        setNotifQueueItems(items);
+      } else {
+        const items = await NotificationTester.fetchMyHistory(user.id);
+        setNotifHistoryItems(items);
+      }
+    } catch (e) {
+      Logger.error('Failed to load notif data', e as Error, { component: 'DashboardHomeScreen' });
+    } finally {
+      setNotifDataLoading(false);
+    }
+  }, [user?.id]);
+
+  const handleSendSingleType = useCallback(async (type: string) => {
+    setNotifSending(type);
+    setNotifLastSent(null);
+    try {
+      const copy = await NotificationTester.sendSingleTypeTest(type as any, user?.id);
+      if (copy) {
+        setNotifLastSent({ type, title: copy.title, message: copy.message });
+      } else {
+        setNotifLastSent({ type, title: '(no copy — conditions not met)', message: '' });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send notification.');
+    } finally {
+      setNotifSending(null);
+    }
+  }, [user?.id]);
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -1847,6 +1865,125 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }}
       />
     </Animated.View>
+
+    {/* Dev Notification Test Modal */}
+    {__DEV__ && (
+      <Modal
+        visible={notifTestModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setNotifTestModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1623' }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+            <ThemedText weight="bold" style={{ color: '#fff', fontSize: 16 }}>Notification Tester</ThemedText>
+            <TouchableOpacity onPress={() => setNotifTestModalVisible(false)}>
+              <Ionicons name="close" size={22} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Tabs */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 8 }}>
+            {(['types', 'queue', 'history'] as const).map(tab => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => {
+                  setNotifTestTab(tab);
+                  if (tab === 'queue' || tab === 'history') loadNotifData(tab);
+                }}
+                style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: notifTestTab === tab ? Colors.anchorBlue : 'rgba(255,255,255,0.08)' }}
+              >
+                <ThemedText weight="semiBold" style={{ color: notifTestTab === tab ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                  {tab === 'types' ? 'Types' : tab === 'queue' ? 'My Queue' : 'History'}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Types tab */}
+          {notifTestTab === 'types' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 8 }}>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
+                Tap Send to fire a single notification using your real account data (arrives in ~2 s)
+              </ThemedText>
+
+              {notifLastSent && (
+                <View style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(76,175,80,0.12)', borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)' }}>
+                  <ThemedText weight="semiBold" style={{ color: '#4caf50', fontSize: 10, marginBottom: 4 }}>SENT · {notifLastSent.type}</ThemedText>
+                  <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 13, marginBottom: 2 }}>{notifLastSent.title}</ThemedText>
+                  {notifLastSent.message ? (
+                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>{notifLastSent.message}</ThemedText>
+                  ) : null}
+                </View>
+              )}
+              {SMART_NOTIFICATION_TYPES.map(type => {
+                const sending = notifSending === type;
+                return (
+                  <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                      {type}
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => handleSendSingleType(type)}
+                      disabled={sending || notifSending !== null}
+                      style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : Colors.anchorBlue, opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                    >
+                      {sending ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {/* Queue tab */}
+          {notifTestTab === 'queue' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {notifDataLoading ? (
+                <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
+              ) : notifQueueItems.length === 0 ? (
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 40 }}>No items in queue</ThemedText>
+              ) : notifQueueItems.map(item => (
+                <View key={item.id} style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 12, flex: 1 }}>{item.title || '(no title)'}</ThemedText>
+                    <ThemedText weight="regular" style={{ color: item.status === 'sent' ? '#4caf50' : item.status === 'failed' ? '#f44336' : Colors.anchorBlue, fontSize: 10 }}>{item.status}</ThemedText>
+                  </View>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4 }}>{item.message || '(no message)'}</ThemedText>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.type} · {item.scheduled_for ? new Date(item.scheduled_for).toLocaleString() : '-'}</ThemedText>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* History tab */}
+          {notifTestTab === 'history' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {notifDataLoading ? (
+                <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
+              ) : notifHistoryItems.length === 0 ? (
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 40 }}>No history yet</ThemedText>
+              ) : notifHistoryItems.map(item => (
+                <View key={item.id} style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <ThemedText weight="semiBold" style={{ color: item.is_read ? 'rgba(255,255,255,0.5)' : '#fff', fontSize: 12, flex: 1 }}>{item.title || '(no title)'}</ThemedText>
+                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.is_read ? 'read' : 'unread'}</ThemedText>
+                  </View>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4 }}>{item.message || '(no message)'}</ThemedText>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.type} · {item.created_at ? new Date(item.created_at).toLocaleString() : '-'}</ThemedText>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
+    )}
+
     </SafeAreaView>
   );
 };
