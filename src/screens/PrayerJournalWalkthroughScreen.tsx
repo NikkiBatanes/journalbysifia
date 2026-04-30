@@ -1229,7 +1229,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               });
               setPrayerTexts(texts);
             }
-          } else if (initialPrayerType === 'open_prayer') {
+          } else if (initialPrayerType === 'open') {
             // Load open prayer data
             const openPrayers = prayerData.freeform || [];
             const editingPrayer = openPrayers.find((p: any) => p.id === editingPrayerId);

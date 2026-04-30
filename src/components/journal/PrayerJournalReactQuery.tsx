@@ -587,8 +587,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const handleEditPrayer = useCallback((prayer: any) => {
     if (!navigation) return;
 
-    // Determine prayer type: 'acts' for CAST method, 'freeform' for open prayer
-    const prayerType = prayer.type === 'freeform' ? 'open_prayer' : 'acts';
+    // Determine prayer type: 'acts' for CAST method, 'open' for open prayer
+    const prayerType = prayer.type === 'freeform' ? 'open' : 'acts';
 
     // Navigate to walkthrough with pre-selected type
     navigation.navigate('PrayerJournalWalkthrough', {
