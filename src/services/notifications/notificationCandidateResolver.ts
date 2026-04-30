@@ -76,6 +76,14 @@ type PendingPrayerRequest = {
   person_name?: string | null;
 };
 
+type UnansweredPrayer = {
+  id: string;
+  content?: string | null;
+  person_name?: string | null;
+  is_prayer_request?: boolean | null;
+  created_at: string;
+};
+
 const today = (): string => toLocalDateString(new Date());
 
 const safeText = (value: unknown): string => {
@@ -139,6 +147,7 @@ const createCandidate = ({
     journal_looking_forward: 'journal',
     heart_journal_prompt: 'journal',
     prayer_request_care: 'prayer',
+    prayer_answered_check: 'prayer',
     prayer_today: 'prayer',
     create_devotional: 'creation',
     create_playbook: 'creation',
@@ -152,6 +161,7 @@ const createCandidate = ({
 
   const sensitiveTypes: SmartNotificationType[] = [
     'prayer_request_care',
+    'prayer_answered_check',
     'heart_journal_prompt',
   ];
 
@@ -316,7 +326,7 @@ const getJournalEntriesForToday = async (userId: string): Promise<JournalEntryLi
   return (data || []) as JournalEntryLike[];
 };
 
-const getPendingPrayerRequestState = async (userId: string): Promise<{ count: number; first?: PendingPrayerRequest }> => {
+const getPendingPrayerRequestState = async (userId: string): Promise<{ count: number; first?: PendingPrayerRequest; all: PendingPrayerRequest[] }> => {
   const { data, error } = await supabase
     .from('prayers')
     .select('id, person_name')
@@ -332,14 +342,43 @@ const getPendingPrayerRequestState = async (userId: string): Promise<{ count: nu
       userId,
       error,
     });
-    return { count: 0 };
+    return { count: 0, all: [] };
   }
 
   const requests = (data || []) as PendingPrayerRequest[];
   return {
     count: requests.length,
     first: requests[0],
+    all: requests,
   };
+};
+
+const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredPrayer[]> => {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('prayers')
+    .select('id, content, person_name, is_prayer_request, created_at')
+    .eq('user_id', userId)
+    // Explicit inclusion: 'journal' = CAST prayers (Confession/Adoration/Supplication/Thanksgiving),
+    // 'people' = prayer for/from someone. Excludes 'devotional' and 'guided_playbook' types.
+    .in('prayer_type', ['journal', 'people'])
+    // Single .or() — chaining two .or() calls sends duplicate query params that PostgREST may not AND reliably
+    .or('status.is.null,status.neq.answered')
+    .lte('created_at', sevenDaysAgo)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    Logger.warn('[SmartNotifications] Unable to read unanswered prayer state', {
+      component: 'notificationCandidateResolver',
+      userId,
+      error,
+    });
+    return [];
+  }
+
+  return (data || []) as UnansweredPrayer[];
 };
 
 const getPlaybooks = async (userId: string): Promise<PlaybookRowLike[]> => {
@@ -551,7 +590,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   const candidates: SmartNotificationCandidate[] = [];
   const currentDate = today();
 
-  const [devotionals, journalEntries, prayerRequestState, playbooks, subscriptionResult] = await Promise.all([
+  const [devotionals, journalEntries, prayerRequestState, unansweredPrayers, playbooks, subscriptionResult] = await Promise.all([
     DevotionalApi.getDevotionals(userId).catch(error => {
       Logger.warn('[SmartNotifications] Unable to read devotional state', {
         component: 'notificationCandidateResolver',
@@ -562,6 +601,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }),
     getJournalEntriesForToday(userId),
     getPendingPrayerRequestState(userId),
+    getUnansweredPrayersForCheck(userId),
     getPlaybooks(userId),
     NewSubscriptionService.getUserSubscription(userId).catch(error => {
       Logger.warn('[SmartNotifications] Unable to read subscription state', {
@@ -953,21 +993,66 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   }
 
   if (prayerRequestState.count > 0) {
-    const personName = notificationText(prayerRequestState.first?.person_name);
+    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const useGroup = prayerRequestState.count >= 2 && dayOfYear % 2 === 0;
+
+    if (useGroup) {
+      const personNames = prayerRequestState.all
+        .map(r => notificationText(r.person_name))
+        .filter(Boolean)
+        .slice(0, 5);
+      candidates.push(createCandidate({
+        type: 'prayer_request_care',
+        timeWindow: 'midday',
+        score: 86,
+        dedupeKey: buildDedupeKey('prayer_request_care', 'group', currentDate),
+        deepLink: 'sifia://journal/prayer?tab=requests',
+        sourceType: 'prayer',
+        copyContext: { personNames },
+        metadata: { pending_count: prayerRequestState.count, person_names: personNames, is_group: true },
+      }));
+    } else {
+      const index = dayOfYear % prayerRequestState.all.length;
+      const person = prayerRequestState.all[index];
+      const personName = notificationText(person?.person_name);
+      candidates.push(createCandidate({
+        type: 'prayer_request_care',
+        timeWindow: 'midday',
+        score: 86,
+        dedupeKey: buildDedupeKey('prayer_request_care', person?.id || 'pending', currentDate),
+        deepLink: 'sifia://journal/prayer?tab=requests',
+        sourceType: 'prayer',
+        sourceId: person?.id,
+        copyContext: { personName },
+        metadata: { pending_count: prayerRequestState.count, person_name: personName, is_group: false },
+      }));
+    }
+  }
+
+  for (const prayer of unansweredPrayers) {
+    const daysSince = Math.floor((Date.now() - new Date(prayer.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(daysSince / 7);
+    const personName = notificationText(prayer.person_name);
+    const prayerText = notificationText(prayer.content);
     candidates.push(createCandidate({
-      type: 'prayer_request_care',
+      type: 'prayer_answered_check',
       timeWindow: 'midday',
-      score: 86,
-      dedupeKey: buildDedupeKey('prayer_request_care', prayerRequestState.first?.id || 'pending', currentDate),
-      deepLink: 'sifia://journal/prayer?tab=requests',
+      score: 82,
+      dedupeKey: buildDedupeKey('prayer_answered_check', prayer.id, `week:${weekNumber}`),
+      deepLink: `sifia://journal/prayer?id=${prayer.id}`,
       sourceType: 'prayer',
-      sourceId: prayerRequestState.first?.id,
+      sourceId: prayer.id,
       copyContext: {
-        personName,
+        personName: personName || undefined,
+        prayerText: prayerText || undefined,
+        isPrayerRequest: prayer.is_prayer_request ?? false,
       },
       metadata: {
-        pending_count: prayerRequestState.count,
         person_name: personName,
+        prayer_text: prayerText,
+        is_prayer_request: prayer.is_prayer_request,
+        days_since_creation: daysSince,
+        week_number: weekNumber,
       },
     }));
   }

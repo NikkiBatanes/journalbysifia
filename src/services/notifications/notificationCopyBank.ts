@@ -11,9 +11,19 @@ interface CopyContext {
   wordToSpeak?: string;
   heartJournalTitle?: string;
   personName?: string;
+  personNames?: string[];
   remainingCount?: number;
   refreshDate?: string;
+  prayerText?: string;
+  isPrayerRequest?: boolean;
+  _simulatedDayOfWeek?: number;
 }
+
+const formatNameList = (names: string[]): string => {
+  if (names.length === 1) { return names[0]; }
+  if (names.length === 2) { return `${names[0]} and ${names[1]}`; }
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+};
 
 const compact = (value: string, maxLength = 92): string => {
   const clean = value.replace(/\s+/g, ' ').trim();
@@ -88,8 +98,9 @@ export function buildSmartNotificationCopy(
         'Keep going with what God has placed before you',
         'Come back to the step in front of you',
       ];
+      const faithfulDay = context._simulatedDayOfWeek ?? new Date().getDay();
       return {
-        title: faithfulTitles[new Date().getDay() % faithfulTitles.length],
+        title: faithfulTitles[faithfulDay % faithfulTitles.length],
         message: compact(context.actionText || 'One action from your playbook is ready for today.'),
       };
     }
@@ -152,11 +163,38 @@ export function buildSmartNotificationCopy(
         message: compact(context.heartJournalTitle || 'Check in with your heart'),
       };
 
-    case 'prayer_request_care':
+    case 'prayer_answered_check': {
+      if (context.personName) {
+        if (context.isPrayerRequest) {
+          return {
+            title: 'Was this prayer answered?',
+            message: compact(`Has ${context.personName}'s prayer request been answered?`),
+          };
+        }
+        return {
+          title: 'Was this prayer answered?',
+          message: compact(`Check in on your prayer for ${context.personName}.`),
+        };
+      }
+      return {
+        title: 'Was this prayer answered?',
+        message: compact(context.prayerText || 'Has this prayer been answered?'),
+      };
+    }
+
+    case 'prayer_request_care': {
+      if (context.personNames && context.personNames.length >= 2) {
+        const nameList = formatNameList(context.personNames.slice(0, 5));
+        return {
+          title: compact(`Lift ${nameList} in prayer`, 58),
+          message: compact('Take a quiet moment to bring them before God.'),
+        };
+      }
       return {
         title: compact(context.personName ? `Lift ${context.personName} in prayer today` : 'Lift someone up today', 58),
         message: compact(context.personName ? `Take a quiet moment to bring ${context.personName} before God.` : 'Take a quiet moment to pray for them.'),
       };
+    }
 
     case 'prayer_today':
       return {
@@ -185,9 +223,10 @@ export function buildSmartNotificationCopy(
         'Pause and work through the moment in front of you.',
         'Start with the moment you do not want to react to too quickly.',
       ];
+      const createDay = context._simulatedDayOfWeek ?? new Date().getDay();
       return {
         title: 'Start a new playbook',
-        message: compact(playbookMessages[new Date().getDay() % playbookMessages.length]),
+        message: compact(playbookMessages[createDay % playbookMessages.length]),
       };
     }
 

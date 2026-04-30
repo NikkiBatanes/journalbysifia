@@ -804,6 +804,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [notifDataLoading, setNotifDataLoading] = useState(false);
   const [notifSending, setNotifSending] = useState<string | null>(null);
   const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
+  const [notifSimulatedDay, setNotifSimulatedDay] = useState<number | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -839,7 +840,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     setNotifSending(type);
     setNotifLastSent(null);
     try {
-      const copy = await NotificationTester.sendSingleTypeTest(type as any, user?.id);
+      const copy = await NotificationTester.sendSingleTypeTest(type as any, user?.id, notifSimulatedDay ?? undefined);
       if (copy) {
         setNotifLastSent({ type, title: copy.title, message: copy.message, debug: copy.debug });
       } else {
@@ -850,7 +851,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     } finally {
       setNotifSending(null);
     }
-  }, [user?.id]);
+  }, [user?.id, notifSimulatedDay]);
 
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
@@ -1929,6 +1930,32 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
                   Tap Send to fire a single notification using your real account data (arrives in ~2 s)
                 </ThemedText>
+                {/* Day-of-week simulator — affects rotating copy & group/individual prayer */}
+                <View style={{ marginBottom: 8 }}>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginBottom: 6 }}>
+                    SIMULATE DAY · affects rotations &amp; group/individual prayer
+                  </ThemedText>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as const).map((label, i) => {
+                      const isToday = notifSimulatedDay === null && new Date().getDay() === i;
+                      const isSelected = notifSimulatedDay === i;
+                      return (
+                        <TouchableOpacity
+                          key={label}
+                          onPress={() => setNotifSimulatedDay(isSelected ? null : i)}
+                          style={{ flex: 1, paddingVertical: 5, borderRadius: 6, alignItems: 'center', backgroundColor: isSelected ? Colors.anchorBlue : isToday ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)' }}
+                        >
+                          <ThemedText weight={isSelected || isToday ? 'semiBold' : 'regular'} style={{ color: isSelected ? '#fff' : isToday ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)', fontSize: 10 }}>{label}</ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {notifSimulatedDay !== null && (
+                    <ThemedText weight="regular" style={{ color: Colors.anchorBlue, fontSize: 10, marginTop: 4 }}>
+                      Simulating {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][notifSimulatedDay]} — tap again to clear
+                    </ThemedText>
+                  )}
+                </View>
                 {SMART_NOTIFICATION_TYPES.map(type => {
                   const sending = notifSending === type;
                   return (

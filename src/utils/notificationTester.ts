@@ -80,15 +80,18 @@ export class NotificationTester {
     const safeStr = (v: unknown): string =>
       typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '';
 
-    const [playbooks, devotionalsResult, prayersResult, subResult] = await Promise.all([
+    const [playbooks, devotionalsResult, prayersResult, unansweredPrayersResult, subResult] = await Promise.all([
       getPlaybooks(userId).catch(() => [] as any[]),
       supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
-      supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').limit(5),
+      supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').order('created_at', { ascending: true }).limit(10),
+      // Tester: no 7-day minimum. Explicit .in() avoids chained .or() PostgREST ambiguity.
+      supabase.from('prayers').select('id, content, person_name, is_prayer_request, created_at').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(5),
       supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
     ]);
 
     const devotionals: any[] = devotionalsResult.data || [];
     const prayers: any[] = prayersResult.data || [];
+    const unansweredPrayers: any[] = unansweredPrayersResult.data || [];
     const sub = subResult.data;
 
     // Extract wordToSpeak from Playbook object (wordToSpeak field or directChallenge JSONB)
@@ -173,7 +176,20 @@ export class NotificationTester {
 
     // devotional verse is already in ctx.verseText / ctx.verseReference from the devotional block above
 
-    if (prayers.length > 0) ctx.personName = safeStr(prayers[0].person_name) || undefined;
+    // Prayer request names (for prayer_request_care group/individual)
+    if (prayers.length > 0) {
+      ctx._prayerRequestNames = prayers.map((p: any) => safeStr(p.person_name)).filter(Boolean);
+      ctx.personName = ctx._prayerRequestNames[0] || undefined;
+    }
+
+    // Unanswered prayers (for prayer_answered_check)
+    if (unansweredPrayers.length > 0) {
+      const up = unansweredPrayers[0];
+      ctx._unansweredPrayerId = up.id;
+      ctx._unansweredPrayerText = strip(safeStr(up.content));
+      ctx._unansweredPrayerPersonName = safeStr(up.person_name) || undefined;
+      ctx._unansweredPrayerIsRequest = up.is_prayer_request ?? false;
+    }
 
     if (sub) {
       const pbRem = (sub.playbooks_limit ?? 0) < 0 ? 99 : Math.max(0, (sub.playbooks_limit ?? 0) - (sub.playbooks_used ?? 0));
@@ -207,6 +223,8 @@ export class NotificationTester {
       `verse:${ctx.verseText ? String(ctx.verseText).slice(0, 25) : 'none'}`,
       `devs:${devotionals.length}`,
       `heart:${ctx.heartJournalTitle ? String(ctx.heartJournalTitle).slice(0, 25) : 'none'}`,
+      `unanswered:${unansweredPrayers.length}`,
+      `requests:${prayers.length}`,
     ].join(' | ');
 
     return { ctx, debug };
@@ -220,6 +238,7 @@ export class NotificationTester {
   static async sendSingleTypeTest(
     type: SmartNotificationType,
     userId?: string,
+    simulatedDayOfWeek?: number,
   ): Promise<{ title: string; message: string; debug?: string } | null> {
     let ctx: Record<string, any> = {};
     let debugInfo = '';
@@ -235,11 +254,35 @@ export class NotificationTester {
       }
     }
 
-    // For playbook verse types, use playbook verse (not devotional verse)
-    const resolvedCtx = { ...ctx };
+    const effectiveDay = simulatedDayOfWeek ?? new Date().getDay();
+    const fakeDayOfYear = simulatedDayOfWeek !== undefined
+      ? simulatedDayOfWeek + 1
+      : Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+
+    const resolvedCtx: Record<string, any> = { ...ctx, _simulatedDayOfWeek: effectiveDay };
+
     if (type === 'playbook_verse_revisit') {
       resolvedCtx.verseText = ctx._playbookVerseText;
       resolvedCtx.verseReference = ctx._playbookVerseReference;
+    }
+
+    if (type === 'prayer_answered_check') {
+      resolvedCtx.prayerText = ctx._unansweredPrayerText;
+      resolvedCtx.personName = ctx._unansweredPrayerPersonName;
+      resolvedCtx.isPrayerRequest = ctx._unansweredPrayerIsRequest;
+    }
+
+    if (type === 'prayer_request_care') {
+      const names: string[] = ctx._prayerRequestNames || [];
+      const useGroup = names.length >= 2 && fakeDayOfYear % 2 === 0;
+      if (useGroup) {
+        resolvedCtx.personNames = names.slice(0, 5);
+        resolvedCtx.personName = undefined;
+      } else {
+        const index = names.length > 0 ? fakeDayOfYear % names.length : 0;
+        resolvedCtx.personName = names[index];
+        resolvedCtx.personNames = undefined;
+      }
     }
 
     // Check if this type has real data to show
@@ -250,12 +293,17 @@ export class NotificationTester {
       devotional_day_ready: 'dayNumber',
       devotional_reflection_prompt: 'questionText',
       devotional_verse_revisit: 'verseText',
-      prayer_request_care: 'personName',
+      prayer_request_care: '_prayerRequestNames',
+      prayer_answered_check: '_unansweredPrayerId',
     };
 
     const requiredKey = dataRequired[type];
-    if (requiredKey && !ctx[requiredKey]) {
-      return { title: '', message: '', debug: `missing:${requiredKey} | ${debugInfo}` };
+    if (requiredKey) {
+      const val = ctx[requiredKey];
+      const missing = Array.isArray(val) ? val.length === 0 : !val;
+      if (missing) {
+        return { title: '', message: '', debug: `missing:${requiredKey} | ${debugInfo}` };
+      }
     }
 
     const copy = buildSmartNotificationCopy(type, resolvedCtx);
