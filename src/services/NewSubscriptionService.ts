@@ -252,7 +252,7 @@ export class NewSubscriptionService {
         const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const clampedDay = Math.min(billingDay, lastDayOfCurrentMonth);
         let periodStart: Date;
-        if (now.getDate() >= billingDay) {
+        if (now.getDate() >= clampedDay) {  // compare against clamped day so short months (Feb) are detected
           periodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
         } else {
           const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
@@ -309,7 +309,7 @@ export class NewSubscriptionService {
       const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       const clampedDay = Math.min(anchorDay, lastDayOfCurrentMonth);
       let currentPeriodStart: Date;
-      if (now.getDate() >= anchorDay) {
+      if (now.getDate() >= clampedDay) {  // compare against clamped day so short months (Feb) are detected
         currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
       } else {
         const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
