@@ -610,29 +610,27 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   return (
     <ErrorBoundary>
-      {hasVisibleContent && (
-        <JournalCard
-          icon={
-            <MaterialCommunityIcons
-              name="account-heart-outline"
-              size={24}
-              color={Colors.alertCoral}
-            />
-          }
-          title="PRAYER LIST FOR PEOPLE"
-          subtitle={getSubtitle()}
-          variant={variant}
-          viewMode={viewMode}
-          expanded={expanded}
-          onExpand={onExpand}
-          showAddButton={showAddInHeader}
-          onAdd={handleOpenModal}
-          isAdding={false}
-          onCancelAdd={handleCloseModal}
-        >
-          {renderExistingPrayers()}
-        </JournalCard>
-      )}
+      <JournalCard
+        icon={
+          <MaterialCommunityIcons
+            name="account-heart-outline"
+            size={24}
+            color={Colors.alertCoral}
+          />
+        }
+        title="PRAYER LIST FOR PEOPLE"
+        subtitle={getSubtitle()}
+        variant={variant}
+        viewMode={viewMode}
+        expanded={expanded}
+        onExpand={onExpand}
+        showAddButton={showAddInHeader}
+        onAdd={handleOpenModal}
+        isAdding={false}
+        onCancelAdd={handleCloseModal}
+      >
+        {renderExistingPrayers()}
+      </JournalCard>
 
         {/* People Prayer Modal */}
         <PeoplePrayerModal
