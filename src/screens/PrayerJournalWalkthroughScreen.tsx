@@ -28,7 +28,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreatePrayer } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useACTSPrayerData } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
 
@@ -1007,7 +1007,8 @@ const CompletionStep: React.FC<{
   insets: { top: number; bottom: number };
   supplicationTrackAnswered: boolean;
   openPrayerTrackAnswered: boolean;
-}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered }) => {
+  isEditing?: boolean;
+}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false }) => {
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
@@ -1119,7 +1120,7 @@ const CompletionStep: React.FC<{
               <MaterialCommunityIcons name="hands-pray" size={24} color={Colors.alertCoral} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>Saved Prayer</ThemedText>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>{isEditing ? 'Updated Prayer' : 'Saved Prayer'}</ThemedText>
               <ThemedText style={styles.completionSubtext}>A place to return to what you placed before God.</ThemedText>
             </View>
             <Animated.View style={[
@@ -1151,7 +1152,7 @@ const CompletionStep: React.FC<{
           style={styles.completionButton}
         >
           <ThemedText weight="semiBold" style={styles.completionButtonText}>
-            Save Prayer
+            {isEditing ? 'Update Prayer' : 'Save Prayer'}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -1176,10 +1177,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(false);
   const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(false);
 
-  const createMutation = useCreatePrayer();
   const dateStr = toLocalDateString(selectedDate);
+  const createMutation = useCreatePrayer();
+  const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
 
-  // Pre-select prayer path if editing
+  // Pre-select prayer path and load existing data when editing
   useEffect(() => {
     if (initialPrayerType) {
       const path = PRAYER_PATHS.find(p => p.id === initialPrayerType);
@@ -1187,9 +1189,61 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         setSelectedPath(path);
         // Skip to step 1 (prayer entry) when editing
         setCurrentStep(1);
+
+        // Load existing prayer data if editingPrayerId is provided
+        if (editingPrayerId && prayerEntries) {
+          const prayerData = prayerEntries as any;
+
+          if (initialPrayerType === 'acts') {
+            // Load CAST prayer data
+            const allPrayers = [
+              ...(prayerData.confession || []),
+              ...(prayerData.adoration || []),
+              ...(prayerData.supplication || []),
+              ...(prayerData.thanksgiving || []),
+            ];
+
+            // Find the prayer being edited and its session
+            const editingPrayer = allPrayers.find((p: any) => p.id === editingPrayerId);
+            if (editingPrayer) {
+              // Group prayers by session (within 2 minutes)
+              const SESSION_WINDOW_MS = 2 * 60 * 1000;
+              const editingTime = new Date(editingPrayer.created_at).getTime();
+
+              // Load prayers from the same session
+              const sessionPrayers = allPrayers.filter((p: any) => {
+                const prayerTime = new Date(p.created_at).getTime();
+                return Math.abs(prayerTime - editingTime) <= SESSION_WINDOW_MS;
+              });
+
+              // Pre-fill prayer texts
+              const texts: { [key: string]: string } = {};
+              sessionPrayers.forEach((p: any) => {
+                const type = p.journal_category || 'adoration';
+                texts[type] = p.content;
+
+                // Load tracking settings for supplication
+                if (type === 'supplication' && p.metadata?.track_answered) {
+                  setSupplicationTrackAnswered(true);
+                }
+              });
+              setPrayerTexts(texts);
+            }
+          } else if (initialPrayerType === 'open_prayer') {
+            // Load open prayer data
+            const openPrayers = prayerData.freeform || [];
+            const editingPrayer = openPrayers.find((p: any) => p.id === editingPrayerId);
+            if (editingPrayer) {
+              setOpenPrayerText(editingPrayer.content);
+              if (editingPrayer.metadata?.track_answered) {
+                setOpenPrayerTrackAnswered(true);
+              }
+            }
+          }
+        }
       }
     }
-  }, [initialPrayerType]);
+  }, [initialPrayerType, editingPrayerId, prayerEntries]);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(
@@ -1374,6 +1428,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             insets={insets}
             supplicationTrackAnswered={supplicationTrackAnswered}
             openPrayerTrackAnswered={openPrayerTrackAnswered}
+            isEditing={!!editingPrayerId}
           />
         )}
       </View>
