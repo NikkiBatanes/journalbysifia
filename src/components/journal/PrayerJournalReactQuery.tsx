@@ -152,42 +152,50 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   );
 };
 
-// CombinedCASTPrayerCard Component - displays CAST prayers as one whole prayer with supplication separated
+// CombinedCASTPrayerCard Component - displays CAST prayers as one whole prayer with supplication at bottom
 interface CombinedCASTPrayerCardProps {
-  nonSupplicationPrayers: any[];
+  allPrayers: any[];
   supplicationPrayer: any | null;
   onMarkAnswered: (id: string, isAnswered: boolean) => void;
 }
 
 const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
-  nonSupplicationPrayers,
+  allPrayers,
   supplicationPrayer,
   onMarkAnswered,
 }) => {
-  // Combine non-supplication prayers into one content block
-  const combinedContent = nonSupplicationPrayers
-    .map(p => p.content)
-    .filter(Boolean)
-    .join('\n\n');
+  // Get prayers in order (confession, adoration, supplication, thanksgiving)
+  const order = ['confession', 'adoration', 'supplication', 'thanksgiving'];
+  const orderedPrayers = order
+    .map(type => allPrayers.find((p: any) => p.type === type))
+    .filter(Boolean);
+
+  // Split content: before supplication and after supplication
+  const supplicationIndex = orderedPrayers.findIndex((p: any) => p.type === 'supplication');
+  const beforeSupplication = orderedPrayers.slice(0, supplicationIndex);
+  const afterSupplication = orderedPrayers.slice(supplicationIndex + 1);
 
   return (
     <View style={styles.combinedCASTCard}>
-      {/* Main prayer content (Confession, Adoration, Thanksgiving combined) */}
-      {combinedContent && (
+      {/* Content before supplication (confession, adoration) */}
+      {beforeSupplication.map((prayer: any) => (
+        <View key={prayer.id} style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
+        </View>
+      ))}
+
+      {/* Supplication content */}
+      {supplicationPrayer && (
         <View style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>{combinedContent}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>{supplicationPrayer.content}</ThemedText>
         </View>
       )}
 
-      {/* Supplication section - separated for tracking */}
-      {supplicationPrayer && (
-        <View style={styles.supplicationSection}>
-          <View style={styles.supplicationDivider} />
-          <ThemedText style={styles.supplicationLabel}>Supplication</ThemedText>
-          <ThemedText style={styles.supplicationText}>{supplicationPrayer.content}</ThemedText>
-
-          {/* Mark as Answered Button - for supplication with tracking */}
-          {!supplicationPrayer.answered_at && supplicationPrayer.metadata?.track_answered === true && (
+      {/* Tracking indicator for supplication - shown right after supplication */}
+      {supplicationPrayer && supplicationPrayer.metadata?.track_answered === true && (
+        <View style={styles.trackingSection}>
+          {/* Mark as Answered Button */}
+          {!supplicationPrayer.answered_at && (
             <TouchableOpacity
               style={styles.markAnsweredButton}
               onPress={() => {
@@ -200,7 +208,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
           )}
 
           {/* Answered Indicator */}
-          {supplicationPrayer.answered_at && supplicationPrayer.metadata?.track_answered === true && (
+          {supplicationPrayer.answered_at && (
             <TouchableOpacity
               style={styles.answeredIndicator}
               onPress={() => {
@@ -228,6 +236,13 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
           )}
         </View>
       )}
+
+      {/* Content after supplication (thanksgiving) */}
+      {afterSupplication.map((prayer: any) => (
+        <View key={prayer.id} style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
+        </View>
+      ))}
     </View>
   );
 };
@@ -560,13 +575,12 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </View>
             <View style={styles.castStepsContainer}>
               {actsSessions.map((session, sessionIndex) => {
-                const nonSupplication = session.filter((p: any) => p.type !== 'supplication');
                 const supplication = session.find((p: any) => p.type === 'supplication');
 
                 return (
                   <CombinedCASTPrayerCard
                     key={`session-${sessionIndex}`}
-                    nonSupplicationPrayers={nonSupplication}
+                    allPrayers={session}
                     supplicationPrayer={supplication || null}
                     onMarkAnswered={handleMarkAnswered}
                   />
@@ -688,7 +702,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   combinedContentSection: {
-    gap: 8,
+    gap: 12,
+  },
+  trackingSection: {
+    marginTop: 12,
+    marginBottom: 12,
   },
   combinedPrayerText: {
     fontSize: 16,
