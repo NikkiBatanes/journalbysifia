@@ -139,7 +139,7 @@ export const MomentsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={[styles.headerBar, { backgroundColor: Colors.anchorBlue }]}>
         <View style={styles.pageInner}>
