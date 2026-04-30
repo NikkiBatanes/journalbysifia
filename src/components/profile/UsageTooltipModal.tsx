@@ -4,10 +4,8 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerLightHaptic } from '../../utils/haptics';

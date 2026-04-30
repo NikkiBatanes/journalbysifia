@@ -1176,60 +1176,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       <ThemedText weight="semiBold" style={styles.continueJourneyButtonText}>Continue with siFia</ThemedText>
     </TouchableOpacity>
   )}
-  {/* Usage Badges moved near footer and centered (hidden during onboarding) */}
-  {!isOnboarding && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') && (
-    // POST-LAUNCH: && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'family')
-    <View style={styles.badgeRow}>
-      <View style={styles.tierBadgeContainer}>
-        <ThemedText weight="semiBold" style={styles.tierBadgeText}>
-          {devotionalGating.subscription?.subscription_display_name || `siFia ${devotionalGating.tier.charAt(0).toUpperCase() + devotionalGating.tier.slice(1)}`}
-        </ThemedText>
-      </View>
-      {devotionalGating.tier === 'seeker' ? (
-        <TouchableOpacity
-          style={styles.countBadgeContainer}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker badge tap', {
-              component: 'DevotionalModal',
-              context: 'seeker_badge',
-              tier: devotionalGating.tier,
-            });
-            handleClose(() => {
-              navigation.navigate('OnboardingSalesOffer' as any, {
-                upgradeMode: true,
-                currentTier: devotionalGating.tier,
-                featureType: 'devotionals',
-                source: 'devotional_seeker_badge',
-                feature: 'devotionals',
-                skipNotificationPreference: true,
-              });
-            });
-          }}
-          activeOpacity={0.85}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <ThemedText weight="semiBold" style={styles.countBadgeText}>
-            {devotionalGating.usageInfo.displayMessage}
-          </ThemedText>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.countBadgeContainer}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            setTooltipVisible(true);
-          }}
-          activeOpacity={0.85}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <ThemedText weight="semiBold" style={styles.countBadgeText}>
-            {devotionalGating.usageInfo.displayMessage}
-          </ThemedText>
-        </TouchableOpacity>
-      )}
-    </View>
-  )}
   <ThemedText weight="regular" style={styles.footerText}>
     God’s Word is a lamp to your feet and a light to your path.{'\n'}May this devotional be a quiet space to listen and walk with Him.
   </ThemedText>
