@@ -148,8 +148,8 @@ export function buildSmartNotificationCopy(
 
     case 'heart_journal_prompt':
       return {
-        title: compact(context.heartJournalTitle || 'Check in with your heart', 58),
-        message: compact('Take a quiet moment to answer it.'),
+        title: 'Take a quiet moment to reflect',
+        message: compact(context.heartJournalTitle || 'Check in with your heart'),
       };
 
     case 'prayer_request_care':

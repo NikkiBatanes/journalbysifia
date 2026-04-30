@@ -393,32 +393,6 @@ const sortByOrder = <T extends { order_index?: number | null }>(items: T[] = [])
   return [...items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 };
 
-const getFirstIncompleteAction = (playbook: PlaybookRowLike) => {
-  const steps = sortByOrder(playbook.playbook_action_steps || []);
-
-  const stepIndex = steps.findIndex(step => {
-    if (step.completed === true) {
-      return false;
-    }
-
-    const subTasks = step.playbook_sub_tasks || [];
-    if (subTasks.length === 0) {
-      return true;
-    }
-
-    return subTasks.some(subTask => subTask.completed !== true);
-  });
-
-  if (stepIndex < 0) {
-    return null;
-  }
-
-  return {
-    action: steps[stepIndex],
-    actionIndex: stepIndex,
-  };
-};
-
 const getWordsToSpeak = (playbook: PlaybookRowLike): string[] => {
   // Primary: dedicated word_to_speak column (old schema)
   const directWords = safeText(playbook.word_to_speak)
@@ -506,10 +480,50 @@ const formatShortDate = (date: Date | null): string | undefined => {
   });
 };
 
-const getFirstReflectionQuestion = (day: DevotionalDayLike): string => {
-  return (day.reflectionQuestions || [])
+const getRotatingReflectionQuestion = (
+  day: DevotionalDayLike,
+  dayNumber: number,
+  devotionalId: string,
+  userId: string,
+  subscription: SubscriptionWithReset | null,
+  notifiedQuestions: string[]
+): string => {
+  const questions = (day.reflectionQuestions || [])
     .map(question => notificationText(question.text))
-    .find(Boolean) || '';
+    .filter(Boolean);
+
+  if (questions.length === 0) {return '';}
+
+  // For free users, filter to only unlocked questions from guided prompt service
+  const isFreeUser = subscription?.tier === 'seeker' || subscription?.tier === 'free_trial';
+  let availableQuestions = questions;
+
+  if (isFreeUser) {
+    const tier = subscription?.tier || 'seeker';
+    const allocation = guidedPromptGatingService.getDailyPrompts(userId, tier);
+    // Filter questions to only include those in free prompts
+    availableQuestions = questions.filter(q => allocation.freePrompts.includes(q));
+  }
+
+  // If no unlocked questions available, return empty
+  if (availableQuestions.length === 0) {return '';}
+
+  const maxQuestions = isFreeUser ? Math.min(2, availableQuestions.length) : availableQuestions.length;
+
+  // Create a unique key for this day's questions
+  const dayKey = `${devotionalId}-${dayNumber}`;
+
+  // Check which questions for this day have already been notified
+  const notifiedForDay = notifiedQuestions.filter(q => q.startsWith(`${dayKey}-`));
+
+  if (notifiedForDay.length >= maxQuestions) {
+    // All allowed questions for this day have been notified, start over
+    return availableQuestions[0];
+  }
+
+  // Get the next question that hasn't been notified for this day
+  const nextIndex = notifiedForDay.length;
+  return availableQuestions[nextIndex];
 };
 
 const getHeartJournalPrompt = async (
@@ -560,8 +574,21 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   ]);
 
   const subscription = subscriptionResult ? subscriptionResult as SubscriptionWithReset : null;
-  const activeDevotional = devotionals.find(devotional => devotional.completed !== true);
-  if (activeDevotional) {
+
+  // Get tracking data for notified reflection questions
+  const { data: userData } = await supabase
+    .from('user_profiles')
+    .select('metadata')
+    .eq('user_id', userId)
+    .single();
+
+  const userMetadata = userData?.metadata as Record<string, unknown> || {};
+  const notifiedQuestions = (userMetadata.notified_reflection_questions as string[]) || [];
+
+  // Support multiple incomplete devotionals
+  const incompleteDevotionals = devotionals.filter(devotional => devotional.completed !== true);
+
+  for (const activeDevotional of incompleteDevotionals) {
     const days = Array.isArray(activeDevotional.days) ? activeDevotional.days as DevotionalDayLike[] : [];
     const incompleteDay = getFirstIncompleteDevotionalDay(days);
     const incompleteIndex = incompleteDay ? days.indexOf(incompleteDay) : -1;
@@ -595,13 +622,13 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
     }
 
-    const completedDayWithIndex = [...days]
+    const completedDaysWithIndex = [...days]
       .map((day, index) => ({ day, index }))
       .filter(({ day }) => day.completed === true)
-      .reverse()[0];
+      .reverse();
 
-    if (completedDayWithIndex) {
-      const { day, index } = completedDayWithIndex;
+    // Check all completed days for missing reflections
+    for (const { day, index } of completedDaysWithIndex) {
       const dayNumber = getDayNumber(day, index);
 
       if (safeText(day.prayer).length > 0) {
@@ -624,15 +651,16 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         }
       }
 
-      const questionText = getFirstReflectionQuestion(day);
+      const questionText = getRotatingReflectionQuestion(day, dayNumber, activeDevotional.id, userId, subscription, notifiedQuestions);
       if (questionText) {
         const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, dayNumber);
         if (!hasReflection) {
+          const questionKey = `${activeDevotional.id}-${dayNumber}-${questionText.substring(0, 20)}`;
           candidates.push(createCandidate({
             type: 'devotional_reflection_prompt',
             timeWindow: 'evening',
             score: 88,
-            dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, dayNumber, currentDate),
+            dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, dayNumber, questionKey, currentDate),
             deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}/reflect`,
             sourceType: 'devotional_day',
             sourceId: activeDevotional.id,
@@ -644,13 +672,47 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
               devotional_title: activeDevotional.title,
               day_title: day.title,
               question_text: questionText,
+              question_key: questionKey,
             },
           }));
         }
       }
     }
 
-    const verseDayWithIndex = completedDayWithIndex || (incompleteDay ? { day: incompleteDay, index: incompleteIndex } : null);
+    // Special case: Day 1 should notify for reflection even if not completed
+    const day1 = days[0];
+    if (day1 && day1.dayNumber !== 1) {
+      // If dayNumber is not set, assume it's day 1
+      const day1Number = 1;
+      const questionText = getRotatingReflectionQuestion(day1, day1Number, activeDevotional.id, userId, subscription, notifiedQuestions);
+      if (questionText) {
+        const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, day1Number);
+        if (!hasReflection) {
+          const questionKey = `${activeDevotional.id}-${day1Number}-${questionText.substring(0, 20)}`;
+          candidates.push(createCandidate({
+            type: 'devotional_reflection_prompt',
+            timeWindow: 'evening',
+            score: 90, // Higher priority for day 1
+            dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, day1Number, questionKey, currentDate),
+            deepLink: `sifia://devotionals/${activeDevotional.id}/day/${day1Number}/reflect`,
+            sourceType: 'devotional_day',
+            sourceId: activeDevotional.id,
+            sourceSubId: String(day1Number),
+            copyContext: {
+              questionText,
+            },
+            metadata: {
+              devotional_title: activeDevotional.title,
+              day_title: day1.title,
+              question_text: questionText,
+              question_key: questionKey,
+            },
+          }));
+        }
+      }
+    }
+
+    const verseDayWithIndex = completedDaysWithIndex[0] || (incompleteDay ? { day: incompleteDay, index: incompleteIndex } : null);
     const devotionalVerseReference = notificationText(verseDayWithIndex?.day.scripture?.reference);
     const devotionalVerseText = notificationText(verseDayWithIndex?.day.scripture?.text);
     if (verseDayWithIndex && devotionalVerseText) {
@@ -675,7 +737,10 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         },
       }));
     }
-  } else {
+  }
+
+  // If no incomplete devotionals, check for completed ones
+  if (incompleteDevotionals.length === 0) {
     const completedDevotional = devotionals.find(devotional => devotional.completed === true);
     if (completedDevotional) {
       candidates.push(createCandidate({
@@ -695,14 +760,29 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
   const ongoingPlaybook = playbooks.find(playbook => playbook.status !== 'completed' && !playbook.completed_at);
   if (ongoingPlaybook) {
-    const incompleteAction = getFirstIncompleteAction(ongoingPlaybook);
-    if (incompleteAction) {
-      const { action, actionIndex } = incompleteAction;
+    const steps = sortByOrder(ongoingPlaybook.playbook_action_steps || []);
+
+    // Get all incomplete actions (up to 3)
+    const incompleteActions: Array<{ action: any; actionIndex: number }> = [];
+    for (let i = 0; i < steps.length && incompleteActions.length < 3; i++) {
+      const step = steps[i];
+      if (step.completed === true) {
+        continue;
+      }
+
+      const subTasks = step.playbook_sub_tasks || [];
+      if (subTasks.length === 0 || subTasks.some(subTask => subTask.completed !== true)) {
+        incompleteActions.push({ action: step, actionIndex: i });
+      }
+    }
+
+    // Create notifications for each incomplete action
+    for (const { action, actionIndex } of incompleteActions) {
       const actionText = notificationText(action.text);
       candidates.push(createCandidate({
         type: 'playbook_faithful_action',
         timeWindow: 'midday',
-        score: 84,
+        score: 84 - incompleteActions.indexOf({ action, actionIndex }) * 5, // Decrease score for later actions
         dedupeKey: buildDedupeKey('playbook_faithful_action', ongoingPlaybook.id, action.id, currentDate),
         deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions/${actionIndex}`,
         sourceType: 'action_step',
@@ -721,24 +801,69 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
   }
 
-  // playbook_verse_revisit: search in-progress first, then completed
-  const verseSource =
-    playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at && notificationText(pb.bible_verse?.text)) ||
-    playbooks.find(pb => notificationText(pb.bible_verse?.text));
-  if (verseSource) {
-    const playbookVerseReference = notificationText(verseSource.bible_verse?.reference);
-    const playbookVerseText = notificationText(verseSource.bible_verse?.text);
-    candidates.push(createCandidate({
-      type: 'playbook_verse_revisit',
-      timeWindow: 'evening',
-      score: 58,
-      dedupeKey: buildDedupeKey('playbook_verse_revisit', verseSource.id, currentDate),
-      deepLink: `sifia://playbooks/${verseSource.id}/walkthrough/verse`,
-      sourceType: 'playbook',
-      sourceId: verseSource.id,
-      copyContext: { verseReference: playbookVerseReference, verseText: playbookVerseText },
-      metadata: { playbook_title: verseSource.title, verse_reference: playbookVerseReference, verse_text: playbookVerseText },
-    }));
+  // playbook_verse_revisit: rotate through all playbooks with verses, track notified ones
+  const allPlaybooksWithVerses = playbooks.filter(pb => notificationText(pb.bible_verse?.text));
+
+  if (allPlaybooksWithVerses.length > 0) {
+    // Reuse existing userData and userMetadata from upper scope
+    const notifiedVerses = (userMetadata.notified_verses as string[]) || [];
+    const lastVerseReset = userMetadata.last_verse_reset as string | undefined;
+
+    // Check if we need to reset tracking (new devotional/playbook created)
+    // We'll reset if it's been more than 30 days or if the count of playbooks with verses changed significantly
+    const shouldResetTracking = !lastVerseReset ||
+      (new Date().getTime() - new Date(lastVerseReset).getTime() > 30 * 24 * 60 * 60 * 1000) ||
+      (notifiedVerses.length > allPlaybooksWithVerses.length);
+
+    if (shouldResetTracking) {
+      // Reset tracking
+      await supabase
+        .from('user_profiles')
+        .update({
+          metadata: {
+            ...userMetadata,
+            notified_verses: [],
+            last_verse_reset: new Date().toISOString(),
+          },
+        })
+        .eq('user_id', userId);
+    }
+
+    // Find a verse that hasn't been notified yet
+    const availableVerses = allPlaybooksWithVerses.filter(pb => !notifiedVerses.includes(pb.id));
+
+    if (availableVerses.length > 0) {
+      // Select the first available verse (prioritize in-progress)
+      const verseSource = availableVerses.find(pb => pb.status !== 'completed' && !pb.completed_at) || availableVerses[0];
+      const playbookVerseReference = notificationText(verseSource.bible_verse?.reference);
+      const playbookVerseText = notificationText(verseSource.bible_verse?.text);
+
+      candidates.push(createCandidate({
+        type: 'playbook_verse_revisit',
+        timeWindow: 'evening',
+        score: 58,
+        dedupeKey: buildDedupeKey('playbook_verse_revisit', verseSource.id, currentDate),
+        deepLink: `sifia://playbooks/${verseSource.id}/walkthrough/verse`,
+        sourceType: 'playbook',
+        sourceId: verseSource.id,
+        copyContext: { verseReference: playbookVerseReference, verseText: playbookVerseText },
+        metadata: { playbook_title: verseSource.title, verse_reference: playbookVerseReference, verse_text: playbookVerseText },
+      }));
+
+      // Mark this verse as notified
+      const updatedNotifiedVerses = [...notifiedVerses, verseSource.id];
+      await supabase
+        .from('user_profiles')
+        .update({
+          metadata: {
+            ...userMetadata,
+            notified_verses: updatedNotifiedVerses,
+            last_verse_reset: new Date().toISOString(),
+          },
+        })
+        .eq('user_id', userId);
+    }
+    // If all verses have been notified, don't send any more until reset
   }
 
   if (ongoingPlaybook) {
@@ -766,29 +891,46 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }
   }
 
-  // playbook_word_to_speak: search in-progress first, then completed — words apply regardless of status
-  const wordSource =
-    playbooks.find(pb => pb.status !== 'completed' && !pb.completed_at && getWordsToSpeak(pb).length > 0) ||
-    playbooks.find(pb => getWordsToSpeak(pb).length > 0);
-  if (wordSource) {
-    const wordsToSpeak = getWordsToSpeak(wordSource);
-    const wordIndex = new Date().getDate() % wordsToSpeak.length;
-    const wordToSpeak = notificationText(wordsToSpeak[wordIndex]);
-    candidates.push(createCandidate({
-      type: 'playbook_word_to_speak',
-      timeWindow: 'afternoon',
-      score: 76,
-      dedupeKey: buildDedupeKey('playbook_word_to_speak', wordSource.id, wordIndex, currentDate),
-      deepLink: `sifia://playbooks/${wordSource.id}/walkthrough/words`,
-      sourceType: 'playbook',
-      sourceId: wordSource.id,
-      sourceSubId: String(wordIndex),
-      copyContext: { wordToSpeak },
-      metadata: {
-        playbook_title: wordSource.title,
-        word_to_speak: wordToSpeak,
-      },
-    }));
+  // playbook_word_to_speak: generate multiple notifications throughout the day from both in-progress and completed playbooks
+  const allPlaybooksWithWords = playbooks.filter(pb => getWordsToSpeak(pb).length > 0);
+
+  if (allPlaybooksWithWords.length > 0) {
+    const timeWindows: SmartNotificationTimeWindow[] = ['morning', 'midday', 'afternoon', 'evening', 'night'];
+    let wordIndex = 0;
+
+    // Generate up to 5 notifications (one per time window) from different playbooks
+    for (const timeWindow of timeWindows) {
+      if (wordIndex >= allPlaybooksWithWords.length) {
+        break;
+      }
+
+      // Rotate through playbooks, prioritizing in-progress ones
+      const playbookSource = allPlaybooksWithWords[wordIndex];
+      const wordsToSpeak = getWordsToSpeak(playbookSource);
+
+      // Use different word based on time window to get variety
+      const wordOffset = timeWindows.indexOf(timeWindow);
+      const selectedWordIndex = (new Date().getDate() + wordOffset) % wordsToSpeak.length;
+      const wordToSpeak = notificationText(wordsToSpeak[selectedWordIndex]);
+
+      candidates.push(createCandidate({
+        type: 'playbook_word_to_speak',
+        timeWindow,
+        score: 76 - wordIndex * 3, // Decrease score slightly for later notifications
+        dedupeKey: buildDedupeKey('playbook_word_to_speak', playbookSource.id, selectedWordIndex, timeWindow, currentDate),
+        deepLink: `sifia://playbooks/${playbookSource.id}/walkthrough/words`,
+        sourceType: 'playbook',
+        sourceId: playbookSource.id,
+        sourceSubId: String(selectedWordIndex),
+        copyContext: { wordToSpeak },
+        metadata: {
+          playbook_title: playbookSource.title,
+          word_to_speak: wordToSpeak,
+        },
+      }));
+
+      wordIndex++;
+    }
   }
 
   const completedPlaybookWithoutDevotional = playbooks.find(playbook => (
@@ -886,22 +1028,55 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }));
   }
 
-  const heartJournalTitle = await getHeartJournalPrompt(userId, subscription);
-  if (heartJournalTitle) {
-    candidates.push(createCandidate({
-      type: 'heart_journal_prompt',
-      timeWindow: 'night',
-      score: 45,
-      dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
-      deepLink: `sifia://journal/heart?title=${encodeURIComponent(heartJournalTitle)}`,
-      sourceType: 'journal',
-      copyContext: {
-        heartJournalTitle,
-      },
-      metadata: {
-        heart_journal_title: heartJournalTitle,
-      },
-    }));
+  // Heart journal prompt: only notify if no devotionals or all reflection questions are journaled
+  const shouldNotifyHeartJournal = incompleteDevotionals.length === 0;
+
+  if (shouldNotifyHeartJournal) {
+    // Check if all reflection questions for completed devotionals are already journaled
+    let allReflectionsJournaled = true;
+
+    for (const devotional of devotionals) {
+      if (devotional.completed !== true) {continue;}
+
+      const days = Array.isArray(devotional.days) ? devotional.days as DevotionalDayLike[] : [];
+      for (const day of days) {
+        if (!day.completed) {continue;}
+
+        const dayNumber = typeof day.dayNumber === 'number' ? day.dayNumber : days.indexOf(day) + 1;
+        const questionText = getRotatingReflectionQuestion(day, dayNumber, devotional.id, userId, subscription, notifiedQuestions);
+        if (questionText) {
+          const hasReflection = await findDevotionalReflection(userId, devotional.id, dayNumber);
+          if (!hasReflection) {
+            allReflectionsJournaled = false;
+            break;
+          }
+        }
+      }
+
+      if (!allReflectionsJournaled) {break;}
+    }
+
+    // Only notify if no devotionals OR all reflections are journaled
+    if (incompleteDevotionals.length === 0 || allReflectionsJournaled) {
+      const heartJournalTitle = await getHeartJournalPrompt(userId, subscription);
+      if (heartJournalTitle) {
+        candidates.push(createCandidate({
+          type: 'heart_journal_prompt',
+          timeWindow: 'night',
+          score: 45,
+          dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
+          deepLink: `sifia://journal/heart?title=${encodeURIComponent(heartJournalTitle)}`,
+          sourceType: 'journal',
+          copyContext: {
+            heartJournalTitle,
+          },
+          metadata: {
+            heart_journal_title: heartJournalTitle,
+            is_free_user: subscription?.tier === 'seeker' || subscription?.tier === 'free_trial',
+          },
+        }));
+      }
+    }
   }
 
   if (subscription) {
@@ -921,7 +1096,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           remaining_devotionals: remaining.devotionals,
         },
       }));
-    } else if (!activeDevotional && remaining.devotionals > 0) {
+    } else if (incompleteDevotionals.length === 0 && remaining.devotionals > 0) {
       candidates.push(createCandidate({
         type: 'create_devotional',
         timeWindow: 'afternoon',
@@ -943,7 +1118,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }));
     }
 
-    if (remaining.devotionals > 0 && remaining.devotionals <= 5 && !activeDevotional) {
+    if (remaining.devotionals > 0 && remaining.devotionals <= 5 && incompleteDevotionals.length === 0) {
       candidates.push(createCandidate({
         type: 'usage_room_devotional',
         timeWindow: 'afternoon',
@@ -1017,6 +1192,24 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     deepLink: 'sifia://journal/prayer',
     sourceType: 'fallback',
   }));
+
+  // Mark reflection questions as notified
+  const reflectionQuestionKeys = candidates
+    .filter(c => c.type === 'devotional_reflection_prompt' && c.metadata?.question_key)
+    .map(c => c.metadata?.question_key as string);
+
+  if (reflectionQuestionKeys.length > 0) {
+    const updatedNotifiedQuestions = [...new Set([...notifiedQuestions, ...reflectionQuestionKeys])];
+    await supabase
+      .from('user_profiles')
+      .update({
+        metadata: {
+          ...userMetadata,
+          notified_reflection_questions: updatedNotifiedQuestions,
+        },
+      })
+      .eq('user_id', userId);
+  }
 
   return candidates;
 }

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   View,
   StyleSheet,
@@ -10,8 +11,6 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
-
-// MaterialCommunityIcons import removed as it's not being used
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -242,7 +241,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
       <JournalCard
         icon={hasContent ? (
           <Ionicons
-            name="bookmarks"
+            name="bookmark"
             size={24}
             color={Colors.alertCoral}
           />

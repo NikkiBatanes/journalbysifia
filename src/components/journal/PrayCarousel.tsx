@@ -103,7 +103,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
     {
       id: 'devotionalprayers',
       title: 'PRAYED DEVOTIONALS',
-      icon: 'book-heart',
+      icon: 'notebook-heart-outline',
       component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode="carousel" />,
       color: Colors.hopeWhite,
     },

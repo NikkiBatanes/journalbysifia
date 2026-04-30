@@ -397,16 +397,17 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          Logger.debug('Real-time notification change in screen', {
+          Logger.info('Real-time notification change in screen', {
             component: 'NotificationsScreen',
             event: payload.eventType,
+            payload: JSON.stringify(payload),
           });
           // Refresh notifications list when changes occur
           fetchNotifications();
         }
       )
       .subscribe((status) => {
-        Logger.debug('Notifications screen subscription status', {
+        Logger.info('Notifications screen subscription status', {
           component: 'NotificationsScreen',
           status,
         });

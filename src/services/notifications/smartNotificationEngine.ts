@@ -76,22 +76,32 @@ const shouldKeepExisting = (row: PendingQueueRow): boolean => {
 
 class SmartNotificationEngine {
   private selectByTimeWindow(candidates: SmartNotificationCandidate[]): SmartNotificationCandidate[] {
-    const byWindow = new Map<SmartNotificationTimeWindow, SmartNotificationCandidate>();
+    const MAX_PER_WINDOW = 3;
+    const MAX_TOTAL = 10;
+    
+    const byWindow = new Map<SmartNotificationTimeWindow, SmartNotificationCandidate[]>();
 
     [...candidates]
       .sort((a, b) => b.score - a.score)
       .forEach(candidate => {
-        const existing = byWindow.get(candidate.timeWindow);
-        if (!existing || candidate.score > existing.score) {
-          byWindow.set(candidate.timeWindow, candidate);
+        const existing = byWindow.get(candidate.timeWindow) || [];
+        if (existing.length < MAX_PER_WINDOW) {
+          existing.push(candidate);
+          byWindow.set(candidate.timeWindow, existing);
         }
       });
 
-    return Array.from(byWindow.values()).sort((a, b) => {
-      const aDate = getNextWindowDate(a.timeWindow).getTime();
-      const bDate = getNextWindowDate(b.timeWindow).getTime();
-      return aDate - bDate;
-    });
+    // Flatten all candidates and sort by time window
+    const allCandidates = Array.from(byWindow.entries())
+      .flatMap(([timeWindow, windowCandidates]) => windowCandidates)
+      .sort((a, b) => {
+        const aDate = getNextWindowDate(a.timeWindow).getTime();
+        const bDate = getNextWindowDate(b.timeWindow).getTime();
+        return aDate - bDate;
+      });
+
+    // Limit total candidates to avoid overwhelming user
+    return allCandidates.slice(0, MAX_TOTAL);
   }
 
   private async getPendingSmartRows(userId: string): Promise<PendingQueueRow[]> {

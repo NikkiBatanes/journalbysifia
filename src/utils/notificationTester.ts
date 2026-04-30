@@ -74,6 +74,7 @@ export class NotificationTester {
   private static async buildRealContext(userId: string): Promise<{ ctx: Record<string, any>; debug: string }> {
     const { getPlaybooks } = await import('../services/modernPlaybookApi');
     const { supabase } = await import('../services/supabaseClient');
+    const { guidedPromptGatingService } = await import('../services/guidedPromptGatingService');
 
     const strip = (v: string) => v.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim();
     const safeStr = (v: unknown): string =>
@@ -83,7 +84,7 @@ export class NotificationTester {
       getPlaybooks(userId).catch(() => [] as any[]),
       supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
       supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').limit(5),
-      supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
     ]);
 
     const devotionals: any[] = devotionalsResult.data || [];
@@ -184,7 +185,19 @@ export class NotificationTester {
       ctx.refreshDate = next.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    if (playbooks[0]?.title) ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
+    // Use guided prompt service for heart journal title
+    try {
+      const tier = sub?.tier || 'seeker';
+      const allocation = guidedPromptGatingService.getDailyPrompts(userId, tier);
+      const completedPrompts = await guidedPromptGatingService.getCompletedPrompts();
+      const availablePrompts = allocation.freePrompts.filter(prompt => !completedPrompts.includes(prompt));
+      if (availablePrompts.length > 0) {
+        ctx.heartJournalTitle = availablePrompts[0];
+      }
+    } catch (e) {
+      // Fallback to playbook title if guided prompt fails
+      if (playbooks[0]?.title) ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
+    }
 
     const debug = [
       `uid:${userId.slice(0, 8)}`,
@@ -193,6 +206,7 @@ export class NotificationTester {
       `action:${ctx.actionText ? String(ctx.actionText).slice(0, 25) : 'none'}`,
       `verse:${ctx.verseText ? String(ctx.verseText).slice(0, 25) : 'none'}`,
       `devs:${devotionals.length}`,
+      `heart:${ctx.heartJournalTitle ? String(ctx.heartJournalTitle).slice(0, 25) : 'none'}`,
     ].join(' | ');
 
     return { ctx, debug };
@@ -216,8 +230,8 @@ export class NotificationTester {
         ctx = result.ctx;
         debugInfo = result.debug;
       } catch (e) {
-        Logger.warn('[NotificationTester] Failed to fetch real context', { component: 'NotificationTester', error: e });
-        debugInfo = `fetch error: ${(e as any)?.message ?? e}`;
+        Logger.warn('[NotificationTester] Failed to fetch real context', { component: 'NotificationTester', error: e as Error });
+        debugInfo = `fetch error: ${(e as Error)?.message ?? e}`;
       }
     }
 
@@ -521,6 +535,369 @@ export class NotificationTester {
       return results;
     } catch (error) {
       Logger.error('Diagnostic failed', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test multiple devotional notifications
+   */
+  static async testMultipleDevotionals(userId: string): Promise<number> {
+    try {
+      Logger.info('🧪 Testing multiple devotional notifications', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { supabase } = await import('../services/supabaseClient');
+      const { data: devotionals } = await supabase
+        .from('devotionals')
+        .select('id, title, total_days, days')
+        .eq('user_id', userId)
+        .eq('completed', false);
+
+      const incompleteDevotionals = devotionals || [];
+      let count = 0;
+
+      for (const devotional of incompleteDevotionals.slice(0, 3)) {
+        const days = Array.isArray(devotional.days) ? devotional.days : [];
+        const incompleteDay = days.find((d: any) => d?.completed !== true) || days[0];
+        
+        if (incompleteDay) {
+          const dayNumber = typeof incompleteDay.dayNumber === 'number' ? incompleteDay.dayNumber : days.indexOf(incompleteDay) + 1;
+          const copy = buildSmartNotificationCopy('devotional_day_ready', {
+            dayNumber,
+            totalDays: devotional.total_days || days.length,
+            title: devotional.total_days === 1 ? devotional.title : incompleteDay.title,
+          });
+
+          await pushNotificationService.scheduleLocalNotification({
+            title: copy.title,
+            message: copy.message,
+            data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'devotional_day_ready' },
+            priority: 'high',
+          }, new Date(Date.now() + count * 3000));
+
+          count++;
+        }
+      }
+
+      Logger.info(`✅ Tested ${count} devotional notifications`, {
+        component: 'NotificationTester',
+      });
+
+      return count;
+    } catch (error) {
+      Logger.error('Failed to test multiple devotionals', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test multiple faithful actions notifications
+   */
+  static async testMultipleFaithfulActions(userId: string): Promise<number> {
+    try {
+      Logger.info('🧪 Testing multiple faithful actions notifications', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { supabase } = await import('../services/supabaseClient');
+      const { getPlaybooks } = await import('../services/modernPlaybookApi');
+      
+      const playbooks = await getPlaybooks(userId).catch(() => []);
+      const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
+      
+      if (!ongoingPlaybook) {
+        Logger.warn('No ongoing playbook found', { component: 'NotificationTester' });
+        return 0;
+      }
+
+      const ids = [ongoingPlaybook.id];
+      const { data: stepsData } = await supabase
+        .from('playbook_action_steps')
+        .select('id, text, order_index, playbook_sub_tasks(text, completed)')
+        .in('playbook_id', ids)
+        .order('order_index', { ascending: true })
+        .limit(10);
+
+      const steps = stepsData || [];
+      let count = 0;
+
+      for (const step of steps) {
+        if (count >= 3) break;
+        
+        const subTasks = step.playbook_sub_tasks || [];
+        if ((step as any).completed === true && subTasks.every((st: any) => st.completed === true)) {
+          continue;
+        }
+
+        const actionText = step.text?.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim() || '';
+        if (!actionText) continue;
+
+        const copy = buildSmartNotificationCopy('playbook_faithful_action', { actionText });
+
+        await pushNotificationService.scheduleLocalNotification({
+          title: copy.title,
+          message: copy.message,
+          data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'playbook_faithful_action' },
+          priority: 'high',
+        }, new Date(Date.now() + count * 3000));
+
+        count++;
+      }
+
+      Logger.info(`✅ Tested ${count} faithful action notifications`, {
+        component: 'NotificationTester',
+      });
+
+      return count;
+    } catch (error) {
+      Logger.error('Failed to test multiple faithful actions', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test bible verse rotation with tracking
+   */
+  static async testBibleVerseRotation(userId: string): Promise<void> {
+    try {
+      Logger.info('🧪 Testing bible verse rotation', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { supabase } = await import('../services/supabaseClient');
+      const { getPlaybooks } = await import('../services/modernPlaybookApi');
+      
+      const playbooks = await getPlaybooks(userId).catch(() => []);
+      const playbooksWithVerses = playbooks.filter((pb: any) => pb.bible_verse?.text);
+      
+      if (playbooksWithVerses.length === 0) {
+        Logger.warn('No playbooks with verses found', { component: 'NotificationTester' });
+        return;
+      }
+
+      // Get tracking data
+      const { data: userData } = await supabase
+        .from('user_profiles')
+        .select('metadata')
+        .eq('user_id', userId)
+        .single();
+
+      const userMetadata = userData?.metadata as Record<string, unknown> || {};
+      const notifiedVerses = (userMetadata.notified_verses as string[]) || [];
+
+      // Find available verses
+      const availableVerses = playbooksWithVerses.filter((pb: any) => !notifiedVerses.includes(pb.id));
+      
+      if (availableVerses.length === 0) {
+        Logger.info('All verses have been notified - resetting tracking', {
+          component: 'NotificationTester',
+        });
+        
+        // Reset tracking
+        await supabase
+          .from('user_profiles')
+          .update({
+            metadata: {
+              ...userMetadata,
+              notified_verses: [],
+              last_verse_reset: new Date().toISOString(),
+            },
+          })
+          .eq('user_id', userId);
+        
+        return;
+      }
+
+      // Select first available verse
+      const verseSource = availableVerses[0];
+      const verseReference = (verseSource as any).bible_verse?.reference?.replace(/\*\*|__|\*/g, '').trim() || '';
+      const verseText = (verseSource as any).bible_verse?.text?.replace(/\*\*|__|\*/g, '').trim() || '';
+
+      const copy = buildSmartNotificationCopy('playbook_verse_revisit', {
+        verseReference,
+        verseText,
+      });
+
+      await pushNotificationService.scheduleLocalNotification({
+        title: copy.title,
+        message: copy.message,
+        data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'playbook_verse_revisit' },
+        priority: 'high',
+      }, new Date(Date.now() + 3000));
+
+      // Mark as notified
+      const updatedNotifiedVerses = [...notifiedVerses, verseSource.id];
+      await supabase
+        .from('user_profiles')
+        .update({
+          metadata: {
+            ...userMetadata,
+            notified_verses: updatedNotifiedVerses,
+            last_verse_reset: new Date().toISOString(),
+          },
+        })
+        .eq('user_id', userId);
+
+      Logger.info('✅ Bible verse rotation test complete', {
+        component: 'NotificationTester',
+        verseId: verseSource.id,
+        totalNotified: updatedNotifiedVerses.length,
+      });
+    } catch (error) {
+      Logger.error('Failed to test bible verse rotation', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test multiple words to speak notifications throughout the day
+   */
+  static async testMultipleWordsToSpeak(userId: string): Promise<number> {
+    try {
+      Logger.info('🧪 Testing multiple words to speak notifications', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { getPlaybooks } = await import('../services/modernPlaybookApi');
+      
+      const playbooks = await getPlaybooks(userId).catch(() => []);
+      const playbooksWithWords = playbooks.filter((pb: any) => {
+        const words = pb.wordToSpeak || pb.directChallenge?.wordToSpeak || pb.affirmations;
+        return words && (Array.isArray(words) ? words.length > 0 : String(words).trim().length > 0);
+      });
+
+      if (playbooksWithWords.length === 0) {
+        Logger.warn('No playbooks with words to speak found', { component: 'NotificationTester' });
+        return 0;
+      }
+
+      const timeWindows = ['morning', 'midday', 'afternoon', 'evening', 'night'] as const;
+      let count = 0;
+
+      for (const timeWindow of timeWindows) {
+        if (count >= playbooksWithWords.length) break;
+
+        const playbook = playbooksWithWords[count];
+        let words: string[] = [];
+
+        if ((playbook as any).wordToSpeak) {
+          words = String((playbook as any).wordToSpeak).split(/\n+/).map(w => w.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+        } else if ((playbook as any).directChallenge?.wordToSpeak) {
+          words = String((playbook as any).directChallenge.wordToSpeak).split(/\n+/).map(w => w.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+        } else if ((playbook as any).affirmations) {
+          words = (playbook as any).affirmations.map((a: any) => a.text?.trim()).filter(Boolean);
+        }
+
+        if (words.length === 0) continue;
+
+        const wordIndex = (new Date().getDate() + count) % words.length;
+        const wordToSpeak = words[wordIndex];
+
+        const copy = buildSmartNotificationCopy('playbook_word_to_speak', { wordToSpeak });
+
+        await pushNotificationService.scheduleLocalNotification({
+          title: copy.title,
+          message: copy.message,
+          data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'playbook_word_to_speak', time_window: timeWindow },
+          priority: 'high',
+        }, new Date(Date.now() + count * 3000));
+
+        count++;
+      }
+
+      Logger.info(`✅ Tested ${count} words to speak notifications`, {
+        component: 'NotificationTester',
+      });
+
+      return count;
+    } catch (error) {
+      Logger.error('Failed to test multiple words to speak', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test smart notification engine with multiple candidates
+   */
+  static async testSmartNotificationEngine(userId: string): Promise<any> {
+    try {
+      Logger.info('🧪 Testing smart notification engine', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { smartNotificationEngine } = await import('../services/notifications/smartNotificationEngine');
+      
+      const decision = await smartNotificationEngine.scheduleForUser(userId);
+
+      Logger.info('✅ Smart notification engine test complete', {
+        component: 'NotificationTester',
+        candidateCount: decision.candidates.length,
+        selectedCount: decision.selected.length,
+        cancelledCount: decision.cancelledStaleIds.length,
+      });
+
+      return decision;
+    } catch (error) {
+      Logger.error('Failed to test smart notification engine', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Reset bible verse tracking for testing
+   */
+  static async resetVerseTracking(userId: string): Promise<void> {
+    try {
+      Logger.info('🔄 Resetting bible verse tracking', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { supabase } = await import('../services/supabaseClient');
+      
+      const { data: userData } = await supabase
+        .from('user_profiles')
+        .select('metadata')
+        .eq('user_id', userId)
+        .single();
+
+      const userMetadata = userData?.metadata as Record<string, unknown> || {};
+
+      await supabase
+        .from('user_profiles')
+        .update({
+          metadata: {
+            ...userMetadata,
+            notified_verses: [],
+            last_verse_reset: new Date().toISOString(),
+          },
+        })
+        .eq('user_id', userId);
+
+      Logger.info('✅ Bible verse tracking reset', {
+        component: 'NotificationTester',
+      });
+    } catch (error) {
+      Logger.error('Failed to reset verse tracking', error as Error, {
         component: 'NotificationTester',
       });
       throw error;

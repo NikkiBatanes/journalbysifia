@@ -156,16 +156,49 @@ class PushNotificationService {
     const notificationListener = addNotificationEventListener(
       'RemoteNotificationReceived',
       async (notification: any) => {
-        Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
-        Logger.info('[PushNotification] Notification received', {
+        Logger.info('[PushNotification] LISTENER TRIGGERED - About to process notification', {
           component: 'pushNotificationService',
-          notification,
         });
+        try {
+          Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
+          Logger.info('[PushNotification] Notification received - FULL OBJECT', {
+            component: 'pushNotificationService',
+            notification: JSON.stringify(notification, null, 2),
+          });
+          Logger.info('[PushNotification] Notification fields check', {
+            component: 'pushNotificationService',
+            hasTitle: !!notification.title,
+            hasMessage: !!notification.message,
+            hasBody: !!notification.body,
+            hasData: !!notification.data,
+            dataKeys: notification.data ? Object.keys(notification.data) : [],
+            dataTitle: notification.data?._title,
+            dataMessage: notification.data?._message,
+            rootTitle: notification._title,
+            rootMessage: notification._message,
+          });
 
-        // Save notification to history when received
-        await this.saveNotificationOnReceive(notification);
+          Logger.info('[PushNotification] About to call saveNotificationOnReceive', {
+            component: 'pushNotificationService',
+          });
+          // Save notification to history when received
+          await this.saveNotificationOnReceive(notification);
+          Logger.info('[PushNotification] saveNotificationOnReceive completed', {
+            component: 'pushNotificationService',
+          });
 
-        this.handleNotificationTap(notification);
+          Logger.info('[PushNotification] About to call handleNotificationTap', {
+            component: 'pushNotificationService',
+          });
+          this.handleNotificationTap(notification);
+          Logger.info('[PushNotification] handleNotificationTap completed', {
+            component: 'pushNotificationService',
+          });
+        } catch (error) {
+          Logger.error('[PushNotification] Error in notification listener', error as Error, {
+            component: 'pushNotificationService',
+          });
+        }
       }
     );
 
@@ -404,6 +437,11 @@ class PushNotificationService {
 
   async scheduleLocalNotification(payload: NotificationPayload, date?: Date): Promise<void> {
     try {
+      // Get current user ID from Supabase auth (more reliable than AsyncStorage)
+      const { supabase } = await import('./supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
       if (Platform.OS === 'ios') {
         if (!isNativeModuleAvailable()) {
           Logger.warn('[PushNotification] Native module not available', {
@@ -412,15 +450,31 @@ class PushNotificationService {
           return;
         }
 
+        // Preserve title and message in userInfo so they can be retrieved when received
+        const userInfo = {
+          ...payload.data,
+          user_id: userId,
+          _title: payload.title,
+          _message: payload.message,
+        };
+
         await PushNotificationBridge.scheduleLocalNotification({
           title: payload.title,
           body: payload.message,
           badge: payload.badge,
           sound: payload.sound || 'default',
-          userInfo: payload.data,
+          userInfo,
           fireDate: date ? date.getTime() : Date.now() + 1000,
         });
       } else if (Platform.OS === 'android' && PushNotification) {
+        // Preserve title and message in userInfo so they can be retrieved when received
+        const userInfo = {
+          ...payload.data,
+          user_id: userId,
+          _title: payload.title,
+          _message: payload.message,
+        };
+
         PushNotification.localNotificationSchedule({
           title: payload.title,
           message: payload.message,
@@ -428,7 +482,7 @@ class PushNotificationService {
           playSound: true,
           soundName: payload.sound || 'default',
           badge: payload.badge,
-          userInfo: payload.data,
+          userInfo,
           channelId: payload.priority === 'high' ? 'sifia-critical' : 'sifia-default',
         });
       }
@@ -502,19 +556,44 @@ class PushNotificationService {
 
       const mappedType = notificationTypeMap[notification.type] || 'SYSTEM';
 
+      // Extract title and message from various possible locations
+      // Local notifications may have title/message in different fields
+      // Priority: preserved fields at root -> preserved fields in data -> direct fields -> fallback
+      const title = notification._title
+        || notification.data?._title
+        || notification.data?.title
+        || notification.title
+        || notification.message?.title
+        || notification.aps?.alert?.title
+        || (typeof notification.aps?.alert === 'string' ? notification.aps.alert : null)
+        || notification.data?.notification?.title
+        || 'Notification';
+
+      const message = notification._message
+        || notification.data?._message
+        || notification.data?.message
+        || notification.message
+        || notification.body
+        || notification.aps?.alert?.body
+        || notification.data?.notification?.message
+        || notification.data?.notification?.body
+        || '';
+
+      Logger.info('[PushNotification] Saving notification to history', {
+        component: 'pushNotificationService',
+        extractedTitle: title,
+        extractedMessage: message,
+        mappedType,
+        notificationType: notification.type,
+      });
+
       const { error } = await supabase
         .from('notifications')
         .insert({
           user_id: userId,
           type: mappedType,
-          title: notification.title
-            || notification.aps?.alert?.title
-            || (typeof notification.aps?.alert === 'string' ? notification.aps.alert : null)
-            || 'Notification',
-          message: notification.message
-            || notification.body
-            || notification.aps?.alert?.body
-            || '',
+          title,
+          message,
           data: notification.data || {},
           is_read: false,
           created_at: new Date().toISOString(),
@@ -548,8 +627,13 @@ class PushNotificationService {
 
   private async saveNotificationOnReceive(notification: any): Promise<void> {
     try {
-      // Get current user ID from AsyncStorage or session
-      const userId = await AsyncStorage.getItem('current_user_id');
+      // Get user ID from notification data first (most reliable), then fallback to AsyncStorage
+      let userId = notification.data?.user_id || notification.userId;
+
+      if (!userId) {
+        userId = await AsyncStorage.getItem('current_user_id');
+      }
+
       if (userId) {
         await this.saveNotificationToHistory(userId, notification);
 

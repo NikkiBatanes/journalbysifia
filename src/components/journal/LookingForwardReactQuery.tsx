@@ -77,6 +77,40 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   const dateCategory = getDateCategory(selectedDate);
 
+  // Helper function to get emotion icon from emotion ID
+  const getEmotionIcon = (emotionId: string): string => {
+    const emotionIcons: Record<string, string> = {
+      hopeful: 'heart',
+      trusting: 'shield-check-outline',
+      anxious: 'alert-circle-outline',
+      frustrated: 'emoticon-angry-outline',
+      reluctant: 'pause-circle-outline',
+      tired: 'bed-outline',
+      unprepared: 'book-open-page-variant-outline',
+      'open-handed': 'hand-coin',
+      surrendered: 'white-balance-sunny',
+      excited: 'star-face',
+      expectant: 'clock-outline',
+      ready: 'check-circle-outline',
+      prayerful: 'hands-pray',
+      calm: 'weather-sunny',
+      steady: 'anchor',
+      overwhelmed: 'wave',
+      nervous: 'lightning-bolt-outline',
+      hesitant: 'dots-horizontal-circle-outline',
+      heavy: 'weight',
+      cautious: 'shield-outline',
+      curious: 'lightbulb-outline',
+      thankful: 'flower',
+      eager: 'rocket-launch-outline',
+      stretched: 'arrow-expand-horizontal',
+      unsure: 'help-circle-outline',
+      waiting: 'timer-outline',
+      other: 'plus-circle-outline',
+    };
+    return emotionIcons[emotionId] || 'heart';
+  };
+
   // Copy maps based on date category
   const getDisplaySubtitle = (): string => {
     switch (dateCategory) {
@@ -108,6 +142,19 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         return 'Hope from then';
       default:
         return undefined; // Today unchanged
+    }
+  };
+
+  const getSectionLabel = (): string => {
+    switch (dateCategory) {
+      case 'today':
+        return 'HOW YOU\'RE HOLDING IT';
+      case 'yesterday':
+        return 'HOW YOU HELD IT';
+      case 'earlier':
+        return 'HOW YOU HELD IT';
+      default:
+        return 'HOW YOU\'RE HOLDING IT';
     }
   };
 
@@ -476,22 +523,34 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     >
       {displayEntry && !shouldShowAddingMode && !editingItemId ? (
         <View style={styles.completionCard}>
-          <View style={styles.completionHeader}>
-            <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {displayEntry.emotionName || 'Looking Forward'}
-              </ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.completionDivider} />
-
           {displayEntry.text.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>WHAT YOU'RE EXCITED ABOUT</ThemedText>
               <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
             </View>
           )}
+
+          <View style={styles.completionDivider} />
+
+          <View style={styles.completionSection}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>{getSectionLabel()}</ThemedText>
+            <View style={styles.completionHeader}>
+              <View style={styles.completionHeaderContent}>
+                <View style={styles.emotionRow}>
+                  {displayEntry.emotionId && (
+                    <MaterialCommunityIcons
+                      name={getEmotionIcon(displayEntry.emotionId)}
+                      size={16}
+                      color={Colors.alertCoral}
+                      style={styles.emotionIconSmall}
+                    />
+                  )}
+                  <ThemedText weight="semiBold" style={styles.completionCategory}>
+                    {displayEntry.emotionName || 'Looking Forward'}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
       ) : null}
       {displayEntry && !shouldShowAddingMode && editingItemId === displayEntry.id && (
@@ -827,12 +886,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   completionSectionLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: Colors.alertCoral,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 8,
     fontWeight: '500',
+    textAlign: 'center',
   },
   completionSectionText: {
     fontSize: 16,
@@ -844,6 +904,15 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 26,
     fontWeight: '600',
+  },
+  emotionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emotionIconSmall: {
+    marginRight: 0,
   },
   // Empty state styles
   emptyStateContainer: {
