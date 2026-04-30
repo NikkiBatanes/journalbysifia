@@ -1976,6 +1976,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
+    fontFamily: Fonts.regular,
   },
   completionSectionSmall: {
     marginBottom: 0,
