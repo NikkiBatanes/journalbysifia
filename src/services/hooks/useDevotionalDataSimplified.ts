@@ -5,6 +5,7 @@ import { DevotionalApi } from '../api/devotionalApi';
 import type { DevotionalApiEntry } from '../api/devotionalApi';
 // import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig'; // Unused
 import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
+import { normalizeDevotionalCategory } from '../../utils/devotionalCategories';
 // import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { useCrossComponentSync } from './useCrossComponentSync';
 // import { analytics } from '../analytics'; // TODO: Fix analytics import
@@ -20,27 +21,8 @@ const queryKeys = {
 
 // Helper function to determine appropriate category based on content
 const determineDevotionalCategory = (apiEntry: DevotionalApiEntry): DevotionalCategory => {
-  // If category is already set and not the default 'Growth', use it
-  if (apiEntry.category && apiEntry.category !== 'Growth') {
-    return apiEntry.category as DevotionalCategory;
-  }
-
-  // Analyze title and description for category hints
   const content = `${apiEntry.title || ''} ${apiEntry.description || ''}`.toLowerCase();
-
-  if (content.includes('prayer') || content.includes('pray')) {return 'Prayer';}
-  if (content.includes('love') || content.includes('relationship') || content.includes('family')) {return 'Relationships';}
-  if (content.includes('anxiety') || content.includes('worry') || content.includes('stress') || content.includes('mental')) {return 'Mental Health';}
-  if (content.includes('wisdom') || content.includes('decision') || content.includes('guidance')) {return 'Wisdom';}
-  if (content.includes('purpose') || content.includes('calling') || content.includes('mission')) {return 'Purpose';}
-  if (content.includes('heal') || content.includes('recovery') || content.includes('restoration')) {return 'Healing';}
-  if (content.includes('career') || content.includes('work') || content.includes('job')) {return 'Career';}
-  if (content.includes('money') || content.includes('financial') || content.includes('finances')) {return 'Finances';}
-  if (content.includes('parent') || content.includes('child') || content.includes('kids')) {return 'Parenting';}
-  if (content.includes('health') || content.includes('physical') || content.includes('body')) {return 'Health';}
-
-  // Default to 'Growth' for spiritual growth, faith, hope, etc.
-  return 'Growth';
+  return normalizeDevotionalCategory(apiEntry.category || apiEntry.categories?.[0], content);
 };
 
 // Data transformer

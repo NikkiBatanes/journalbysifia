@@ -4,6 +4,10 @@ import { notificationManagementService, NotificationQueueItem } from './notifica
 import { notificationAnalyticsService } from './notificationAnalyticsService';
 import { notificationBatchingService } from './notificationBatchingService';
 import { AppState, AppStateStatus } from 'react-native';
+import {
+  SMART_NOTIFICATION_IMPORTANT_TYPES,
+  SMART_NOTIFICATION_PREFERENCE_MAP,
+} from './notifications/notificationTypes';
 
 export interface ScheduleOptions {
   priority?: 'low' | 'normal' | 'high' | 'critical';
@@ -66,6 +70,7 @@ class NotificationSchedulerService {
         'evening_reflection',
         'gratitude_reminder',
         'midday_checkin',
+        ...SMART_NOTIFICATION_IMPORTANT_TYPES,
       ];
       const isImportant = importantTypes.includes(notification.type) ||
                          notification.title?.toLowerCase().includes('pray for');
@@ -169,6 +174,13 @@ class NotificationSchedulerService {
       'trial_notification': 'trial_notifications',
       'prayer_request_reminder': 'prayer_request_alerts',
       'prayer_request_alert': 'prayer_request_alerts', // Add mapping for immediate prayer alerts
+      'trial_expiring': 'trial_notifications',
+      'payment_failed': 'trial_notifications',
+      'grace_period': 'trial_notifications',
+      'renewal_reminder': 'trial_notifications',
+      'payment_successful': 'trial_notifications',
+      'subscription_cancelled': 'trial_notifications',
+      ...SMART_NOTIFICATION_PREFERENCE_MAP,
     };
 
     const prefKey = typeMap[type];
@@ -188,7 +200,7 @@ class NotificationSchedulerService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('notification_queue')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -203,7 +215,7 @@ class NotificationSchedulerService {
         return 0;
       }
 
-      return (data as any)?.count || 0;
+      return count || 0;
     } catch (error) {
       Logger.error('Error getting today notification count', error as Error, {
         component: 'notificationSchedulerService',

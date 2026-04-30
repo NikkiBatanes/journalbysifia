@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { AUTH_ERROR_MESSAGES, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Devotional, DevotionalCategory } from '../interfaces/devotional';
+import { normalizeDevotionalCategory } from '../utils/devotionalCategories';
 import { ENV } from '../config/environment';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
 import { enterpriseResilience } from '../utils/enterpriseResilience';
@@ -336,53 +337,10 @@ async function generateDevotionalInternal(
         try {
           // Try to get category from the AI result first
           const fromResult = devotionalResult?.category || devotionalResult?.categories?.[0];
-
-          // Validate that the category from result is allowed
-          const allowedCategories = [
-            'Relationships',
-            'Family',
-            'Marriage',
-            'Singleness',
-            'Friendship',
-            'Work & Career',
-            'Calling & Purpose',
-            'Finance & Stewardship',
-            'Decision-Making',
-            'Conflict & Boundaries',
-            'Hurt & Forgiveness',
-            'Faith & Obedience',
-            'Church & Ministry',
-            'Parenting',
-            'Emotions & Inner Life',
-            'Health & Wellness',
-            'Anxiety & Peace',
-            'Fear & Trust',
-            'Waiting & Uncertainty',
-            'Grief & Loss',
-            'Shame & Guilt',
-          ];
-          if (fromResult && typeof fromResult === 'string' && allowedCategories.includes(fromResult)) {
-            return fromResult as DevotionalCategory;
-          }
-
-          // Fallback: derive from title/description content
           const content = `${devotionalResult?.title || ''} ${devotionalResult?.description || ''}`.toLowerCase();
-          const base = content.replace(/[^a-z\s]/g, '').trim();
-
-          // Map content to allowed categories
-          if (base.includes('relationship') || base.includes('family') || base.includes('marriage') || base.includes('spouse') || base.includes('partner')) {return 'Relationships' as DevotionalCategory;}
-          if (base.includes('work') || base.includes('career') || base.includes('job') || base.includes('calling') || base.includes('vocation')) {return 'Work & Career' as DevotionalCategory;}
-          if (base.includes('money') || base.includes('finance') || base.includes('stewardship') || base.includes('financial') || base.includes('debt')) {return 'Finance & Stewardship' as DevotionalCategory;}
-          if (base.includes('health') || base.includes('wellness') || base.includes('body') || base.includes('physical')) {return 'Health & Wellness' as DevotionalCategory;}
-          if (base.includes('emotion') || base.includes('feeling') || base.includes('inner') || base.includes('heart')) {return 'Emotions & Inner Life' as DevotionalCategory;}
-          if (base.includes('anxiety') || base.includes('worry') || base.includes('stress') || base.includes('peace') || base.includes('calm')) {return 'Anxiety & Peace' as DevotionalCategory;}
-          if (base.includes('fear') || base.includes('trust') || base.includes('courage') || base.includes('brave')) {return 'Fear & Trust' as DevotionalCategory;}
-          if (base.includes('parent') || base.includes('child') || base.includes('father') || base.includes('mother')) {return 'Parenting' as DevotionalCategory;}
-          if (base.includes('friend') || base.includes('friendship')) {return 'Friendship' as DevotionalCategory;}
-          // Default to Relationships for general content
-          return 'Relationships' as DevotionalCategory;
+          return normalizeDevotionalCategory(fromResult, content);
         } catch {
-          return 'Relationships' as DevotionalCategory;
+          return 'Faith & Obedience';
         }
       };
 

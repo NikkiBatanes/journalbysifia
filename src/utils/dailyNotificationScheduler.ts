@@ -1,4 +1,4 @@
-import { enhancedNotificationScheduler } from '../services/enhancedNotificationScheduler';
+import { smartNotificationEngine } from '../services/notifications/smartNotificationEngine';
 import { streakTrackingService } from '../services/streakTrackingService';
 import { Logger } from './ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -55,13 +55,13 @@ export class DailyNotificationScheduler {
         return false;
       }
 
-      Logger.info('Scheduling comprehensive daily notifications', {
+      Logger.info('Scheduling state-based daily notifications', {
         component: 'DailyNotificationScheduler',
         userId,
       });
 
-      // Use enhanced scheduler for comprehensive notifications (2x daily + context-based)
-      await enhancedNotificationScheduler.scheduleAllDailyNotifications(userId);
+      // Replace broad fixed reminders with the state-based notification engine.
+      await smartNotificationEngine.scheduleForUser(userId);
 
       // Check and schedule streak alerts
       await streakTrackingService.checkAllStreaksForUser(userId);

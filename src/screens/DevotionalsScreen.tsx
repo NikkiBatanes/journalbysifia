@@ -32,7 +32,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import DevotionalModal from '../components/DevotionalModal';
 import CategoryCarouselRow from '../components/CategoryCarouselRow';
 
-import { Devotional } from '../interfaces/devotional';
+import { DEVOTIONAL_CATEGORIES, Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
 
 import { extractCleanTitle } from '../utils/titleUtils';
@@ -318,8 +318,8 @@ const DevotionalsScreen = () => {
     // Format category - handle different possible formats
     const formatCategory = (category: string) => {
       // If it's already a valid category, return it as is
-      const validCategories = ['Prayer', 'Growth', 'Healing', 'Wisdom', 'Relationships', 'Purpose', 'Career', 'Finances', 'Mental Health', 'Parenting', 'Health'];
-      if (validCategories.includes(category)) {
+      const validCategories = [...DEVOTIONAL_CATEGORIES];
+      if ((validCategories as readonly string[]).includes(category)) {
         return category;
       }
       // Try to extract category from string like "CATEGORY: Relationships"

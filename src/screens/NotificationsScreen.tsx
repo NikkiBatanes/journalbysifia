@@ -117,11 +117,18 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       );
 
       // Extract push notifications data
-      const pushNotificationsData = pushNotifications.data || [];
+      const pushNotificationsData = (pushNotifications.data || []).map((notification: any) => ({
+        ...notification,
+        _notification_source: 'notifications',
+      }));
+      const queuedNotificationsData = queuedNotifications.map((notification: any) => ({
+        ...notification,
+        _notification_source: 'queue',
+      }));
 
       // Merge all notification sources and sort by timestamp (newest first)
       // POST-LAUNCH: Add familyInvitations back
-      const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...pushNotificationsData].sort((a, b) => {
+      const mergedNotifications = [...inAppNotifications, ...queuedNotificationsData, ...pushNotificationsData].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
@@ -152,7 +159,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       triggerLightHaptic();
 
       // Mark notification as read immediately
-      if (notification.id && !notification.is_read && user?.id) {
+      if (notification.id && notification._notification_source === 'notifications' && !notification.is_read && user?.id) {
         await supabase
           .from('notifications')
           .update({ is_read: true })
@@ -225,7 +232,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       try {
         if (user?.id && notification.id) {
           // Check if this is from notifications table (push notifications) or notification_queue
-          if (notification.type || notification.created_at) {
+          if (notification._notification_source === 'notifications') {
             // This is a push notification from the notifications table
             const { error } = await supabase
               .from('notifications')
@@ -245,7 +252,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 },
               });
             }
-          } else {
+          } else if (notification._notification_source === 'queue') {
             // This is from notification_queue table
             await notificationManagementService.markNotificationAsRead(notification.id, user.id);
           }
@@ -299,15 +306,24 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         });
       }
 
-      // Clear pending notifications from notification_queue table
-      const { error: queueError } = await supabase
+      // Mark delivered queue notifications as read without cancelling future reminders.
+      const nowIso = new Date().toISOString();
+      const { error: queueSentError } = await supabase
         .from('notification_queue')
-        .update({ status: 'cancelled' })
+        .update({ status: 'read', read_at: nowIso })
         .eq('user_id', user.id)
-        .eq('status', 'pending');
+        .eq('status', 'sent');
 
+      const { error: queueDueError } = await supabase
+        .from('notification_queue')
+        .update({ status: 'read', read_at: nowIso })
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .lte('scheduled_for', nowIso);
+
+      const queueError = queueSentError || queueDueError;
       if (queueError) {
-        Logger.error('Failed to clear pending notifications from queue', queueError, {
+        Logger.error('Failed to clear delivered notifications from queue', queueError, {
           component: 'NotificationsScreen',
           errorDetails: {
             message: queueError.message,
@@ -317,7 +333,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           },
         });
       } else {
-        Logger.info('Cleared pending notifications from queue', {
+        Logger.info('Marked delivered queue notifications as read', {
           component: 'NotificationsScreen',
           userId: user.id,
         });
@@ -629,10 +645,37 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       trial_converted: 'checkmark-circle',
       prayer_reminder: 'hand-right',
       devotional_reminder: 'book',
+      devotional_day_ready: 'book',
+      devotional_prayer_prompt: 'hand-right',
+      devotional_reflection_prompt: 'create',
+      devotional_verse_revisit: 'bookmarks',
+      devotional_completed_reflection: 'sparkles',
       journal_prompt: 'create',
+      journal_todays_focus: 'flag',
+      journal_todo: 'checkbox',
+      journal_gratitude: 'heart',
+      journal_todays_win: 'trophy',
+      journal_looking_forward: 'moon',
+      heart_journal_prompt: 'heart-circle',
       streak_alert: 'flame',
       milestone_celebration: 'trophy',
       playbook_step: 'clipboard',
+      playbook_word_to_speak: 'megaphone',
+      playbook_faithful_action: 'footsteps',
+      playbook_verse_revisit: 'bookmarks',
+      playbook_prayer_revisit: 'hand-right',
+      playbook_to_devotional: 'book',
+      prayer_request_care: 'people',
+      prayer_today: 'hand-right',
+      create_devotional: 'add-circle',
+      create_playbook: 'add-circle',
+      create_first_devotional: 'add-circle',
+      create_first_playbook: 'add-circle',
+      usage_room_devotional: 'leaf',
+      usage_room_playbook: 'leaf',
+      content_refresh_wait: 'hourglass',
+      upgrade_room: 'sparkles',
+      recovery_prayer: 'refresh-circle',
       trial_notification: 'time',
       weekly_summary: 'stats-chart',
     };

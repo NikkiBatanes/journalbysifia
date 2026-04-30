@@ -56,30 +56,7 @@ export interface Devotional {
   isFallback?: boolean; // Indicates if this is a fallback devotional
 }
 
-export type DevotionalCategory =
-  | 'Relationships'
-  | 'Family'
-  | 'Marriage'
-  | 'Singleness'
-  | 'Friendship'
-  | 'Work & Career'
-  | 'Calling & Purpose'
-  | 'Finance & Stewardship'
-  | 'Decision-Making'
-  | 'Conflict & Boundaries'
-  | 'Hurt & Forgiveness'
-  | 'Faith & Obedience'
-  | 'Church & Ministry'
-  | 'Parenting'
-  | 'Emotions & Inner Life'
-  | 'Health & Wellness'
-  | 'Anxiety & Peace'
-  | 'Fear & Trust'
-  | 'Waiting & Uncertainty'
-  | 'Grief & Loss'
-  | 'Shame & Guilt';
-
-export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
+export const DEVOTIONAL_CATEGORIES = [
   'Relationships',
   'Family',
   'Marriage',
@@ -101,7 +78,9 @@ export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
   'Waiting & Uncertainty',
   'Grief & Loss',
   'Shame & Guilt',
-];
+] as const;
+
+export type DevotionalCategory = typeof DEVOTIONAL_CATEGORIES[number];
 
 export interface DevotionalCreationParams {
   title?: string;

@@ -109,10 +109,11 @@ class NotificationDeepLinkService {
       // Dismiss any open notification modal before navigating
       this.dismissNotificationModal();
 
-      // Parse deep link URL
-      // Format: sifia://screen/id or sifia://screen
+      // Parse deep link URL.
+      // Supported: sifia://screen/id, sifia://screen/id/day/2, and query params.
       const url = deepLink.replace('sifia://', '');
-      const parts = url.split('/');
+      const [path] = url.split('?');
+      const parts = path.split('/').filter(Boolean);
       const screen = parts[0];
       const id = parts[1];
 
@@ -129,8 +130,9 @@ class NotificationDeepLinkService {
           break;
 
         case 'playbook':
+        case 'playbooks':
           // Navigate to specific PlaybookDetail screen
-          if (id) {
+          if (id && id !== 'new') {
             this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
           } else {
             // Navigate to Playbooks tab if no specific ID
@@ -143,9 +145,15 @@ class NotificationDeepLinkService {
           break;
 
         case 'devotional':
+        case 'devotionals':
           // Navigate to specific DevotionalDetail screen
-          if (id) {
-            this.navigationRef.current.navigate('DevotionalDetail', { devotionalId: id });
+          if (id && id !== 'today' && id !== 'new') {
+            const dayIndex = parts.indexOf('day');
+            const dayNumber = dayIndex >= 0 ? Number(parts[dayIndex + 1]) : undefined;
+            this.navigationRef.current.navigate('DevotionalDetail', {
+              devotionalId: id,
+              ...(Number.isFinite(dayNumber) ? { initialDay: dayNumber } : {}),
+            });
           } else {
             // Navigate to Devotionals tab if no specific ID
             this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals' });
@@ -164,10 +172,29 @@ class NotificationDeepLinkService {
           });
           break;
 
+        case 'dashboard':
+        case 'home':
+          this.navigationRef.current.navigate('MainTabs', { screen: 'Overview' });
+          Logger.info('Navigated to Dashboard', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
         case 'profile':
           // Navigate to UserProfileModal for direct profile access
           this.navigationRef.current.navigate('UserProfileModal');
           Logger.info('Navigated to Profile', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        case 'subscription':
+          this.navigationRef.current.navigate('OnboardingSalesOffer', {
+            upgradeMode: true,
+            source: 'notification',
+            skipNotificationPreference: true,
+          });
+          Logger.info('Navigated to subscription offer', {
             component: 'notificationDeepLinkService',
           });
           break;
