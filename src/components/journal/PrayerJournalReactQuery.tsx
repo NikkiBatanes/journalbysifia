@@ -567,11 +567,36 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           onPress: async () => {
             try {
               triggerLightHaptic();
-              await deletePrayerMutation.mutateAsync({
-                id: prayer.id,
-                _userId: user?.id || '',
-                _dateStr: dateStr,
-              });
+
+              // For CAST prayers, delete the entire session (all prayers within 2 minutes)
+              if (prayer.type !== 'freeform') {
+                const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+                const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+                const prayerTime = new Date(prayer.created_at).getTime();
+
+                // Find all prayers in the same session
+                const sessionPrayers = actsPrayers.filter((p: any) => {
+                  const pTime = new Date(p.created_at).getTime();
+                  return Math.abs(pTime - prayerTime) <= SESSION_WINDOW_MS;
+                });
+
+                // Delete all prayers in the session
+                for (const p of sessionPrayers) {
+                  await deletePrayerMutation.mutateAsync({
+                    id: p.id,
+                    _userId: user?.id || '',
+                    _dateStr: dateStr,
+                  });
+                }
+              } else {
+                // For open prayers, delete individually
+                await deletePrayerMutation.mutateAsync({
+                  id: prayer.id,
+                  _userId: user?.id || '',
+                  _dateStr: dateStr,
+                });
+              }
+
               triggerSuccessHaptic();
             } catch (error) {
               console.error('Failed to delete prayer:', error);
@@ -581,7 +606,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         },
       ]
     );
-  }, [deletePrayerMutation, dateStr, user?.id]);
+  }, [deletePrayerMutation, dateStr, user?.id, displayPrayers]);
 
   // Handle edit prayer - navigate to walkthrough with pre-selected type
   const handleEditPrayer = useCallback((prayer: any) => {
