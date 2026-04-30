@@ -2403,11 +2403,28 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'planning_lock',
                   feature: 'future_planning',
+                  testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Upgrade to Plan Ahead</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start Planning Ahead</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'planning_lock',
+                  feature: 'future_planning',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2419,11 +2436,29 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   source: 'copy_todos_lock',
                   feature: 'copy_todos',
                   incompleteTodosCount: 5,
+                  testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Unlock Copy To-Dos & More</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Copy To-Dos</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'copy_todos_lock',
+                  feature: 'copy_todos',
+                  incompleteTodosCount: 5,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -2434,11 +2469,28 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   upgradeMode: false,
                   source: 'pdf_export_restriction',
                   feature: 'export_pdf',
+                  testModeHasEverStartedTrial: true,
                 });
               }}
             >
-              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Save your reflection as a PDF</ThemedText>
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to PDF Export</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                navigation.navigate('OnboardingSalesOffer' as any, {
+                  upgradeMode: false,
+                  source: 'pdf_export_restriction',
+                  feature: 'export_pdf',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
             </TouchableOpacity>
 
           </ScrollView>
