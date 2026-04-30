@@ -35,11 +35,21 @@ const MomentsSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header skeleton row: grouping + filter chips */}
+      {/* Header skeleton row: title with icon on left, buttons on right */}
       <View style={styles.headerRow}>
-        <Animated.View style={[styles.chip, styles.chipShort, { opacity }]} />
-        <Animated.View style={[styles.chip, styles.chipMedium, { opacity }]} />
+        <View style={styles.headerLeft}>
+          <Animated.View style={[styles.iconCircle, { opacity }]} />
+          <Animated.View style={[styles.titleBar, { opacity }]} />
+        </View>
+        <View style={styles.headerButtons}>
+          <Animated.View style={[styles.pillButton, { opacity }]} />
+          <Animated.View style={[styles.circleButton, { opacity }]} />
+          <Animated.View style={[styles.circleButton, { opacity }]} />
+        </View>
       </View>
+
+      {/* Subtext skeleton */}
+      <Animated.View style={[styles.subtextBar, { opacity }]} />
 
       {/* Section header bar */}
       <Animated.View style={[styles.sectionHeader, { opacity }]} />
@@ -60,23 +70,54 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 12,
   },
   headerRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  chip: {
-    height: 32,
-    borderRadius: 8,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  chipShort: {
-    width: 90,
+  titleBar: {
+    height: 24,
+    width: 120,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  chipMedium: {
-    width: 110,
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pillButton: {
+    height: 32,
+    width: 90,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  circleButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  subtextBar: {
+    height: 14,
+    width: '60%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 8,
   },
   sectionHeader: {
     height: 16,
@@ -88,7 +129,7 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     backgroundColor: 'transparent',
