@@ -222,14 +222,14 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Content before supplication (confession, adoration) */}
       {beforeSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
         </View>
       ))}
 
       {/* Supplication content */}
       {supplicationPrayer && (
         <View style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>{supplicationPrayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>  {supplicationPrayer.content}</ThemedText>
         </View>
       )}
 
@@ -282,7 +282,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Content after supplication (thanksgiving) */}
       {afterSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
         </View>
       ))}
 
