@@ -186,7 +186,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     });
 
     return {
-      title: `No ${featureNamePlural} Remaining`,
+      title: `No ${featureNamePlural}\nRemaining`,
       message: `You've used all ${trialLimitText} included in your free trial. Your ${tierName} plan starts in ${daysUntilSubscriptionStarts} ${dayText}, on ${subscriptionStartDateStr}, with ${fullLimitText} each month.`,
       primaryCta: 'Got it',
       secondaryCta: 'Close',
@@ -212,7 +212,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
     if (currentTier === 'spark') {
       return {
-        title: `No ${featureNamePlural} Remaining`,
+        title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
         primaryCta: 'Upgrade to Growth',
         secondaryCta: 'Wait for Refresh',
@@ -222,7 +222,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       };
     } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
       return {
-        title: `No ${featureNamePlural} Remaining`,
+        title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
         primaryCta: 'Got it',
         secondaryCta: 'Wait for Refresh',
@@ -233,7 +233,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       };
     } else {
       return {
-        title: `No ${featureNamePlural} Remaining`,
+        title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
         primaryCta: 'Upgrade to Transformation',
         secondaryCta: 'Wait for Refresh',
@@ -249,7 +249,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     if (currentTier === 'spark' && (requestedDuration === 5 || requestedDuration === 7)) {
       if (requestedDuration === 5) {
         return {
-          title: 'Unlock 5-Day Devotionals',
+          title: 'Unlock 5-Day\nDevotionals',
           message: `5-day devotionals are available with Growth or Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
           primaryCta: 'Upgrade to Growth',
           secondaryCta: 'Choose Another Duration',
@@ -260,7 +260,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       } else {
         // 7-day
         return {
-          title: 'Unlock 7-Day Devotionals',
+          title: 'Unlock 7-Day\nDevotionals',
           message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
           primaryCta: 'Upgrade to Transformation',
           secondaryCta: 'Choose Another Duration',
@@ -271,7 +271,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       }
     } else if (currentTier === 'growth' && requestedDuration === 7) {
       return {
-        title: 'Unlock 7-Day Devotionals',
+        title: 'Unlock 7-Day\nDevotionals',
         message: `7-day devotionals are available with Transformation. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
         primaryCta: 'Upgrade to Transformation',
         secondaryCta: 'Choose Another Duration',
