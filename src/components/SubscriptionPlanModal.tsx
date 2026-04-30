@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,6 +20,106 @@ import { triggerLightHaptic } from '../utils/haptics';
 type PaidPlanTier = 'spark' | 'growth' | 'transformation';
 
 const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
+
+const SubscriptionSkeleton: React.FC = () => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
+
+  React.useEffect(() => {
+    isMounted.current = true;
+
+    const animate = () => {
+      if (!isMounted.current) {return;}
+
+      Animated.sequence([
+        Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+
+    animate();
+
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  return (
+    <View style={skeletonStyles.container}>
+      {/* Plan card skeleton */}
+      <View style={skeletonStyles.planCard}>
+        <Animated.View style={[skeletonStyles.badgePill, { opacity }]} />
+        <Animated.View style={[skeletonStyles.planName, { opacity }]} />
+        <Animated.View style={[skeletonStyles.planDescription, { opacity }]} />
+        <Animated.View style={[skeletonStyles.billingBadge, { opacity }]} />
+
+        {/* Feature lines */}
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          <Animated.View key={`feature-${i}`} style={[skeletonStyles.featureLine, { opacity, width: i % 2 === 0 ? '85%' : '70%' }]} />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const skeletonStyles = StyleSheet.create({
+  container: {
+    padding: 24,
+  },
+  planCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    paddingTop: 56,
+  },
+  badgePill: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    height: 24,
+    width: 80,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  planName: {
+    height: 24,
+    width: '60%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  planDescription: {
+    height: 14,
+    width: '50%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  billingBadge: {
+    height: 20,
+    width: 60,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  featureLine: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+});
 
 const normalizePaidPlanTier = (tier?: string | null): PaidPlanTier | undefined => {
   const normalized = String(tier || '').toLowerCase().replace(/_annual$/, '');
@@ -419,7 +520,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const getUpgradeButtonText = () => {
     switch (tierBase) {
       case 'seeker':
-        return 'Continue with siFia';
+        return 'View all plans';
       case 'free_trial':
         return 'Continue with siFia';
       case 'spark':
@@ -514,12 +615,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Ionicons name="diamond" size={48} color={Colors.hopeWhite} />
-              <ThemedText weight="medium" style={styles.loadingText}>
-                Loading plan details...
-              </ThemedText>
-            </View>
+            <SubscriptionSkeleton />
           ) : (
             <>
               {/* Plan Card */}
@@ -598,6 +694,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 <TouchableOpacity
                   style={styles.upgradeButton}
                   onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
                     onClose();
                     if (navigation) {
                       navigation.navigate('DashboardHome' as any);
@@ -614,7 +711,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 {showTrialViewOtherPlans && (
                   <TouchableOpacity
                     style={styles.viewPlansButton}
-                    onPress={handleUpgradePress}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      handleUpgradePress();
+                    }}
                     activeOpacity={0.85}
                   >
                     <ThemedText weight="bold" style={styles.viewPlansButtonText}>
@@ -626,7 +726,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             ) : (
               <TouchableOpacity
                 style={styles.upgradeButton}
-                onPress={handleUpgradePress}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  handleUpgradePress();
+                }}
                 activeOpacity={0.85}
               >
                 <ThemedText weight="bold" style={styles.upgradeButtonText}>
@@ -728,8 +831,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeContainer: {
-    alignItems: 'center',
-    marginBottom: 12,
+    position: 'absolute',
+    top: 16,
+    left: 16,
   },
   planName: {
     fontSize: 24,

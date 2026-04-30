@@ -1043,11 +1043,18 @@ const OnboardingTrialOfferScreen = () => {
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
-              style={styles.linkButton}
+              style={styles.seeAllPlansButton}
               onPress={handleTermsOfService}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.seeAllPlansButton}
+              onPress={handleRestorePurchase}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
             </TouchableOpacity>
           </View>
           {/* Dev controls removed */}
@@ -1113,14 +1120,6 @@ const OnboardingTrialOfferScreen = () => {
           <ThemedText weight="bold" style={styles.startTrialButtonText}>
             {isStartingTrial ? 'Starting Trial...' : 'Start 3-day Free Trial'}
           </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.restoreButton}
-          onPress={handleRestorePurchase}
-          activeOpacity={0.7}
-        >
-          <ThemedText weight="medium" style={styles.restoreButtonText}>Restore Purchases</ThemedText>
         </TouchableOpacity>
 
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
@@ -1926,6 +1925,22 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '500',
+  },
+  seeAllPlansButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+    minWidth: 280,
+    marginBottom: 8,
+  },
+  seeAllPlansText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
   },
   // Footer toggle styles
   footerToggleContainer: {
