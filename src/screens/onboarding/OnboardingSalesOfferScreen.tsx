@@ -1454,9 +1454,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                           : fromExportRestriction
                             ? 'Save your reflection as a PDF'
                               : (route.params as any)?.forceTransformationAnnual
-                                ? 'Upgrade to Annual Plan for maximum savings!'
+                                ? 'Upgrade to annual for maximum savings'
                                 : (route.params as any)?.forceAnnualOnly
-                                  ? 'Continue with annual billing for maximum savings!'
+                                  ? 'Continue with annual billing for maximum savings'
                                   : 'Keep this space open'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
@@ -1471,13 +1471,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 : fromPlanningLock
                   ? 'Gently prepare for what’s ahead with guided journaling, playbooks, and devotionals.'
                   : fromCopyTodosLock
-                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
+                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features, playbooks, and devotionals.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                      ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
+                      ? 'Create recurring time blocks to build consistent rhythms. Also unlock playbooks, devotionals, calendar sync, and more powerful planning features.'
                       : fromCalendarAutoSync
-                        ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
+                        ? 'Automatically sync your time blocks to your device calendar. Also unlock recurring time blocks, playbooks, and devotionals.'
                         : fromGuidedPromptsLock
-                          ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
+                          ? 'Access guided reflection prompts to deepen your walk with God, and playbooks and devotionals.'
                           : fromExportRestriction
                               ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
                               : routeParams?.onboardingFlow
@@ -1580,7 +1580,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="book-outline" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Unlimited devotionals and spiritual content to guide your journey.
+                      Create more devotionals and return to spiritual content that helps guide your journey.
                     </ThemedText>
                   </View>
                 </>
