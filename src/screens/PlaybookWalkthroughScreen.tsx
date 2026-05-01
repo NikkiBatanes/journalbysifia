@@ -189,26 +189,67 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         {/* User input card — revealed when chevron is tapped */}
         {showUserInput && (
           <View style={styles.userInputCard}>
-            <ThemedText style={styles.userInputText} selectable={true}>{userInput}</ThemedText>
+            {Platform.OS === 'ios' ? (
+              <TextInput
+                value={userInput}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={styles.userInputText}
+              />
+            ) : (
+              <ThemedText style={styles.userInputText} selectable={true}>{userInput}</ThemedText>
+            )}
           </View>
         )}
       </StepFadeIn>
 
       <StepFadeIn delay={80}>
-        <ThemedText weight="medium" style={styles.title} selectable={true}>{title}</ThemedText>
+        {Platform.OS === 'ios' ? (
+          <TextInput
+            value={title}
+            editable={false}
+            multiline={true}
+            scrollEnabled={false}
+            style={[styles.title, { fontWeight: '500' as any }]}
+          />
+        ) : (
+          <ThemedText weight="medium" style={styles.title} selectable={true}>{title}</ThemedText>
+        )}
       </StepFadeIn>
 
       <StepFadeIn delay={160} style={{ marginTop: 40 }}>
         {paragraphs.map((paragraph, index) => (
-          <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined} selectable={true}>
-            {paragraph}
-          </ThemedText>
+          Platform.OS === 'ios' ? (
+            <TextInput
+              key={index}
+              value={paragraph}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }]}
+            />
+          ) : (
+            <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined} selectable={true}>
+              {paragraph}
+            </ThemedText>
+          )
         ))}
       </StepFadeIn>
 
       {transitionLine ? (
         <StepFadeIn delay={500} style={styles.transitionLineContainer}>
-          <ThemedText style={styles.transitionLineText} selectable={true}>{transitionLine}</ThemedText>
+          {Platform.OS === 'ios' ? (
+            <TextInput
+              value={transitionLine}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={styles.transitionLineText}
+            />
+          ) : (
+            <ThemedText style={styles.transitionLineText} selectable={true}>{transitionLine}</ThemedText>
+          )}
         </StepFadeIn>
       ) : null}
     </ScrollView>
@@ -265,7 +306,17 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
         <View style={styles.textBlock}>
           {visible.map((para, i) => (
             <StepFadeIn key={i} delay={100 + (i * 80)}>
-              <ThemedText style={styles.bodyText} selectable={true}>{para}</ThemedText>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={para}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={styles.bodyText}
+                />
+              ) : (
+                <ThemedText style={styles.bodyText} selectable={true}>{para}</ThemedText>
+              )}
             </StepFadeIn>
           ))}
         </View>
@@ -336,15 +387,35 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
       <StepFadeIn delay={100} style={styles.verseCard}>
         <View style={styles.verseRefRow}>
           <Ionicons name="book-outline" size={13} color={Colors.alertCoral} />
-          <ThemedText weight="semiBold" style={styles.scriptureRef} selectable={true}>
-            {reference}
-          </ThemedText>
+          {Platform.OS === 'ios' ? (
+            <TextInput
+              value={reference}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={[styles.scriptureRef, { fontWeight: '600' as any }]}
+            />
+          ) : (
+            <ThemedText weight="semiBold" style={styles.scriptureRef} selectable={true}>
+              {reference}
+            </ThemedText>
+          )}
           <View style={styles.versionAndInfoRow}>
             {version ? (
               <View style={styles.versionBadge}>
-                <ThemedText weight="semiBold" style={styles.versionText} selectable={true}>
-                  {version.toUpperCase()}
-                </ThemedText>
+                {Platform.OS === 'ios' ? (
+                  <TextInput
+                    value={version.toUpperCase()}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={[styles.versionText, { fontWeight: '600' as any }]}
+                  />
+                ) : (
+                  <ThemedText weight="semiBold" style={styles.versionText} selectable={true}>
+                    {version.toUpperCase()}
+                  </ThemedText>
+                )}
               </View>
             ) : null}
             <TouchableOpacity
@@ -357,9 +428,19 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             </TouchableOpacity>
           </View>
         </View>
-        <ThemedText weight="medium" style={styles.scriptureText} selectable={true}>
-          "{text}"
-        </ThemedText>
+        {Platform.OS === 'ios' ? (
+          <TextInput
+            value={`"${text}"`}
+            editable={false}
+            multiline={true}
+            scrollEnabled={false}
+            style={[styles.scriptureText, { fontWeight: '500' as any }]}
+          />
+        ) : (
+          <ThemedText weight="medium" style={styles.scriptureText} selectable={true}>
+            "{text}"
+          </ThemedText>
+        )}
       </StepFadeIn>
 
       <BibleCopyrightModal
@@ -370,9 +451,20 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
       <StepFadeIn delay={190} style={styles.reflectionBlock}>
         {reflectionLines.map((line, i) => (
-          <ThemedText key={i} style={styles.reflectionNote} selectable={true}>
-            {line}
-          </ThemedText>
+          Platform.OS === 'ios' ? (
+            <TextInput
+              key={i}
+              value={line}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={styles.reflectionNote}
+            />
+          ) : (
+            <ThemedText key={i} style={styles.reflectionNote} selectable={true}>
+              {line}
+            </ThemedText>
+          )
         ))}
       </StepFadeIn>
 
@@ -814,14 +906,34 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         {/* Intro framing line (shown only on first step) */}
         {intro && actionStepIndex === 0 && (
           <StepFadeIn delay={60}>
-            <ThemedText style={styles.actionIntro} selectable={true}>{intro}</ThemedText>
+            {Platform.OS === 'ios' ? (
+              <TextInput
+                value={intro}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={styles.actionIntro}
+              />
+            ) : (
+              <ThemedText style={styles.actionIntro} selectable={true}>{intro}</ThemedText>
+            )}
           </StepFadeIn>
         )}
 
         <StepFadeIn delay={80}>
-          <ThemedText style={styles.actionCounter} selectable={true}>
-            {Object.values(committedSteps).filter(v => v).length} of {totalSteps} completed
-          </ThemedText>
+          {Platform.OS === 'ios' ? (
+            <TextInput
+              value={`${Object.values(committedSteps).filter(v => v).length} of ${totalSteps} completed`}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={styles.actionCounter}
+            />
+          ) : (
+            <ThemedText style={styles.actionCounter} selectable={true}>
+              {Object.values(committedSteps).filter(v => v).length} of {totalSteps} completed
+            </ThemedText>
+          )}
         </StepFadeIn>
 
         <StepFadeIn delay={100}>
@@ -846,21 +958,49 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </View>
 
             {/* Step title */}
-            <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
-              {stripMd(currentStep.title)}
-            </ThemedText>
+            {Platform.OS === 'ios' ? (
+              <TextInput
+                value={stripMd(currentStep.title)}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={[styles.actionTitle, { fontWeight: '600' as any }]}
+              />
+            ) : (
+              <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
+                {stripMd(currentStep.title)}
+              </ThemedText>
+            )}
 
             {/* Smart body lines */}
             {smartBodyLines.map((item, idx) => {
               if (item.type === 'quote') {
-                return (
+                return Platform.OS === 'ios' ? (
+                  <TextInput
+                    key={idx}
+                    value={item.text}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={styles.bodyLineQuote}
+                  />
+                ) : (
                   <ThemedText key={idx} style={styles.bodyLineQuote} selectable={true}>
                     {item.text}
                   </ThemedText>
                 );
               }
               if (item.type === 'intro') {
-                return (
+                return Platform.OS === 'ios' ? (
+                  <TextInput
+                    key={idx}
+                    value={item.text}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={styles.bodyLineIntro}
+                  />
+                ) : (
                   <ThemedText key={idx} style={styles.bodyLineIntro} selectable={true}>
                     {item.text}
                   </ThemedText>
@@ -875,24 +1015,52 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     onPress={() => { triggerLightHaptic(); setSelectedChoice(item.text); }}
                     activeOpacity={0.75}
                   >
-                    <ThemedText
-                      weight={isSelected ? 'semiBold' : undefined}
-                      style={[styles.choicePillText, isSelected && styles.choicePillTextSelected]}
-                      selectable={true}
-                    >
-                      {item.text}
-                    </ThemedText>
+                    {Platform.OS === 'ios' ? (
+                      <TextInput
+                        value={item.text}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[styles.choicePillText, isSelected && styles.choicePillTextSelected, isSelected && { fontWeight: '600' as any }]}
+                      />
+                    ) : (
+                      <ThemedText
+                        weight={isSelected ? 'semiBold' : undefined}
+                        style={[styles.choicePillText, isSelected && styles.choicePillTextSelected]}
+                        selectable={true}
+                      >
+                        {item.text}
+                      </ThemedText>
+                    )}
                   </TouchableOpacity>
                 );
               }
               if (item.type === 'punch') {
-                return (
+                return Platform.OS === 'ios' ? (
+                  <TextInput
+                    key={idx}
+                    value={item.text}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={[styles.bodyLinePunch, { fontWeight: '500' as any }]}
+                  />
+                ) : (
                   <ThemedText key={idx} weight="medium" style={styles.bodyLinePunch} selectable={true}>
                     {item.text}
                   </ThemedText>
                 );
               }
-              return (
+              return Platform.OS === 'ios' ? (
+                <TextInput
+                  key={idx}
+                  value={item.text}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={styles.actionBodyLine}
+                />
+              ) : (
                 <ThemedText key={idx} style={styles.actionBodyLine} selectable={true}>
                   {item.text}
                 </ThemedText>
@@ -906,7 +1074,17 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   <View style={styles.exampleHeader}>
                     <Ionicons name="chatbubble-ellipses-outline" size={14} color="rgba(255,255,255,0.6)" />
                   </View>
-                  <ThemedText style={styles.exampleText} selectable={true}>{exampleText}</ThemedText>
+                  {Platform.OS === 'ios' ? (
+                    <TextInput
+                      value={exampleText}
+                      editable={false}
+                      multiline={true}
+                      scrollEnabled={false}
+                      style={styles.exampleText}
+                    />
+                  ) : (
+                    <ThemedText style={styles.exampleText} selectable={true}>{exampleText}</ThemedText>
+                  )}
                 </View>
               </StepFadeIn>
             )}
@@ -1171,7 +1349,17 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
         <StepFadeIn delay={100} style={styles.prayerBlock}>
           {splitParagraphs(prayerBodyText).map((line, i) => (
             <View key={i}>
-              <ThemedText style={styles.prayerText} selectable={true}>{line}</ThemedText>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={line}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={styles.prayerText}
+                />
+              ) : (
+                <ThemedText style={styles.prayerText} selectable={true}>{line}</ThemedText>
+              )}
               {i === 0 && <View style={{ height: 16 }} />}
             </View>
           ))}
@@ -1179,7 +1367,18 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
             <>
               <View style={{ height: 24 }} />
               {splitParagraphs(prayerClosing).map((line, i) => (
-                <ThemedText key={`closing-${i}`} style={styles.prayerText} selectable={true}>{line}</ThemedText>
+                Platform.OS === 'ios' ? (
+                  <TextInput
+                    key={`closing-${i}`}
+                    value={line}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={styles.prayerText}
+                  />
+                ) : (
+                  <ThemedText key={`closing-${i}`} style={styles.prayerText} selectable={true}>{line}</ThemedText>
+                )
               ))}
             </>
           )}
@@ -1295,9 +1494,19 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
                   </ThemedText>
                 </View>
               </View>
-              <ThemedText weight="medium" style={styles.wordText} selectable={true}>
-                {line}
-              </ThemedText>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={line}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.wordText, { fontWeight: '500' as any }]}
+                />
+              ) : (
+                <ThemedText weight="medium" style={styles.wordText} selectable={true}>
+                  {line}
+                </ThemedText>
+              )}
             </View>
           ))}
         </StepFadeIn>
