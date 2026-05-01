@@ -11,33 +11,32 @@ SET
   playbooks_limit = CASE
     WHEN tier = 'seeker' THEN 2
     WHEN tier = 'free_trial' THEN
-      CASE REPLACE(COALESCE(trial_chosen_tier, 'growth'), '_annual', '')
+      CASE REPLACE(COALESCE(trial_chosen_tier::text, 'growth'), '_annual', '')
         WHEN 'spark' THEN 5
         WHEN 'growth' THEN 15
         WHEN 'transformation' THEN 25
         ELSE 15
       END
-    WHEN REPLACE(tier, '_annual', '') = 'spark' THEN 10
-    WHEN REPLACE(tier, '_annual', '') = 'growth' THEN 25
-    WHEN REPLACE(tier, '_annual', '') = 'transformation' THEN 60
+    WHEN REPLACE(tier::text, '_annual', '') = 'spark' THEN 10
+    WHEN REPLACE(tier::text, '_annual', '') = 'growth' THEN 25
+    WHEN REPLACE(tier::text, '_annual', '') = 'transformation' THEN 60
     ELSE playbooks_limit
   END,
   devotionals_limit = CASE
     WHEN tier = 'seeker' THEN 1
     WHEN tier = 'free_trial' THEN
-      CASE REPLACE(COALESCE(trial_chosen_tier, 'growth'), '_annual', '')
+      CASE REPLACE(COALESCE(trial_chosen_tier::text, 'growth'), '_annual', '')
         WHEN 'spark' THEN 5
         WHEN 'growth' THEN 15
         WHEN 'transformation' THEN 25
         ELSE 15
       END
-    WHEN REPLACE(tier, '_annual', '') = 'spark' THEN 10
-    WHEN REPLACE(tier, '_annual', '') = 'growth' THEN 25
-    WHEN REPLACE(tier, '_annual', '') = 'transformation' THEN 60
+    WHEN REPLACE(tier::text, '_annual', '') = 'spark' THEN 10
+    WHEN REPLACE(tier::text, '_annual', '') = 'growth' THEN 25
+    WHEN REPLACE(tier::text, '_annual', '') = 'transformation' THEN 60
     ELSE devotionals_limit
   END,
   smart_journaling_enabled = true,
-  show_dashboard_counts = true,
   updated_at = NOW()
 WHERE tier IN (
   'seeker',
@@ -58,7 +57,6 @@ BEGIN
     playbooks_limit,
     devotionals_limit,
     smart_journaling_enabled,
-    show_dashboard_counts,
     playbooks_used,
     devotionals_used,
     last_usage_reset,
@@ -72,7 +70,6 @@ BEGIN
     'siFia Seeker',
     2,
     1,
-    true,
     true,
     0,
     0,
@@ -96,7 +93,6 @@ BEGIN
     playbooks_limit = 2,
     devotionals_limit = 1,
     smart_journaling_enabled = true,
-    show_dashboard_counts = true,
     playbooks_used = 0,
     devotionals_used = 0,
     last_usage_reset = NOW(),
