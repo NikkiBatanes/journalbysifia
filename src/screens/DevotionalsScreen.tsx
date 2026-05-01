@@ -347,15 +347,17 @@ const DevotionalsScreen = () => {
       const options = ['All Days', ...dayOptions, 'Cancel'];
 
       const handleDaySelection = async (buttonIndex: number) => {
+        // Don't trigger haptic for Cancel button (last index)
+        if (buttonIndex !== options.length - 1) {
+          triggerLightHaptic();
+        }
         if (buttonIndex === 0) {
           // "All Days" selected - export all days in a single PDF
-          triggerLightHaptic();
           await exportAllDaysDevotional(devotional);
         } else if (buttonIndex > 0 && buttonIndex < devotional.days.length + 1) {
           // Specific day selected (adjust index by -1 to skip "All Days")
           const selectedDay = devotional.days[buttonIndex - 1];
           const dayNumber = selectedDay.dayNumber;
-          triggerLightHaptic();
           await exportDevotionalDay(devotional, selectedDay, dayNumber);
         }
       };
@@ -418,6 +420,40 @@ const DevotionalsScreen = () => {
         reflection: day.reflection,
         questionsToPonder: day.reflectionQuestions?.map((q: any) => q.text) || [],
         prayer: day.prayer,
+        createdAt: devotional.createdAt,
+      });
+    } catch (error) {
+      Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
+      Alert.alert('Error', 'Failed to export PDF');
+    }
+  }, [user, triggerLightHaptic]);
+
+  const exportAllDaysDevotional = useCallback(async (devotional: Devotional) => {
+    try {
+      // Get bible version from user preferences or default to NASB
+      const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+      const duration = `${devotional.totalDays} Day${devotional.totalDays > 1 ? 's' : ''}`;
+
+      // Map all days to the format expected by the PDF service
+      const daysData = devotional.days?.map(day => ({
+        dayNumber: day.dayNumber,
+        title: day.title,
+        scripture: day.scripture ? {
+          text: day.scripture.text,
+          reference: day.scripture.reference,
+          version: bibleVersion,
+        } : undefined,
+        reflection: day.reflection,
+        reflectionQuestions: day.reflectionQuestions?.map((q: any) => ({ text: q.text })) || [],
+        prayer: day.prayer,
+      })) || [];
+
+      // Use pdfExportService to generate and share PDF with all days
+      pdfExportService.exportDevotionalPDF({
+        title: devotional.title,
+        duration,
+        days: daysData,
         createdAt: devotional.createdAt,
       });
     } catch (error) {
