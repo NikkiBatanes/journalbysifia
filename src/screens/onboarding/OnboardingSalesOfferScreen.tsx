@@ -410,32 +410,41 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // Navigate to specific screen
           (navigation as any).navigate(returnTo);
         } else if (returnToReflection) {
-          // Go back to reflection editor
-          navigation.goBack();
+          // Navigate to UserInput screen
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
         } else if (dismissBothModalsOnClose) {
           // Dismiss both modals (e.g., from export restriction upgrade)
-          logger.debug('Dismissing both modals for export restriction upgrade');
-          navigation.goBack();
-          setTimeout(() => {
-            logger.debug('Dismissing second modal (export options modal)');
-            navigation.goBack();
-          }, 100);
+          logger.debug('Dismissing both modals for export restriction upgrade, navigating to UserInput');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
         } else if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
-          // Go back multiple times to return to TimeBlock screen
-          navigation.goBack();
-          setTimeout(() => navigation.goBack(), 100);
+          // Navigate to UserInput screen
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
         } else {
-          // Default go back
-          navigation.goBack();
+          // Navigate to UserInput screen
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
         }
       } else if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
         // In onboarding flow or when skipNotificationPreference is false, navigate to notification setup
         logger.debug('Navigating to notification setup for onboarding flow');
         (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
       } else {
-        // When skipNotificationPreference is true (feature gating / special flows), just go back
-        logger.debug('Skipping notification setup, going back');
-        navigation.goBack();
+        // Navigate to UserInput screen
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UserInput' as any }],
+        });
       }
     }, 100);
   }, [navigation, isUpgradeMode, routeParams]);
@@ -713,7 +722,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
       logger.info('Returning to user profile from feature gating');
       setTimeout(() => {
-        navigation.goBack();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UserInput' as any }],
+        });
       }, 50);
       return;
     }
@@ -722,9 +734,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     logger.info('Navigating based on skipNotificationPreference');
     setTimeout(() => {
       if (isUpgradeMode) {
-        // In feature gating / upgrade mode, never open notification setup again
-        // Simply go back to the previous screen or modal stack
-        navigation.goBack();
+        // In feature gating / upgrade mode, navigate to UserInput
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UserInput' as any }],
+        });
         return;
       }
 
@@ -736,8 +750,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           fromCancelledSales: true,
         });
       } else {
-        // If skip pref set, go back
-        navigation.goBack();
+        // If skip pref set, navigate to UserInput
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UserInput' as any }],
+        });
       }
     }, 100);
   };

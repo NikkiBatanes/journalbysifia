@@ -21,6 +21,7 @@ const {
   purchaseUpdatedListener,
   purchaseErrorListener,
   getAvailablePurchases,
+  getReceiptIOS,
   validateReceiptIos,
 } = RNIapModule;
 
@@ -760,6 +761,9 @@ export class AppleStoreKitService {
         return;
       }
 
+      const hasPendingResolver = this.pendingPurchaseResolvers.has(purchase.productId);
+      const hasActivePurchaseFlow = Boolean(this.purchaseInitiatedTimestamp || hasPendingResolver);
+
       // If we have an active purchase flow, validate timing
       if (this.purchaseInitiatedTimestamp) {
         const timeSincePurchaseInitiated = Date.now() - this.purchaseInitiatedTimestamp;
@@ -782,21 +786,55 @@ export class AppleStoreKitService {
         });
       }
 
+      if (!hasActivePurchaseFlow) {
+        Logger.warn(`[StoreKit][${debugId}] Skipping receipt validation for replayed transaction`, {
+          component: 'AppleStoreKitService',
+          productId: purchase.productId,
+          purchaseAge: `${Math.round(purchaseAge / 1000)}s`,
+          reason: 'No active purchase flow or pending resolver',
+        });
+        return;
+      }
+
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
       let serverValidation: ServerValidationResult = { success: false };
       try {
+        const receiptData = await this.getReceiptData(purchase);
+        const validationUserId = this.currentUserId || await this.getCurrentUserId();
+
+        if (!receiptData || !validationUserId) {
+          const validationError = !validationUserId
+            ? 'Missing user id for receipt validation'
+            : 'Missing receipt data for receipt validation';
+
+          Logger.warn(`[StoreKit][${debugId}] Skipping server validation because required fields are missing`, {
+            component: 'AppleStoreKitService',
+            hasReceipt: !!receiptData,
+            hasUserId: !!validationUserId,
+            productId: purchase.productId,
+            validationError,
+          });
+
+          const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
+          if (resolver) {
+            resolver.reject(new Error(validationError));
+            this.pendingPurchaseResolvers.delete(purchase.productId);
+          }
+          return;
+        }
+
         Logger.info(`[StoreKit][${debugId}] 🔄 STEP 3: Starting server-side receipt validation`, {
           component: 'AppleStoreKitService',
-          userId: this.currentUserId || 'unknown',
+          userId: validationUserId,
           productId: purchase.productId,
-          hasReceipt: !!purchase.transactionReceipt,
-          receiptLength: purchase.transactionReceipt?.length,
+          hasReceipt: !!receiptData,
+          receiptLength: receiptData?.length,
         });
 
         const validationStartTime = Date.now();
         serverValidation = await this.validateReceiptServerSide(
-          purchase.transactionReceipt,
-          this.currentUserId || '',
+          receiptData,
+          validationUserId,
           purchase.productId
         );
         const validationDuration = Date.now() - validationStartTime;
@@ -1068,6 +1106,36 @@ export class AppleStoreKitService {
     this.currentPurchaseEligibility = isEligibleForTrial;
   }
 
+  private async getReceiptData(purchase: ProductPurchase): Promise<string> {
+    if (purchase.transactionReceipt) {
+      return purchase.transactionReceipt;
+    }
+
+    if (Platform.OS !== 'ios' || !getReceiptIOS) {
+      return '';
+    }
+
+    try {
+      const receipt = await getReceiptIOS({ forceRefresh: false });
+      if (receipt) {
+        Logger.info('[StoreKit] Loaded iOS app receipt because purchase transaction receipt was empty', {
+          component: 'AppleStoreKitService',
+          productId: purchase.productId,
+          receiptLength: receipt.length,
+        });
+        return receipt;
+      }
+    } catch (error) {
+      Logger.warn('[StoreKit] Failed to load iOS app receipt fallback', {
+        component: 'AppleStoreKitService',
+        productId: purchase.productId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return '';
+  }
+
   /**
    * Validate purchase receipt
    */
@@ -1076,9 +1144,10 @@ export class AppleStoreKitService {
       if (Platform.OS === 'ios') {
         // ENHANCED: Enable receipt validation with proper error handling
         // This ensures purchases are properly validated even in TestFlight
+        const receiptData = await this.getReceiptData(purchase);
 
         const receiptBody = {
-          'receipt-data': purchase.transactionReceipt,
+          'receipt-data': receiptData,
           'password': process.env.APPLE_SHARED_SECRET || 'your-app-store-shared-secret',
         };
 
@@ -1214,6 +1283,19 @@ export class AppleStoreKitService {
     if (this.currentUserId) {
 
       return this.currentUserId;
+    }
+
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user?.id) {
+        this.currentUserId = user.id;
+        return user.id;
+      }
+    } catch (error) {
+      Logger.warn('[StoreKit] Failed to read authenticated user for purchase validation', {
+        component: 'AppleStoreKitService',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
     }
 
     Logger.error('[StoreKit] No userId available - purchase was not initiated through purchaseSubscription', undefined, {
@@ -1562,13 +1644,34 @@ export class AppleStoreKitService {
       const { data, error } = await Promise.race([validationPromise, timeoutPromise]);
 
       if (error) {
+        let responseStatus: number | undefined;
+        let responseBody: unknown;
+
+        try {
+          const response = (error as any)?.context;
+          responseStatus = response?.status;
+          if (response?.clone) {
+            const clonedResponse = response.clone();
+            const contentType = clonedResponse.headers?.get?.('content-type') || '';
+            responseBody = contentType.includes('application/json')
+              ? await clonedResponse.json()
+              : await clonedResponse.text();
+          }
+        } catch (responseReadError) {
+          responseBody = responseReadError instanceof Error ? responseReadError.message : String(responseReadError);
+        }
+
         Logger.error('[StoreKit] Server validation error', error as Error, {
       component: 'AppleStoreKitService',
       action: 'error',
+      responseStatus,
+      responseBody,
     });
         return {
           success: false,
-          error: error.message || 'Server validation failed',
+          error: typeof responseBody === 'object' && responseBody && 'error' in responseBody
+            ? String((responseBody as { error?: unknown }).error)
+            : error.message || 'Server validation failed',
         };
       }
 
@@ -1859,7 +1962,7 @@ export class AppleStoreKitService {
 
           const validationResult = await Promise.race([
             this.validateReceiptServerSide(
-              purchase.transactionReceipt,
+              await this.getReceiptData(purchase),
               userId,
               purchase.productId,
               isEligibleForTrial

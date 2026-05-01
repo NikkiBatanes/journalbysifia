@@ -141,10 +141,10 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
     // For paid plans, use the consistent “What you can do next” list
     const paidBenefits = [
-      'Create playbooks when life feels tangled',
-      'Return to Scripture with clarity and peace',
-      'Take one faithful next step at a time',
-      'Use journaling and prayer tools as needed',
+      'Create playbooks for the moments you\'re carrying',
+      'Return to Scripture with greater clarity and peace',
+      'Take one faithful step at a time',
+      'Use journaling and prayer tools when you need them',
     ];
 
     if (currentTier) {
