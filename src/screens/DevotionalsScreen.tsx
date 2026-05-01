@@ -19,6 +19,7 @@ import {
   LayoutAnimation,
   Easing,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -43,6 +44,9 @@ import ThemedText from '../components/common/ThemedText';
 import PickerModal from '../components/PickerModal';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
+import { pdfExportService } from '../utils/pdfExportService';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
@@ -184,6 +188,9 @@ const DevotionalsScreen = () => {
   // Fetch user's playbooks to suggest creating devotionals
   const { data: playbooks = [], isLoading: isLoadingPlaybooks, refetch: refetchPlaybooks } = usePlaybooksData(userId || '');
 
+  // PDF export feature access check
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
+
   // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
   const lastScrollYRef = useRef(0);
   const handleScroll = useCallback((event: any) => {
@@ -290,6 +297,155 @@ const DevotionalsScreen = () => {
     );
   }, [handleDeleteDevotional]);
 
+  const handleExportDevotionalPdf = useCallback(async (devotional: Devotional) => {
+    // Check feature access
+    if (!pdfExportAccess.hasAccess) {
+      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+      const upgradeMessage = typeof upgradePrompt?.message === 'string'
+        ? upgradePrompt.message
+        : typeof upgradePrompt === 'object' && upgradePrompt?.message
+          ? (upgradePrompt as any).message
+          : PDF_EXPORT_UPGRADE_PROMPT;
+
+      Alert.alert(
+        'Upgrade Required',
+        upgradeMessage,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              (navigation as any).navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: pdfExportAccess.accessResult?.requiredTier,
+                skipNotificationPreference: true,
+                featureType: 'export_pdf',
+                source: 'devotional_list',
+              });
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+      setMenuVisible(null);
+
+      // If single-day devotional, export directly
+      if (devotional.totalDays === 1) {
+        await exportDevotionalDay(devotional, devotional.days[0], 1);
+        return;
+      }
+
+      // Multi-day devotional: show day selection dialog
+      const dayOptions = devotional.days?.map((day, index) => `Day ${day.dayNumber}: ${day.title}`) || [];
+      const options = ['All Days', ...dayOptions, 'Cancel'];
+
+      const handleDaySelection = async (buttonIndex: number) => {
+        if (buttonIndex === 0) {
+          // "All Days" selected
+          triggerLightHaptic();
+          Alert.alert(
+            'Export All Days',
+            `This will export ${devotional.totalDays} separate PDFs. Continue?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Export All',
+                onPress: async () => {
+                  triggerLightHaptic();
+                  // Export all days sequentially
+                  for (let i = 0; i < devotional.days.length; i++) {
+                    await exportDevotionalDay(devotional, devotional.days[i], devotional.days[i].dayNumber);
+                    // Small delay between exports to avoid overwhelming the system
+                    if (i < devotional.days.length - 1) {
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                  }
+                },
+              },
+            ]
+          );
+        } else if (buttonIndex > 0 && buttonIndex < devotional.days.length + 1) {
+          // Specific day selected (adjust index by -1 to skip "All Days")
+          const selectedDay = devotional.days[buttonIndex - 1];
+          const dayNumber = selectedDay.dayNumber;
+          triggerLightHaptic();
+          await exportDevotionalDay(devotional, selectedDay, dayNumber);
+        }
+      };
+
+      if (Platform.OS === 'ios') {
+        const { ActionSheetIOS } = require('react-native');
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            cancelButtonIndex: options.length - 1,
+          },
+          handleDaySelection
+        );
+      } else {
+        // Android: use Alert with buttons
+        const buttons = [{ text: 'All Days', onPress: async () => await handleDaySelection(0) }];
+        devotional.days?.forEach((day, index) => {
+          buttons.push({
+            text: `Day ${day.dayNumber}: ${day.title}`,
+            onPress: async () => await handleDaySelection(index + 1),
+          });
+        });
+        buttons.push({ text: 'Cancel', onPress: async () => {} });
+        Alert.alert('Select Day to Export', 'Which day would you like to export?', buttons);
+      }
+    } catch (error) {
+      Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
+      Alert.alert('Error', 'Failed to export PDF');
+    }
+  }, [pdfExportAccess, navigation, user, triggerLightHaptic]);
+
+  const exportDevotionalDay = useCallback(async (devotional: Devotional, day: any, dayNumber: number) => {
+    try {
+      // Get user metadata for name replacement
+      const metaUser: any = (user as any)?.user_metadata || {};
+      const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+      const metaDisplayName = (user as any)?.displayName ||
+                            metaUser.full_name ||
+                            [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
+                            '';
+
+      // Get bible version from user preferences or default to NASB
+      const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+      const dayTitle = day.title || devotional.title;
+      const dayLabel = devotional.totalDays > 1 ? `Day ${dayNumber} of ${devotional.totalDays}` : 'Day 1';
+      const duration = `${devotional.totalDays} Day${devotional.totalDays > 1 ? 's' : ''}`;
+
+      // Use pdfExportService to generate and share PDF
+      pdfExportService.exportDevotionalPDF({
+        title: devotional.title,
+        duration,
+        dayTitle,
+        dayLabel,
+        bibleVerse: day.scripture ? {
+          text: day.scripture.text,
+          reference: day.scripture.reference,
+          version: bibleVersion,
+        } : undefined,
+        reflection: day.reflection,
+        questionsToPonder: day.reflectionQuestions?.map((q: any) => q.text) || [],
+        prayer: day.prayer,
+        createdAt: devotional.createdAt,
+      });
+    } catch (error) {
+      Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
+      Alert.alert('Error', 'Failed to export PDF');
+    }
+  }, [user, triggerLightHaptic]);
+
   // Ref for SectionList to allow programmatic scrolling to top
   const sectionListRef = useRef<SectionList<any>>(null);
 
@@ -372,6 +528,18 @@ const DevotionalsScreen = () => {
                 </TouchableOpacity>
                 {menuVisible === item.id && (
                   <View style={styles.dropdownMenu}>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        handleExportDevotionalPdf(item);
+                      }}
+                    >
+                      <View style={styles.dropdownItemContent}>
+                        <Ionicons name="document-text-outline" size={16} color={Colors.anchorBlue} />
+                        <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
+                      </View>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.dropdownItem, styles.dropdownItemLast]}
                       onPress={() => {

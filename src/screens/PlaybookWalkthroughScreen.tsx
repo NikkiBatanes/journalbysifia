@@ -14,6 +14,9 @@ import {
   Alert,
   Share,
   DeviceEventEmitter,
+  Platform,
+  ActionSheetIOS,
+  Clipboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -125,6 +128,7 @@ interface EnterMomentProps {
   userName: string;
   transitionLine?: string;
   onContinue: () => void;
+  onEditUserInput?: () => void;
   insets: { top: number };
 }
 
@@ -135,6 +139,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   userName,
   transitionLine,
   onContinue: _onContinue,
+  onEditUserInput,
   insets,
 }) => {
   const [showUserInput, setShowUserInput] = useState(false);
@@ -183,9 +188,44 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
 
         {/* User input card — revealed when chevron is tapped */}
         {showUserInput && (
-          <View style={styles.userInputCard}>
+          <TouchableOpacity
+            style={styles.userInputCard}
+            onLongPress={() => {
+              triggerMediumHaptic();
+              if (Platform.OS === 'ios') {
+                const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
+                const cancelButtonIndex = options.length - 1;
+                ActionSheetIOS.showActionSheetWithOptions(
+                  {
+                    options,
+                    cancelButtonIndex,
+                  },
+                  (buttonIndex) => {
+                    if (buttonIndex === 0) {
+                      Clipboard.setString(userInput);
+                      triggerLightHaptic();
+                      Alert.alert('Copied', 'Your text has been copied to the clipboard.');
+                    } else if (buttonIndex === 1 && onEditUserInput) {
+                      triggerLightHaptic();
+                      onEditUserInput();
+                    }
+                  }
+                );
+              } else {
+                const buttons: any[] = [
+                  { text: 'Copy', onPress: () => { Clipboard.setString(userInput); triggerLightHaptic(); Alert.alert('Copied', 'Your text has been copied to the clipboard.'); } },
+                ];
+                if (onEditUserInput) {
+                  buttons.push({ text: 'Edit', onPress: () => { triggerLightHaptic(); onEditUserInput(); } });
+                }
+                buttons.push({ text: 'Cancel', style: 'cancel' });
+                Alert.alert('User Input', 'Choose an action', buttons);
+              }
+            }}
+            activeOpacity={0.9}
+          >
             <ThemedText style={styles.userInputText}>{userInput}</ThemedText>
-          </View>
+          </TouchableOpacity>
         )}
       </StepFadeIn>
 
@@ -2128,6 +2168,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userName={userName}
                 transitionLine={transitionLine}
                 onContinue={goNext}
+                onEditUserInput={() => {
+                  navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
+                }}
                 insets={insets}
               />
             )}
@@ -2459,7 +2502,7 @@ const styles = StyleSheet.create({
   },
   userInputCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     padding: 14,
