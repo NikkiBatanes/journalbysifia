@@ -31,10 +31,25 @@ export type RootStackParamList = {
   OnboardingSalesOffer: {
     upgradeMode?: boolean;
     currentTier?: string;
+    selectedTier?: string;
+    billingCycle?: 'monthly' | 'annual';
+    currentTrialBillingCycle?: 'monthly' | 'annual';
+    selectedBillingCycle?: 'monthly' | 'annual';
     source?: string;
     feature?: string;
     tier?: string;
     skipNotificationPreference?: boolean;
+    currentTrialChosenTier?: string;
+    profileTrialViewPlans?: boolean;
+    testModeTier?: string;
+    testModeIsOnTrial?: boolean;
+    testModeHasStartedTrial?: boolean;
+    testModeHasEverStartedTrial?: boolean;
+    testModeTrialChosenTier?: string;
+    testModeTrialEndDate?: string;
+    testModeBillingCycle?: 'monthly' | 'annual';
+    testModeRemaining?: number;
+    testModeLimit?: number;
   } | undefined;
   // RE-ENABLED: Trial Offer screen for trial flow navigation
   OnboardingTrialOffer: {
@@ -73,6 +88,12 @@ export type RootStackParamList = {
       challengeDetails: string;
     };
   };
+  PlaybookWalkthrough: {
+    playbook: Playbook;
+    source?: 'user_input' | 'playbook_list' | 'onboarding';
+    initialStep?: number;
+    initialActionIndex?: number;
+  };
   GeneratingPlaybook: {
     userInput: string;
     userName: string;
@@ -91,15 +112,68 @@ export type RootStackParamList = {
   // Journal screen
   Journal: undefined;
 
+  // Today's Focus Walkthrough
+  TodaysFocusWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
+  // Tomorrow in His Hands Walkthrough
+  TomorrowInHisHandsWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
+  // Todos Walkthrough
+  TodosWalkthrough: {
+    selectedDate?: string;
+    existingEntry?: any;
+  } | undefined;
+
+  // Today's Win Walkthrough
+  TodaysWinWalkthrough: {
+    selectedDate?: string;
+  } | undefined;
+
+  // Prayer Journal Walkthrough
+  PrayerJournalWalkthrough: {
+    selectedDate?: string;
+    initialPrayerType?: 'acts' | 'open';
+    editingPrayerId?: string;
+  } | undefined;
+
+  // Prayers for People Walkthrough
+  PrayersForPeopleWalkthrough: {
+    initialPersonName?: string;
+    initialPrayerRequest?: string;
+    selectedDate?: string;
+    editingPrayerId?: string;
+    initialPrayerType?: 'prayer-request' | 'pray-for-someone';
+    initialPrayerText?: string;
+    initialTrackAnswered?: boolean;
+  } | undefined;
+
+  // Prayer Editor Screen
+  PrayerEditor: {
+    prayerRequest: {
+      person_name: string;
+      content: string;
+      id: string;
+      user_id: string;
+      selected_date: string;
+    };
+  };
+
   // Test screens
   QueryTest: undefined;
 };
 
 export type BottomTabParamList = {
-  Home: undefined;
+  Reflect: undefined;
+  Overview: undefined;
   Playbooks: undefined;
   Devotionals: undefined;
-  Profile: undefined;
+  Journal: undefined;
 };
 
 // This helps with type checking the navigation props

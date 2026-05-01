@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
   StyleSheet,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -21,10 +23,45 @@ import { notificationDeepLinkService } from '../services/notificationDeepLinkSer
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface NotificationsScreenProps {
   navigation: any;
 }
+
+const getNotificationTimestamp = (notification: any): string => {
+  return notification.created_at || notification.scheduled_for || new Date(0).toISOString();
+};
+
+const getNotificationData = (notification: any): Record<string, any> => {
+  return notification?.data && typeof notification.data === 'object' ? notification.data : {};
+};
+
+const getNotificationIdentity = (notification: any): string => {
+  const data = getNotificationData(notification);
+  const queueNotificationId = data.notification_id || data.queue_notification_id;
+  if (typeof queueNotificationId === 'string' && queueNotificationId.length > 0) {
+    return `queue:${queueNotificationId}`;
+  }
+
+  if (typeof data.dedupe_key === 'string' && data.dedupe_key.length > 0) {
+    return `dedupe:${data.dedupe_key}`;
+  }
+
+  const sourceKey = data.source_id || data.deep_link || '';
+  return [
+    notification.title || '',
+    notification.message || '',
+    sourceKey,
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
+
+const getLooseNotificationIdentity = (notification: any): string => {
+  return [
+    notification.title || '',
+    notification.message || '',
+  ].map(value => String(value).trim().toLowerCase()).join('|');
+};
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
@@ -42,7 +79,15 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     try {
       setLoading(true);
 
-      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any).email).trim().toLowerCase() : null;
+      // Clear notification cache
+      try {
+        await AsyncStorage.removeItem('notification_queue');
+        await AsyncStorage.removeItem('notifications:lastScheduled');
+      } catch (e) {
+        console.log('Failed to clear cache:', e);
+      }
+
+      // POST-LAUNCH: const userEmail = (user as any)?.email ? String((user as any)?.email).trim().toLowerCase() : null;
 
       const [queuedNotifications, inAppNotificationsRaw, pushNotifications] = await Promise.all([
         // POST-LAUNCH: familyInvitations
@@ -117,15 +162,35 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       );
 
       // Extract push notifications data
-      const pushNotificationsData = pushNotifications.data || [];
+      const pushNotificationsData = (pushNotifications.data || []).map((notification: any) => ({
+        ...notification,
+        _notification_source: 'notifications',
+      }));
+      const queuedNotificationsData = queuedNotifications.map((notification: any) => ({
+        ...notification,
+        _notification_source: 'queue',
+      }));
+      const pushNotificationKeys = new Set(
+        pushNotificationsData.flatMap((notification: any) => [
+          getNotificationIdentity(notification),
+          getLooseNotificationIdentity(notification),
+        ])
+      );
+      const visibleQueuedNotificationsData = queuedNotificationsData.filter((notification: any) => {
+        return !pushNotificationKeys.has(getNotificationIdentity(notification)) &&
+          !pushNotificationKeys.has(getLooseNotificationIdentity(notification));
+      });
 
       // Merge all notification sources and sort by timestamp (newest first)
       // POST-LAUNCH: Add familyInvitations back
-      const mergedNotifications = [...inAppNotifications, ...queuedNotifications, ...pushNotificationsData].sort((a, b) => {
+      const mergedNotifications = [...inAppNotifications, ...visibleQueuedNotificationsData, ...pushNotificationsData].sort((a, b) => {
         const aTime = new Date(getNotificationTimestamp(a)).getTime();
         const bTime = new Date(getNotificationTimestamp(b)).getTime();
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
       });
+
+      console.log('🔔 DEBUG: Final notifications count:', mergedNotifications.length);
+      console.log('🔔 DEBUG: Full notification details:', JSON.stringify(mergedNotifications, null, 2));
 
       setNotifications(mergedNotifications);
     } catch (error) {
@@ -152,7 +217,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       triggerLightHaptic();
 
       // Mark notification as read immediately
-      if (notification.id && !notification.is_read && user?.id) {
+      if (notification.id && notification._notification_source === 'notifications' && !notification.is_read && user?.id) {
         await supabase
           .from('notifications')
           .update({ is_read: true })
@@ -161,9 +226,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
         // Update local state to reflect the change immediately
         setNotifications(prev =>
-          prev.map(n =>
-            n.id === notification.id ? { ...n, is_read: true } : n
-          )
+          prev.filter(n => !(n.id === notification.id && n._notification_source === 'notifications'))
         );
       }
 
@@ -225,7 +288,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       try {
         if (user?.id && notification.id) {
           // Check if this is from notifications table (push notifications) or notification_queue
-          if (notification.type || notification.created_at) {
+          if (notification._notification_source === 'notifications') {
             // This is a push notification from the notifications table
             const { error } = await supabase
               .from('notifications')
@@ -245,9 +308,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
                 },
               });
             }
-          } else {
+          } else if (notification._notification_source === 'queue') {
             // This is from notification_queue table
-            await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+            const markedRead = await notificationManagementService.markNotificationAsRead(notification.id, user.id);
+            if (markedRead) {
+              setNotifications(prev =>
+                prev.filter(n => !(n.id === notification.id && n._notification_source === 'queue'))
+              );
+            }
           }
         }
       } catch (error) {
@@ -299,25 +367,15 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         });
       }
 
-      // Clear pending notifications from notification_queue table
-      const { error: queueError } = await supabase
-        .from('notification_queue')
-        .update({ status: 'cancelled' })
-        .eq('user_id', user.id)
-        .eq('status', 'pending');
-
-      if (queueError) {
-        Logger.error('Failed to clear pending notifications from queue', queueError, {
+      // Mark delivered queue notifications as read without cancelling future reminders.
+      const clearedQueue = await notificationManagementService.markAllNotificationsAsRead(user.id);
+      if (clearedQueue) {
+        Logger.info('Marked delivered queue notifications as read', {
           component: 'NotificationsScreen',
-          errorDetails: {
-            message: queueError.message,
-            details: queueError.details,
-            hint: queueError.hint,
-            code: queueError.code,
-          },
+          userId: user.id,
         });
       } else {
-        Logger.info('Cleared pending notifications from queue', {
+        Logger.error('Failed to clear delivered notifications from queue', undefined, {
           component: 'NotificationsScreen',
           userId: user.id,
         });
@@ -342,6 +400,21 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   // Fetch notifications on mount
   useEffect(() => {
     fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Refresh whenever the screen comes back into focus (handles navigate-back case)
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications])
+  );
+
+  // Instant refresh when a notification is saved in-process (bypasses Supabase realtime)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notification_saved', () => {
+      fetchNotifications();
+    });
+    return () => sub.remove();
   }, [fetchNotifications]);
 
   // Track opened analytics when notifications change
@@ -381,16 +454,17 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          Logger.debug('Real-time notification change in screen', {
+          Logger.info('Real-time notification change in screen', {
             component: 'NotificationsScreen',
             event: payload.eventType,
+            payload: JSON.stringify(payload),
           });
           // Refresh notifications list when changes occur
           fetchNotifications();
         }
       )
       .subscribe((status) => {
-        Logger.debug('Notifications screen subscription status', {
+        Logger.info('Notifications screen subscription status', {
           component: 'NotificationsScreen',
           status,
         });
@@ -481,7 +555,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       Alert.alert(
         'Welcome to the Family!',
-        'You have successfully joined the family subscription with unlimited access!',
+        'You have successfully joined the family subscription.',
         [
           {
             text: 'OK',
@@ -629,10 +703,37 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       trial_converted: 'checkmark-circle',
       prayer_reminder: 'hand-right',
       devotional_reminder: 'book',
+      devotional_day_ready: 'book',
+      devotional_prayer_prompt: 'hand-right',
+      devotional_reflection_prompt: 'create',
+      devotional_verse_revisit: 'bookmarks',
+      devotional_completed_reflection: 'sparkles',
       journal_prompt: 'create',
+      journal_todays_focus: 'flag',
+      journal_todo: 'checkbox',
+      journal_gratitude: 'heart',
+      journal_todays_win: 'trophy',
+      journal_looking_forward: 'moon',
+      heart_journal_prompt: 'heart-circle',
       streak_alert: 'flame',
       milestone_celebration: 'trophy',
       playbook_step: 'clipboard',
+      playbook_word_to_speak: 'megaphone',
+      playbook_faithful_action: 'footsteps',
+      playbook_verse_revisit: 'bookmarks',
+      playbook_prayer_revisit: 'hand-right',
+      playbook_to_devotional: 'book',
+      prayer_request_care: 'people',
+      prayer_today: 'hand-right',
+      create_devotional: 'add-circle',
+      create_playbook: 'add-circle',
+      create_first_devotional: 'add-circle',
+      create_first_playbook: 'add-circle',
+      usage_room_devotional: 'leaf',
+      usage_room_playbook: 'leaf',
+      content_refresh_wait: 'hourglass',
+      upgrade_room: 'sparkles',
+      recovery_prayer: 'refresh-circle',
       trial_notification: 'time',
       weekly_summary: 'stats-chart',
     };
@@ -651,12 +752,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       return Colors.alertCoral;
     }
     return Colors.anchorBlue;
-  };
-
-  const getNotificationTimestamp = (notification: any): string => {
-    // Prefer created_at (when notification was created) over scheduled_for (when it will be sent)
-    // For display purposes, we want to show when the notification actually happened
-    return notification.created_at || notification.scheduled_for || new Date(0).toISOString();
   };
 
   // Format time ago
@@ -683,7 +778,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           style={styles.backButton}
           onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
+          <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications

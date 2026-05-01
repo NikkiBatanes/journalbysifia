@@ -6,11 +6,20 @@ import {
 // Removed CommonActions import as we navigate directly to UserProfile
 
 import BottomTabNavigator from './BottomTabNavigator';
-import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
+import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
+import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
+import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
+import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
+import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
+import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
+import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
+import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkthroughScreen';
+import PrayerEditorScreen from '../screens/PrayerEditorScreen';
+import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
@@ -334,13 +343,23 @@ export default function RootStackNavigator({
 
           {/* Main App Detail Screens */}
           <Stack.Screen
+            name="PlaybookWalkthrough"
+            component={PlaybookWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'fade',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreenWithProvider as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
-              gestureEnabled: true,
+              gestureEnabled: false,
             }}
           />
           <Stack.Screen
@@ -365,7 +384,82 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="Journal"
             component={JournalScreen as React.ComponentType}
-            options={{ headerShown: true }}
+            options={{ headerShown: false }}
+          />
+
+          {/* Today's Focus Walkthrough */}
+          <Stack.Screen
+            name="TodaysFocusWalkthrough"
+            component={TodaysFocusWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Tomorrow in His Hands Walkthrough */}
+          <Stack.Screen
+            name="TomorrowInHisHandsWalkthrough"
+            component={TomorrowInHisHandsWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Today's Win Walkthrough */}
+          <Stack.Screen
+            name="TodaysWinWalkthrough"
+            component={TodaysWinWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+          <Stack.Screen
+            name="PrayerJournalWalkthrough"
+            component={PrayerJournalWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Prayers for People Walkthrough */}
+          <Stack.Screen
+            name="PrayersForPeopleWalkthrough"
+            component={PrayersForPeopleWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Prayer Editor Screen */}
+          <Stack.Screen
+            name="PrayerEditor"
+            component={PrayerEditorScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+
+          {/* Todos Walkthrough */}
+          <Stack.Screen
+            name="TodosWalkthrough"
+            component={TodosWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
           />
 
           {/* siFia AI Input Screen */}
@@ -374,8 +468,20 @@ export default function RootStackNavigator({
             component={UserInputScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: 'fullScreenModal',
+              animation: 'fade',
+            }}
+          />
+
+          {/* Streak Plan Screen - shown after completing playbook walkthrough */}
+          <Stack.Screen
+            name="StreakPlan"
+            component={StreakPlanScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
+              gestureEnabled: false,
             }}
           />
 

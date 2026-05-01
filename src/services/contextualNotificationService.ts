@@ -634,9 +634,10 @@ class ContextualNotificationService {
         .is('reflection', null);
 
       if (error) {
-        Logger.error('Error fetching unreflected devotionals', error as Error, {
+        Logger.error('Error fetching unreflected devotionals', new Error(error.message || String(error)), {
           component: 'contextualNotificationService',
           userId,
+          errorDetails: error,
         });
         return [];
       }
@@ -770,9 +771,10 @@ class ContextualNotificationService {
         .eq('action_steps.completed', false);
 
       if (error) {
-        Logger.error('Error fetching incomplete playbooks', error as Error, {
+        Logger.error('Error fetching incomplete playbooks', new Error(error.message || String(error)), {
           component: 'contextualNotificationService',
           userId,
+          errorDetails: error,
         });
         return [];
       }

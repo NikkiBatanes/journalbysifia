@@ -6,6 +6,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  ActivityIndicator,
   RefreshControl,
   Platform,
   StyleSheet,
@@ -16,23 +17,31 @@ import {
   KeyboardAvoidingView,
   Modal,
   useWindowDimensions,
+  StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useScroll } from '../context/ScrollContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
 import { SubscriptionTier } from '../interfaces/subscription';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 import { Logger } from '../utils/ProductionLogger';
+import { NotificationTester } from '../utils/notificationTester';
+import { SMART_NOTIFICATION_TYPES } from '../services/notifications/notificationTypes';
+import { billingNotificationService } from '../services/billingNotificationService';
+import { pushNotificationService } from '../services/pushNotificationService';
+import { generateSalesCopy, type SalesCopyParams } from '../utils/dynamicSalesCopy';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
@@ -50,9 +59,10 @@ import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTy
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
-import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
+import { toLocalDateString } from '../utils/date';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
+import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
 
@@ -98,6 +108,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
+  const font = React.useMemo(() => ({ fontFamily: fontRegular }), [fontRegular]);
 
   // Create styles using theme values
   const styles = StyleSheet.create({
@@ -162,6 +173,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderRadius: 14,
       backgroundColor: 'transparent',
     },
+    devNotificationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 14,
+      backgroundColor: Colors.anchorBlue,
+    },
+    devNotificationButtonText: {
+      color: Colors.hopeWhite,
+      fontSize: 10,
+      lineHeight: 12,
+    },
     profileButton: {
       width: 32,
       height: 32,
@@ -195,7 +220,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     playbookLabelContainer: {
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 10,
       overflow: 'hidden',
     },
     playbookLabelClip: {
@@ -309,7 +334,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     scrollContent: {
       paddingHorizontal: 20,
-      paddingBottom: 32,
+      paddingBottom: 100,
       paddingTop: 0,
     },
     pageInner: {
@@ -406,6 +431,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // Remove extra horizontal padding to avoid layout width shifts when typing
       paddingHorizontal: 0,
     },
+    fullScreenModalContainer: {
+      flex: 1,
+      backgroundColor: Colors.anchorBlue,
+      zIndex: 1,
+    },
+    fullScreenPrayerModalContainer: {
+      flex: 1,
+      padding: 20,
+      justifyContent: 'center',
+    },
     prayerModalContainer: {
       backgroundColor: Colors.anchorBlue,
       borderRadius: 30,
@@ -418,8 +453,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       maxHeight: '80%',
     },
     prayerModalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: 'column',
+      justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 8,
     },
@@ -427,17 +462,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      justifyContent: 'center',
     },
     prayerModalTitle: {
       color: Colors.hopeWhite,
       fontSize: 12,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
+      textAlign: 'center',
     },
     prayerModalSubtitle: {
       color: Colors.secondaryText,
       fontSize: 14,
       marginBottom: 16,
+      textAlign: 'center',
     },
     prayerModalTabs: {
       flexDirection: 'row',
@@ -462,15 +500,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       opacity: 0.6,
     },
     prayerModalNameInput: {
-      backgroundColor: Colors.lightOverlay,
-      borderRadius: 8,
-      padding: 12,
-      color: Colors.hopeWhite,
-      fontSize: 16,
-      marginBottom: 12,
+      width: '100%',
+      backgroundColor: Colors.inputBackground,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: Colors.lightBorder,
-      fontFamily: fontRegular,
+      borderColor: Colors.inputBorder,
+      padding: 14,
+      color: Colors.hopeWhite,
+      fontSize: 14,
+      marginBottom: 20,
     },
     prayerModalTextArea: {
       backgroundColor: Colors.lightOverlay,
@@ -485,30 +523,47 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     // Combined prayer input + request display container
     combinedPrayerField: {
-      backgroundColor: Colors.lightOverlay,
-      borderRadius: 8,
+      backgroundColor: Colors.inputBackground,
+      borderRadius: 32,
       borderWidth: 1,
-      borderColor: Colors.lightBorder,
-      marginBottom: 12,
+      borderColor: Colors.inputBorder,
+      padding: 14,
+      minHeight: 150,
       overflow: 'hidden',
     },
     combinedPrayerInput: {
-      padding: 12,
       color: Colors.hopeWhite,
-      fontSize: 16,
-      minHeight: 120,
-      textAlignVertical: 'top' as const,
-      fontFamily: fontRegular,
+      fontSize: 15,
+      lineHeight: 22,
+      minHeight: 80,
+      backgroundColor: 'transparent',
     },
     combinedDivider: {
       height: 1,
-      backgroundColor: Colors.mediumOverlay,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      marginVertical: 12,
+    },
+    combinedReadOnlyInner: {
+      backgroundColor: 'rgba(26,60,109,0.15)',
+      borderRadius: 8,
+      padding: 12,
     },
     prayerModalLabel: {
       color: Colors.hopeWhite,
       fontSize: 12,
       marginBottom: 4,
       // weight handled by ThemedText
+    },
+    prayerModalFieldLabel: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      letterSpacing: 0.8,
+      marginBottom: 4,
+    },
+    prayerModalReadOnlyText: {
+      color: Colors.secondaryText,
+      fontSize: 14,
+      lineHeight: 20,
     },
     prayerModalPreview: {
       color: Colors.secondaryText,
@@ -521,22 +576,32 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       gap: 8,
     },
     prayerModalCancelButton: {
-      width: 24,
-      height: 24,
-      borderRadius: 20,
-      backgroundColor: Colors.mediumOverlay,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
+      position: 'absolute',
+      right: 20,
+      top: 8,
+      width: 42,
+      height: 42,
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.09)',
+      borderRadius: 999,
+      zIndex: 100,
     },
     prayerModalSaveButton: {
-      width: 24,
-      height: 24,
+      position: 'absolute',
+      right: 20,
+      width: 40,
+      height: 40,
       borderRadius: 20,
       backgroundColor: Colors.alertCoral,
       justifyContent: 'center',
       alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      zIndex: 100,
     },
     prayerModalReadOnlyField: {
       marginBottom: 16,
@@ -546,31 +611,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       borderWidth: 1,
       borderColor: Colors.lightOverlay,
     },
-    prayerModalFieldLabel: {
-      color: Colors.hopeWhite,
-      fontSize: 12,
-      marginBottom: 6,
-      // No uppercase; keep normal casing
-      // weight handled by ThemedText
-    },
-    prayerModalReadOnlyText: {
-      color: Colors.secondaryText,
-      fontSize: 14,
-      lineHeight: 20,
-    },
     // Prayer Requests Card styles (moved from inline to satisfy linter)
     prayerRequestsContainer: {
       backgroundColor: 'transparent',
-      borderRadius: 12,
+      borderRadius: 30,
       padding: 16,
       marginTop: 0,
-      marginBottom: 0,
+      marginBottom: 16,
+      width: screenWidth >= 768 ? 384 : Math.round((width - 32) * 0.85),
+      alignSelf: 'center',
     },
     prayerRequestsHeaderRow: {
       position: 'relative' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
       minHeight: 24,
     },
     prayerRequestsHeaderTitle: {
@@ -600,7 +655,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     prayerRequestItem: {
       backgroundColor: 'transparent',
-      borderRadius: 12,
+      borderRadius: 30,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.3)',
       padding: 16,
@@ -611,7 +666,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerRequestHeaderRow: {
       flexDirection: 'row' as const,
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
       gap: 6,
     },
     prayerRequestBadge: {
@@ -650,9 +705,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     moreTextMarginTop: {
       marginTop: 8,
-    },
-    combinedReadOnlyInner: {
-      padding: 12,
     },
     prayerRequestHeader: {
       flexDirection: 'row',
@@ -745,7 +797,41 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { user } = useAuth();
   const { subscription, usage, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
+  const { setShowTabBar } = useScroll();
+  const tabBarCollapsedRef = useRef(false);
   const { badgeCount, fetchBadgeCount } = useNotificationBadge();
+  const [isTestingNotifications, _setIsTestingNotifications] = useState(false);
+  const [notifTestModalVisible, setNotifTestModalVisible] = useState(false);
+  const [notifTestTab, setNotifTestTab] = useState<'types' | 'queue' | 'history'>('types');
+  const [notifQueueItems, setNotifQueueItems] = useState<any[]>([]);
+  const [notifHistoryItems, setNotifHistoryItems] = useState<any[]>([]);
+  const [notifDataLoading, setNotifDataLoading] = useState(false);
+  const [notifSending, setNotifSending] = useState<string | null>(null);
+  const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
+  const [notifSimulatedDay, setNotifSimulatedDay] = useState<number | null>(null);
+  const [salesCopyModalVisible, setSalesCopyModalVisible] = useState(false);
+  const [subscriptionPlanModalVisible, setSubscriptionPlanModalVisible] = useState(false);
+  const [subscriptionTestMode, setSubscriptionTestMode] = useState<any>(null);
+
+  const openSalesOfferFromSalesCopy = useCallback((params: any) => {
+    const normalizedParams = {
+      ...params,
+      currentTier: params?.currentTier || params?.testModeTier,
+    };
+
+    if (normalizedParams.testModeTier === 'free_trial') {
+      normalizedParams.currentTier = 'free_trial';
+      normalizedParams.testModeIsOnTrial = normalizedParams.testModeIsOnTrial ?? true;
+      normalizedParams.testModeHasStartedTrial = normalizedParams.testModeHasStartedTrial ?? true;
+      normalizedParams.currentTrialChosenTier = normalizedParams.currentTrialChosenTier || normalizedParams.testModeTrialChosenTier;
+      normalizedParams.currentTrialBillingCycle = normalizedParams.currentTrialBillingCycle || normalizedParams.testModeBillingCycle;
+    }
+
+    setSalesCopyModalVisible(false);
+    setTimeout(() => {
+      navigation.navigate('OnboardingSalesOffer' as any, normalizedParams);
+    }, 250);
+  }, [navigation]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -753,9 +839,138 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }, [fetchBadgeCount])
   );
 
+  const handleTestAllNotifications = useCallback(() => {
+    if (!__DEV__) {return;}
+    setNotifTestTab('types');
+    setNotifTestModalVisible(true);
+  }, []);
+
+  const loadNotifData = useCallback(async (tab: 'queue' | 'history') => {
+    if (!user?.id) {return;}
+    setNotifDataLoading(true);
+    try {
+      if (tab === 'queue') {
+        const items = await NotificationTester.fetchMyQueue(user.id);
+        setNotifQueueItems(items);
+      } else {
+        const items = await NotificationTester.fetchMyHistory(user.id);
+        setNotifHistoryItems(items);
+      }
+    } catch (e) {
+      Logger.error('Failed to load notif data', e as Error, { component: 'DashboardHomeScreen' });
+    } finally {
+      setNotifDataLoading(false);
+    }
+  }, [user?.id]);
+
+  const handleSendSingleType = useCallback(async (type: string) => {
+    setNotifSending(type);
+    setNotifLastSent(null);
+    try {
+      const copy = await NotificationTester.sendSingleTypeTest(type as any, user?.id, notifSimulatedDay ?? undefined);
+      if (copy) {
+        setNotifLastSent({ type, title: copy.title, message: copy.message, debug: copy.debug });
+      } else {
+        setNotifLastSent({ type, title: '(no copy)', message: '', debug: 'no userId' });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send notification.');
+    } finally {
+      setNotifSending(null);
+      // History reloads via 'notification_saved' event when the notification actually fires (~2 s)
+      // Queue tab: reload now since engine writes to queue synchronously
+      if (notifTestTab === 'queue') {
+        loadNotifData('queue');
+      }
+    }
+  }, [user?.id, notifSimulatedDay, notifTestTab, loadNotifData]);
+
+  const handleSendBillingType = useCallback(async (type: string) => {
+    if (!user?.id) {return;}
+    setNotifSending(type);
+    setNotifLastSent(null);
+    try {
+      const rawTier = subscription?.subscription_display_name || subscription?.tier || 'your plan';
+      const tier = (rawTier === 'seeker' || rawTier === 'siFia Seeker') ? 'siFia Free' : rawTier;
+      const copyMap: Record<string, { title: string; message: string }> = {
+        subscription_renewed: { title: 'Your room is restored', message: `Your ${tier} plan renewed. Fresh room for playbooks and devotionals — keep going.` },
+        payment_failed: { title: 'Payment Failed 💳', message: 'Your payment method failed. Please update it to continue your subscription.' },
+        subscription_cancelled: { title: 'Subscription Cancelled 📋', message: 'We\'ll miss you! Your benefits continue until your plan expires.' },
+        payment_successful: { title: `Welcome to ${tier}! 🌸`, message: 'Your payment was successful. Enjoy your enhanced spiritual journey!' },
+      };
+      const copy = copyMap[type] || { title: type, message: 'Billing event fired' };
+
+      // Fire the push directly (2 s delay) so the banner appears immediately during testing
+      await pushNotificationService.scheduleLocalNotification(
+        { title: copy.title, message: copy.message, data: { type, deep_link: 'sifia://dashboard', test: true } },
+        new Date(Date.now() + 2000),
+      );
+
+      // Also queue through billing service so it persists in the notification screen
+      switch (type) {
+        case 'subscription_renewed':
+          billingNotificationService.handleSubscriptionRenewal(user.id, tier).catch(() => {});
+          break;
+        case 'payment_failed':
+          billingNotificationService.handlePaymentFailure(user.id, 'test failure').catch(() => {});
+          break;
+        case 'subscription_cancelled':
+          billingNotificationService.handleSubscriptionCancellation(user.id).catch(() => {});
+          break;
+        case 'payment_successful':
+          billingNotificationService.handlePaymentSuccess(user.id, tier, 0).catch(() => {});
+          break;
+      }
+
+      setNotifLastSent({ type, title: copy.title, message: copy.message, debug: 'push fires in ~2 s' });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send billing notification.');
+    } finally {
+      setNotifSending(null);
+    }
+  }, [user?.id, subscription]);
+
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [rotationalMessage, setRotationalMessage] = useState(0);
+
+  const motivationalMessages = [
+    'Reflect, revisit, and keep going',
+    'Your saved truths are here',
+    'Return to what you\'re carrying with God',
+    'Stay rooted in what God shows',
+    'Keep going beyond this moment',
+    'A quiet place to keep walking',
+    'Take the next faithful step',
+    'Pick up where grace met you',
+  ];
+
+  // Rotate motivational messages daily
+  useEffect(() => {
+    const loadDailyMessage = async () => {
+      try {
+        const today = new Date().toDateString();
+        const storedDate = await AsyncStorage.getItem('motivationalMessageDate');
+        const storedIndex = await AsyncStorage.getItem('motivationalMessageIndex');
+
+        if (storedDate !== today) {
+          // New day, rotate to next message
+          const newIndex = storedIndex ? (parseInt(storedIndex, 10) + 1) % motivationalMessages.length : 0;
+          await AsyncStorage.setItem('motivationalMessageDate', today);
+          await AsyncStorage.setItem('motivationalMessageIndex', newIndex.toString());
+          setRotationalMessage(newIndex);
+        } else if (storedIndex !== null) {
+          // Same day, use stored index
+          setRotationalMessage(parseInt(storedIndex, 10));
+        }
+      } catch (error) {
+        console.error('Failed to load daily motivational message:', error);
+      }
+    };
+
+    loadDailyMessage();
+  }, [motivationalMessages.length]);
 
   // Reset image load state when user changes
   useEffect(() => {
@@ -820,11 +1035,34 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successPersonName, setSuccessPersonName] = useState('');
+
+  // Hide status bar when prayer editor modal is open
+  useEffect(() => {
+    if (showPrayerEditorModal) {
+      StatusBar.setHidden(true);
+      return () => StatusBar.setHidden(false);
+    }
+  }, [showPrayerEditorModal]);
   // Prayer Requests: show more/less toggle
   const [showAllPrayerRequests, setShowAllPrayerRequests] = useState(false);
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', Colors.hopeWhite);
+
+  // Collapse bottom nav on scroll down, expand only when scrolling back to the very top
+  const lastScrollYRef = useRef(0);
+  const handleScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
 
   // Subtle haptic feedback, gated by user preference
   const triggerLightHaptic = useCallback(() => {
@@ -857,10 +1095,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       }
     } catch {}
   }, [user]);
-
-  // Collapsing Playbook label
-  const playbookWidth = useRef(new Animated.Value(0)).current;
-  const [playbookMeasuredWidth, setPlaybookMeasuredWidth] = useState(0);
 
   // ScrollView ref to reset position on focus
   const scrollRef = useRef<ScrollView | null>(null);
@@ -895,6 +1129,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     useCallback(() => {
       // Always scroll to top when dashboard gains focus
       try { scrollRef.current?.scrollTo({ y: 0, animated: false }); } catch {}
+      // Ensure tab bar is expanded when returning to this screen
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
 
       // Refresh subscription data when screen comes into focus
       refreshSubscription();
@@ -911,18 +1148,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           DeviceEventEmitter.emit('dashboard_focused', {} as any);
         }
       } catch {}
-
-      // Collapsing Playbook label
-      if (playbookMeasuredWidth > 0) {
-        playbookWidth.setValue(playbookMeasuredWidth);
-        Animated.timing(playbookWidth, { toValue: 0, duration: 400, useNativeDriver: false }).start();
-      }
     }, [
-      playbookMeasuredWidth,
-      playbookWidth,
       refreshSubscription,
       queryClient,
       user?.id,
+      setShowTabBar,
     ])
   );
 
@@ -942,18 +1172,35 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     };
   }, []);
 
+  // Auto-reload History tab when a notification is actually saved (fires ~2s after Send tap)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('notification_saved', () => {
+      if (notifTestModalVisible && notifTestTab === 'history') {
+        loadNotifData('history');
+      }
+    });
+    return () => sub.remove();
+  }, [notifTestModalVisible, notifTestTab, loadNotifData]);
+
   // Fetch unprayed prayer requests for current user (across all dates)
   const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const createPrayerMutation = useCreatePrayer();
 
   const handleOpenPrayer = (req: any) => {
+    // Guard: don't navigate if prayer request is still an optimistic (temp) entry
+    if (!req.id || req.id.startsWith('temp-')) { return; }
     triggerLightHaptic();
-    // Show prayer editor modal
-    setSelectedPrayerRequest(req);
-    setModalPrayerName(req.person_name || '');
-    setModalPrayerRequest('');
-    setShowPrayerEditorModal(true);
+    // Navigate to PrayerEditorScreen instead of showing modal
+    navigation.navigate('PrayerEditor' as any, {
+      prayerRequest: {
+        person_name: req.person_name,
+        content: req.content,
+        id: req.id,
+        user_id: req.user_id,
+        selected_date: req.selected_date || toLocalDateString(new Date()),
+      },
+    });
   };
 
   const handlePrayerSaved = async () => {
@@ -1003,10 +1250,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         user_id: user?.id || '',
       });
 
-      // Immediately show success modal and close editor to avoid any delay
+      // Immediately show success modal and close editor to ensure proper z-index layering
       setSuccessPersonName(modalPrayerName);
       setShowSuccessModal(true);
-      handleCancelModalPrayer();
+      setShowPrayerEditorModal(false);
 
       // Run remaining work in background (no awaiting) to avoid blocking UI
       try {
@@ -1095,9 +1342,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </View>
         </View>
       </View>
-      {loadingRequests ? (
-        <DashboardPrayerSkeleton />
-      ) : unprayedRequests.length === 0 ? (
+      {unprayedRequests.length === 0 ? (
         <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>
       ) : (
         (showAllPrayerRequests ? unprayedRequests : unprayedRequests.slice(0, 2)).map((req: any, idx: number) => (
@@ -1273,6 +1518,41 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           );
         })()}
 
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.devNotificationButton}
+            onPress={() => {
+              triggerLightHaptic();
+              setSalesCopyModalVisible(true);
+            }}
+          >
+            <Ionicons name="document-text-outline" size={14} color={Colors.hopeWhite} />
+            <ThemedText weight="semiBold" style={styles.devNotificationButtonText}>
+              Sales
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.devNotificationButton}
+            onPress={() => {
+              triggerLightHaptic();
+              handleTestAllNotifications();
+            }}
+            disabled={isTestingNotifications}
+          >
+            {isTestingNotifications ? (
+              <ActivityIndicator size="small" color={Colors.hopeWhite} />
+            ) : (
+              <Ionicons name="flask-outline" size={14} color={Colors.hopeWhite} />
+            )}
+            <ThemedText weight="semiBold" style={styles.devNotificationButtonText}>
+              Test
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+
         {/* Notifications */}
         <TouchableOpacity
           style={styles.iconButton}
@@ -1304,8 +1584,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <Image
                 source={{ uri: safeAvatarUrl }}
                 style={styles.profileImage}
-                onError={(error) => {
-                  console.log('Dashboard avatar image load error:', error);
+                onError={() => {
                   setImageLoadFailed(true);
                 }}
                 onLoad={() => {
@@ -1336,13 +1615,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     <View style={styles.greetingSection}>
       <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</ThemedText>
       <ThemedText weight="semiBold" style={styles.motivationalText}>
-        What moment are you carrying right now?
+        {motivationalMessages[rotationalMessage]}
       </ThemedText>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <Animated.View
         style={[
           styles.container,
@@ -1362,6 +1641,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={100}
         >
           <View style={styles.pageInner}>
           {/* Today’s Scripture removed */}
@@ -1370,92 +1651,35 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           {/* Removed Weekly Insights and AI Insights */}
 
-          {/* Playbooks Section - Only show when user has playbooks */}
-          <View style={styles.newMomentCardContainer}>
-            <View style={styles.newMomentCardContent}>
-              <View style={styles.newMomentInnerCard}>
-                <ThemedText weight="medium" style={styles.newMomentPrompt}>What moment are you carrying right now?</ThemedText>
-                <TouchableOpacity
-                  style={styles.newMomentButton}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    navigation.navigate('UserInput', { autoFocus: true });
-                  }}
-                >
-                  <Pencil size={16} color={Colors.hopeWhite} style={styles.newMomentButtonIcon} />
-                  <ThemedText weight="medium" style={styles.newMomentButtonText}>Start a New Moment</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          <View style={styles.sectionGap} />
-          {hasContent && (
-            <>
-              {/* Collapsing Playbook label */}
-              <View style={styles.playbookLabelContainer}>
-                <Animated.View
-                  style={[styles.playbookLabelClip, { width: playbookWidth }]}
-                >
-                  <ThemedText
-                    onLayout={(e) => {
-                      const w = e.nativeEvent.layout.width;
-                      if (w !== playbookMeasuredWidth) {
-                        setPlaybookMeasuredWidth(w);
-                      }
-                    }}
-                    style={styles.playbookLabel}
-                  >
-                    Continue Your Journey
-                  </ThemedText>
-                </Animated.View>
-              </View>
+          {/* Removed Start a New Moment card */}
 
-              <CombinedContentCarousel
-                onPlaybookPress={(playbook) => {
-                  triggerLightHaptic();
-                  navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
-                }}
-                onDevotionalPress={(devotional) => {
-                  triggerLightHaptic();
-                  navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-                }}
-                onEmpty={() => setHasContent(false)}
-              />
-              <View style={styles.sectionGap} />
-            </>
-          )}
+          <View style={styles.sectionGap} />
 
           {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-            <>
-              {renderPrayerRequestsCard()}
-              <View style={styles.sectionGap} />
-            </>
-          )}
+          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && renderPrayerRequestsCard()}
 
-          {/* Today's Actions - Only show when there are unfinished steps */}
-          {actionsCount > 0 && (
-            <>
-              {/* External Actions header and subtitle (moved out of card) */}
-              <View style={styles.actionsHeaderContainer}>
-                <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
-                <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
-              </View>
+          <View style={styles.sectionGap} />
 
-              <ActionStepsCard
-                onStepPress={(step) => {
-                  // Navigate to Playbook detail when an action step is tapped
-                  triggerLightHaptic();
-                  navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
-                }}
-                onViewAll={() => {
-                  // Navigate to all action steps
-                }}
-                onCountChange={setActionsCount}
-              />
-              <View style={styles.sectionGap} />
-            </>
+          {hasContent && (
+            <CombinedContentCarousel
+              onPlaybookPress={(playbook) => {
+                triggerLightHaptic();
+                // Track playbook view for analytics
+                if (user?.id) {
+                  adminAnalyticsService.trackFeatureUsage(user.id, 'playbook_view', { playbook_id: playbook.id, playbook_title: playbook.title });
+                }
+                navigation.navigate('PlaybookWalkthrough' as any, { playbook });
+              }}
+              onDevotionalPress={(devotional) => {
+                triggerLightHaptic();
+                // Track devotional view for analytics
+                if (user?.id) {
+                  adminAnalyticsService.trackFeatureUsage(user.id, 'devotional_view', { devotional_id: devotional.id, devotional_title: devotional.title });
+                }
+                navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+              }}
+              onEmpty={() => setHasContent(false)}
+            />
           )}
 
           {/* Reflection Questions Card */}
@@ -1463,6 +1687,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             onQuestionPress={(q: any) => {
 
               triggerLightHaptic();
+              // Track reflection usage for analytics
+              if (user?.id) {
+                adminAnalyticsService.trackFeatureUsage(user.id, 'reflection', { question_id: q.id, question: q.question });
+              }
               // Include enriched metadata for devotional reflections
               setSelectedReflection({
                 question: q.question,
@@ -1487,7 +1715,29 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               navigation.navigate('Journal');
             }}
           />
-          <View style={styles.sectionGap} />
+
+          {/* Today's Actions - Only show when there are unfinished steps */}
+          {actionsCount > 0 && (
+            <>
+              {/* External Actions header and subtitle (moved out of card) */}
+              <View style={styles.actionsHeaderContainer}>
+                <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
+                <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
+              </View>
+
+              <ActionStepsCard
+                onStepPress={(step) => {
+                  // Navigate to Playbook detail when an action step is tapped
+                  triggerLightHaptic();
+                  navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
+                }}
+                onViewAll={() => {
+                  // Navigate to all action steps
+                }}
+                onCountChange={setActionsCount}
+              />
+            </>
+          )}
 
           {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
 
@@ -1603,17 +1853,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {/* Prayer Editor Modal */}
       <Modal
         visible={showPrayerEditorModal}
-        transparent
         animationType="fade"
-        presentationStyle="overFullScreen"
+        presentationStyle="fullScreen"
         onRequestClose={handleCancelModalPrayer}
       >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalKeyboardContainer}
-          >
-            <View style={styles.prayerModalContainer}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreenModalContainer}
+        >
+          <View style={styles.fullScreenPrayerModalContainer}>
+              <TouchableOpacity
+                style={[styles.prayerModalCancelButton, { top: insets.top + 8 }]}
+                onPress={() => { triggerLightHaptic(); handleCancelModalPrayer(); }}
+                disabled={savingModalPrayer}
+              >
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+
               <View style={styles.prayerModalHeader}>
                 <View style={styles.prayerModalHeaderLeft}>
                   <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
@@ -1625,17 +1881,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
               {/* Name field - pre-filled and non-editable */}
               <TextInput
-                style={[styles.prayerModalNameInput]}
+                style={[styles.prayerModalNameInput, font]}
                 value={modalPrayerName}
                 onChangeText={setModalPrayerName}
                 placeholder="Name (optional)"
                 placeholderTextColor={Colors.placeholderText}
+                keyboardAppearance="dark"
+                editable={false}
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
               <View style={styles.combinedPrayerField}>
                 <TextInput
-                  style={styles.combinedPrayerInput}
+                  style={[styles.combinedPrayerInput, font]}
                   placeholder={`Write a prayer for ${modalPrayerName || 'them'}…`}
                   placeholderTextColor={Colors.placeholderText}
                   value={modalPrayerRequest}
@@ -1644,45 +1902,45 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   multiline
                   numberOfLines={6}
                   autoFocus
+                  keyboardAppearance="dark"
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>
-                  <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer request from {modalPrayerName || 'them'}</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer Request</ThemedText>
                   <ThemedText weight="regular" style={styles.prayerModalReadOnlyText}>{selectedPrayerRequest?.content || 'Provision for business'}</ThemedText>
                 </View>
               </View>
 
-              <View style={styles.prayerModalActions}>
-                <TouchableOpacity
-                  style={styles.prayerModalCancelButton}
-                  onPress={() => { triggerLightHaptic(); handleCancelModalPrayer(); }}
-                  disabled={savingModalPrayer}
-                >
-                  <Ionicons name="close" size={14} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.prayerModalSaveButton}
-                  onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
-                  disabled={savingModalPrayer || !modalPrayerRequest.trim()}
-                >
-                  <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
+              <TouchableOpacity
+                style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
+                onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
+                disabled={savingModalPrayer || !modalPrayerRequest.trim()}
+              >
+                <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Success Modal */}
-      <NewSuccessModal
-        visible={showSuccessModal}
-        config={{
-          title: `Prayed for ${successPersonName}`,
-          message: 'God hears. We’ve saved your prayer so you can keep them close.',
-          hideDoneButton: true,
-        }}
-        onDone={() => setShowSuccessModal(false)}
-      />
+      <View style={{ zIndex: 10000 }}>
+        <NewSuccessModal
+          visible={showSuccessModal}
+          config={{
+            title: `Prayed for ${successPersonName}`,
+            message: 'God hears. We’ve saved your prayer so you can keep them close.',
+            hideDoneButton: true,
+          }}
+          onDone={() => {
+            setShowSuccessModal(false);
+            // Reset prayer modal state to prevent flickering
+            setSelectedPrayerRequest(null);
+            setModalPrayerName('');
+            setModalPrayerRequest('');
+            setSavingModalPrayer(false);
+          }}
+        />
+      </View>
 
       {/* Journal Type Selector Tooltip */}
       <JournalTypeSelectorTooltip
@@ -1710,6 +1968,1147 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }}
       />
     </Animated.View>
+
+    {/* Dev Notification Test Modal */}
+    {__DEV__ && (
+      <Modal
+        visible={notifTestModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setNotifTestModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1623' }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+            <ThemedText weight="bold" style={{ color: '#fff', fontSize: 16 }}>Notification Tester</ThemedText>
+            <TouchableOpacity onPress={() => setNotifTestModalVisible(false)}>
+              <Ionicons name="close" size={22} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Tabs */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 8 }}>
+            {(['types', 'queue', 'history'] as const).map(tab => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => {
+                  setNotifTestTab(tab);
+                  if (tab === 'queue' || tab === 'history') {loadNotifData(tab);}
+                }}
+                style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: notifTestTab === tab ? Colors.anchorBlue : 'rgba(255,255,255,0.08)' }}
+              >
+                <ThemedText weight="semiBold" style={{ color: notifTestTab === tab ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                  {tab === 'types' ? 'Types' : tab === 'queue' ? 'My Queue' : 'History'}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Types tab */}
+          {notifTestTab === 'types' && (
+            <View style={{ flex: 1 }}>
+              {/* Sticky Last Sent Container */}
+              {notifLastSent && (() => {
+                const isMiss = !notifLastSent.title || !notifLastSent.message;
+                const accent = isMiss ? '#f44336' : '#4caf50';
+                const bg = isMiss ? 'rgba(244,67,54,0.10)' : 'rgba(76,175,80,0.12)';
+                const label = isMiss ? 'NO DATA' : 'SENT';
+                return (
+                  <View style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 8, padding: 12, borderRadius: 10, backgroundColor: bg, borderWidth: 1, borderColor: `${accent}55` }}>
+                    <ThemedText weight="semiBold" style={{ color: accent, fontSize: 10, marginBottom: 4 }}>{label} · {notifLastSent.type}</ThemedText>
+                    {!isMiss && (
+                      <>
+                        <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 13, marginBottom: 2 }}>{notifLastSent.title}</ThemedText>
+                        <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>{notifLastSent.message}</ThemedText>
+                      </>
+                    )}
+                    {notifLastSent.debug ? (
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 6 }}>{notifLastSent.debug}</ThemedText>
+                    ) : null}
+                  </View>
+                );
+              })()}
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}>
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
+                  Tap Send to fire a single notification using your real account data (arrives in ~2 s)
+                </ThemedText>
+                {/* Day-of-week simulator — affects rotating copy & group/individual prayer */}
+                <View style={{ marginBottom: 8 }}>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginBottom: 6 }}>
+                    SIMULATE DAY · affects rotations &amp; group/individual prayer
+                  </ThemedText>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as const).map((label, i) => {
+                      const isToday = notifSimulatedDay === null && new Date().getDay() === i;
+                      const isSelected = notifSimulatedDay === i;
+                      return (
+                        <TouchableOpacity
+                          key={label}
+                          onPress={() => setNotifSimulatedDay(isSelected ? null : i)}
+                          style={{ flex: 1, paddingVertical: 5, borderRadius: 6, alignItems: 'center', backgroundColor: isSelected ? Colors.anchorBlue : isToday ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)' }}
+                        >
+                          <ThemedText weight={isSelected || isToday ? 'semiBold' : 'regular'} style={{ color: isSelected ? '#fff' : isToday ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)', fontSize: 10 }}>{label}</ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {notifSimulatedDay !== null && (
+                    <ThemedText weight="regular" style={{ color: Colors.anchorBlue, fontSize: 10, marginTop: 4 }}>
+                      Simulating {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][notifSimulatedDay]} — tap again to clear
+                    </ThemedText>
+                  )}
+                </View>
+                {SMART_NOTIFICATION_TYPES.map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : Colors.anchorBlue, opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Billing notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  BILLING
+                </ThemedText>
+                {(['subscription_renewed', 'payment_failed', 'subscription_cancelled', 'payment_successful'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendBillingType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#7c3aed', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Queue tab */}
+          {notifTestTab === 'queue' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {notifDataLoading ? (
+                <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
+              ) : notifQueueItems.length === 0 ? (
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 40 }}>No items in queue</ThemedText>
+              ) : notifQueueItems.map(item => (
+                <View key={item.id} style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 12, flex: 1 }}>{item.title || '(no title)'}</ThemedText>
+                    <ThemedText weight="regular" style={{ color: item.status === 'sent' ? '#4caf50' : item.status === 'failed' ? '#f44336' : Colors.anchorBlue, fontSize: 10 }}>{item.status}</ThemedText>
+                  </View>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4 }}>{item.message || '(no message)'}</ThemedText>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.type} · {item.scheduled_for ? new Date(item.scheduled_for).toLocaleString() : '-'}</ThemedText>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* History tab */}
+          {notifTestTab === 'history' && (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {notifDataLoading ? (
+                <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
+              ) : notifHistoryItems.length === 0 ? (
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 40 }}>No history yet</ThemedText>
+              ) : notifHistoryItems.map(item => (
+                <View key={item.id} style={{ marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <ThemedText weight="semiBold" style={{ color: item.is_read ? 'rgba(255,255,255,0.5)' : '#fff', fontSize: 12, flex: 1 }}>{item.title || '(no title)'}</ThemedText>
+                    <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.is_read ? 'read' : 'unread'}</ThemedText>
+                  </View>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 4 }}>{item.message || '(no message)'}</ThemedText>
+                  <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{item.type} · {item.created_at ? new Date(item.created_at).toLocaleString() : '-'}</ThemedText>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
+    )}
+
+    {/* Sales Copy Viewer Modal */}
+    {salesCopyModalVisible && (
+      <Modal
+        visible={salesCopyModalVisible}
+        onRequestClose={() => setSalesCopyModalVisible(false)}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.anchorBlue }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' }}>
+            <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 16 }}>Sales Copy Scenarios</ThemedText>
+            <TouchableOpacity onPress={() => setSalesCopyModalVisible(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+            <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 16 }}>
+              Tap a scenario to open the actual sales offer screen with those parameters
+            </ThemedText>
+
+            {/* Seeker Tier - Monthly Free Access Used Up */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 2,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 2,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Playbooks Used Up (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 1,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 0,
+                  testModeLimit: 1,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - Devotionals Used Up (Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining - Chosen Spark */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 5,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'spark',
+                  testModeTrialFullLimit: 10,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Spark)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 5 playbooks included in your free trial. Your Spark plan starts soon with 10 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining - Chosen Growth */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 15,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'growth',
+                  testModeTrialFullLimit: 25,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Growth)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 15 playbooks included in your free trial. Your Growth plan starts soon with 25 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining - Chosen Transformation */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 25,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'transformation',
+                  testModeTrialFullLimit: 60,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Transformation)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 25 playbooks included in your free trial. Your Transformation plan starts soon with 60 playbooks each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Spark */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 5,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'spark',
+                  testModeTrialFullLimit: 10,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Spark)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 5 devotionals included in your free trial. Your Spark plan starts soon with 10 devotionals each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Growth */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 15,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'growth',
+                  testModeTrialFullLimit: 25,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Growth)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 15 devotionals included in your free trial. Your Growth plan starts soon with 25 devotionals each month.</ThemedText>
+            </TouchableOpacity>
+
+            {/* Trial User - No Remaining Devotionals - Chosen Transformation */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 3);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'free_trial',
+                  testModeRemaining: 0,
+                  testModeLimit: 25,
+                  testModeIsOnTrial: true,
+                  testModeHasStartedTrial: true,
+                  testModeTrialChosenTier: 'transformation',
+                  testModeTrialFullLimit: 60,
+                  testModeTrialEndDate: futureDate.toISOString(),
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Transformation)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'free_trial',
+                  remaining: 0,
+                  limit: 25,
+                  isOnTrial: true,
+                  trialChosenTier: 'transformation',
+                  trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            {/* Paid User - No Remaining */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'spark',
+                  testModeRemaining: 0,
+                  testModeLimit: 10,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'spark',
+                  remaining: 0,
+                  limit: 10,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'growth',
+                  testModeRemaining: 0,
+                  testModeLimit: 25,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'growth',
+                  remaining: 0,
+                  limit: 25,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'playbooks',
+                  testModeTier: 'transformation',
+                  testModeRemaining: 0,
+                  testModeLimit: 60,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation - No Remaining</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'playbooks',
+                  currentTier: 'transformation',
+                  remaining: 0,
+                  limit: 60,
+                  subscriptionStartDate: new Date().toISOString(),
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            {/* Devotional Duration Locked */}
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 5,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 5-Day Devotional Locked (Trial Eligible)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 5,
+                  hasEverStartedTrial: false,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 5,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 5-Day Devotional Locked (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 5,
+                  hasEverStartedTrial: true,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 7,
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 7-Day Devotional Locked (Trial Eligible)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 7,
+                  hasEverStartedTrial: false,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'seeker',
+                  testModeRemaining: 1,
+                  testModeLimit: 1,
+                  requestedDuration: 7,
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker - 7-Day Devotional Locked (Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'seeker',
+                  remaining: 1,
+                  limit: 1,
+                  requestedDuration: 7,
+                  hasEverStartedTrial: true,
+                };
+                const copy = generateSalesCopy(params);
+                return `${copy.message} Button: ${copy.primaryCta}`;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'spark',
+                  testModeRemaining: 5,
+                  testModeLimit: 10,
+                  requestedDuration: 5,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 5-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  remaining: 5,
+                  limit: 10,
+                  requestedDuration: 5,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'spark',
+                  testModeRemaining: 5,
+                  testModeLimit: 10,
+                  requestedDuration: 7,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark - 7-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'spark',
+                  remaining: 5,
+                  limit: 10,
+                  requestedDuration: 7,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: true,
+                  featureType: 'devotionals',
+                  testModeTier: 'growth',
+                  testModeRemaining: 10,
+                  testModeLimit: 25,
+                  requestedDuration: 7,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth - 7-Day Devotional Locked</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{(() => {
+                const params: SalesCopyParams = {
+                  featureType: 'devotionals',
+                  currentTier: 'growth',
+                  remaining: 10,
+                  limit: 25,
+                  requestedDuration: 7,
+                };
+                const copy = generateSalesCopy(params);
+                return copy.message;
+              })()}</ThemedText>
+            </TouchableOpacity>
+
+            {/* Context-based scenarios */}
+            <ThemedText weight="semiBold" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 24, marginBottom: 8, textTransform: 'uppercase' }}>
+              Context-Based Scenarios
+            </ThemedText>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'planning_lock',
+                  feature: 'future_planning',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Gently prepare for what's ahead with guided planning inside your journal. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'planning_lock',
+                  feature: 'future_planning',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Planning Lock (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Gently prepare for what's ahead with guided planning inside your journal. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'copy_todos_lock',
+                  feature: 'copy_todos',
+                  incompleteTodosCount: 5,
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Copy 5 incomplete to-dos to future dates, and unlock advanced planning features, playbooks, and devotionals. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'copy_todos_lock',
+                  feature: 'copy_todos',
+                  incompleteTodosCount: 5,
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Copy Todos Lock (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Copy 5 incomplete to-dos to future dates, and unlock advanced planning features, playbooks, and devotionals. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'pdf_export_restriction',
+                  feature: 'export_pdf',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection. PDF export is available with Growth and Transformation. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'pdf_export_restriction',
+                  feature: 'export_pdf',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>PDF Export Restriction (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection. PDF export is available with Growth and Transformation. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'repeat_options',
+                  feature: 'repeat_options',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Recurring Time Blocks (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Create recurring time blocks to build steady rhythms in your week. With an upgrade, you'll also have more room for playbooks and devotionals. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'repeat_options',
+                  feature: 'repeat_options',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Recurring Time Blocks (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Create recurring time blocks to build steady rhythms in your week. With an upgrade, you'll also have more room for playbooks and devotionals. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'spark',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Spark Locked)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'calendar_auto_sync',
+                  feature: 'calendar_sync',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Calendar Auto-Sync (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'guided_prompts_lock',
+                  feature: 'guided_prompts',
+                  tier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: true,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Guided Prompts (Seeker - Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you'll also unlock more room for playbooks and devotionals. Button: Upgrade to Growth</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                openSalesOfferFromSalesCopy({
+                  upgradeMode: false,
+                  source: 'guided_prompts_lock',
+                  feature: 'guided_prompts',
+                  tier: 'seeker',
+                  testModeTier: 'seeker',
+                  testModeHasEverStartedTrial: false,
+                });
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Guided Prompts (Seeker - Not Used Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you'll also unlock more room for playbooks and devotionals. Button: Start 3-Day Free Trial</ThemedText>
+            </TouchableOpacity>
+
+            {/* Subscription Flow Scenarios */}
+            <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 16, marginTop: 24, marginBottom: 12 }}>Subscription Flow Scenarios</ThemedText>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'seeker', testModeStatus: 'active', testModeHasUsedTrial: false });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker (Eligible for Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Free Plan. Button: Continue with siFia</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'seeker', testModeStatus: 'active', testModeHasUsedTrial: true });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Seeker (Not Eligible for Trial)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Free Plan. Button: Continue with siFia</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'spark', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'spark', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Spark (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'growth', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'growth', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Growth (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'transformation', testModeStatus: 'active', testModeBillingCycle: 'monthly' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation (Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: Upgrade Plan to Annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'transformation', testModeStatus: 'active', testModeBillingCycle: 'annual' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Transformation (Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Active. Button: No button (highest tier)</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'growth' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>15 playbooks, 15 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'growth' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>15 playbooks, 15 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'spark' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Spark Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5 playbooks, 5 devotionals. Secondary: View Other Plans - Growth monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'spark' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Spark Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5 playbooks, 5 devotionals. Secondary: View Other Plans - Growth annual</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'monthly', testModeTrialChosenTier: 'transformation' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Monthly)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Spark monthly</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 12 }}
+              onPress={() => {
+                setSalesCopyModalVisible(false);
+                setSubscriptionTestMode({ testModeTier: 'free_trial', testModeStatus: 'trialing', testModeBillingCycle: 'annual', testModeTrialChosenTier: 'transformation' });
+                setSubscriptionPlanModalVisible(true);
+              }}
+            >
+              <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Annual)</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Spark annual</ThemedText>
+            </TouchableOpacity>
+
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    )}
+
+    {/* Subscription Plan Modal */}
+    {subscriptionPlanModalVisible && (
+      <SubscriptionPlanModal
+        visible={subscriptionPlanModalVisible}
+        onClose={() => setSubscriptionPlanModalVisible(false)}
+        navigation={navigation}
+        {...subscriptionTestMode}
+      />
+    )}
+
     </SafeAreaView>
   );
 };

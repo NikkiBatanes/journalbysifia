@@ -204,7 +204,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
             <ThemedText weight="semiBold" style={styles.featuresTitle}>What you get:</ThemedText>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <ThemedText style={styles.featureText}>Unlimited personalized playbooks</ThemedText>
+              <ThemedText style={styles.featureText}>Monthly personalized playbooks based on your plan</ThemedText>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />

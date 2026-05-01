@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Dimensions, Text } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Colors } from '../../theme';
 
 const { width } = Dimensions.get('window');
@@ -12,9 +11,14 @@ const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
 
 const DevotionalCarouselSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
 
   React.useEffect(() => {
-    const animation = Animated.loop(
+    isMounted.current = true;
+
+    const animate = () => {
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
@@ -26,10 +30,19 @@ const DevotionalCarouselSkeleton: React.FC = () => {
           duration: 1000,
           useNativeDriver: false,
         }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+
+    animate();
+
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
   }, [animatedValue]);
 
   const opacity = animatedValue.interpolate({
@@ -39,13 +52,6 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Section Header - Real Title like Playbook Carousel */}
-      <View style={styles.headerRow}>
-        <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.headerTitle}>Your Devotionals</Text>
-        <Animated.View style={[styles.viewAllButton, { opacity }]} />
-      </View>
-
       {/* Horizontal Carousel Cards */}
       <View style={[styles.carouselContainer, { paddingHorizontal: SIDE_INSET }]}>
         {[1, 2].map((item) => {
@@ -92,7 +98,7 @@ const DevotionalCarouselSkeleton: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 0,
+    marginTop: 36,
   },
   headerRow: {
     flexDirection: 'row',

@@ -227,7 +227,7 @@ export const useUserState = () => {
       };
     }
 
-    const isUnlimited = subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
+    const isUnlimited = subscription.playbooks_limit === -1 || subscription.devotionals_limit === -1;
 
     return {
       playbooks: {
@@ -253,7 +253,7 @@ export const useUserState = () => {
   const canUseFeature = useCallback((feature: 'playbooks' | 'devotionals' | 'exports') => {
     if (!subscription) {return false;}
 
-    const isUnlimited = subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'
+    const isUnlimited = subscription.playbooks_limit === -1 || subscription.devotionals_limit === -1;
 
     switch (feature) {
       case 'playbooks':

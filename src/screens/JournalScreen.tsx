@@ -18,10 +18,12 @@ import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
+import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 
 // Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -72,6 +74,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { setShowTabBar, setContentScrollRef } = useScroll();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showGratitudeModal, setShowGratitudeModal] = useState(false);
+  const [existingGratitudeEntry, setExistingGratitudeEntry] = useState<any | undefined>(undefined);
+  const [selectedDateForModal, setSelectedDateForModal] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
 
@@ -89,6 +94,15 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       deletedSubscription.remove();
     };
   }, []);
+
+  // Track journal screen focus for analytics
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        adminAnalyticsService.trackFeatureUsage(user.id, 'journal', { screen: 'JournalScreen' });
+      }
+    }, [user?.id])
+  );
 
   // Removed: global edit mode (inline view no longer used)
 
@@ -179,6 +193,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       // Reset all carousels to their starting positions
       setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
       hasInitializedScroll.current = true;
+      // Always expand tab bar when returning to Journal
+      setShowTabBar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
@@ -255,7 +272,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Scroll tracking refs
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('');
-  const scrollTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Haptics while header week is actively scrolled and implied date changes
   const lastHeaderHapticDateKey = useRef<string | null>(null);
@@ -519,20 +535,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       setIsHeaderCollapsed(shouldBeCollapsed);
     }
 
-    // Show/hide tab bar based on scroll direction
-    clearTimeout(scrollTimeout.current);
-    if (scrollDirection.current === 'down' && y > 20) {
+    // Collapse on scroll down; expand only when scrolling back up to the very top
+    if (y > 60) {
       setShowTabBar(false);
-    } else if (scrollDirection.current === 'up') {
+    } else if (isScrollingUp && y <= 0) {
       setShowTabBar(true);
     }
-
-    // Auto-show tab bar when scrolling stops or near top
-    scrollTimeout.current = setTimeout(() => {
-      if (y < 20) {
-        setShowTabBar(true);
-      }
-    }, 1000);
   }, [isHeaderCollapsed, scrollY, setShowTabBar]);
 
   // Pull-to-refresh REMOVED - using skeleton loading instead to prevent logout issues
@@ -618,7 +626,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               onScroll={handleContentScroll}
               scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.carouselContainer}>
@@ -627,6 +634,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   refreshKey={refreshKey}
                   initialScrollIndex={carouselIndices.plan}
                   onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, plan: index })); }}
+                  navigation={navigation}
                 />
               </View>
               {/* Only show ReflectCarousel for today or past dates */}
@@ -643,6 +651,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                       refreshKey={refreshKey}
                       initialScrollIndex={carouselIndices.reflect}
                       onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, reflect: index })); }}
+                      onGratitudeBegin={(existingEntry, selectedDate) => {
+                        setExistingGratitudeEntry(existingEntry);
+                        setSelectedDateForModal(selectedDate || currentDate);
+                        setShowGratitudeModal(true);
+                      }}
                     />
                   </View>
                   <View style={styles.carouselContainer}>
@@ -650,6 +663,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                       selectedDate={currentDate}
                       initialScrollIndex={carouselIndices.pray}
                       onScrollIndexChange={(index) => { setCarouselIndices(prev => ({ ...prev, pray: index })); }}
+                      navigation={navigation}
                     />
                   </View>
                 </>
@@ -754,6 +768,21 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
           </View>
         </View>
       </Modal>
+
+      {/* Smart Journaling Gratitude Modal */}
+      <SmartJournalingGratitudeModal
+        visible={showGratitudeModal}
+        existingGratitude={existingGratitudeEntry}
+        selectedDate={selectedDateForModal}
+        onSave={() => {
+          // Modal will handle its own success flow
+          setRefreshKey(prev => prev + 1);
+        }}
+        onCancel={() => {
+          setShowGratitudeModal(false);
+          setExistingGratitudeEntry(undefined);
+        }}
+      />
 
     </View>
     </SafeAreaView>
@@ -889,7 +918,7 @@ const createStyles = (fonts: {
   calendarIconButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 0,
@@ -1091,15 +1120,21 @@ const createStyles = (fonts: {
     elevation: 3,
   },
   cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    marginTop: 8,
   },
   cancelButtonText: {
     fontFamily: fonts.fontSemiBold,
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.hopeWhite,
-    textAlign: 'center',
   },
   monthHeaderText: {
     fontSize: 16,

@@ -2,13 +2,13 @@
 // Created: 2025-08-20
 
 export type SubscriptionTier =
-  | 'seeker'           // Freemium: 0/0 limits after trial, 1 playbook during onboarding
-  | 'free_trial'       // 2/2 free for 3 days
-  | 'spark'            // 8 playbooks/devotionals + smart journaling
+  | 'seeker'           // Free access layer: 2 PB / 1 DEV per month (resets monthly), up to 3-day devotionals
+  | 'free_trial'       // Trial limits depend on trial_chosen_tier (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
+  | 'spark'            // 10 playbooks/devotionals, up to 3-day devotionals
   | 'spark_annual'     // Annual spark subscription
-  | 'growth'           // 20 playbooks/devotionals
+  | 'growth'           // 25 playbooks/devotionals, up to 5-day devotionals
   | 'growth_annual'    // Annual growth subscription
-  | 'transformation'   // Unlimited (no dashboard counts)
+  | 'transformation'   // 60 playbooks/devotionals, up to 7-day devotionals
   | 'transformation_annual'; // Annual transformation subscription
   // | 'family';       // POST-LAUNCH: Unlimited for up to 5 members (1 admin + 4 additional)
 
@@ -33,7 +33,7 @@ export interface SubscriptionLimits {
   playbooks_limit: number;        // -1 for unlimited
   devotionals_limit: number;      // -1 for unlimited
   smart_journaling_enabled: boolean;
-  show_dashboard_counts: boolean; // false for transformation
+  show_dashboard_counts: boolean;
 }
 
 export interface Subscription {
@@ -85,6 +85,8 @@ export interface Subscription {
   is_trial?: boolean;
   is_expired?: boolean;
   days_remaining?: number;
+  is_in_cooldown?: boolean; // User ended trial without upgrading, in 30-day cooldown
+  replenish_date?: string; // Date when cooldown ends and usage resets
 }
 
 // POST-LAUNCH: Family Subscription Group Interface

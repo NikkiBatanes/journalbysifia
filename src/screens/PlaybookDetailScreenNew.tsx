@@ -1381,6 +1381,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         ...playbook.bibleVerse,
         version: bibleVersion,
       },
+      bibleVerseReflection: playbook.bibleVerseReflection || '',
       actionSteps: playbook.actionSteps?.map(step => {
         // Derive examples similar to ActionStepsCard
         let examples: string[] = [];
@@ -1390,13 +1391,18 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           const exampleMatches = rawExamples
             .split(/Example:\s*/i)
             .filter((text: string) => text.trim().length > 0);
-          examples = exampleMatches.map((ex: string) => ex.trim());
+          examples = exampleMatches.map((ex: string) => ex.replace(/^Example:\s*/i, '').trim());
         } else if (Array.isArray(rawExamples)) {
-          examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').trim());
+          examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').replace(/^Example:\s*/i, '').trim());
         } else if (step.subTasks && step.subTasks.length > 0) {
+          // Extract examples from subtasks that have is_example flag OR start with "example:"
           examples = step.subTasks
-            .filter((st: any) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
-            .map((st: any) => st.text.replace(/^Example:/i, '').trim());
+            .filter((st: any) =>
+              (typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')) ||
+              st.is_example === true ||
+              st.isExample === true
+            )
+            .map((st: any) => st.text.replace(/^Example:\s*/i, '').trim());
         }
 
         return {
@@ -1413,6 +1419,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
           { replaceHardcodedNames: true }
         )
       ) || [],
+      prayer: playbook.prayer || '',
+      wordsToSpeak: playbook.wordToSpeak || '',
       directChallenge: replaceAllNamePlaceholders(
         typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text || '',
         { firstName: metaFirstName, displayName: metaDisplayName },
@@ -1982,7 +1990,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
                   contentContainerStyle={[
                     styles.expandedScrollContent,
                     // Dynamic padding based on orientation for better scrollability
-                    // eslint-disable-next-line react-native/no-inline-styles
                     { paddingBottom: isLandscape ? 400 : 850 },
                   ]}
                   showsVerticalScrollIndicator={false}

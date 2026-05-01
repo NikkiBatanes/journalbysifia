@@ -10,7 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Decode JWT (both transaction info and signed payload)
 interface TransactionInfo {
   transactionId: string;
   originalTransactionId: string;
@@ -26,28 +25,91 @@ interface WebhookPayload {
   };
 }
 
-function decodeJWT(token: string): WebhookPayload | null {
+// Apple Root CA – G3 SHA-256 fingerprint (the cert that anchors all Apple signing certs)
+const APPLE_ROOT_CA_G3_FINGERPRINT = '63343abfb89a6a03ebbef98a32692d7514fd6e7b5dcb57d527ec56b745b6a826';
+
+async function sha256Hex(data: Uint8Array): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Find the P-256 SubjectPublicKeyInfo (SPKI) bytes inside a DER-encoded X.509 certificate.
+// The SPKI for an EC P-256 key always starts with the same 22-byte marker, so we can
+// locate it without a full ASN.1 parser.
+function extractP256SpkiFromCert(certDer: Uint8Array): Uint8Array | null {
+  // SEQUENCE(89) { SEQUENCE(19) { OID ecPublicKey, OID P-256 } BIT_STRING { 04 x y } }
+  const marker = new Uint8Array([
+    0x30, 0x59,                                                    // SEQUENCE, 89 bytes
+    0x30, 0x13,                                                    // SEQUENCE, 19 bytes
+    0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,       // OID: ecPublicKey
+    0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, // OID: P-256
+  ]);
+  outer: for (let i = 0; i <= certDer.length - marker.length; i++) {
+    for (let j = 0; j < marker.length; j++) {
+      if (certDer[i + j] !== marker[j]) continue outer;
+    }
+    return certDer.slice(i, i + 91); // 2-byte SEQUENCE header + 89 bytes = 91 total
+  }
+  return null;
+}
+
+// Verify an Apple-signed JWT (ES256 + x5c chain) and return its decoded payload.
+// Returns null if the signature or certificate chain is invalid.
+async function verifyAppleJWT(token: string): Promise<WebhookPayload | TransactionInfo | null> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    
-    const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(payload) as WebhookPayload;
-  } catch (error) {
-    console.error('Failed to decode JWT:', error);
-    return null;
-  }
-}
 
-function decodeTransactionInfo(signedInfo: string): TransactionInfo | null {
-  try {
-    const parts = signedInfo.split('.');
-    if (parts.length !== 3) return null;
-    
-    const payload = atob(parts[1]);
-    return JSON.parse(payload);
+    const b64url = (s: string) => s.replace(/-/g, '+').replace(/_/g, '/');
+    const header = JSON.parse(atob(b64url(parts[0])));
+
+    if (header.alg !== 'ES256') {
+      console.error('[AppleWebhook] Unexpected JWT alg:', header.alg);
+      return null;
+    }
+    if (!Array.isArray(header.x5c) || header.x5c.length < 2) {
+      console.error('[AppleWebhook] Missing or short x5c chain in JWT header');
+      return null;
+    }
+
+    // 1. Verify the root certificate is Apple Root CA – G3
+    const rootDer = Uint8Array.from(atob(header.x5c[header.x5c.length - 1]), c => c.charCodeAt(0));
+    const rootFingerprint = await sha256Hex(rootDer);
+    if (rootFingerprint !== APPLE_ROOT_CA_G3_FINGERPRINT) {
+      console.error('[AppleWebhook] Root cert fingerprint mismatch — possible forgery', { got: rootFingerprint });
+      return null;
+    }
+
+    // 2. Extract the leaf cert's public key and verify the JWT signature
+    const leafDer = Uint8Array.from(atob(header.x5c[0]), c => c.charCodeAt(0));
+    const spki = extractP256SpkiFromCert(leafDer);
+    if (!spki) {
+      console.error('[AppleWebhook] Could not extract P-256 key from leaf certificate');
+      return null;
+    }
+
+    const publicKey = await crypto.subtle.importKey(
+      'spki', spki,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false, ['verify']
+    );
+
+    const signingInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const signature = Uint8Array.from(atob(b64url(parts[2])), c => c.charCodeAt(0));
+
+    const valid = await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      publicKey, signature, signingInput
+    );
+
+    if (!valid) {
+      console.error('[AppleWebhook] JWT signature verification FAILED — payload rejected');
+      return null;
+    }
+
+    return JSON.parse(atob(b64url(parts[1])));
   } catch (error) {
-    console.error('Failed to decode transaction:', error);
+    console.error('[AppleWebhook] JWT verification error:', error);
     return null;
   }
 }
@@ -70,15 +132,15 @@ function getTierLimits(tier: string): { playbooks_limit: number; devotionals_lim
   
   switch (baseTier) {
     case 'seeker':
-      return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
     case 'spark':
-      return { playbooks_limit: 8, devotionals_limit: 8, smart_journaling_enabled: true };
+      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
     case 'growth':
-      return { playbooks_limit: 20, devotionals_limit: 20, smart_journaling_enabled: true };
+      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
     case 'transformation':
-      return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
+      return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
     default:
-      return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
   }
 }
 
@@ -101,12 +163,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Apple webhooks are authenticated via signed payload verification
-  // No authorization header needed — just allow all POST requests through
-  const isAppleWebhook = req.method === 'POST';
+  // Apple webhooks don't send authorization headers, so we allow them without auth
+  // Apple authenticates via signed payload verification (which we do below)
+  const userAgent = req.headers.get('user-agent') || '';
+  const appleNotificationType = req.headers.get('apple-notification-type') || '';
+  const isAppleWebhook = userAgent.includes('Apple') || appleNotificationType !== '';
 
-  if (!isAppleWebhook) {
-    return new Response('Method not allowed', { status: 405 });
+  console.log('[AppleWebhook] Auth check:', { userAgent, appleNotificationType, isAppleWebhook });
+
+  if (!isAppleWebhook && !req.headers.get('authorization')) {
+    return new Response('Missing authorization header', { status: 401 });
   }
 
   try {
@@ -127,10 +193,10 @@ serve(async (req) => {
     if (body.signedPayload) {
       console.log('[AppleWebhook] v2 format detected (signedPayload)');
       
-      // Decode outer signedPayload
-      const decodedPayload = decodeJWT(body.signedPayload);
+      // Verify and decode outer signedPayload
+      const decodedPayload = await verifyAppleJWT(body.signedPayload) as WebhookPayload | null;
       if (!decodedPayload) {
-        console.error('[AppleWebhook] Failed to decode signedPayload');
+        console.error('[AppleWebhook] Failed to verify signedPayload — rejected');
         return new Response('Bad Request', { status: 400, headers: corsHeaders });
       }
 
@@ -150,7 +216,7 @@ serve(async (req) => {
       notificationType = body.notificationType;
       subtype = body.subtype;
       signedTransactionInfo = body.data?.signedTransactionInfo;
-    }
+    } 
     else {
       console.error('[AppleWebhook] Unknown payload format');
       return new Response('Bad Request', { status: 400, headers: corsHeaders });
@@ -162,36 +228,22 @@ serve(async (req) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Persist webhook event BEFORE checking transaction info
-    // This ensures ALL events are logged including TEST and non-transaction events
-    try {
-      await supabaseClient.from('apple_webhook_events').insert([{
-        notification_type: notificationType ?? 'UNKNOWN',
-        subtype: subtype ?? null,
-        signed_payload: body.signedPayload ?? null,
-        transaction_info: null, // Transaction details are in signed_payload for real events
-      }]);
-      console.log('[AppleWebhook] ✅ Event logged');
-    } catch (logError) {
-      console.error('[AppleWebhook] Failed to log event', logError);
-    }
-
     if (!signedTransactionInfo) {
-      console.log('[AppleWebhook] No transaction info, skipping processing');
+      console.log('[AppleWebhook] No transaction info, skipping');
       return new Response('OK', { headers: corsHeaders });
     }
 
-    // Decode transaction
-    const transaction = decodeTransactionInfo(signedTransactionInfo);
+    // Verify and decode transaction
+    const transaction = await verifyAppleJWT(signedTransactionInfo) as TransactionInfo | null;
     if (!transaction) {
-      console.error('[AppleWebhook] Failed to decode transaction');
+      console.error('[AppleWebhook] Failed to verify transaction JWT — rejected');
       return new Response('Bad Request', { status: 400, headers: corsHeaders });
     }
 
     const transactionId = transaction.transactionId;
     const originalTransactionId = transaction.originalTransactionId;
     const productId = transaction.productId;
-    const offerType = transaction.offerType;
+    const offerType = transaction.offerType; // 1 = introductory/trial
 
     console.log('[AppleWebhook] Transaction decoded:', {
       transactionId: transactionId?.substring(0, 10) + '...',
@@ -199,6 +251,22 @@ serve(async (req) => {
       productId,
       offerType,
     });
+
+    // Persist webhook metadata for auditing/debugging
+    try {
+      await supabaseClient.from('apple_webhook_events').insert([
+        {
+          notification_type: notificationType,
+          notification_subtype: subtype ?? null,
+          transaction_id: transactionId,
+          original_transaction_id: originalTransactionId,
+          product_id: productId,
+          payload: body,
+        },
+      ]);
+    } catch (logError) {
+      console.error('[AppleWebhook] Failed to log event', logError);
+    }
 
     // Find user by original transaction ID (never changes across renewals)
     let { data: subscription, error: findError } = await supabaseClient
@@ -214,11 +282,7 @@ serve(async (req) => {
       const { data: fallbackSub } = await supabaseClient
         .from('user_subscriptions_new')
         .select('*')
-        .or(
-          `platform_subscription_id.eq.${transactionId},` +
-          `platform_transaction_id.eq.${transactionId},` +
-          `original_transaction_id.eq.${transactionId}` 
-        )
+        .or(`platform_subscription_id.eq.${transactionId},platform_transaction_id.eq.${transactionId}`)
         .single();
       
       if (!fallbackSub) {
@@ -236,39 +300,6 @@ serve(async (req) => {
 
     // Route to appropriate handler
     switch (notificationType) {
-      case 'SUBSCRIBED': {
-        if (subtype === 'INITIAL_BUY') {
-          const actualTier = getTierFromProductId(productId);
-          const paidLimits = getTierLimits(actualTier);
-          const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
-          const now = new Date();
-          const subscriptionEndDate = new Date(now);
-          billingCycle === 'annual'
-            ? subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1)
-            : subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
-
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              tier: actualTier,
-              subscription_display_name: getTierDisplayName(actualTier),
-              billing_cycle: billingCycle,
-              playbooks_limit: paidLimits.playbooks_limit,
-              devotionals_limit: paidLimits.devotionals_limit,
-              smart_journaling_enabled: paidLimits.smart_journaling_enabled,
-              platform_transaction_id: transactionId,
-              subscription_start_date: now.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(),
-              billing_issue: false,
-              status: 'active',
-              updated_at: now.toISOString(),
-            })
-            .eq('user_id', userId);
-
-          console.log('[AppleWebhook] ✅ New sale recorded:', actualTier, billingCycle);
-        }
-        break;
-      }
       case 'DID_RENEW': {
         // CRITICAL: Detect NEW TRIAL START vs TRIAL CONVERSION vs REGULAR RENEWAL
         // NEW TRIAL START: User on 'seeker' purchasing .freetrial product → Skip (app handles with createTrial)
@@ -331,6 +362,7 @@ serve(async (req) => {
               devotionals_used: 0,
               last_usage_reset: now.toISOString(), // Track when usage was reset
               smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+              show_dashboard_counts: true,
               platform_transaction_id: transactionId,
               subscription_start_date: now.toISOString(),
               subscription_end_date: subscriptionEndDate.toISOString(), // Set expiration
@@ -370,6 +402,7 @@ serve(async (req) => {
               playbooks_limit: paidLimits.playbooks_limit,
               devotionals_limit: paidLimits.devotionals_limit,
               smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+              show_dashboard_counts: true,
               platform_transaction_id: transactionId,
               billing_issue: false,
               grace_period_end_date: null,
@@ -431,44 +464,22 @@ serve(async (req) => {
       }
 
       case 'DID_FAIL_TO_RENEW': {
-        const hasGracePeriod = subtype === 'GRACE_PERIOD';
+        // Payment failure - enter grace period (3 days)
+        console.log('[AppleWebhook] Payment failed - entering grace period');
 
-        if (hasGracePeriod) {
-          const gracePeriodEnd = new Date();
-          gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 16);
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              billing_issue: true,
-              grace_period_end_date: gracePeriodEnd.toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId);
+        const gracePeriodEnd = new Date();
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
 
-          console.log('[AppleWebhook] ✅ Grace period activated');
-        } else {
-          // No grace period — GCash or 3rd party billing, downgrade immediately
-          const seekerLimits = getTierLimits('seeker');
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              tier: 'seeker',
-              subscription_display_name: 'siFia Seeker',
-              playbooks_limit: seekerLimits.playbooks_limit,
-              devotionals_limit: seekerLimits.devotionals_limit,
-              smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
-              billing_cycle: null,
-              billing_issue: false,
-              grace_period_end_date: null,
-              subscription_end_date: new Date().toISOString(),
-              auto_renew_enabled: false,
-              status: 'expired',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId);
+        await supabaseClient
+          .from('user_subscriptions_new')
+          .update({
+            billing_issue: true,
+            grace_period_end_date: gracePeriodEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
 
-          console.log('[AppleWebhook] ✅ GCash/3rd party failure — downgraded to seeker immediately');
-        }
+        console.log('[AppleWebhook] ✅ Grace period activated until', gracePeriodEnd.toISOString());
         break;
       }
 
@@ -489,6 +500,7 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+            show_dashboard_counts: true,
             billing_cycle: null, // Clear billing cycle
             billing_issue: false,
             grace_period_end_date: null,
@@ -519,6 +531,7 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+            show_dashboard_counts: true,
             billing_cycle: null, // Clear billing cycle
             subscription_end_date: new Date().toISOString(), // Set to now (expired)
             refund_date: new Date().toISOString(),

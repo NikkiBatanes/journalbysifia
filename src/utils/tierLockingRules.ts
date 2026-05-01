@@ -37,26 +37,26 @@ export interface PlanningAccessCheck {
 
 // Lock visibility rules per tier
 export const LOCK_VISIBILITY_RULES = {
-  seeker: [1, 3, 5, 7],        // All durations locked
-  free_trial: [5, 7],          // 5-day and 7-day locked
-  spark: [5, 7],               // 5-day and 7-day locked
-  spark_annual: [5, 7],        // Annual has same limits as monthly
-  growth: [7],                 // Only 7-day locked
-  growth_annual: [7],          // Annual has same limits as monthly
-  transformation: [],          // No locks
-  transformation_annual: [],   // Annual has same limits as monthly
+  seeker: [5, 7],              // Up to 3-day (1-day and 3-day allowed)
+  free_trial: [5, 7],          // Follows chosen tier; Spark/Growth trials cap at 3/5-day
+  spark: [5, 7],               // Up to 3-day
+  spark_annual: [5, 7],
+  growth: [7],                 // Up to 5-day
+  growth_annual: [7],
+  transformation: [],          // Up to 7-day (all durations)
+  transformation_annual: [],
 } as Record<SubscriptionTier, number[]>;
 
 // Usage counter messages per tier
 export const USAGE_DISPLAY_RULES = {
-  seeker: 'Upgrade to Create Devotionals',
-  free_trial: '2 Devotionals Remaining',
-  spark: '8 Devotionals Remaining',
-  spark_annual: '8 Devotionals Remaining',
-  growth: '20 Devotionals Remaining',
-  growth_annual: '20 Devotionals Remaining',
-  transformation: 'Unlimited Devotionals',
-  transformation_annual: 'Unlimited Devotionals',
+  seeker: '1 Devotional per month',
+  free_trial: 'Devotionals Remaining', // Limits depend on trial_chosen_tier
+  spark: '10 Devotionals Remaining',
+  spark_annual: '10 Devotionals Remaining',
+  growth: '25 Devotionals Remaining',
+  growth_annual: '25 Devotionals Remaining',
+  transformation: '60 Devotionals Remaining',
+  transformation_annual: '60 Devotionals Remaining',
 } as Record<SubscriptionTier, string>;
 
 // Dynamic upgrade messages by context
@@ -76,8 +76,8 @@ export const UPGRADE_MESSAGES = {
     free_trial: 'Upgrade to continue your journey',
     spark: 'Upgrade to Growth for more devotionals',
     spark_annual: 'Upgrade to Growth for more devotionals',
-    growth: 'Upgrade to Transformation for unlimited access',
-    growth_annual: 'Upgrade to Transformation for unlimited access',
+    growth: 'Upgrade to Transformation for 60 devotionals',
+    growth_annual: 'Upgrade to Transformation for 60 devotionals',
     transformation: '',
     transformation_annual: '',
   },
@@ -111,30 +111,15 @@ export function getAllowedDurations(tier: SubscriptionTier): number[] {
  * Get usage display message for a tier
  */
 export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: number): string {
-  if (tier === 'transformation') {
-    return USAGE_DISPLAY_RULES[tier];
-  }
-
   if (typeof remaining === 'number') {
-    // Show "No Devotionals Remaining" when count is 0
     if (remaining === 0) {
       return 'No Devotionals Remaining';
     }
-
-    // Handle singular/plural
     const devotionalText = remaining === 1 ? 'Devotional' : 'Devotionals';
-
-    if (tier === 'free_trial') {
-      return `${remaining} ${devotionalText} Remaining`;
-    }
-    if (tier === 'spark') {
-      return `${remaining} ${devotionalText} Remaining`;
-    }
-    if (tier === 'growth') {
+    if (['free_trial', 'spark', 'spark_annual', 'growth', 'growth_annual', 'transformation', 'transformation_annual'].includes(tier)) {
       return `${remaining} ${devotionalText} Remaining`;
     }
   }
-
   return USAGE_DISPLAY_RULES[tier];
 }
 
@@ -154,7 +139,8 @@ export function getUpgradeMessage(
 export function checkDevotionalAccess(
   tier: SubscriptionTier,
   duration: number,
-  context: 'onboarding' | 'inApp' = 'inApp'
+  context: 'onboarding' | 'inApp' = 'inApp',
+  _isOnboarding = false
 ): DevotionalAccessCheck {
   const isLocked = isDevotionalDurationLocked(tier, duration);
   const canGenerate = !isLocked;

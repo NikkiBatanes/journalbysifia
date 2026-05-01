@@ -13,9 +13,9 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
 import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
 import { useNavigation } from '@react-navigation/native';
+import PlaybookMetaSection from './PlaybookMetaSection';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -57,6 +57,8 @@ interface ReflectionLogEditorProps {
   styles?: any;
   isLoading?: boolean;
   hideGuidedPromptButton?: boolean;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 export interface ReflectionLogEditorRef {
@@ -441,6 +443,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     styles,
     isLoading = false,
     hideGuidedPromptButton = false,
+    stepBody,
+    stepExample,
   },
   ref
 ) => {
@@ -494,14 +498,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     },
   });
 
-  // Smart journaling gating (Growth & Transformation only - gates Seeker AND Spark tiers)
-  // Smart journaling = dashboard smart journaling, action steps, Today's Scripture/Declaration (all with tooltip icons)
-  // NOT smart journaling = devotional editor, journal carousel freeform, journal carousel guided prompts
-  // Only gate when source is 'thoughts' (all smart journaling contexts)
-  const smartJournalingGating = useSmartJournalingGating({
-    feature: 'reflection',
-    allowSeekerFreeForm: source !== 'thoughts', // Only gate smart journaling (source='thoughts')
-  });
 
   const sortedGuidedPrompts = React.useMemo(() => {
     // Use new simplified API - free prompts first, then locked
@@ -924,22 +920,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Check both selectedPrompt and title to prevent loopholes
     const promptToCheck = selectedPrompt || (guidedPromptGating.allPrompts.includes(newEntry.title) ? newEntry.title : null);
 
-    // For free-form reflections (not guided prompts), check smart journaling gating
-    if (!promptToCheck && smartJournalingGating.isLocked) {
-      if (onUpgradeRequired) {
-        try { onUpgradeRequired(); } catch {}
-      }
-      setTimeout(() => {
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'smart_journaling_lock',
-          feature: 'smart_journaling',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-        });
-      }, 300);
-      return; // Block the save
-    }
 
     if (promptToCheck) {
       // Use async canUsePrompt method
@@ -1307,7 +1287,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     >
                       {initialTitle || newEntry.title}
                     </ThemedText>
-                    {(isSelectedPromptLocked || (!selectedPrompt && smartJournalingGating.isLocked)) && (
+                    {isSelectedPromptLocked && (
                       <GuidedPromptLockIcon
                         tier={subscription?.tier || 'seeker'}
                         usedPrompts={guidedPromptGating.usedPrompts}
@@ -1317,11 +1297,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                             onUpgradeRequired();
                           }
                           setTimeout(() => {
-                            // Use different source based on whether it's a guided prompt or free-form
-                            const isGuidedPrompt = isSelectedPromptLocked;
                             (navigation as any).navigate('OnboardingSalesOffer', {
-                              source: isGuidedPrompt ? 'guided_prompts_lock' : 'smart_journaling_lock',
-                              feature: isGuidedPrompt ? 'guided_prompts' : 'smart_journaling',
+                              source: 'guided_prompts_lock',
+                              feature: 'guided_prompts',
                               tier: subscription?.tier || 'seeker',
                               upgradeMode: false,
                               skipNotificationPreference: true,
@@ -1357,6 +1335,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                       setNewEntry({ ...newEntry, title: text });
                       checkForChanges(newEntry.content, text);
                     }}
+                    keyboardAppearance="dark"
                     onFocus={() => {
                       // In edit mode, position cursor at end instead of selecting all
                       if (isEditing && titleInputRef.current) {
@@ -1372,7 +1351,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     selectionColor={Colors.hopeWhite}
                     multiline={true}
                   />
-                  {(isSelectedPromptLocked || (!selectedPrompt && smartJournalingGating.isLocked)) && (
+                  {isSelectedPromptLocked && (
                     <GuidedPromptLockIcon
                       tier={subscription?.tier || 'seeker'}
                       usedPrompts={guidedPromptGating.usedPrompts}
@@ -1382,10 +1361,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           onUpgradeRequired();
                         }
                         setTimeout(() => {
-                          const isGuidedPrompt = isSelectedPromptLocked;
                           (navigation as any).navigate('OnboardingSalesOffer', {
-                            source: isGuidedPrompt ? 'guided_prompts_lock' : 'smart_journaling_lock',
-                            feature: isGuidedPrompt ? 'guided_prompts' : 'smart_journaling',
+                            source: 'guided_prompts_lock',
+                            feature: 'guided_prompts',
                             tier: subscription?.tier || 'seeker',
                             upgradeMode: false,
                             skipNotificationPreference: true,
@@ -1419,6 +1397,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   checkForChanges(text, newEntry.title);
                 }}
                 multiline
+                keyboardAppearance="dark"
                 textAlignVertical="top"
                 autoFocus={!isEditing}
               />
@@ -1475,28 +1454,14 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 </View>
               )}
               {(source === 'playbook' || (playbookTitle && (source === 'thoughts' || source !== 'freeform'))) && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                  <ThemedText weight="medium" style={s.fromText}>
-                    FROM PLAYBOOK
-                  </ThemedText>
-                  {playbookTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                  )}
-                  {dayNumber && dayTitle && (
-                    <ThemedText style={s.metadataTextWithLineHeight}>
-                      {dayTitle === 'Suggestion' ? 'SUGGESTION' : (
-                      <>
-                        Step {dayNumber}: {dayTitle}
-                      </>
-                    )}
-                    </ThemedText>
-                  )}
-                  </View>
-                </View>
+                <PlaybookMetaSection
+                  playbookTitle={playbookTitle}
+                  actionLabel={dayNumber && dayTitle
+                    ? (dayTitle === 'Suggestion' ? 'SUGGESTION' : `Action ${dayNumber}: ${dayTitle}`)
+                    : undefined}
+                  stepBody={stepBody}
+                  stepExample={stepExample}
+                />
               )}
             </>
           ) : (
@@ -1596,7 +1561,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   handleCancel();
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -1613,9 +1578,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

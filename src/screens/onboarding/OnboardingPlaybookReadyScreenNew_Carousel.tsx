@@ -79,9 +79,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
       // Block user-initiated navigation attempts but allow programmatic navigation
       const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
-        // Allow navigation to sales offer or main tabs (forward navigation)
+        // Allow navigation to sales offer or UserInput (forward navigation)
         if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' ||
-            e.data?.action?.payload?.name === 'MainTabs') {
+            e.data?.action?.payload?.name === 'UserInput') {
           return; // Let it proceed
         }
 
@@ -440,7 +440,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     navigation.navigate('OnboardingSalesOffer' as any, {
       onboardingFlow: true,
       skipNotificationPreference: false,
-      selectedTier: 'spark',
+      selectedTier: 'growth',
     });
   }, [navigation]);
 
@@ -810,7 +810,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <Animated.View
           style={[
             styles.cardContent,
-            // eslint-disable-next-line react-native/no-inline-styles
             {
               // Collapse by default; expand when toggled
               // Exception: Truth, Affirmations, Direct Challenge on iPad portrait show full content
@@ -936,7 +935,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           contentContainerStyle={[
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
-            // eslint-disable-next-line react-native/no-inline-styles
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
@@ -953,7 +951,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
 
         {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
@@ -1152,7 +1149,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </ScrollView>
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)}          style={[
             styles.footerContainer,
             {
@@ -1272,9 +1268,9 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
     alignItems: 'center',
   },
   modalButtonText: {
@@ -1629,9 +1625,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 28,
-    borderRadius: 12,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 0,
@@ -1651,8 +1647,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     marginTop: 0,  // Remove top margin
-    paddingVertical: 12,  // Increase padding for easier tapping
-    paddingHorizontal: 20,  // Increase horizontal padding
+    paddingVertical: 15,  // Increase padding for easier tapping
+    paddingHorizontal: 28,  // Increase horizontal padding
     alignSelf: 'center',
     minHeight: 44,  // Ensure minimum tap target size
   },

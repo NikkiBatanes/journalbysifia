@@ -28,7 +28,7 @@ interface DevotionalGatingResult {
   error: string | null;
 
   // Access checking
-  checkAccess: (duration: number, context?: 'onboarding' | 'inApp') => DevotionalAccessCheck;
+  checkAccess: (duration: number, context?: 'onboarding' | 'inApp', isOnboarding?: boolean) => DevotionalAccessCheck;
   canGenerate: (duration: number) => boolean;
   isLocked: (duration: number) => boolean;
 
@@ -58,7 +58,7 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
 
   // IMPORTANT: For trials, use trial_chosen_tier for gating (not 'free_trial')
   // This ensures Growth Trial gets Growth tier's feature unlocks (5-day devotionals)
-  // while still having trial limits (2/2)
+  // while still having trial limits (depends on trial_chosen_tier: Spark 5/5, Growth 15/15, Transformation 25/25)
   const tier = useMemo(() => {
     if (!subscription) {return 'seeker';}
 
@@ -107,8 +107,8 @@ export const useDevotionalGating = (): DevotionalGatingResult => {
   }, [subscription]);
 
   // Access checking function
-  const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp'): DevotionalAccessCheck => {
-    return checkDevotionalAccess(tier, duration, context);
+  const checkAccess = (duration: number, context: 'onboarding' | 'inApp' = 'inApp', isOnboarding: boolean = false): DevotionalAccessCheck => {
+    return checkDevotionalAccess(tier, duration, context, isOnboarding);
   };
 
   // Simple access checks

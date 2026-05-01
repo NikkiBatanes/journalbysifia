@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { AUTH_ERROR_MESSAGES, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Devotional, DevotionalCategory } from '../interfaces/devotional';
+import { normalizeDevotionalCategory } from '../utils/devotionalCategories';
 import { ENV } from '../config/environment';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
 import { enterpriseResilience } from '../utils/enterpriseResilience';
@@ -27,6 +28,37 @@ interface DevotionalGenerationParams {
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
 
+function extractFunctionErrorMessage(error: any): string | null {
+  const candidates = [
+    error?.message,
+    error?.context?._bodyInit,
+    error?.context?._bodyText,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string' || !candidate.trim()) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(candidate);
+      if (typeof parsed?.message === 'string' && parsed.message.trim()) {
+        return parsed.message;
+      }
+      if (typeof parsed?.error === 'string' && parsed.error.trim()) {
+        return parsed.error;
+      }
+    } catch {
+      // Plain-text error payloads should still surface.
+      if (candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Internal devotional generation function
  * Wrapped by public API with enterprise resilience
@@ -37,6 +69,9 @@ async function generateDevotionalInternal(
   maxRetries: number = 5
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
+
+  // Auto-set duration to 3 days during onboarding
+  const finalDuration = isOnboarding ? 3 : duration;
 
   // Get user subscription for tier-based key selection
   const { subscriptionService } = await import('./subscriptionService');
@@ -117,7 +152,7 @@ async function generateDevotionalInternal(
           const sdkResponse = await withTimeout(
             supabase.functions.invoke('generate-devotional', {
               body: {
-                duration,
+                duration: finalDuration,
                 playbookId,
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
@@ -145,14 +180,20 @@ async function generateDevotionalInternal(
 
           // Transform Supabase SDK response
           if (sdkResponse.error) {
+            const functionMessage = extractFunctionErrorMessage(sdkResponse.error);
             Logger.error('Supabase SDK error', new Error(sdkResponse.error.message || 'Devotional generation failed'), {
               component: 'modernDevotionalApi',
               data: {
                 error: sdkResponse.error,
                 errorDetails: JSON.stringify(sdkResponse.error, null, 2),
+                functionMessage,
               },
             });
-            throw new Error(sdkResponse.error.message || 'We\'re having trouble creating your devotional right now. Please try again.');
+            throw new Error(
+              functionMessage ||
+              sdkResponse.error.message ||
+              'We\'re having trouble creating your devotional right now. Please try again.'
+            );
           }
 
           if (!sdkResponse.data) {
@@ -198,7 +239,7 @@ async function generateDevotionalInternal(
                 'Authorization': `Bearer ${session.access_token}`,
               },
               body: JSON.stringify({
-                duration,
+                duration: finalDuration,
                 playbookId,
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
@@ -216,11 +257,20 @@ async function generateDevotionalInternal(
 
           if (!response.ok) {
             const errorText = await response.text();
+            let backendMessage = errorText;
+            try {
+              const parsed = JSON.parse(errorText);
+              backendMessage = parsed?.message || parsed?.error || errorText;
+            } catch {}
             Logger.error('Fallback fetch also failed', new Error(`Fallback failed: ${response.status}`), {
               component: 'modernDevotionalApi',
-              data: { status: response.status, errorText },
+              data: { status: response.status, errorText, backendMessage },
             });
-            throw new Error('Network connection issue detected. Please check your connection and try again.');
+            throw new Error(
+              response.status >= 500
+                ? (backendMessage || 'We\'re having trouble creating your devotional right now. Please try again.')
+                : (backendMessage || 'Network connection issue detected. Please check your connection and try again.')
+            );
           }
 
           result = await response.json();
@@ -280,40 +330,32 @@ async function generateDevotionalInternal(
 
       // Validate the response structure
       if (!result || !Array.isArray(result.days) || result.days.length === 0) {
-        throw new Error('Invalid devotional format received from server');
+        throw new Error('Invalid devotional response: missing or empty days array');
       }
 
-      // Choose a category: prefer result.category/categories if present, else derive from title/description
-      // Database constraint only allows: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health
-      const deriveCategory = (payload: any): DevotionalCategory => {
+      const deriveCategory = (devotionalResult: any): DevotionalCategory => {
         try {
-          const fromResult: string | undefined = (payload?.category as string) || (Array.isArray(payload?.categories) ? payload.categories[0] : undefined);
-
-          // Validate that the category from result is allowed by database constraint
-          const allowedCategories = ['Prayer', 'Growth', 'Healing', 'Wisdom', 'Relationships', 'Purpose', 'Career', 'Finances', 'Mental Health', 'Parenting', 'Health'];
-          if (fromResult && typeof fromResult === 'string' && allowedCategories.includes(fromResult)) {
-            return fromResult as DevotionalCategory;
-          }
-
-          const base = `${payload?.title || ''} ${payload?.description || ''}`.toLowerCase();
-          if (base.includes('prayer') || base.includes('pray')) {return 'Prayer' as DevotionalCategory;}
-          if (base.includes('love') || base.includes('relationship') || base.includes('family')) {return 'Relationships' as DevotionalCategory;}
-          if (base.includes('anxiety') || base.includes('worry') || base.includes('stress') || base.includes('mental')) {return 'Mental Health' as DevotionalCategory;}
-          if (base.includes('wisdom') || base.includes('decision') || base.includes('guidance')) {return 'Wisdom' as DevotionalCategory;}
-          if (base.includes('purpose') || base.includes('calling') || base.includes('mission')) {return 'Purpose' as DevotionalCategory;}
-          if (base.includes('heal') || base.includes('recovery') || base.includes('restoration')) {return 'Healing' as DevotionalCategory;}
-          if (base.includes('career') || base.includes('work') || base.includes('job')) {return 'Career' as DevotionalCategory;}
-          if (base.includes('money') || base.includes('financial') || base.includes('finances')) {return 'Finances' as DevotionalCategory;}
-          if (base.includes('parent') || base.includes('child') || base.includes('kids')) {return 'Parenting' as DevotionalCategory;}
-          if (base.includes('health') || base.includes('physical') || base.includes('body')) {return 'Health' as DevotionalCategory;}
-          // Default to Growth for spiritual growth, faith, hope, etc.
-          return 'Growth' as DevotionalCategory;
+          // Try to get category from the AI result first
+          const fromResult = devotionalResult?.category || devotionalResult?.categories?.[0];
+          const content = `${devotionalResult?.title || ''} ${devotionalResult?.description || ''}`.toLowerCase();
+          return normalizeDevotionalCategory(fromResult, content);
         } catch {
-          return 'Growth' as DevotionalCategory;
+          return 'Faith & Obedience';
         }
       };
 
       const computedCategory = deriveCategory(result);
+
+      Logger.info('Computed devotional category', {
+        component: 'modernDevotionalApi',
+        data: {
+          computedCategory,
+          resultCategory: result?.category,
+          resultCategories: result?.categories,
+          title: result?.title,
+          description: result?.description,
+        },
+      });
 
       // Save the generated devotional to the database
       const { data: savedDevotional, error: saveError } = await supabase
@@ -355,6 +397,20 @@ async function generateDevotionalInternal(
       } catch (trackingError) {
         Logger.warn('[ModernDevotionalApi] Failed to track usage', { component: 'modernDevotionalApi', data: trackingError });
         // Don't fail the generation if tracking fails
+      }
+
+      // Award faith points for devotional generation (critical for streak tracking)
+      try {
+        const { faithPointsService } = await import('./faithPointsService');
+        if (session.user?.id) {
+          await faithPointsService.awardPoints(session.user.id, 'devotional_generated', {
+            isOnboarding: isOnboarding || false,
+            suppressNotification: false,
+          });
+        }
+      } catch (pointsError) {
+        Logger.warn('[ModernDevotionalApi] Failed to award faith points', { component: 'modernDevotionalApi', data: pointsError });
+        // Don't fail the generation if faith points award fails
       }
 
       // Track successful generation
@@ -447,9 +503,14 @@ export async function generateDevotional(
 
     // Get user tier for rate limiting and priority
     try {
-      const { subscriptionService } = await import('./subscriptionService');
-      const subscription = await subscriptionService.getUserSubscription(userId);
-      userTier = subscription.tier;
+      // During onboarding, use 'onboarding' tier to bypass seeker rate limits
+      if (params.isOnboarding) {
+        userTier = 'onboarding';
+      } else {
+        const { subscriptionService } = await import('./subscriptionService');
+        const subscription = await subscriptionService.getUserSubscription(userId);
+        userTier = subscription.tier;
+      }
     } catch (tierError) {
       Logger.warn('Failed to get user tier for devotional, using default', {
         component: 'modernDevotionalApi',

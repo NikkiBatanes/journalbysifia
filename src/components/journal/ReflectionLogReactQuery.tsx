@@ -4,6 +4,7 @@ import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -13,22 +14,16 @@ import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
 
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
-import ReflectionLogEditor from './ReflectionLogEditor';
-import { styles as reflectionLogStyles } from './reflectionStyles';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useGuidedPromptGating } from '../../hooks/useGuidedPromptGating';
 import {
   useReflectionData,
-  useCreateReflection,
-  useUpdateReflection,
   useDeleteReflection,
 } from '../../services/hooks/useReflectionData';
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
-import NewSuccessModal from '../NewSuccessModal';
-import { useSuccessModal } from '../../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useScroll } from '../../context/ScrollContext';
 
@@ -192,21 +187,21 @@ const styles = StyleSheet.create({
   },
   entryCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 12,
     marginBottom: 8,
   },
   devotionalEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   guidedEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
   },
   freeFormEntry: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 20,
   },
   guidedPromptRow: {
@@ -216,7 +211,7 @@ const styles = StyleSheet.create({
   },
   devotionalPromptContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 24,
     paddingHorizontal: 6,
     paddingVertical: 2,
     marginRight: 8,
@@ -391,6 +386,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  const navigation = useNavigation();
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
@@ -406,16 +402,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
 
-  // Success modal system
-  const successModal = useSuccessModal(
-    () => {
-      resetForm();
-      // Editor is already closed, just reset form
-    }, // onDone: just reset form since editor is already closed
-    () => {
-      // onEdit: success modal will hide automatically, main modal stays open
-    } // onEdit: keep modal open for editing
-  );
 
   // Generate a meaningful subtitle based on the number of entries and date bucket
   const getReflectionSubtitle = (count: number): string | undefined => {
@@ -447,22 +433,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     // isRefetching, // Unused
   } = useReflectionData(user?.id || '', dateStr);
 
-  const createMutation = useCreateReflection();
-  const updateMutation = useUpdateReflection();
   const deleteMutation = useDeleteReflection();
-
-  // Loading state for ReflectionLogEditor
-  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   // Helpers to normalize HTML <br> to real newlines for RN Text/TextInput
   const normalizeIncoming = useCallback((text: string): string => {
     if (!text) {return '';}
     return text.replace(/<br\s*\/?\s*>/gi, '\n');
-  }, []);
-
-  const normalizeOutgoing = useCallback((text: string): string => {
-    if (!text) {return '';}
-    return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   }, []);
 
   // Transform API data to local format with memoization
@@ -520,36 +496,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Local state
   const [visibleCount, setVisibleCount] = useState(3);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
-  const [newEntry, setNewEntry] = useState({
-    title: '',
-    content: '',
-    type: 'free-form' as ViewMode,
-    prompt: '',
-    tags: [] as string[],
-    location: '',
-    source: undefined as string | undefined,
-  });
-
-  const resetForm = useCallback(() => {
-    setNewEntry({
-      title: '',
-      content: '',
-      type: 'free',
-      prompt: '',
-      tags: [],
-      location: '',
-      source: undefined,
-    });
-    setSelectedPrompt('');
-    setIsAdding(false);
-    setEditingId(null);
-    setSelectedEntry(null);
-  }, []);
 
   const handleDeleteEntry = useCallback(async (entryId: string) => {
     const entryToDelete = entries.find(e => e.id === entryId);
@@ -607,20 +555,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }, [entries, deleteMutation, user, dateStr]);
 
-  // Refresh guided prompt gating state when editor modal opens
-  // Refresh guided prompt access when adding new entry
-  useEffect(() => {
-    if (isAdding) {
-      guidedPromptGating.refreshAccess();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdding, guidedPromptGating.refreshAccess]); // Only depend on the function, not the whole object
-
   // Handle prompt selection with analytics
   const handlePromptSelection = useCallback((prompt: string) => {
     triggerLightHaptic();
     setSelectedPrompt(prompt);
-    setNewEntry(prev => ({ ...prev, prompt, type: 'guided' }));
     setShowPromptPicker(false);
 
     // Track prompt selection analytics
@@ -631,10 +569,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       }, user.id);
     }
   }, [user, dateStr]);
-
-  // handleTypeChange removed - using ReflectionLogEditor instead
-
-  // formatDate removed - not used in original design
 
   // Prompt modal styles defined inline to avoid hoisting issues
   const promptModalStyles = StyleSheet.create({
@@ -755,37 +689,34 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
-    // Set editing state
-    setEditingId(entry.id);
-    setSelectedEntry(entry);
+    // For guided and devotional entries, determine the prompt
+    const promptToUse = entry.type === 'guided' || entry.type === 'devotional'
+      ? (entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : ''))
+      : '';
 
-    // For guided and devotional entries, set the selected prompt if available
-    if (entry.type === 'guided' || entry.type === 'devotional') {
-      // Use the stored prompt, or the title if it was used as a prompt, or empty string
-      const promptToUse = entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : '');
-      setSelectedPrompt(promptToUse);
-    } else {
-      setSelectedPrompt('');
-    }
-
-    // Set form data for editing
-    const getFormType = (): ViewMode => {
-      if (entry.type === 'free' || entry.type === 'playbook') {return 'free';}
+    // Determine the form type
+    const getFormType = (): 'free-form' | 'guided' => {
+      if (entry.type === 'free' || entry.type === 'playbook') {return 'free-form';}
       if (entry.type === 'devotional') {return 'guided';}
-      return 'free'; // fallback
+      return 'free-form'; // fallback
     };
 
-    setNewEntry({
-      title: entry.title || '',
-      content: entry.content || '',
-      type: getFormType(),
-      prompt: entry.prompt || '',
-      tags: entry.tags || [],
-      location: entry.location || '',
-      source: entry.source,
+    // Navigate to full screen editor
+    (navigation as any).navigate('ReflectionEditor', {
+      selectedDate: selectedDate.toISOString(),
+      existingReflection: entry,
+      initialMode: getFormType(),
+      initialPrompt: promptToUse,
+      initialTitle: entry.title || '',
+      lockTitle: entry.type === 'guided' || entry.type === 'devotional',
+      source: entry.source || (entry.type === 'free' ? 'freeform' : undefined),
+      devotionalTitle: entry.devotional_title,
+      playbookTitle: entry.playbook_title,
+      dayNumber: entry.day_number,
+      dayTitle: entry.day_title,
+      totalDays: entry.total_days,
+      questionNumber: entry.question_number,
     });
-
-    setIsAdding(false);
   };
 
   const renderEntries = () => {
@@ -892,21 +823,13 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   return;
                 }
 
-                // Default behavior for non-carousel mode
+                // Default behavior for non-carousel mode - navigate to full screen editor
                 triggerLightHaptic();
-                setNewEntry({
-                  title: '',
-                  content: '',
-                  type: 'free',
-                  prompt: '',
-                  tags: [],
-                  location: '',
-                  source: undefined,
+                (navigation as any).navigate('ReflectionEditor', {
+                  selectedDate: selectedDate.toISOString(),
+                  initialMode: 'free-form',
+                  source: 'freeform',
                 });
-                setSelectedPrompt('');
-                setIsAdding(true);
-                setEditingId(null);
-                setSelectedEntry(null);
               }}
               accessibilityRole="button"
               accessibilityLabel={`${emptyCTA} reflection`}
@@ -1047,10 +970,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     </TouchableOpacity>
   );
 
-  // renderEntryForm removed - using ReflectionLogEditor instead
-
-  // renderEntryModal removed - not used in original design
-
   // Handle errors silently - no annoying alerts
   React.useEffect(() => {
     if (error) {
@@ -1061,8 +980,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       });
     }
   }, [error, dateStr, user?.id]);
-
-  // handleRetry removed - not used in original design
 
   // Loading state with skeleton
   if (isLoading) {
@@ -1136,21 +1053,13 @@ return (
           return;
         }
 
-        // Default behavior for non-carousel mode
+        // Default behavior for non-carousel mode - navigate to full screen editor
         triggerLightHaptic();
-        setNewEntry({
-          title: '',
-          content: '',
-          type: 'free',
-          prompt: '',
-          tags: [],
-          location: '',
-          source: undefined,
+        (navigation as any).navigate('ReflectionEditor', {
+          selectedDate: selectedDate.toISOString(),
+          initialMode: 'free-form',
+          source: 'freeform',
         });
-        setSelectedPrompt('');
-        setIsAdding(true);
-        setEditingId(null);
-        setSelectedEntry(null);
       }}
       headerRight={globalEditMode?.isGlobalEditMode ? (
         <TouchableOpacity
@@ -1161,21 +1070,13 @@ return (
               return;
             }
 
-            // Default behavior for non-carousel mode
+            // Default behavior for non-carousel mode - navigate to full screen editor
             triggerLightHaptic();
-            setNewEntry({
-              title: '',
-              content: '',
-              type: 'free',
-              prompt: '',
-              tags: [],
-              location: '',
-              source: undefined,
+            (navigation as any).navigate('ReflectionEditor', {
+              selectedDate: selectedDate.toISOString(),
+              initialMode: 'free-form',
+              source: 'freeform',
             });
-            setSelectedPrompt('');
-            setIsAdding(true);
-            setEditingId(null);
-            setSelectedEntry(null);
           }}
           style={styles.editButton}
           accessibilityRole="button"
@@ -1195,204 +1096,9 @@ return (
       {/* Entries List */}
       {renderEntries()}
 
-      {/* Add/Edit Entry Modal - Show for adding new entries (when not in carousel mode) or editing existing entries */}
-      {(!onPencilTap || selectedEntry) && (
-        <Modal
-          visible={(() => {
-            const shouldShow = isAdding || !!selectedEntry;
-
-            return shouldShow;
-          })()}
-          animationType="slide"
-          transparent={false}
-          onRequestClose={() => {
-            setIsAdding(false);
-            setSelectedEntry(null);
-            setEditingId(null);
-          }}
-        >
-        <ReflectionLogEditor
-            onSave={async (entryData: any) => {
-              triggerLightHaptic();
-              if (!user) {
-                Logger.error('User not authenticated', undefined, { component: 'ReflectionLogReactQuery' });
-                return;
-              }
-
-              try {
-                // Determine the type - convert 'free-form' to 'free' for database compatibility
-                const rawType = editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free');
-                const normalizedType = rawType === 'free-form' ? 'free' : rawType;
-
-                // Determine the source - if type is 'guided', override source to 'guided'
-                const determinedSource = normalizedType === 'guided' ? 'guided' : (entryData.source || (normalizedType === 'free' ? 'freeform' : undefined));
-
-
-                // Only include fields that exist in the database schema
-                const saveData = {
-                  title: entryData.title || '',
-                  content: normalizeOutgoing(entryData.content || ''),
-                  type: normalizedType,
-                  user_id: user.id,
-                  selected_date: dateStr,
-                  // Include additional fields if they exist
-                  ...(entryData.prompt && { prompt: entryData.prompt }),
-                  ...(entryData.tags && entryData.tags.length > 0 && { tags: entryData.tags }),
-                  ...(determinedSource && { source: determinedSource }),
-                };
-
-                if (editingId) {
-                  // Update existing entry
-                  await updateMutation.mutateAsync({ id: editingId, updates: saveData });
-
-                  // Track update analytics
-                  const existingEntry = entries.find(e => e.id === editingId);
-                  analytics.trackReflectionEvent('reflection_updated', {
-                    reflection_id: editingId,
-                    title_length: saveData.title.length,
-                    content_length: saveData.content.length,
-                    previous_title_length: existingEntry?.title.length || 0,
-                    previous_content_length: existingEntry?.content.length || 0,
-                    type: saveData.type as 'free' | 'guided',
-                    date: dateStr,
-                  }, user.id);
-                } else {
-                  // Create new entry
-                  await createMutation.mutateAsync(saveData);
-
-                  // Track creation analytics
-                  analytics.trackReflectionEvent('reflection_created', {
-                    title_length: saveData.title.length,
-                    content_length: saveData.content.length,
-                    type: saveData.type,
-                    has_prompt: Boolean(entryData.prompt || selectedPrompt),
-                    date: dateStr,
-                  }, user.id);
-                }
-
-                // Close editor modal first, then show success modal to avoid layering conflicts
-                setSelectedEntry(null);
-                setEditingId(null);
-                setIsAdding(false);
-
-                // Small delay to ensure editor modal closes before showing success modal
-                setTimeout(() => {
-                  successModal.showSuccess({
-                    title: editingId ? 'Reflection Updated' : 'Reflection Saved',
-                    message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
-                    showEditButton: false, // Don't show edit button since we're closing the editor
-                  });
-                }, 100);
-
-                // Keep the main modal open - success modal will handle closing via callbacks
-              } catch (saveError) {
-                Logger.error('ReflectionLog: Save failed', saveError as Error, {
-  component: 'ReflectionLogReactQuery',
-});
-                Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
-                return; // Don't close the modal if save failed
-              }
-
-              // Close global edit mode if active
-              if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-                globalEditMode.setGlobalEditMode(false);
-              }
-            }}
-            onCancel={() => {
-              triggerLightHaptic();
-              resetForm();
-              setIsAdding(false);
-              setSelectedEntry(null);
-              setEditingId(null);
-            }}
-            onDelete={editingId ? async (id: string) => {
-              triggerLightHaptic();
-              try {
-                await deleteMutation.mutateAsync(id);
-
-                // Reset form state and close editor immediately after successful delete
-                resetForm();
-                setIsAdding(false);
-                setEditingId(null);
-                setSelectedEntry(null);
-
-                await refetch();
-
-              } catch (deleteError) {
-                Logger.error('Failed to delete reflection', deleteError as Error, {
-  component: 'ReflectionLogReactQuery',
-});
-                Alert.alert('Error', 'Failed to delete reflection. Please try again.');
-              }
-            } : undefined}
-            entryId={editingId || undefined}
-            initialEntry={selectedEntry ? {
-              title: selectedEntry.title,
-              content: selectedEntry.content,
-              tags: selectedEntry.tags || [],
-              type: selectedEntry.type === 'free' || selectedEntry.type === 'playbook' ? 'free-form' : (selectedEntry.type === 'devotional' ? 'guided' : 'free-form') as 'free-form' | 'guided',
-              source: selectedEntry.source,
-              prompt: selectedEntry.prompt,
-            } : {
-              title: newEntry.title,
-              content: newEntry.content,
-              tags: newEntry.tags || [],
-              type: newEntry.type === 'free' || newEntry.type === 'playbook' ? 'free-form' : (newEntry.type === 'devotional' ? 'guided' : 'free-form') as 'free-form' | 'guided',
-              source: newEntry.source,
-              prompt: newEntry.prompt,
-            }}
-            initialMode={selectedEntry ?
-              ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? 'guided' : 'free-form') :
-              ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? 'guided' : 'free-form')
-            }
-            initialPrompt={selectedEntry ?
-              ((selectedEntry.type === 'guided' || selectedEntry.type === 'devotional') ? (selectedEntry.prompt || selectedEntry.title || '') : '') :
-              ((newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
-            }
-            initialTitle={selectedEntry ?
-              selectedEntry.title :
-              ((newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : '')
-            }
-            lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
-            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && (selectedEntry?.source === 'playbook' || selectedEntry?.type === 'playbook') ? 'playbook' : (newEntry.type === 'guided' || selectedPrompt) ? 'guided' : 'freeform'}
-            // Pass devotional/playbook metadata for existing entries
-            devotionalTitle={editingId && selectedEntry && selectedEntry.source === 'devotional' ? selectedEntry.devotional_title : undefined}
-            playbookTitle={(() => {
-              const title = editingId && selectedEntry && (selectedEntry.source === 'playbook' || selectedEntry.type === 'playbook') ? selectedEntry.playbook_title : undefined;
-              return title;
-            })()}
-            dayNumber={editingId && selectedEntry ? selectedEntry.day_number : undefined}
-            dayTitle={editingId && selectedEntry ? selectedEntry.day_title : undefined}
-            totalDays={editingId && selectedEntry ? selectedEntry.total_days : undefined}
-            questionNumber={editingId && selectedEntry ? selectedEntry.question_number : undefined}
-            styles={reflectionLogStyles}
-            dateString={(function() {
-              const year = selectedDate.getFullYear();
-              const currentYear = new Date().getFullYear();
-              const base: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-              const withYear: Intl.DateTimeFormatOptions = { ...base, year: 'numeric' };
-              return selectedDate.toLocaleDateString('en-US', year === currentYear ? base : withYear);
-            })()}
-            isLoading={isSaving}
-          />
-
-      </Modal>
-      )}
-
       {/* Prompt Picker Modal */}
       {!onPencilTap && renderPromptPicker()}
     </JournalCard>
-
-    {/* Success Modal - Outside JournalCard and after editor modal to ensure it appears on top */}
-    {!onPencilTap && (
-      <NewSuccessModal
-        visible={successModal.isVisible}
-        config={successModal.config}
-        onDone={successModal.handleDone}
-        onEdit={successModal.handleEdit}
-      />
-    )}
     </>
   );
 };
-

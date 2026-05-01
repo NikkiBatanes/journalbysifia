@@ -683,8 +683,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
     minHeight: 120,
   },
   titleText: {

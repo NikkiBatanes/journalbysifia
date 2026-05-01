@@ -26,7 +26,7 @@ Day 1-2: User does nothing
 Day 3: Trial expires at 23:59
       → Apple AUTOMATICALLY CHARGES user
       → User converted to paid tier
-      → Gets full limits (8/8 for Spark, 20/20 for Growth, unlimited for Transformation)
+      → Gets full limits (10/10 for Spark, 25/25 for Growth, unlimited for Transformation)
       → New subscription_end_date set
       
 Monthly Subscription:
@@ -53,8 +53,8 @@ Annual Subscription:
 
 ```
 Day 0: User subscribes to Spark Monthly ($4.99/month)
-       → playbooks_limit: 8
-       → devotionals_limit: 8
+       → playbooks_limit: 10
+       → devotionals_limit: 10
 
 Day 1-14: User generates content
           → playbooks_used: 3
@@ -68,7 +68,7 @@ Day 15: User cancels subscription
         → Remaining usage: 5 playbooks, 6 devotionals
 
 Day 16-29: User continues using remaining quota
-           → Can use up to 8/8 total (already used 3/2)
+           → Can use up to 10/10 total (already used 3/2)
 
 Day 30: Subscription end date reached
         → NO DID_RENEW WEBHOOK FIRES (cancelled subscription)
@@ -104,8 +104,8 @@ if (!isAnnual) {
 
 ```
 Day 0: User subscribes to Spark Annual ($49.99/year)
-       → playbooks_limit: 8/month
-       → devotionals_limit: 8/month
+       → playbooks_limit: 10/month
+       → devotionals_limit: 10/month
        → subscription_end_date: Day 365
 
 Day 30: Usage reset (client-side)

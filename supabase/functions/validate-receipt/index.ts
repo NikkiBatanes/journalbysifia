@@ -107,7 +107,9 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
     trialEndDate.setDate(trialEndDate.getDate() + 3);
     const trialEndDateIso = trialEndDate.toISOString();
 
-    // Create trial subscription with trial limits (2/2)
+    const trialLimits = getTrialLimits(chosenTier);
+
+    // Create trial subscription with tier-specific trial limits
     const { data, error } = await supabase
       .from('user_subscriptions_new')
       .upsert({
@@ -122,9 +124,8 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         billing_cycle: billingCycle || 'monthly',
         auto_renew_enabled: true,
         status: 'active',
-        // CRITICAL: Set trial limits to 2/2, not the chosen tier limits
-        playbooks_limit: 2,
-        devotionals_limit: 2,
+        playbooks_limit: trialLimits.playbooks_limit,
+        devotionals_limit: trialLimits.devotionals_limit,
         playbooks_used: 0,
         devotionals_used: 0,
         smart_journaling_enabled: true,
@@ -151,7 +152,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
       playbooks_limit: data.playbooks_limit,
       devotionals_limit: data.devotionals_limit,
       chosenTier,
-      expectedLimits: { playbooks: 2, devotionals: 2 },
+      expectedLimits: trialLimits,
     });
     return {
       success: true,
@@ -296,9 +297,9 @@ serve(async (req) => {
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
           status: 'expired',
-          playbooks_limit: 0,
-          devotionals_limit: 0,
-          smart_journaling_enabled: false,
+          playbooks_limit: 2,
+          devotionals_limit: 1,
+          smart_journaling_enabled: true,
           auto_renew_enabled: false,
           updated_at: new Date().toISOString(),
         })
@@ -315,13 +316,16 @@ serve(async (req) => {
     }
 
     // LOGIC:
-    // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with 2/2 limits)
+    // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with tier-specific limits)
     // - seeker + not eligible = PAID PURCHASE (direct to paid tier)
     // - free_trial + any purchase = TRIAL CONVERSION (convert to paid tier)
     // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
 
-    if (currentTier === 'seeker' && isEligibleForTrial === true && isAppleTrialPeriod) {
-      // NEW TRIAL: Eligible user starting trial - create trial with 2/2 limits
+    // isAppleTrialPeriod is unreliable in sandbox — Apple sometimes returns false even for
+    // the first charge on a .freetrial product. Use the product ID as the authoritative signal.
+    const isFreeTrial = (validationResult.data?.productId || '').includes('freetrial');
+    if (currentTier === 'seeker' && isEligibleForTrial === true && (isAppleTrialPeriod || isFreeTrial)) {
+      // NEW TRIAL: Eligible user starting trial - create trial with tier-specific limits
       console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
         currentTier,
         productId: validationResult.data?.productId,
@@ -368,21 +372,26 @@ serve(async (req) => {
           reason: 'Trial period has not ended yet',
         });
 
-        // FIX: Ensure trial has correct limits (2/2) - existing trials might have wrong limits
+        const expectedTrialLimits = getTrialLimits(currentSub?.trial_chosen_tier || targetTier);
+
+        // FIX: Ensure trial has correct tier-specific limits - existing trials might have wrong limits
         console.log('[ValidateReceipt] Checking and fixing trial limits', {
           currentPlaybooksLimit: currentSub?.playbooks_limit,
           currentDevotionalsLimit: currentSub?.devotionals_limit,
-          expectedPlaybooksLimit: 2,
-          expectedDevotionalsLimit: 2,
+          expectedPlaybooksLimit: expectedTrialLimits.playbooks_limit,
+          expectedDevotionalsLimit: expectedTrialLimits.devotionals_limit,
         });
 
-        if (currentSub?.playbooks_limit !== 2 || currentSub?.devotionals_limit !== 2) {
-          console.log('[ValidateReceipt] FIXING: Updating trial limits to 2/2');
+        if (
+          currentSub?.playbooks_limit !== expectedTrialLimits.playbooks_limit ||
+          currentSub?.devotionals_limit !== expectedTrialLimits.devotionals_limit
+        ) {
+          console.log('[ValidateReceipt] FIXING: Updating trial limits', expectedTrialLimits);
           const { error: updateError } = await supabase
             .from('user_subscriptions_new')
             .update({
-              playbooks_limit: 2,
-              devotionals_limit: 2,
+              playbooks_limit: expectedTrialLimits.playbooks_limit,
+              devotionals_limit: expectedTrialLimits.devotionals_limit,
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
@@ -391,10 +400,10 @@ serve(async (req) => {
           if (updateError) {
             console.error('[ValidateReceipt] Failed to fix trial limits:', updateError);
           } else {
-            console.log('[ValidateReceipt] Successfully fixed trial limits to 2/2');
+            console.log('[ValidateReceipt] Successfully fixed trial limits');
           }
         }
-        // Trial stays as trial with correct 2/2 limits
+        // Trial stays as trial with correct tier-specific limits
       } else {
         // Trial has ended - convert to paid
         console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
@@ -465,6 +474,11 @@ serve(async (req) => {
  */
 async function validateAppleReceipt(receiptData: string): Promise<ValidationResult> {
   const sharedSecret = Deno.env.get('APPLE_SHARED_SECRET');
+
+  if (!sharedSecret) {
+    console.error('[ValidateReceipt] APPLE_SHARED_SECRET is not set — subscription latest_receipt_info will be empty');
+    return { success: false, error: 'Server misconfiguration: missing shared secret' };
+  }
 
   // Try production first
   let response = await callAppleVerifyReceipt(receiptData, sharedSecret, false);
@@ -632,7 +646,13 @@ async function updateUserSubscription(
       user_id: userId,
       tier: tier,
       status: 'active',
-      subscription_end_date: validationData.expiresAt?.toISOString(),
+      subscription_end_date: (() => {
+        if (validationData.expiresAt) { return validationData.expiresAt.toISOString(); }
+        // Fall back to calculated date when Apple didn't return expiresAt
+        const fallback = new Date();
+        tier.includes('_annual') ? fallback.setFullYear(fallback.getFullYear() + 1) : fallback.setDate(fallback.getDate() + 30);
+        return fallback.toISOString();
+      })(),
       subscription_start_date: isTrialConversion ? new Date().toISOString() : (existingSub?.subscription_start_date || new Date().toISOString()),
       platform: 'apple',
       platform_subscription_id: validationData.transactionId,
@@ -651,7 +671,6 @@ async function updateUserSubscription(
     subscriptionData.playbooks_limit = tierLimits.playbooks_limit;
     subscriptionData.devotionals_limit = tierLimits.devotionals_limit;
     subscriptionData.smart_journaling_enabled = tierLimits.smart_journaling_enabled;
-    // Note: show_dashboard_counts doesn't exist in database, calculated client-side
 
     if (existingSub) {
       // Check if this is a tier upgrade (different tier)
@@ -712,68 +731,53 @@ function mapProductIdToTier(productId: string): string {
 }
 
 /**
+ * Get trial limits based on the selected post-trial plan
+ */
+function getTrialLimits(chosenTier: string): {
+  playbooks_limit: number;
+  devotionals_limit: number;
+} {
+  const baseTier = chosenTier.replace('_annual', '');
+
+  switch (baseTier) {
+    case 'spark':
+      return { playbooks_limit: 5, devotionals_limit: 5 };
+    case 'growth':
+      return { playbooks_limit: 15, devotionals_limit: 15 };
+    case 'transformation':
+      return { playbooks_limit: 25, devotionals_limit: 25 };
+    default:
+      return { playbooks_limit: 15, devotionals_limit: 15 };
+  }
+}
+
+/**
  * Get tier limits for subscription
  */
 function getTierLimits(tier: string): {
   playbooks_limit: number;
   devotionals_limit: number;
   smart_journaling_enabled: boolean;
-  show_dashboard_counts: boolean;
 } {
   switch (tier) {
     case 'seeker':
-      return {
-        playbooks_limit: 0,
-        devotionals_limit: 0,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
     case 'free_trial':
-      return {
-        playbooks_limit: 2,
-        devotionals_limit: 2,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 15, devotionals_limit: 15, smart_journaling_enabled: true };
     case 'spark':
     case 'spark_annual':
-      return {
-        playbooks_limit: 8,
-        devotionals_limit: 8,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
     case 'growth':
     case 'growth_annual':
-      return {
-        playbooks_limit: 20,
-        devotionals_limit: 20,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
     case 'transformation':
     case 'transformation_annual':
-      return {
-        playbooks_limit: 999999,
-        devotionals_limit: 999999,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: false,
-      };
+      return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
     case 'family':
     case 'family_annual':
-      return {
-        playbooks_limit: 999999,
-        devotionals_limit: 999999,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: false,
-      };
+      return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
     default:
-      return {
-        playbooks_limit: 0,
-        devotionals_limit: 0,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
   }
 }
 

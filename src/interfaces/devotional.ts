@@ -56,32 +56,31 @@ export interface Devotional {
   isFallback?: boolean; // Indicates if this is a fallback devotional
 }
 
-export type DevotionalCategory =
-  | 'Prayer'
-  | 'Growth'
-  | 'Healing'
-  | 'Wisdom'
-  | 'Relationships'
-  | 'Purpose'
-  | 'Career'
-  | 'Finances'
-  | 'Mental Health'
-  | 'Parenting'
-  | 'Health';
-
-export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
-  'Prayer',
-  'Growth',
-  'Healing',
-  'Wisdom',
+export const DEVOTIONAL_CATEGORIES = [
   'Relationships',
-  'Purpose',
-  'Career',
-  'Finances',
-  'Mental Health',
+  'Family',
+  'Marriage',
+  'Singleness',
+  'Friendship',
+  'Work & Career',
+  'Calling & Purpose',
+  'Finance & Stewardship',
+  'Decision-Making',
+  'Conflict & Boundaries',
+  'Hurt & Forgiveness',
+  'Faith & Obedience',
+  'Church & Ministry',
   'Parenting',
-  'Health',
-];
+  'Emotions & Inner Life',
+  'Health & Wellness',
+  'Anxiety & Peace',
+  'Fear & Trust',
+  'Waiting & Uncertainty',
+  'Grief & Loss',
+  'Shame & Guilt',
+] as const;
+
+export type DevotionalCategory = typeof DEVOTIONAL_CATEGORIES[number];
 
 export interface DevotionalCreationParams {
   title?: string;
@@ -93,4 +92,5 @@ export interface DevotionalCreationParams {
   userInput?: string;
   dateOfBirth?: string;
   ageGroup?: string;
+  isOnboarding?: boolean; // NEW: Flag for onboarding context
 }

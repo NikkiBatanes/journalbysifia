@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ScrollView } from 'react-native';
 
 interface ScrollContextType {
@@ -22,32 +22,38 @@ export const ScrollProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const contentScrollRefHolder = useRef<React.RefObject<ScrollView> | React.MutableRefObject<ScrollView | null> | null>(null);
   const sectionYRef = useRef<Record<string, number>>({});
 
-  const setContentScrollRef = (ref: React.RefObject<ScrollView> | React.MutableRefObject<ScrollView | null> | null) => {
+  const setContentScrollRef = useCallback((ref: React.RefObject<ScrollView> | React.MutableRefObject<ScrollView | null> | null) => {
     contentScrollRefHolder.current = ref;
-  };
+  }, []);
 
-  const scrollTo = (y: number, animated: boolean = true) => {
+  const scrollTo = useCallback((y: number, animated: boolean = true) => {
     try {
       const ref = contentScrollRefHolder.current?.current as any;
       ref?.scrollTo?.({ y: Math.max(0, y), animated });
     } catch {}
-  };
+  }, []);
 
-  const scrollToTop = (animated: boolean = true) => scrollTo(0, animated);
+  const scrollToTop = useCallback((animated: boolean = true) => scrollTo(0, animated), [scrollTo]);
 
-  const registerSection = (id: string, y: number) => {
+  const registerSection = useCallback((id: string, y: number) => {
     sectionYRef.current[id] = y;
-  };
+  }, []);
 
-  const scrollToSection = (id: string, offset: number = 0, animated: boolean = true) => {
+  const scrollToSection = useCallback((id: string, offset: number = 0, animated: boolean = true) => {
     const baseY = sectionYRef.current[id];
     if (typeof baseY === 'number') {
       scrollTo(Math.max(0, baseY + offset), animated);
     }
-  };
+  }, [scrollTo]);
+
+  const value = useMemo(() => ({
+    isScrollingDown, setIsScrollingDown,
+    showTabBar, setShowTabBar,
+    setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection,
+  }), [isScrollingDown, showTabBar, setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection]);
 
   return (
-    <ScrollContext.Provider value={{ isScrollingDown, setIsScrollingDown, showTabBar, setShowTabBar, setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection }}>
+    <ScrollContext.Provider value={value}>
       {children}
     </ScrollContext.Provider>
   );

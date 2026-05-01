@@ -8,6 +8,7 @@ import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
 import { Logger } from '../utils/ProductionLogger';
+import { adminAnalyticsService } from '../services/adminAnalyticsService';
 
 // Industry-standard auth types
 interface AuthState {
@@ -236,18 +237,31 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           });
         } else {
 
-          // Create default Seeker subscription for new user
+          // Create default Seeker subscription for new user (skip if already exists)
           try {
+            const { data: existingSub } = await supabase
+              .from('user_subscriptions_new')
+              .select('user_id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (existingSub) {
+              // Subscription already exists — nothing to do
+            } else {
             const { error: subscriptionError } = await supabase
               .rpc('create_default_seeker_subscription', {
                 target_user_id: user.id,
               });
 
             if (subscriptionError) {
-              Logger.error('Error creating default subscription', subscriptionError as Error, {
+              Logger.error('Error creating default subscription', new Error(
+                subscriptionError.message || subscriptionError.details || JSON.stringify(subscriptionError)
+              ), {
                 component: 'AuthContext',
                 action: 'create_default_subscription',
                 userId: user.id,
+                code: subscriptionError.code,
+                details: subscriptionError.details,
               });
             } else {
               Logger.info('Default subscription created successfully', {
@@ -275,9 +289,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .from('user_subscriptions_new')
                     .update({
                       tier: 'seeker',
-                      // Preserve other important fields to avoid NULLing them
                       playbooks_limit: 2,
-                      devotionals_limit: 2,
+                      devotionals_limit: 1,
                       playbooks_used: 0,
                       devotionals_used: 0,
                       smart_journaling_enabled: false,
@@ -298,6 +311,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                 });
               }
             }
+            } // end existingSub else
           } catch (e) {
             Logger.error('Failed to create default subscription', e as Error, {
               component: 'AuthContext',
@@ -831,6 +845,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Auth state will be updated by the onAuthStateChange listener
       // Profile creation will be handled by the auth state change handler
       // Don't set loading to false here - let the listener handle it
+
+      // Track user signup for analytics
+      if (data.user?.id) {
+        adminAnalyticsService.trackSignup(data.user.id, 'email');
+      }
 
       return { error: null };
     } catch (error) {
@@ -1453,15 +1472,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
       const { identityToken, nonce, fullName } = appleAuthRequestResponse;
 
-      // Log Apple-provided data for debugging
-      console.log('🍎 Apple Sign-In Response:', {
-        hasIdentityToken: !!identityToken,
-        hasNonce: !!nonce,
-        fullName: fullName,
-        givenName: fullName?.givenName,
-        familyName: fullName?.familyName,
-      });
-
       if (!identityToken) {
         // Treat as user cancellation or benign failure: do not surface an error
 
@@ -1494,10 +1504,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Use existing name if available (metadata takes priority, then profile, then Apple-provided)
       if (existingMetadataName && existingMetadataName.trim().length > 0) {
         appleProvidedName = existingMetadataName.trim();
-        console.log('🔄 Using existing name from user metadata:', appleProvidedName);
       } else if (existingProfile?.first_name) {
         appleProvidedName = existingProfile.first_name;
-        console.log('🔄 Using existing name from database:', appleProvidedName);
       } else if (fullName?.givenName && fullName.givenName.trim().length > 0) {
         try {
           const givenName = fullName.givenName.trim();
@@ -1533,11 +1541,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             // CRITICAL: Refetch user to ensure metadata is in context
             const { data: { user: refreshedUser } } = await supabase.auth.getUser();
             if (refreshedUser) {
-              console.log('🔄 User refetched after metadata update:', {
-                hasFirstName: !!refreshedUser.user_metadata?.first_name,
-                firstName: refreshedUser.user_metadata?.first_name,
-              });
-
               // CRITICAL: Also save to user_profiles table immediately for onboarding access
               try {
                 const { error: profileError } = await supabase
@@ -1602,7 +1605,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           session: freshSession,
           loading: false,
         }));
-        console.log('✅ Auth state updated with fresh user metadata before navigation');
       } else {
         setAuthState(prev => ({ ...prev, loading: false }));
       }
@@ -1639,7 +1641,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
           // Route to personalization for unregistered/incomplete users
           // IMPORTANT: Pass the Apple-provided name through params so it's immediately available
-          console.log('🍎 Routing to OnboardingPersonalization with name:', appleProvidedName);
           await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
             target: 'OnboardingPersonalization',
             params: {

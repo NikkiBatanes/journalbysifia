@@ -6,6 +6,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
 import { SubscriptionTier } from '../types/subscription';
+import { adminAnalyticsService } from './adminAnalyticsService';
 
 export interface TrialCreationResult {
   success: boolean;
@@ -32,7 +33,8 @@ export interface TrialCancellationResult {
 export class TrialManagementService {
   /**
    * PHASE 1A: Create a free trial subscription
-   * Sets user to free_trial tier with 2/2 limits for 3 days
+   * Sets user to free_trial tier with tier-specific limits for 3 days
+   * Spark: 5/5, Growth: 15/15, Transformation: 25/25
    */
   static async createTrial(
     userId: string,
@@ -55,8 +57,8 @@ export class TrialManagementService {
       const trialEndDate = new Date(trialStartDate);
       trialEndDate.setDate(trialEndDate.getDate() + 3);
 
-      // Get free_trial limits (2 playbooks, 2 devotionals)
-      const trialLimits = NewSubscriptionService.getTierLimits('free_trial');
+      // Get tier-specific trial limits (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
+      const trialLimits = NewSubscriptionService.getTrialLimits(chosenTier);
 
       // Build display name with billing cycle
       const tierName = this.getTierName(chosenTier);
@@ -73,8 +75,8 @@ export class TrialManagementService {
           trial_end_date: trialEndDate.toISOString(),
           trial_chosen_tier: chosenTier, // Store which tier they'll convert to
           billing_cycle: billingCycle || 'monthly', // Store billing cycle for conversion
-          playbooks_limit: trialLimits.playbooks_limit, // 2
-          devotionals_limit: trialLimits.devotionals_limit, // 2
+          playbooks_limit: trialLimits.playbooks_limit,
+          devotionals_limit: trialLimits.devotionals_limit,
           playbooks_used: 0, // Reset usage for trial
           devotionals_used: 0,
           smart_journaling_enabled: trialLimits.smart_journaling_enabled,
@@ -98,6 +100,9 @@ export class TrialManagementService {
           error: error.message,
         };
       }
+
+      // Track trial activation for analytics
+      await adminAnalyticsService.trackTrialActivation(userId, chosenTier);
 
       Logger.info('[TrialManagement] ✅ Trial created successfully', {
         userId,
@@ -157,21 +162,27 @@ export class TrialManagementService {
       const chosenTier = (subscription as any).trial_chosen_tier || 'spark';
       const paidLimits = NewSubscriptionService.getTierLimits(chosenTier);
 
+      const conversionNow = new Date().toISOString();
+      // Issue 13 fix: billing_cycle must match the tier suffix to keep reset logic consistent
+      const billingCycle = chosenTier.includes('_annual') ? 'annual' : 'monthly';
+
       // Convert to paid tier with full limits
       const { error } = await supabase
         .from('user_subscriptions_new')
         .update({
           tier: chosenTier,
+          billing_cycle: billingCycle,
           subscription_display_name: `siFia ${this.getTierName(chosenTier)}`,
           playbooks_limit: paidLimits.playbooks_limit,
           devotionals_limit: paidLimits.devotionals_limit,
           playbooks_used: 0, // Reset usage on conversion
           devotionals_used: 0,
+          last_usage_reset: conversionNow, // Initialize reset anchor for first billing cycle
           smart_journaling_enabled: paidLimits.smart_journaling_enabled,
           platform_transaction_id: transactionId,
-          subscription_start_date: new Date().toISOString(), // New start date for paid
-          trial_converted_date: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          subscription_start_date: conversionNow, // New start date for paid
+          trial_converted_date: conversionNow,
+          updated_at: conversionNow,
         })
         .eq('user_id', userId)
         .select()
@@ -186,6 +197,14 @@ export class TrialManagementService {
           error: error.message,
         };
       }
+
+      // Track subscription conversion for analytics
+      await adminAnalyticsService.trackSubscriptionConversion(
+        userId,
+        'free_trial',
+        chosenTier,
+        billingCycle
+      );
 
       Logger.info('[TrialManagement] ✅ Trial converted to paid successfully', {
         userId,

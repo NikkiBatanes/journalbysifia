@@ -131,7 +131,7 @@ export function checkGuidedPromptAccess(
   const rules = GUIDED_PROMPT_ACCESS_RULES[tier] || GUIDED_PROMPT_ACCESS_RULES.seeker;
   const allowedPrompts = rules.allowedPrompts;
 
-  // Unlimited access (free_trial and above)
+  // Guided prompts without a monthly counter.
   if (allowedPrompts === -1) {
     return {
       hasAccess: true,

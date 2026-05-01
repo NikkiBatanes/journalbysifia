@@ -77,9 +77,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
       // Block user-initiated navigation attempts but allow programmatic navigation
       const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
-        // Allow navigation to sales offer or main tabs (forward navigation)
+        // Allow navigation to sales offer or UserInput (forward navigation)
         if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' ||
-            e.data?.action?.payload?.name === 'MainTabs') {
+            e.data?.action?.payload?.name === 'UserInput') {
           return; // Let it proceed
         }
 
@@ -432,13 +432,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     } catch (error) {
 
     }
-    // Navigate directly to sales offer (notification setup comes after purchase)
-    navigation.navigate('OnboardingSalesOffer' as any, {
-      onboardingFlow: true,
-      skipNotificationPreference: false,
-      selectedTier: 'spark',
+    // Navigate to PlaybookWalkthrough with onboarding source
+    navigation.navigate('PlaybookWalkthrough' as any, {
+      playbook: playbook,
+      source: 'onboarding',
     });
-  }, [navigation]);
+  }, [navigation, playbook]);
 
   const toggleUserInput = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
@@ -466,16 +465,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // Create carousel cards data
   const createCarouselCards = (): PlaybookCard[] => {
     const cards: PlaybookCard[] = [];
-
-    // Debug: Log the entire playbook object to see what data we have
-    console.log('🔍 createCarouselCards - Full playbook object:', JSON.stringify(playbook, null, 2));
-    console.log('🔍 createCarouselCards - bibleVerse specifically:', {
-      exists: !!playbook.bibleVerse,
-      value: playbook.bibleVerse,
-      type: typeof playbook.bibleVerse,
-      text: playbook.bibleVerse?.text,
-      reference: playbook.bibleVerse?.reference,
-    });
 
     // Truth in Love card
     if (playbook.truthInLove) {
@@ -706,13 +695,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
-
-  // Debug: Log the final cards array
-  console.log('🔍 Final carouselCards array:', {
-    totalCards: carouselCards.length,
-    cardIds: carouselCards.map(c => c.id),
-    cardTypes: carouselCards.map(c => c.type),
-  });
 
   // Initialize animated values for each card
   useEffect(() => {
@@ -957,7 +939,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <Animated.View
           style={[
             styles.cardContent,
-            // eslint-disable-next-line react-native/no-inline-styles
             {
               // Collapse by default; expand when toggled
               // Exception: Truth, Affirmations, Direct Challenge on iPad portrait show full content
@@ -1074,7 +1055,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 });
               }}
             >
-              <ThemedText weight="bold" style={styles.modalButtonText}>Open My Playbook</ThemedText>
+              <ThemedText weight="bold" style={styles.modalButtonText}>Start My Playbook</ThemedText>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1086,7 +1067,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           contentContainerStyle={[
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
-            // eslint-disable-next-line react-native/no-inline-styles
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={false}
@@ -1103,7 +1083,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
 
         {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
@@ -1368,7 +1347,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </ScrollView>
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
-        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)}          style={[
             styles.footerContainer,
             {
@@ -1403,9 +1381,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               activeOpacity={continueEnabled ? 0.8 : 1}
               disabled={!continueEnabled}
             >
-              <ThemedText weight="bold" style={styles.continueButtonText}>Continue with this moment</ThemedText>
+              <ThemedText weight="bold" style={styles.continueButtonText}>Start My Playbook</ThemedText>
             </TouchableOpacity>
-            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Guided playbooks and devotionals are available next</ThemedText>
+            <ThemedText style={[styles.continueButtonSubtext, { marginTop: -16, alignSelf: 'center' }]}>Start your guided walkthrough</ThemedText>
           </>
           </View>
         </View>
@@ -1503,9 +1481,9 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
     alignItems: 'center',
   },
   modalButtonText: {
@@ -1598,7 +1576,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.4,
     borderColor: Colors.alertCoral,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     marginHorizontal: 0,
     marginTop: 2,
     marginBottom: 14,
@@ -1886,9 +1864,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 28,
-    borderRadius: 12,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 0,
@@ -1916,8 +1894,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     marginTop: 0,  // Remove top margin
-    paddingVertical: 12,  // Increase padding for easier tapping
-    paddingHorizontal: 20,  // Increase horizontal padding
+    paddingVertical: 15,  // Increase padding for easier tapping
+    paddingHorizontal: 28,  // Increase horizontal padding
     alignSelf: 'center',
     minHeight: 44,  // Ensure minimum tap target size
   },

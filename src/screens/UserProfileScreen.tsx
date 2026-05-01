@@ -20,7 +20,6 @@ import {
   Switch,
   Image,
 } from 'react-native';
-import { Pencil as LuPencil } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
@@ -181,7 +180,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           // CRITICAL: Force refresh subscription data from database after sync
           // This ensures the UI shows the correct tier, especially after cancellation
-          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
           setSubscription(subscriptionData as any);
 
           Logger.info('[UserProfileScreen] Subscription refreshed on focus', {
@@ -405,7 +404,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Load subscription and usage data separately to avoid blocking UI
       try {
-        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+        // Check and apply monthly reset before reading — ensures profile always shows
+        // current-period counts even if the billing webhook hasn't fired yet.
+        await NewSubscriptionService.checkAndResetMonthlyUsage(user.id);
+
+        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
         setSubscription(subscriptionData as any);
 
         const usageData = {
@@ -1303,6 +1306,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // If canceled, user effectively falls back to free tier presentation
       planLabel = subscription.status === 'canceled' ? 'siFia Seeker' : (branded || 'siFia Seeker');
+
+      // Add "Usage" to the plan label
+      planLabel = `${planLabel} Usage`;
     }
     return (
       <ProfileHeader
@@ -1812,8 +1818,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Image
                   source={{ uri: displayAvatarUrl }}
                   style={styles.modalAvatar}
-                  onError={(error) => {
-                    console.log('Modal avatar image load error:', error);
+                  onError={(_error) => {
                     setModalImageLoadFailed(true);
                   }}
                   onLoad={() => {
@@ -1825,7 +1830,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.modalInitialLetter, font]}>{initialLetter}</Text>
                 </View>
               )}
-              <TouchableOpacity
+              {/* Hidden edit avatar button per user request */}
+              {/* <TouchableOpacity
                 style={styles.modalEditAvatarButton}
                 onPress={handleEditAvatar}
                 accessibilityRole="button"
@@ -1833,7 +1839,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <LuPencil size={16} color={Colors.alertCoral} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 
@@ -2422,6 +2428,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SubscriptionPlanModal
         visible={subscriptionPlanModal}
         onClose={() => setSubscriptionPlanModal(false)}
+        onContinueWithSiFia={() => {
+          setSubscriptionPlanModal(false);
+          navigation.goBack();
+        }}
         navigation={navigation}
       />
     </SafeAreaView>
@@ -2856,35 +2866,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: Colors.hopeWhite,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  settingGroup: {
-    marginBottom: 24,
-  },
-  settingTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 12,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
-  settingValue: {
-    fontSize: 16,
-    color: Colors.textGray,
     textTransform: 'capitalize',
   },
   settingItemColumnNotification: {
@@ -2900,7 +2881,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10 as any,
+    gap: 10,
   },
   permissionActionText: {
     color: Colors.hopeWhite,
@@ -3427,6 +3408,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.hopeWhite,
     flex: 1,
+  },
+  settingGroup: {
+    marginBottom: 16,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+  },
+  settingLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
 });  // Removed test button styles
 

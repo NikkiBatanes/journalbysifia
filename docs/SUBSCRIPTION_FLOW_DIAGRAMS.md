@@ -60,8 +60,8 @@ DAY 3: EXPIRATION                    DAY 3: AUTO-CONVERSION
           │    devotionals_limit: 0           │
           │                                    ├──► Handler Action:
           │                                    │    tier: 'spark'
-          │                                    │    playbooks_limit: 8
-          │                                    │    devotionals_limit: 8
+          │                                    │    playbooks_limit: 10
+          │                                    │    devotionals_limit: 10
           │                                    │    subscription_end_date:
           │                                    │      NOW + 30 days
           │                                    │
@@ -84,8 +84,8 @@ DAY 0: SUBSCRIPTION START
 └───────────┬──────────────┘
             │
             ├──► tier: 'spark'
-            │    playbooks_limit: 8
-            │    devotionals_limit: 8
+            │    playbooks_limit: 10
+            │    devotionals_limit: 10
             │    subscription_end_date: NOW + 30 days
             │
             └──► User gets 8/8 per month
@@ -118,16 +118,16 @@ PATH A: AUTO-RENEWAL                PATH B: USER CANCELLED
           │      NOW + 30 days                 │
           │                                    ├──► User Experience Day 15-29:
           ├──► User Experience:                 │    - Still has Spark tier
-          │    Fresh 8/8 limits                │    - Still has 8/8 limits
-          │    New 30-day period               │    - Used 3/8 on Day 15
-          │                                    │    - Can use 5 more until Day 30
+          │    Fresh 10/10 limits              │    - Still has 10/10 limits
+          │    New 30-day period               │    - Used 3/10 on Day 15
+          │                                    │    - Can use 7 more until Day 30
           │                                    │    - NO MORE RESETS
 DAY 60: RENEWAL AGAIN               │
 ┌─────────────────────┐             DAY 30: EXPIRATION
 │ Repeat cycle        │             ┌──────────────────────┐
 │ - Charge $4.99      │             │ subscription_end_date│
-│ - Reset to 8/8      │             │ reached              │
-│ - New 30-day period │             └──────────┬───────────┘
+│ - Reset to 10/10    │             └──────────┬───────────┘
+│ - New 30-day period │                        │
 └─────────────────────┘                        │
                                                ├──► Apple Webhook:
 Continues until cancelled...                   │    EXPIRED
@@ -163,18 +163,18 @@ DAY 0: ANNUAL SUBSCRIPTION START
              │
              ├──► tier: 'spark_annual'
              │    billing_cycle: 'annual'
-             │    playbooks_limit: 8
-             │    devotionals_limit: 8
+             │    playbooks_limit: 10
+             │    devotionals_limit: 10
              │    subscription_start_date: Day 0 (billing anchor)
              │    subscription_end_date: Day 365
              │    last_usage_reset: Day 0
              │
-             └──► User gets 8/8 per month for 12 months
+             └──► User gets 10/10 per month for 12 months
 
 
 DAY 0-30: FIRST MONTH
 ┌────────────────────────┐
-│ User uses 8/8 limits   │
+│ User uses 10/10 limits │
 └────────────────────────┘
 
 
@@ -187,7 +187,7 @@ DAY 30: MONTHLY RESET (CLIENT-SIDE)
 │ - Update: last_usage_reset = Day 30
 └──────────────┬───────────────────┘
                │
-               └──► User gets fresh 8/8 for Month 2
+               └──► User gets fresh 10/10 for Month 2
 
 
 DAY 60, 90, 120...330, 360: MONTHLY RESETS
@@ -195,7 +195,7 @@ DAY 60, 90, 120...330, 360: MONTHLY RESETS
 │ Every 30 days:                           │
 │ - Client checks days since billing anchor│
 │ - If new 30-day period: Reset usage      │
-│ - User always has fresh 8/8 each month   │
+│ - User always has fresh 10/10 each month  │
 └──────────────────────────────────────────┘
 
 
@@ -217,7 +217,7 @@ DAY 180: USER CANCELS (MID-YEAR)
              │
              └──► User Experience Day 180-365:
                   - Still has Spark Annual tier
-                  - Still has 8/8 monthly limits
+                  - Still has 10/10 monthly limits
                   - Monthly resets CONTINUE
 
 
@@ -226,9 +226,9 @@ DAY 210, 240, 270...360: RESETS CONTINUE
 │ ✅ Monthly resets STILL WORK              │
 │ - checkAndResetMonthlyUsage() still runs  │
 │ - User paid for full year, gets full year│
-│ - Day 210: Reset to 8/8                   │
-│ - Day 240: Reset to 8/8                   │
-│ - Day 270: Reset to 8/8                   │
+│ - Day 210: Reset to 10/10                 │
+│ - Day 240: Reset to 10/10                 │
+│ - Day 270: Reset to 10/10                 │
 │ - ... continues until Day 365             │
 └───────────────────────────────────────────┘
 
@@ -287,8 +287,8 @@ BEFORE REFUND: Active Subscription
 ┌─────────────────────────────────┐
 │ User: Spark Annual              │
 │ Day 180 of 365                  │
-│ playbooks_limit: 8              │
-│ devotionals_limit: 8            │
+│ playbooks_limit: 10             │
+│ devotionals_limit: 10           │
 │ subscription_end_date: Day 365  │
 └────────────┬────────────────────┘
              │
@@ -373,7 +373,7 @@ IMMEDIATE WEBHOOK
              │    billing_issue: true ⚠️
              │    grace_period_end_date: NOW + 3 days
              │    Keep tier: 'spark' ✅
-             │    Keep limits: 8/8 ✅
+             │    Keep limits: 10/10 ✅
              │
              └──► User Experience:
                   - Keeps Spark tier badge ✅
@@ -416,7 +416,7 @@ PATH A: PAYMENT FIXED              PATH B: GRACE PERIOD EXPIRES
           │                                  │    devotionals_limit: 0
           ├──► User Experience:                │
           │    - Generation enabled ✅       ├──► User Experience:
-          │    - Fresh 8/8 limits            │    - Downgraded to Seeker
+          │    - Fresh 10/10 limits           │    - Downgraded to Seeker
           │    - Continue subscription       │    - Lost all access
           │                                  │
           └──► Back to normal               └──► Must re-subscribe

@@ -25,6 +25,7 @@ interface SwipeableTodoItemProps {
   hideCheckbox?: boolean;
   variant?: 'todo' | 'gratitude';
   disableSwipe?: boolean;
+  containerStyle?: any; // custom style for the todoItem container
 }
 
 interface SwipeableRef {
@@ -41,6 +42,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   hideCheckbox = false,
   variant = 'todo',
   disableSwipe = false,
+  containerStyle,
 }, ref) => {
   const swipeableRef = useRef<Swipeable>(null);
 
@@ -148,6 +150,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         style={[
           styles.todoItem,
           variant === 'gratitude' && styles.gratitudeItem,
+          containerStyle,
         ]}
         activeOpacity={1}
         onPress={() => {
@@ -247,9 +250,9 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.trustGrey,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',

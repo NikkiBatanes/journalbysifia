@@ -77,6 +77,11 @@ interface FocusAnalyticsEvents {
     operation: string;
     date: string;
   };
+  'tomorrow_saved': {
+    emotion: string;
+    has_text: boolean;
+    date: string;
+  };
 }
 
 interface GratitudeAnalyticsEvents {

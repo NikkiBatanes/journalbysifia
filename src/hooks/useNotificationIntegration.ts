@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { streakTrackingService, StreakType } from '../services/streakTrackingService';
 import { milestoneCelebrationService } from '../services/milestoneCelebrationService';
-import { contextualNotificationService } from '../services/contextualNotificationService';
+import { smartNotificationEngine } from '../services/notifications/smartNotificationEngine';
 import { Logger } from '../utils/ProductionLogger';
 
 /**
@@ -184,7 +184,7 @@ export function useNotificationIntegration() {
     }
 
     try {
-      await contextualNotificationService.scheduleAllDailyNotifications(user.id);
+      await smartNotificationEngine.scheduleForUser(user.id);
     } catch (error) {
       Logger.error('Failed to schedule daily notifications', error as Error, {
         component: 'useNotificationIntegration',
@@ -196,32 +196,36 @@ export function useNotificationIntegration() {
   /**
    * Schedule specific contextual notifications
    */
-  const scheduleDevotionalReminder = useCallback(async (preferredTime?: string) => {
+  const scheduleDevotionalReminder = useCallback(async (_preferredTime?: string) => {
     if (!user?.id) {
       return;
     }
-    return await contextualNotificationService.scheduleDailyDevotionalReminder(user.id, preferredTime);
+    await smartNotificationEngine.scheduleForUser(user.id);
+    return true;
   }, [user?.id]);
 
-  const schedulePrayerReminder = useCallback(async (preferredTime?: string) => {
+  const schedulePrayerReminder = useCallback(async (_preferredTime?: string) => {
     if (!user?.id) {
       return;
     }
-    return await contextualNotificationService.scheduleDailyPrayerReminder(user.id, preferredTime);
+    await smartNotificationEngine.scheduleForUser(user.id);
+    return true;
   }, [user?.id]);
 
   const scheduleGratitudeReminder = useCallback(async () => {
     if (!user?.id) {
       return;
     }
-    return await contextualNotificationService.scheduleGratitudeReminder(user.id);
+    await smartNotificationEngine.scheduleForUser(user.id);
+    return true;
   }, [user?.id]);
 
   const scheduleWinsReminder = useCallback(async () => {
     if (!user?.id) {
       return;
     }
-    return await contextualNotificationService.scheduleWinsReminder(user.id);
+    await smartNotificationEngine.scheduleForUser(user.id);
+    return true;
   }, [user?.id]);
 
   return {

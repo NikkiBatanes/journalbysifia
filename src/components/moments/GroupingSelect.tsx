@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import { View, TouchableOpacity, Modal, StyleSheet, FlatList } from 'react-native';
+import { View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -26,7 +26,6 @@ const OPTIONS: { value: GroupingMode; label: string }[] = [
 const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ value, onChange, compact = false }, ref) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
   const fontMedium = getFontFamily(fontKey, 'medium');
   const [open, setOpen] = useState(false);
 
@@ -41,26 +40,24 @@ const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ 
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.overlay}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
-            <View style={styles.sheetHeader}>
-              <ThemedText weight="semiBold" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>Select View</ThemedText>
-              <TouchableOpacity onPress={() => { triggerLightHaptic(); setOpen(false); }}><Ionicons name="close" size={22} color={Colors.hopeWhite} /></TouchableOpacity>
-            </View>
-            <FlatList
-              data={OPTIONS}
-              keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
+            <ThemedText weight="medium" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>SELECT VIEW</ThemedText>
+            <View style={styles.optionsGrid}>
+              {OPTIONS.map((item) => (
                 <TouchableOpacity
-                  style={[styles.option, item.value === value && styles.activeOption]}
+                  key={item.value}
+                  style={[styles.optionPill, item.value === value && styles.activeOptionPill]}
                   onPress={() => { triggerLightHaptic(); onChange(item.value); setOpen(false); }}
                 >
-                  <ThemedText style={[styles.optionText, { fontFamily: fontRegular }]}>{item.label}</ThemedText>
+                  <ThemedText weight={item.value === value ? 'semiBold' : 'medium'} style={[styles.optionPillText, item.value === value && styles.activeOptionPillText, { fontFamily: fontMedium }]}>
+                    {item.label}
+                  </ThemedText>
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -84,13 +81,24 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 30, padding: 20 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
-  option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4 },
-  activeOption: { backgroundColor: Colors.alertCoral },
-  optionText: { color: Colors.hopeWhite, fontSize: 14 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  sheet: { backgroundColor: Colors.anchorBlue, borderRadius: 24, padding: 20, maxWidth: 280, alignSelf: 'center' },
+  sheetTitle: { fontSize: 16, color: Colors.hopeWhite, marginBottom: 16, textTransform: 'uppercase' },
+  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  optionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  activeOptionPill: { backgroundColor: Colors.alertCoral, borderColor: Colors.alertCoral },
+  optionPillText: { color: Colors.hopeWhite, fontSize: 14 },
+  activeOptionPillText: { color: Colors.hopeWhite },
 });
 
 export default GroupingSelect;

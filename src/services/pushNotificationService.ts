@@ -1,4 +1,4 @@
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert, DeviceEventEmitter, Linking, Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
@@ -35,6 +35,7 @@ export interface NotificationPayload {
   title: string;
   message: string;
   data?: any;
+  id?: string;
   badge?: number;
   sound?: string;
   priority?: 'high' | 'normal';
@@ -156,16 +157,47 @@ class PushNotificationService {
     const notificationListener = addNotificationEventListener(
       'RemoteNotificationReceived',
       async (notification: any) => {
-        Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
-        Logger.info('[PushNotification] Notification received', {
+        Logger.info('[PushNotification] LISTENER TRIGGERED - About to process notification', {
           component: 'pushNotificationService',
-          notification,
         });
+        try {
+          Logger.info('NOTIFICATION EVENT: RemoteNotificationReceived fired!', notification);
+          Logger.info('[PushNotification] Notification received - FULL OBJECT', {
+            component: 'pushNotificationService',
+            notification: JSON.stringify(notification, null, 2),
+          });
+          Logger.info('[PushNotification] Notification fields check', {
+            component: 'pushNotificationService',
+            hasTitle: !!notification.title,
+            hasMessage: !!notification.message,
+            hasBody: !!notification.body,
+            hasData: !!notification.data,
+            dataKeys: notification.data ? Object.keys(notification.data) : [],
+            dataTitle: notification.data?._title,
+            dataMessage: notification.data?._message,
+            rootTitle: notification._title,
+            rootMessage: notification._message,
+          });
 
-        // Save notification to history when received
-        await this.saveNotificationOnReceive(notification);
+          const notificationData = this.getNotificationData(notification);
+          const wasTapped = notification.userInteraction === true || notificationData.userInteraction === true;
 
-        this.handleNotificationTap(notification);
+          if (wasTapped) {
+            Logger.info('[PushNotification] Handling tapped iOS notification', {
+              component: 'pushNotificationService',
+            });
+            await this.handleNotificationTap(notification);
+          } else {
+            Logger.info('[PushNotification] Saving received iOS notification', {
+              component: 'pushNotificationService',
+            });
+            await this.saveNotificationOnReceive(notification);
+          }
+        } catch (error) {
+          Logger.error('[PushNotification] Error in notification listener', error as Error, {
+            component: 'pushNotificationService',
+          });
+        }
       }
     );
 
@@ -195,7 +227,7 @@ class PushNotificationService {
       },
       onNotification: async (notification: any) => {
         if (notification.userInteraction) {
-          this.handleNotificationTap(notification);
+          await this.handleNotificationTap(notification);
         } else {
           // Save notification when received (not just when tapped)
           await this.saveNotificationOnReceive(notification);
@@ -404,6 +436,11 @@ class PushNotificationService {
 
   async scheduleLocalNotification(payload: NotificationPayload, date?: Date): Promise<void> {
     try {
+      // Get current user ID from Supabase auth (more reliable than AsyncStorage)
+      const { supabase: supabaseClient } = await import('./supabaseClient');
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      const userId = user?.id;
+
       if (Platform.OS === 'ios') {
         if (!isNativeModuleAvailable()) {
           Logger.warn('[PushNotification] Native module not available', {
@@ -412,23 +449,48 @@ class PushNotificationService {
           return;
         }
 
+        // Preserve title and message in userInfo so they can be retrieved when received
+        const notificationId = payload.id || payload.data?.notification_id || payload.data?.queue_notification_id;
+        const userInfo = {
+          ...(payload.data || {}),
+          user_id: userId,
+          ...(notificationId ? { notification_id: notificationId, queue_notification_id: notificationId } : {}),
+          _title: payload.title,
+          _message: payload.message,
+        };
+
+        // UNCalendarNotificationTrigger silently drops requests whose fire time is already past.
+        // Ensure we always schedule at least 1 second in the future.
+        const fireDate = date ? Math.max(date.getTime(), Date.now() + 1000) : Date.now() + 1000;
         await PushNotificationBridge.scheduleLocalNotification({
           title: payload.title,
           body: payload.message,
           badge: payload.badge,
           sound: payload.sound || 'default',
-          userInfo: payload.data,
-          fireDate: date ? date.getTime() : Date.now() + 1000,
+          userInfo,
+          fireDate,
+          id: notificationId,
         });
       } else if (Platform.OS === 'android' && PushNotification) {
+        // Preserve title and message in userInfo so they can be retrieved when received
+        const notificationId = payload.id || payload.data?.notification_id || payload.data?.queue_notification_id;
+        const userInfo = {
+          ...(payload.data || {}),
+          user_id: userId,
+          ...(notificationId ? { notification_id: notificationId, queue_notification_id: notificationId } : {}),
+          _title: payload.title,
+          _message: payload.message,
+        };
+
         PushNotification.localNotificationSchedule({
           title: payload.title,
           message: payload.message,
+          id: notificationId,
           date: date || new Date(Date.now() + 1000),
           playSound: true,
           soundName: payload.sound || 'default',
           badge: payload.badge,
-          userInfo: payload.data,
+          userInfo,
           channelId: payload.priority === 'high' ? 'sifia-critical' : 'sifia-default',
         });
       }
@@ -486,30 +548,191 @@ class PushNotificationService {
     }
   }
 
+  private getNotificationData(notification: any): Record<string, any> {
+    const nestedData = notification?.data && typeof notification.data === 'object' ? notification.data : {};
+    const rootData: Record<string, any> = {};
+
+    if (notification && typeof notification === 'object') {
+      Object.keys(notification).forEach(key => {
+        if (['aps', 'alert', 'body', 'message', 'title', 'data'].includes(key)) {
+          return;
+        }
+        rootData[key] = notification[key];
+      });
+    }
+
+    return {
+      ...rootData,
+      ...nestedData,
+    };
+  }
+
+  private getNotificationType(notification: any): string | undefined {
+    const data = this.getNotificationData(notification);
+    return notification?.type || data.type || notification?.notification_type || data.notification_type;
+  }
+
+  private getQueueNotificationId(notification: any): string | undefined {
+    const data = this.getNotificationData(notification);
+    const value = data.notification_id || data.queue_notification_id || notification?.notification_id;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private async getNotificationUserId(notification: any): Promise<string | null> {
+    const data = this.getNotificationData(notification);
+    const userId = data.user_id || notification?.userId;
+
+    if (typeof userId === 'string' && userId.length > 0) {
+      return userId;
+    }
+
+    return await AsyncStorage.getItem('current_user_id');
+  }
+
+  private async historyAlreadyContainsNotification(
+    userId: string,
+    mappedType: string,
+    title: string,
+    message: string,
+    notification: any
+  ): Promise<boolean> {
+    try {
+      const queueNotificationId = this.getQueueNotificationId(notification);
+
+      if (queueNotificationId) {
+        const { data: byNotificationId, error: notificationIdError } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', userId)
+          .filter('data->>notification_id', 'eq', queueNotificationId)
+          .limit(1)
+          .maybeSingle();
+
+        if (!notificationIdError && byNotificationId) {
+          return true;
+        }
+
+        const { data: byQueueId, error: queueIdError } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', userId)
+          .filter('data->>queue_notification_id', 'eq', queueNotificationId)
+          .limit(1)
+          .maybeSingle();
+
+        if (!queueIdError && byQueueId) {
+          return true;
+        }
+      }
+
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const { data: recentDuplicate, error: recentDuplicateError } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', mappedType)
+        .eq('title', title)
+        .eq('message', message)
+        .gte('created_at', twoMinutesAgo)
+        .limit(1)
+        .maybeSingle();
+
+      return !recentDuplicateError && !!recentDuplicate;
+    } catch (error) {
+      Logger.warn('[PushNotification] Failed to check notification history duplicate', {
+        component: 'pushNotificationService',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
+  }
+
   private async saveNotificationToHistory(userId: string, notification: any): Promise<void> {
     try {
+      const notificationData = this.getNotificationData(notification);
+      const notificationType = this.getNotificationType(notification);
+      const queueNotificationId = this.getQueueNotificationId(notification);
+
       // Map notification types to valid enum values
       const notificationTypeMap: Record<string, string> = {
         'prayer_reminder': 'REMINDER',
+        'prayer_answered_check': 'REMINDER',
+        'prayer_today': 'REMINDER',
         'devotional_reminder': 'REMINDER',
         'journal_prompt': 'REMINDER',
         'milestone_celebration': 'ACHIEVEMENT',
         'trial_notification': 'PROMOTIONAL',
         'streak_alert': 'ACHIEVEMENT',
         'prayer_request': 'ACTIVITY',
+        'prayer_request_care': 'ACTIVITY',
         'system': 'SYSTEM',
       };
 
-      const mappedType = notificationTypeMap[notification.type] || 'SYSTEM';
+      const mappedType = notificationType ? (notificationTypeMap[notificationType] || 'SYSTEM') : 'SYSTEM';
+
+      // Extract title and message from various possible locations
+      // Local notifications may have title/message in different fields
+      // Priority: preserved fields at root -> preserved fields in data -> direct fields -> fallback
+      const title = notification._title
+        || notification.data?._title
+        || notification.data?.title
+        || notification.title
+        || notification.message?.title
+        || notification.aps?.alert?.title
+        || (typeof notification.aps?.alert === 'string' ? notification.aps.alert : null)
+        || notification.data?.notification?.title
+        || 'Notification';
+
+      const message = notification._message
+        || notification.data?._message
+        || notification.data?.message
+        || notification.message
+        || notification.body
+        || notification.aps?.alert?.body
+        || notification.data?.notification?.message
+        || notification.data?.notification?.body
+        || '';
+
+      Logger.info('[PushNotification] Saving notification to history', {
+        component: 'pushNotificationService',
+        extractedTitle: title,
+        extractedMessage: message,
+        mappedType,
+        notificationType,
+      });
+
+      const alreadySaved = await this.historyAlreadyContainsNotification(
+        userId,
+        mappedType,
+        title,
+        message,
+        notification
+      );
+
+      if (alreadySaved) {
+        Logger.info('[PushNotification] Notification history already contains this item', {
+          component: 'pushNotificationService',
+          notificationType,
+          queueNotificationId,
+        });
+        return;
+      }
 
       const { error } = await supabase
         .from('notifications')
         .insert({
           user_id: userId,
           type: mappedType,
-          title: notification.title || 'Notification',
-          message: notification.message || '',
-          data: notification.data || {},
+          title,
+          message,
+          data: {
+            ...notificationData,
+            ...(notificationType ? { type: notificationType } : {}),
+            ...(queueNotificationId ? {
+              notification_id: queueNotificationId,
+              queue_notification_id: queueNotificationId,
+            } : {}),
+          },
           is_read: false,
           created_at: new Date().toISOString(),
         });
@@ -517,7 +740,7 @@ class PushNotificationService {
       if (error) {
         Logger.error('[PushNotification] Error saving notification to history', error, {
           component: 'pushNotificationService',
-          notificationType: notification.type,
+          notificationType,
           mappedType,
           errorDetails: {
             message: error.message,
@@ -529,9 +752,11 @@ class PushNotificationService {
       } else {
         Logger.info('[PushNotification] Notification saved to history', {
           component: 'pushNotificationService',
-          notificationType: notification.type,
+          notificationType,
           mappedType,
         });
+        // Notify in-app screens (NotificationsScreen, badge hook) instantly — no Supabase realtime required
+        DeviceEventEmitter.emit('notification_saved', { userId });
       }
     } catch (error) {
       Logger.error('[PushNotification] Failed to save notification to history', error as Error, {
@@ -542,8 +767,8 @@ class PushNotificationService {
 
   private async saveNotificationOnReceive(notification: any): Promise<void> {
     try {
-      // Get current user ID from AsyncStorage or session
-      const userId = await AsyncStorage.getItem('current_user_id');
+      const userId = await this.getNotificationUserId(notification);
+
       if (userId) {
         await this.saveNotificationToHistory(userId, notification);
 
@@ -565,18 +790,22 @@ class PushNotificationService {
     }
   }
 
-  private handleNotificationTap(notification: any): void {
+  private async handleNotificationTap(notification: any): Promise<void> {
     try {
       // Save notification to history when tapped
       // Get userId from notification data or from stored user session
-      const userId = notification.data?.user_id || notification.userId;
+      const userId = await this.getNotificationUserId(notification);
       if (userId) {
-        this.saveNotificationToHistory(userId, notification);
+        await this.saveNotificationToHistory(userId, notification);
       }
 
       // Import deep link service dynamically to avoid circular dependencies
+      const normalizedNotification = {
+        ...notification,
+        data: this.getNotificationData(notification),
+      };
       import('./notificationDeepLinkService').then(({ notificationDeepLinkService }) => {
-        notificationDeepLinkService.handleNotificationTap(notification);
+        notificationDeepLinkService.handleNotificationTap(normalizedNotification);
       }).catch((error) => {
         Logger.error('[PushNotification] Failed to load deep link service', error as Error, {
           component: 'pushNotificationService',

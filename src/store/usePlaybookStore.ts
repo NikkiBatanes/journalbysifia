@@ -19,15 +19,16 @@ interface PlaybookStore {
   updateActionStep: (playbookId: string, stepId: string, completed: boolean) => void;
 }
 
-// Utility to calculate progress and status
-function calculateProgressAndStatus(actionSteps: any[], stepId: string, completed: boolean) {
+// Utility to calculate progress — never auto-completes; completion is via Save & Finish only
+function calculateProgressAndStatus(actionSteps: any[], stepId: string, completed: boolean, currentStatus: PlaybookStatus) {
   const updatedSteps = actionSteps.map((step: any) =>
     step.id === stepId ? { ...step, completed } : step
   );
   const total = updatedSteps.length;
   const completedCount = updatedSteps.filter((step: any) => step.completed).length;
   const progress = total > 0 ? completedCount / total : 0;
-  const status: PlaybookStatus = updatedSteps.every((step: any) => step.completed) ? 'completed' : 'inProgress';
+  // Preserve existing 'completed' status; otherwise keep 'inProgress' until Save & Finish
+  const status: PlaybookStatus = currentStatus === 'completed' ? 'completed' : 'inProgress';
   return { updatedSteps, progress, status, total };
 }
 
@@ -75,7 +76,8 @@ export const usePlaybookStore = create<PlaybookStore>()(
             const { updatedSteps, progress, status, total } = calculateProgressAndStatus(
               playbook.actionSteps,
               stepId,
-              completed
+              completed,
+              playbook.status as PlaybookStatus,
             );
             updatedPlaybook = {
               ...playbook,
@@ -83,7 +85,6 @@ export const usePlaybookStore = create<PlaybookStore>()(
               progress,
               totalTasks: total,
               status,
-              completedAt: status === 'completed' ? new Date().toISOString() : playbook.completedAt,
               updatedAt: new Date().toISOString(),
             };
 

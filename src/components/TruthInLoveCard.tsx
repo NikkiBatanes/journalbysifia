@@ -23,6 +23,7 @@ type TruthInLoveCardProps = {
   playbookTitle?: string;
   userInput?: string;
   showCloseButton?: boolean;
+  headingStyle?: StyleProp<ViewStyle>;
 };
 
 export default function TruthInLoveCard({
@@ -38,6 +39,7 @@ export default function TruthInLoveCard({
   playbookTitle: _playbookTitle,
   userInput: _userInput,
   showCloseButton = true,
+  headingStyle,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   // Use only parent-controlled expansion
@@ -56,9 +58,21 @@ export default function TruthInLoveCard({
     return result;
   }, [truth, freshUserData]);
 
-  const processedSummary = React.useMemo(() => {
-    const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
-    return result;
+  const { summaryText, cueText } = React.useMemo(() => {
+    const substituted = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
+    if (!substituted) {
+      return { summaryText: '', cueText: '' };
+    }
+    const trimmed = substituted.trim();
+    const cueMatch = trimmed.match(/\s*\(([^)]+)\)\s*$/);
+    if (cueMatch && cueMatch.index !== undefined) {
+      return {
+        summaryText: trimmed.slice(0, cueMatch.index).trim(),
+        cueText: cueMatch[1].trim(),
+      };
+    }
+
+    return { summaryText: trimmed, cueText: '' };
   }, [summary, freshUserData]);
 
   const truthParagraphs = React.useMemo(() => {
@@ -75,7 +89,7 @@ export default function TruthInLoveCard({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
-        <View style={styles.headingContainer}>
+        <View style={[styles.headingContainer, headingStyle]}>
           {/* Header area - expansion handled by parent card tap */}
           <View style={styles.rowCenterFlex1}>
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.heartIcon} />
@@ -94,21 +108,41 @@ export default function TruthInLoveCard({
           )}
         </View>
         {isExpanded && Platform.OS === 'ios' ? (
-          <ThemedTextInput
-            weight="bold"
-            value={processedSummary}
-            editable={false}
-            multiline={true}
-            scrollEnabled={false}
-            style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
-          />
+          <>
+            <ThemedTextInput
+              weight="bold"
+              value={summaryText}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+            />
+            {cueText ? (
+              <ThemedText
+                weight="regular"
+                style={[styles.regulationCue, { color: textColor }]}
+              >
+                {cueText}
+              </ThemedText>
+            ) : null}
+          </>
         ) : (
-          <ThemedText
-            weight="regular"
-            style={[styles.content, styles.contentWithMargin, { color: textColor }]}
-          >
-            <ThemedText weight="bold" style={[styles.summary, { color: textColor }]}>{processedSummary}</ThemedText>
-          </ThemedText>
+          <>
+            <ThemedText
+              weight="bold"
+              style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+            >
+              {summaryText}
+            </ThemedText>
+            {cueText ? (
+              <ThemedText
+                weight="regular"
+                style={[styles.regulationCue, { color: textColor }]}
+              >
+                {cueText}
+              </ThemedText>
+            ) : null}
+          </>
         )}
       </View>
 
@@ -171,11 +205,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   contentWrapper: {
-    // Remove flex constraints to allow natural scrolling
-    // flex: 1,
-    // minHeight: 0,
-    marginTop: 16,
-    // flexShrink: 1,
+    marginTop: 8,
   },
   textContainer: {
     // Remove flex and overflow constraints
@@ -187,7 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8, // Reduced from 20 to 8
+    marginBottom: -50,
   },
   heartIcon: {
     marginRight: 8,
@@ -214,6 +244,14 @@ const styles = StyleSheet.create({
   },
   summary: {
     // Typography handled by ThemedText weight="bold"
+  },
+  regulationCue: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.7,
+    marginTop: 12,
+    alignSelf: 'center',
+    textAlign: 'center',
   },
   truth: {
     // Typography handled by ThemedText weight="regular"

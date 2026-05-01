@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import ThemedText from './common/ThemedText';
 import DevotionalLockIcon from './DevotionalLockIcon';
 import UsageTooltipModal from './profile/UsageTooltipModal';
@@ -61,19 +63,26 @@ interface DevotionalModalProps {
 const DevotionalModal: React.FC<DevotionalModalProps> = ({
   visible,
   onClose,
-  onSelectDuration,
   playbookInfo,
   playbookId,
   userInput,
   onDevotionalCreated,
   isOnboarding = false,
 }) => {
+  const theme = useTheme();
+  const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
+
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [isOnboardingCreating, setIsOnboardingCreating] = useState(false);
   const { user } = useAuth();
   const navigation = useNavigation();
   const { createDevotional, isCreating } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  // Refs so the slide-animation effect can read current values without re-triggering
+  const isCreatingRef = React.useRef(isCreating);
+  const isOnboardingCreatingRef = React.useRef(isOnboardingCreating);
+  const isSuccessRef = React.useRef(false); // updated below
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
@@ -121,6 +130,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+
+  // Keep refs in sync with state so slide effect never re-fires on these changes
+  React.useEffect(() => { isCreatingRef.current = isCreating; }, [isCreating]);
+  React.useEffect(() => { isOnboardingCreatingRef.current = isOnboardingCreating; }, [isOnboardingCreating]);
+  React.useEffect(() => { isSuccessRef.current = isSuccess; }, [isSuccess]);
 
   // Tooltip state
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -128,20 +144,41 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Generating UI state (progress bar, shimmering step text, animated dots)
   const progressAnim = React.useRef(new Animated.Value(0)).current; // 0..100
   const shimmerOpacity = React.useRef(new Animated.Value(0.85)).current;
-  const [dotCount, setDotCount] = useState(0);
-  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const generationSteps = React.useMemo(() => ([
-    { title: 'Centering your heart…', description: '' },
-    { title: 'Listening to your story…', description: '' },
-    { title: 'Finding Scripture for each day…', description: '' },
-    { title: 'Preparing reflections and prompts…', description: '' },
-    { title: 'Crafting daily prayers…', description: '' },
-    { title: 'Organizing your day-by-day journey…', description: '' },
-    { title: 'Finalizing your devotional', description: '' },
-  ]), []);
-  const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
-  const baseTitle = React.useMemo(() => currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd(), [currentTitle]);
+
+  // Step status tracking for step cards
+  type StepStatus = 'completed' | 'active' | 'inactive';
+  type GenerationStep = { key: string; title: string; status: StepStatus };
+  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>([
+    { key: 'seeing', title: 'Seeing what this season needs', status: 'inactive' },
+    { key: 'choosing', title: 'Choosing Scripture for this moment', status: 'inactive' },
+    { key: 'shaping', title: 'Shaping your reflection', status: 'inactive' },
+    { key: 'preparing', title: 'Preparing your devotional', status: 'inactive' },
+  ]);
+
+  // Animated background colors for step cards
+  const stepCardBgAnims = React.useRef(generationSteps.map(() => new Animated.Value(0))).current;
+  const stepCardBorderAnims = React.useRef(generationSteps.map(() => new Animated.Value(0))).current;
+  // Animated scale for step cards
+  const stepCardScaleAnims = React.useRef(generationSteps.map(() => new Animated.Value(1))).current;
+
+  // Check icon animations for each step
+  const checkIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Pulsing dot animations for each step
+  const pulsingDotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Logo entry animation during generation
+  const genLogoEntryAnim = useRef(new Animated.Value(0)).current;
+  // Shimmer animation for building text
+  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
+  const [buildingDots, setBuildingDots] = useState('');
+  // Staggered entrance animations for generation elements
+  const genCardEntryAnim = useRef(new Animated.Value(0)).current;
+  const genHeadingEntryAnim = useRef(new Animated.Value(0)).current;
+  const genStepsEntryAnim = useRef(new Animated.Value(0)).current;
+  const genProgressEntryAnim = useRef(new Animated.Value(0)).current;
+  // Container bounce animation
+  const generatingScaleAnim = useRef(new Animated.Value(0.92)).current;
+  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
 
   // Ensure 'WHAT YOU SHARED' is collapsed initially each time the modal opens
   React.useEffect(() => {
@@ -150,11 +187,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       // Reset chevron rotation to collapsed state
       try { rotateAnim.setValue(0); } catch {}
       // Only reset selected duration when modal opens if no creation is in progress
-      if (!isCreating && !isSuccess) {
+      if (!isCreating && !isSuccess && !justCompleted) {
         setSelectedDuration(null);
+        // Reset step card animation values
+        stepCardBgAnims.forEach(anim => anim.setValue(0));
+        stepCardBorderAnims.forEach(anim => anim.setValue(0));
+        stepCardScaleAnims.forEach(anim => anim.setValue(1));
+      }
+      // Reset justCompleted flag after modal opens
+      setJustCompleted(false);
+
+      // Auto-select 3-day duration during onboarding and trigger generation (immediate, no delay)
+      if (isOnboarding && !isCreating && !isSuccess) {
+        setIsOnboardingCreating(true); // Immediately show building UI
+        // Trigger building entry animations
+        Animated.parallel([
+          Animated.timing(genLogoEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(genCardEntryAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(genStepsEntryAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(genProgressEntryAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        ]).start();
+        handleSelectDuration(3);
       }
     }
-  }, [visible, rotateAnim, isCreating, isSuccess]);
+  }, [visible, rotateAnim, isCreating, isSuccess, justCompleted, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
 
@@ -171,30 +227,117 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && isCreating && !isSuccess) {
+        if (finished && mounted && (isCreating || isOnboardingCreating) && !isSuccess) {
           loop();
         }
       });
     };
-    if (isCreating && !isSuccess) {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
       loop();
     }
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();
     };
-  }, [isCreating, isSuccess, shimmerOpacity]);
+  }, [isCreating, isOnboardingCreating, isSuccess, shimmerOpacity]);
 
-  // Animated dots while creating
+  // Shimmer animation for building text
   React.useEffect(() => {
-    if (!isCreating || isSuccess) { return; }
-    const id = setInterval(() => setDotCount(prev => (prev + 1) % 4), 500);
-    return () => clearInterval(id);
-  }, [isCreating, isSuccess]);
+    if (!(isCreating || isOnboardingCreating) || isSuccess) {
+      setBuildingDots('');
+      buildingTextOpacity.setValue(0.55);
+      return;
+    }
+
+    // Cycling dots: '' → '.' → '..' → '...'
+    const dotStates = ['', '.', '..', '...'];
+    let di = 0;
+    const dotInterval = setInterval(() => {
+      di = (di + 1) % dotStates.length;
+      setBuildingDots(dotStates[di]);
+    }, 420);
+
+    // Shimmer = the letters themselves breathing bright → dim → bright
+    buildingTextOpacity.setValue(0.55);
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buildingTextOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.55,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    return () => {
+      clearInterval(dotInterval);
+      shimmerLoop.stop();
+    };
+  }, [isCreating, isOnboardingCreating, isSuccess, buildingTextOpacity]);
+
+  // Logo entry animation when generation starts
+  React.useEffect(() => {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+      Animated.spring(genLogoEntryAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      genLogoEntryAnim.setValue(0);
+    }
+  }, [isCreating, isOnboardingCreating, isSuccess, genLogoEntryAnim]);
+
+  // Staggered entrance animations for generation elements
+  React.useEffect(() => {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+      const staggerSequence = Animated.sequence([
+        Animated.timing(genCardEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(genHeadingEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(genStepsEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(genProgressEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]);
+      staggerSequence.start();
+    } else {
+      genCardEntryAnim.setValue(0);
+      genHeadingEntryAnim.setValue(0);
+      genStepsEntryAnim.setValue(0);
+      genProgressEntryAnim.setValue(0);
+    }
+  }, [isCreating, isOnboardingCreating, isSuccess, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
+
+  // Container bounce animation when generation starts
+  React.useEffect(() => {
+    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+      Animated.parallel([
+        Animated.spring(generatingScaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(generatingFadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      generatingScaleAnim.setValue(0.92);
+      generatingFadeAnim.setValue(0);
+    }
+  }, [isCreating, isOnboardingCreating, isSuccess, generatingScaleAnim, generatingFadeAnim]);
 
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
-    if (!isCreating || isSuccess) { return; }
+    if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
     // Adjust step interval based on devotional duration
     // 1-3 day: 3000ms per step (18s total)
     // 5 day: 7000ms per step (42s total) - slower
@@ -210,6 +353,112 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       setCurrentStep(prev => {
         const nextStep = prev + 1;
         const isLast = nextStep >= generationSteps.length;
+
+        // Update step statuses
+        setGenerationSteps(steps => steps.map((step, index) => {
+          if (index < nextStep) {return { ...step, status: 'completed' as StepStatus };}
+          if (index === nextStep) {return { ...step, status: 'active' as StepStatus };}
+          return { ...step, status: 'inactive' as StepStatus };
+        }));
+
+        // Animate background, border, and scale for step cards with bouncy spring
+        generationSteps.forEach((step, index) => {
+          if (index < nextStep) {
+            // Completed: animate to coral background and scale
+            Animated.parallel([
+              Animated.spring(stepCardBgAnims[index], {
+                toValue: 1,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardBorderAnims[index], {
+                toValue: 1,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardScaleAnims[index], {
+                toValue: 1,
+                useNativeDriver: false,
+                tension: 50,
+                friction: 6,
+              }),
+            ]).start();
+          } else if (index === nextStep) {
+            // Active: animate to white background and scale up
+            Animated.parallel([
+              Animated.spring(stepCardBgAnims[index], {
+                toValue: 0.5,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardBorderAnims[index], {
+                toValue: 0.5,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardScaleAnims[index], {
+                toValue: 1.05,
+                useNativeDriver: false,
+                tension: 50,
+                friction: 6,
+              }),
+            ]).start();
+          } else {
+            // Inactive: animate to transparent and scale down
+            Animated.parallel([
+              Animated.spring(stepCardBgAnims[index], {
+                toValue: 0,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardBorderAnims[index], {
+                toValue: 0,
+                useNativeDriver: false,
+                tension: 40,
+                friction: 7,
+              }),
+              Animated.spring(stepCardScaleAnims[index], {
+                toValue: 1,
+                useNativeDriver: false,
+                tension: 50,
+                friction: 6,
+              }),
+            ]).start();
+          }
+        });
+
+        // Animate checkmark for completed step
+        if (nextStep > 0 && nextStep <= generationSteps.length) {
+          Animated.timing(checkIconAnims[nextStep - 1], {
+            toValue: 1,
+            duration: 280,
+            useNativeDriver: true,
+          }).start();
+        }
+
+        // Start pulsing dot for active step
+        if (nextStep < generationSteps.length) {
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(pulsingDotAnims[nextStep], {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulsingDotAnims[nextStep], {
+                toValue: 0.4,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+            ])
+          ).start();
+        }
+
         Animated.timing(progressAnim, {
           toValue: Math.min(((isLast ? generationSteps.length : nextStep) / generationSteps.length) * 100, 95),
           duration: 1000,
@@ -225,7 +474,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }, getStepDuration());
     return () => clearInterval(stepInterval);
-  }, [isCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]);
+  }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const measureContent = () => {
     if (contentRef.current) {
@@ -237,7 +486,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Animate the ellipsis
   React.useEffect(() => {
-    if (!isCreating) {return;}
+    if (!(isCreating || isOnboardingCreating)) {return;}
 
     const timer = setInterval(() => {
       setEllipsis((prev: string) => {
@@ -247,7 +496,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }, 300);
 
     return () => clearInterval(timer);
-  }, [isCreating]);
+  }, [isCreating, isOnboardingCreating]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -256,8 +505,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     if (visible) {
       setIsVisible(true);
-      // Only reset progress animation when modal opens if no creation is in progress
-      if (!isCreating && !isSuccess) {
+      // Only reset progress animation when modal first opens with no active generation
+      if (!isCreatingRef.current && !isOnboardingCreatingRef.current && !isSuccessRef.current) {
         progressAnim.setValue(0);
         setCurrentStep(0);
       }
@@ -317,7 +566,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, progressAnim, isCreating, isSuccess]);
+  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]);
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {
@@ -333,15 +582,58 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
+    const userId = user?.id;
+
+    // Use subscriptionService.canGenerate with onboarding exception
+    if (userId) {
+      const { subscriptionService } = await import('../services/subscriptionService');
+      const canGenerateCheck = await subscriptionService.canGenerate(userId, 'devotional', isOnboarding);
+
+      if (!canGenerateCheck.allowed) {
+        // Seeker users can use their 1 monthly devotional during onboarding.
+        const isSeeker = devotionalGating.tier === 'seeker';
+        if (isSeeker && isOnboarding) {
+          // Onboarding exception should allow this, so log and continue
+          Logger.info('[DevotionalModal] Onboarding exception allowing seeker devotional', {
+            component: 'DevotionalModal',
+            context: 'onboarding_seeker_exception',
+            userId,
+            requestedDuration: days,
+          });
+        } else {
+          // Not allowed - show upgrade
+          Logger.info('[DevotionalModal] Devotional generation not allowed', {
+            component: 'DevotionalModal',
+            context: 'not_allowed',
+            userId,
+            reason: canGenerateCheck.message,
+          });
+
+          onClose();
+          navigation.navigate('OnboardingSalesOffer' as any, {
+            upgradeMode: true,
+            currentTier: devotionalGating.tier,
+            requestedDuration: days,
+            skipNotificationPreference: true,
+            featureType: 'devotionals',
+            source: 'devotional_limit',
+            feature: 'devotionals',
+          });
+          return;
+        }
+      }
+    }
 
     // Check if user has no remaining devotionals - check directly from subscription
     const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
-    const devotionalsLimit = devotionalGating.subscription?.devotionals_limit || 0;
+    const baseLimit = devotionalGating.subscription?.devotionals_limit || 0;
+    // During onboarding, seekers use the same 1-devotional monthly quota.
+    const devotionalsLimit = (isOnboarding && devotionalGating.tier === 'seeker') ? 1 : baseLimit;
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
 
-    // For Seeker users, skip popup and go directly to sales offer
-    if (isSeeker && hasNoRemaining) {
+    // For Seeker users, skip popup and go directly to sales offer (unless onboarding)
+    if (isSeeker && hasNoRemaining && !isOnboarding) {
 
       Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker/no-remaining gating', {
         component: 'DevotionalModal',
@@ -362,7 +654,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       return;
     }
 
-    if (hasNoRemaining) {
+    if (hasNoRemaining && !isOnboarding) {
 
       // Force refresh before showing modal
       await devotionalGating.refreshSubscription();
@@ -389,7 +681,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // Check if this duration is locked for current tier
     // Use 'onboarding' context only if explicitly in onboarding flow, otherwise use 'inApp'
-    const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp');
+    const accessCheck = devotionalGating.checkAccess(days, isOnboarding ? 'onboarding' : 'inApp', isOnboarding);
 
     if (accessCheck.isLocked) {
 
@@ -408,104 +700,79 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         requestedDuration: days,
         skipNotificationPreference: true,
         featureType: 'devotionals',
-        source: 'devotional_duration_locked',
+        source: 'devotional_duration_lock',
         feature: 'devotionals',
       });
       return;
     }
 
-    try {
-      setSelectedDuration(days);
-      setCreationError(null); // Reset error state
+    setSelectedDuration(days);
+    // Reset generation steps when selecting a new duration
+    setGenerationSteps([
+      { key: 'seeing', title: 'Seeing what this season needs', status: 'inactive' },
+      { key: 'choosing', title: 'Choosing Scripture for this moment', status: 'inactive' },
+      { key: 'shaping', title: 'Shaping your reflection', status: 'inactive' },
+      { key: 'preparing', title: 'Preparing your devotional', status: 'inactive' },
+    ]);
+    setCurrentStep(0);
+    progressAnim.setValue(0);
+    setIsSuccess(false);
+    setIsClosing(false);
+    setJustCompleted(false);
+    // Reset step card animation values
+    stepCardBgAnims.forEach(anim => anim.setValue(0));
+    stepCardBorderAnims.forEach(anim => anim.setValue(0));
+    stepCardScaleAnims.forEach(anim => anim.setValue(1));
 
-      if (onSelectDuration) {
-        onSelectDuration(days);
-        return;
+    // If no onSelectDuration provided, handle devotional creation here
+    if (playbookId) {
+
+      // Haptic feedback when generation starts (parity with playbook generation)
+      try { triggerLightHaptic(); } catch {}
+      // Show progress message for longer generations
+      let progressTimeout: ReturnType<typeof setTimeout> | null = null;
+      if (days >= 5) {
+        progressTimeout = setTimeout(() => {
+
+        }, 10000);
       }
 
-      // If no onSelectDuration provided, handle devotional creation here
-      if (playbookId) {
-
-        // Haptic feedback when generation starts (parity with playbook generation)
-        try { triggerLightHaptic(); } catch {}
-        // Show progress message for longer generations
-        let progressTimeout: ReturnType<typeof setTimeout> | null = null;
-        if (days >= 5) {
-          progressTimeout = setTimeout(() => {
-
-          }, 10000);
-        }
-
-        const devotional = await createDevotional({
-          duration: days,
-          playbookId,
-          userInput: userInput || '', // Pass empty string if undefined
-        });
-
-        if (progressTimeout) {
-          clearTimeout(progressTimeout);
-        }
-
-        if (devotional && onDevotionalCreated) {
-          setIsSuccess(true);
-          // Subtle haptic when success check appears
-          try { triggerLightHaptic(); } catch {}
-          Animated.timing(checkmarkAnim, {
-            toValue: 1,
-            duration: 280,
-            useNativeDriver: true,
-          }).start();
-          // Simplified timing - single timeout to prevent navigation conflicts
-          setTimeout(() => {
-            handleClose(() => {
-              // Navigate only after the modal has fully closed
-              // Add small delay to ensure React Query updates have settled
-              setTimeout(() => {
-                onDevotionalCreated(devotional.id);
-                // Reset animation state after navigation
-                setIsSuccess(false);
-                checkmarkAnim.setValue(0);
-              }, 100);
-            });
-          }, 630); // Combined delay: 280ms animation + 350ms buffer
-        }
-      }
-    } catch (err) {
-      // Convert technical errors to user-friendly messages
-      const error = err as Error;
-      const errorMessage = error.message?.toLowerCase() || '';
-      const errorName = error.name || '';
-
-      // Check for network errors
-      const isNetworkError = errorMessage.includes('network') ||
-                            errorMessage.includes('fetch') ||
-                            errorMessage.includes('timeout') ||
-                            errorMessage.includes('connection') ||
-                            errorName === 'TypeError' ||
-                            errorName === 'NetworkError' ||
-                            errorMessage.includes('enotfound') ||
-                            errorMessage.includes('econnrefused') ||
-                            errorMessage.includes('etimedout');
-
-      const userFriendlyError = error.message?.includes('Circuit breaker is OPEN') ||
-                                error.message?.includes('experiencing high demand')
-        ? new Error('We\'re experiencing high demand right now. Please try again in a few moments.')
-        : isNetworkError
-        ? new Error('Network connection issue detected. Please check your internet connection and try again.')
-        : error.message?.includes('Devotional generation failed')
-        ? new Error('We\'re having trouble creating your devotional right now. Please try again.')
-        : error.message?.includes('No data returned')
-        ? new Error('We\'re having trouble creating your devotional right now. Please try again.')
-        : new Error('Something went wrong while creating your devotional. Please try again.');
-
-      setCreationError(userFriendlyError);
-      Logger.error('[DevotionalModal] Error creating devotional', error, { component: 'DevotionalModal' });
-      Logger.error('[DevotionalModal] Error details', undefined, {
-        component: 'DevotionalModal',
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
+      const devotional = await createDevotional({
+        duration: days,
+        playbookId,
+        userInput: userInput || '', // Pass empty string if undefined
+        isOnboarding: isOnboarding, // Pass onboarding flag to API
       });
+
+      if (progressTimeout) {
+        clearTimeout(progressTimeout);
+      }
+
+      if (devotional && onDevotionalCreated) {
+        setIsClosing(true);
+        setJustCompleted(true);
+        // Subtle haptic when success check appears
+        try { triggerLightHaptic(); } catch {}
+        // Fill progress bar to 100%
+        Animated.timing(progressAnim, {
+          toValue: 100,
+          duration: 500,
+          useNativeDriver: false,
+        }).start();
+        // Don't show checkmark animation - keep generating UI as-is
+        // Close modal and navigate after progress bar fills
+        setTimeout(() => {
+          handleClose(() => {
+            // Navigate after modal has closed
+            setTimeout(() => {
+              onDevotionalCreated(devotional.id);
+              // Reset animation state after navigation
+              setIsClosing(false);
+              checkmarkAnim.setValue(0);
+            }, 300);
+          });
+        }, 800);
+      }
     }
   };
 
@@ -582,34 +849,68 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               onPress={() => { triggerLightHaptic(); handleClose(); }}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
-              <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.contentWrapper}>
-            <View style={styles.fixedContent}>
-              <ThemedText weight="semiBold" style={styles.title}>Create a Devotional for This Season</ThemedText>
-              <View style={styles.subtitleContainer}>
-                <ThemedText weight="regular" style={styles.subtitle}>
-                  Based on what you’ve shared, this devotional helps you reflect, pray, and listen with God as you continue your journey.
-                </ThemedText>
+            {/* Logo at very top of modal during generation */}
+            {(isCreating || isOnboardingCreating || isClosing) && (
+              <Animated.Image
+                source={require('../../assets/icons/siFia-logo-white.png')}
+                style={[
+                  styles.generatingLogoTop,
+                  {
+                    opacity: genLogoEntryAnim,
+                    transform: [{
+                      translateY: genLogoEntryAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-50, 0],
+                      }),
+                    }],
+                  },
+                ]}
+                resizeMode="contain"
+              />
+            )}
+
+            {!isCreating && !isOnboardingCreating && !isSuccess && !isClosing && (
+              <View style={styles.fixedContent}>
+                <ThemedText weight="semiBold" style={styles.title}>Turn this into a devotional</ThemedText>
+                <View style={styles.subtitleContainer}>
+                  <ThemedText weight="regular" style={styles.subtitle}>
+                    Based on what you've shared, this devotional helps you reflect, pray, and listen with God as you continue your journey.
+                  </ThemedText>
+                </View>
               </View>
-            </View>
+            )}
 
             <View style={styles.scrollableContent}>
+
               {(playbookInfo || userInput) && (
-                <View style={styles.playbookInfoContainer}>
+                <Animated.View style={[
+                  styles.playbookInfoContainer,
+                  (isCreating || isOnboardingCreating) ? {
+                    opacity: genCardEntryAnim,
+                    transform: [{
+                      translateY: genCardEntryAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0],
+                      }),
+                    }],
+                  } : {},
+                ]}>
                   <TouchableOpacity
                     style={styles.playbookInfoHeader}
                     onPress={() => { triggerLightHaptic(); togglePlaybookInfo(); }}
                     activeOpacity={0.8}
                   >
-                    <ThemedText weight="semiBold" style={styles.playbookInfoLabel}>WHAT YOU SHARED</ThemedText>
+                    <ThemedText weight="semiBold" style={styles.playbookInfoLabel}>WHAT YOU'VE SHARED</ThemedText>
                     <Animated.View style={{ transform: [{ rotate }] }}>
                       <Ionicons
                         name="chevron-down"
-                        size={20}
-                        color={Colors.hopeWhite}
+                        size={17}
+                        color="rgba(255,255,255,0.65)"
                       />
                     </Animated.View>
                   </TouchableOpacity>
@@ -620,60 +921,121 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   ]}>
                     <ThemedText weight="regular" style={styles.playbookInfoText}>{userInput || playbookInfo}</ThemedText>
                   </View>
-                </View>
+                </Animated.View>
               )}
 
               <View style={styles.optionsContainer}>
-                {!(isCreating || isSuccess) && (
+                {!(isCreating || isOnboardingCreating || isSuccess || isClosing) && (
                   <ThemedText weight="semiBold" style={styles.durationPrompt}>Select a devotional duration:</ThemedText>
                 )}
-                {(isCreating || isSuccess) ? (
-    <View style={styles.generatingContainer}>
-      {!isSuccess ? (
+                {(isCreating || isOnboardingCreating || isClosing) ? (
+    <Animated.View style={[
+      styles.generatingContainer,
+      {
+        opacity: isClosing ? 1 : generatingFadeAnim,
+        transform: isClosing ? [{ scale: 1 }] : [{ scale: generatingScaleAnim }],
+      },
+    ]}>
+      {!isSuccess || isClosing ? (
         <>
           <View style={styles.generationTitleRow}>
-            <MaterialCommunityIcons name="book" size={24} color={Colors.hopeWhite} style={styles.generationTitleIcon} />
-            <ThemedText weight="semiBold" style={styles.generationTitle}>
-              {`Creating Your ${selectedDuration ? `${selectedDuration}-day` : ''}${selectedDuration ? ' ' : ''}Devotional`}
-            </ThemedText>
+            <Animated.Text style={[styles.buildingHeading, font, { opacity: buildingTextOpacity }]}>
+              {`Building your ${selectedDuration ? `${selectedDuration}-day` : ''}${selectedDuration ? ' ' : ''}devotional${buildingDots}`}
+            </Animated.Text>
           </View>
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
-              <Animated.View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                ]}
-              />
+          <ThemedText weight="regular" style={styles.buildingSubtext}>Grounding this season in Scripture, reflection, and prayer.</ThemedText>
+
+          {/* Step cards */}
+          <Animated.View style={[
+            styles.stepsContainer,
+            {
+              opacity: genStepsEntryAnim,
+              transform: [{
+                translateY: genStepsEntryAnim.interpolate({
+                  inputRange: [0, 1], outputRange: [18, 0],
+                }),
+              }],
+            },
+          ]}>
+            {generationSteps.map((step, index) => (
+              <Animated.View key={step.key} style={[
+                styles.stepCard,
+                step.status === 'completed' && styles.stepCardCompleted,
+                step.status === 'active' && styles.stepCardActive,
+                step.status === 'inactive' && styles.stepCardDefault,
+                (step.status === 'active' || step.status === 'completed') && {
+                  backgroundColor: stepCardBgAnims[index].interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['transparent', 'rgba(255,255,255,0.05)', 'rgba(255, 107, 107, 0.1)'],
+                  }),
+                  borderColor: stepCardBorderAnims[index].interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['transparent', 'rgba(255,255,255,0.1)', 'rgba(255, 107, 107, 0.2)'],
+                  }),
+                  borderWidth: 1,
+                },
+                {
+                  transform: [{ scale: stepCardScaleAnims[index] }],
+                },
+              ]}>
+                <View style={styles.stepRow}>
+                  <View style={[
+                    styles.stepCircle,
+                    step.status === 'completed' && styles.stepCompleted,
+                    step.status === 'active' && styles.stepActive,
+                    step.status === 'inactive' && styles.stepInactive,
+                  ]}>
+                    {step.status === 'completed' && (
+                      <Animated.View style={{ transform: [{ scale: checkIconAnims[index].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+                        <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                      </Animated.View>
+                    )}
+                    {step.status === 'active' && (
+                      <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnims[index] }]} />
+                    )}
+                    {step.status === 'inactive' && (
+                      <View style={styles.staticDot} />
+                    )}
+                  </View>
+                  <ThemedText weight="regular" style={[
+                    styles.stepText,
+                    step.status === 'completed' && styles.stepTextCompleted,
+                    step.status === 'active' && styles.stepTextActive,
+                    step.status === 'inactive' && styles.stepTextInactive,
+                  ]}>
+                    {step.title}
+                  </ThemedText>
+                </View>
+              </Animated.View>
+            ))}
+          </Animated.View>
+
+          <Animated.View style={{
+            opacity: genProgressEntryAnim,
+            transform: [{
+              translateY: genProgressEntryAnim.interpolate({
+                inputRange: [0, 1], outputRange: [14, 0],
+              }),
+            }],
+          }}>
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBarBackground}>
+                <Animated.View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ['0%', '100%'],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ]}
+                />
+              </View>
             </View>
-          </View>
-          <View style={styles.stepRow}>
-            <Animated.View style={{ opacity: shimmerOpacity }}>
-              <ThemedText weight="regular" style={[styles.currentStepText, styles.stepTextNoPadding]}>
-                {baseTitle}
-              </ThemedText>
-            </Animated.View>
-            <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-              <ThemedText weight="regular" style={[styles.currentStepText, styles.stepTextNoPadding]}>
-                {'.'.repeat(dotCount)}
-              </ThemedText>
-            </View>
-            {dotsWidth == null && (
-              <ThemedText
-                weight="regular"
-                style={[styles.currentStepText, styles.hiddenMeasure]}
-                onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
-              >
-                ...
-              </ThemedText>
-            )}
-          </View>
+            <ThemedText weight="regular" style={styles.progressLabel}>Phase {currentStep + 1} of 4</ThemedText>
+          </Animated.View>
         </>
       ) : (
         <>
@@ -691,7 +1053,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           <ThemedText weight="semiBold" style={styles.loadingText}>Devotional Created!</ThemedText>
         </>
       )}
-    </View>
+    </Animated.View>
   ) : creationError ? (
     <View style={styles.errorContainer}>
       <ThemedText weight="semiBold" style={styles.errorText}>{creationError?.message || 'An error occurred'}</ThemedText>
@@ -706,6 +1068,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       </TouchableOpacity>
     </View>
   ) : (
+    !isOnboarding && (
     <View style={styles.optionsContainer}>
                 {DURATION_OPTIONS.map((option) => {
                   const accessCheck = devotionalGating.checkAccess(option.days, isOnboarding ? 'onboarding' : 'inApp');
@@ -750,6 +1113,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                           tier={devotionalGating.tier}
                           duration={option.days}
                           context={isOnboarding ? 'onboarding' : 'inApp'}
+                          isOnboarding={isOnboarding}
                           onLockTap={() => {
                             if (isOnboarding) {
                               // In onboarding, lock icon should not trigger sales offer
@@ -788,9 +1152,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   );
                 })}
               </View>
+    )
   )}
   {/* Continue My Journey button for onboarding */}
-  {isOnboarding && !(isCreating || isSuccess) && (
+  {isOnboarding && !(isCreating || isSuccess) && devotionalGating.tier !== 'seeker' && (
     <TouchableOpacity
       style={styles.continueJourneyButton}
       onPress={() => {
@@ -810,60 +1175,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     >
       <ThemedText weight="semiBold" style={styles.continueJourneyButtonText}>Continue with siFia</ThemedText>
     </TouchableOpacity>
-  )}
-  {/* Usage Badges moved near footer and centered (hidden during onboarding) */}
-  {!isOnboarding && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'transformation') && (
-    // POST-LAUNCH: && ((devotionalGating.subscription?.tier || devotionalGating.tier) !== 'family')
-    <View style={styles.badgeRow}>
-      <View style={styles.tierBadgeContainer}>
-        <ThemedText weight="semiBold" style={styles.tierBadgeText}>
-          {devotionalGating.subscription?.subscription_display_name || `siFia ${devotionalGating.tier.charAt(0).toUpperCase() + devotionalGating.tier.slice(1)}`}
-        </ThemedText>
-      </View>
-      {devotionalGating.tier === 'seeker' ? (
-        <TouchableOpacity
-          style={styles.countBadgeContainer}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            Logger.info('[DevotionalModal] Navigating to OnboardingSalesOffer from seeker badge tap', {
-              component: 'DevotionalModal',
-              context: 'seeker_badge',
-              tier: devotionalGating.tier,
-            });
-            handleClose(() => {
-              navigation.navigate('OnboardingSalesOffer' as any, {
-                upgradeMode: true,
-                currentTier: devotionalGating.tier,
-                featureType: 'devotionals',
-                source: 'devotional_seeker_badge',
-                feature: 'devotionals',
-                skipNotificationPreference: true,
-              });
-            });
-          }}
-          activeOpacity={0.85}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <ThemedText weight="semiBold" style={styles.countBadgeText}>
-            {devotionalGating.usageInfo.displayMessage}
-          </ThemedText>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.countBadgeContainer}
-          onPress={() => {
-            try { triggerLightHaptic(); } catch {}
-            setTooltipVisible(true);
-          }}
-          activeOpacity={0.85}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <ThemedText weight="semiBold" style={styles.countBadgeText}>
-            {devotionalGating.usageInfo.displayMessage}
-          </ThemedText>
-        </TouchableOpacity>
-      )}
-    </View>
   )}
   <ThemedText weight="regular" style={styles.footerText}>
     God’s Word is a lamp to your feet and a light to your path.{'\n'}May this devotional be a quiet space to listen and walk with Him.
@@ -959,8 +1270,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
                   });
 
-                  const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation');
-                  if (isUnlimitedTrial) {
+                  const isTopTrialPlan = isOnTrial && (trialChosenTier === 'transformation');
+                  if (isTopTrialPlan) {
                     // Show a single dismiss button so the user can close the popup
                     return (
                       <View style={styles.usageLimitButtons}>
@@ -1057,7 +1368,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 20,
     paddingBottom: 40, // Increased bottom padding for better spacing
-    maxHeight: '85%',
+    maxHeight: '95%',
     minHeight: 300, // Ensure minimum height for smooth animation
     borderWidth: 0, // Remove modal border
     borderColor: 'transparent',
@@ -1082,57 +1393,66 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     right: 0,
-    top: 0,
-    padding: 0,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     color: Colors.hopeWhite,
-    marginBottom: 0,
+    marginBottom: 8,
     marginTop: 0,
-    textAlign: 'center',
-    fontWeight: '800',
+    textAlign: 'left',
+    fontWeight: '700',
     letterSpacing: 0.2,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     width: '100%',
     flexShrink: 1,
     includeFontPadding: false,
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
     maxWidth: '100%',
     flexWrap: 'nowrap',
     overflow: 'hidden',
+    lineHeight: 28,
   },
   subtitleContainer: {
-    marginBottom: 0,
+    marginBottom: 16,
   },
   subtitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textAlign: 'left',
     marginBottom: 0,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   durationPrompt: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.65)',
     textAlign: 'left',
-    lineHeight: 20,
-    marginBottom: 4, // Reduced from 12px to 4px
+    lineHeight: 18,
+    marginBottom: 8,
     paddingHorizontal: 4,
+    fontWeight: '500',
   },
   optionsContainer: {
-    gap: 10,
+    gap: 12,
+    width: '100%',
   },
   optionButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16, // adjusted to 16 radius for duration choices
-    padding: 10,
-    borderWidth: 0, // remove border
-    borderColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   optionButtonLocked: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     opacity: 0.7,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   optionHeader: {
     flexDirection: 'row',
@@ -1199,35 +1519,37 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   optionDays: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-    marginBottom: 2,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   optionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.hopeWhite,
     fontWeight: '600',
     marginBottom: 4,
+    lineHeight: 20,
   },
   optionDescription: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.65)',
     lineHeight: 16,
   },
   playbookInfoContainer: {
     width: '100%',
     marginBottom: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 0, // remove border
-    borderColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   playbookInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 14,
     paddingHorizontal: 12,
   },
   playbookInfoLabel: {
@@ -1236,12 +1558,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1,
     opacity: 1,
-    marginVertical: 2,
     textTransform: 'uppercase',
   },
   fixedContent: {
     width: '100%',
-    marginTop: 32,
+    marginTop: 16,
     marginBottom: 16,
     paddingHorizontal: 4,
   },
@@ -1255,16 +1576,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   playbookInfoContentExpanded: {
-    maxHeight: 1000, // Arbitrarily large value to allow content to expand
+    height: 'auto',
     paddingBottom: 12,
   },
   playbookInfoContentCollapsed: {
-    maxHeight: 0,
-    paddingBottom: 0,
+    height: 0,
+    overflow: 'hidden',
   },
   playbookInfoText: {
-    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: 18,
   },
   footerText: {
@@ -1286,14 +1607,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   generatingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
     borderRadius: 30, // increased to 30px per design request
     borderWidth: 0, // No border
     borderColor: 'transparent',
     marginVertical: 10,
+    width: '100%',
   },
   loadingText: {
     color: Colors.hopeWhite,
@@ -1313,15 +1634,15 @@ const styles = StyleSheet.create({
   generationTitleRow: {
     width: '100%',
     flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
   generationTitleIcon: {
     marginBottom: 8,
   },
   progressBarContainer: {
-    width: '80%',
-    marginBottom: 18,
+    width: '100%',
+    marginBottom: 8,
   },
   progressBarBackground: {
     width: '100%',
@@ -1333,17 +1654,6 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 6,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  currentStepText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
     fontWeight: '500',
     paddingHorizontal: 8,
     includeFontPadding: false,
@@ -1464,6 +1774,132 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
+  },
+  stepsContainer: {
+    marginBottom: 32,
+    width: '100%',
+  },
+  stepCard: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    width: '100%',
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  stepCardCompleted: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: 'rgba(255, 107, 107, 0.2)',
+  },
+  stepCardActive: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  stepCardDefault: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepCompleted: {
+    backgroundColor: Colors.alertCoral,
+  },
+  stepActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  stepInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  pulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.hopeWhite,
+  },
+  staticDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  stepText: {
+    fontSize: 16,
+    textAlign: 'left',
+    flex: 1,
+  },
+  stepTextCompleted: {
+    color: Colors.alertCoral,
+    flex: 1,
+  },
+  stepTextActive: {
+    color: Colors.white,
+    flex: 1,
+  },
+  stepTextInactive: {
+    color: 'rgba(255,255,255,0.5)',
+    flex: 1,
+  },
+  situationCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  situationLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 8,
+  },
+  situationText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    lineHeight: 20,
+  },
+  generatingLogo: {
+    width: 120,
+    height: 40,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  generatingLogoTop: {
+    width: 120,
+    height: 40,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  buildingSubtext: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 32,
+    textAlign: 'left',
+  },
+  buildingHeading: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 8,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   Alert,
   Linking,
   Platform,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -54,14 +55,9 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean; isTrialEligible?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
-
-  // Detect if coming from Growth+ only features (smart journaling or export)
-  const fromSmartJournalingLock = routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling';
-  const fromExportRestriction = (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
-  const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
 
   // Detect if from registration onboarding vs upgrade/profile
   const fromRegistrationOnboarding = routeParams?.onboardingFlow === true && !routeParams?.source && !routeParams?.returnTo;
@@ -77,6 +73,42 @@ const OnboardingTrialOfferScreen = () => {
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const monthlyScale = useRef(new Animated.Value(1)).current;
+  const annualScale = useRef(new Animated.Value(1)).current;
+
+  const animateToggle = useCallback((toAnnual: boolean) => {
+    if (toAnnual) {
+      Animated.spring(monthlyScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(annualScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      Animated.spring(annualScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(monthlyScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    }
+  }, [monthlyScale, annualScale]);
+
+  useEffect(() => {
+    animateToggle(isAnnual);
+  }, [isAnnual, animateToggle]);
   // dynamicPricing removed - not used, only setDynamicPricing is called
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
@@ -475,7 +507,7 @@ const OnboardingTrialOfferScreen = () => {
         // const fiveMinutesAgo = transactionTime - (5 * 60 * 1000); // Unused
 
         // CRITICAL: Now that Apple has authorized, set up the trial in database
-        // This activates the trial with 2 playbooks + 2 devotionals
+        // This activates the trial with tier-specific limits (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
         try {
           logger.info('🔄 TRIAL STEP 3: Starting trial setup in database', {
             userId: user.id,
@@ -493,8 +525,7 @@ const OnboardingTrialOfferScreen = () => {
           // - trial_start_date: now
           // - trial_end_date: now + 3 days
           // - trial_chosen_tier: selectedTierId (e.g., 'transformation', 'growth', etc.)
-          // - playbooks_limit: 2
-          // - devotionals_limit: 2
+          // - playbooks_limit/devotionals_limit based on the selected trial tier
           await NewSubscriptionService.startFreeTrial({
             user_id: user.id,
             duration_days: 3,
@@ -731,17 +762,7 @@ const OnboardingTrialOfferScreen = () => {
         const currency = await pricingService.getCurrencyInfo();
 
         if (mounted) {
-          // Filter out Spark tier if coming from Growth+ only features
-          let filteredTiers = tiers || [];
-          if (fromGrowthOnlyFeature) {
-            filteredTiers = filteredTiers.filter((t: any) => t.id !== 'spark');
-            logger.debug('Filtered out Spark tier for Growth+ feature in trial offer', {
-              source: routeParams?.source,
-              feature: routeParams?.feature,
-              remainingTiers: filteredTiers.map((t: any) => t.id),
-            });
-          }
-          setPricingTiers(filteredTiers);
+          setPricingTiers(tiers || []);
           // setDynamicPricing([]); // Not using dynamic pricing for now - removed unused state
           setCurrencyInfo(currency || null);
         }
@@ -752,7 +773,7 @@ const OnboardingTrialOfferScreen = () => {
     return () => {
       mounted = false;
     };
-  }, [fromGrowthOnlyFeature, routeParams?.feature, routeParams?.source]);
+  }, [routeParams?.feature, routeParams?.source]);
 
   const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth'); // POST-LAUNCH: fallback was 'family'
 
@@ -771,10 +792,6 @@ const OnboardingTrialOfferScreen = () => {
   };
 
 
-  const formatShortDate = (date: Date) => {
-    return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const addDays = (base: Date, days: number) => {
     const d = new Date(base);
     d.setDate(d.getDate() + days);
@@ -787,32 +804,73 @@ const OnboardingTrialOfferScreen = () => {
 
 
 
-  const timelineItems = [
-    {
-      id: 1,
-      title: 'Today - Your free trial begins',
-      description: '',
-      icon: 'checkmark-circle',
-      iconColor: Colors.growthGreen,
-      isCompleted: true,
-    },
-    {
-      id: 2,
-      title: `${formatShortDate(addDays(new Date(), 2))}`,
-      description: 'We will send a gentle reminder before your trial ends, so you can decide with peace.',
-      icon: 'notifications',
-      iconColor: Colors.growthGreen,
-      isCompleted: false,
-    },
-    {
-      id: 3,
-      title: `${formatShortDate(addDays(new Date(), 3))}`,
-      description: '',
-      icon: 'rocket',
-      iconColor: Colors.alertCoral,
-      isCompleted: false,
-    },
-  ];
+  const getTrialBenefits = useCallback(() => {
+    switch (selectedTierId) {
+      case 'growth':
+        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+      case 'spark':
+        return 'You get 5 playbooks, 5 devotionals, and 1,3-day devotionals.';
+      case 'transformation':
+        return 'You get 25 playbooks, 25 devotionals, and 1,3,5 & 7-day devotionals.';
+      default:
+        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+    }
+  }, [selectedTierId]);
+
+  const formatDateRange = (startDate: Date, endDate: Date) => {
+    const start = startDate;
+    const end = endDate;
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startDay}-${endDay}`;
+    } else {
+      return `${startMonth} ${startDay}-${endMonth} ${endDay}`;
+    }
+  };
+
+  const timelineItems = React.useMemo(() => {
+    const today = new Date();
+    const day2 = addDays(today, 2);
+    const day3 = addDays(today, 3);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    return [
+      {
+        id: 1,
+        title: 'Today',
+        subtitle: 'Your free trial begins',
+        description: getTrialBenefits(),
+        icon: 'checkmark-circle',
+        iconColor: Colors.growthGreen,
+        isCompleted: true,
+      },
+      {
+        id: 2,
+        title: formatDateRange(today, day2),
+        subtitle: 'Use it in real moments',
+        description: 'Come back with new situations, create devotionals, and see if the structure helps.',
+        icon: 'notifications',
+        iconColor: Colors.growthGreen,
+        isCompleted: false,
+      },
+      {
+        id: 3,
+        title: formatDate(day3),
+        subtitle: 'Your paid plan starts',
+        description: `If you keep the subscription, your ${isAnnual ? 'annual' : 'monthly'} plan begins fresh.`,
+        icon: 'rocket',
+        iconColor: Colors.alertCoral,
+        isCompleted: false,
+      },
+    ];
+  }, [isAnnual, getTrialBenefits]);
 
 // ... (rest of the code remains the same)
   const renderTimelineItem = (item: any, index: number) => {
@@ -833,66 +891,12 @@ const OnboardingTrialOfferScreen = () => {
 
         <View style={styles.timelineContent}>
           <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
-          {item.id === 1 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                Explore siFia Growth and see how it supports your current season.
-              </ThemedText>
-              <ThemedText style={styles.timelineDescription}>
-                There's nothing you need to decide today.
-              </ThemedText>
-
-              <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>During your trial, you can:</ThemedText>
-
-              <View style={styles.timelineBulletsContainer}>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Create playbooks and devotionals</ThemedText>
-                </View>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Reflect, pray, and journal with clarity</ThemedText>
-                </View>
-                <View style={styles.timelineBulletRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.timelineBulletText}>Return to siFia when moments come up</ThemedText>
-                </View>
-              </View>
-            </View>
-          ) : item.id === 2 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                We'll send a gentle reminder before your trial ends.
-              </ThemedText>
-              <View style={styles.timelineSectionSpacing} />
-            </View>
-          ) : item.id === 3 ? (
-            <View>
-              <ThemedText style={styles.timelineDescription}>
-                If you choose to continue, your subscription starts.
-              </ThemedText>
-              <View style={styles.timelineSectionSpacing}>
-                <ThemedText style={styles.timelineDescription}>You’ll have full access to:</ThemedText>
-                <View style={styles.timelineBulletsContainer}>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>Up to 20 playbooks per month</ThemedText>
-                  </View>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>Up to 20 devotionals per month.</ThemedText>
-                  </View>
-                  <View style={styles.timelineBulletRow}>
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                    <ThemedText style={styles.timelineBulletText}>A consistent space for reflection, prayer, and faithful next steps.</ThemedText>
-                  </View>
-                </View>
-                <ThemedText style={[styles.timelineDescription, styles.timelineDescriptionSpacing]}>You can cancel anytime before the trial ends.</ThemedText>
-              </View>
-            </View>
-          ) : (
-            <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
+          {item.subtitle && (
+            <ThemedText weight="bold" style={styles.timelineSubtitle}>{item.subtitle}</ThemedText>
           )}
+          {item.description ? (
+            <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
+          ) : null}
         </View>
       </View>
     );
@@ -977,25 +981,16 @@ const OnboardingTrialOfferScreen = () => {
         onContinue={handleSuccessModalDismiss}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={[styles.closeButton, (isClosing || isStartingTrial) && styles.disabledButton]}
-          onPress={handleClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          disabled={isClosing || isStartingTrial}
-        >
-          <Ionicons name="close" size={22} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTextBlock}>
-            <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
-              {routeParams?.onboardingFlow ? 'How your free trial works' : 'Not sure yet?'}
-            </ThemedText>
-          </View>
-        </View>
-      </View>
+      {/* Sticky close button - outside ScrollView */}
+      <TouchableOpacity
+        style={[styles.closeButtonSticky, (isClosing || isStartingTrial) && styles.disabledButton]}
+        onPress={handleClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        disabled={isClosing || isStartingTrial}
+      >
+        <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+      </TouchableOpacity>
 
       <View style={styles.scrollContainer}>
         {/* Main Content (scrollable to avoid cut-off in landscape) */}
@@ -1005,6 +1000,22 @@ const OnboardingTrialOfferScreen = () => {
           showsVerticalScrollIndicator={false}
           bounces
         >
+          {/* Header - now inside ScrollView to scroll with content */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextBlock}>
+                <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+                  {routeParams?.isTrialEligible ? 'How your free trial works' : 'Not sure yet?'}
+                </ThemedText>
+                {routeParams?.isTrialEligible && (
+                  <ThemedText style={styles.headerSubText}>
+                    3 days free on {getTierDisplayName(selectedTierId)}. After that, your subscription continues at {getLocalizedPrice()}/{isAnnual ? 'year' : 'month'} unless cancelled.
+                  </ThemedText>
+                )}
+              </View>
+            </View>
+          </View>
+
           <View style={styles.contentWrap}>
 
           {/* Timeline */}
@@ -1012,22 +1023,37 @@ const OnboardingTrialOfferScreen = () => {
             {timelineItems.map((item, index) => renderTimelineItem(item, index))}
           </View>
 
+          {/* Selected Plan Container */}
+          <View style={styles.selectedPlanContainer}>
+            <ThemedText style={styles.selectedPlanLabel}>SELECTED PLAN</ThemedText>
+            <ThemedText weight="bold" style={styles.selectedPlanName}>{getTierDisplayName(selectedTierId)} {isAnnual ? 'Annual' : 'Monthly'}</ThemedText>
+            <TouchableOpacity
+              style={styles.changePlanButton}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                navigation.goBack();
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.changePlanButtonText}>Change Plan</ThemedText>
+            </TouchableOpacity>
+          </View>
+
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             <TouchableOpacity
-              style={styles.linkButton}
-              onPress={handleRestorePurchase}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
+              style={styles.seeAllPlansButton}
               onPress={handleTermsOfService}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.seeAllPlansButton}
+              onPress={handleRestorePurchase}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
             </TouchableOpacity>
           </View>
           {/* Dev controls removed */}
@@ -1039,49 +1065,45 @@ const OnboardingTrialOfferScreen = () => {
       <View style={styles.footerBlock} pointerEvents="box-none">
         {/* Monthly/Annual Toggle */}
         <View style={styles.footerToggleContainer}>
-          <TouchableOpacity
-            style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(false);
-            }}
-            activeOpacity={0.9}
-          >
-            <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(true);
-            }}
-            activeOpacity={0.9}
-          >
-            <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: monthlyScale }] }}>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(false);
+              }}
+              activeOpacity={0.9}
+            >
+              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View style={{ transform: [{ scale: annualScale }] }}>
+            <TouchableOpacity
+              style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(true);
+              }}
+              activeOpacity={0.9}
+            >
+              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
 
         {/* Pricing Summary (dynamic) */}
         <View style={styles.pricingSummary}>
-          {/* Rounded divider with floating centered tag */}
-          <View style={styles.dividerWrapper}>
-            <View style={styles.dividerLine} />
-            <View style={styles.planTagFloating}>
-              <ThemedText weight="bold" style={styles.planTagText}>
-                {`${getTierDisplayName(selectedTierId)} PLAN`}
-              </ThemedText>
-            </View>
-          </View>
           <ThemedText weight="bold" style={styles.pricingTitle}>
-            {`3 days free, then ${getLocalizedPrice()} / ${isAnnual ? 'year' : 'month'}`}
+            {`3 days free, then ${getLocalizedPrice()}/${isAnnual ? 'year' : 'month'}`}
           </ThemedText>
           {isAnnual ? (
             <View style={styles.savingsContainer}>
-              <ThemedText style={styles.annualSavingsHighlight}>Save 2 months free</ThemedText>
               <ThemedText style={styles.annualSavingsText}>
-                Annual plan saves you 2 months.
+                <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6, color: Colors.faithGold }}>{`${currencyInfo?.symbol || '$'}${(getSelectedTier()?.monthlyPrice * 12).toFixed(2)}`}</ThemedText>
+                {' · '}
+                <ThemedText style={{ color: Colors.faithGold }}>Save 2 months</ThemedText>
               </ThemedText>
-              <ThemedText style={styles.annualSavingsText}>
+              <ThemedText style={styles.footerPriceApprox}>
                 Pay once, grow all year.
               </ThemedText>
             </View>
@@ -1098,6 +1120,7 @@ const OnboardingTrialOfferScreen = () => {
             {isStartingTrial ? 'Starting Trial...' : 'Start 3-day Free Trial'}
           </ThemedText>
         </TouchableOpacity>
+
         <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
           Try 3 days free. No payment now. Cancel anytime.
         </ThemedText>
@@ -1206,7 +1229,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingTop: 18,
+    paddingTop: 24,
     paddingBottom: 12,
     alignSelf: 'stretch',
     width: '100%',
@@ -1235,6 +1258,15 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     lineHeight: 30,
     letterSpacing: 0.25,
     marginBottom: 0,
+    marginTop: 16,
+  },
+  headerSubText: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    textAlign: 'left',
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -1246,19 +1278,27 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     letterSpacing: 0.15,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    position: 'absolute',
+    top: 18,
+    right: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    right: 16,
-    top: 8,
-    zIndex: 2,
   },
-  disabledButton: {
-    opacity: 0.6,
+  closeButtonSticky: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   scrollContainer: {
     flex: 1,
@@ -1338,18 +1378,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 16,
   },
-  changePlanButton: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 12,
-  },
-  changePlanButtonText: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
-    color: Colors.faithGold,
-    textAlign: 'center',
-    textDecorationLine: 'underline',
+  disabledButton: {
+    opacity: 0.5,
   },
   planOptionsScroll: {
     marginTop: 12,
@@ -1423,6 +1453,41 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   timelineContainer: {
     marginBottom: 16,
+  },
+  selectedPlanContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+  },
+  selectedPlanLabel: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    opacity: 0.5,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  selectedPlanName: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  changePlanButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  changePlanButtonText: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+    fontWeight: '400',
   },
   timelineBulletsContainer: {
     marginTop: 10,
@@ -1583,12 +1648,19 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 3,
   },
+  timelineSubtitle: {
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    color: Colors.hopeWhite,
+    opacity: 0.95,
+    marginBottom: 4,
+  },
   timelineDescription: {
     fontSize: 13,
     fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     lineHeight: 18,
-    opacity: 0.9,
+    opacity: 0.6,
   },
   timelineDescriptionSpacing: {
     marginTop: 8,
@@ -1638,15 +1710,6 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   strong: {
     fontFamily: fonts.bold,
   },
-  pricingSummary: {
-    alignItems: 'center',
-    marginBottom: -8,
-    paddingVertical: 16,
-  },
-  savingsContainer: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
   savingsText: {
     fontSize: 14,
     fontFamily: fonts.semiBold,
@@ -1669,19 +1732,17 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     marginTop: 2,
   },
   annualSavingsText: {
+    fontSize: 14,
+    color: Colors.faithGold,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  footerPriceApprox: {
     fontSize: 13,
-    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
+    opacity: 0.8,
     textAlign: 'center',
     marginTop: 2,
-    opacity: 0.85,
-  },
-  dividerWrapper: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
   },
   dividerLine: {
     width: '100%',
@@ -1695,10 +1756,10 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#35537F',
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   pricingTitle: {
     fontSize: 16,
@@ -1737,8 +1798,8 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   startTrialButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 15,
+    borderRadius: 50,
     marginBottom: 6,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1761,7 +1822,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   startTrialButtonText: {
@@ -1769,6 +1830,26 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
+  },
+  restoreButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    borderRadius: 50,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    width: '100%',
+    maxWidth: 720,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   footerText: {
     fontSize: 12,
@@ -1844,13 +1925,30 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     color: Colors.hopeWhite,
     fontWeight: '500',
   },
+  seeAllPlansButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+    minWidth: 280,
+    marginBottom: 8,
+  },
+  seeAllPlansText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+  },
   // Footer toggle styles
   footerToggleContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 4,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     alignSelf: 'center',
     overflow: 'hidden',
   },
@@ -1868,6 +1966,16 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   },
   activeFooterToggleText: {
     color: Colors.hopeWhite,
+  },
+  pricingSummary: {
+    alignItems: 'center',
+    marginBottom: 4,
+    paddingVertical: 4,
+  },
+  savingsContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 6,
   },
 });
 

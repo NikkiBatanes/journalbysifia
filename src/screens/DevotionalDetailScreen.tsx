@@ -30,7 +30,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
-import { subscriptionService } from '../services/subscriptionService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
@@ -157,6 +156,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Track last known viewport height for accurate comparisons
   const lastViewportHeightRef = useRef<number>(0);
   const [showFAB, setShowFAB] = useState(false);
+  // FAB spring animation
+  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+  const fabPressScaleAnim = useRef(new Animated.Value(1)).current;
   // Track scroll positions for each day to reset when needed
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
   // Flag to prevent feedback loop between programmatic and user scrolls
@@ -334,6 +336,25 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     return () => clearTimeout(timer);
   }, [currentDayIndex]);
+
+  // Animate FAB entrance with spring when showFAB changes
+  useEffect(() => {
+    if (showFAB) {
+      Animated.spring(fabScaleAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(fabScaleAnim, {
+        toValue: 0,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showFAB, fabScaleAnim]);
 
   useEffect(() => {
     // Log for debugging
@@ -519,6 +540,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Set guards to prevent multiple executions
     setIsMarkingComplete(true);
     modalOpenedRef.current = true;
+
+    // Trigger press animation
+    Animated.sequence([
+      Animated.spring(fabPressScaleAnim, {
+        toValue: 0.9,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.spring(fabPressScaleAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Trigger haptic feedback immediately
     triggerSuccessHaptic();
@@ -785,17 +822,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // CRITICAL FIX: Don't await anything - pure fire-and-forget
     // Submit rating in background without blocking modal close
     submitDevotionalRating(devotional.id, rating)
-      .then(() => {
-        // Track usage after rating succeeds
-        if (user?.id) {
-          subscriptionService.trackUsage(user.id, 'devotional')
-            .catch((error) => {
-              Logger.error('[DevotionalDetail] Failed to track usage', error as Error, {
-                component: 'DevotionalDetailScreen',
-              });
-            });
-        }
-      })
       .catch((error) => {
         Logger.error('Error submitting rating', error as Error, {
           component: 'DevotionalDetailScreen',
@@ -889,13 +915,24 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
       {/* Floating Action Button - only show when scrolled to bottom and day is not completed */}
       {currentDay && !currentDay.completed && showFAB && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={handleMarkComplete}
-          activeOpacity={0.8}
+        <Animated.View
+          style={[
+            styles.fab,
+            {
+              transform: [
+                { scale: Animated.multiply(fabScaleAnim, fabPressScaleAnim) },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="checkmark-sharp" size={32} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.fabInner}
+            onPress={handleMarkComplete}
+            activeOpacity={1}
+          >
+            <Ionicons name="checkmark-sharp" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Devotional Completion Modal */}
@@ -934,7 +971,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               {extractCleanTitle(devotional.title, 'Devotional')}
             </ThemedText>
             <View style={styles.dayCounterContainer}>
-              <Ionicons name="calendar-clear-outline" size={14} color={Colors.hopeWhite} />
+              <Ionicons name="calendar-clear-outline" size={14} color="rgba(255,255,255,0.65)" />
               <ThemedText weight="medium" style={styles.dayCounterText}>
                 Day {currentDayIndex + 1} of {devotional.totalDays}
               </ThemedText>
@@ -993,7 +1030,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 }
               }}
             >
-              <Ionicons name="share-outline" size={18} color={Colors.hopeWhite} />
+              <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           )}
         </View>
@@ -1083,9 +1120,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 contentInsetAdjustmentBehavior="never"
                 automaticallyAdjustContentInsets={false}
                 bounces={false}
-                // Performance optimizations
-                removeClippedSubviews={true}
-                scrollEventThrottle={32} // Reduced from 16 for better performance
+                scrollEventThrottle={32}
                 onScroll={(event) => {
                   // Only handle scroll for current day to reduce unnecessary calculations
                   if (index === currentDayIndex) {
@@ -1124,7 +1159,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="book-outline"
               title="Today's Scripture"
-              subtitle="God's Word for today"
+              subtitle="Read God's Word"
               variant="tintOnBlue"
             >
               {Platform.OS === 'ios' ? (
@@ -1167,7 +1202,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="bookmark-outline"
               title="Daily Reflection"
-              subtitle="Meditate on this"
+              subtitle="Reflect on this"
               variant="tintOnBlue"
             >
               {Platform.OS === 'ios' ? (
@@ -1189,7 +1224,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             <DevotionalSectionCard
               icon="help-circle-outline"
               title="Questions to Ponder"
-              subtitle="Reflect deeply"
+              subtitle="Tap a question to journal your thoughts"
               variant="tintOnBlue"
             >
               {day?.reflectionQuestions?.length ? (
@@ -1218,19 +1253,18 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     delayLongPress={300}
                   >
                     <View style={styles.questionCardContainer}>
-                  <ThemedText weight="bold" style={[
-                    styles.questionCardNumber,
-                    isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
-                  ]}>{idx + 1}</ThemedText>
-                  <ThemedText
-                    style={styles.questionCardText}
-                    selectable={true}
-                    numberOfLines={0}
-                    adjustsFontSizeToFit={false}
-                  >
-                    {question.text || 'Reflection question'}
-                  </ThemedText>
-                </View>
+                      <View style={[
+                        styles.questionCardNumberCircle,
+                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledNumberCircle,
+                      ]}>
+                        <ThemedText weight="bold" style={styles.questionCardNumberText}>
+                          {idx + 1}
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.questionCardText}>
+                        {question.text || 'Reflection question'}
+                      </ThemedText>
+                    </View>
               </Pressable>
                 ))
               ) : (
@@ -1243,6 +1277,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               icon="heart-outline"
               title="Prayer"
               subtitle="Connect with God"
+              subtitleStyle={{ marginBottom: 0 }}
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
@@ -1318,15 +1353,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 >
                   <MaterialCommunityIcons
                     name="hands-pray"
-                    size={20}
+                    size={18}
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
-                    style={styles.prayerIcon}
                   />
-                  <ThemedText weight="bold" style={[
+                  <ThemedText weight="medium" style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
                   ]}>
-                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
+                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? 'Prayed' : 'I prayed this'}
                   </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -1417,7 +1451,12 @@ const styles = StyleSheet.create({
   exportButton: {
     position: 'absolute',
     right: 16,
-    padding: 8,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
   },
   loadingContainer: {
     flex: 1,
@@ -1513,7 +1552,7 @@ const styles = StyleSheet.create({
   },
   dayCounterText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: 'rgba(255,255,255,0.65)',
     marginLeft: 4,
     marginRight: 4,
   },
@@ -1550,7 +1589,7 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   scrollViewContent: {
-    paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
+    paddingBottom: 70, // Add padding to bottom to prevent FAB overlap
     paddingTop: 80, // Set scrollable padding to 60px
   },
   reflectionContainer: {
@@ -1578,44 +1617,61 @@ const styles = StyleSheet.create({
     marginBottom: 12,        // space between questions
   },
   questionCardContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 32,
     paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+    overflow: 'visible',
   },
-  questionCardNumber: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
+  questionCardNumberCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    textAlign: 'center',
-    lineHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  journaledNumberCircle: {
+    backgroundColor: Colors.growthGreen,
+  },
+  questionCardNumberText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    lineHeight: 18,
   },
   questionCardText: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    flex: 1,                 // make sure text can wrap
   },
   fab: {
     position: 'absolute',
     bottom: 20,
     left: '50%',
-    marginLeft: -30, // Half of the width to center it perfectly
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    marginLeft: -25, // Half of the width to center it perfectly
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.growthGreen,
     justifyContent: 'center',
     alignItems: 'center',
     // Remove shadows and elevation for flat, modern appearance
     elevation: 0,
     zIndex: 100,
+  },
+  fabInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   swipeIndicatorContainer: {
     position: 'absolute',
@@ -1633,7 +1689,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prayerContainer: {
-    marginTop: 8,
+    marginTop: 0,
     position: 'relative',
     paddingBottom: 96, // Reserve more space so content doesn't overlap the button
     padding: CARD_CONTENT_PADDING,
@@ -1642,26 +1698,24 @@ const styles = StyleSheet.create({
   },
   prayerButton: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(26,60,109,0.15)',
-    borderRadius: 16,
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.15)',
     zIndex: 10,
-    minWidth: 80,
-    minHeight: 44,
   },
   prayerButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderColor: 'rgba(255, 107, 107, 0.4)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   prayerButtonText: {
-    marginLeft: 2,
     color: Colors.hopeWhite,
     fontSize: 14,
   },
@@ -1669,14 +1723,14 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   prayerIcon: {
-    marginRight: 6,
+    marginRight: 0,
   },
   // Overlay layer anchored near the Pray button to render heart particles
   prayerBurstLayer: {
     position: 'absolute',
     // Anchor to the same corner as the button
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
     width: 120,
     height: 120,
     alignItems: 'center',
@@ -1691,7 +1745,7 @@ const styles = StyleSheet.create({
   },
   heartParticle: {
     position: 'absolute',
-    left: 60, // start from center of the layer (half of width)
+    right: 60, // start from center of the layer (half of width)
     top: 60,  // start from center of the layer (half of height)
   },
   prayerText: {
@@ -1717,8 +1771,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    marginTop: 12,
-    marginBottom: 12,
     fontStyle: 'italic',
   },
   scriptureReference: {
@@ -1726,14 +1778,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.alertCoral,
     textAlign: 'right',
-    marginTop: 8,
     opacity: 0.9,
   },
   scriptureReferenceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: 16,
+    paddingBottom: 10,
   },
   bibleVersion: {
     fontSize: 13,

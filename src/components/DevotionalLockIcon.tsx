@@ -16,6 +16,8 @@ interface DevotionalLockIconProps {
   duration: number;
   /** Context for dynamic messaging */
   context?: 'onboarding' | 'inApp';
+  /** Whether user is in onboarding flow */
+  isOnboarding?: boolean;
   /** Callback when lock icon is tapped */
   onLockTap?: () => void;
   /** Size of the lock icon */
@@ -32,6 +34,7 @@ const DevotionalLockIcon: React.FC<DevotionalLockIconProps> = ({
   tier,
   duration,
   context = 'inApp',
+  isOnboarding = false,
   onLockTap,
   size = 20,
   showLabel = false,
@@ -39,7 +42,7 @@ const DevotionalLockIcon: React.FC<DevotionalLockIconProps> = ({
   position = 'right',
 }) => {
   // Check access using tier locking rules
-  const accessCheck = checkDevotionalAccess(tier, duration, context);
+  const accessCheck = checkDevotionalAccess(tier, duration, context, isOnboarding);
 
   // Don't render if not locked
   if (!accessCheck.lockIconVisible) {

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Logger } from '../utils/ProductionLogger';
 import { updatePlaybookActionSteps, calculateTaskStats } from '../services/apiIntegration';
 import { usePlaybookStore } from '../store/usePlaybookStore';
 import { Playbook } from '../interfaces/playbook';
+import { useAuth } from './IndustryStandardAuthContext';
 
 export type SubTask = {
   id: string;
@@ -38,11 +40,9 @@ interface ActionStepsProviderProps {
   playbookId?: string;
 }
 
-export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
-  initialSteps,
-  children,
-  playbookId,
-}) => {
+export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({ playbookId, children, initialSteps }) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [actionStepsInternal, setActionStepsInternal] = useState<ActionStep[]>(initialSteps);
   const { updatePlaybook } = usePlaybookStore();
 
@@ -212,7 +212,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
             progress: stats.completed / Math.max(stats.total, 1),
             updatedAt: new Date().toISOString(),
             totalTasks: stats.total,
-            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+            status: currentPlaybook.status === 'completed' ? 'completed' : 'inProgress',
           };
           updatePlaybook(updatedPlaybook);
         }
@@ -284,7 +284,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
             progress: stats.completed / Math.max(stats.total, 1),
             updatedAt: new Date().toISOString(),
             totalTasks: stats.total,
-            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+            status: currentPlaybook.status === 'completed' ? 'completed' : 'inProgress',
           };
           updatePlaybook(updatedPlaybook);
         }
@@ -306,11 +306,17 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       // Save action steps directly to database without relying on Zustand store
       await updatePlaybookActionSteps(pbId, actionSteps);
 
+      // Invalidate playbooks query to update PlaybookListScreen
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: ['playbooks', user.id, 'lightweight'] });
+        queryClient.invalidateQueries({ queryKey: ['playbooks', user.id] });
+      }
+
     } catch (error) {
       Logger.error('[ActionStepsContext] Error saving action steps', error as Error, { component: 'ActionStepsContext' });
       throw error;
     }
-  }, [actionSteps]);
+  }, [actionSteps, user?.id, queryClient]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

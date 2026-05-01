@@ -3,8 +3,6 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-// SwipeableTodoItem handles the gesture handler imports
-import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -12,7 +10,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -20,7 +19,6 @@ import {
   useLookingForwardData,
   useCreateLookingForwardEntry,
   useUpdateLookingForwardEntry,
-  useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
@@ -41,15 +39,15 @@ interface LookingForwardProps {
 }
 
 const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
+  // Navigation
+  const navigation = useNavigation<any>();
+
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
   // Dynamic theming for fonts
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-
-  // Get query client for direct cache manipulation
-  const queryClient = useQueryClient();
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -78,6 +76,40 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   const dateCategory = getDateCategory(selectedDate);
+
+  // Helper function to get emotion icon from emotion ID
+  const getEmotionIcon = (emotionId: string): string => {
+    const emotionIcons: Record<string, string> = {
+      hopeful: 'heart',
+      trusting: 'shield-check-outline',
+      anxious: 'alert-circle-outline',
+      frustrated: 'emoticon-angry-outline',
+      reluctant: 'pause-circle-outline',
+      tired: 'bed-outline',
+      unprepared: 'book-open-page-variant-outline',
+      'open-handed': 'hand-coin',
+      surrendered: 'white-balance-sunny',
+      excited: 'star-face',
+      expectant: 'clock-outline',
+      ready: 'check-circle-outline',
+      prayerful: 'hands-pray',
+      calm: 'weather-sunny',
+      steady: 'anchor',
+      overwhelmed: 'wave',
+      nervous: 'lightning-bolt-outline',
+      hesitant: 'dots-horizontal-circle-outline',
+      heavy: 'weight',
+      cautious: 'shield-outline',
+      curious: 'lightbulb-outline',
+      thankful: 'flower',
+      eager: 'rocket-launch-outline',
+      stretched: 'arrow-expand-horizontal',
+      unsure: 'help-circle-outline',
+      waiting: 'timer-outline',
+      other: 'plus-circle-outline',
+    };
+    return emotionIcons[emotionId] || 'heart';
+  };
 
   // Copy maps based on date category
   const getDisplaySubtitle = (): string => {
@@ -113,6 +145,19 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     }
   };
 
+  const getSectionLabel = (): string => {
+    switch (dateCategory) {
+      case 'today':
+        return 'HOW YOU\'RE HOLDING IT';
+      case 'yesterday':
+        return 'HOW YOU HELD IT';
+      case 'earlier':
+        return 'HOW YOU HELD IT';
+      default:
+        return 'HOW YOU\'RE HOLDING IT';
+    }
+  };
+
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
 
@@ -121,67 +166,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   const createMutation = useCreateLookingForwardEntry();
   const updateMutation = useUpdateLookingForwardEntry();
-  const deleteMutation = useDeleteLookingForwardEntry();
 
   // Get the first entry (LookingForward typically has only one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-
-  // Handler for swipe-to-delete
-  const handleEntryDelete = (id: string) => {
-    Alert.alert(
-      'Delete Looking Forward?',
-      'Are you sure you want to delete your Looking Forward entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            triggerSelectionHaptic();
-
-            // Immediately remove from cache for instant UI update
-            const currentQueryKey = ['journal', 'lookingForward', userId, dateStr];
-
-            // Get current data and filter out the deleted entry
-            const currentData = queryClient.getQueryData(currentQueryKey);
-            if (currentData && Array.isArray(currentData)) {
-              const filteredData = currentData.filter((entryToDelete: any) => entryToDelete.id !== id);
-              queryClient.setQueryData(currentQueryKey, filteredData);
-
-              // CRITICAL: Also clear AsyncStorage cache to prevent entry from coming back on refresh
-              try {
-                const { JournalCache } = await import('../../services/cache/journalCache');
-                await JournalCache.clearCache(userId, dateStr, 'looking_forward');
-              } catch (cacheError) {
-                Logger.error('Failed to clear AsyncStorage cache:', cacheError as Error, {
-                  component: 'LookingForwardReactQuery',
-                });
-              }
-            }
-
-            deleteMutation.mutate(id, {
-              onSuccess: () => {
-                triggerSuccessHaptic();
-                // Don't refetch - trust our cache manipulation since API succeeded
-              },
-              onError: (deleteError: any) => {
-                Logger.error('Failed to delete entry:', deleteError as Error, {
-                  component: 'LookingForwardReactQuery',
-                  entryId: id,
-                });
-                triggerErrorHaptic();
-                // Only refetch if delete failed to restore the original data
-                refetch();
-              },
-              onSettled: () => {
-                // Delete operation completed
-              },
-            });
-          },
-        },
-      ]
-    );
-  };
 
   // Individual item edit handlers
   // editLookingForwardEntry removed - was defined but never called
@@ -237,12 +224,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
       return {
         id: entry.id,
-        text: content?.entry?.text || '',
+        text: content?.entry?.text || content?.lookingAheadText || '',
+        emotionId: content?.emotionId || '',
+        emotionName: content?.emotionName || '',
+        customEmotion: content?.customEmotion || '',
       };
     } catch {
       return {
         id: entry.id,
         text: '',
+        emotionId: '',
+        emotionName: '',
+        customEmotion: '',
       };
     }
   }, [entry]);
@@ -252,15 +245,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     if (!isEditing && !isSaving) {
       // Only update if the entry has actually changed
       setDisplayEntry((prevDisplayEntry: any) => {
-        // Compare by ID and text to avoid unnecessary updates
+        // Compare by ID, text, and emotion to avoid unnecessary updates
         if (!lookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
         if (!lookingForward || !prevDisplayEntry) {
 
           return lookingForward;
         }
 
-        // Don't override optimistic updates with the same content
-        if (lookingForward.id === prevDisplayEntry.id && lookingForward.text === prevDisplayEntry.text) {
+        // Don't override optimistic updates with the same content (including emotion)
+        if (lookingForward.id === prevDisplayEntry.id &&
+            lookingForward.text === prevDisplayEntry.text &&
+            lookingForward.emotionId === prevDisplayEntry.emotionId &&
+            lookingForward.emotionName === prevDisplayEntry.emotionName) {
           return prevDisplayEntry; // No change, keep previous
         }
 
@@ -268,7 +264,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
           // Replace temp ID with real ID but keep the optimistic content
-
           return { ...prevDisplayEntry, id: lookingForward.id };
         }
 
@@ -286,39 +281,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   }, [dateStr]);
 
-  // Handle global edit mode activation
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  // Handle global edit mode activation - disabled for LookingForward since it uses walkthrough
   React.useEffect(() => {
-    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
-      // Check if there's existing looking forward content
-      const hasExistingEntry = entries.length > 0 && entries[0]?.content;
-
-      if (hasExistingEntry) {
-        // Start editing existing entry
-        const currentEntry = entries[0];
-        const existingText = (() => {
-          try {
-            const parsed = typeof currentEntry.content === 'string' ? JSON.parse(currentEntry.content) : currentEntry.content;
-            return parsed.entry?.text || '';
-          } catch {
-            return '';
-          }
-        })();
-
-        if (existingText && !isEditing) {
-          setIsEditing(true);
-          setIsAdding(false); // Make sure adding is false
-          setEntryText(existingText);
-        } else if (!existingText && !isAdding) {
-          setIsAdding(true);
-          setIsEditing(false); // Make sure editing is false
-        }
-      } else if (!isAdding) {
-        // Start adding new entry
-        setIsAdding(true);
-        setIsEditing(false); // Make sure editing is false
-      }
-    }
-  }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
+    // Global edit mode is disabled for LookingForward component
+    // It now navigates to Tomorrow in His Hands walkthrough instead
+  }, []);
 
   // Track loading performance
   React.useEffect(() => {
@@ -507,10 +481,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const editEntry = () => {
     if (!displayEntry) {return;}
 
-    setEntryText(displayEntry.text);
     triggerLightHaptic();
-    setIsEditing(true);
-    setIsAdding(true);
+    navigation.navigate('TomorrowInHisHandsWalkthrough', {
+      selectedDate: toLocalDateString(selectedDate),
+      existingEntry: entry,
+    });
   };
 
   const cancelEditing = () => {
@@ -521,10 +496,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   // Determine if there's content
-  const hasContent = lookingForward && lookingForward.text.trim();
+  const hasContent = lookingForward && (lookingForward.text.trim() || lookingForward.emotionName);
 
   // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || (!lookingForward.text.trim() && !lookingForward.emotionName))) {
     return null;
   }
 
@@ -546,52 +521,66 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       expanded={expanded}
       onExpand={onExpand}
     >
-      {displayEntry && !shouldShowAddingMode && (
-        <SwipeableTodoItem
-          item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
-          onToggle={() => {}}
-          onDelete={handleEntryDelete}
-          hideCheckbox
-          variant="gratitude"
-          disableSwipe={viewMode === 'carousel' && !expanded}
-        >
-          {editingItemId === displayEntry.id ? (
-            <View style={styles.editEntryContainer}>
-              <TextInput
-                style={[styles.editEntryInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                value={editingItemText}
-                onChangeText={setEditingItemText}
-                autoFocus
-                multiline
-                onSubmitEditing={saveEditedEntry}
-                returnKeyType="done"
-                blurOnSubmit={false}
-              />
-              <View style={styles.editEntryButtons}>
-                <TouchableOpacity
-                  onPress={cancelEditEntry}
-                  style={[styles.editEntryActionButton, styles.editEntryCancelButton]}
-                >
-                  <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={saveEditedEntry}
-                  style={[styles.editEntryActionButton, styles.editEntrySaveButton]}
-                  disabled={!editingItemText.trim() || isSaving}
-                >
-                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={[
-              styles.entryContainer,
-              viewMode === 'inline' && styles.entryContainerInline,
-            ]}>
-              <ThemedText style={styles.entryText}>{displayEntry.text}</ThemedText>
+      {displayEntry && !shouldShowAddingMode && !editingItemId ? (
+        <View style={styles.completionCard}>
+          {displayEntry.text.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
             </View>
           )}
-        </SwipeableTodoItem>
+
+          <View style={styles.completionDivider} />
+
+          <View style={styles.completionSection}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>{getSectionLabel()}</ThemedText>
+            <View style={styles.completionHeader}>
+              <View style={styles.completionHeaderContent}>
+                <View style={styles.emotionRow}>
+                  {displayEntry.emotionId && (
+                    <MaterialCommunityIcons
+                      name={getEmotionIcon(displayEntry.emotionId)}
+                      size={16}
+                      color={Colors.alertCoral}
+                      style={styles.emotionIconSmall}
+                    />
+                  )}
+                  <ThemedText weight="semiBold" style={styles.completionCategory}>
+                    {displayEntry.emotionName || 'Looking Forward'}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
+      {displayEntry && !shouldShowAddingMode && editingItemId === displayEntry.id && (
+        <View style={styles.editEntryContainer}>
+          <TextInput
+            style={[styles.editEntryInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+            value={editingItemText}
+            onChangeText={setEditingItemText}
+            autoFocus
+            multiline
+            onSubmitEditing={saveEditedEntry}
+            returnKeyType="done"
+            blurOnSubmit={false}
+          />
+          <View style={styles.editEntryButtons}>
+            <TouchableOpacity
+              onPress={cancelEditEntry}
+              style={[styles.editEntryActionButton, styles.editEntryCancelButton]}
+            >
+              <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={saveEditedEntry}
+              style={[styles.editEntryActionButton, styles.editEntrySaveButton]}
+              disabled={!editingItemText.trim() || isSaving}
+            >
+              <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
       {shouldShowAddingMode && (
         <>
@@ -660,7 +649,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           </ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
-            onPress={startAdding}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.navigate('TomorrowInHisHandsWalkthrough', {
+                selectedDate: toLocalDateString(selectedDate),
+                existingEntry: entry,
+              });
+            }}
             accessibilityRole="button"
             accessibilityLabel={dateCategory === 'today' ? 'Begin looking forward' : 'Revisit looking forward'}
           >
@@ -858,6 +853,66 @@ const styles = StyleSheet.create({
   retryText: {
     color: Colors.hopeWhite,
     fontSize: 12,
+  },
+  // Completion card styles
+  completionCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    width: '100%',
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  completionHeaderContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  completionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 16,
+  },
+  completionSection: {
+    marginBottom: 20,
+  },
+  completionSectionLabel: {
+    fontSize: 10,
+    color: Colors.alertCoral,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  completionSectionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  completionEmotionText: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    lineHeight: 26,
+    fontWeight: '600',
+  },
+  emotionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emotionIconSmall: {
+    marginRight: 0,
   },
   // Empty state styles
   emptyStateContainer: {

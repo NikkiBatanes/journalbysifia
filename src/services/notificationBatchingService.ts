@@ -36,6 +36,15 @@ class NotificationBatchingService {
     'playbook_step',
     'streak_alert',
     'reflection_question',
+    'devotional_prayer_prompt',
+    'devotional_reflection_prompt',
+    'playbook_faithful_action',
+    'journal_todays_focus',
+    'journal_todo',
+    'journal_gratitude',
+    'journal_todays_win',
+    'journal_looking_forward',
+    'prayer_request_care',
   ];
 
   // Time window for batching (in minutes)

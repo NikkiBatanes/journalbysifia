@@ -10,8 +10,6 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
-
-// MaterialCommunityIcons import removed as it's not being used
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -131,11 +129,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 <View style={styles.verticalLine} />
                 <View style={styles.metadataContent}>
                   <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
-                  {prayer.total_days && (
+                  {(prayer as any).prayer_type === 'guided_playbook' ? (
+                    <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                  ) : prayer.total_days ? (
                     <ThemedText style={styles.metadataText}>
                       {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
                     </ThemedText>
-                  )}
+                  ) : null}
                   <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                   {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
                     <ThemedText style={styles.metadataText}>
@@ -210,11 +210,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                     <View style={styles.verticalLine} />
                     <View style={styles.metadataContent}>
                       <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
-                      {prayer.total_days && (
+                      {(prayer as any).prayer_type === 'guided_playbook' ? (
+                        <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                      ) : prayer.total_days ? (
                         <ThemedText style={styles.metadataText}>
                           {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
                         </ThemedText>
-                      )}
+                      ) : null}
                       <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                       {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
                         <ThemedText style={styles.metadataText}>
@@ -238,7 +240,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
       <JournalCard
         icon={hasContent ? (
           <Ionicons
-            name="bookmarks"
+            name="bookmark"
             size={24}
             color={Colors.alertCoral}
           />
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
   horizontalPrayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
     padding: 12, // Slightly reduced padding to match reflections
-    borderRadius: 14, // Match reflection's 14px border radius
+    borderRadius: 24, // Match prayer request's 24px border radius
     minHeight: 180,
     flex: 1,
     justifyContent: 'flex-start',
@@ -339,16 +341,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.hopeWhite,
   },
+  verticalPrayerItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
+    padding: 12, // Slightly reduced padding to match reflections
+    borderRadius: 24, // Match prayer request's 24px border radius
+    marginBottom: 12,
+    minHeight: 120, // Ensure consistent height
+  },
   prayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
     padding: 12, // Slightly reduced padding to match reflections
-    borderRadius: 14, // Match reflection's 14px border radius
+    borderRadius: 24, // Match prayer request's 24px border radius
     marginBottom: 12,
     minHeight: 120, // Ensure consistent height
   },
   prayerContentContainer: {
     backgroundColor: 'rgba(26, 60, 109, 0.05)', // Light blue background for prayer content
-    borderRadius: 8,
+    borderRadius: 24,
     padding: 12,
     paddingBottom: 8,
     marginBottom: 0,

@@ -20,20 +20,6 @@ interface UsageSummary {
   devotionals: { used: number; limit: number };
 }
 
-// Map level number to title (kept in sync with faithPointsService LEVELS)
-const LEVEL_TITLES: Record<number, string> = {
-  1: 'Seeker',
-  2: 'Believer',
-  3: 'Disciple',
-  4: 'Servant',
-  5: 'Leader',
-  6: 'Teacher',
-  7: 'Mentor',
-  8: 'Elder',
-  9: 'Steward',
-  10: 'Ambassador',
-};
-
 interface Props {
   user: any | null;
   stats: ProfileStatsLite | null;
@@ -83,31 +69,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     );
   }, [user]);
 
-  const level = stats?.level ?? 1;
   const points = stats?.faithPoints ?? 0;
   const badgesCount = (stats as any)?.badgesCount ?? (user as any)?.badgesCount ?? 0;
-
-  const progress = useMemo(() => {
-    // Mirror logic from screen: linear progress between levels
-    const levels = [
-      { level: 1, pointsRequired: 0 },
-      { level: 2, pointsRequired: 100 },
-      { level: 3, pointsRequired: 300 },
-      { level: 4, pointsRequired: 600 },
-      { level: 5, pointsRequired: 1000 },
-      { level: 6, pointsRequired: 1500 },
-      { level: 7, pointsRequired: 2500 },
-      { level: 8, pointsRequired: 4000 },
-      { level: 9, pointsRequired: 6000 },
-      { level: 10, pointsRequired: 10000 },
-    ];
-    const current = levels.find(l => l.level === level);
-    const next = levels.find(l => l.level === level + 1);
-    if (!current || !next) {return level >= 10 ? 1 : 0;}
-    const span = next.pointsRequired - current.pointsRequired;
-    const inLevel = points - current.pointsRequired;
-    return Math.max(0, Math.min(1, inLevel / span));
-  }, [level, points]);
 
   // Use custom avatar URL from user profile if available, but only allow local file URIs
   const avatarUrl = (user as any)?.user_metadata?.avatar_url;
@@ -237,8 +200,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Image
               source={{ uri: safeAvatarUrl }}
               style={styles.avatar}
-              onError={(error) => {
-                console.log('Avatar image load error:', error);
+              onError={() => {
                 setImageLoadFailed(true);
               }}
               onLoad={() => {
@@ -272,12 +234,13 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Text style={[styles.userEmail, font]} numberOfLines={1} ellipsizeMode="tail">{user.email}</Text>
           )}
 
-          <View style={styles.levelContainer}>
+          {/* Hidden level and progress bar per user request */}
+          {/* <View style={styles.levelContainer}>
             <Text style={[styles.levelText, font]}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
-          </View>
+          </View> */}
         </View>
 
         {/* Right-side edit pencil removed per request */}
@@ -441,7 +404,7 @@ const styles = StyleSheet.create({
   },
   planAndUsageRow: {
     position: 'absolute',
-    top: 105,
+    top: 65,
     left: 0,
     right: 0,
     zIndex: 10,

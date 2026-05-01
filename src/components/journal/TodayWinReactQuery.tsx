@@ -1,35 +1,33 @@
-import React, { useState, useRef } from 'react';
-import { Logger } from '../../utils/ProductionLogger';
+import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-// SwipeableTodoItem handles the gesture handler imports
-import { SwipeableTodoItem } from '../SwipeableTodoItem';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { useTheme } from '../../hooks/useTheme';
-import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
-import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
+import { Trophy as LuTrophy, Pencil as LuPencil } from 'lucide-react-native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useTodayWinData,
-  useCreateTodayWinEntry,
-  useUpdateTodayWinEntry,
-  useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
+import { useFocusEffect } from '@react-navigation/native';
+
+// Win type names mapping
+const WIN_TYPE_NAMES: Record<string, string> = {
+  'followed-through': 'I followed through',
+  'chose-peace': 'I chose peace',
+  'told-truth': 'I told the truth',
+  'showed-up': 'I showed up',
+  'god-provided': 'God provided',
+  'kept-going': 'I kept going',
+};
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
-import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
-import {
-  triggerLightHaptic,
-  triggerSelectionHaptic,
-  triggerSuccessHaptic,
-  triggerErrorHaptic,
-} from '../../utils/haptics';
+import { triggerLightHaptic } from '../../utils/haptics';
+import { useNavigation } from '@react-navigation/native';
 
 interface TodayWinProps {
   selectedDate: Date;
@@ -39,23 +37,10 @@ interface TodayWinProps {
 }
 
 const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
-  // Global edit mode context (only for inline view)
-  // Global edit mode context - safe version that handles missing provider
-  const globalEditMode = useEditModeSafe();
-  // Dynamic theming for fonts
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
+  const navigation = useNavigation();
 
   const { user } = useAuth();
-  const [winText, setWinText] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [previousWin, setPreviousWin] = useState<{ id: string; text: string } | null>(null);
-  const [displayWin, setDisplayWin] = useState<{ id: string; text: string } | null>(null);
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingItemText, setEditingItemText] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [displayWin, setDisplayWin] = useState<{ id: string; text: string; winType?: string } | null>(null);
 
   const dateStr = toLocalDateString(selectedDate);
 
@@ -79,7 +64,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     if (isSameLocalDay(d, addDaysLocal(today, -1))) {return 'yesterday';}
     return 'earlier';
   };
-  // pluralizeCount removed - was defined but never used
+
   const getCopy = (category: 'today' | 'yesterday' | 'earlier', count: number) => {
     if (category === 'today') {
       return {
@@ -109,62 +94,18 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     } as const;
   };
 
-  // Determine if we should show adding mode
-  const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
-
-  // Reset state when date changes (prevents stale data)
-  React.useEffect(() => {
-    setWinText('');
-    setIsAdding(false);
-    setIsEditing(false);
-    setPreviousWin(null);
-    setDisplayWin(null);
-    setEditingEntryId(null);
-    setIsSaving(false);
-
-  }, [dateStr]);
-
   const userId = user?.id || '';
 
   // Get today's win entry with performance tracking
   const loadStartTime = useRef<number>(Date.now());
   const { data: entries = [], isLoading, error, refetch } = useTodayWinData(userId, dateStr);
 
-  // Handle global edit mode activation
-  React.useEffect(() => {
-    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
-      // Check if there's existing win content
-      const hasExistingWin = entries.length > 0 && entries[0]?.content;
-
-      if (hasExistingWin) {
-        // Start editing existing win
-        const currentEntry = entries[0];
-        const existingWin = (() => {
-          try {
-            const parsed = typeof currentEntry.content === 'string' ? JSON.parse(currentEntry.content) : currentEntry.content;
-            return parsed.win || '';
-          } catch {
-            return '';
-          }
-        })();
-
-        if (existingWin && !isEditing) {
-          setIsEditing(true);
-          setIsAdding(false); // Make sure adding is false
-          setWinText(existingWin);
-          setEditingEntryId(currentEntry.id);
-          setPreviousWin({ id: currentEntry.id, text: existingWin });
-        } else if (!existingWin && !isAdding) {
-          setIsAdding(true);
-          setIsEditing(false); // Make sure editing is false
-        }
-      } else if (!isAdding) {
-        // Start adding new win
-        setIsAdding(true);
-        setIsEditing(false); // Make sure editing is false
-      }
-    }
-  }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Track loading performance
   React.useEffect(() => {
@@ -192,84 +133,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       Alert.alert('Error', 'Failed to load today\'s win.');
     }
   }, [error, dateStr, user?.id]);
-  const createMutation = useCreateTodayWinEntry();
-  const updateMutation = useUpdateTodayWinEntry();
-  const deleteMutation = useDeleteTodayWinEntry();
 
   // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-
-  // Handler for swipe-to-delete
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      'Delete Today\'s Win?',
-      'Are you sure you want to delete your Today\'s Win entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            triggerSelectionHaptic();
-            deleteMutation.mutate(id, {
-              onSuccess: () => {
-                triggerSuccessHaptic();
-              },
-              onError: () => {
-                triggerErrorHaptic();
-              },
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  // Individual item edit handlers
-  // editWin removed - was defined but never called
-
-  const saveEditedWin = async () => {
-    if (!editingItemId || !editingItemText.trim()) {return;}
-
-    try {
-      setIsSaving(true);
-      const entryToUpdate = entries.find(e => e.id === editingItemId);
-      if (!entryToUpdate) {return;}
-
-      await updateMutation.mutateAsync({
-        id: entryToUpdate.id,
-        updates: {
-          content: JSON.stringify({ win: editingItemText.trim() }),
-        },
-      });
-
-      // Reset edit state
-      setEditingItemId(null);
-      setEditingItemText('');
-
-      // Track analytics
-      analytics.trackWinEvent('win_updated', {
-        text_length: editingItemText.trim().length,
-        previous_text_length: 0,
-        date: dateStr,
-      }, user?.id);
-      triggerSuccessHaptic();
-    } catch (updateError) {
-      Logger.error('Failed to update win', updateError as Error, {
-        component: 'TodayWinReactQuery',
-      });
-      Alert.alert('Error', 'Failed to update win. Please try again.');
-      triggerErrorHaptic();
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const cancelEditWin = () => {
-    triggerSelectionHaptic();
-    setEditingItemId(null);
-    setEditingItemText('');
-  };
 
   // Memoize the win object to prevent infinite re-renders - moved before early returns
   const win = React.useMemo(() => {
@@ -277,6 +143,16 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+      // Handle new structure with winType and quietWin
+      if (content.quietWin) {
+        const result = {
+          id: entry.id,
+          text: content.quietWin,
+          winType: content.winTypeName || content.winType,
+        };
+        return result;
+      }
+      // Handle old structure with just win
       const result = {
         id: entry.id,
         text: content.win || '',
@@ -293,35 +169,10 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     }
   }, [entry]);
 
-  // Update displayWin when win data changes, but only if not currently editing or saving
+  // Update displayWin when win data changes
   React.useEffect(() => {
-    if (!isEditing && !isSaving) {
-      // Only update if the win has actually changed
-      setDisplayWin(prevDisplayWin => {
-        // Compare by ID and text to avoid unnecessary updates
-        if (!win && !prevDisplayWin) {return prevDisplayWin;}
-        if (!win || !prevDisplayWin) {
-
-          return win;
-        }
-
-        // Don't override optimistic updates with the same content
-        if (win.id === prevDisplayWin.id && win.text === prevDisplayWin.text) {
-          return prevDisplayWin; // No change, keep previous
-        }
-
-        // Don't override optimistic updates with older data
-        // (optimistic updates have temp IDs or are newer)
-        if (prevDisplayWin.id.startsWith('temp-') && win.text === prevDisplayWin.text) {
-          // Replace temp ID with real ID but keep the optimistic content
-
-          return { ...prevDisplayWin, id: win.id };
-        }
-
-        return win;
-      });
-    }
-  }, [win, isEditing, isSaving]);
+    setDisplayWin(win);
+  }, [win]);
 
   // Handle loading state
   if (isLoading) {
@@ -354,179 +205,17 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   }
 
   const startAdding = () => {
-    if (!isAdding) { triggerLightHaptic(); }
-    setIsAdding(true);
-    setWinText('');
+    triggerLightHaptic();
+    (navigation as any).navigate('TodaysWinWalkthrough', {
+      selectedDate: toLocalDateString(selectedDate),
+    });
   };
 
-  const cancelAdding = () => {
-    triggerSelectionHaptic();
-
-    if (previousWin) {
-      // Restore the previous win if we were editing
-      setDisplayWin(previousWin);
-      setPreviousWin(null);
-    } else {
-      // Clear the input if we were adding a new win
-      setWinText('');
-    }
-    setIsAdding(false);
-    setIsEditing(false);
-    setEditingEntryId(null);
-    setIsSaving(false);
-
-  };
-
-  const saveWin = () => {
-    if (!winText.trim()) {return;}
-
-    if (isEditing && editingEntryId) {
-      // Update existing entry
-      const currentEntry = entries.find(e => e.id === editingEntryId);
-      if (!currentEntry) {
-        Logger.error('🏆 TodayWin: Entry not found for editing', new Error(String(editingEntryId)), {
-        component: 'TodayWinReactQuery',
-      });
-        Logger.error('🏆 TodayWin: Available entries', undefined, {
-        component: 'TodayWinReactQuery',
-        availableEntries: entries.map(e => ({ id: e.id, content: e.content })),
-      });
-        return;
-      }
-
-      let updatedContent: any;
-      try {
-        updatedContent = typeof currentEntry.content === 'string'
-          ? JSON.parse(currentEntry.content)
-          : currentEntry.content;
-      } catch {
-        updatedContent = {};
-      }
-
-      updatedContent.win = winText.trim();
-
-      // Set saving state to prevent useEffect from overriding
-      setIsSaving(true);
-
-      // Create optimistic update
-      const optimisticWin = {
-        id: editingEntryId,
-        text: winText.trim(),
-      };
-
-      // Apply optimistic update immediately
-      setDisplayWin(optimisticWin);
-
-      // Close global edit mode if active
-      if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
-        globalEditMode.setGlobalEditMode(false);
-      }
-
-      updateMutation.mutate({
-        id: editingEntryId,
-        updates: {
-          content: JSON.stringify(updatedContent),
-        },
-      }, {
-        onSuccess: (_data) => {
-
-          setIsSaving(false);
-
-          // Exit edit mode and clear input like LookingForward
-          setIsAdding(false);
-          setIsEditing(false);
-          setWinText('');
-
-          // Track analytics
-          analytics.trackWinEvent('win_updated', {
-            text_length: winText.trim().length,
-            previous_text_length: previousWin?.text.length || 0,
-            date: dateStr,
-          }, user?.id); // Allow useEffect to work again
-          triggerSuccessHaptic();
-          // The optimistic update will be replaced by real data when it arrives
-        },
-        onError: (updateMutationError) => {
-          Logger.error('🏆 TodayWin: Update mutation failed', updateMutationError as Error, {
-        component: 'TodayWinReactQuery',
-      });
-          setIsSaving(false); // Allow useEffect to work again
-          Alert.alert('Error', "Couldn't save your win. Please try again.");
-          triggerErrorHaptic();
-          // Revert optimistic update and restore editing state on error
-          const originalWin = {
-            id: editingEntryId,
-            text: (() => {
-              try {
-                const foundEntry = entries.find(e => e.id === editingEntryId);
-                if (!foundEntry) {return '';}
-                const content = typeof foundEntry.content === 'string' ? JSON.parse(foundEntry.content) : foundEntry.content;
-                return content.win || '';
-              } catch {
-                return '';
-              }
-            })(),
-          };
-          setDisplayWin(originalWin);
-
-        },
-      });
-    } else {
-      // Create new entry
-      // Set saving state to prevent useEffect from overriding
-      setIsSaving(true);
-
-      // Create optimistic update
-      const optimisticWin = {
-        id: 'temp-' + Date.now(),
-        text: winText.trim(),
-      };
-
-      // Apply optimistic update immediately
-      setDisplayWin(optimisticWin);
-
-      // Close global edit mode if active
-      if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
-        globalEditMode.setGlobalEditMode(false);
-      }
-
-      createMutation.mutate({
-        user_id: userId,
-        selected_date: dateStr,
-        content: JSON.stringify({ win: winText.trim() }),
-      }, {
-        onSuccess: (_data) => {
-
-          setIsSaving(false);
-
-          // Exit add mode and clear input like LookingForward
-          setIsAdding(false);
-          setIsEditing(false);
-          setWinText('');
-
-          // Track analytics
-          analytics.trackWinEvent('win_created', {
-            text_length: winText.trim().length,
-            date: dateStr,
-          }, user?.id); // Allow useEffect to work again
-          triggerSuccessHaptic();
-          // The optimistic update will be replaced by real data when it arrives
-        },
-        onError: (createMutationError) => {
-          Logger.error('🏆 TodayWin: Create mutation failed', createMutationError as Error, {
-        component: 'TodayWinReactQuery',
-      });
-          setIsSaving(false); // Allow useEffect to work again
-          Alert.alert('Error', "Couldn't save your win. Please try again.");
-          triggerErrorHaptic();
-          // Revert optimistic update on error
-          setDisplayWin(null);
-
-        },
-      });
-    }
-
-    // State clearing is now handled above in each branch
+  const handleEdit = () => {
+    triggerLightHaptic();
+    (navigation as any).navigate('TodaysWinWalkthrough', {
+      selectedDate: toLocalDateString(selectedDate),
+    });
   };
 
   // Hide empty component in inline and moments view
@@ -537,195 +226,95 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   return (
     <JournalCard
       title={(() => {
-        if (!(displayWin || shouldShowAddingMode)) {return undefined;}
+        if (!displayWin) {return undefined;}
         const category = getDateCategory(selectedDate);
         const copy = getCopy(category, entries.length);
         return copy.header;
       })()}
       subtitle={(() => {
-        if (!(displayWin || shouldShowAddingMode)) {return undefined;}
+        if (!displayWin) {return undefined;}
         const category = getDateCategory(selectedDate);
-        // In edit/adding mode, use shorter subtitle for yesterday/earlier
-        if (shouldShowAddingMode) {
-          if (category === 'yesterday') {return 'Your win from yesterday';}
-          if (category === 'earlier') {return 'Your win on this day';}
-          // today keeps existing
-          return "What's your biggest win today?";
-        }
         const copy = getCopy(category, entries.length);
         return copy.subtitle;
       })()}
-      icon={displayWin || shouldShowAddingMode ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
-      showAddButton={displayWin ? !shouldShowAddingMode : false}
-      onAdd={displayWin ? () => {
-        setWinText(displayWin.text);
-        setIsEditing(true);
-        setIsAdding(true);
-        setEditingEntryId(displayWin.id);
-        setPreviousWin({ id: displayWin.id, text: displayWin.text });
-      } : startAdding}
-      isAdding={shouldShowAddingMode}
-      onCancelAdd={cancelAdding}
+      icon={displayWin ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
+      showAddButton={!!displayWin}
+      onAdd={handleEdit}
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
     >
-      {(() => {
-        if (shouldShowAddingMode) {
-          return (
-            <>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                  value={winText}
-                  onChangeText={setWinText}
-                  placeholder="What's your win for today?"
-                  placeholderTextColor={Colors.textGray}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                  returnKeyType="done"
-                  blurOnSubmit={false}
-                />
-              </View>
-              <View style={styles.buttonRow}>
-                <View style={styles.buttonGroup}>
-                  <TouchableOpacity
-                    onPress={cancelAdding}
-                    style={[styles.button, styles.cancelButton]}
-                    activeOpacity={0.8}
-                  >
-                    <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={saveWin}
-                    style={[
-                      styles.button,
-                      styles.saveButton,
-                      (!winText.trim() || isSaving || createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
-                    ]}
-                    disabled={!winText.trim() || isSaving || createMutation.isPending || updateMutation.isPending}
-                    activeOpacity={0.8}
-                  >
-                    <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </>
-          );
-        } else if (displayWin) {
-          return (
-            <SwipeableTodoItem
-              item={{ id: displayWin.id, text: displayWin.text, completed: false }}
-              onToggle={() => {}}
-              onDelete={handleDelete}
-              hideCheckbox
-              variant="gratitude"
-              disableSwipe={viewMode === 'carousel' && !expanded}
-            >
-              {editingItemId === displayWin.id ? (
-                <View style={styles.editWinContainer}>
-                  <TextInput
-                    style={[styles.editWinInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                    value={editingItemText}
-                    onChangeText={setEditingItemText}
-                    autoFocus
-                    multiline
-                    onSubmitEditing={saveEditedWin}
-                    returnKeyType="done"
-                    blurOnSubmit={false}
-                  />
-                  <View style={styles.editWinButtons}>
-                    <TouchableOpacity
-                      onPress={cancelEditWin}
-                      style={[styles.editWinActionButton, styles.editWinCancelButton]}
-                    >
-                      <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={saveEditedWin}
-                      style={[styles.editWinActionButton, styles.editWinSaveButton]}
-                      disabled={!editingItemText.trim() || isSaving}
-                    >
-                      <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={[
-                  styles.winContainer,
-                  viewMode === 'inline' && styles.winContainerInline,
-                  styles.winDisplayWrapper,
-                ]}>
-                  <ThemedText
-                    style={[
-                      styles.winText,
-                      styles.winTextCentered,
-                      { fontFamily: getFontFamily(fontKey, 'bold') },
-                    ]}
-                    numberOfLines={viewMode === 'inline' ? undefined : 6}
-                  >
-                    {displayWin.text}
-                  </ThemedText>
-                </View>
-              )}
-            </SwipeableTodoItem>
-          );
-        } else {
-          return (
-            <View style={styles.emptyStateContainer}>
-              <View style={styles.iconContainer}>
-                <Ionicons
-                  name="trophy"
-                  size={32}
-                  color={Colors.textGray}
-                />
-                <ThemedText style={styles.sectionLabel} accessibilityRole="text">
-                  {(() => {
-                    const category = getDateCategory(selectedDate);
-                    const copy = getCopy(category, entries.length);
-                    return copy.header;
-                  })()}
-                </ThemedText>
-              </View>
-              <View style={styles.titleContainer}>
-                <ThemedText
-                  style={styles.emptyStateTitle}
-                  accessibilityRole="header"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  Celebrate God's Victories
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
-                {(() => {
-                  const category = getDateCategory(selectedDate);
-                  const copy = getCopy(category, entries.length);
-                  return copy.emptySubtext;
-                })()}
+      {displayWin ? (
+        <View style={styles.completionCard}>
+          <View style={styles.completionHeader}>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>
+                {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
               </ThemedText>
-              <TouchableOpacity
-                style={styles.emptyStateButton}
-                onPress={startAdding}
-                accessibilityRole="button"
-                accessibilityLabel={(() => {
-                  const category = getDateCategory(selectedDate);
-                  return category === 'today' ? "Begin today's win" : 'Revisit wins';
-                })()}
-              >
-                <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <ThemedText style={styles.emptyStateButtonText}>
-                  {(() => {
-                    const category = getDateCategory(selectedDate);
-                    return category === 'today' ? 'Begin' : 'Revisit';
-                  })()}
-                </ThemedText>
-              </TouchableOpacity>
             </View>
-          );
-        }
-      })()}
+          </View>
+
+          <View style={styles.completionDivider} />
+
+          {displayWin.text.trim() && (
+            <View style={styles.completionSection}>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>KIND OF WIN</ThemedText>
+              <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <Ionicons
+              name="trophy"
+              size={32}
+              color={Colors.textGray}
+            />
+            <ThemedText style={styles.sectionLabel} accessibilityRole="text">
+              {(() => {
+                const category = getDateCategory(selectedDate);
+                const copy = getCopy(category, entries.length);
+                return copy.header;
+              })()}
+            </ThemedText>
+          </View>
+          <View style={styles.titleContainer}>
+            <ThemedText
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Celebrate God's Victories
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
+            {(() => {
+              const category = getDateCategory(selectedDate);
+              const copy = getCopy(category, entries.length);
+              return copy.emptySubtext;
+            })()}
+          </ThemedText>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel={(() => {
+              const category = getDateCategory(selectedDate);
+              return category === 'today' ? "Begin today's win" : 'Revisit wins';
+            })()}
+          >
+            <LuPencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <ThemedText style={styles.emptyStateButtonText}>
+              {(() => {
+                const category = getDateCategory(selectedDate);
+                return category === 'today' ? 'Begin' : 'Revisit';
+              })()}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
     </JournalCard>
   );
 };
@@ -799,6 +388,80 @@ const styles = StyleSheet.create({
   winTextCentered: {
     textAlign: 'center',
   },
+  winTypePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  winTypePillText: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  completionCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    width: '100%',
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  completionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  completionHeaderContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  completionCategory: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  completionSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  completionCheckmark: {
+    marginLeft: 12,
+  },
+  completionSection: {
+    marginBottom: 20,
+  },
+  completionSectionLabel: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  completionSectionText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+  },
+  completionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 16,
+  },
   editButton: {
     padding: 4,
     marginLeft: 8,
@@ -809,99 +472,6 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 4,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    padding: 0,
-  },
-  formContainer: {
-    marginTop: 8,
-  },
-  inputContainer: {
-    marginBottom: 8,
-    width: '100%',
-  },
-  input: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: 12,
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    width: '100%',
-    alignSelf: 'stretch',
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  button: {
-    width: 24,
-    height: 24,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-
-  // Edit win styles
-  editWinContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  editWinInput: {
-    flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 22,
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderWidth: 0,
-    borderColor: 'transparent',
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  editWinButtons: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  editWinActionButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editWinCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  editWinSaveButton: {
-    backgroundColor: Colors.growthGreen,
   },
 
   // Error state styles

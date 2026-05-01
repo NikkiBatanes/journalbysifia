@@ -3,16 +3,30 @@ import { View, StyleSheet, Animated } from 'react-native';
 
 const DashboardActionStepsSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
 
   React.useEffect(() => {
-    const animation = Animated.loop(
+    isMounted.current = true;
+
+    const animate = () => {
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
         Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+
+    animate();
+
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
   }, [animatedValue]);
 
   const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });

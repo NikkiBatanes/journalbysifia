@@ -141,3 +141,6 @@ build/
 .bundle/
 *.p8
 coverage/
+
+# Git worktrees
+.claude/worktrees

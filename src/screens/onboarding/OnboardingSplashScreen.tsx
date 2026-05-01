@@ -360,10 +360,10 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         }
 
         if (hasCompleted) {
-          // FLOW 3: Detected user finished onboarding → Splash > Home/Dashboard
-          const target = 'MainTabs';
-        logger.onboarding.navigation('Splash', 'MainTabsRoute');
-          logger.debug('📋 FLOW: Splash > Home/Dashboard');
+          // FLOW 3: Detected user finished onboarding → Splash > UserInput (new main screen)
+          const target = 'UserInput';
+        logger.onboarding.navigation('Splash', 'UserInputRoute');
+          logger.debug('📋 FLOW: Splash > UserInput (new main screen)');
           try {
             navigation.reset({ index: 0, routes: [{ name: target as any }] });
           } catch (navErr) {

@@ -11,7 +11,6 @@ import { unifiedGenerationService } from '../services/unifiedGenerationService';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
-import { subscriptionService } from '../services/subscriptionService';
 import ThemedText from '../components/common/ThemedText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -204,7 +203,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               user.id,
               'playbook_generated',
               {
-                suppressNotification: !!isFromOnboarding,
+                suppressNotification: true, // never show reward notification during generation
                 isOnboarding: !!isFromOnboarding,
               }
             );
@@ -216,21 +215,6 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             // Don't fail the whole generation if points awarding fails
           }
 
-          // Track usage for subscription service
-          try {
-            await subscriptionService.trackUsage(
-              user.id,
-              'playbook',
-              0, // tokens used - will be updated by generation service
-              !!isFromOnboarding
-            );
-
-          } catch (usageError) {
-            Logger.error('[GeneratingPlaybook] Failed to track usage', usageError as Error, {
-  component: 'GeneratingPlaybookScreen',
-});
-            // Don't fail the whole generation if usage tracking fails
-          }
         }
 
         // Smoothly complete progress bar, then navigate
@@ -254,9 +238,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
-          navigation.navigate('PlaybookDetail' as any, {
+          navigation.navigate('PlaybookWalkthrough' as any, {
             playbook: savedPlaybook,
-            isFromOnboarding: true,
           });
         } else {
           navigation.reset({
@@ -269,7 +252,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
                 ],
                 index: 1,
               }},
-              { name: 'PlaybookDetail', params: { playbook: savedPlaybook } },
+              { name: 'PlaybookWalkthrough', params: { playbook: savedPlaybook } },
             ],
           });
         }

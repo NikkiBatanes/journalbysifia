@@ -4,10 +4,10 @@ import {
   Alert,
   DeviceEventEmitter,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
-import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -26,6 +26,7 @@ interface SmartJournalingTimeBlockModalProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingTimeBlock?: any;
+  selectedDate?: string;
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -40,6 +41,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   actionStepNumber,
   actionStepTitle,
   existingTimeBlock,
+  selectedDate,
   onSave,
   onCancel,
 }) => {
@@ -232,7 +234,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
-        selected_date: toLocalDateString(timeBlockData.date),
+        selected_date: selectedDate || toLocalDateString(timeBlockData.date),
         start_time: timeBlockData.startTime.toISOString(),
         end_time: timeBlockData.endTime.toISOString(),
         all_day: timeBlockData.isAllDay,
@@ -263,15 +265,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       let result;
       if (isEditSession && existingTimeBlock?.id) {
-        // Update existing time block
-
         result = await updateTimeBlockMutation.mutateAsync({
           id: existingTimeBlock.id,
           updates: timeBlockEntry,
         });
       } else {
-        // Create new time block
-
         result = await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
 
@@ -308,9 +306,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   };
 
   const handleCancel = () => {
-
-    // Completion state handled by parent component
-
     onCancel();
   };
 
@@ -327,6 +322,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         transparent={false}
         onRequestClose={handleCancel}
       >
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <TimeBlockLogEditor
             ref={timeBlockEditorRef}
             onSave={saveTimeBlock}
@@ -341,7 +337,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             actionStepTitle={preservedActionStepTitle}
             isLoading={isLoading}
             existingTimeBlock={existingTimeBlock}
-            styles={reflectionLogStyles}
+            context="faithful-actions"
             dateString={new Date().toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
@@ -357,6 +353,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             onDone={successModal.handleDone}
             onEdit={successModal.handleEdit}
           />
+        </GestureHandlerRootView>
       </Modal>
     </>
   );

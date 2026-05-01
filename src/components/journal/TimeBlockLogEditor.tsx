@@ -13,10 +13,11 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  Keyboard,
+  Animated,
 } from 'react-native';
 
-import { Pencil } from 'lucide-react-native';
-import { Colors } from '../../theme/colors';
+import { Colors, Fonts } from '../../theme';
 // import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
@@ -26,10 +27,7 @@ import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { LocationSelector } from '../LocationSelector';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -61,8 +59,11 @@ interface TimeBlockLogEditorProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   isLoading?: boolean;
+  autoFocus?: boolean;
   styles?: any;
   dateString?: string;
+  // Context to determine title/subtext: 'journal' for general journal, 'faithful-actions' for playbook action steps
+  context?: 'journal' | 'faithful-actions';
   // Existing time block data for editing
   existingTimeBlock?: {
     id?: string;
@@ -81,87 +82,25 @@ export interface TimeBlockLogEditorRef {
   focusInput: () => void;
 }
 
-// Styles matching other log editors
-const createDefaultStyles = (fonts: any) => ({
+// Styles matching app design (PlaybookListScreen & PlaybookWalkthroughScreen)
+const createDefaultStyles = (_fonts: any) => ({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
-  backgroundContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: Colors.anchorBlue,
-  },
-  modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    borderRadius: 20,
-    padding: 4,
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 0,
-    zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
-  },
-  title: {
-    fontSize: 18,
-    // Typography handled by ThemedText weight="bold"
-    color: Colors.anchorBlue,
-  },
-  modeIconsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 4,
-  },
-  modeButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginHorizontal: 0,
-  },
-  activeModeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  iconSeparator: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 0,
   },
   keyboardAvoidingView: {
     flex: 1,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
-  contentCard: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   content: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    overflow: 'visible',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 220,
+    paddingBottom: 60,
   },
   entryInput: {
     color: Colors.hopeWhite,
@@ -169,8 +108,8 @@ const createDefaultStyles = (fonts: any) => ({
     marginBottom: 8,
   },
   titleInput: {
-    // Typography handled by ThemedText weight="bold"
     fontSize: 22,
+    fontWeight: 'bold',
     paddingVertical: 8,
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -181,48 +120,85 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    marginBottom: 20,
-    // fontWeight handled by ThemedText weight="bold",
+    marginBottom: 0,
+  },
+  subtext: {
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginBottom: 16,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 12,
+    marginTop: 48,
+    width: 320,
+    alignSelf: 'center',
   },
   titleTextFlex: {
     flex: 1,
   },
   formContainer: {
-    padding: 20,
+    padding: 0,
+    width: 320,
+    alignSelf: 'center',
+    overflow: 'visible',
   },
   inputLabel: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
+    opacity: 0.6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  allDayLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 0,
+    marginTop: 0,
+    marginRight: 8,
+    opacity: 0.6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   formInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     color: Colors.hopeWhite,
     fontSize: 16,
-    minHeight: 50,
-    textAlignVertical: 'top',
-    marginBottom: 12,
+    lineHeight: 20,
+    fontFamily: Fonts.regular,
+    minHeight: 40,
+    marginBottom: 16,
+    width: '100%',
   },
   multilineInput: {
-    minHeight: 120,
+    minHeight: 100,
+    borderRadius: 16,
+    paddingTop: 10,
   },
   locationInputContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
+    overflow: 'visible',
   },
 
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   timeButton: {
     alignItems: 'center',
@@ -231,23 +207,25 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timeLabel: {
     color: Colors.hopeWhite,
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 8,
+    marginTop: 16,
     opacity: 0.6,
-    marginBottom: 4,
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   timeText: {
     color: Colors.hopeWhite,
-    fontSize: 20,
-    fontFamily: fonts.semiBold,
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
   },
   timeSeparator: {
     color: Colors.hopeWhite,
     fontSize: 14,
     marginHorizontal: 8,
     opacity: 0.6,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   timeSeparatorSmall: {
     fontSize: 10,
@@ -258,11 +236,13 @@ const createDefaultStyles = (fonts: any) => ({
     alignItems: 'center',
   },
   repeatTextWithMargin: {
-    opacity: 0.7,
     marginRight: 8,
   },
+  selectedOptionText: {
+    color: Colors.alertCoral,
+  },
   categoryContainer: {
-    marginTop: 16,
+    marginTop: 0,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -272,8 +252,15 @@ const createDefaultStyles = (fonts: any) => ({
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 8,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    minHeight: 40,
+    width: '100%',
   },
   selectedCategoryButton: {
     // No background styling
@@ -284,21 +271,22 @@ const createDefaultStyles = (fonts: any) => ({
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.semiBold,
+    flex: 1,
   },
   categoryTextRequired: {
-    color: Colors.alertCoral,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   allDayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   allDayText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
   },
   switchContainer: {
     padding: 4,
@@ -339,7 +327,7 @@ const createDefaultStyles = (fonts: any) => ({
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     textTransform: 'uppercase',
     lineHeight: 12,
   },
@@ -355,12 +343,11 @@ const createDefaultStyles = (fonts: any) => ({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
   },
   fab: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -375,9 +362,7 @@ const createDefaultStyles = (fonts: any) => ({
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   cancelFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,
@@ -402,11 +387,11 @@ const createDefaultStyles = (fonts: any) => ({
   },
   // FAB styles - matching reflection editor
   fabContainer: {
-    position: 'absolute',
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    padding: 8, // Add padding around the container
+    width: '100%',
+    paddingRight: 16,
   },
   leftFabContainer: {
     left: 16,
@@ -415,7 +400,7 @@ const createDefaultStyles = (fonts: any) => ({
     right: 16,
   },
   fabDefaultPosition: {
-    bottom: 16,
+    bottom: 350,
   },
   fabRow: {
     flexDirection: 'row',
@@ -435,22 +420,23 @@ const createDefaultStyles = (fonts: any) => ({
   },
   addMenuText: {
     color: Colors.hopeWhite,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
     marginLeft: 8,
   },
   sectionLabel: {
     color: Colors.hopeWhite,
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
     marginBottom: 8,
-    opacity: 0.8,
+    opacity: 0.6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   timeRowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 4,
+    marginBottom: 16,
   },
   timeSection: {
     flexDirection: 'row',
@@ -462,12 +448,89 @@ const createDefaultStyles = (fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    minHeight: 40,
+    width: '100%',
   },
   repeatText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.semiBold,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  notesIcon: {
+    marginRight: 12,
+    marginTop: 10,
+  },
+  notesInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  notesInputIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  notesInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 20,
+    minHeight: 100,
+    paddingTop: 0,
+    textAlignVertical: 'top',
+    fontFamily: Fonts.medium,
+  },
+  titleInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    minHeight: 40,
+  },
+  titleInputIcon: {
+    marginRight: 8,
+  },
+  titleInputField: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 20,
+    fontFamily: Fonts.medium,
   },
   timePickerModal: {
     flex: 1,
@@ -484,7 +547,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timePickerTitle: {
     fontSize: 18,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 20,
   },
@@ -508,7 +571,7 @@ const createDefaultStyles = (fonts: any) => ({
   },
   timePickerButtonText: {
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
   },
   timePickerCancelText: {
     color: Colors.hopeWhite,
@@ -521,32 +584,32 @@ const createDefaultStyles = (fonts: any) => ({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: '100%',
   },
   repeatModalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    padding: 30,
-    margin: 20,
-    minWidth: 280,
+    borderRadius: 24,
+    padding: 20,
+    maxWidth: 280,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
 
   allDaySection: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  allDayLabel: {
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    fontFamily: fonts.medium,
-    marginRight: 8,
-  },
   customRepeatContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
   },
   frequencySelector: {
     marginBottom: 16,
@@ -556,27 +619,28 @@ const createDefaultStyles = (fonts: any) => ({
     alignItems: 'center',
   },
   frequencyInput: {
-    width: 50,
-    height: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    padding: 8,
+    width: 56,
+    height: 40,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 50,
+    paddingHorizontal: 10,
     color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 16,
     marginRight: 8,
   },
   frequencyUnitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 50,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    minHeight: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   customModalButtons: {
     flexDirection: 'row',
@@ -585,61 +649,86 @@ const createDefaultStyles = (fonts: any) => ({
   },
   customModalButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 50,
     alignItems: 'center',
     marginHorizontal: 5,
+    minHeight: 40,
   },
   customModalCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   customModalConfirmButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.alertCoral,
   },
   customModalButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.semiBold,
+    fontFamily: Fonts.semiBold,
   },
   repeatModalTitle: {
-    fontSize: 18,
-    fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
-    marginBottom: 20,
-  },
-  repeatOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  repeatOptionLast: {
-  },
-  repeatOptionSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  repeatOptionText: {
-    color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.medium,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    textTransform: 'uppercase',
   },
-  repeatOptionSelectedText: {
-    fontFamily: fonts.semiBold,
+  repeatOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  repeatOptionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  repeatOptionPillActive: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  repeatOptionPillCustom: {
+    width: '100%',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  repeatOptionPillText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  repeatOptionPillTextActive: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+  },
+  repeatOptionPillIcon: {
+    marginLeft: 4,
   },
   customRepeatLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.semiBold,
     marginBottom: 12,
   },
   frequencyUnitText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: fonts.medium,
+    fontFamily: Fonts.semiBold,
     marginRight: 4,
   },
   endRepeatContainer: {
-    marginTop: 8,
+    marginTop: 0,
     marginBottom: 16,
   },
   endRepeatRow: {
@@ -649,20 +738,23 @@ const createDefaultStyles = (fonts: any) => ({
   },
   endRepeatButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 50,
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 40,
   },
   endRepeatButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   endRepeatButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 14,
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
   },
   endRepeatButtonNeverActive: {
     backgroundColor: Colors.alertCoral,
@@ -677,19 +769,21 @@ const createDefaultStyles = (fonts: any) => ({
   daySelectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
   },
   dayButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   dayButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   dayButtonText: {
     color: Colors.hopeWhite,
@@ -703,21 +797,65 @@ function TimeBlockLogEditorInner(
   const {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
-    subtaskTitle: _subtaskTitle,
     playbookTitle,
     actionStepNumber,
     actionStepTitle,
     isLoading = false,
+    autoFocus = false,
     styles,
     existingTimeBlock,
+    context = 'journal',
     // Unused props: initialContent, _subtaskId, _stepId, dateString
   } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
+  const { user } = useAuth();
+
+  // Get user's week start preference from metadata (default to Sunday/0)
+  const weekStartDay = useMemo(() => {
+    const weekStartsOnPref = (user as any)?.user_metadata?.preferences?.weekStartsOn
+      ?? (user as any)?.user_metadata?.weekStartsOn
+      ?? (user as any)?.user_metadata?.preferences?.week_start
+      ?? (user as any)?.user_metadata?.preferences?.weekStart
+      ?? (user as any)?.user_metadata?.preferences?.week_start_on
+      ?? (user as any)?.user_metadata?.preferences?.week_start_day;
+
+    if (typeof weekStartsOnPref === 'number' && weekStartsOnPref >= 0 && weekStartsOnPref <= 6) {
+      return weekStartsOnPref;
+    }
+    if (typeof weekStartsOnPref === 'string') {
+      const val = weekStartsOnPref.trim().toLowerCase();
+      const map: Record<string, number> = {
+        '0': 0, 'sun': 0, 'sunday': 0,
+        '1': 1, 'mon': 1, 'monday': 1,
+        '2': 2, 'tue': 2, 'tuesday': 2,
+        '3': 3, 'wed': 3, 'wednesday': 3,
+        '4': 4, 'thu': 4, 'thursday': 4,
+        '5': 5, 'fri': 5, 'friday': 5,
+        '6': 6, 'sat': 6, 'saturday': 6,
+      };
+      if (val in map) {
+        return map[val];
+      }
+    }
+    return 0; // Default to Sunday
+  }, [user]);
+
+  // Reorder day labels based on week start preference
+  const dayLabels = useMemo(() => {
+    const allDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    // Reorder arrays based on week start day
+    const reorderedLabels = [];
+    const reorderedIndices = [];
+    for (let i = 0; i < 7; i++) {
+      const dayIndex = (weekStartDay + i) % 7;
+      reorderedLabels.push(allDays[dayIndex]);
+      reorderedIndices.push(dayIndex);
+    }
+
+    return { labels: reorderedLabels, indices: reorderedIndices };
+  }, [weekStartDay]);
 
   const fonts = useMemo(() => {
     return {
@@ -746,6 +884,17 @@ function TimeBlockLogEditorInner(
       }
     },
   }));
+
+  // Auto-focus input when autoFocus prop is true
+  useEffect(() => {
+    if (autoFocus) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [autoFocus]);
 
   // State management
   const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
@@ -789,20 +938,32 @@ function TimeBlockLogEditorInner(
   const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  // Calculate estimated line count based on text length and newlines
-  const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
-    if (!text || text.trim().length === 0) {return 1;}
-    const newlineCount = (text.match(/\n/g) || []).length;
-    const textWithoutNewlines = text.replace(/\n/g, '');
-    const wrappedLines = Math.ceil(textWithoutNewlines.length / charsPerLine);
-    return newlineCount + wrappedLines;
-  };
+  // Keyboard position state for FAB
+  const fabBottomPosition = useRef(new Animated.Value(80)).current;
 
-  // Dynamic title font sizing - fixed size based on line count
-  // Header title: Original 22px, reduce to 18px if > 3 lines
-  // Input title: Original 18px (consistent with other editors)
-  const headerTitleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const inputTitleFontSize = 18; // Input field uses 18px (consistent with other editors)
+  // Keyboard listeners to update FAB position with smooth animation
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (event) => {
+      Animated.timing(fabBottomPosition, {
+        toValue: event.endCoordinates.height + 16,
+        duration: event.duration || 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(fabBottomPosition, {
+        toValue: 80,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [fabBottomPosition]);
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
@@ -822,28 +983,13 @@ function TimeBlockLogEditorInner(
 
   const handleSave = async () => {
     try {
-      // Check if feature is gated for seeker accounts
-      if (smartJournalingGating.isLocked) {
-        try { triggerLightHaptic(); } catch {}
-        // Close modal first before navigating
-        if (onUpgradeRequired) {
-          try { onUpgradeRequired(); } catch {}
-        }
-        setTimeout(() => {
-          // Navigate to sales offer with trial eligibility check
-          (navigation as any).navigate('OnboardingSalesOffer', {
-            source: 'smart_journaling_lock',
-            feature: 'smart_journaling',
-            tier: subscription?.tier || 'seeker',
-            upgradeMode: false,
-            skipNotificationPreference: true,
-          });
-        }, 300);
+      if (!title.trim()) {
+        Alert.alert('Missing Title', 'Please enter a title for your time block.');
         return;
       }
 
-      if (!title.trim()) {
-        Alert.alert('Missing Title', 'Please enter a title for your time block.');
+      if (!category || category === 'Select a category') {
+        Alert.alert('Missing Category', 'Please select a category for your time block.');
         return;
       }
 
@@ -924,48 +1070,14 @@ function TimeBlockLogEditorInner(
     }
   };
 
-  // Header date: Day, Month Day (and Year only if not current year)
-  const headerDate = React.useMemo(() => {
-    // If a specific date needs to be shown in the future, wire it here.
-    const d = new Date();
-    const nowYear = new Date().getFullYear();
-    const opts: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    };
-    if (d.getFullYear() !== nowYear) {
-      opts.year = 'numeric';
-    }
-    return d.toLocaleDateString('en-US', opts);
-  }, []);
-
   return (
     <View style={s.container}>
-
       <StatusBar hidden />
-      <View style={s.backgroundContainer} />
-      <View style={s.header}>
-        <ThemedText weight="bold" style={s.title}>{headerDate}</ThemedText>
-        <View style={s.modeToggle}>
-          <View style={s.modeButton} pointerEvents="none">
-            <Pencil
-              size={22}
-              color={Colors.alertCoral}
-              fill={Colors.alertCoral}
-              strokeWidth={1.5}
-            />
-          </View>
-        </View>
-      </View>
-
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         enabled={Platform.OS === 'ios'}>
-
-        <View style={s.contentCard}>
           <ScrollView
             ref={scrollViewRef}
             style={s.content}
@@ -976,26 +1088,16 @@ function TimeBlockLogEditorInner(
           >
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
-              <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: headerTitleFontSize }]}>
-                {_subtaskTitle || 'Time Block Entry'}
-              </ThemedText>
-              {smartJournalingGating.isLocked && (
-                <TouchableOpacity
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    (navigation as any).navigate('OnboardingSalesOffer', {
-                      source: 'smart_journaling_lock',
-                      feature: 'smart_journaling',
-                      tier: subscription?.tier || 'seeker',
-                      upgradeMode: false,
-                      skipNotificationPreference: true,
-                    });
-                  }}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                </TouchableOpacity>
-              )}
+              <View style={s.titleTextFlex}>
+                <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+                  {context === 'faithful-actions' ? 'Set a time' : 'Time Block'}
+                </ThemedText>
+                <ThemedText style={s.subtext}>
+                  {context === 'faithful-actions'
+                    ? 'Choose when you want to come back to this.'
+                    : 'Schedule and organize your day.'}
+                </ThemedText>
+              </View>
             </View>
 
             {/* Form content based on active tab */}
@@ -1056,15 +1158,28 @@ function TimeBlockLogEditorInner(
               </View>
 
               {/* Title Input */}
-              <TextInput
-                ref={inputRef}
-                style={[s.formInput, { fontFamily: fonts.regular }, { fontSize: inputTitleFontSize }]}
-                placeholder="Title *"
-                placeholderTextColor={Colors.alertCoral}
-                value={title}
-                onChangeText={(text) => handleContentChange('title', text)}
-                multiline={true}
-              />
+              <View style={s.titleInputContainer}>
+                <Ionicons name="text" size={18} color={Colors.hopeWhite} style={s.titleInputIcon} />
+                <View style={{ flex: 1, position: 'relative' }}>
+                  <TextInput
+                    ref={inputRef}
+                    style={s.titleInputField}
+                    placeholder=""
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={title}
+                    onChangeText={(text) => handleContentChange('title', text)}
+                    multiline={false}
+                    keyboardAppearance="dark"
+                  />
+                  {!title && (
+                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>
+                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>*</ThemedText>
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
+              </View>
 
               {/* Repeat Section */}
               <TouchableOpacity
@@ -1074,10 +1189,13 @@ function TimeBlockLogEditorInner(
                   setShowRepeatModal(true);
                 }}
               >
-                <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
+                <View style={s.buttonContent}>
+                  <Ionicons name="repeat" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
+                </View>
                 <View style={s.repeatOptionContainer}>
-                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</ThemedText>
-                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, repeatOption !== 'Never' && s.selectedOptionText]}>{repeatOption}</ThemedText>
+                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
 
@@ -1087,22 +1205,29 @@ function TimeBlockLogEditorInner(
                   <ThemedText weight="medium" style={s.inputLabel}>End Repeat</ThemedText>
                   <View style={s.endRepeatRow}>
                     <TouchableOpacity
-                      onPress={() => { setEndRepeatMode('never'); setEndRepeatDate(null); }}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setEndRepeatMode('never');
+                        setEndRepeatDate(null);
+                      }}
                       style={[
                         s.endRepeatButton,
                         endRepeatMode === 'never' && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.endRepeatButtonText}>Never</ThemedText>
+                      <ThemedText style={s.repeatText}>Never</ThemedText>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => { setShowEndDatePicker(true); }}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setShowEndDatePicker(true);
+                      }}
                       style={[
                         s.endRepeatButton,
                         (endRepeatMode === 'date' && endRepeatDate) && s.endRepeatButtonActive,
                       ]}
                     >
-                      <ThemedText weight="medium" style={s.endRepeatButtonText}>
+                      <ThemedText style={s.repeatText}>
                         {endRepeatDate ? endRepeatDate.toLocaleDateString() : 'Select End Date'}
                       </ThemedText>
                     </TouchableOpacity>
@@ -1118,9 +1243,12 @@ function TimeBlockLogEditorInner(
                   setShowAlertModal(true);
                 }}
               >
-                <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
+                <View style={s.buttonContent}>
+                  <Ionicons name="notifications" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
+                </View>
                 <View style={s.repeatOptionContainer}>
-                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, alert !== 'none' && s.selectedOptionText]}>
                     {alert === 'none' ? 'None' :
                      alert === 'at-time' ? 'At time of event' :
                      alert === '5-min' ? '5 minutes before' :
@@ -1133,7 +1261,7 @@ function TimeBlockLogEditorInner(
                      alert === '2-days' ? '2 days before' :
                      alert === '1-week' ? '1 week before' : 'None'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
+                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
 
@@ -1142,9 +1270,11 @@ function TimeBlockLogEditorInner(
                 style={[
                   s.categoryButton,
                   s.selectedCategoryButton,
-                  s.categoryButtonRow,
                 ]}
-                onPress={() => setShowCategoryModal(true)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowCategoryModal(true);
+                }}
                 accessibilityLabel="Select Category"
               >
                 <Ionicons
@@ -1156,13 +1286,19 @@ function TimeBlockLogEditorInner(
                 <ThemedText
                   weight="medium"
                   style={[
-                    s.categoryText,
+                    s.repeatText,
                     category === 'Select a category' && s.categoryTextRequired,
                   ]}
                 >
-                  {category === 'Select a category' ? 'Select a category *' : category}
+                  {category === 'Select a category' ? (
+                    <>
+                      Category <ThemedText weight="medium" style={{ color: Colors.alertCoral }}>*</ThemedText>
+                    </>
+                  ) : (
+                    category
+                  )}
                 </ThemedText>
-                <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
+                <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
 
               <TimeBlockCategoryModal
@@ -1182,42 +1318,70 @@ function TimeBlockLogEditorInner(
                 animationType="fade"
                 onRequestClose={() => setShowRepeatModal(false)}
               >
-                <View style={s.repeatModal}>
+                <TouchableOpacity
+                  style={s.repeatModal}
+                  activeOpacity={1}
+                  onPress={() => setShowRepeatModal(false)}
+                >
                   <View style={s.repeatModalContainer}>
                     <ThemedText weight="semiBold" style={s.repeatModalTitle}>Repeat</ThemedText>
-                    {['Never', 'Daily', 'Weekly', 'Bi-weekly', 'Monthly', 'Yearly', 'Custom'].map((option, index, array) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={[
-                          s.repeatOption,
-                          index === array.length - 1 && s.repeatOptionLast,
-                          repeatOption === option && s.repeatOptionSelected,
-                        ]}
-                        onPress={async () => {
-                          // Trigger haptic feedback first
-                          await triggerLightHaptic();
-
-                          // Then handle the action
-                          if (option === 'Custom') {
-                            setShowRepeatModal(false);
-                            setShowCustomRepeatModal(true);
-                          } else {
-                            setRepeatOption(option);
-                            setShowRepeatModal(false);
-                          }
-                        }}
-                      >
-                        <ThemedText weight="medium" style={[
-                          s.repeatOptionText,
-                          repeatOption === option && s.repeatOptionSelectedText,
-                        ]}>
-                          {option}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
-
+                    <View style={s.repeatOptionsGrid}>
+                      {[
+                        { value: 'Never', label: 'Never' },
+                        { value: 'Daily', label: 'Daily' },
+                        { value: 'Weekly', label: 'Weekly' },
+                        { value: 'Monthly', label: 'Monthly' },
+                      ].map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            s.repeatOptionPill,
+                            repeatOption === option.value && s.repeatOptionPillActive,
+                          ]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            if (option.value === 'Custom') {
+                              setRepeatOption(option.value);
+                              setShowRepeatModal(false);
+                              setShowCustomRepeatModal(true);
+                            } else {
+                              setRepeatOption(option.value);
+                              setShowRepeatModal(false);
+                            }
+                          }}
+                        >
+                          <ThemedText weight={repeatOption === option.value ? 'semiBold' : 'medium'} style={[
+                            s.repeatOptionPillText,
+                            repeatOption === option.value && s.repeatOptionPillTextActive,
+                          ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        s.repeatOptionPill,
+                        s.repeatOptionPillCustom,
+                        repeatOption === 'Custom' && s.repeatOptionPillActive,
+                      ]}
+                      onPress={async () => {
+                        await triggerLightHaptic();
+                        setRepeatOption('Custom');
+                        setShowRepeatModal(false);
+                        setShowCustomRepeatModal(true);
+                      }}
+                    >
+                      <ThemedText weight={repeatOption === 'Custom' ? 'semiBold' : 'medium'} style={[
+                        s.repeatOptionPillText,
+                        repeatOption === 'Custom' && s.repeatOptionPillTextActive,
+                      ]}>
+                        Custom
+                      </ThemedText>
+                      <Ionicons name="chevron-forward" size={14} color={repeatOption === 'Custom' ? Colors.hopeWhite : 'rgba(255,255,255,0.5)'} style={s.repeatOptionPillIcon} />
+                    </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               </Modal>
 
               {/* Alert Modal */}
@@ -1226,46 +1390,76 @@ function TimeBlockLogEditorInner(
                 transparent={true}
                 animationType="fade"
                 onRequestClose={() => setShowAlertModal(false)}
+                supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
               >
-                <View style={s.repeatModal}>
+                <TouchableOpacity
+                  style={s.repeatModal}
+                  activeOpacity={1}
+                  onPress={() => setShowAlertModal(false)}
+                >
                   <View style={s.repeatModalContainer}>
-                    <ThemedText weight="semiBold" style={s.repeatModalTitle}>Alert</ThemedText>
-                    {[
-                      { value: 'none', label: 'None' },
-                      { value: 'at-time', label: 'At time of event' },
-                      { value: '5-min', label: '5 minutes before' },
-                      { value: '10-min', label: '10 minutes before' },
-                      { value: '15-min', label: '15 minutes before' },
-                      { value: '30-min', label: '30 minutes before' },
-                      { value: '1-hour', label: '1 hour before' },
-                      { value: '2-hours', label: '2 hours before' },
-                      { value: '1-day', label: '1 day before' },
-                      { value: '2-days', label: '2 days before' },
-                      { value: '1-week', label: '1 week before' },
-                    ].map((option, index, array) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          s.repeatOption,
-                          index === array.length - 1 && s.repeatOptionLast,
-                          alert === option.value && s.repeatOptionSelected,
-                        ]}
-                        onPress={async () => {
-                          await triggerLightHaptic();
-                          setAlert(option.value as any);
-                          setShowAlertModal(false);
-                        }}
-                      >
-                        <ThemedText weight="medium" style={[
-                          s.repeatOptionText,
-                          alert === option.value && s.repeatOptionSelectedText,
-                        ]}>
-                          {option.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
+                    <ThemedText weight="medium" style={s.repeatModalTitle}>Alert</ThemedText>
+                    <View style={s.repeatOptionsGrid}>
+                      {[
+                        { value: 'none', label: 'None' },
+                        { value: 'at-time', label: 'At time' },
+                        { value: '5-min', label: '5 min' },
+                        { value: '10-min', label: '10 min' },
+                        { value: '15-min', label: '15 min' },
+                        { value: '30-min', label: '30 min' },
+                      ].map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            s.repeatOptionPill,
+                            alert === option.value && s.repeatOptionPillActive,
+                          ]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setAlert(option.value as any);
+                            setShowAlertModal(false);
+                          }}
+                        >
+                          <ThemedText weight={alert === option.value ? 'semiBold' : 'medium'} style={[
+                            s.repeatOptionPillText,
+                            alert === option.value && s.repeatOptionPillTextActive,
+                          ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View style={s.repeatOptionsGrid}>
+                      {[
+                        { value: '1-hour', label: '1 hour' },
+                        { value: '2-hours', label: '2 hours' },
+                        { value: '1-day', label: '1 day' },
+                        { value: '2-days', label: '2 days' },
+                        { value: '1-week', label: '1 week' },
+                      ].map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            s.repeatOptionPill,
+                            alert === option.value && s.repeatOptionPillActive,
+                          ]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setAlert(option.value as any);
+                            setShowAlertModal(false);
+                          }}
+                        >
+                          <ThemedText weight={alert === option.value ? 'semiBold' : 'medium'} style={[
+                            s.repeatOptionPillText,
+                            alert === option.value && s.repeatOptionPillTextActive,
+                          ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               </Modal>
 
               {/* Custom Repeat Modal */}
@@ -1294,6 +1488,7 @@ function TimeBlockLogEditorInner(
                             keyboardType="numeric"
                             maxLength={2}
                             placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                            keyboardAppearance="dark"
                           />
 
                           <TouchableOpacity
@@ -1319,21 +1514,24 @@ function TimeBlockLogEditorInner(
                         <View style={s.marginTop12}>
                           <ThemedText weight="medium" style={s.customRepeatLabel}>On days:</ThemedText>
                           <View style={s.daySelectionRow}>
-                            {['S','M','T','W','T','F','S'].map((label, idx) => (
-                              <TouchableOpacity
-                                key={idx}
-                                onPress={async () => {
-                                  await triggerLightHaptic();
-                                  setCustomDays(prev => prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]);
-                                }}
-                                style={[
-                                  s.dayButton,
-                                  customDays.includes(idx) && s.dayButtonActive,
-                                ]}
-                              >
-                                <ThemedText weight="medium" style={s.dayButtonText}>{label}</ThemedText>
-                              </TouchableOpacity>
-                            ))}
+                            {dayLabels.labels.map((label, idx) => {
+                              const actualDayIndex = dayLabels.indices[idx];
+                              return (
+                                <TouchableOpacity
+                                  key={actualDayIndex}
+                                  onPress={async () => {
+                                    await triggerLightHaptic();
+                                    setCustomDays(prev => prev.includes(actualDayIndex) ? prev.filter(d => d !== actualDayIndex) : [...prev, actualDayIndex]);
+                                  }}
+                                  style={[
+                                    s.dayButton,
+                                    customDays.includes(actualDayIndex) && s.dayButtonActive,
+                                  ]}
+                                >
+                                  <ThemedText weight="medium" style={s.dayButtonText}>{label}</ThemedText>
+                                </TouchableOpacity>
+                              );
+                            })}
                           </View>
                         </View>
                       )}
@@ -1426,28 +1624,32 @@ function TimeBlockLogEditorInner(
                 <LocationSelector
                   currentLocation={location}
                   onLocationSelect={(loc) => handleContentChange('location', loc)}
-                  placeholder="Add location"
+                  placeholder="Location"
                 />
               </View>
 
               {/* Notes Input */}
-              <TextInput
-                style={[s.formInput, s.multilineInput, { fontFamily: fonts.regular }]}
-                placeholder="Notes"
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={notes}
-                onChangeText={(text) => handleContentChange('notes', text)}
-                multiline
-                textAlignVertical="top"
-                onFocus={() => {
-                  // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
-                  setTimeout(() => {
-                    if (scrollViewRef.current) {
-                      scrollViewRef.current.scrollTo({ y: 360, animated: true });
-                    }
-                  }, 250);
-                }}
-              />
+              <View style={s.notesInputContainer}>
+                <Ionicons name="document-text" size={18} color={Colors.hopeWhite} style={s.notesInputIcon} />
+                <TextInput
+                  style={s.notesInput}
+                  placeholder="Notes"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={notes}
+                  onChangeText={(text) => handleContentChange('notes', text)}
+                  multiline
+                  textAlignVertical="top"
+                  keyboardAppearance="dark"
+                  onFocus={() => {
+                    // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
+                    setTimeout(() => {
+                      if (scrollViewRef.current) {
+                        scrollViewRef.current.scrollTo({ y: 360, animated: true });
+                      }
+                    }, 250);
+                  }}
+                />
+              </View>
 
               {/* Metadata section
                  Only show when there is a real playbook title. This keeps
@@ -1461,7 +1663,7 @@ function TimeBlockLogEditorInner(
                     <ThemedText style={s.metadataText}>{playbookTitle}</ThemedText>
                     {actionStepNumber && actionStepTitle && (
                       <ThemedText style={s.metadataText}>
-                        Step {actionStepNumber}: {actionStepTitle}
+                        Action {actionStepNumber}: {actionStepTitle}
                       </ThemedText>
                     )}
                   </View>
@@ -1469,46 +1671,49 @@ function TimeBlockLogEditorInner(
               )}
             </View>
           </ScrollView>
-        </View>
 
-        {/* Floating Action Buttons - Standard Layout */}
-        <View style={s.fabWrapper}>
-          {/* Right Action Buttons */}
-          <View style={[s.fabContainer, s.rightFabContainer, s.fabDefaultPosition]}>
-            <View style={s.fabRow}>
-              {/* Cancel FAB */}
-              <TouchableOpacity
-                style={[s.fab, s.cancelFab]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onCancel();
-                }}
-              >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
-              </TouchableOpacity>
+      {/* Floating Action Buttons - Standard Layout */}
+      {/* Wrapping in a non-scrollable ScrollView with keyboardShouldPersistTaps='always' fixes the iOS
+          quirk where tapping a button while the keyboard is visible requires two taps (first to dismiss
+          keyboard, second to trigger). See: https://github.com/facebook/react-native/issues/9447 */}
+      <Animated.View style={[s.fabWrapper, { bottom: fabBottomPosition }]}>
+        <View style={s.fabContainer}>
+          <View style={s.fabRow}>
+            {/* Cancel FAB */}
+            <TouchableOpacity
+              style={[s.fab, s.cancelFab]}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              onPress={() => {
+                onCancel();
+                triggerLightHaptic();
+              }}
+            >
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
 
-              {/* Save FAB */}
-              <TouchableOpacity
-                style={[
-                  s.fab,
-                  s.saveFab,
-                  (!title.trim() || isLoading) && s.fabDisabled,
-                ]}
-                disabled={!title.trim() || isLoading}
-                onPress={() => {
-                  triggerLightHaptic();
-                  handleSave();
-                }}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
-                ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* Save FAB */}
+            <TouchableOpacity
+              style={[
+                s.fab,
+                s.saveFab,
+                (!title.trim() || !category || category === 'Select a category' || isLoading) && s.fabDisabled,
+              ]}
+              disabled={!title.trim() || !category || category === 'Select a category' || isLoading}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              onPress={() => {
+                handleSave();
+                triggerLightHaptic();
+              }}
+            >
+              {isLoading ? (
+                <ActivityIndicator size={17} color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
+      </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Start Time Picker Modal */}

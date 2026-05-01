@@ -9,6 +9,27 @@ import { Logger } from '../utils/ProductionLogger';
 class NotificationDeepLinkService {
   private navigationRef: any = null;
 
+  private parseQuery(queryString?: string): Record<string, string> {
+    if (!queryString) {
+      return {};
+    }
+
+    return queryString.split('&').reduce<Record<string, string>>((params, pair) => {
+      const [rawKey, rawValue = ''] = pair.split('=');
+      if (!rawKey) {
+        return params;
+      }
+
+      try {
+        params[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue.replace(/\+/g, ' '));
+      } catch {
+        params[rawKey] = rawValue;
+      }
+
+      return params;
+    }, {});
+  }
+
   /**
    * Set the navigation reference for deep linking
    */
@@ -109,10 +130,12 @@ class NotificationDeepLinkService {
       // Dismiss any open notification modal before navigating
       this.dismissNotificationModal();
 
-      // Parse deep link URL
-      // Format: sifia://screen/id or sifia://screen
+      // Parse deep link URL.
+      // Supported: sifia://screen/id, sifia://screen/id/day/2, and query params.
       const url = deepLink.replace('sifia://', '');
-      const parts = url.split('/');
+      const [path, queryString] = url.split('?');
+      const query = this.parseQuery(queryString);
+      const parts = path.split('/').filter(Boolean);
       const screen = parts[0];
       const id = parts[1];
 
@@ -129,9 +152,55 @@ class NotificationDeepLinkService {
           break;
 
         case 'playbook':
-          // Navigate to specific PlaybookDetail screen
-          if (id) {
-            this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
+        case 'playbooks':
+          if (id && id !== 'new') {
+            const target = parts[2];
+            const walkthroughTarget = parts[3];
+
+            if (target === 'walkthrough') {
+              const stepMap: Record<string, number> = {
+                verse: 2,
+                actions: 3,
+                prayer: 4,
+                words: 5,
+                speak: 5,
+              };
+              const initialStep = stepMap[walkthroughTarget] ?? 0;
+              const rawActionIndex = walkthroughTarget === 'actions' ? Number(parts[4]) : undefined;
+
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep,
+                ...(Number.isFinite(rawActionIndex) ? { initialActionIndex: rawActionIndex } : {}),
+              });
+            } else if (target === 'prayer') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 4,
+              });
+            } else if (target === 'verse') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 2,
+              });
+            } else if (target === 'speak') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 5,
+              });
+            } else if (target === 'action') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 3,
+              });
+            } else {
+              this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
+            }
           } else {
             // Navigate to Playbooks tab if no specific ID
             this.navigationRef.current.navigate('MainTabs', { screen: 'Playbooks' });
@@ -143,9 +212,15 @@ class NotificationDeepLinkService {
           break;
 
         case 'devotional':
+        case 'devotionals':
           // Navigate to specific DevotionalDetail screen
-          if (id) {
-            this.navigationRef.current.navigate('DevotionalDetail', { devotionalId: id });
+          if (id && id !== 'today' && id !== 'new') {
+            const dayIndex = parts.indexOf('day');
+            const dayNumber = dayIndex >= 0 ? Number(parts[dayIndex + 1]) : undefined;
+            this.navigationRef.current.navigate('DevotionalDetail', {
+              devotionalId: id,
+              ...(Number.isFinite(dayNumber) ? { initialDay: dayNumber } : {}),
+            });
           } else {
             // Navigate to Devotionals tab if no specific ID
             this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals' });
@@ -157,9 +232,34 @@ class NotificationDeepLinkService {
           break;
 
         case 'journal':
-          // Navigate to Journal screen directly
-          this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
+          if (id === 'heart' && query.title) {
+            this.navigationRef.current.navigate('MainTabs', {
+              screen: 'Journal',
+              params: {
+                screen: 'ReflectionEditor',
+                params: {
+                  selectedDate: new Date().toISOString(),
+                  initialMode: 'guided',
+                  initialPrompt: query.title,
+                  initialTitle: query.title,
+                  lockTitle: true,
+                  source: 'guided',
+                },
+              },
+            });
+          } else {
+            // Navigate to Journal screen directly
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
+          }
           Logger.info('Navigated to Journal', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        case 'dashboard':
+        case 'home':
+          this.navigationRef.current.navigate('MainTabs', { screen: 'Overview' });
+          Logger.info('Navigated to Dashboard', {
             component: 'notificationDeepLinkService',
           });
           break;
@@ -168,6 +268,17 @@ class NotificationDeepLinkService {
           // Navigate to UserProfileModal for direct profile access
           this.navigationRef.current.navigate('UserProfileModal');
           Logger.info('Navigated to Profile', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        case 'subscription':
+          this.navigationRef.current.navigate('OnboardingSalesOffer', {
+            upgradeMode: true,
+            source: 'notification',
+            skipNotificationPreference: true,
+          });
+          Logger.info('Navigated to subscription offer', {
             component: 'notificationDeepLinkService',
           });
           break;

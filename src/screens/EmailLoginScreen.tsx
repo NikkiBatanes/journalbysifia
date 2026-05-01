@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LottieView from 'lottie-react-native';
 import {
@@ -12,6 +12,7 @@ import {
   StatusBar,
   Image,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -34,6 +35,8 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
   const { signIn, loading } = useAuth();
 
   // Responsive logo sizing for different devices
@@ -54,8 +57,8 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 280 : 350,
-      height: isVerySmallPhone ? 280 : 350,
+      width: isVerySmallPhone ? 220 : 260,
+      height: isVerySmallPhone ? 220 : 260,
       marginTop: isVerySmallPhone ? -80 : -100,
     },
     titleContainer: {
@@ -74,7 +77,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       fontSize: isVerySmallPhone ? 13 : 16,
       color: Colors.white,
       textAlign: 'center',
-      marginBottom: isVerySmallPhone ? 12 : 32,
+      marginBottom: isVerySmallPhone ? -4 : 0,
       opacity: 0.8,
     },
     formContainer: {
@@ -101,6 +104,28 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       alignItems: 'center',
     },
   }), [isVerySmallPhone]);
+
+  // Keyboard event listeners for scroll functionality
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = () => {
+      // Keyboard show event
+    };
+
+    const onHide = () => {
+      setHasAutoScrolled(false);
+    };
+
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
 
   const handleLogin = async () => {
     triggerLightHaptic();
@@ -161,7 +186,11 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <ScrollView contentContainerStyle={dynamicStyles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={dynamicStyles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* Header */}
           <View style={styles.header}>
@@ -205,9 +234,18 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                   setEmail(t);
                   if (error) {setError('');}
                 }}
+                onFocus={() => {
+                  if (!hasAutoScrolled) {
+                    setHasAutoScrolled(true);
+                    setTimeout(() => {
+                      scrollRef.current?.scrollTo({ y: 14, animated: true });
+                    }, 140);
+                  }
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
             </View>
 
@@ -225,6 +263,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -245,14 +284,14 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.primaryButton, styles.finishButton]}
               onPress={handleLogin}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="#274673" />
               ) : (
-                <ThemedText weight="bold" style={styles.loginButtonText}>Login</ThemedText>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>Login</ThemedText>
               )}
             </TouchableOpacity>
           </View>
@@ -344,13 +383,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 50,
     marginBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 28,
     height: 56,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   inputIcon: {
     marginRight: 12,
@@ -399,6 +438,25 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
     color: '#fff',
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 2,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   signUpContainer: {
     flexDirection: 'row',

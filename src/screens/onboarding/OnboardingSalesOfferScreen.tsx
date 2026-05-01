@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   Linking,
   Platform,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
@@ -36,10 +37,43 @@ import { triggerLightHaptic } from '../../utils/haptics';
 
 // Use PricingTier from pricingService to avoid drift
 type PricingTier = ServicePricingTier;
+type BillingCycle = 'monthly' | 'annual';
+type PaidPlanTier = 'spark' | 'growth' | 'transformation';
+
+const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
+
+const normalizePaidPlanTier = (tier?: string | null): PaidPlanTier | undefined => {
+  const normalized = String(tier || '').toLowerCase().replace(/_annual$/, '');
+  return PAID_PLAN_ORDER.includes(normalized as PaidPlanTier) ? normalized as PaidPlanTier : undefined;
+};
+
+const getNextPaidPlanTier = (tier?: string | null): PaidPlanTier => {
+  const current = normalizePaidPlanTier(tier);
+  if (!current) {
+    return 'growth';
+  }
+
+  const currentIndex = PAID_PLAN_ORDER.indexOf(current);
+  return PAID_PLAN_ORDER[Math.min(currentIndex + 1, PAID_PLAN_ORDER.length - 1)];
+};
+
+const normalizeBillingCycle = (billingCycle?: string | null): BillingCycle => {
+  const normalized = String(billingCycle || '').toLowerCase();
+  return normalized === 'annual' || normalized === 'yearly' || normalized === 'year' ? 'annual' : 'monthly';
+};
+
+const getPaidPlanRank = (tier?: string | null): number => {
+  const normalized = normalizePaidPlanTier(tier);
+  return normalized ? PAID_PLAN_ORDER.indexOf(normalized) : -1;
+};
 
 interface RouteParams {
   upgradeMode?: boolean;
   currentTier?: string;
+  selectedTier?: string;
+  billingCycle?: BillingCycle;
+  currentTrialBillingCycle?: BillingCycle;
+  selectedBillingCycle?: BillingCycle;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
   featureType?: 'playbooks' | 'devotionals'; // explicitly mark which feature triggered the upgrade
   // Navigation context flags
@@ -48,12 +82,24 @@ interface RouteParams {
   tier?: string; // caller-reported tier
   skipNotificationPreference?: boolean;
   context?: string; // e.g., 'profile_settings', 'timeblock'
+  changedTier?: string; // tier changed in trial offer screen
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   returnToReflection?: boolean; // when launched from reflection editor
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
   forceTransformationAnnual?: boolean; // Show only annual transformation option
   forceAnnualOnly?: boolean; // Show only annual plans for current tier
   onboardingFlow?: boolean; // True when in initial registration onboarding
+  currentTrialChosenTier?: string;
+  profileTrialViewPlans?: boolean;
+  testModeTier?: string;
+  testModeIsOnTrial?: boolean;
+  testModeHasStartedTrial?: boolean;
+  testModeHasEverStartedTrial?: boolean;
+  testModeTrialChosenTier?: string;
+  testModeTrialEndDate?: string;
+  testModeBillingCycle?: BillingCycle;
+  testModeRemaining?: number;
+  testModeLimit?: number;
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
@@ -69,6 +115,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const devotionalGating = useDevotionalGating();
   const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
@@ -89,24 +136,46 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const [footerHeight, setFooterHeight] = useState(0);
 
-  const [isAnnual, setIsAnnual] = useState((route.params as any)?.forceTransformationAnnual || (route.params as any)?.forceAnnualOnly || false);
-
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
+  const subscription = devotionalGating.subscription;
+  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
+  const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
+
+  // Test mode: override trial status if provided
+  const testModeIsOnTrial = routeParams?.testModeIsOnTrial;
+  const testModeHasStartedTrial = routeParams?.testModeHasStartedTrial ?? routeParams?.testModeHasEverStartedTrial;
+  const testModeTrialEndDate = routeParams?.testModeTrialEndDate;
+  const testModeTier = routeParams?.testModeTier;
+  const routeIndicatesTrial = routeParams?.currentTier === 'free_trial' || routeParams?.tier === 'free_trial' || routeParams?.profileTrialViewPlans === true;
+
+  const effectiveIsCurrentlyOnTrial = testModeIsOnTrial !== undefined ? testModeIsOnTrial : (isCurrentlyOnTrial || routeIndicatesTrial);
+  const effectiveHasEverStartedTrial = testModeHasStartedTrial !== undefined ? testModeHasStartedTrial : hasEverStartedTrial;
+  const effectiveTrialChosenTier = (routeParams?.testModeTrialChosenTier || routeParams?.currentTrialChosenTier || subscription?.trial_chosen_tier) as SubscriptionTier | undefined;
+  const effectiveTrialPlanTier = normalizePaidPlanTier(effectiveTrialChosenTier);
+  const effectiveTrialEndDate = testModeTrialEndDate || subscription?.trial_end_date;
+  const effectiveCurrentTrialBillingCycle = routeParams?.currentTrialBillingCycle || routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle || 'monthly';
+  const routeBillingCycle = routeParams?.selectedBillingCycle || routeParams?.billingCycle || routeParams?.currentTrialBillingCycle || routeParams?.testModeBillingCycle;
+  const initialIsAnnual = routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly || routeBillingCycle === 'annual';
+
+  const [isAnnual, setIsAnnual] = useState(Boolean(initialIsAnnual));
 
   // Check if coming from profile to preselect current tier
-  const isFromProfile = (route.params as any)?.source === 'profile';
+  const isFromProfile = routeParams?.source === 'profile';
 
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
                               (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
-  const initialSelectedTier = (route.params as any)?.forceTransformationAnnual ? 'transformation' :
-                              (route.params as any)?.forceAnnualOnly ? currentUserTier :
-                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? currentUserTier :
-                              (route.params as any)?.selectedTier ? (route.params as any).selectedTier :
-                              (route.params as any)?.requestedDuration === 7 ? 'transformation' :
-                              (route.params as any)?.requestedDuration ? 'growth' :
-                              'spark'; // Default to spark
+  const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
+  const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
+                              routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
+                              routeParams?.forceAnnualOnly ? getNextPaidPlanTier(currentUserTier) :
+                              isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? normalizePaidPlanTier(currentUserTier) || currentUserTier :
+                              routeParams?.profileTrialViewPlans && effectiveIsCurrentlyOnTrial ? trialUpgradeTier :
+                              routeParams?.testModeTrialChosenTier ? normalizePaidPlanTier(routeParams.testModeTrialChosenTier) || routeParams.testModeTrialChosenTier :
+                              routeParams?.requestedDuration === 7 ? 'transformation' :
+                              routeParams?.requestedDuration ? 'growth' :
+                              'growth';
 
   // Debug logging
   logger.debug('Sales offer screen debug', {
@@ -114,13 +183,81 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     currentUserTier,
     initialSelectedTier,
     routeParams: route.params,
-    requestedDuration: (route.params as any)?.requestedDuration,
+    requestedDuration: routeParams?.requestedDuration,
   });
   const [selectedTier, setSelectedTier] = useState(initialSelectedTier);
   const [hasManualTierSelection, setHasManualTierSelection] = useState(false);
-  const [preservedTier, setPreservedTier] = useState<string | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const selectedPlanTier = normalizePaidPlanTier(selectedTier) || selectedTier;
+
+  useEffect(() => {
+    if (!hasManualTierSelection && selectedPlanTier !== selectedTier) {
+      setSelectedTier(selectedPlanTier);
+    }
+  }, [hasManualTierSelection, selectedPlanTier, selectedTier]);
+
+  useEffect(() => {
+    if (!hasManualTierSelection && selectedPlanTier !== initialSelectedTier) {
+      setSelectedTier(initialSelectedTier);
+    }
+  }, [hasManualTierSelection, initialSelectedTier, selectedPlanTier]);
+
+  // Helper function to get tier display name
+  const getTierDisplayName = (tier: string): string => {
+    const tierNames = {
+      'seeker': 'Seeker',
+      'free_trial': 'Trial',
+      'spark': 'Spark',
+      'growth': 'Growth',
+      'transformation': 'Transformation',
+      'transformation_annual': 'Transformation',
+    } as Record<string, string>;
+    return tierNames[tier] || tier;
+  };
+  const [_expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const monthlyScale = useRef(new Animated.Value(1)).current;
+  const annualScale = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const animateToggle = useCallback((toAnnual: boolean) => {
+    if (toAnnual) {
+      Animated.spring(monthlyScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(annualScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    } else {
+      Animated.spring(annualScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      Animated.spring(monthlyScale, {
+        toValue: 1.05,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    }
+  }, [monthlyScale, annualScale]);
+
+  useEffect(() => {
+    animateToggle(isAnnual);
+  }, [isAnnual, animateToggle]);
+
+  useEffect(() => {
+    setIsAnnual(Boolean(initialIsAnnual));
+  }, [initialIsAnnual]);
+
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
@@ -129,73 +266,105 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
   const requestedDuration = routeParams?.requestedDuration;
-  const [isAboutGrowthExpanded, setIsAboutGrowthExpanded] = useState(false);
-  const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
-  const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
-  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && currentUserTier === 'seeker';
-  const fromSmartJournalingLock = !isUpgradeMode && routeParams?.source === 'smart_journaling_lock' && routeParams?.feature === 'smart_journaling';
-  const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
-  const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
-  const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
-  const fromCalendarAutoSync = !isUpgradeMode && routeParams?.source === 'calendar_auto_sync';
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
-  // Derived: trial eligibility (only offer trial if user hasn't started one yet AND is currently on Seeker tier)
-  const subscription = devotionalGating.subscription;
-  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
-  const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-  const isSeekerTier = currentUserTier === 'seeker' || !currentUserTier; // !currentUserTier treats undefined as seeker
-  const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial && isSeekerTier;
+  const effectiveCurrentUserTier = (testModeTier || currentUserTier) as string;
+  const effectiveIsSeekerTier = effectiveCurrentUserTier === 'seeker' || !effectiveCurrentUserTier;
+  const guidedPromptsTier = routeParams?.tier || effectiveCurrentUserTier;
+  const isProfileTrialViewPlans = Boolean(routeParams?.profileTrialViewPlans);
+  const shouldUseTrialPlanSwitcher = isUpgradeMode && effectiveIsCurrentlyOnTrial && Boolean(effectiveTrialPlanTier);
+  const isCurrentTransformationPlan = normalizePaidPlanTier(effectiveCurrentUserTier) === 'transformation'
+    || effectiveTrialPlanTier === 'transformation'
+    || Boolean(routeParams?.forceTransformationAnnual);
+  const profileTrialTier = effectiveTrialPlanTier || normalizePaidPlanTier(effectiveTrialChosenTier) || 'spark';
+  const profileTrialTierName = getTierDisplayName(profileTrialTier);
+
+  const customProfileTrialTitle = 'View other plans';
+  const customProfileTrialSubtitle = `You're currently on the ${profileTrialTierName} trial. You can continue with this trial or explore other plans.`;
+  const customProfileTrialNote = 'Changing plans during your trial may start your new plan right away.';
+
+  const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && effectiveIsSeekerTier;
+  const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
+  const fromGuidedPromptsLock = !isUpgradeMode && routeParams?.source === 'guided_prompts_lock' && routeParams?.feature === 'guided_prompts' && (guidedPromptsTier === 'seeker' || !guidedPromptsTier);
+  const fromExportRestriction = !isUpgradeMode && (routeParams?.source === 'pdf_export_restriction' || routeParams?.source === 'docx_export_restriction') && (routeParams?.feature === 'export_pdf' || routeParams?.feature === 'export_docx');
+  const fromRepeatOptionsLock = !isUpgradeMode && routeParams?.source === 'repeat_options';
+  const fromRepeatUpgradePrompt = !isUpgradeMode && routeParams?.source === 'repeat_upgrade_prompt';
+  const fromCalendarAutoSync = !isUpgradeMode && (routeParams?.source === 'calendar_auto_sync' || routeParams?.source === 'calendar_sync');
+
+  const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && effectiveIsSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
 
   // Detect if coming from devotional gating
   // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
   const fromDevotionalGating = isUpgradeMode && (routeParams?.featureType === 'devotionals' || (!routeParams?.featureType && requestedDuration));
 
-  // Detect if coming from Growth+ only features (smart journaling or export)
-  const fromGrowthOnlyFeature = fromSmartJournalingLock || fromExportRestriction;
-  const growthOnlyFeatureName = fromExportRestriction
-    ? (routeParams?.feature === 'export_pdf' ? 'PDF Export' : 'Word Export')
-    : 'Smart Journaling';
-
   // Generate dynamic sales copy for playbook/devotional gating
   const dynamicSalesCopy = React.useMemo(() => {
-    if (!isUpgradeMode || !subscription) {return null;}
+    if (!isUpgradeMode || isProfileTrialViewPlans) {return null;}
 
     // Use explicit featureType from route params if provided, otherwise infer from requestedDuration
     const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
-    const isOnTrial = subscription.tier === 'free_trial';
+
+    // Test mode: use override values from route params if provided
+    const testModeRemaining = routeParams?.testModeRemaining;
+    const testModeLimit = routeParams?.testModeLimit;
+    const testModeHasEverStartedTrial = routeParams?.testModeHasEverStartedTrial;
 
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
-    const playbooksUsed = subscription.playbooks_used || 0;
-    const devotionalsUsed = subscription.devotionals_used || 0;
-    const playbooksLimit = subscription.playbooks_limit || 0;
-    const devotionalsLimit = subscription.devotionals_limit || 0;
+    const playbooksUsed = subscription?.playbooks_used || 0;
+    const devotionalsUsed = subscription?.devotionals_used || 0;
+    const playbooksLimit = subscription?.playbooks_limit || 0;
+    const devotionalsLimit = subscription?.devotionals_limit || 0;
 
     const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
     const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
 
-    const remaining = featureType === 'playbooks'
-      ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
-      : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals);
+    const remaining = testModeRemaining !== undefined
+      ? testModeRemaining
+      : (featureType === 'playbooks'
+          ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
+          : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals));
 
-    const limit = featureType === 'playbooks'
-      ? playbooksLimit
-      : devotionalsLimit;
+    const limit = testModeLimit !== undefined
+      ? testModeLimit
+      : (featureType === 'playbooks' ? playbooksLimit : devotionalsLimit);
 
     return generateSalesCopy({
       featureType,
-      currentTier: currentUserTier as SubscriptionTier,
+      currentTier: effectiveCurrentUserTier as SubscriptionTier,
       remaining,
       limit,
-      isOnTrial,
-      trialChosenTier: subscription.trial_chosen_tier as SubscriptionTier,
-      trialEndDate: subscription.trial_end_date,
-      subscriptionStartDate: subscription.subscription_start_date,
+      isOnTrial: effectiveIsCurrentlyOnTrial,
+      trialChosenTier: effectiveTrialChosenTier,
+      trialEndDate: effectiveTrialEndDate,
+      subscriptionStartDate: subscription?.subscription_start_date,
       requestedDuration,
+      hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : effectiveHasEverStartedTrial,
     });
-  }, [isUpgradeMode, subscription, currentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType]);
+  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+
+  const selectedBillingCycle = isAnnual ? 'annual' : 'monthly';
+  const currentPaidPlanTier = normalizePaidPlanTier(effectiveCurrentUserTier);
+  const currentPaidBillingCycle = normalizeBillingCycle(
+    effectiveCurrentUserTier?.includes('_annual') || routeParams?.forceAnnualOnly
+      ? 'annual'
+      : routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle
+  );
+  const currentComparableTier = effectiveIsCurrentlyOnTrial ? effectiveTrialPlanTier : currentPaidPlanTier;
+  const currentComparableBillingCycle = effectiveIsCurrentlyOnTrial
+    ? normalizeBillingCycle(effectiveCurrentTrialBillingCycle)
+    : currentPaidBillingCycle;
+  const currentComparableRank = getPaidPlanRank(currentComparableTier);
+  const selectedComparableRank = getPaidPlanRank(selectedPlanTier);
+  const hasComparableCurrentPlan = Boolean(currentComparableTier) && currentComparableRank >= 0;
+  const isCurrentSelection = hasComparableCurrentPlan
+    && currentComparableTier === selectedPlanTier
+    && currentComparableBillingCycle === selectedBillingCycle;
+  const isHigherTierSelection = hasComparableCurrentPlan
+    ? selectedComparableRank > currentComparableRank
+    : selectedComparableRank >= 0;
+  const shouldDisableUnlockButton = isCurrentSelection && !dynamicSalesCopy?.closeOnPrimaryCta;
 
   // Debug trial eligibility
   logger.debug('Trial eligibility debug', {
@@ -301,49 +470,91 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         if (isUpgradeMode) {
           // In upgrade mode, only show tiers higher than current user tier
-          logger.debug('Loading upgrade tiers for', { currentUserTier });
-          tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
-          logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
+          // However, if isCurrentTier is set (paid user hit limits), show all tiers to include current tier
+          // Trial plan browsing also starts from all tiers so we can show the current trial tier
+          // after "See All Plans" is opened while still preselecting the next upgrade.
+          if (dynamicSalesCopy?.isCurrentTier || shouldUseTrialPlanSwitcher) {
+            logger.debug('Loading all tiers for current/trial tier display', {
+              currentUserTier,
+              effectiveCurrentUserTier,
+              isCurrentTier: dynamicSalesCopy?.isCurrentTier,
+              shouldUseTrialPlanSwitcher,
+            });
+            tiers = await pricingService.getLocationAdjustedPricing();
+            logger.debug('All tiers loaded for current/trial tier display', { count: tiers.length });
+          } else {
+            const upgradeTier = normalizePaidPlanTier(effectiveCurrentUserTier) || effectiveCurrentUserTier;
+            logger.debug('Loading upgrade tiers for', { currentUserTier, effectiveCurrentUserTier, upgradeTier });
+            tiers = await pricingService.getLocationAdjustedUpgradeTiers(upgradeTier);
+            logger.debug('Upgrade tiers loaded', { count: tiers.length, tiers: tiers.map(t => t.id) });
+          }
         } else {
           // In onboarding mode, show all tiers
           tiers = await pricingService.getLocationAdjustedPricing();
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
-        // Filter to only show Spark tier in onboarding flow
-        if (routeParams?.onboardingFlow) {
-          tiers = tiers.filter(t => t.id === 'spark');
-          logger.debug('Filtered to only show Spark tier for onboarding flow', {
+        // Filter to only show selected tier in onboarding flow when collapsed (unless showAllPlans is true)
+        if (routeParams?.onboardingFlow && !showAllPlans) {
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
+          logger.debug('Filtered to show selected tier when collapsed in onboarding flow', {
+            selectedTier: selectedPlanTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
-        // Filter out Spark tier if coming from Growth+ only features
-        if (fromGrowthOnlyFeature) {
-          tiers = tiers.filter(t => t.id !== 'spark');
-          logger.debug('Filtered out Spark tier for Growth+ feature', {
-            feature: growthOnlyFeatureName,
+        // Filter to only show selected tier in non-onboarding flow when collapsed (unless showAllPlans is true)
+        if (!routeParams?.onboardingFlow && !showAllPlans && !isUpgradeMode) {
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
+          logger.debug('Filtered to show selected tier when collapsed in non-onboarding flow', {
+            selectedTier: selectedPlanTier,
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
-        // Filter to only show Transformation annual when forced
-        if ((route.params as any)?.forceTransformationAnnual) {
+        // Filter tiers based on current trial tier to prevent downgrades.
+        // Keep the current trial tier available when the user expands all plans.
+        if (shouldUseTrialPlanSwitcher && effectiveTrialPlanTier) {
+          const trialIndex = PAID_PLAN_ORDER.indexOf(effectiveTrialPlanTier);
+          tiers = tiers.filter(t => {
+            const tierIndex = PAID_PLAN_ORDER.indexOf(t.id as PaidPlanTier);
+            return tierIndex >= trialIndex;
+          });
+          logger.debug('Filtered tiers for trial plan browsing', {
+            trialTier: effectiveTrialPlanTier,
+            trialIndex,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
+        // Filter to only show selected tier for Seeker/trial users in upgrade mode when collapsed (unless showAllPlans is true)
+        if (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher) && !showAllPlans) {
+          tiers = tiers.filter(t => t.id === selectedPlanTier);
+          logger.debug('Filtered to show selected tier when collapsed in upgrade mode', {
+            selectedTier: selectedPlanTier,
+            effectiveIsSeekerTier,
+            shouldUseTrialPlanSwitcher,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
+
+        // Filter to only show Transformation annual when forced (unless showAllPlans is true)
+        if (routeParams?.forceTransformationAnnual && !showAllPlans) {
           tiers = tiers.filter(t => t.id === 'transformation');
           logger.debug('Filtered to only show Transformation annual', {
             remainingTiers: tiers.map(t => t.id),
           });
         }
 
-        // Filter to show only annual plans at or above current tier when forced
-        if ((route.params as any)?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
-          const baseTier = currentUserTier.replace('_annual', '');
-          const tierHierarchy = ['spark', 'growth', 'transformation'];
-          const currentTierIndex = tierHierarchy.indexOf(baseTier);
+        // Filter to show only annual plans at or above current tier when forced (unless showAllPlans is true)
+        if (routeParams?.forceAnnualOnly && currentUserTier && currentUserTier !== 'seeker') {
+          const baseTier = normalizePaidPlanTier(currentUserTier);
+          const currentTierIndex = baseTier ? PAID_PLAN_ORDER.indexOf(baseTier) : -1;
 
           // Show current tier and higher tiers (allow upgrades, prevent downgrades)
           tiers = tiers.filter(t => {
-            const tierIndex = tierHierarchy.indexOf(t.id);
+            const tierIndex = PAID_PLAN_ORDER.indexOf(t.id as PaidPlanTier);
             return tierIndex >= currentTierIndex;
           });
 
@@ -353,25 +564,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             currentTierIndex,
             remainingTiers: tiers.map(t => t.id),
           });
-        }
-
-        // Filter tiers based on current trial tier to prevent downgrades
-        if (isUpgradeMode && subscription?.tier === 'free_trial' && subscription?.trial_chosen_tier) {
-          const trialTier = subscription.trial_chosen_tier;
-          const tierHierarchy = ['spark', 'growth', 'transformation'];
-          const trialIndex = tierHierarchy.indexOf(trialTier);
-          if (trialIndex !== -1) {
-            // Only show tiers at or above the current trial tier
-            tiers = tiers.filter(t => {
-              const tierIndex = tierHierarchy.indexOf(t.id);
-              return tierIndex >= trialIndex;
-            });
-            logger.debug('Filtered tiers for trial upgrade mode', {
-              trialTier,
-              trialIndex,
-              remainingTiers: tiers.map(t => t.id),
-            });
-          }
         }
 
         const currency = await pricingService.getCurrencyInfo();
@@ -395,6 +587,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           // - Else prefer POPULAR, then 'growth', then first available
           if (!hasManualTierSelection && tiers.length > 0) {
             let chosen: PricingTier | undefined;
+
+            if (routeParams?.selectedTier) {
+              const routeSelectedTier = normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier;
+              chosen = tiers.find(t => t.id === routeSelectedTier);
+              logger.debug('Route selected tier - selecting explicitly requested tier', { selectedTier: routeSelectedTier, found: chosen?.id });
+            }
+
+            if (!chosen && shouldUseTrialPlanSwitcher) {
+              chosen = tiers.find(t => t.id === trialUpgradeTier);
+              logger.debug('Trial plan browsing - selecting next upgrade tier', {
+                currentTrialTier: effectiveTrialPlanTier,
+                trialUpgradeTier,
+                found: chosen?.id,
+              });
+            }
 
             // If coming from profile with paid tier, select current tier
             if (isFromProfile && currentUserTier && currentUserTier !== 'seeker') {
@@ -424,7 +631,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, subscription?.tier, subscription?.trial_chosen_tier, requestedDuration, fromGrowthOnlyFeature, growthOnlyFeatureName, isFromProfile, route.params, routeParams?.onboardingFlow]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {
@@ -443,34 +650,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         setSelectedTier(target.id);
       }
     }
-  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier]);
+  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
+
+  // Preselect recommended tier for paid users who hit limits
+  useEffect(() => {
+    if (!hasManualTierSelection && dynamicSalesCopy?.recommendedTier && isUpgradeMode && !shouldUseTrialPlanSwitcher) {
+      const recommendedTier = dynamicSalesCopy.recommendedTier;
+      const tierExists = pricingTiers.find(t => t.id === recommendedTier);
+      if (tierExists && selectedTier !== recommendedTier) {
+        setSelectedTier(recommendedTier);
+      }
+    }
+  }, [hasManualTierSelection, dynamicSalesCopy?.recommendedTier, isUpgradeMode, pricingTiers, selectedTier, shouldUseTrialPlanSwitcher]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
     setExpandedCards(new Set());
   }, [isAnnual]);
 
-  // Preserve selected tier when navigating to trial offer and restore when returning
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // When screen comes back into focus, if we have a preserved tier, restore it
-      if (preservedTier && selectedTier === 'spark') {
-        logger.debug('Restoring preserved tier from trial offer', { preservedTier, currentTier: selectedTier });
-        setSelectedTier(preservedTier);
-        setPreservedTier(null); // Clear preserved tier after restoration
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, preservedTier, selectedTier]);
-
-  // Preserve tier before navigating to trial offer
-  useEffect(() => {
-    if (shouldUseTrialProduct && !preservedTier && selectedTier !== 'spark') {
-      logger.debug('Preserving selected tier before trial offer', { selectedTier });
-      setPreservedTier(selectedTier);
-    }
-  }, [shouldUseTrialProduct, preservedTier, selectedTier]);
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
@@ -636,7 +833,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     try {
       triggerLightHaptic();
-      const purchaseTier = selectedTier;
+      const purchaseTier = selectedPlanTier;
 
       logger.debug('handleUnlockPlan called', {
         isUpgradeMode,
@@ -710,7 +907,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // App Store enforces trial eligibility - users already on trial will be charged
       // validate-receipt will detect upgrade vs new trial based on user's current tier
       const trialProduct = products.find(p =>
-        p.tier === selectedTier &&
+        p.tier === selectedPlanTier &&
         p.productId.includes(billing) &&
         p.productId.includes('.freetrial')
       );
@@ -725,7 +922,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         });
       } else {
         // Construct trial product ID
-        productId = `app.sifia.com.${selectedTier}.${billing}.freetrial`;
+        productId = `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
         logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
       }
 
@@ -788,7 +985,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             if (shouldUseTrialProduct && result.transactionId) {
               logger.info('🎯 Creating free trial subscription (UPGRADE MODE)', {
                 userId: user?.id,
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
@@ -796,7 +993,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               await NewSubscriptionService.startFreeTrial({
                 user_id: user?.id || '',
                 duration_days: 3,
-                trial_chosen_tier: selectedTier as SubscriptionTier,
+                trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.transactionId,
                 original_transaction_id: result.transactionId,
@@ -805,7 +1002,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               logger.info('✅ Trial created successfully (UPGRADE MODE)', {
                 tier: 'free_trial',
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
               });
             }
 
@@ -820,7 +1017,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
-              : isAnnual ? `${selectedTier}_annual` : selectedTier;
+              : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
             let updatedSubscription;
             let retryCount = 0;
@@ -1000,7 +1197,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             if (shouldUseTrialProduct && result.transactionId) {
               logger.info('🎯 Creating free trial subscription (ONBOARDING MODE)', {
                 userId: user?.id,
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
               });
@@ -1008,7 +1205,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               await NewSubscriptionService.startFreeTrial({
                 user_id: user?.id || '',
                 duration_days: 3,
-                trial_chosen_tier: selectedTier as SubscriptionTier,
+                trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.transactionId,
                 original_transaction_id: result.transactionId,
@@ -1017,7 +1214,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
               logger.info('✅ Trial created successfully (ONBOARDING MODE)', {
                 tier: 'free_trial',
-                chosenTier: selectedTier,
+                chosenTier: selectedPlanTier,
               });
             }
 
@@ -1031,7 +1228,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Retry logic to handle race conditions with database updates
             const expectedTier = shouldUseTrialProduct
               ? 'free_trial'
-              : isAnnual ? `${selectedTier}_annual` : selectedTier;
+              : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
             let updatedSubscription;
             let retryCount = 0;
@@ -1156,36 +1353,84 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   };
 
   const getCurrentPrice = () => {
-    const tier = pricingTiers.find(t => t.id === selectedTier);
+    const tier = pricingTiers.find(t => t.id === selectedPlanTier);
     return tier ? (isAnnual ? tier.annualPrice : tier.monthlyPrice) : 0;
   };
 
-
-  const getMonthlyEquivalent = (tier: PricingTier) => {
-    const price = isAnnual ? (tier.annualPrice / 12) : tier.monthlyPrice;
-    // Remove .00 for PHP whole numbers
-    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
-      return Math.floor(price).toString();
+  const getSelectedPlanActionLabel = () => {
+    if (isCurrentSelection) {
+      return effectiveIsCurrentlyOnTrial ? 'Current Trial' : 'Current Plan';
     }
-    return price.toFixed(2);
+
+    const action = isHigherTierSelection ? 'Upgrade to' : 'Switch to';
+    const billingSuffix = selectedBillingCycle === 'annual' ? ' Annual' : (!isHigherTierSelection ? ' Monthly' : '');
+    return `${action} ${getTierDisplayName(selectedPlanTier)}${billingSuffix}`;
   };
 
-  const toggleCardExpansion = (tierId: string) => {
-    const newExpanded = new Set(expandedCards);
-    if (newExpanded.has(tierId)) {
-      newExpanded.delete(tierId);
-    } else {
-      newExpanded.add(tierId);
+  const getUnlockButtonLabel = () => {
+    if (isPurchasing) {
+      return 'Processing...';
     }
-    setExpandedCards(newExpanded);
-  };
 
+    if (dynamicSalesCopy?.closeOnPrimaryCta) {
+      return dynamicSalesCopy.primaryCta;
+    }
+
+    if (shouldUseTrialProduct && !effectiveHasEverStartedTrial) {
+      return 'Start 3-Day Free Trial';
+    }
+
+    if (isCurrentSelection) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (routeParams?.forceTransformationAnnual) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (routeParams?.forceAnnualOnly) {
+      return getSelectedPlanActionLabel();
+    }
+
+    const shouldShowDynamicUpgradeLabel =
+      shouldUseTrialProduct ||
+      fromExportRestriction ||
+      isUpgradeMode ||
+      fromPlanningLock ||
+      (fromRepeatOptionsLock || fromRepeatUpgradePrompt) ||
+      fromCalendarAutoSync ||
+      fromCopyTodosLock ||
+      fromGuidedPromptsLock;
+
+    if (shouldShowDynamicUpgradeLabel) {
+      return getSelectedPlanActionLabel();
+    }
+
+    if (dynamicSalesCopy?.primaryCta) {
+      return dynamicSalesCopy.primaryCta;
+    }
+
+    return 'Continue My Journey';
+  };
 
   const renderPricingCard = (tier: PricingTier) => {
-    const isSelected = selectedTier === tier.id;
+    const isSelected = selectedPlanTier === tier.id;
+    const cardBillingCycle = isAnnual ? 'annual' : 'monthly';
+    const isCurrentTrialCard = shouldUseTrialPlanSwitcher
+      && effectiveTrialPlanTier === tier.id
+      && normalizeBillingCycle(effectiveCurrentTrialBillingCycle) === cardBillingCycle;
+    const isCurrentPaidPlanCard = !effectiveIsCurrentlyOnTrial
+      && normalizePaidPlanTier(dynamicSalesCopy?.isCurrentTier) === tier.id
+      && currentComparableBillingCycle === cardBillingCycle;
     // Only highlight the currently selected tier, not always the growth tier
     const isFocused = isSelected; // Remove hardcoded growth tier focus
-    const isExpanded = expandedCards.has(tier.id);
+    const tierDescription = tier.id === 'spark'
+      ? 'For getting started'
+      : tier.id === 'growth'
+        ? 'For steady growth'
+        : tier.id === 'transformation'
+          ? 'For ongoing use'
+          : tier.description;
 
     return (
       <View key={tier.id} style={styles.cardWrapper}>
@@ -1216,139 +1461,104 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             pointerEvents="none"
             style={[
               styles.selectedOverlay,
-              { backgroundColor: isFocused ? Colors.alertCoral : Colors.growthGreen },
             ]}
           />
         )}
         {null}
 
         <View style={styles.cardHeader}>
-          <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
+          <ThemedText weight="semiBold" style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </ThemedText>
-          {isAnnual && (
-            <ThemedText weight="semiBold" style={[styles.tierDuration, isSelected && styles.selectedText]}>
-              -{tier.duration}
-            </ThemedText>
+          {isCurrentPaidPlanCard ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Plan</ThemedText>
+            </View>
+          ) : isCurrentTrialCard ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
+            </View>
+          ) : dynamicSalesCopy?.isCurrentTrial
+            && tier.id === dynamicSalesCopy?.recommendedTier
+            && normalizeBillingCycle(effectiveCurrentTrialBillingCycle) === cardBillingCycle ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="time-outline" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Current Trial</ThemedText>
+            </View>
+          ) : dynamicSalesCopy?.recommendedTier && tier.id === dynamicSalesCopy?.recommendedTier ? (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
+            </View>
+          ) : tier.id === 'growth' && !dynamicSalesCopy?.recommendedTier && (
+            <View style={styles.recommendedBadge}>
+              <Ionicons name="sparkles" size={14} color={Colors.alertCoral} style={{ marginRight: 4 }} />
+              <ThemedText style={styles.recommendedText}>Recommended</ThemedText>
+            </View>
           )}
         </View>
 
-        <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
-          {tier.description}
-        </ThemedText>
-
-        {isExpanded && (
-          <View style={styles.featuresContainer}>
-            {(() => {
-              const processed: string[] = [];
-              const first = tier.features[0]?.trim() || '';
-              const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
-              if (m) {
-                processed.push(`${m[1]} playbooks each month`);
-                processed.push(`${m[2]} devotionals each month`);
-                // Add devotional access info based on tier
-                if (tier.id === 'seeker') {
-                  processed.push('All devotional durations locked');
-                } else if (tier.id === 'spark') {
-                  processed.push('Access 1-day & 3-day devotionals');
-                } else if (tier.id === 'growth') {
-                  processed.push('Access 1-day, 3-day & 5-day devotionals');
-                } else if (tier.id === 'transformation') {
-                  processed.push('Access all devotional durations (1-7 days)');
-                }
-                // POST-LAUNCH: || tier.id === 'family'
-                // No extra line for transformation as requested (no unlocked text)
-                processed.push(...tier.features.slice(1));
-              } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-                processed.push('Unlimited playbooks each month');
-                processed.push('Unlimited devotionals each month');
-                // Do not add any unlocked duration text
-                processed.push(...tier.features.slice(1));
-              } else {
-                processed.push(...tier.features);
-              }
-              return processed.map((feature, index) => (
-                <View key={index} style={styles.featureRow}>
-                  <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
-                  <ThemedText style={styles.featureText}>{feature}</ThemedText>
-                </View>
-              ));
-            })()}
-          </View>
-        )}
-
         <View style={styles.priceContainer}>
-          <View style={styles.priceRow}>
-            <View style={styles.priceLeft}>
-              <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]}>
-                {(() => {
-                  const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-                  const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
-                  return `${currencyInfo?.symbol || '$'}${formatted}`;
-                })()}
-              </ThemedText>
-              {(() => {
-                const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
-                const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-                return original && original > current ? (
-                  <ThemedText weight="semiBold" style={styles.originalPrice}>
-                    {(() => {
-                      const formatted = (currencyInfo?.currency === 'PHP' && original % 1 === 0) ? Math.floor(original) : original.toFixed(2);
-                      return `${currencyInfo?.symbol || '$'}${formatted}`;
-                    })()}
-                  </ThemedText>
-                ) : null;
-              })()}
-            </View>
-            <View style={styles.priceRight}
-              onStartShouldSetResponder={() => false}
-              onStartShouldSetResponderCapture={() => false}
-            >
-              <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
-                {(currencyInfo?.symbol || '$')}{getMonthlyEquivalent(tier)}/month
-              </ThemedText>
-              <View
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderTerminationRequest={() => false}
-                style={styles.detailsToggle}
-              >
-                <TouchableOpacity
-                  style={styles.detailsToggle}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  delayPressIn={0}
-                  onPressIn={(e: any) => {
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                  }}
-                  onPress={(e: any) => {
-                    // prevent parent card onPress from firing
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                    try { triggerLightHaptic(); } catch {}
-                    toggleCardExpansion(tier.id);
-                  }}
-                  onPressOut={(e: any) => {
-                    if (e?.stopPropagation) {e.stopPropagation();}
-                  }}
-                  activeOpacity={0.8}
-                >
-                <Ionicons
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={Colors.faithGold}
-                />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* original price now shown inline next to current price */}
+          <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]} numberOfLines={1}>
+            {(() => {
+              const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+              const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
+              return `${currencyInfo?.symbol || '$'}${formatted}/${isAnnual ? 'year' : 'month'}`;
+            })()}
+          </ThemedText>
         </View>
 
-        {isSelected && (
-          <View style={styles.selectionIndicator}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
-          </View>
+        <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
+          {tierDescription}
+        </ThemedText>
+
+        {tier.secondaryDescription && (
+          <ThemedText style={[styles.tierSecondaryDescription, isSelected && styles.selectedText]}>
+            {tier.secondaryDescription}
+          </ThemedText>
         )}
+
+        <View style={styles.featuresContainer}>
+          {(() => {
+            // Default formatting for all tiers
+            const processed: string[] = [];
+            const first = tier.features[0]?.trim() || '';
+            const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+            if (m) {
+              processed.push(`${m[1]} playbooks each month`);
+              processed.push(`${m[2]} devotionals each month`);
+              // Add devotional access info based on tier
+              if (tier.id === 'seeker') {
+                processed.push('All devotional durations locked');
+              } else if (tier.id === 'spark') {
+                processed.push('Access 1-day & 3-day devotionals');
+              } else if (tier.id === 'transformation') {
+                processed.push('Access all devotional durations (1-7 days)');
+              } else if (tier.id === 'growth') {
+                processed.push('Access all devotional durations (1-7 days)');
+              }
+              // POST-LAUNCH: || tier.id === 'family'
+              // No extra line for transformation as requested (no unlocked text)
+              processed.push(...tier.features.slice(1));
+            } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
+              processed.push('60 playbooks each month');
+              processed.push('60 devotionals each month');
+              processed.push('Access all devotional durations (1-7 days)');
+              processed.push(...tier.features.slice(1));
+            } else {
+              processed.push(...tier.features);
+            }
+            return processed.map((feature, index) => (
+              <View key={index} style={styles.featureRow}>
+                <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
+                <ThemedText style={styles.featureText}>{feature}</ThemedText>
+              </View>
+            ));
+          })()}
+        </View>
+
       </TouchableOpacity>
       </View>
     );
@@ -1362,13 +1572,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       currencyInfo,
     });
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
-            <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+        </TouchableOpacity>
         <View style={styles.centeredContainer}>
           <ThemedText style={styles.loadingText}>
             Loading pricing options...
@@ -1377,13 +1585,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             Tiers: {pricingTiers.length}, Currency: {currencyInfo ? 'loaded' : 'loading...'}
           </ThemedText>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent animated />
       {/* ENTERPRISE IMPROVEMENT: Loading Modal */}
       <PurchaseLoadingModal
         visible={isPurchasing}
@@ -1399,34 +1607,38 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         onContinue={handleSuccessModalContinue}
       />
 
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Close button top-right */}
-        <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
-          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-      </View>
+      {/* Close button - absolute positioned at top */}
+      <TouchableOpacity
+        style={[styles.closeButtonTopRight, { top: insets.top + 12 }]}
+        onPress={handleClose}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+      </TouchableOpacity>
 
-      {/* Body content: sticky toggle header + scrollable content */}
-      <View style={styles.content}>
-        {/* Pricing Cards - Scrollable with sticky toggle */}
-        <ScrollView
-          style={styles.pricingScroll}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContentPadding,
-            { paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
-          ]}
-          scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
-        >
+      {/* Pricing Cards - Scrollable */}
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.pricingScroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContentPadding,
+          { paddingHorizontal: 24, paddingTop: insets.top + 8, paddingBottom: Math.max(styles.scrollContentPadding.paddingBottom || 0, footerHeight + 24) },
+        ]}
+        scrollIndicatorInsets={{ bottom: footerHeight + 24 }}
+        snapToStart={true}
+        snapToEnd={true}
+      >
           {/* Main Content that should scroll under the sticky toggle */}
           <ThemedText weight="bold" style={styles.mainTitle}>
-            {dynamicSalesCopy
+            {isProfileTrialViewPlans
+              ? customProfileTrialTitle
+              : dynamicSalesCopy
               ? dynamicSalesCopy.title
               : isUpgradeMode
                 ? 'Keep walking—grace for the next step'
                 : fromPlanningLock
-                  ? 'Upgrade to Plan Ahead'
+                  ? 'Unlock Plan Ahead'
                   : fromCopyTodosLock
                     ? 'Unlock Copy To-Dos & More'
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
@@ -1434,44 +1646,52 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                       : fromCalendarAutoSync
                         ? 'Unlock Calendar Auto-Sync'
                         : fromGuidedPromptsLock
-                          ? 'Unlock Unlimited Guided Prompts'
-                          : fromSmartJournalingLock
-                            ? 'Upgrade to Unlock Smart Journaling'
-                            : fromExportRestriction
-                              ? 'Save your reflection as a PDF'
-                              : (route.params as any)?.forceTransformationAnnual
-                                ? 'Upgrade to Annual Plan for maximum savings!'
-                                : (route.params as any)?.forceAnnualOnly
-                                  ? 'Continue with annual billing for maximum savings!'
-                                  : 'Continue walking with intention'}
+                          ? 'Unlock Guided Prompts'
+                          : fromExportRestriction
+                            ? 'Save your reflection\nas a PDF'
+                              : routeParams?.forceTransformationAnnual
+                                ? 'Upgrade to annual for maximum savings'
+                                : routeParams?.forceAnnualOnly
+                                  ? 'Continue with annual billing for maximum savings'
+                                  : 'Unlock more room\nto keep going'}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {dynamicSalesCopy
+            {isProfileTrialViewPlans
+              ? customProfileTrialSubtitle
+              : dynamicSalesCopy
               ? dynamicSalesCopy.message
-              : (route.params as any)?.forceTransformationAnnual
+              : routeParams?.forceTransformationAnnual
                 ? 'Save the equivalent of 2 months when you choose annual billing. Continue your spiritual journey with all premium features.'
-                : (route.params as any)?.forceAnnualOnly
+                : routeParams?.forceAnnualOnly
                   ? 'You are currently on an annual plan. Continue with the same great value and maximum savings.'
                   : isUpgradeMode
                   ? 'Choose a plan that meets you where you are and helps you go deeper.'
                 : fromPlanningLock
-                  ? 'Gently prepare for what’s ahead with guided journaling, playbooks, and devotionals.'
+                  ? 'Gently prepare for what\'s ahead with guided planning inside your journal.'
                   : fromCopyTodosLock
-                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features, playbooks, and devotionals.`
+                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features, playbooks, and devotionals.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                      ? 'Create recurring time blocks to build consistent rhythms. Also unlock generating playbooks and devotionals, calendar sync, and more powerful planning features.'
+                      ? 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.'
                       : fromCalendarAutoSync
-                        ? 'Automatically sync your time blocks to your device calendar. Never miss what matters most, plus unlock recurring time blocks, playbooks, and devotionals.'
+                        ? 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.'
                         : fromGuidedPromptsLock
-                          ? 'Access guided reflection prompts to deepen your walk with God, plus playbooks and devotionals.'
-                          : fromSmartJournalingLock
-                            ? 'Track time blocks, gratitude, prayers, and reflections to deepen your walk with God. Plus unlock playbooks, devotionals, and guided prompts.'
-                            : fromExportRestriction
-                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans.'
+                          ? 'Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you’ll also unlock more room for playbooks and devotionals.'
+                          : fromExportRestriction
+                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow
-                                ? '\nsiFia is designed for moments that return.\nWhen another situation arises, this space remains open to you.\n\nYou don’t have to resolve everything at once.\nYou can come back, slow down, and respond with care. Again and again.\n\nThis isn’t about fixing yourself.\nIt’s about having a steady place to pause, reflect, and stay faithful when things feel tangled.'
-                                : 'Gentle structure for faithful living'}
+                                ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
+                                : 'Get more space for playbooks, devotionals, and guided reflection as new moments come up.'}
           </ThemedText>
+          {isProfileTrialViewPlans && (
+            <View style={styles.profileTrialNoteBox}>
+              <ThemedText weight="semiBold" style={styles.profileTrialNoteTitle}>
+                Note
+              </ThemedText>
+              <ThemedText style={styles.profileTrialNoteText}>
+                {customProfileTrialNote}
+              </ThemedText>
+            </View>
+          )}
           {fromExportRestriction && (
             <View style={styles.exportGrowthSection}>
               <ThemedText weight="semiBold" style={styles.exportGrowthTitle}>
@@ -1481,7 +1701,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 'More playbooks and devotionals for ongoing situations',
                 'Smart journaling to help you reflect and notice patterns',
                 'Gentle guidance for faithful next steps',
-                'A consistent space to return when moments resurface',
+                'A consistent space to return to when moments resurface',
               ].map((item) => (
                 <View key={item} style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
@@ -1493,134 +1713,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           {/* Growth Plan Benefits - show only for registration onboarding flow */}
           {routeParams?.onboardingFlow && (
-            <View>
-              <View style={styles.growthPlanSection}>
-                <ThemedText style={styles.growthPlanListLabel}>
-                  What staying supported includes
-                </ThemedText>
-
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Ongoing discernment support for emotionally complex moments
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Space for reflection, prayer, and Scripture
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    A place to pause before responding instead of reacting
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Gentle structure that supports faithfulness without pressure
-                  </ThemedText>
-                </View>
-              </View>
-
-              {shouldUseTrialProduct && (
-                <View style={styles.trialBenefitsContainer}>
-                  {(() => {
-                    return (
-                      <>
-                        <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                          Start with a free 3-day trial
-                        </ThemedText>
-                        <View style={styles.trialSupportingTextContainerFirst}>
-                          <ThemedText style={styles.trialSupportingText}>
-                            This trial lets you experience the full siFia flow in real situations,
-                            so you can discern whether this structure serves your current season.
-                          </ThemedText>
-                        </View>
-                      </>
-                    );
-                  })()}
-                </View>
-              )}
-
-              <View style={styles.growthPlanDuplicateCard}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setIsAboutGrowthExpanded(prev => !prev);
-                  }}
-                  style={styles.growthPlanToggleRow}
-                >
-                  <ThemedText weight="semiBold" style={styles.growthPlanTitle}>
-                    About the Spark plan
-                  </ThemedText>
-                  <Ionicons
-                    name={isAboutGrowthExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={Colors.hopeWhite}
-                  />
-                </TouchableOpacity>
-                {isAboutGrowthExpanded && (
-                  <>
-                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      The Spark plan is for everyday moments when you want gentle structure without pressure.
-                    </ThemedText>
-                    <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign]}>
-                      {'\n'}It gives you continued access to playbooks and devotionals, so you can return when situations resurface instead of starting over each time.
-                    </ThemedText>
-                    {shouldUseTrialProduct && (
-                      <>
-                        <View style={styles.trialDivider} />
-                        <ThemedText style={[styles.trialSupportingText, styles.textLeftAlign, styles.additionalFollowupText]}>
-                          After the trial, the Spark plan includes access to a monthly set of guided playbooks and devotionals.
-                        </ThemedText>
-                      </>
-                    )}
-                  </>
-                )}
-              </View>
-            </View>
+            <View />
           )}
 
           {/* Feature Bullets - hide for onboarding flow */}
           {!routeParams?.onboardingFlow && (
           <View style={styles.featuresSection}>
             {isUpgradeMode ? (
-              // Upgrade mode benefits (pastoral, limit to 4)
-              <>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Ongoing playbooks for moments that return
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Devotionals that meet you where you are
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    A steady structure for prayer, reflection and next steps
-                  </ThemedText>
-                </View>
-                <View style={styles.featureBullet}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-                  <ThemedText style={styles.bulletText}>
-                    Space to journal honestly and respond with wisdom
-                  </ThemedText>
-                </View>
-              </>
+              // Upgrade mode benefits - removed per user request
+              <></>
             ) : (
               // Onboarding benefits (limit to 3, aligned copy)
               fromPlanningLock ? (
                 <>
-                  <ThemedText style={styles.featureBulletLabel}>
+                  <ThemedText weight="semiBold" style={styles.featureBulletLabel}>
                   With Plan Ahead, you can:
                 </ThemedText>
                 <View style={styles.featureBullet}>
@@ -1632,21 +1738,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Hold decisions and to-dos in a calm, prayerful structure
+                    Hold decisions and to-dos in a calm, guided structure
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Build steady rhythms through guided journaling
+                    Map out what's ahead with more clarity
                   </ThemedText>
                 </View>
                 <View style={styles.featureBullet}>
                   <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
                   <ThemedText style={styles.bulletText}>
-                    Return to playbooks and devotionals as situations unfold
+                    Return to your plans as the week unfolds
                   </ThemedText>
                 </View>
+                <ThemedText style={styles.extraLine}>
+                  With an upgrade, you'll also unlock more playbooks and devotionals each month.
+                </ThemedText>
                 </>
               ) : fromCopyTodosLock ? (
                 <>
@@ -1682,7 +1791,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="book-outline" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Unlimited devotionals and spiritual content to guide your journey.
+                      Create more devotionals and return to spiritual content that helps guide your journey.
                     </ThemedText>
                   </View>
                 </>
@@ -1691,28 +1800,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </View>
           )}
 
-          {/* Trial Benefits Section - show whenever user is trial-eligible */}
-          {!routeParams?.onboardingFlow && shouldUseTrialProduct && (
-            <View style={styles.trialBenefitsContainer}>
-              {(() => {
-                return (
-                  <>
-                    <ThemedText weight="semiBold" style={styles.trialBenefitsTitle}>
-                      Start with a free 3-day trial
-                    </ThemedText>
-                    <View style={styles.trialSupportingTextContainer}>
-                      <ThemedText style={styles.trialSupportingText}>
-                        This trial lets you experience the full siFia flow in real situations,
-                        so you can discern whether this structure serves your current season.
-                      </ThemedText>
-                    </View>
-                  </>
-                );
-              })()}
-            </View>
-          )}
 
-          {!routeParams?.onboardingFlow && (
           <View style={styles.cardsContainer}>
             {pricingTiers.length > 0 ? (
               pricingTiers.map(renderPricingCard)
@@ -1724,28 +1812,39 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </View>
             )}
           </View>
-        )}
 
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
+            {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
+            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher)) || routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly) && !isCurrentTransformationPlan && !dynamicSalesCopy?.closeOnPrimaryCta && (
+              <TouchableOpacity
+                style={styles.seeAllPlansButton}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setShowAllPlans(!showAllPlans);
+                  scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                }}
+                activeOpacity={0.8}
+              >
+                <ThemedText style={styles.seeAllPlansText}>{showAllPlans ? 'Show Less' : 'See All Plans'}</ThemedText>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.linkButton}
-              onPress={handleRestorePurchase}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.linkText}>Restore Purchase</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkButton}
+              style={styles.seeAllPlansButton}
               onPress={handleTermsOfService}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>Terms of Service</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.seeAllPlansButton}
+              onPress={handleRestorePurchase}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
 
       {/* Fixed Footer CTA */}
       <View
@@ -1757,32 +1856,37 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }
         }}
       >
-        {/* Growth Price Display */}
-        <View style={styles.footerPriceSection}>
+        {/* Growth Price Display - hide for "Got it" scenarios */}
+        {!dynamicSalesCopy?.closeOnPrimaryCta && (
+          <View style={styles.footerPriceSection}>
           {/* Monthly/Annual Toggle */}
           <View style={styles.footerToggleContainer}>
-            <TouchableOpacity
-              style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(false);
-              }}
-            >
-              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setIsAnnual(true);
-              }}
-            >
-              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: monthlyScale }] }}>
+              <TouchableOpacity
+                style={[styles.footerToggleButton, !isAnnual && styles.activeFooterToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(false);
+                }}
+              >
+                <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, !isAnnual && styles.activeFooterToggleText]}>Monthly</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+            <Animated.View style={{ transform: [{ scale: annualScale }] }}>
+              <TouchableOpacity
+                style={[styles.footerToggleButton, isAnnual && styles.activeFooterToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(true);
+                }}
+              >
+                <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.footerToggleText, isAnnual && styles.activeFooterToggleText]}>Annual</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
 
           {(() => {
-            const tier = pricingTiers.find(t => t.id === selectedTier)
+            const tier = pricingTiers.find(t => t.id === selectedPlanTier)
               || pricingTiers.find(t => t.id === 'growth')
               || pricingTiers[0];
             if (!tier) {return null;}
@@ -1798,15 +1902,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             if (isAnnual) {
               const annualPrice = tier.annualPrice;
+              const monthlyPrice = tier.monthlyPrice;
+              const monthlyYearly = monthlyPrice * 12;
 
               return (
                 <>
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
                     {`${symbol}${formatValue(annualPrice)}/year`}
                   </ThemedText>
-                  <ThemedText style={styles.footerPriceSub}>Save 2 months free</ThemedText>
-                  <ThemedText style={styles.footerPriceApprox}>
-                    Annual plan saves you 2 months.
+                  <ThemedText style={styles.footerPriceSub}>
+                    <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6 }}>{`${symbol}${formatValue(monthlyYearly)}`}</ThemedText>
+                    {' · Save 2 months'}
                   </ThemedText>
                   <ThemedText style={styles.footerPriceApprox}>
                     Pay once, grow all year.
@@ -1825,18 +1931,21 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             );
           })()}
         </View>
+        )}
 
         <TouchableOpacity
           style={[
             styles.unlockButton,
-            isPurchasing && styles.dimmedOpacity,
+            (isPurchasing || shouldDisableUnlockButton) && styles.dimmedOpacity,
           ]}
           onPress={() => {
             try { triggerLightHaptic(); } catch {} // Immediate button press feedback
             logger.info('🔥 BUTTON TAPPED: Unlock Plan button pressed', {
               isPurchasing,
-              selectedTier,
+              selectedTier: selectedPlanTier,
               isAnnual,
+              selectedBillingCycle,
+              isCurrentSelection,
               timestamp: new Date().toISOString(),
             });
 
@@ -1844,33 +1953,47 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.debug('Button disabled - purchase already in progress');
               return;
             }
+
+            if (shouldDisableUnlockButton) {
+              logger.debug('Button disabled - selected plan is already current', {
+                selectedTier: selectedPlanTier,
+                selectedBillingCycle,
+                currentTier: currentComparableTier,
+                currentBillingCycle: currentComparableBillingCycle,
+              });
+              return;
+            }
+
+            // Check if this is a "Got it" scenario that should close the modal
+            if (dynamicSalesCopy?.closeOnPrimaryCta) {
+              logger.info('Closing modal - closeOnPrimaryCta is true');
+              handleClose();
+              return;
+            }
+
             try { triggerSuccessHaptic(); } catch {} // Success feedback for action completion
 
             // Debug: Log button press and trial eligibility
             logger.info('Button pressed - checking trial eligibility', {
               shouldUseTrialProduct,
               canOfferTrial,
-              isCurrentlyOnTrial,
-              hasEverStartedTrial,
-              isSeekerTier,
-              currentUserTier,
-              buttonText: shouldUseTrialProduct ? 'Start 3-Day Free Trial' : 'Regular purchase',
+              isCurrentlyOnTrial: effectiveIsCurrentlyOnTrial,
+              hasEverStartedTrial: effectiveHasEverStartedTrial,
+              isSeekerTier: effectiveIsSeekerTier,
+              currentUserTier: effectiveCurrentUserTier,
+              buttonText: getUnlockButtonLabel(),
             });
 
-            // If it's a trial button, navigate to trial offer screen instead of processing directly
-            if (shouldUseTrialProduct) {
-              logger.info('Navigating to trial offer screen for trial flow');
+            // Navigate to trial offer screen if user is eligible for trial and hasn't used it yet
+            if (shouldUseTrialProduct && !effectiveHasEverStartedTrial) {
+              logger.info('Navigating to trial offer screen - user is trial eligible');
               try {
                 (navigation as any).navigate('OnboardingTrialOffer', {
-                  selectedTierId: selectedTier,
+                  selectedTierId: selectedPlanTier,
                   billing: isAnnual ? 'annual' : 'monthly',
                   skipNotificationPreference: routeParams?.skipNotificationPreference,
-                  returnTo: routeParams?.returnTo,
-                  context: routeParams?.context,
-                  source: routeParams?.source,
-                  feature: routeParams?.feature,
-                  dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
-                  onboardingFlow: true,
+                  onboardingFlow: routeParams?.onboardingFlow,
+                  isTrialEligible: true,
                 });
                 logger.info('Navigation to trial offer screen initiated successfully');
               } catch (navError) {
@@ -1884,42 +2007,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
           }}
           activeOpacity={0.9}
-          disabled={isPurchasing}
+          disabled={isPurchasing || shouldDisableUnlockButton}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isPurchasing
-              ? 'Processing...'
-              : shouldUseTrialProduct
-                ? 'Start 3-Day Free Trial'
-                : fromExportRestriction
-                  ? `Upgrade to ${routeParams?.feature === 'export_pdf' ? 'PDF' : 'Word'} Export`
-                  : fromSmartJournalingLock
-                    ? 'Upgrade to Smart Journaling'
-                    : isUpgradeMode
-                      ? 'Upgrade and Continue'
-                      : fromPlanningLock
-                        ? 'Start Planning Ahead'
-                        : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                          ? 'Upgrade to Repeat Options'
-                          : fromCalendarAutoSync
-                            ? 'Upgrade to Auto-Sync'
-                            : fromCopyTodosLock
-                              ? 'Upgrade to Copy To-Dos'
-                              : (route.params as any)?.forceTransformationAnnual
-                                ? 'Upgrade Plan to Annual'
-                                : (route.params as any)?.forceAnnualOnly
-                                  ? 'Continue with Annual Plan'
-                                  : 'Continue My Journey'}
+            {getUnlockButtonLabel()}
           </ThemedText>
         </TouchableOpacity>
-        <View style={styles.footerRow}>
-          <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
-          <ThemedText style={styles.footerText}>No Payment Now.</ThemedText>
-          <ThemedText style={styles.footerText}> Cancel Anytime</ThemedText>
+
+        {!dynamicSalesCopy?.closeOnPrimaryCta && (
+          <View style={styles.footerRow}>
+          {!isAnnual && <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />}
+          {isAnnual ? (
+            <ThemedText style={styles.footerText}>Billed yearly after trial unless cancelled.</ThemedText>
+          ) : (
+            <>
+              <ThemedText style={styles.footerText}>No Payment Now.</ThemedText>
+              <ThemedText style={styles.footerText}> Cancel Anytime</ThemedText>
+            </>
+          )}
         </View>
+        )}
       </View>
 
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -1928,26 +2038,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 8,
-    position: 'relative',
-  },
   closeButtonTopRight: {
     position: 'absolute',
-    top: 0,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+    right: 20,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    zIndex: 10,
   },
 
   closeButton: {
@@ -1985,7 +2085,6 @@ const styles = StyleSheet.create({
   },
   pricingScroll: {
     flex: 1,
-    marginTop: 4,
   },
   stickyToggleHeader: {
     backgroundColor: Colors.anchorBlue,
@@ -1996,18 +2095,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   mainTitle: {
-    fontSize: 24,
+    fontSize: 28,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'left',
-    marginTop: 0,
-    marginBottom: 4,
+    marginTop: 20,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'left',
-    marginBottom: 22,
+    marginBottom: 16,
+    lineHeight: 24,
   },
   smallMotivationalText: {
     fontSize: 14,
@@ -2115,6 +2215,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     marginBottom: 8,
+    marginTop: 8,
   },
   exportGrowthSection: {
     marginTop: 16,
@@ -2127,10 +2228,14 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginLeft: 12,
-    flex: 1,
-    lineHeight: 20,
+  },
+  extraLine: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
   trialBenefitText: {
     fontSize: 14,
@@ -2195,26 +2300,68 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     // weight handled by ThemedText
   },
+  profileTrialNoteBox: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 24,
+  },
+  profileTrialNoteTitle: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 6,
+  },
+  profileTrialNoteText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.82,
+    lineHeight: 21,
+  },
   cardsContainer: {
     marginBottom: 16,
+    marginTop: 16,
+  },
+  seeAllPlansButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+    minWidth: 280,
+  },
+  seeAllPlansText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    // weight handled by ThemedText
   },
   pricingCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.inputBackground,
     borderRadius: 30,
-    padding: 16,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    marginBottom: 16,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     position: 'relative',
   },
   selectedCard: {
-    borderColor: Colors.growthGreen,
-    // base background remains; selection tint is provided by selectedOverlay
+    borderColor: 'rgba(255, 107, 107, 0.6)',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
   focusedCard: {
-    borderColor: Colors.alertCoral,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    // removed alert coral color
   },
   selectedOverlay: {
     position: 'absolute',
@@ -2265,14 +2412,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardHeader: {
-    marginBottom: 8,
+    marginBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
   },
   tierName: {
-    fontSize: 18,
+    fontSize: 20,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
+    lineHeight: 28,
+  },
+  growthTierName: {
+    fontSize: 20,
+    // weight handled by ThemedText
+    color: Colors.hopeWhite,
+    lineHeight: 28,
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.6)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recommendedText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   tierDuration: {
     fontSize: 16,
@@ -2280,21 +2453,30 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginLeft: 8,
+    lineHeight: 20,
   },
   tierDescription: {
-    fontSize: 16,
+    fontSize: 18,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
     opacity: 0.9,
+    lineHeight: 24,
+  },
+  tierSecondaryDescription: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    marginBottom: 6,
+    lineHeight: 20,
   },
   featuresContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   featureIcon: {
     fontSize: 16,
@@ -2304,26 +2486,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   priceContainer: {
     alignItems: 'flex-start',
     width: '100%',
+    marginBottom: 12,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 2,
-    justifyContent: 'space-between',
-    width: '100%',
+    justifyContent: 'flex-start',
   },
   priceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flexShrink: 0,
-    flexGrow: 0,
-    flex: 1,
-    minWidth: 140,
+    width: 'auto',
   },
   priceRight: {
     flexDirection: 'row',
@@ -2334,11 +2512,20 @@ const styles = StyleSheet.create({
     // allow content width
   },
   currentPrice: {
-    fontSize: 20,
+    fontSize: 24,
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     marginRight: 4,
     flexShrink: 0,
+    lineHeight: 32,
+  },
+  growthCurrentPrice: {
+    fontSize: 26,
+    // weight handled by ThemedText
+    color: Colors.hopeWhite,
+    marginRight: 4,
+    flexShrink: 0,
+    lineHeight: 34,
   },
   originalPrice: {
     fontSize: 16,
@@ -2348,6 +2535,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     flexShrink: 0,
     marginRight: 4,
+    lineHeight: 20,
   },
   monthlyEquivalent: {
     fontSize: 14,
@@ -2387,8 +2575,8 @@ const styles = StyleSheet.create({
   },
   unlockButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 15,
+    borderRadius: 50,
     marginBottom: 10,
     width: '100%',
     maxWidth: 720,
@@ -2398,6 +2586,25 @@ const styles = StyleSheet.create({
     // weight handled by ThemedText
     color: Colors.hopeWhite,
     textAlign: 'center',
+  },
+  restoreButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 12,
+    borderRadius: 50,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    width: '100%',
+    maxWidth: 720,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
   },
   footerContainer: {
     position: 'absolute',
@@ -2409,14 +2616,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   footerPriceSection: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 6,
     paddingHorizontal: 8,
   },
   footerPriceBadge: {
@@ -2471,7 +2678,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cardWrapper: {
-    marginBottom: 6,
+    marginBottom: 0,
   },
   headerLeft: {
     flex: 1,
@@ -2545,6 +2752,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
+  trialPricingText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   trialBenefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2573,7 +2787,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     padding: 4,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 12,
     alignSelf: 'center',
     overflow: 'hidden',
   },

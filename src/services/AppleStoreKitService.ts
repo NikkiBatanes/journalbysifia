@@ -30,6 +30,7 @@ import { supabase } from './supabaseClient';
 import { ENV } from '../config/environment';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { SubscriptionTier } from '../types/subscription';
+import { adminAnalyticsService } from './adminAnalyticsService';
 
 export interface StoreProduct {
   productId: string;
@@ -74,6 +75,7 @@ export class AppleStoreKitService {
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
   private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
   private currentPurchaseEligibility: boolean | undefined; // Store trial eligibility for current purchase
+  private productsInFlight: Promise<StoreProduct[]> | null = null; // Dedup concurrent product fetches
 
   // Product IDs for subscription tiers
   // All iOS products now use .freetrial SKUs; App Store enforces one-time trials.
@@ -315,9 +317,25 @@ export class AppleStoreKitService {
 
   /**
    * Get available subscription products from the App Store
-   * ENHANCED: Added retry logic and better error handling
+   * ENHANCED: Added retry logic, better error handling, and concurrent-call deduplication
    */
   async getAvailableProducts(): Promise<StoreProduct[]> {
+    // If a fetch is already in-flight, return that same promise so concurrent
+    // callers don't fire competing SKProductsRequests (which RNIap cancels).
+    if (this.productsInFlight) {
+      Logger.info('[StoreKit] Product fetch already in-flight, reusing existing request', {
+        component: 'AppleStoreKitService',
+      });
+      return this.productsInFlight;
+    }
+
+    this.productsInFlight = this._fetchProducts().finally(() => {
+      this.productsInFlight = null;
+    });
+    return this.productsInFlight;
+  }
+
+  private async _fetchProducts(): Promise<StoreProduct[]> {
     let lastError: Error | null = null;
 
     // Retry up to 3 times for network resilience
@@ -511,6 +529,29 @@ export class AppleStoreKitService {
   ): Promise<PurchaseResult> {
     try {
       await this.initialize();
+
+      // Issue 6 fix: Enforce trial eligibility before showing the Apple payment sheet.
+      // Apple's App Store already enforces one trial per account at the store level,
+      // but this client-side gate prevents duplicate DB rows and confusing UX.
+      if (productId.includes('freetrial')) {
+        const { data: existingSub } = await supabase
+          .from('user_subscriptions_new')
+          .select('tier, trial_start_date')
+          .eq('user_id', userId)
+          .single();
+        if (existingSub?.trial_start_date) {
+          Logger.warn('[StoreKit] Trial eligibility rejected - user already used a trial', {
+            component: 'AppleStoreKitService',
+            userId,
+            previousTrialStart: existingSub.trial_start_date,
+            productId,
+          });
+          return {
+            success: false,
+            error: 'You have already used your free trial. Please choose a paid subscription.',
+          };
+        }
+      }
 
       // CRITICAL: Ensure listeners are set up
       if (!this.purchaseUpdateSubscription || !this.purchaseErrorSubscription) {
@@ -785,6 +826,20 @@ export class AppleStoreKitService {
             productId: purchase.productId,
           });
 
+          // Track payment failure for analytics
+          if (this.currentUserId) {
+            await adminAnalyticsService.trackPaymentEvent({
+              user_id: this.currentUserId,
+              transaction_id: purchase.transactionId || 'unknown',
+              product_id: purchase.productId,
+              amount: 0,
+              status: 'failed',
+              failure_reason: 'Receipt validation failed',
+              platform: 'ios',
+              is_trial: purchase.productId.includes('freetrial'),
+            });
+          }
+
           // CRITICAL: Reject the purchase promise
           const resolver = this.pendingPurchaseResolvers.get(purchase.productId);
           if (resolver) {
@@ -803,6 +858,20 @@ export class AppleStoreKitService {
           component: 'AppleStoreKitService',
           productId: purchase.productId,
         });
+
+        // Track payment success for analytics
+        if (this.currentUserId) {
+          await adminAnalyticsService.trackPaymentEvent({
+            user_id: this.currentUserId,
+            transaction_id: purchase.transactionId || 'unknown',
+            product_id: purchase.productId,
+            amount: 0, // Amount will be updated from subscription service
+            status: 'success',
+            platform: 'ios',
+            is_trial: purchase.productId.includes('freetrial'),
+            receipt_data: { transactionDate: purchase.transactionDate },
+          });
+        }
       }
 
       // Map product ID to subscription tier
@@ -1031,15 +1100,11 @@ export class AppleStoreKitService {
         return true;
       }
     } catch (error) {
-      Logger.error('[StoreKit] Receipt validation error', error as Error, {
-      component: 'AppleStoreKitService',
-      action: 'error',
-    });
-      // Don't fail the purchase if validation errors out
-      Logger.warn('[StoreKit] Proceeding with purchase despite validation error', {
-      component: 'AppleStoreKitService',
-    });
-      return true;
+      Logger.error('[StoreKit] Receipt validation error - rejecting purchase', error as Error, {
+        component: 'AppleStoreKitService',
+        action: 'error',
+      });
+      return false;
     }
   }
 

@@ -26,73 +26,8 @@ interface PushMessage {
   badge?: number
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// [FIX] Generate a fresh APNS JWT token every call.
-// APNS tokens expire every 60 minutes — using a static APNS_JWT_TOKEN env var
-// is what caused all notifications to silently fail since November 2025.
-// This function generates a valid token from your .p8 key on every invocation.
-// ─────────────────────────────────────────────────────────────────────────────
-async function generateAPNSToken(): Promise<string> {
-  const keyId = Deno.env.get('APNS_KEY_ID');
-  const teamId = Deno.env.get('APNS_TEAM_ID');
-  const privateKeyPem = Deno.env.get('APNS_AUTH_KEY'); // Contents of your .p8 file
-
-  if (!keyId || !teamId || !privateKeyPem) {
-    throw new Error(
-      `Missing APNS credentials. Required: APNS_KEY_ID, APNS_TEAM_ID, APNS_AUTH_KEY. ` +
-      `Got: keyId=${!!keyId}, teamId=${!!teamId}, privateKey=${!!privateKeyPem}` 
-    );
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = { alg: 'ES256', kid: keyId };
-  const payload = { iss: teamId, iat: now };
-
-  const encodeBase64Url = (obj: object) =>
-    btoa(JSON.stringify(obj))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-  const headerB64 = encodeBase64Url(header);
-  const payloadB64 = encodeBase64Url(payload);
-  const signingInput = `${headerB64}.${payloadB64}`;
-
-  // Strip PEM headers and whitespace to get raw base64
-  const pemBody = privateKeyPem
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace('-----BEGIN EC PRIVATE KEY-----', '')
-    .replace('-----END EC PRIVATE KEY-----', '')
-    .replace(/\s/g, '');
-
-  const keyData = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    keyData,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign']
-  );
-
-  const encoder = new TextEncoder();
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    cryptoKey,
-    encoder.encode(signingInput)
-  );
-
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-
-  return `${headerB64}.${payloadB64}.${signatureB64}`;
-}
-
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -106,6 +41,8 @@ serve(async (req) => {
     const payload: NotificationPayload = await req.json();
     const { notification_id, user_id, type, title, message, data, priority = 'normal' } = payload;
 
+    // Some high-value, low-volume events should always deliver, even if the user
+    // hit the general rate limit (e.g. family invitations and membership changes).
     const rateLimitExemptTypes = [
       'family_invitation',
       'member_joined',
@@ -114,6 +51,7 @@ serve(async (req) => {
     ];
 
     if (!rateLimitExemptTypes.includes(type)) {
+      // Rate limiting: Check how many notifications sent in last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: recentNotifications, error: rateLimitError } = await supabase
         .from('notification_delivery_log')
@@ -124,19 +62,20 @@ serve(async (req) => {
       if (!rateLimitError && recentNotifications && recentNotifications.length >= 10) {
         console.warn(`Rate limit exceeded for user ${user_id}: ${recentNotifications.length} notifications in last hour`);
         return new Response(
-          JSON.stringify({
-            success: false,
+          JSON.stringify({ 
+            success: false, 
             reason: 'Rate limit exceeded',
             message: 'Maximum 10 notifications per hour. Please try again later.'
           }),
-          {
+          { 
             status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
       }
     }
 
+    // Get user's device tokens and preferences
     const { data: deviceTokens, error: tokenError } = await supabase
       .from('device_tokens')
       .select('*')
@@ -153,10 +92,11 @@ serve(async (req) => {
       .eq('user_id', user_id)
       .single();
 
-    if (prefError && prefError.code !== 'PGRST116') {
+    if (prefError && prefError.code !== 'PGRST116') { // Ignore "not found" error
       console.warn('Failed to get preferences:', prefError.message);
     }
 
+    // Check if notifications are enabled for this type
     if (preferences && !isNotificationTypeEnabled(type, preferences)) {
       return new Response(
         JSON.stringify({ success: false, reason: 'Notification type disabled' }),
@@ -164,7 +104,9 @@ serve(async (req) => {
       );
     }
 
+    // Check quiet hours
     if (preferences && isInQuietHours(preferences)) {
+      // Schedule for later unless it's critical
       if (priority !== 'critical') {
         await scheduleForLater(supabase, payload, preferences);
         return new Response(
@@ -174,8 +116,10 @@ serve(async (req) => {
       }
     }
 
+    // Check for batching opportunity (group similar notifications)
     const shouldBatch = await checkForBatching(supabase, user_id, type);
     if (shouldBatch && priority !== 'critical') {
+      // Mark this notification for batching instead of immediate send
       await supabase
         .from('notification_queue')
         .insert({
@@ -184,7 +128,7 @@ serve(async (req) => {
           title,
           message,
           data: data || {},
-          scheduled_for: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          scheduled_for: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // Delay 5 minutes for batching
           priority,
           status: 'pending',
         });
@@ -195,6 +139,7 @@ serve(async (req) => {
       );
     }
 
+    // Send push notifications to all active devices
     const results = [];
     for (const deviceToken of deviceTokens) {
       try {
@@ -202,7 +147,12 @@ serve(async (req) => {
           to: deviceToken.token,
           title,
           body: message,
-          data: { type, ...data },
+          data: {
+            type,
+            ...data,
+            user_id,
+            ...(notification_id ? { notification_id, queue_notification_id: notification_id } : {}),
+          },
           priority: priority === 'critical' ? 'high' : 'normal',
           sound: 'default',
           badge: 1,
@@ -216,6 +166,7 @@ serve(async (req) => {
           error: result.error,
         });
 
+        // Log delivery attempt
         await supabase
           .from('notification_delivery_log')
           .insert({
@@ -227,18 +178,7 @@ serve(async (req) => {
             error_message: result.error?.message || null,
           });
 
-        // Deactivate bad device tokens automatically
-        if (!result.success && result.error?.message) {
-          const errorData = JSON.parse(result.error.message || '{}');
-          if (errorData.reason === 'BadDeviceToken' || errorData.reason === 'Unregistered') {
-            await supabase
-              .from('device_tokens')
-              .update({ is_active: false })
-              .eq('id', deviceToken.id);
-            console.log(`[APNS] Deactivated bad token for device ${deviceToken.device_id}`);
-          }
-        }
-
+        // Track analytics if notification was successfully delivered
         if (result.success && notification_id) {
           try {
             await supabase
@@ -257,6 +197,7 @@ serve(async (req) => {
                 created_at: new Date().toISOString(),
               });
           } catch (analyticsError) {
+            // Non-fatal: log but don't fail the notification
             console.error('Failed to track analytics:', analyticsError);
           }
         }
@@ -305,17 +246,16 @@ async function sendPushNotification(message: PushMessage, platform: string) {
 }
 
 async function sendAPNS(message: PushMessage) {
-  const isProduction = Deno.env.get('APP_ENV') === 'production' ||
-                       Deno.env.get('APNS_ENVIRONMENT') === 'production';
-  const apnsHost = isProduction
-    ? 'https://api.push.apple.com/3/device/'
+  // Apple Push Notification Service
+  // Using production host for live notifications
+  // Switch to sandbox (api.sandbox.push.apple.com) for development/testing
+  const isProduction = Deno.env.get('APP_ENV') === 'production' || Deno.env.get('APNS_ENVIRONMENT') === 'production';
+  const apnsHost = isProduction 
+    ? 'https://api.push.apple.com/3/device/' 
     : 'https://api.sandbox.push.apple.com/3/device/';
   const apnsUrl = apnsHost + message.to;
-
-  console.log(`[APNS] Sending to ${isProduction ? 'PRODUCTION' : 'SANDBOX'}`);
-
-  // Generate fresh JWT every call — static tokens expire after 60 minutes
-  const jwtToken = await generateAPNSToken();
+  
+  console.log(`Sending APNs notification to ${isProduction ? 'PRODUCTION' : 'SANDBOX'} environment`);
 
   const payload = {
     aps: {
@@ -332,26 +272,24 @@ async function sendAPNS(message: PushMessage) {
   const response = await fetch(apnsUrl, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${jwtToken}`,
+      'Authorization': `Bearer ${Deno.env.get('APNS_JWT_TOKEN')}`,
       'Content-Type': 'application/json',
       'apns-topic': Deno.env.get('APNS_BUNDLE_ID') || 'app.sifia.com',
       'apns-priority': message.priority === 'high' ? '10' : '5',
-      'apns-push-type': 'alert',
     },
     body: JSON.stringify(payload),
   });
 
   if (response.ok) {
-    console.log('[APNS] ✅ Notification sent successfully');
     return { success: true };
   } else {
-    const error = await response.json().catch(() => ({ reason: response.statusText }));
-    console.error('[APNS] ❌ Failed:', error);
-    return { success: false, error: { message: JSON.stringify(error) } };
+    const error = await response.text();
+    return { success: false, error: { message: error } };
   }
 }
 
 async function sendFCM(message: PushMessage) {
+  // Firebase Cloud Messaging (for Android)
   const fcmUrl = 'https://fcm.googleapis.com/fcm/send';
 
   const payload = {
@@ -400,24 +338,30 @@ function isNotificationTypeEnabled(type: string, preferences: any): boolean {
   };
 
   const prefKey = typeMap[type];
-  if (!prefKey) { return true; }
+  if (!prefKey) {return true;} // Default to enabled for unknown types
+
   return preferences[prefKey] !== false;
 }
 
 function isInQuietHours(preferences: any): boolean {
-  if (!preferences.quiet_hours_enabled) { return false; }
+  if (!preferences.quiet_hours_enabled) {return false;}
 
+  // Get user's timezone (default to UTC if not set)
   const userTimezone = preferences.timezone || 'UTC';
+  
+  // Get current time in user's timezone
   const now = new Date();
   const userTime = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
-  const currentTime = userTime.toTimeString().slice(0, 5);
+  const currentTime = userTime.toTimeString().slice(0, 5); // HH:MM format
 
   const startTime = preferences.quiet_hours_start || '22:00';
   const endTime = preferences.quiet_hours_end || '07:00';
 
   if (startTime <= endTime) {
+    // Quiet hours within same day (e.g., 08:00 - 17:00)
     return currentTime >= startTime && currentTime <= endTime;
   } else {
+    // Quiet hours span midnight (e.g., 22:00 - 07:00)
     return currentTime >= startTime || currentTime <= endTime;
   }
 }
@@ -425,6 +369,7 @@ function isInQuietHours(preferences: any): boolean {
 async function scheduleForLater(supabase: any, payload: NotificationPayload, preferences: any) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
+
   const morningTime = preferences.preferred_morning_time || '08:00';
   const scheduledTime = new Date(`${tomorrow.toISOString().split('T')[0]}T${morningTime}:00`);
 
@@ -442,6 +387,7 @@ async function scheduleForLater(supabase: any, payload: NotificationPayload, pre
 }
 
 async function checkForBatching(supabase: any, userId: string, type: string): Promise<boolean> {
+  // Notification types that can be batched
   const batchableTypes = [
     'prayer_reminder',
     'devotional_reminder',
@@ -451,10 +397,13 @@ async function checkForBatching(supabase: any, userId: string, type: string): Pr
     'reflection_question',
   ];
 
-  if (!batchableTypes.includes(type)) { return false; }
+  if (!batchableTypes.includes(type)) {
+    return false;
+  }
 
+  // Check if there are similar pending notifications in the last 30 minutes
   const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-
+  
   const { data, error } = await supabase
     .from('notification_queue')
     .select('id')
@@ -468,5 +417,6 @@ async function checkForBatching(supabase: any, userId: string, type: string): Pr
     return false;
   }
 
+  // If there's at least one similar notification, batch them
   return data && data.length > 0;
 }

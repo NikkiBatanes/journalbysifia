@@ -154,7 +154,7 @@ function updateSubTaskInPlaybook(playbook: Playbook, stepId: string, subTaskId: 
 }
 
 function updateAffirmationInPlaybook(playbook: Playbook, affirmationId: string, completed: boolean): Playbook {
-  const updatedAffirmations = playbook.affirmations.map(affirmation => {
+  const updatedAffirmations = (playbook.affirmations ?? []).map(affirmation => {
     if (affirmation.id === affirmationId) {
       return { ...affirmation, completed };
     }

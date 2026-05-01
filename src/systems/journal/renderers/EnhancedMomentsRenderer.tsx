@@ -34,6 +34,7 @@ interface EnhancedMomentsRendererProps {
   filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'prayerRequests' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
+  navigation?: any;
 }
 
 interface MomentEntry {
@@ -204,11 +205,17 @@ const createStyles = (fonts: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingVertical: 12,
     backgroundColor: Colors.anchorBlue,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionHeaderInner: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    paddingHorizontal: 32,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -344,7 +351,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
@@ -453,6 +460,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   prayerAnswerFilter = 'all',
   filterKeys = [],
   onAddPress,
+  navigation,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -823,10 +831,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               ].filter(v => typeof v === 'boolean') as boolean[];
               // Treat explicit devotional types/metadata as devotional too
               const devotionalByType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'devotional';
+              const guidedPlaybookType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'guided_playbook';
               const devotionalByMetadata = !!((prayer as any).devotional_title || (prayer as any).day_number || (prayer as any).day_title || (prayer as any).total_days);
 
               const isDevotional =
                 devotionalByType ||
+                guidedPlaybookType ||
                 devotionalByMetadata ||
                 devoStrings.some(v => {
                   const s = (v || '').toLowerCase();
@@ -846,7 +856,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
                 // Compute type label with explicit mapping for people prayers
                 const prayerTypeForLabel = ((prayer as any).prayer_type || '').toString().toLowerCase();
-                const typeLabel = isDevotional
+                const typeLabel = guidedPlaybookType
+                  ? 'Guided Prayer'
+                  : isDevotional
                   ? 'Prayed Devotional'
                   : prayerTypeForLabel === 'people'
                     ? 'Prayer List'
@@ -1820,9 +1832,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (groupBy === 'date') {
       return (
         <View style={styles.sectionHeader}>
-          <ThemedText weight="semiBold" style={styles.sectionTitle}>
-            {section.title}
-          </ThemedText>
+          <View style={styles.sectionHeaderInner}>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>
+              {section.title}
+            </ThemedText>
+          </View>
         </View>
       );
     }
@@ -1856,10 +1870,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionTitle}>
-              {section.title}
-            </ThemedText>
+            <View style={styles.sectionHeaderInner}>
+              <View style={styles.sectionHeaderRow}>
+                <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                  {section.title}
+                </ThemedText>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -1874,24 +1892,30 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
-            <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={styles.sectionTitle}>
-              {section.title}
-            </ThemedText>
+            <View style={styles.sectionHeaderInner}>
+              <View style={styles.sectionHeaderRow}>
+                <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sectionTitle}>
+                  {section.title}
+                </ThemedText>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       );
     }
     return (
       <View style={styles.sectionHeader}>
-        <ThemedText weight="semiBold" style={styles.sectionTitle}>
-          {section.title}
-        </ThemedText>
-        {groupBy !== 'week' && groupBy !== 'month' && groupBy !== 'year' && (
-          <ThemedText style={styles.sectionCount}>
-            {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
+        <View style={styles.sectionHeaderInner}>
+          <ThemedText weight="semiBold" style={styles.sectionTitle}>
+            {section.title}
           </ThemedText>
-        )}
+          {groupBy !== 'week' && groupBy !== 'month' && groupBy !== 'year' && (
+            <ThemedText style={styles.sectionCount}>
+              {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
+            </ThemedText>
+          )}
+        </View>
       </View>
     );
   };
@@ -1971,7 +1995,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2080,7 +2104,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                                 selectedDate={entry.date}
                                 refreshKey={refreshKey}
                                 viewMode="inline"
-                                filters={pluginFilters}
+                                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
+                                navigation={navigation}
                               />
                             </View>
                           </View>
@@ -2141,7 +2166,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2229,7 +2254,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={pluginFilters} />
+                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                           </View>
                         </View>
                       </View>
@@ -2281,7 +2306,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2364,7 +2389,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 selectedDate={entry.date}
                 refreshKey={refreshKey}
                 viewMode="inline"
-                filters={pluginFilters}
+                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
+                navigation={navigation}
               />
             </View>
           </View>

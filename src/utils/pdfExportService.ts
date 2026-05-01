@@ -12,10 +12,23 @@ export interface DevotionalPDFData {
   title: string;
   /** Overall devotional title (e.g. "Finding Strength in God") */
   duration: string;
-  /** Optional day title (e.g. "When You Feel Overwhelmed") */
+  /** Optional single day title (e.g. "When You Feel Overwhelmed") */
   dayTitle?: string;
   /** Optional label like "Day 2 of 5" */
   dayLabel?: string;
+  /** Multiple days for "All Days" export */
+  days?: Array<{
+    dayNumber: number;
+    title: string;
+    scripture?: {
+      text: string;
+      reference: string;
+      version?: string;
+    };
+    reflection?: string;
+    reflectionQuestions?: Array<{ text: string }>;
+    prayer?: string;
+  }>;
   bibleVerse?: {
     text: string;
     reference: string;
@@ -38,6 +51,7 @@ export interface PlaybookPDFData {
     reference: string;
     version?: string;
   };
+  bibleVerseReflection?: string;
   actionSteps?: Array<{
     title: string;
     description: string;
@@ -45,6 +59,8 @@ export interface PlaybookPDFData {
     examples?: string[];
   }>;
   affirmations?: string[];
+  prayer?: string;
+  wordsToSpeak?: string;
   directChallenge?: string;
   createdAt?: string;
 }
@@ -76,11 +92,95 @@ class PDFExportService {
       .replace(/\n/g, '<br>'); // Preserve line breaks
   }
 
+  private formatChallengeHtml(text: string): string {
+    const cleaned = this.cleanMarkdown(text || '').trim();
+    if (!cleaned) {return '';}
+
+    const lines = cleaned
+      .split(/\n+/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    let question = '';
+    let remainder: string[] = [];
+
+    if (lines.length > 1) {
+      [question, ...remainder] = lines;
+    } else {
+      const questionMatch = cleaned.match(/^(.+?\?)(?:\s+|$)([\s\S]*)$/);
+      if (questionMatch) {
+        question = questionMatch[1].trim();
+        const trailing = questionMatch[2].trim();
+        remainder = trailing ? trailing.split(/\n+/).map(line => line.trim()).filter(Boolean) : [];
+      } else {
+        question = cleaned;
+      }
+    }
+
+    let label = '';
+    if (question && /:\s*$/.test(question) && remainder.length > 0) {
+      label = question;
+      const [nextLine, ...restLines] = remainder;
+      question = nextLine;
+      remainder = restLines;
+    }
+
+    const safeLabel = this.escapeHtml(label);
+    const safeQuestion = this.escapeHtml(question);
+    const safeRemainder = remainder.map(line => this.escapeHtml(line)).join('<br>');
+
+    return `
+      ${safeLabel ? `<div class="challenge-body">${safeLabel}</div>` : ''}
+      <div class="challenge-question">${safeQuestion}</div>
+      ${safeRemainder ? `<div class="challenge-body">${safeRemainder}</div>` : ''}
+    `;
+  }
+
+  private extractDescriptionAndExamples(description: string, examples: string[] = []): { description: string; examples: string[] } {
+    const cleanedDescription = this.cleanMarkdown(description || '').trim();
+    const cleanedExamples = (examples || [])
+      .map(example => this.cleanMarkdown(example || '').trim())
+      .filter(Boolean);
+
+    if (!cleanedDescription) {
+      return {
+        description: '',
+        examples: cleanedExamples,
+      };
+    }
+
+    if (cleanedExamples.length > 0) {
+      return {
+        description: cleanedDescription,
+        examples: cleanedExamples,
+      };
+    }
+
+    if (!/Example:\s*/i.test(cleanedDescription)) {
+      return {
+        description: cleanedDescription,
+        examples: [],
+      };
+    }
+
+    const segments = cleanedDescription
+      .split(/Example:\s*/i)
+      .map(segment => segment.trim())
+      .filter(Boolean);
+
+    const [mainDescription, ...descriptionExamples] = segments;
+
+    return {
+      description: mainDescription || '',
+      examples: descriptionExamples,
+    };
+  }
+
   /**
    * Generate HTML template for devotional PDF
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
-    const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt } = data;
+    const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt, days } = data;
 
     // Escape all text content to prevent HTML injection/breaking
     const safeTitle = this.escapeHtml(title);
@@ -88,6 +188,10 @@ class PDFExportService {
 
     // Determine if we should show Day X of Y block (skip for 1-day devotionals)
     const shouldShowDaySection = !!dayLabel && !/of\s*1\b/i.test(dayLabel);
+
+    // Determine if it's a single-day devotional for the duration label
+    const isSingleDay = !days || days.length === 1 || (dayLabel && /of\s*1\b/i.test(dayLabel));
+    const durationLabel = isSingleDay ? 'Devotional' : 'Series';
 
     const safeDayTitle = this.escapeHtml(dayTitle || '');
     const safeDayLabel = this.escapeHtml(dayLabel || '');
@@ -139,6 +243,85 @@ class PDFExportService {
     const safeVerseVersion = !rawVerseVersion || referenceIncludesVersion
       ? ''
       : this.escapeHtml(rawVerseVersion);
+
+    // Generate HTML for multiple days if provided
+    const daysHtml = days && days.length > 0 ? days.map((day, index) => {
+      const safeDayNum = this.escapeHtml(`Day ${day.dayNumber}`);
+      const safeDayTitleText = this.escapeHtml(day.title || '');
+      const safeDayReflection = this.escapeHtml(day.reflection || '');
+      const safeDayQuestions = (day.reflectionQuestions || [])
+        .map(q => this.escapeHtml(q.text || ''))
+        .filter(Boolean);
+      let safeDayPrayer = (day.prayer || '').trim();
+      if (safeDayPrayer) {
+        safeDayPrayer = safeDayPrayer.replace(/\s+/g, ' ');
+        safeDayPrayer = safeDayPrayer.replace(/^Heavenly Father[.,]?\s*/i, 'Heavenly Father.\n\n');
+        safeDayPrayer = safeDayPrayer.replace(/\s*In Jesus[’']?\s*name[,]?\s*amen\.?\s*$/i, '\n\nIn Jesus\' name, amen');
+      }
+      safeDayPrayer = this.escapeHtml(safeDayPrayer);
+
+      const safeDayVerseText = this.escapeHtml(day.scripture?.text || '');
+      const safeDayVerseRef = this.escapeHtml((day.scripture?.reference || '').replace(/\s*\(\s*\)\s*/g, '').trim());
+      const safeDayVerseVersion = !day.scripture?.version || safeDayVerseRef.toUpperCase().includes(day.scripture.version.toUpperCase())
+        ? ''
+        : this.escapeHtml(day.scripture.version);
+
+      const pageBreak = index < days.length - 1 ? '<div class="page-break"></div>' : '';
+
+      return `
+        <div class="section${index > 0 ? ' page-break' : ''}">
+          <div class="day-divider"></div>
+          <div class="day-label">${safeDayNum}</div>
+          <div class="day-title">${safeDayTitleText}</div>
+          <div class="day-divider"></div>
+        </div>
+
+        ${day.scripture ? `
+          <div class="section">
+            <div class="section-title scripture-title">Today's Scripture</div>
+            <div class="verse-box">
+              <div class="verse-bar"></div>
+              <div class="verse-content">
+                <div class="verse-text">${safeDayVerseText}</div>
+                <div class="verse-reference">— ${safeDayVerseRef}${safeDayVerseVersion ? ' ' + safeDayVerseVersion : ''}</div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${safeDayReflection ? `
+          <div class="section">
+            <div class="section-title">Reflection</div>
+            <div class="content-text">${safeDayReflection}</div>
+          </div>
+        ` : ''}
+
+        ${safeDayQuestions.length ? `
+          <div class="section">
+            <div class="section-title">Questions to Ponder</div>
+            <ul class="questions-list">
+              ${safeDayQuestions
+                .map((q, qIndex) => `
+                  <li>
+                    <span class="question-badge">${qIndex + 1}</span>
+                    <span class="question-text">${q}</span>
+                  </li>
+                `)
+                .join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${safeDayPrayer ? `
+          <div class="section">
+            <div class="section-title">Prayer</div>
+            <div class="content-text prayer-text">${safeDayPrayer}</div>
+          </div>
+        ` : ''}
+
+        ${pageBreak}
+      `;
+    }).join('') : '';
 
     return `
       <!DOCTYPE html>
@@ -418,73 +601,75 @@ class PDFExportService {
               <img src="https://sifia.app/images/sifia-logo-blue.png" class="logo-image" />
             </div>
             <h1>${safeTitle}</h1>
-            <div class="duration">A ${safeDuration} Series</div>
+            <div class="duration">A ${safeDuration} ${durationLabel}</div>
           </div>
 
-          ${shouldShowDaySection && (safeDayLabel || safeDayTitle) ? `
-            <div class="section" style="margin-top: 4px;">
-              ${safeDayLabel ? `<div class="day-label">${safeDayLabel}</div>` : ''}
-              ${safeDayTitle ? `<div class="day-title">${safeDayTitle}</div>` : ''}
-              <div class="day-divider"></div>
-            </div>
-          ` : ''}
+          ${daysHtml ? daysHtml : `
+            ${shouldShowDaySection && (safeDayLabel || safeDayTitle) ? `
+              <div class="section" style="margin-top: 4px;">
+                ${safeDayLabel ? `<div class="day-label">${safeDayLabel}</div>` : ''}
+                ${safeDayTitle ? `<div class="day-title">${safeDayTitle}</div>` : ''}
+                <div class="day-divider"></div>
+              </div>
+            ` : ''}
 
-          ${bibleVerse ? `
-            <div class="section">
-              <div class="day-divider"></div>
-              <div class="section-title scripture-title">Today's Scripture</div>
-              <div class="verse-box">
-                <div class="verse-bar"></div>
-                <div class="verse-content">
-                  <div class="verse-text">${safeVerseText}</div>
-                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+            ${bibleVerse ? `
+              <div class="section">
+                <div class="day-divider"></div>
+                <div class="section-title scripture-title">Today's Scripture</div>
+                <div class="verse-box">
+                  <div class="verse-bar"></div>
+                  <div class="verse-content">
+                    <div class="verse-text">${safeVerseText}</div>
+                    <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ` : ''}
+            ` : ''}
 
-          ${safeReflection ? `
-            <div class="section">
-              <div class="section-title">Reflection</div>
-              <div class="content-text">${safeReflection}</div>
-            </div>
-          ` : ''}
+            ${safeReflection ? `
+              <div class="section">
+                <div class="section-title">Reflection</div>
+                <div class="content-text">${safeReflection}</div>
+              </div>
+            ` : ''}
 
-          ${safeQuestions.length ? `
-            <div class="section">
-              <div class="section-title">Questions to Ponder</div>
-              <ul class="questions-list">
-                ${safeQuestions
-                  .map((q, index) => `
-                    <li>
-                      <span class="question-badge">${index + 1}</span>
-                      <span class="question-text">${q}</span>
-                    </li>
-                  `)
-                  .join('')}
-              </ul>
-            </div>
-          ` : ''}
+            ${safeQuestions.length ? `
+              <div class="section">
+                <div class="section-title">Questions to Ponder</div>
+                <ul class="questions-list">
+                  ${safeQuestions
+                    .map((q, index) => `
+                      <li>
+                        <span class="question-badge">${index + 1}</span>
+                        <span class="question-text">${q}</span>
+                      </li>
+                    `)
+                    .join('')}
+                </ul>
+              </div>
+            ` : ''}
 
-          ${safePrayer ? `
-            <div class="section">
-              <div class="section-title">Prayer</div>
-              <div class="content-text prayer-text">${safePrayer}</div>
-            </div>
-          ` : ''}
+            ${safePrayer ? `
+              <div class="section">
+                <div class="section-title">Prayer</div>
+                <div class="content-text prayer-text">${safePrayer}</div>
+              </div>
+            ` : ''}
 
-          ${actionSteps && actionSteps.length > 0 ? `
-            <div class="section">
-              <div class="section-title">Action Steps</div>
-              <ul class="action-steps">
-                ${actionSteps.map(step => `<li>${step}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
+            ${actionSteps && actionSteps.length > 0 ? `
+              <div class="section">
+                <div class="section-title">Action Steps</div>
+                <ul class="action-steps">
+                  ${actionSteps.map(step => `<li>${step}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          `}
 
           <div class="footer">
-            <div class="footer-text">Where technology serves the heart of discipleship.</div>
-            <div class="footer-logo">© siFia</div>
+            <div class="footer-text">A companion for real-life moments, rooted in Scripture.</div>
+            <div class="footer-logo"> siFia</div>
           </div>
         </body>
       </html>
@@ -495,7 +680,7 @@ class PDFExportService {
    * Generate HTML template for playbook PDF
    */
   private generatePlaybookHTML(data: PlaybookPDFData): string {
-    const { title, truthInLove, truthInLoveSummary, bibleVerse, actionSteps, affirmations, directChallenge, createdAt } = data;
+    const { title, truthInLove, truthInLoveSummary, bibleVerse, bibleVerseReflection, actionSteps, affirmations, prayer, wordsToSpeak, directChallenge, createdAt } = data;
 
     const safeTitle = this.escapeHtml(this.cleanMarkdown(title));
     const safeTruthInLove = this.escapeHtml(this.cleanMarkdown(truthInLove || ''));
@@ -527,6 +712,7 @@ class PDFExportService {
       : this.escapeHtml(this.cleanMarkdown(rawPlaybookVerseVersion));
 
     const safeActionSteps = (actionSteps || []).map(step => {
+      const normalizedStep = this.extractDescriptionAndExamples(step.description || '', step.examples || []);
       const processedSubtasks = (step.subtasks || []).map(sub => {
         const text = typeof sub === 'string' ? sub : (sub.text || sub.title || '');
         return {
@@ -534,13 +720,13 @@ class PDFExportService {
         };
       });
 
-      const processedExamples = (step.examples || []).map(ex =>
+      const processedExamples = (normalizedStep.examples || []).map(ex =>
         this.escapeHtml(this.cleanMarkdown(ex || '')),
       );
 
       return {
         title: this.escapeHtml(this.cleanMarkdown(step.title || '')),
-        description: this.escapeHtml(this.cleanMarkdown(step.description || '')),
+        description: this.escapeHtml(normalizedStep.description || ''),
         subtasks: processedSubtasks,
         examples: processedExamples,
       };
@@ -592,9 +778,19 @@ class PDFExportService {
     const safeChallengeItems = uniqueChallengeItems.map(item => {
       // Remove deadline text like "(48-72 hour deadline):"
       const cleaned = item.replace(/\([^)]*deadline[^)]*\)\s*:?/gi, '').trim();
-      return this.escapeHtml(cleaned);
+      return this.formatChallengeHtml(cleaned);
     });
-    const safeDirectChallenge = this.escapeHtml(normalizedChallenge);
+    const safeDirectChallenge = this.formatChallengeHtml(normalizedChallenge);
+
+    const safePrayer = this.escapeHtml(this.cleanMarkdown(prayer || ''));
+    const safeWordsToSpeak = this.escapeHtml(this.cleanMarkdown(wordsToSpeak || ''));
+    const safeBibleVerseReflection = this.escapeHtml(this.cleanMarkdown(bibleVerseReflection || ''));
+
+    // Ensure prayer ends with "In Jesus's Name, Amen"
+    let finalPrayer = safePrayer;
+    if (safePrayer && !safePrayer.toLowerCase().includes('in jesus')) {
+      finalPrayer = safePrayer + (safePrayer.endsWith('.') ? '' : '.') + '<br><br>In Jesus\'s Name, Amen';
+    }
 
     return `
       <!DOCTYPE html>
@@ -677,7 +873,7 @@ class PDFExportService {
             .truth-summary {
               font-size: 16px;
               font-weight: 600;
-              color: #FF6B6B; /* alert coral */
+              color: #000000; /* black */
               line-height: 1.6;
               margin-bottom: 12px;
             }
@@ -808,28 +1004,25 @@ class PDFExportService {
             }
 
             .examples-section {
-              margin-top: 12px;
-              padding: 12px;
-              background: rgba(255, 107, 107, 0.04);
+              background: #ffffff;
+              padding: 18px 20px;
+              margin: 14px 0 0 0;
               border-radius: 8px;
-              border-left: 3px solid #FF6B6B;
-            }
-
-            .examples-header {
+              box-shadow: none;
               display: flex;
-              align-items: center;
-              gap: 6px;
-              margin-bottom: 8px;
-              font-size: 11px;
-              font-weight: 600;
-              color: #FF6B6B;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
+              align-items: stretch;
+              gap: 16px;
             }
 
-            .examples-icon {
-              font-size: 14px;
-              color: #FF6B6B;
+            .examples-bar {
+              width: 4px;
+              border-radius: 999px;
+              background: #FF6B6B;
+              min-height: 100%;
+            }
+
+            .examples-content {
+              flex: 1;
             }
 
             .examples-list {
@@ -839,11 +1032,12 @@ class PDFExportService {
             }
 
             .examples-list li {
-              padding: 6px 0;
+              font-family: 'Arvo', 'Lexend', serif;
+              font-style: italic;
+              padding: 4px 0;
               font-size: 11px;
               color: #475569;
               line-height: 1.6;
-              font-style: italic;
             }
 
             .examples-list li:before {
@@ -908,10 +1102,80 @@ class PDFExportService {
             }
 
             .challenge-text {
-              font-size: 11px;
+              font-size: 12px;
               color: #334155;
               line-height: 1.8;
               flex: 1;
+              font-weight: 500;
+            }
+
+            .challenge-fallback-text {
+              font-size: 12px;
+              color: #334155;
+              line-height: 1.8;
+              font-weight: 500;
+            }
+
+            .challenge-question {
+              font-size: 16px;
+              color: #475569;
+              line-height: 1.8;
+              font-weight: 500;
+              margin-bottom: 6px;
+            }
+
+            .challenge-body {
+              font-size: 12px;
+              color: #334155;
+              line-height: 1.8;
+              font-weight: 500;
+            }
+
+            .prayer-box {
+              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+              border-radius: 8px;
+              padding: 16px;
+              margin-top: 12px;
+            }
+
+            .prayer-text {
+              font-family: 'Arvo', 'Lexend', serif;
+              font-style: italic;
+              font-size: 12px;
+              color: #475569;
+              line-height: 1.8;
+            }
+
+            .words-to-speak-box {
+              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+              border-radius: 8px;
+              padding: 20px;
+              margin: 20px 0;
+              max-width: 100%;
+            }
+
+            .words-to-speak-text {
+              font-size: 16px;
+              color: #475569;
+              line-height: 1.8;
+              font-weight: 500;
+            }
+
+            .bible-reflection {
+              font-family: 'Arvo', 'Lexend', serif;
+              font-size: 12px;
+              color: #6b7280;
+              line-height: 1.6;
+              margin-top: 12px;
+              font-style: italic;
+              padding-left: 12px;
+              border-left: 2px solid #e2e8f0;
+            }
+
+            .page-break {
+              page-break-before: always;
+              break-before: page;
+              margin-top: 60px;
             }
 
             .footer {
@@ -953,9 +1217,24 @@ class PDFExportService {
             </div>
           ` : ''}
 
+          ${bibleVerse ? `
+            <div class="section page-break">
+              <div class="day-divider"></div>
+              <div class="section-title">Scripture to Anchor</div>
+              <div class="verse-box">
+                <div class="verse-bar"></div>
+                <div class="verse-content">
+                  <div class="verse-text">${safeVerseText}</div>
+                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+                </div>
+              </div>
+              ${safeBibleVerseReflection ? `<div class="bible-reflection">${safeBibleVerseReflection}</div>` : ''}
+            </div>
+          ` : ''}
+
           ${actionSteps && actionSteps.length > 0 ? `
             <div class="section">
-              <div class="section-title">Action Steps</div>
+              <div class="section-title">Faithful Actions</div>
               ${safeActionSteps
                 .map(
                   (step, index) => `
@@ -978,14 +1257,14 @@ class PDFExportService {
                       ${step.examples && step.examples.length > 0
                         ? `
                             <div class="examples-section">
-                              <div class="examples-header">
-                                <span class="examples-icon">💬</span>
+                              <div class="examples-bar"></div>
+                              <div class="examples-content">
+                                <ul class="examples-list">
+                                  ${step.examples
+                                    .map(example => `<li>${example}</li>`)
+                                    .join('')}
+                                </ul>
                               </div>
-                              <ul class="examples-list">
-                                ${step.examples
-                                  .map(example => `<li>${example}</li>`)
-                                  .join('')}
-                              </ul>
                             </div>
                           `
                         : ''}
@@ -1005,23 +1284,26 @@ class PDFExportService {
             </div>
           ` : ''}
 
-          ${bibleVerse ? `
+          ${prayer ? `
             <div class="section">
-              <div class="day-divider"></div>
-              <div class="section-title">Bible Verse</div>
-              <div class="verse-box">
-                <div class="verse-bar"></div>
-                <div class="verse-content">
-                  <div class="verse-text">${safeVerseText}</div>
-                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
-                </div>
+              <div class="section-title">Prayer</div>
+              <div class="prayer-box">
+                <div class="prayer-text">${finalPrayer}</div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${wordsToSpeak ? `
+            <div class="section">
+              <div class="section-title">Words to Speak Over Myself</div>
+              <div class="words-to-speak-box">
+                <div class="words-to-speak-text">${safeWordsToSpeak}</div>
               </div>
             </div>
           ` : ''}
 
           ${safeChallengeItems.length ? `
             <div class="section">
-              <div class="section-title">RISE IN FAITH</div>
               <div class="challenge-box">
                 <div class="challenge-content">
                   <ul class="challenge-list">
@@ -1039,18 +1321,17 @@ class PDFExportService {
             </div>
           ` : safeDirectChallenge ? `
             <div class="section">
-              <div class="section-title">RISE IN FAITH</div>
               <div class="challenge-box">
                 <div class="challenge-content">
-                  <div class="content-text">${safeDirectChallenge}</div>
+                  <div class="challenge-fallback-text">${safeDirectChallenge}</div>
                 </div>
               </div>
             </div>
           ` : ''}
 
           <div class="footer">
-            <div class="footer-text">Where technology serves the heart of discipleship.</div>
-            <div class="footer-logo">© siFia</div>
+            <div class="footer-text">A companion for real-life moments, rooted in Scripture.</div>
+            <div class="footer-logo"> siFia</div>
           </div>
         </body>
       </html>

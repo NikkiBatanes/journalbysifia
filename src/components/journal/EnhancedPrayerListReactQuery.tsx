@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -7,15 +7,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  StatusBar,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../theme/colors';
-import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
+import { Fonts } from '../../theme/fonts';
+import { triggerLightHaptic, triggerSuccessHaptic, triggerSelectionHaptic } from '../../utils/haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Pencil } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useDeletePrayer } from '../../services/hooks/usePrayerData';
+import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed, useDeletePrayer } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -26,6 +33,7 @@ import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
 import { faithPointsService } from '../../services/faithPointsService';
+import type { RootStackParamList } from '../../navigation/types';
 
 // Use the API interface directly
 type PersonPrayer = PrayerApiEntry;
@@ -37,6 +45,8 @@ interface EnhancedPrayerListReactQueryProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  filters?: { hideEmptyComponents?: boolean };
 }
 
 const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> = ({
@@ -45,6 +55,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   viewMode,
   expanded,
   onExpand,
+  navigation,
+  filters,
 }) => {
 
   const { user } = useAuth();
@@ -63,29 +75,60 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
-  const deleteMutation = useDeletePrayer();
+  const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const deletePrayerMutation = useDeletePrayer();
+  const insets = useSafeAreaInsets();
 
   // Check if the selected date is in the past
   const today = new Date().toLocaleDateString('en-CA'); // Use local date to match dateStr format
   const isPastDate = dateStr < today;
 
-  // Modal state
+  // Modal state (kept for edit functionality)
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
+
+  // Full-screen prayer editor modal state
+  const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
+  const [modalPrayerName, setModalPrayerName] = useState('');
+  const [modalPrayerRequest, setModalPrayerRequest] = useState('');
+  const [savingModalPrayer, setSavingModalPrayer] = useState(false);
+  const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any>(null);
 
   // Local state for form
   const [name, setName] = useState('');
   const [prayerText, setPrayerText] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
-  const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
+  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('mine');
+  const [currentRequestedBy, setCurrentRequestedBy] = useState('');
+
+  // Show more / show less state for inline display
+  // Initial display: 1 prayer request + 1 prayed for, or 2 of one type if the other is empty
+  const initialLimits = useMemo(() => {
+    const hasRequests = peoplePrayers.some(p => p.is_prayer_request === true && p.prayed !== true);
+    const hasPersonal = peoplePrayers.some(p => p.is_prayer_request !== true);
+
+    if (hasRequests && hasPersonal) {
+      return { requests: 1, personal: 1 };
+    } else if (hasRequests) {
+      return { requests: 2, personal: 0 };
+    } else if (hasPersonal) {
+      return { requests: 0, personal: 2 };
+    }
+    return { requests: 0, personal: 0 };
+  }, [peoplePrayers]);
+
+  const [userExpanded, setUserExpanded] = useState(false);
+
+  // Use initial limits unless user has expanded
+  const requestsDisplayLimit = userExpanded ? peoplePrayers.filter(p => p.is_prayer_request === true && p.prayed !== true).length : initialLimits.requests;
+  const personalDisplayLimit = userExpanded ? peoplePrayers.filter(p => p.is_prayer_request !== true).length : initialLimits.personal;
 
   // Computed values
-  const hasContent = peoplePrayers.length > 0;
   // Only count requests that are not yet prayed
   const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true && p.prayed !== true);
   const personalPrayers = peoplePrayers.filter(p => p.is_prayer_request !== true);
+  const hasVisibleContent = prayerRequests.length > 0 || personalPrayers.length > 0;
 
   // Counts should be by unique people, not entries
   const toName = (p: PersonPrayer) => (p.person_name || '').trim();
@@ -115,11 +158,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     : 'Appears when people were prayed for or prayer requests were added on this day';
 
   // Show header pencil only when there is content and it's not a past date
-  const showAddInHeader = hasContent && !isPastDate;
+  const showAddInHeader = hasVisibleContent && !isPastDate;
 
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
-    if (hasContent) {
+    if (hasVisibleContent) {
       const totalCount = uniqueTotal.size;
       let subtitle = totalCount === 1 ? '1 Person in your prayer list' : `${totalCount} People in your prayer list`;
 
@@ -226,8 +269,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       setName('');
       setPrayerText('');
       setNotes('');
-      setSelectedPrayerType('');
-      setCurrentRequestedBy(undefined);
+      setSelectedPrayerType('mine');
+      setCurrentRequestedBy('');
       setEditingPrayerId(null);
       setShowModal(false);
 
@@ -244,45 +287,212 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   }, [user?.id, name, prayerText, notes, selectedPrayerType, currentRequestedBy, editingPrayerId, dateStr, peoplePrayers, createPrayerMutation, updatePrayerMutation, queryClient, globalEditMode, viewMode]);
 
   const handleAddToMyList = (prayerEntry: PersonPrayer) => {
-    // Set the requestedBy first
-    setCurrentRequestedBy(prayerEntry.requested_by || 'Someone');
-
-    // Switch to 'Prayers for People' type
-    setSelectedPrayerType('mine');
-
-    // Pre-fill the form fields
-    setName(prayerEntry.person_name || '');
-    setPrayerText(''); // Keep prayer text empty for user to fill
-    setNotes(prayerEntry.content); // Move the prayer request content to notes
-
-    // Open modal
-    setShowModal(true);
-
-    // Enable global edit mode if in inline view
-    if (viewMode === 'inline' && globalEditMode?.setGlobalEditMode) {
-      globalEditMode.setGlobalEditMode(true);
+    // Navigate to the full-screen prayer editor for this prayer request
+    // Always use the current journal dateStr (not the prayer request's original date)
+    // so the new "prayed for" prayer is saved for the currently viewed date and
+    // the optimistic update populates the correct cache key.
+    if (navigation) {
+      navigation.navigate('PrayerEditor', {
+        prayerRequest: {
+          person_name: prayerEntry.person_name || '',
+          content: prayerEntry.content || '',
+          id: prayerEntry.id,
+          user_id: prayerEntry.user_id,
+          selected_date: dateStr,
+        },
+      });
     }
+  };
+
+  const handleMarkAsAnswered = async (prayerId: string) => {
+    try {
+      triggerLightHaptic();
+
+      // Optimistically update the cache
+      queryClient.setQueryData(
+        queryKeys.prayers.people(user?.id || '', dateStr),
+        (old: PersonPrayer[] | undefined) => {
+          if (!old) {return old;}
+          return old.map(prayer =>
+            prayer.id === prayerId
+              ? { ...prayer, status: 'answered' as const, answered_date: new Date().toISOString() }
+              : prayer
+          );
+        }
+      );
+
+      await updatePrayerMutation.mutateAsync({
+        id: prayerId,
+        updates: {
+          status: 'answered' as const,
+          answered_date: new Date().toISOString(),
+        },
+        _userId: user?.id || '',
+        _dateStr: dateStr,
+      });
+      triggerSuccessHaptic();
+    } catch (markAnsweredError) {
+      console.error('Failed to mark prayer as answered:', markAnsweredError);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+      });
+    }
+  };
+
+  const handleMarkAsUnanswered = async (prayerId: string) => {
+    try {
+      triggerLightHaptic();
+      queryClient.setQueryData(
+        queryKeys.prayers.people(user?.id || '', dateStr),
+        (old: PersonPrayer[] | undefined) => {
+          if (!old) {return old;}
+          return old.map(prayer =>
+            prayer.id === prayerId
+              ? { ...prayer, status: 'pending' as const, answered_date: null }
+              : prayer
+          );
+        }
+      );
+      await updatePrayerMutation.mutateAsync({
+        id: prayerId,
+        updates: {
+          status: 'pending' as const,
+          answered_date: null,
+        },
+        _userId: user?.id || '',
+        _dateStr: dateStr,
+      });
+      triggerSuccessHaptic();
+    } catch (markUnansweredError) {
+      console.error('Failed to mark prayer as unanswered:', markUnansweredError);
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+      });
+    }
+  };
+
+  const handleSaveModalPrayer = async () => {
+    if (!modalPrayerRequest.trim()) {
+      Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
+      return;
+    }
+
+    setSavingModalPrayer(true);
+    try {
+      // Create the prayer
+      await createPrayerMutation.mutateAsync({
+        user_id: user!.id,
+        prayer_type: 'people' as const,
+        content: modalPrayerRequest,
+        person_name: modalPrayerName,
+        metadata: {
+          prayer_type: 'prayer-request',
+          original_request_content: selectedPrayerRequest?.content,
+          prayer_request_display: selectedPrayerRequest?.content,
+        },
+        selected_date: new Date().toLocaleDateString('en-CA'),
+      });
+
+      // Mark the prayer request as prayed (skip if still an optimistic temp ID)
+      if (selectedPrayerRequest?.id && !selectedPrayerRequest.id.startsWith('temp-')) {
+        await markPrayedMutation.mutateAsync({
+          id: selectedPrayerRequest.id,
+          isPrayed: true,
+          _userId: selectedPrayerRequest.user_id,
+          _dateStr: selectedPrayerRequest.selected_date,
+        });
+      }
+
+      // Close modal
+      setShowPrayerEditorModal(false);
+      setSelectedPrayerRequest(null);
+      setModalPrayerName('');
+      setModalPrayerRequest('');
+    } catch (e) {
+      console.error('Failed to save prayer', e);
+      Alert.alert('Error', 'Failed to save prayer. Please try again.');
+    } finally {
+      setSavingModalPrayer(false);
+    }
+  };
+
+  const handleCancelModalPrayer = () => {
+    setShowPrayerEditorModal(false);
+    setSelectedPrayerRequest(null);
+    setModalPrayerName('');
+    setModalPrayerRequest('');
+    setSavingModalPrayer(false);
+  };
+
+  const handleEditPrayer = (prayer: PersonPrayer) => {
+    if (!navigation) {return;}
+
+    // Determine the prayer type
+    const prayerType = prayer.is_prayer_request === true ? 'prayer-request' : 'pray-for-someone';
+
+    // Navigate to walkthrough with pre-selected type and data
+    navigation.navigate('PrayersForPeopleWalkthrough', {
+      initialPersonName: prayer.person_name,
+      initialPrayerRequest: prayer.is_prayer_request === true ? prayer.content : undefined,
+      initialPrayerText: prayer.is_prayer_request !== true ? prayer.content : undefined,
+      initialPrayerType: prayerType,
+      editingPrayerId: prayer.id,
+      initialTrackAnswered: prayer.metadata?.track_answered,
+      selectedDate: selectedDate.toISOString(),
+    });
+  };
+
+  const handleDeletePrayer = (prayer: PersonPrayer) => {
+    Alert.alert(
+      'Delete Prayer',
+      `Are you sure you want to delete this prayer for ${prayer.person_name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              triggerLightHaptic();
+              await deletePrayerMutation.mutateAsync({
+                id: prayer.id,
+                _userId: user?.id || '',
+                _dateStr: dateStr,
+              });
+              triggerSuccessHaptic();
+            } catch (deleteError) {
+              console.error('Failed to delete prayer:', deleteError);
+              Alert.alert('Error', 'Failed to delete prayer. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Modal handlers
   const handleOpenModal = useCallback(() => {
     triggerLightHaptic();
-    setShowModal(true);
-  }, []);
+    // Navigate to walkthrough instead of showing modal
+    if (navigation) {
+      navigation.navigate('PrayersForPeopleWalkthrough', { selectedDate: selectedDate.toISOString() });
+    }
+  }, [navigation, selectedDate]);
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
     setName('');
     setPrayerText('');
     setNotes('');
-    setSelectedPrayerType('');
-    setCurrentRequestedBy(undefined);
+    setSelectedPrayerType('mine');
+    setCurrentRequestedBy('');
     setEditingPrayerId(null);
+  }, []);
 
-    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-      globalEditMode.setGlobalEditMode(false);
-    }
-  }, [globalEditMode, viewMode]);
+  if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+    globalEditMode.setGlobalEditMode(false);
+  }
 
   // Handle global edit mode changes for inline view
   React.useEffect(() => {
@@ -300,45 +510,52 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true && item.prayed !== true);
     const prayedForPrayers = peoplePrayers.filter(item => item.is_prayer_request !== true);
 
+    if (localPrayerRequests.length === 0 && prayedForPrayers.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyIconContainer}>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons name="account-heart-outline" size={40} color={Colors.alertCoral} style={styles.emptyStateIcon} />
+            </View>
+            <ThemedText weight="medium" style={styles.sectionLabel}>Prayer List</ThemedText>
+          </View>
+          <View style={styles.titleContainer}>
+            <ThemedText weight="semiBold" style={styles.emptyStateTitle}>
+              {isPast ? pastEmptyTitle : 'No People in Prayer List'}
+            </ThemedText>
+          </View>
+          <ThemedText weight="regular" style={styles.emptyStateSubtext}>
+            {isPast ? pastEmptySubtitle : 'Add the people you want to pray for and keep track of prayer requests here.'}
+          </ThemedText>
+          {!isPastDate && (
+            <TouchableOpacity style={styles.emptyStateButton} onPress={handleOpenModal} activeOpacity={0.8}>
+              <Ionicons name="add" size={18} color={Colors.hopeWhite} style={styles.buttonIcon} />
+              <ThemedText weight="semiBold" style={styles.emptyStateButtonText}>Add Person</ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    // Apply limits
+    const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
+    const displayedPersonal = prayedForPrayers.slice(0, personalDisplayLimit);
+
+    // Check if we need to show show more/less button
+    const hasMoreRequests = localPrayerRequests.length > requestsDisplayLimit;
+    const hasMorePersonal = prayedForPrayers.length > personalDisplayLimit;
+    const hasMoreItems = hasMoreRequests || hasMorePersonal;
+    const canShowLess = userExpanded;
+
     const renderPrayerItem = (item: PersonPrayer) => (
       <SwipeablePrayerCard
         key={item.id}
         prayer={item}
         handleAddToMyList={handleAddToMyList}
-        onEdit={(prayerId: string) => {
-          const prayerToEdit = peoplePrayers.find(p => p.id === prayerId);
-          if (prayerToEdit) {
-            setEditingPrayerId(prayerId);
-            setSelectedPrayerType(prayerToEdit.is_prayer_request ? 'requests' : 'mine');
-            setName(prayerToEdit.person_name || '');
-            setPrayerText(prayerToEdit.content || '');
-            setNotes(prayerToEdit.notes || '');
-            setShowModal(true);
-          }
-        }}
-        onDelete={(prayerId: string) => {
-          try { triggerLightHaptic(); } catch {}
-          Alert.alert(
-            'Delete Prayer',
-            'Are you sure you want to delete this prayer?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => {
-                  try { triggerLightHaptic(); } catch {}
-                  deleteMutation.mutate({
-                    id: prayerId,
-                    _userId: user?.id || '',
-                    _dateStr: dateStr,
-                  });
-                  triggerSuccessHaptic();
-                },
-              },
-            ]
-          );
-        }}
+        handleMarkAsAnswered={handleMarkAsAnswered}
+        handleMarkAsUnanswered={handleMarkAsUnanswered}
+        onEdit={handleEditPrayer}
+        onDelete={handleDeletePrayer}
       />
     );
 
@@ -349,28 +566,66 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <View style={styles.scrollViewContent}>
         {/* Prayer Requests Section */}
         <View>
-          {localPrayerRequests.length > 0 && (
+          {displayedRequests.length > 0 && (
             <>
               <View style={styles.categoryHeader}>
                 <ThemedText style={styles.categoryTitle}>PRAYER REQUESTS</ThemedText>
               </View>
               <View style={styles.sectionSpacing} />
-              {localPrayerRequests.map(renderPrayerItem)}
+              {displayedRequests.map(renderPrayerItem)}
             </>
           )}
         </View>
         {/* Prayed For Section */}
         <View>
-          {prayedForPrayers.length > 0 && (
+          {displayedPersonal.length > 0 && (
             <>
               <View style={styles.categoryHeader}>
                 <ThemedText style={styles.categoryTitle}>PRAYED FOR</ThemedText>
               </View>
               <View style={styles.sectionSpacing} />
-              {prayedForPrayers.map(renderPrayerItem)}
+              {displayedPersonal.map(renderPrayerItem)}
             </>
           )}
         </View>
+
+        {/* Show More / Show Less Button */}
+        {(hasMoreItems || canShowLess) && (
+          <View style={styles.paginationContainer}>
+            <View style={styles.paginationButtonGroup}>
+              {hasMoreItems && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showMoreButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+              {canShowLess && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showLessButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
         </View>
       </View>
     );
@@ -386,40 +641,40 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     );
   }
 
+  if ((viewMode === 'moments' || filters?.hideEmptyComponents) && !hasVisibleContent) {
+    return null;
+  }
+
   return (
     <ErrorBoundary>
       <JournalCard
-        icon={hasContent ? (
+        icon={hasVisibleContent ? (
           <MaterialCommunityIcons
             name="account-heart-outline"
             size={24}
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
-        subtitle={hasContent ? getSubtitle() : undefined}
+        title={hasVisibleContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
+        subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={showAddInHeader}
+        showAddButton={showAddInHeader && hasVisibleContent}
         onAdd={handleOpenModal}
         isAdding={false}
         onCancelAdd={handleCloseModal}
       >
-        {hasContent ? (
-          renderExistingPrayers()
-        ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
+        {hasVisibleContent ? renderExistingPrayers() : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
-            <View style={styles.emptyIconContainer}>
-              <View style={styles.iconContainer}>
-                <MaterialCommunityIcons
-                  name="account-heart-outline"
-                  size={32}
-                  color={Colors.textGray}
-                  style={[styles.emptyStateIcon, styles.flippedIcon]}
-                />
-              </View>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons
+                name="account-heart-outline"
+                size={32}
+                color={Colors.textGray}
+                style={styles.emptyStateIcon}
+              />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
                 PRAYER LIST FOR PEOPLE
               </ThemedText>
@@ -432,27 +687,26 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 ellipsizeMode="tail"
                 weight="semiBold"
               >
-                {isPast ? pastEmptyTitle : 'Start Your Prayer List'}
+                {isPast ? pastEmptyTitle : 'No People in Prayer List'}
               </ThemedText>
             </View>
-            <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
-              {isPast
-                ? pastEmptySubtitle
-                : "Add people you'd like to pray for or prayer requests from others"}
+            <ThemedText style={styles.emptyStateSubtext}>
+              {isPast ? pastEmptySubtitle : 'Add the people you want to pray for and keep track of prayer requests here.'}
             </ThemedText>
-            {!isPast && (
+            {!isPastDate && (
               <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => { triggerLightHaptic(); handleOpenModal(); }}
-                accessibilityRole="button"
-                accessibilityLabel="Begin creating prayer list"
               >
                 <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <ThemedText style={styles.emptyStateButtonText} weight="medium">Begin</ThemedText>
+                <ThemedText style={styles.emptyStateButtonText} weight="medium">
+                  Begin
+                </ThemedText>
               </TouchableOpacity>
             )}
           </View>
         )}
+      </JournalCard>
 
         {/* People Prayer Modal */}
         <PeoplePrayerModal
@@ -470,7 +724,79 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           isSaving={isSaving}
           currentRequestedBy={currentRequestedBy}
         />
-      </JournalCard>
+
+        {/* Prayer Editor Modal */}
+        <Modal
+          visible={showPrayerEditorModal}
+          animationType="fade"
+          presentationStyle="fullScreen"
+          onRequestClose={handleCancelModalPrayer}
+        >
+          <StatusBar hidden />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.fullScreenModalContainer}
+          >
+            <View style={styles.fullScreenPrayerModalContainer}>
+                <TouchableOpacity
+                  style={[styles.prayerModalCancelButton, { top: insets.top + 8 }]}
+                  onPress={() => { triggerLightHaptic(); handleCancelModalPrayer(); }}
+                  disabled={savingModalPrayer}
+                >
+                  <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+                </TouchableOpacity>
+
+                <View style={styles.prayerModalHeader}>
+                  <View style={styles.prayerModalHeaderLeft}>
+                    <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
+                    <ThemedText weight="bold" style={styles.prayerModalTitle}>PRAY FOR {modalPrayerName || 'Someone'}</ThemedText>
+                  </View>
+                </View>
+
+                <ThemedText weight="regular" style={styles.prayerModalSubtitle}>Lift up a prayer for {modalPrayerName || 'them'}</ThemedText>
+
+                {/* Name field - pre-filled and non-editable */}
+                <TextInput
+                  style={[styles.prayerModalNameInput, { fontFamily: Fonts.regular }]}
+                  value={modalPrayerName}
+                  onChangeText={setModalPrayerName}
+                  placeholder="Name (optional)"
+                  placeholderTextColor={Colors.placeholderText}
+                  keyboardAppearance="dark"
+                  editable={false}
+                />
+
+                {/* Combined field: Prayer input + Prayer Request inside same card */}
+                <View style={styles.combinedPrayerField}>
+                  <TextInput
+                    style={[styles.combinedPrayerInput, { fontFamily: Fonts.regular }]}
+                    placeholder={`Write a prayer for ${modalPrayerName || 'them'}…`}
+                    placeholderTextColor={Colors.placeholderText}
+                    value={modalPrayerRequest}
+                    onChangeText={setModalPrayerRequest}
+                    onFocus={triggerSelectionHaptic}
+                    multiline
+                    numberOfLines={6}
+                    autoFocus
+                    keyboardAppearance="dark"
+                  />
+                  <View style={styles.combinedDivider} />
+                  <View style={styles.combinedReadOnlyInner}>
+                    <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer Request</ThemedText>
+                    <ThemedText weight="regular" style={styles.prayerModalReadOnlyText}>{selectedPrayerRequest?.content || ''}</ThemedText>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
+                  onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
+                  disabled={savingModalPrayer || !modalPrayerRequest.trim()}
+                >
+                  <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
     </ErrorBoundary>
   );
 };
@@ -478,52 +804,35 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 // Swipeable Prayer Card Component (moved outside parent to avoid nested component warning)
 const SwipeablePrayerCard: React.FC<{
   prayer: PersonPrayer;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
   handleAddToMyList: (prayer: PersonPrayer) => void;
-}> = ({ prayer, onEdit, onDelete, handleAddToMyList }) => {
-  const swipeableRef = useRef<Swipeable>(null);
-
-  const renderRightActions = () => (
-    <View style={styles.prayerSwipeActions}>
-      <TouchableOpacity
-        style={styles.editActionBtn}
-        onPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          onEdit(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="create-outline" size={22} color="white" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteActionBtn}
-        onPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          onDelete(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={22} color="white" />
-      </TouchableOpacity>
-    </View>
-  );
+  handleMarkAsAnswered: (id: string) => void;
+  handleMarkAsUnanswered: (id: string) => void;
+  onEdit?: (prayer: PersonPrayer) => void;
+  onDelete?: (prayer: PersonPrayer) => void;
+}> = ({ prayer, handleAddToMyList, handleMarkAsAnswered, handleMarkAsUnanswered, onEdit, onDelete }) => {
+  const actionButtonPressedRef = React.useRef(false);
 
   return (
-    <View style={styles.swipeableContainer}>
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        rightThreshold={40}
-        friction={2}
-        overshootRight={false}
-        onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
-        enableTrackpadTwoFingerGesture
-        containerStyle={styles.swipeableRow}
-      >
-        <View style={styles.prayerItem}>
+    <TouchableOpacity
+      style={styles.prayerItem}
+      onPress={() => {
+        if (actionButtonPressedRef.current) {
+          actionButtonPressedRef.current = false;
+          return;
+        }
+        if (onEdit) {
+          triggerLightHaptic();
+          onEdit(prayer);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete) {
+          triggerLightHaptic();
+          onDelete(prayer);
+        }
+      }}
+      activeOpacity={0.7}
+    >
           <View style={styles.prayerHeader}>
             <View style={styles.prayerHeaderLeft}>
               <View style={styles.prayerTypeIndicator}>
@@ -587,22 +896,75 @@ const SwipeablePrayerCard: React.FC<{
           </View>
           {/* Show Pray for Now button for any prayer request that is not prayed for */}
           {prayer.is_prayer_request === true && prayer.prayed !== true && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => { triggerLightHaptic(); handleAddToMyList(prayer); }}
-            >
-              <Ionicons
-                name="add-circle-outline"
-                size={18}
-                color={Colors.hopeWhite}
-                style={styles.iconMargin}
-              />
-              <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
-            </TouchableOpacity>
+            <View style={styles.addButtonContainer}>
+              <View style={styles.addButtonDivider} />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                  actionButtonPressedRef.current = true;
+                  triggerLightHaptic();
+                  handleAddToMyList(prayer);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={18}
+                  color={Colors.hopeWhite}
+                  style={styles.iconMargin}
+                />
+                <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${prayer.person_name} now`}</ThemedText>
+              </TouchableOpacity>
+            </View>
           )}
-        </View>
-      </Swipeable>
-    </View>
+          {/* Show Mark as Answered button for prayers with tracking enabled (only for prayed for, not prayer requests) */}
+          {(() => {
+            const hasTracking = prayer.metadata?.track_answered === true;
+            const isNotRequest = prayer.is_prayer_request !== true;
+
+            return hasTracking && isNotRequest;
+          })() && (
+            <View style={styles.answeredActionContainer}>
+              <TouchableOpacity
+                style={[styles.answeredActionButton, prayer.status === 'answered' && styles.answeredActionButtonActive]}
+                onPress={() => {
+                  actionButtonPressedRef.current = true;
+                  if (prayer.status === 'answered') {
+                    handleMarkAsUnanswered(prayer.id);
+                  } else {
+                    handleMarkAsAnswered(prayer.id);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={prayer.status === 'answered' ? 'sparkles' : 'checkmark-circle-outline'}
+                  size={14}
+                  color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
+                />
+                <ThemedText style={[styles.answeredActionText, prayer.status === 'answered' && styles.answeredActionTextActive]} weight="medium">
+                  {prayer.status === 'answered' ? 'Answered' : 'Mark Answered'}
+                </ThemedText>
+                {prayer.status === 'answered' && prayer.answered_date && (
+                  <ThemedText style={styles.answeredDate}>
+                    {(() => {
+                      const date = new Date(prayer.answered_date);
+                      const currentYear = new Date().getFullYear();
+                      const isCurrentYear = date.getFullYear() === currentYear;
+
+                      return date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        ...(isCurrentYear ? {} : { year: 'numeric' }),
+                      });
+                    })()}
+                  </ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+    </TouchableOpacity>
   );
 };
 
@@ -860,6 +1222,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     // font handled by ThemedText
     marginBottom: 8,
+    marginRight: 4,
     opacity: 0.8,
   },
   notesInput: {
@@ -923,15 +1286,16 @@ const styles = StyleSheet.create({
   },
   prayerItem: {
     backgroundColor: 'transparent',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    padding: 20,
     minHeight: 60,
-    // Make the prayer row a distinct card (like Todos)
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
+    marginBottom: 12,
+    // Make the prayer row a distinct card (like completionCard)
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    borderRadius: 24,
     position: 'relative',
     zIndex: 1,
+    width: '100%',
   },
   prayerContentContainer: {
     marginBottom: 8,
@@ -1003,7 +1367,7 @@ const styles = StyleSheet.create({
   },
   notesBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 8,
@@ -1022,11 +1386,74 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
     width: '100%',
+  },
+  addButtonDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+  },
+  addButtonContainer: {
+    width: '100%',
+  },
+  answeredBadgeWrapper: {
+    alignSelf: 'flex-start',
+  },
+  answeredButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  answeredActionContainer: {
+    marginTop: 8,
+  },
+  answeredActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 8,
+  },
+  answeredActionButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  answeredActionText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+  answeredActionTextActive: {
+    color: Colors.alertCoral,
+  },
+  answeredBadgeContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  answeredBadgeText: {
+    fontSize: 12,
+    color: Colors.growthGreen,
+  },
+  answeredDate: {
+    color: 'rgba(255, 107, 107, 0.9)',
+    fontSize: 12,
+    marginLeft: 6,
   },
   prayedButton: {
     opacity: 0.7,
@@ -1036,6 +1463,9 @@ const styles = StyleSheet.create({
     // font handled by ThemedText
     fontSize: 12,
     marginLeft: 4,
+  },
+  answeredButtonText: {
+    color: Colors.alertCoral,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -1161,11 +1591,116 @@ const styles = StyleSheet.create({
   sectionSpacing: {
     marginBottom: 8,
   },
-  // Swipe action styles
+  fullScreenModalContainer: {
+    flex: 1,
+    backgroundColor: Colors.anchorBlue,
+    zIndex: 1,
+  },
+  fullScreenPrayerModalContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  prayerModalCancelButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prayerModalHeader: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  prayerModalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  prayerModalTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  prayerModalSubtitle: {
+    color: Colors.secondaryText,
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  prayerModalNameInput: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    padding: 14,
+    marginBottom: 20,
+    color: Colors.hopeWhite,
+    fontSize: 14,
+  },
+  combinedPrayerField: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    padding: 14,
+    minHeight: 150,
+  },
+  combinedPrayerInput: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 80,
+  },
+  combinedDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginVertical: 12,
+  },
+  combinedReadOnlyInner: {
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 8,
+    padding: 12,
+  },
+  prayerModalFieldLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  prayerModalReadOnlyText: {
+    color: Colors.secondaryText,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  prayerModalSaveButton: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.alertCoral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
   swipeableContainer: {
     marginBottom: 12,
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: 'transparent',
   },
   swipeableRow: {
@@ -1194,8 +1729,39 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+  },
+  paginationContainer: {
+    marginTop: 12,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.textGray,
   },
 });
 

@@ -21,6 +21,7 @@ interface ReflectCarouselProps {
   refreshKey?: number;
   initialScrollIndex?: number;
   onScrollIndexChange?: (index: number) => void;
+  onGratitudeBegin?: (existingEntry?: any, selectedDate?: Date) => void;
 }
 
 interface CarouselItem {
@@ -31,7 +32,7 @@ interface CarouselItem {
   color: string;
 }
 
-const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, initialScrollIndex = 0, onScrollIndexChange }) => {
+const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, initialScrollIndex = 0, onScrollIndexChange, onGratitudeBegin }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
 
@@ -110,7 +111,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       id: 'gratitude',
       title: 'GRATITUDE',
       icon: 'heart-outline',
-      component: <GratitudeListReactQuery key={refreshKey} selectedDate={selectedDate} refreshKey={refreshKey} />,
+      component: <GratitudeListReactQuery key={refreshKey} selectedDate={selectedDate} refreshKey={refreshKey} onBegin={(entry, date) => onGratitudeBegin?.(entry, date || selectedDate)} />,
       color: Colors.hopeWhite,
     },
     {

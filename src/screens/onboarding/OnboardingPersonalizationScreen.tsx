@@ -7,17 +7,22 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { supabase } from '../../services/supabaseClient';
 import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { unifiedGenerationService } from '../../services/unifiedGenerationService';
+import { faithPointsService } from '../../services/faithPointsService';
+import type { Playbook } from '../../interfaces/playbook';
+import { Alert } from 'react-native';
+import { triggerSuccessHaptic, triggerErrorHaptic } from '../../utils/haptics';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ScrollView,
   StatusBar,
   KeyboardAvoidingView,
@@ -28,9 +33,11 @@ import {
   Keyboard,
   Dimensions,
   Modal,
+  Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../theme/ThemeContext';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -218,6 +225,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const routeParams = route.params as { name?: string; step?: number; rewriteData?: any } | undefined;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
   const detailsOnlyFlow = true;
 
@@ -239,12 +248,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
   const [currentStep, setCurrentStep] = useState(detailsOnlyFlow ? 1 : (routeParams?.step || 1));
   const [name, setName] = React.useState(routeParams?.name || '');
-  const greetingName = React.useMemo(() => {
-    if (!name) {return '';}
-    const trimmed = name.trim();
-    if (!trimmed) {return '';}
-    return trimmed.split(/\s+/)[0];
-  }, [name]);
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -266,11 +269,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         if (!isActive) {return;}
 
         if (hasCompleted) {
-          Logger.debug('Force navigation flag confirmed with completed onboarding. Redirecting to MainTabs.');
+          Logger.debug('Force navigation flag confirmed with completed onboarding. Redirecting to UserInput (new main screen).');
           await AsyncStorage.removeItem('force_navigate_to_main');
           (navigation as any).reset({
             index: 0,
-            routes: [{ name: 'MainTabs' }],
+            routes: [{ name: 'UserInput' }],
           });
         } else {
           Logger.debug('Force navigation flag found but onboarding incomplete. Clearing flag and staying in onboarding.');
@@ -306,6 +309,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     titleContainer: {
       alignItems: 'center',
       paddingHorizontal: 20,
+      marginTop: -30,
       marginBottom: isVerySmallPhone ? 15 : (isSmallPhone ? 20 : 30),
       backgroundColor: Colors.anchorBlue,
     },
@@ -351,18 +355,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       // Extract name with fallback strategy - NEVER ask user per Apple requirements
       const extractNameWithFallback = async () => {
-        console.log('🚀 extractNameWithFallback called - NEW CODE VERSION');
         try {
           if (method === 'oauth') {
             // CRITICAL: Fetch fresh user data to get latest metadata from Apple Sign-In
-            console.log('🔍 Fetching fresh user data...');
             const { data: { user: freshUser } } = await supabase.auth.getUser();
-            console.log('🔍 Fresh user fetched:', !!freshUser);
 
             // BACKUP: Query user_profiles table if auth.getUser() doesn't have metadata
             let currentUser = freshUser || user;
             if (currentUser && (!currentUser.user_metadata?.first_name && !currentUser.user_metadata?.full_name)) {
-              console.log('🔍 No metadata in auth user, querying user_profiles table...');
               const { data: profile } = await supabase
                 .from('user_profiles')
                 .select('first_name, last_name, full_name')
@@ -370,7 +370,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 .single();
 
               if (profile && (profile.first_name || profile.full_name)) {
-                console.log('🔍 Found name in user_profiles:', profile);
                 // Merge profile names into user object
                 currentUser = {
                   ...currentUser,
@@ -388,15 +387,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             const paramNameRaw = (route.params as any)?.name;
             const paramName = typeof paramNameRaw === 'string' ? paramNameRaw.trim() : '';
             const metadataName = (currentUser?.user_metadata?.first_name || currentUser?.user_metadata?.full_name || '').trim();
-
-            // DEBUG: Log name extraction process
-            console.log('🔍 Name extraction debug:', {
-              provider,
-              paramName,
-              metadataName,
-              userMetadata: currentUser?.user_metadata,
-              freshUserFetched: !!freshUser,
-            });
 
           // IMPORTANT: Apple Private Relay ONLY hides email, NEVER names
           // Name hiding is a SEPARATE option during Apple Sign-In
@@ -458,7 +448,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           logger.debug('🔄 No email available - using "Friend" fallback');
         }
         } catch (error) {
-          console.error('❌ Error in extractNameWithFallback:', error);
           logger.error('Error extracting name', error as Error, { component: 'OnboardingPersonalization' });
           setName('Friend');
         }
@@ -488,9 +477,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         setChallengeDetails(rewriteData.challengeDetails);
 
         // Focus input and move cursor to end after restoration
+        // Long delay to allow iOS save password alert to be dismissed
         setTimeout(() => {
           detailsInputRef.current?.focus();
-        }, 100);
+        }, 3000);
       }
 
       logger.debug('Restored rewrite data:', rewriteData);
@@ -534,24 +524,639 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
   const detailsInputRef = useRef<TextInput>(null);
-  const [scrollY, setScrollY] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [showOptionalHelper, setShowOptionalHelper] = useState(false);
-  const askBoxYRef = useRef(0);
-  // Animate the rounded-top container when keyboard opens (details step only)
-  const containerTranslateY = useRef(new Animated.Value(0)).current;
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Tooltip for input guidance (mirrors UserInputScreen)
+  // Dynamic input height
+  const MIN_INPUT_HEIGHT = 44;
+  const MAX_INPUT_HEIGHT = 150;
+  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const askBoxYRef = useRef(0);
+
+  const handleContentSizeChange = (event: any) => {
+    const contentHeight = event.nativeEvent.contentSize.height;
+    setInputHeight(Math.max(MIN_INPUT_HEIGHT, Math.min(contentHeight, MAX_INPUT_HEIGHT)));
+  };
+
+  const handleChallengeDetailsChange = (text: string) => {
+    // Only reset height when text is fully cleared — resetting on every deletion
+    // keystroke causes rapid layout thrashing which flickers the header.
+    // onContentSizeChange handles growth; clearing handles the empty→min reset.
+    if (text.length === 0) {
+      setInputHeight(MIN_INPUT_HEIGHT);
+    }
+    setChallengeDetails(text);
+  };
+
+  // Tooltip state
+  const hintButtonRef = useRef<View>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const hintButtonRef = useRef<any>(null);
-  const [tooltipAnchor, setTooltipAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [tooltipAnchor, setTooltipAnchor] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
-  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
-  const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(20)).current;
+  const tooltipScale = useRef(new Animated.Value(0.9)).current;
+  const [showHelperSelector, setShowHelperSelector] = useState(false);
+
+  // Keyboard handling state
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const containerTranslateY = useRef(new Animated.Value(0)).current;
+
+  const headerIntroOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxOpacity = useRef(new Animated.Value(1)).current;
+  const askBoxTranslateY = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const headerScale = useRef(new Animated.Value(0.45)).current;
+  const keyboardTranslateY = useRef(new Animated.Value(0)).current;
+  // Content entry animation: 0 = off-screen / header centered, 1 = content visible
+  const contentEntryAnim = useRef(new Animated.Value(1)).current;
+  // Stable offset for detailsOnly header position (must not be inline — recreating
+  // Animated.Value every render gives the native driver a new node graph each time)
+  const headerDetailsOffset = useRef(new Animated.Value(0)).current;
+
+  // Stable animated Y for detailsOnly: headerTranslateY + 0 offset.
+  // MUST be memoized — calling Animated.add() inline recreates the derived node
+  // on every render, causing the native driver to briefly lose the current value
+  // and producing a visible flicker while typing/erasing.
+  const detailsOnlyHeaderY = React.useMemo(
+    () => Animated.add(headerTranslateY, headerDetailsOffset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Header Y that combines headerTranslateY + initial centering offset so the block
+  // starts in the TRUE vertical center of the screen and settles upward as step
+  // content slides in.
+  const combinedHeaderY = React.useMemo(
+    () =>
+      Animated.add(
+        headerTranslateY,
+        contentEntryAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [screenSize.height / 4, 0],
+        })
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Transition animations (from UserInputScreen)
+  const inputCollapseAnim = useRef(new Animated.Value(0)).current;
+  const generatingFadeAnim = useRef(new Animated.Value(0)).current;
+  const generatingScaleAnim = useRef(new Animated.Value(0.92)).current;
+  const inputScaleAnim = useRef(new Animated.Value(1)).current;
+  const genLogoEntryAnim = useRef(new Animated.Value(0)).current;
+  const genCardEntryAnim = useRef(new Animated.Value(0)).current;
+  const genHeadingEntryAnim = useRef(new Animated.Value(0)).current;
+  const genStepsEntryAnim = useRef(new Animated.Value(0)).current;
+  const genProgressEntryAnim = useRef(new Animated.Value(0)).current;
+
+  // Progress animation system (from UserInputScreen)
+  const PHASE_PROGRESS_TARGETS = [20, 50, 80, 95];
+  const currentPhaseRef = useRef(0);
+  const trickleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generationAbortRef = useRef(false);
+  const isMountedRef = useRef(true);
+  // Generation steps tracking (from UserInputScreen)
+  type StepStatus = 'completed' | 'active' | 'inactive';
+  type GenerationStep = { key: string; title: string; status: StepStatus };
+
+  const INITIAL_GENERATION_STEPS: GenerationStep[] = [
+    { key: 'seeing', title: 'Seeing this moment clearly', status: 'inactive' },
+    { key: 'naming', title: 'Naming what matters most', status: 'inactive' },
+    { key: 'shaping', title: 'Shaping faithful next steps', status: 'inactive' },
+    { key: 'preparing', title: 'Preparing your playbook', status: 'inactive' },
+  ];
+
+  const buildInitialGenerationSteps = () => INITIAL_GENERATION_STEPS.map((step) => ({ ...step }));
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [buildingDots, setBuildingDots] = useState('');
+  const [generationCurrentStep, setGenerationCurrentStep] = useState(1); // 1-4
+  const [generationSteps, setGenerationSteps] = useState<GenerationStep[]>(() => buildInitialGenerationSteps());
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Check icon animations for generation steps
+  const checkIconAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Per-step pulsing dots — one per step so the native driver never loses the binding
+  const pulsingDotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  // Animated background colors for step cards (springy)
+  const stepCardBgAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Animated border colors for step cards (springy)
+  const stepCardBorderAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  // Animated scale for step cards (springy)
+  const stepCardScaleAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(1))).current;
+
+  // Shimmer opacity pulse for "Building your playbook..." text
+  const buildingTextOpacity = useRef(new Animated.Value(0.55)).current;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      generationAbortRef.current = true;
+    };
+  }, []);
+
+  // ── Per-step pulsing dot loops ───────────────────────────────────────────────
+  useEffect(() => {
+    if (isGenerating) {
+      const loops = pulsingDotAnims.map((anim) => {
+        anim.setValue(0);
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 750, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0.2, duration: 750, useNativeDriver: true }),
+          ])
+        );
+      });
+      loops.forEach((l) => l.start());
+      return () => loops.forEach((l) => l.stop());
+    } else {
+      pulsingDotAnims.forEach((anim) => anim.setValue(0));
+    }
+  }, [isGenerating, pulsingDotAnims]);
+
+  // ── Animated dots + text-opacity shimmer on "Building your playbook..." ──────
+  useEffect(() => {
+    if (!isGenerating) {
+      setBuildingDots('');
+      buildingTextOpacity.setValue(0.55);
+      return;
+    }
+
+    // Cycling dots: '' → '.' → '..' → '...'
+    const dotStates = ['', '.', '..', '...'];
+    let di = 0;
+    const dotInterval = setInterval(() => {
+      di = (di + 1) % dotStates.length;
+      setBuildingDots(dotStates[di]);
+    }, 420);
+
+    // Shimmer = the letters themselves breathing bright → dim → bright
+    buildingTextOpacity.setValue(0.55);
+    const opacityLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.95,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buildingTextOpacity, {
+          toValue: 0.55,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    opacityLoop.start();
+
+    return () => {
+      clearInterval(dotInterval);
+      opacityLoop.stop();
+    };
+  }, [isGenerating, buildingTextOpacity]);
+
+  const resetToInputState = () => {
+    inputCollapseAnim.setValue(0);
+    inputScaleAnim.setValue(1);
+    headerIntroOpacity.setValue(1);
+    askBoxOpacity.setValue(1);
+    generatingFadeAnim.setValue(0);
+    generatingScaleAnim.setValue(0.92);
+    genLogoEntryAnim.setValue(0);
+    genCardEntryAnim.setValue(0);
+    genHeadingEntryAnim.setValue(0);
+    genStepsEntryAnim.setValue(0);
+    genProgressEntryAnim.setValue(0);
+    setBuildingDots('');
+    // Reset step card animations
+    stepCardBgAnims.forEach(anim => anim.setValue(0));
+    stepCardBorderAnims.forEach(anim => anim.setValue(0));
+    stepCardScaleAnims.forEach(anim => anim.setValue(1));
+    StatusBar.setBarStyle('light-content', true);
+    setIsGenerating(false);
+  };
+
+  const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  const animateProgressTo = (target: number, duration = 800) =>
+    new Promise<void>((resolve) => {
+      Animated.timing(progressAnim, {
+        toValue: target,
+        duration,
+        useNativeDriver: false,
+      }).start(() => resolve());
+    });
+
+  const completeProgress = async () => {
+    // Mark all steps as completed and animate check icons
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        // Animate check icon for each completed step
+        Animated.spring(checkIconAnims[index], {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }).start();
+        // Animate step card background, border, and scale for each completed step (springy)
+        Animated.parallel([
+          Animated.spring(stepCardBgAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardBorderAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardScaleAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 50,
+            friction: 6,
+          }),
+        ]).start();
+        return { ...step, status: 'completed' };
+      })
+    );
+    setGenerationCurrentStep(4);
+    await animateProgressTo(100, 600);
+  };
+
+  const updateStepStatus = (stepIndex: number) => {
+    // Raise trickle ceiling so the bar is now allowed to approach this phase's target
+    currentPhaseRef.current = stepIndex;
+
+    setGenerationSteps((prev) =>
+      prev.map((step, index) => {
+        if (index < stepIndex) {
+          // Animate check icon for completed steps
+          Animated.spring(checkIconAnims[index], {
+            toValue: 1,
+            tension: 80,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+          // Animate step card background, border, and scale for completed steps (springy)
+          Animated.parallel([
+            Animated.spring(stepCardBgAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardBorderAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardScaleAnims[index], {
+              toValue: 1,
+              useNativeDriver: false,
+              tension: 50,
+              friction: 6,
+            }),
+          ]).start();
+          return { ...step, status: 'completed' };
+        }
+        if (index === stepIndex) {
+          // Animate step card for active step (springy scale up + background/border)
+          Animated.parallel([
+            Animated.spring(stepCardScaleAnims[index], {
+              toValue: 1.05,
+              useNativeDriver: false,
+              tension: 50,
+              friction: 6,
+            }),
+            Animated.spring(stepCardBgAnims[index], {
+              toValue: 0.5,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+            Animated.spring(stepCardBorderAnims[index], {
+              toValue: 0.5,
+              useNativeDriver: false,
+              tension: 40,
+              friction: 7,
+            }),
+          ]).start();
+          return { ...step, status: 'active' };
+        }
+        // Reset inactive step cards
+        Animated.parallel([
+          Animated.spring(stepCardBgAnims[index], {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardBorderAnims[index], {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 40,
+            friction: 7,
+          }),
+          Animated.spring(stepCardScaleAnims[index], {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 50,
+            friction: 6,
+          }),
+        ]).start();
+        return { ...step, status: 'inactive' };
+      })
+    );
+    setGenerationCurrentStep(Math.min(stepIndex + 1, 4));
+
+    // Floor guarantee: when a phase completes, the bar must be at least at the
+    // PREVIOUS phase's target so there's no backward drift between label and bar.
+    if (stepIndex > 0) {
+      const prevTarget = PHASE_PROGRESS_TARGETS[stepIndex - 1];
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < prevTarget) {
+        animateProgressTo(prevTarget, 500);
+      }
+    }
+  };
+
+  const startProgressTrickle = () => {
+    const TICK_MS = 300;
+    let elapsed = 0;
+    const tick = () => {
+      elapsed += TICK_MS;
+      const phaseCeiling = (PHASE_PROGRESS_TARGETS[currentPhaseRef.current] ?? 95) - 1;
+      const current = (progressAnim as any).__getValue?.() ?? 0;
+      if (current < phaseCeiling) {
+        const remaining = phaseCeiling - current;
+        const step = Math.max(0.3, remaining * 0.05);
+        Animated.timing(progressAnim, {
+          toValue: Math.min(current + step, phaseCeiling),
+          duration: TICK_MS + 80,
+          useNativeDriver: false,
+        }).start();
+      }
+      if (elapsed < 120000) {
+        trickleRef.current = setTimeout(tick, TICK_MS);
+      }
+    };
+    trickleRef.current = setTimeout(tick, TICK_MS);
+  };
+
+  const stopProgressTrickle = () => {
+    if (trickleRef.current) {
+      clearTimeout(trickleRef.current);
+      trickleRef.current = null;
+    }
+  };
+
+  const resetGenerationSteps = () => {
+    setGenerationSteps(() => buildInitialGenerationSteps());
+    setGenerationCurrentStep(1);
+    progressAnim.setValue(0);
+    generationAbortRef.current = false;
+    currentPhaseRef.current = 0;
+  };
+
+  const handleGenerationFlow = async () => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    resetGenerationSteps();
+    startProgressTrickle();
+
+    // Track current phase so timers and post-playbook advancement stay in sync
+    let currentPhase = 0;
+
+    const advanceToPhase = (phase: number) => {
+      if (generationAbortRef.current || currentPhase >= phase) { return; }
+      currentPhase = phase;
+      updateStepStatus(phase);
+      try { triggerLightHaptic(); } catch {}
+    };
+
+    // Step 0 active immediately — with haptic
+    updateStepStatus(0);
+    try { triggerLightHaptic(); } catch {}
+
+    // ── Time-based step timers ───────
+    const phaseTimers = [
+      setTimeout(() => advanceToPhase(1), 4000),
+      setTimeout(() => advanceToPhase(2), 8500),
+      setTimeout(() => advanceToPhase(3), 13500),
+    ];
+    const clearPhaseTimers = () => phaseTimers.forEach(clearTimeout);
+
+    const runGeneration = async () => {
+      const response = await unifiedGenerationService.generatePlaybook({
+        userId: user.id,
+        userInput: challengeDetails,
+        userName: name || 'Friend',
+        isOnboarding: true,
+      });
+
+      if (!response.success) {
+        throw Object.assign(new Error(response.message || 'Unable to generate playbook'), response);
+      }
+
+      let savedPlaybook: Playbook | null = null;
+
+      const fetchLatestPlaybook = async () => {
+        if (!user.id) { return null; }
+        const { data: recentPlaybooks } = await supabase
+          .from('playbooks')
+          .select('id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!recentPlaybooks || recentPlaybooks.length === 0) {
+          return null;
+        }
+
+        const { data: playbook } = await supabase
+          .from('playbooks')
+          .select('*')
+          .eq('id', recentPlaybooks[0].id)
+          .single();
+
+        return playbook as Playbook;
+      };
+
+      if (response.queueId) {
+        const maxAttempts = 60;
+        let attempts = 0;
+
+        while (attempts < maxAttempts && !savedPlaybook) {
+          if (generationAbortRef.current) {
+            return null;
+          }
+
+          attempts += 1;
+          await wait(1000);
+
+          const status = await unifiedGenerationService.checkGenerationStatus(response.queueId);
+
+          if (status.status === 'failed') {
+            throw new Error(status.message || 'Generation failed. Please try again.');
+          }
+
+          if (status.status === 'completed' && status.resultId && user.id) {
+            const completePlaybook = await fetchLatestPlaybook();
+            if (completePlaybook) {
+              savedPlaybook = completePlaybook;
+              break;
+            }
+          }
+
+          if (status.status === 'processing' && attempts > 15) {
+            try {
+              const fallback = await fetchLatestPlaybook();
+              if (fallback) {
+                savedPlaybook = fallback;
+                break;
+              }
+            } catch (fallbackError) {
+              Logger.error('[OnboardingPersonalizationScreen] Fallback playbook fetch failed', fallbackError as Error);
+            }
+          }
+        }
+      } else {
+        savedPlaybook = await fetchLatestPlaybook();
+      }
+
+      if (!savedPlaybook) {
+        throw new Error('Playbook generation is taking longer than expected. Please try again.');
+      }
+
+      return savedPlaybook;
+    };
+
+    try {
+      const playbook = await runGeneration();
+
+      clearPhaseTimers();
+
+      if (!playbook) {
+        resetToInputState();
+        return;
+      }
+
+      if (currentPhase < 1) {
+        await wait(400);
+        advanceToPhase(1);
+      }
+      if (currentPhase < 2) {
+        await wait(1500);
+        advanceToPhase(2);
+      }
+      if (currentPhase < 3) {
+        await wait(1500);
+        advanceToPhase(3);
+      }
+
+      await wait(1000);
+
+      stopProgressTrickle();
+      await completeProgress();
+      try { triggerSuccessHaptic(); } catch {}
+
+      if (user.id) {
+        try {
+          await faithPointsService.awardPoints(user.id, 'playbook_generated', {
+            suppressNotification: true,
+            isOnboarding: true,
+          });
+        } catch (pointsError) {
+          Logger.error('[OnboardingPersonalizationScreen] Failed to award faith points', pointsError as Error);
+        }
+
+      }
+
+      generationAbortRef.current = true;
+
+      logger.debug('[OnboardingPersonalizationScreen] Navigating to playbook walkthrough', { playbookId: playbook?.id, playbookTitle: playbook?.title });
+
+      (navigation as any).replace('PlaybookWalkthrough', {
+        playbook,
+        source: 'onboarding',
+      });
+    } catch (error) {
+      clearPhaseTimers();
+      stopProgressTrickle();
+      Logger.error('[OnboardingPersonalizationScreen] Generation error', error as Error);
+      try { triggerErrorHaptic(); } catch {}
+
+      if ((error as any).contentBlocked) {
+        Alert.alert(
+          'Content Review',
+          (error as any).christianMessage || 'Content blocked for review.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setIsGenerating(false);
+                resetGenerationSteps();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Generation Failed',
+        (error as Error).message || 'Unable to generate playbook. Please try again.',
+        [
+          {
+            text: 'Try Again',
+            onPress: () => {
+              generationAbortRef.current = false;
+              handleGenerationFlow();
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              resetToInputState();
+              resetGenerationSteps();
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const inputBorderWidth = useRef(new Animated.Value(1)).current;
 
   // Pulsing animation for hint icon to draw attention
   const hintIconScale = useRef(new Animated.Value(1)).current;
+
+  // Button expansion animation - starts as arrow icon, expands to text when typing
+  const buttonWidthAnim = useRef(new Animated.Value(36)).current;
+  const buttonHasText = useRef(false);
+
+  useEffect(() => {
+    const hasText = challengeDetails && challengeDetails.trim().length > 0;
+    const hasTextBoolean = !!hasText;
+    if (hasTextBoolean !== buttonHasText.current) {
+      buttonHasText.current = hasTextBoolean;
+      Animated.spring(buttonWidthAnim, {
+        toValue: hasTextBoolean ? 220 : 36,
+        tension: 50,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [challengeDetails, buttonWidthAnim]);
 
   useEffect(() => {
     // Start pulsing animation when on details step and tooltip is not shown
@@ -588,30 +1193,84 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         const next = !prev;
         if (next) {
           Animated.parallel([
-            Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
-            Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
+            Animated.spring(tooltipOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipScale, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
           ]).start();
         } else {
           Animated.parallel([
-            Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-            Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+            Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+            Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
           ]).start();
         }
         return next;
       });
     });
-  }, [tooltipOpacity, tooltipTranslateY]);
+  }, [tooltipOpacity, tooltipTranslateY, tooltipScale]);
 
   const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
-      // Small delay helps after layout/keyboard animations
+      // Long delay to allow iOS save password alert to be dismissed
       setTimeout(() => {
         detailsInputRef.current?.focus();
-        const y = Math.max(askBoxYRef.current - 140, 0);
-        scrollViewRef.current?.scrollTo({ y, animated: true });
-      }, 100);
+        if (!(detailsOnlyFlow || currentStep === 4)) {
+          const y = Math.max(askBoxYRef.current - 140, 0);
+          scrollViewRef.current?.scrollTo({ y, animated: true });
+        }
+      }, 3000);
     });
-  }, []);
+  }, [currentStep, detailsOnlyFlow]);
+
+  const handleFocus = () => {
+    // For detailsOnlyFlow, keyboardWillShow handles header movement with exact keyboard height
+    if (!detailsOnlyFlow) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: -25,
+          useNativeDriver: true,
+          stiffness: 180,
+          damping: 18,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 0.45,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    if (showTooltip) {
+      setShowTooltip(false);
+      Animated.parallel([
+        Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
+        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
+      ]).start();
+    }
+  };
+
+  const handleBlur = () => {
+    // Return logo to original position when keyboard closes
+    // For detailsOnlyFlow, keyboardWillHide handles the header reset
+    if (!detailsOnlyFlow) {
+      Animated.parallel([
+        Animated.spring(headerTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          stiffness: 200,
+          damping: 20,
+          mass: 0.9,
+        }),
+        Animated.timing(headerScale, {
+          toValue: 0.45,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    setKeyboardVisible(false);
+  };
 
   // When the user changes challenge, clear details so the new placeholder is visible
   // But don't clear if we're restoring from rewriteData
@@ -623,10 +1282,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     // Do not auto-focus per UX requirement
   }, [selectedChallenge, routeParams?.rewriteData]);
 
-  // Do not auto-focus when entering the details step per UX requirement
-  React.useEffect(() => {
-    // no-op
-  }, [currentStep]);
+  // Do NOT auto-focus on mount - wait for iOS save password alert to be dismissed
+  // User can manually tap the input field to focus when ready
 
   // Always show the top content when entering a new step/page
   React.useEffect(() => {
@@ -638,6 +1295,111 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }, 0);
     return () => clearTimeout(id);
   }, [currentStep]);
+
+  // Keyboard animation - sync input box and header with keyboard slide
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
+      const kbHeight = e.endCoordinates.height;
+      const animations: Animated.CompositeAnimation[] = [
+        Animated.spring(keyboardTranslateY, {
+          toValue: -kbHeight + 70,
+          tension: 50,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ];
+      if (detailsOnlyFlow) {
+        // Move header up proportionally so it stays comfortably above the rising footer
+        animations.push(
+          Animated.spring(headerTranslateY, {
+            toValue: -(kbHeight * 0.3),
+            tension: 50,
+            friction: 12,
+            useNativeDriver: true,
+          })
+        );
+      }
+      Animated.parallel(animations).start();
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      const animations: Animated.CompositeAnimation[] = [
+        Animated.spring(keyboardTranslateY, {
+          toValue: 0,
+          tension: 50,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ];
+      if (detailsOnlyFlow) {
+        animations.push(
+          Animated.spring(headerTranslateY, {
+            toValue: 0,
+            tension: 50,
+            friction: 12,
+            useNativeDriver: true,
+          })
+        );
+      }
+      Animated.parallel(animations).start();
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, [keyboardTranslateY, headerTranslateY, detailsOnlyFlow]);
+
+  // Intro animation when screen first opens
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(220), // small delay to let modal finish sliding
+      Animated.parallel([
+        Animated.timing(
+          headerTranslateY,
+          { toValue: 0, duration: 320, useNativeDriver: true }
+        ),
+        // Keep opacity animation for smoothness, but start from 0.8 to 1
+        Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]),
+      Animated.delay(100),
+      Animated.parallel([
+        // Title/subtitle block fades in
+        Animated.spring(askBoxOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+        Animated.spring(askBoxTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+        // Step content slides up from below while header settles to its flex position
+        Animated.spring(contentEntryAnim, { toValue: 1, tension: 38, friction: 11, useNativeDriver: true }),
+      ]),
+    ]).start(() => {
+      // Do NOT auto-focus - wait for iOS save password alert to be dismissed
+      // User can manually tap the input field to focus when ready
+    });
+  }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow, currentStep]);
+
+  const hasRunIntroAnim = useRef(false);
+  // Re-trigger askBox animation when navigating to step 4 (not on initial mount - intro animation handles that)
+  useEffect(() => {
+    if (detailsOnlyFlow || currentStep === 4) {
+      if (!hasRunIntroAnim.current) { hasRunIntroAnim.current = true; return; }
+      // Reset animation values
+      askBoxOpacity.setValue(0);
+      askBoxTranslateY.setValue(16);
+      headerTranslateY.setValue(-30);
+      headerScale.setValue(0.35);
+      headerIntroOpacity.setValue(0.6);
+
+      // Trigger animation
+      Animated.sequence([
+        Animated.parallel([
+          Animated.spring(askBoxOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(askBoxTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(headerTranslateY, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.spring(headerScale, { toValue: 0.45, tension: 50, friction: 12, useNativeDriver: true }),
+          Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }
+  }, [detailsOnlyFlow, currentStep, askBoxOpacity, askBoxTranslateY, headerTranslateY, headerScale, headerIntroOpacity]);
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
@@ -777,111 +1539,96 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         }
         // Continue with navigation regardless of completion update success
 
-        // Use main playbook generation UI with onboarding data
-        const userInput = challengeDetails.trim();
-
         // Skip redundant screens and go directly to playbook generation
         logger.debug('Proceeding directly to Playbook Generation');
 
-        const ageGroupForNavigation = selectedAgeGroup || 'adult';
-        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
-        const challengeForNavigation = selectedChallenge || 'relationships';
+        // Trigger transition animation before navigation
+        Keyboard.dismiss();
 
-        (navigation as any).navigate('OnboardingPlaybookGeneration', {
-          userName: name || 'Friend',
-          userInput,
-          onboardingData: {
-            ageGroup: ageGroupForNavigation,
-            faithJourney: faithJourneyForNavigation,
-            challenge: challengeForNavigation,
-            challengeDetails,
-          },
+        // Phase 1: footer shrinks + header content fades (0–260ms)
+        generatingFadeAnim.setValue(0);
+        generatingScaleAnim.setValue(0.92);
+        genLogoEntryAnim.setValue(0);
+        genCardEntryAnim.setValue(0);
+        genHeadingEntryAnim.setValue(0);
+        genStepsEntryAnim.setValue(0);
+        genProgressEntryAnim.setValue(0);
+
+        Animated.parallel([
+          Animated.timing(inputCollapseAnim, {
+            toValue: 1,
+            duration: 260,
+            useNativeDriver: true,
+          }),
+          Animated.timing(inputScaleAnim, {
+            toValue: 0.88,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(headerIntroOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(askBoxOpacity, {
+            toValue: 0,
+            duration: 160,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Phase 2: switch to generating mode; each element bounces in
+          setIsGenerating(true);
+
+          requestAnimationFrame(() => {
+            // Container fades + scales in with spring bounce
+            Animated.parallel([
+              Animated.timing(generatingFadeAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.spring(generatingScaleAnim, {
+                toValue: 1,
+                tension: 45,
+                friction: 7,
+                useNativeDriver: true,
+              }),
+            ]).start();
+
+            // Staggered element entrance — each springs up with its own delay
+            const springConfig = { tension: 55, friction: 8, useNativeDriver: true as const };
+            const entries: [Animated.Value, number][] = [
+              [genLogoEntryAnim, 0],
+              [genCardEntryAnim, 90],
+              [genHeadingEntryAnim, 190],
+              [genStepsEntryAnim, 300],
+              [genProgressEntryAnim, 430],
+            ];
+            entries.forEach(([anim, delay]) => {
+              setTimeout(() => {
+                Animated.spring(anim, { toValue: 1, ...springConfig }).start();
+              }, delay);
+            });
+
+            // Start the generation flow with polling and step-by-step animation
+            handleGenerationFlow();
+          });
         });
       } catch (error) {
         logger.error('Error in handleContinue:', error as Error);
-        // Continue with navigation even if onboarding update fails
-        logger.error('Error occurred, but continuing to Playbook Generation');
-
-        // IMPORTANT: Save name ONLY for non-OAuth users (email/password) - same logic as success case
-        if (name && name.trim().length > 0 && user) {
-          const trimmedName = name.trim();
-          const provider = user?.app_metadata?.provider || (user as any)?.identities?.[0]?.provider;
-          const hasOAuthName = user?.user_metadata?.first_name || user?.user_metadata?.full_name;
-
-          // Skip name save for Apple/Google OAuth users who already provided name
-          if ((provider === 'apple' || provider === 'google') && hasOAuthName) {
-            logger.debug('✅ OAuth user - name already provided, skipping save (error case)', {
-              provider,
-              existingFirstName: user?.user_metadata?.first_name,
-            });
-          } else {
-            // Only save name for email/password users or OAuth users without names
-            const updateData: any = {
-              full_name: trimmedName,
-              first_name: trimmedName,
-            };
-
-            try {
-              const { error: updateError } = await supabase.auth.updateUser({
-                data: updateData,
-              });
-
-              if (updateError) {
-                Logger.error('❌ Error saving name to user metadata (error case)', updateError as Error, {
-                  component: 'OnboardingPersonalizationScreen',
-                });
-              } else {
-                logger.debug('✅ Name saved successfully (error case)');
-              }
-            } catch (nameError) {
-              Logger.error('❌ Error updating user metadata with name (error case)', nameError as Error, {
-                component: 'OnboardingPersonalizationScreen',
-              });
-            }
-          }
-        }
-
-        const userInput = challengeDetails.trim();
-        const ageGroupForNavigation = selectedAgeGroup || 'adult';
-        const faithJourneyForNavigation = selectedFaithJourney || 'growing';
-        const challengeForNavigation = selectedChallenge || 'relationships';
-
+        // Fallback: navigate to generation screen if generation failed
         (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
-          userInput,
+          userInput: challengeDetails,
           onboardingData: {
-            ageGroup: ageGroupForNavigation,
-            faithJourney: faithJourneyForNavigation,
-            challenge: challengeForNavigation,
+            ageGroup: selectedAgeGroup || 'adult',
+            faithJourney: selectedFaithJourney || 'growing',
+            challenge: selectedChallenge || 'relationships',
             challengeDetails,
           },
         });
       }
     }
-  };
-
-  const canContinue = () => {
-    if (detailsOnlyFlow) {
-      return challengeDetails.trim().length > 0;
-    }
-
-    // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
-    switch (currentStep) {
-      case 1:
-        return selectedAgeGroup !== '';
-      case 2:
-        return selectedFaithJourney !== '';
-      case 3:
-        return selectedChallenge !== '';
-      case 4:
-        return challengeDetails.trim().length > 0;
-      default:
-        return false;
-    }
-  };
-
-  const handleScroll = (event: any) => {
-    setScrollY(event.nativeEvent.contentOffset.y);
   };
 
   const renderAgeStep = () => (
@@ -988,7 +1735,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   );
 
   const renderChallengeDetailsStep = () => (
-    <View style={styles.stepContainer}>
+    <View style={styles.challengeDetailsStepContainer}>
       {!detailsOnlyFlow ? (
         <>
           <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
@@ -1043,297 +1790,475 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           ))}
         </View>
       ) : null}
-
-      <View style={styles.askWrapper}>
-        <Animated.View
-          style={[styles.askBox, { borderWidth: inputBorderWidth }]}
-          onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}
-          // Provide light haptic feedback when the ask box area is tapped
-          onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
-        >
-          <ThemedTextInput
-            ref={detailsInputRef}
-            style={styles.askInput}
-            value={challengeDetails}
-            onChangeText={setChallengeDetails}
-            multiline={true}
-            placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
-            placeholder={(() => {
-              if (detailsOnlyFlow) {
-                return 'Something happened and I don\'t know how to respond faithfully.';
-              }
-              const placeholders: Record<string, string> = {
-                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                purpose: "I'm unsure about my career path and want godly direction.",
-                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                spiritual: 'I want to deepen prayer and Bible study habits.',
-              };
-              return placeholders[selectedChallenge] ?? 'What situation are you facing?';
-            })()}
-            autoFocus={false}
-            scrollEnabled={true}
-          />
-          <View style={styles.actionsOverlay}>
-            <TouchableOpacity
-              ref={hintButtonRef}
-              onPress={onPressHint}
-              activeOpacity={0.9}
-              style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
-                <MaterialCommunityIcons
-                  name="information"
-                  size={30}
-                  color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-                />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-        {detailsOnlyFlow ? (
-          <View style={styles.optionalHelperContainer}>
-            <TouchableOpacity
-              style={styles.optionalHelperToggle}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setShowOptionalHelper(prev => !prev);
-              }}
-              activeOpacity={0.9}
-            >
-              <ThemedText style={styles.optionalHelperToggleText}>Need help putting words to it?</ThemedText>
-              <Ionicons
-                name={showOptionalHelper ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={'rgba(255, 255, 255, 0.75)'}
-              />
-            </TouchableOpacity>
-
-            {showOptionalHelper ? (
-              <View style={styles.optionalHelperList}>
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('We talked and now I feel unsettled.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'We talked and now I feel unsettled.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I reacted quickly and regret it.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I reacted quickly and regret it.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I feel guilty but don\'t know why.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I feel guilty but don\'t know why.'}</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionalHelperChip}
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    setChallengeDetails('I’m afraid of making the wrong decision.');
-                    focusDetailsInput();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <ThemedText style={styles.optionalHelperChipText}>{'I’m afraid of making the wrong decision.'}</ThemedText>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
     </View>
   );
 
+  const renderDetailsInputFooter = () => (
+    <TouchableOpacity
+      style={[styles.footer, { alignSelf: 'stretch' }]}
+      onPress={() => Keyboard.dismiss()}
+      activeOpacity={1}
+    >
+      <Animated.View
+        style={[
+          { width: '100%' },
+          {
+            paddingBottom: (insets.bottom || 0) + 20,
+            opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+            transform: [
+              {
+                translateY: Animated.add(
+                  keyboardTranslateY,
+                  inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] })
+                ),
+              },
+              { scale: inputScaleAnim },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.inputContainer}>
+        <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
+          <View style={styles.askWrapper}>
+            <Animated.View
+              style={[styles.askBox, { borderWidth: inputBorderWidth }]}
+              onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}
+              // Provide light haptic feedback when the ask box area is tapped
+              onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
+            >
+              <ThemedTextInput
+                ref={detailsInputRef}
+                style={[
+                  styles.askInput,
+                  inputHeight >= MAX_INPUT_HEIGHT
+                    ? { height: MAX_INPUT_HEIGHT }
+                    : { minHeight: MIN_INPUT_HEIGHT },
+                ]}
+                value={challengeDetails}
+                onChangeText={handleChallengeDetailsChange}
+                multiline={true}
+                placeholderTextColor={'rgba(255, 255, 255, 0.55)'}
+                placeholder={(() => {
+                  if (detailsOnlyFlow) {
+                    return 'Share what happened...';
+                  }
+                  const placeholders: Record<string, string> = {
+                    relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                    anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                    purpose: "I'm unsure about my career path and want godly direction.",
+                    forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                    financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                    spiritual: 'I want to deepen prayer and Bible study habits.',
+                  };
+                  return placeholders[selectedChallenge] ?? 'What situation are you facing?';
+                })()}
+                autoFocus={true}
+                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                keyboardAppearance="dark"
+                onContentSizeChange={handleContentSizeChange}
+                textAlignVertical="top"
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+              <View style={styles.actionsOverlay}>
+                <TouchableOpacity
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setShowHelperSelector(true);
+                  }}
+                  style={styles.inputFooterHelpButton}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText style={styles.inputFooterHelpButtonText}>See examples</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  ref={hintButtonRef}
+                  onPress={onPressHint}
+                  activeOpacity={0.9}
+                  style={[styles.askHintButton, showTooltip && styles.askHintButtonActive, !showTooltip && styles.disabledButton]}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <Animated.View style={{ transform: [{ scale: hintIconScale }] }}>
+                    <MaterialCommunityIcons
+                      name="information"
+                      size={20}
+                      color={showTooltip ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+                <Animated.View
+                  style={[
+                    styles.askSendButton,
+                    { width: buttonWidthAnim },
+                    (!challengeDetails || !challengeDetails.trim()) && styles.disabledButton,
+                    challengeDetails.trim() && styles.askSendButtonActive,
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={handleContinue}
+                    disabled={!challengeDetails || !challengeDetails.trim()}
+                    activeOpacity={0.8}
+                    style={styles.askSendButtonInner}
+                  >
+                    <Animated.View style={{
+                      opacity: buttonWidthAnim.interpolate({
+                        inputRange: [36, 100],
+                        outputRange: [1, 0],
+                        extrapolate: 'clamp',
+                      }),
+                      transform: [{
+                        rotate: buttonWidthAnim.interpolate({
+                          inputRange: [36, 240],
+                          outputRange: ['0deg', '-90deg'],
+                          extrapolate: 'clamp',
+                        }),
+                      }],
+                    }}>
+                      <Ionicons name="arrow-up" size={20} color={Colors.hopeWhite} />
+                    </Animated.View>
+                    <Animated.View style={{
+                      opacity: buttonWidthAnim.interpolate({
+                        inputRange: [100, 240],
+                        outputRange: [0, 1],
+                        extrapolate: 'clamp',
+                      }),
+                      position: 'absolute',
+                    }}>
+                      <ThemedText weight="medium" style={styles.askSendButtonText}>Create my first playbook</ThemedText>
+                    </Animated.View>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
   const tooltipWidth = 280;
   const screenWidth = Dimensions.get('window').width;
   const computedLeft = tooltipAnchor
-    ? Math.min(Math.max(tooltipAnchor.x + tooltipAnchor.width - tooltipWidth, 10), screenWidth - tooltipWidth - 10)
+    ? buttonHasText.current
+      ? Math.min(Math.max(tooltipAnchor.x + (tooltipAnchor.width / 2) - (tooltipWidth / 2) + 10, 10), screenWidth - tooltipWidth - 10)
+      : Math.min(Math.max(tooltipAnchor.x + tooltipAnchor.width - tooltipWidth + 15, 10), screenWidth - tooltipWidth - 10)
     : 10;
   const computedTop = tooltipAnchor
-    ? Math.max(tooltipAnchor.y - 330, (insets?.top ?? 0) + 10)
+    ? Math.max(tooltipAnchor.y - 55, (insets?.top ?? 0) + 10)
     : (insets?.top ?? 0) + 10;
+  const computedCaretLeft = buttonHasText.current ? '50%' : undefined;
+  const computedCaretRight = buttonHasText.current ? undefined : 24;
+  const computedCaretTransform = buttonHasText.current
+    ? [{ translateX: -6 }, { rotate: '45deg' }]
+    : [{ rotate: '45deg' }];
 
   return (
     <OnboardingErrorBoundary>
       <KeyboardAvoidingView
         style={OnboardingStyles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
+        enabled={false}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <View style={[OnboardingStyles.innerContainer, { width: contentWidth }, styles.innerContainerCentered]}>
-      <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
-        <View style={styles.logoContainer}>
-          <Image
+        <View style={{ flex: 1, width: contentWidth }}>
+      {/* ── Center area: header only (or generating state) ─────────────── */}
+      <View style={styles.content}>
+      {/* Header with logo and title - animated and centered */}
+      {!isGenerating && (
+        <TouchableOpacity activeOpacity={1} onPress={() => Keyboard.dismiss()} style={{ alignSelf: 'center', width: '100%' }}>
+        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? detailsOnlyHeaderY : combinedHeaderY }] }]}>
+          <Animated.Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
-            style={[OnboardingStyles.logoImage, dynamicStyles.logoImage]}
+            style={[
+              styles.logo,
+              {
+                opacity: headerIntroOpacity,
+                transform: [{ scale: headerScale }],
+              },
+            ]}
             resizeMode="contain"
           />
-        </View>
-      </View>
+          <Animated.View style={[
+            dynamicStyles.titleContainer,
+            { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] },
+            // Condense header further when keyboard is visible on details step to free vertical space
+            ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
+          ]}>
+            {detailsOnlyFlow ? (
+              <>
+                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
+                <ThemedText style={OnboardingStyles.subtitle}>
+                  {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
+                </ThemedText>
+              </>
+            ) : (
+              <>
+                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
+                <ThemedText style={OnboardingStyles.subtitle}>
+                  {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
+                </ThemedText>
+              </>
+            )}
+          </Animated.View>
+        </Animated.View>
+        </TouchableOpacity>
+      )}
 
-      <View style={[
-        dynamicStyles.titleContainer,
-        // Condense header further when keyboard is visible on details step to free vertical space
-        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
-      ]}>
-        {greetingName ? (
-          <ThemedText weight="bold" style={styles.userGreeting}>Hi, {greetingName}.</ThemedText>
-        ) : null}
-        {detailsOnlyFlow ? (
-          <>
-            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
-            <ThemedText style={OnboardingStyles.subtitle}>
-              {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
-            </ThemedText>
-          </>
-        ) : (
-          <>
-            <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
-            <ThemedText style={OnboardingStyles.subtitle}>
-              {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
-            </ThemedText>
-          </>
-        )}
-      </View>
+      {/* "Building a playbook..." overlay */}
+      {isGenerating && (
+        <Animated.View style={[
+          styles.generatingContainer,
+          {
+            opacity: generatingFadeAnim,
+            transform: [{ scale: generatingScaleAnim }],
+          },
+        ]}>
+          {/* Logo in generating state */}
+          <Animated.Image
+            source={require('../../../assets/icons/siFia-logo-white.png')}
+            style={[
+              styles.generatingLogo,
+              {
+                opacity: genLogoEntryAnim,
+                transform: [{
+                  translateX: genLogoEntryAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-24, 0],
+                  }),
+                }],
+              },
+            ]}
+            resizeMode="contain"
+          />
 
-      <Animated.View style={[
-        styles.contentContainer,
-        // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.nudgeUpward,
-      ]}>
-        {!detailsOnlyFlow ? (
-          <View style={styles.modalHeader} pointerEvents="box-none">
-            <TouchableOpacity
-              style={styles.modalBackButton}
-              onPress={handleBack}
-              disabled={currentStep === 1} // Age group is now step 1
-            >
-              <Ionicons
-                name="chevron-back"
-                size={24}
-                color={currentStep === 1 ? 'transparent' : Colors.white}
-              />
-            </TouchableOpacity>
-            <View style={styles.progressContainer}>
-              {/* Welcome-style dot pagination */}
-              <View style={styles.dotsContainer}>
-                {Array.from({ length: totalSteps }, (_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.dot,
-                      (index + 1) === currentStep && styles.activeDotGreen,
-                    ]}
-                  />
-                ))}
-              </View>
+          {/* Situation card showing what user shared */}
+          <Animated.View style={{
+            opacity: genCardEntryAnim,
+            transform: [{
+              translateY: genCardEntryAnim.interpolate({
+                inputRange: [0, 1], outputRange: [10, 0],
+              }),
+            }],
+          }}>
+            <View style={styles.situationCard}>
+              <Text style={[styles.situationLabel, font]}>WHAT YOU'VE SHARED</Text>
+              <Text style={styles.situationText} numberOfLines={3}>"{challengeDetails.length > 100 ? challengeDetails.slice(0, 100) + '…"' : challengeDetails + '"'}</Text>
             </View>
+          </Animated.View>
 
-            <View style={styles.spacer} />
+          {/* "Building your playbook..." heading */}
+          <Animated.View style={{
+            opacity: genHeadingEntryAnim,
+            transform: [{
+              translateY: genHeadingEntryAnim.interpolate({
+                inputRange: [0, 1], outputRange: [8, 0],
+              }),
+            }],
+          }}>
+            <Animated.Text style={[styles.buildingHeading, font, { opacity: buildingTextOpacity }]}>
+              {'Building your playbook' + buildingDots}
+            </Animated.Text>
+            <Text style={[styles.buildingSubtext, font]}>Grounding this moment in Scripture and faithful next steps.</Text>
+          </Animated.View>
+
+          {/* Step indicators */}
+          <Animated.View style={[
+            styles.stepsContainer,
+            {
+              opacity: genStepsEntryAnim,
+              transform: [{
+                translateY: genStepsEntryAnim.interpolate({
+                  inputRange: [0, 1], outputRange: [18, 0],
+                }),
+              }],
+            },
+          ]}>
+            {generationSteps.map((step, index) => (
+              <Animated.View key={step.key} style={[
+                styles.stepCard,
+                step.status === 'completed' && styles.stepCardCompleted,
+                step.status === 'active' && styles.stepCardActive,
+                step.status === 'inactive' && styles.stepCardDefault,
+                (step.status === 'active' || step.status === 'completed') && {
+                  backgroundColor: stepCardBgAnims[index].interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['transparent', 'rgba(255,255,255,0.05)', 'rgba(255, 107, 107, 0.1)'],
+                  }),
+                  borderColor: stepCardBorderAnims[index].interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['transparent', 'rgba(255,255,255,0.1)', 'rgba(255, 107, 107, 0.2)'],
+                  }),
+                  borderWidth: 1,
+                },
+                {
+                  transform: [{ scale: stepCardScaleAnims[index] }],
+                },
+              ]}>
+                <View style={styles.stepRow}>
+                  <View style={[
+                    styles.stepCircle,
+                    step.status === 'completed' && styles.stepCompleted,
+                    step.status === 'active' && styles.stepActive,
+                    step.status === 'inactive' && styles.stepInactive,
+                  ]}>
+                    {step.status === 'completed' && (
+                      <Animated.View style={{ transform: [{ scale: checkIconAnims[index].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
+                        <MaterialIcons name="check" size={16} color={Colors.hopeWhite} />
+                      </Animated.View>
+                    )}
+                    {step.status === 'active' && (
+                      <Animated.View style={[styles.pulsingDot, { opacity: pulsingDotAnims[index] }]} />
+                    )}
+                    {step.status === 'inactive' && (
+                      <View style={styles.staticDot} />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.stepText,
+                    font,
+                    step.status === 'completed' && styles.stepTextCompleted,
+                    step.status === 'active' && styles.stepTextActive,
+                    step.status === 'inactive' && styles.stepTextInactive,
+                  ]}>
+                    {step.title}
+                  </Text>
+                </View>
+              </Animated.View>
+            ))}
+          </Animated.View>
+
+          {/* Progress bar */}
+          <Animated.View style={[
+            styles.progressContainer,
+            {
+              opacity: genProgressEntryAnim,
+              transform: [{
+                translateY: genProgressEntryAnim.interpolate({
+                  inputRange: [0, 1], outputRange: [14, 0],
+                }),
+              }],
+            },
+          ]}>
+            <View style={styles.progressBarBackground}>
+              <Animated.View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressLabel, font]}>Phase {generationCurrentStep} of 4</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
+      </View>{/* end styles.content — header / generating area */}
+
+      {/* ── Step content: sibling of styles.content ──────────────────────── */}
+      {!isGenerating && (
+        <Animated.View style={[
+          styles.contentContainer,
+          // For detailsOnly, collapse to zero so styles.content (flex:1) fills the full
+          // screen and the header group centers at 50% of the screen height.
+          detailsOnlyFlow && { flex: 0 },
+          {
+            opacity: contentEntryAnim,
+            transform: [{
+              translateY: contentEntryAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [200, 0],
+              }),
+            }],
+          },
+        ]} pointerEvents={detailsOnlyFlow ? 'none' : 'auto'}>
+          {!detailsOnlyFlow ? (
+            <View style={styles.modalHeader} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.modalBackButton}
+                onPress={handleBack}
+                disabled={currentStep === 1} // Age group is now step 1
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={24}
+                  color={currentStep === 1 ? 'transparent' : Colors.white}
+                />
+              </TouchableOpacity>
+              <View style={styles.progressContainer}>
+                {/* Welcome-style dot pagination */}
+                <View style={styles.dotsContainer}>
+                  {Array.from({ length: totalSteps }, (_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        (index + 1) === currentStep && styles.activeDotGreen,
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.spacer} />
+            </View>
+          ) : null}
+
+          <View style={styles.scrollArea}>
+            <ScrollView
+              ref={scrollViewRef}
+              style={dynamicStyles.scrollContainer}
+              contentContainerStyle={styles.reducedPaddingBottom}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {detailsOnlyFlow ? (
+                renderChallengeDetailsStep()
+              ) : (
+                <>
+                  {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
+                  {currentStep === 1 && renderAgeStep()}
+                  {currentStep === 2 && renderFaithJourneyStep()}
+                  {currentStep === 3 && renderChallengeStep()}
+                  {currentStep === 4 && renderChallengeDetailsStep()}
+                </>
+              )}
+            </ScrollView>
           </View>
-        ) : null}
+        </Animated.View>
+      )}
+      </View>{/* end outer flex wrapper */}
 
-        <ScrollView
-          ref={scrollViewRef}
-          style={dynamicStyles.scrollContainer}
-          contentContainerStyle={styles.reducedPaddingBottom}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-        >
-          {detailsOnlyFlow ? (
-            renderChallengeDetailsStep()
-          ) : (
-            <>
-              {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
-              {currentStep === 1 && renderAgeStep()}
-              {currentStep === 2 && renderFaithJourneyStep()}
-              {currentStep === 3 && renderChallengeStep()}
-              {currentStep === 4 && renderChallengeDetailsStep()}
-            </>
-          )}
-        </ScrollView>
-
-        <View
-          style={[
-            styles.continueButtonContainer,
-            // Add safe-area-aware bottom padding for better spacing above home indicator
-            keyboardVisible
-              ? (currentStep === totalSteps
-                  // Final step: "Create My Playbook" — minimal padding, safe-area only
-                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
-                  // Other steps: slightly reduced padding
-                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
-              : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
-            onPress={handleContinue}
-            disabled={!canContinue()}
-          >
-            <ThemedText weight="medium" style={styles.continueButtonText}>
-              {(() => {
-                // Safeguard to always show button text
-                if (currentStep === totalSteps) {
-                  return detailsOnlyFlow ? 'Create My First Playbook' : 'Create My Playbook';
-                } else if (currentStep > 0 && currentStep <= totalSteps) {
-                  return 'Continue';
-                } else {
-                  return 'Continue'; // Fallback
-                }
-              })()}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-      </View>
+      {/* ── Footer: outside contentWidth wrapper → full KAV width, matches UserInputScreen ── */}
+      {!isGenerating && (detailsOnlyFlow || currentStep === 4) && renderDetailsInputFooter()}
 
         <Modal
           visible={showTooltip}
           transparent
           animationType="none"
           onRequestClose={() => {
+            setShowTooltip(false);
             Animated.parallel([
-              Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-              Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
-            ]).start(() => setShowTooltip(false));
+              Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+              Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+              Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
+            ]).start();
           }}
         >
           <TouchableOpacity
             activeOpacity={1}
             style={styles.tooltipModalBackdrop}
             onPress={() => {
+              setShowTooltip(false);
               Animated.parallel([
-                Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
-                Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
-              ]).start(() => setShowTooltip(false));
+                Animated.spring(tooltipOpacity, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+                Animated.spring(tooltipTranslateY, { toValue: 20, tension: 50, friction: 12, useNativeDriver: true }),
+                Animated.spring(tooltipScale, { toValue: 0.9, tension: 50, friction: 12, useNativeDriver: true }),
+              ]).start();
             }}
           >
             <Animated.View
@@ -1345,7 +2270,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   right: undefined,
                   bottom: undefined,
                   opacity: tooltipOpacity,
-                  transform: [{ translateY: tooltipTranslateY }],
+                  transform: [{ translateY: tooltipTranslateY }, { scale: tooltipScale }],
                 },
               ]}
               pointerEvents="box-none"
@@ -1373,8 +2298,90 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </View>
               </View>
               <ThemedText style={styles.tooltipFooter}>siFia will help you slow down and shape this into a playbook.</ThemedText>
-              <View style={styles.tooltipCaret} />
+              <View style={[styles.tooltipCaret, { left: computedCaretLeft, right: computedCaretRight, transform: computedCaretTransform }]} />
             </Animated.View>
+          </TouchableOpacity>
+        </Modal>
+        <Modal
+          visible={showHelperSelector}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowHelperSelector(false)}
+        >
+          <TouchableOpacity
+            style={styles.helperSelectorOverlay}
+            activeOpacity={1}
+            onPress={() => setShowHelperSelector(false)}
+          >
+            <View style={styles.helperSelectorContainer}>
+              <ThemedText style={styles.helperSelectorTitle}>Choose a sample to get started</ThemedText>
+              <View style={styles.helperSelectorList}>
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('We talked, and now I feel unsettled. I keep replaying the conversation and do not know if I am overreacting.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>We talked, and now I feel unsettled.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I reacted quickly and regret it. Now I feel bothered by what I said and wish I had slowed down first.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I reacted quickly and regret it.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I cannot tell if this is conviction or just shame. Something feels heavy, but I do not know how I am supposed to respond.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I cannot tell if this is conviction or just shame.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I am afraid of making the wrong decision. I want to do what is right, but I feel pressure and do not know what step to take.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I am afraid of making the wrong decision.</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helperSelectorOption}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setChallengeDetails('I felt nudged to say something honest, but I held back. Now I feel convicted and confused about what I should do next.');
+                    focusDetailsInput();
+                    setShowHelperSelector(false);
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText style={styles.helperSelectorOptionText}>I felt nudged to say something honest, but I held back.</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
           </TouchableOpacity>
         </Modal>
     </KeyboardAvoidingView>
@@ -1387,11 +2394,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 28,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingHorizontal: 0,
     paddingBottom: 0,
-    backgroundColor: Colors.anchorBlue,
+  },
+  header: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 0,
+    gap: 8,
+  },
+  logo: {
+    width: '70%',
+    height: 110,
+    alignSelf: 'center',
   },
   headerTransparent: {
     backgroundColor: 'transparent',
@@ -1426,12 +2446,7 @@ const styles = StyleSheet.create({
     height: 120,
   },
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    justifyContent: 'center',
-    marginHorizontal: 15,
+    marginBottom: 16,
   },
   // Welcome-style dots pagination
   dotsContainer: {
@@ -1484,18 +2499,28 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: Colors.modalBlue,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    backgroundColor: Colors.anchorBlue,
     paddingTop: 0,
+  },
+  scrollArea: {
+    flex: 1,
   },
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 44, // leave space for absolute overlay header (chevron + progress)
+    paddingTop: 0, // Removed padding to eliminate gap covering logo and text
   },
   stepContainer: {
     flex: 1,
+  },
+  challengeDetailsStepContainer: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 24,
+    marginBottom: Platform.OS === 'ios' ? 0 : 20,
   },
   stepTitle: {
     fontSize: 20,
@@ -1535,12 +2560,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ageOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     minWidth: 80,
     alignItems: 'center',
   },
@@ -1552,6 +2577,7 @@ const styles = StyleSheet.create({
     ...OnboardingStyles.subtitle,
     fontWeight: 'bold',
     fontSize: 18,
+    lineHeight: 26,
     marginBottom: 8,
   },
   ageOptionTitle: {
@@ -1569,11 +2595,11 @@ const styles = StyleSheet.create({
   faithOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     alignSelf: 'center',
     width: '100%',
     minHeight: 56,
@@ -1613,11 +2639,11 @@ const styles = StyleSheet.create({
   challengeOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     alignSelf: 'center',
     width: '100%',
     minHeight: 56,
@@ -1737,20 +2763,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   askBox: {
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 32,
+    backgroundColor: Colors.inputBackground,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 0, // Remove padding to allow seamless scrolling
-    paddingBottom: 60, // Space for overlay icon
+    borderColor: Colors.inputBorder,
+    padding: 0,
+    paddingBottom: 60, // Space for overlay icons
     width: '100%',
-    minHeight: 150,
     position: 'relative',
-    overflow: 'hidden', // Clip content at container edges
+    overflow: 'hidden',
   },
   askWrapper: {
     position: 'relative',
     overflow: 'visible',
+  },
+  footer: {
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  inputContainer: {
+    paddingBottom: 24,
+    marginBottom: Platform.OS === 'ios' ? 0 : 20,
+    paddingHorizontal: 0,
   },
   optionalHelperContainer: {
     width: '100%',
@@ -1790,8 +2825,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  charCounterWrapper: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  charCounterText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: Fonts.regular,
+  },
   askHintButton: {
-    // positioned in actionsOverlay
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askHintButtonActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  hintButtonText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  askSendButton: {
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    minWidth: 36,
+  },
+  askSendButtonCircular: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 0,
+    overflow: 'hidden',
+  },
+  circularButtonInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  askSendButtonExpanded: {
+    width: 240,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  askSendButtonInner: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 0,
+  },
+  askSendButtonActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  askSendButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   tooltip: {
     position: 'absolute',
@@ -1799,7 +2907,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     borderColor: 'transparent',
     borderWidth: 0,
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     zIndex: 9999,
     elevation: 9999,
@@ -1872,6 +2980,78 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 6,
   },
+  tooltipHelpButton: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  tooltipHelpButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  inputFooterHelpButton: {
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputFooterHelpButtonText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  helperSelectorOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  helperSelectorContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 28,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  helperSelectorTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  helperSelectorSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  helperSelectorList: {
+    gap: 12,
+  },
+  helperSelectorOption: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  helperSelectorOptionText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '400',
+  },
   tooltipCaret: {
     position: 'absolute',
     right: 24,
@@ -1896,11 +3076,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     padding: 16,
-    paddingBottom: 16,
+    paddingBottom: 0,
     backgroundColor: 'transparent',
     textAlignVertical: 'top',
-    minHeight: 150,
-    maxHeight: 150,
     ...Platform.select({
       ios: {
         paddingTop: 16,
@@ -1930,13 +3108,17 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   continueButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.3)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.25)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.2)',
   },
   continueButtonActive: {
     backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
   },
   continueButtonText: {
     fontSize: 16,
@@ -1950,6 +3132,157 @@ const styles = StyleSheet.create({
   },
   innerContainerCentered: {
     alignSelf: 'center',
+  },
+  // Styles for "Building a playbook..." overlay
+  generatingContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 150,
+    paddingBottom: 40,
+    zIndex: 100,
+    elevation: 100,
+  },
+  generatingLogo: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    width: 60,
+    height: 60,
+    zIndex: 10,
+  },
+  situationCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  situationLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 8,
+    fontFamily: Fonts.semiBold,
+  },
+  situationText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: Colors.white,
+    lineHeight: 24,
+    fontFamily: Fonts.regular,
+  },
+  buildingHeading: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 8,
+    fontFamily: Fonts.bold,
+  },
+  buildingSubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 32,
+    fontFamily: Fonts.regular,
+  },
+  stepsContainer: {
+    marginBottom: 32,
+  },
+  stepCard: {
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  stepCardCompleted: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: 'rgba(255, 107, 107, 0.2)',
+  },
+  stepCardActive: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  stepCardDefault: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepActive: {
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  stepCompleted: {
+    backgroundColor: Colors.alertCoral,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  stepInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  pulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.hopeWhite,
+  },
+  staticDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  stepText: {
+    fontSize: 16,
+    fontWeight: '400',
+    fontFamily: Fonts.regular,
+  },
+  stepTextActive: {
+    color: Colors.white,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+  },
+  stepTextCompleted: {
+    color: Colors.alertCoral,
+    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
+  },
+  stepTextInactive: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: Fonts.regular,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
   },
 });
 

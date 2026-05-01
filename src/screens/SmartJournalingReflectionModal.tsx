@@ -35,6 +35,8 @@ interface SmartJournalingReflectionModalProps {
   hideGuidedPromptButton?: boolean;
   // When true, this is from journal carousel (freeform) not dashboard smart journaling
   isJournalCarousel?: boolean;
+  stepBody?: string;
+  stepExample?: string | null;
 }
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
@@ -53,6 +55,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   isGuidedReflection = false,
   hideGuidedPromptButton = true, // Default to true for backward compatibility
   isJournalCarousel = false, // Default to false for backward compatibility
+  stepBody,
+  stepExample,
 }) => {
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
@@ -406,6 +410,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               } : undefined}
               isLoading={isLoading}
               hideGuidedPromptButton={hideGuidedPromptButton}
+              stepBody={stepBody}
+              stepExample={stepExample}
             />
 
           {/* New success modal system - completely isolated and robust */}

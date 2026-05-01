@@ -5,28 +5,36 @@ const { width } = Dimensions.get('window');
 
 const MomentsSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
 
   React.useEffect(() => {
-    const animation = Animated.loop(
+    isMounted.current = true;
+
+    const animate = () => {
+      if (!isMounted.current) {return;}
+
       Animated.sequence([
         Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
         Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+
+    animate();
+
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
   }, [animatedValue]);
 
   const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
     <View style={styles.container}>
-      {/* Header skeleton row: grouping + filter chips */}
-      <View style={styles.headerRow}>
-        <Animated.View style={[styles.chip, styles.chipShort, { opacity }]} />
-        <Animated.View style={[styles.chip, styles.chipMedium, { opacity }]} />
-      </View>
-
       {/* Section header bar */}
       <Animated.View style={[styles.sectionHeader, { opacity }]} />
 
@@ -46,23 +54,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  chip: {
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  chipShort: {
-    width: 90,
-  },
-  chipMedium: {
-    width: 110,
+    paddingTop: 12,
   },
   sectionHeader: {
     height: 16,
@@ -72,12 +64,12 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   card: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardTitle: {
     height: 16,

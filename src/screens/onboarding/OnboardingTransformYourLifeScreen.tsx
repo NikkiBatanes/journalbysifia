@@ -104,7 +104,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         try {
           const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
           if (hasCompleted) {
-            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' as any }] });
+            navigation.reset({ index: 0, routes: [{ name: 'UserInput' as any }] });
             hasNavigatedRef.current = true;
             return;
           }
@@ -256,23 +256,36 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             <View style={[styles.featureItem, styles.hiddenFeature]} />
             <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
 
-            {/* Button */}
-            <TouchableOpacity
-              style={[
-                OnboardingStyles.primaryButton,
-                styles.startButton,
-                styles.startButtonFullWidth,
-                !isTablet && styles.startButtonPhone,
-                !isTablet && { marginBottom: Math.max(52, insets.bottom + 20) },
-                isLoading && OnboardingStyles.buttonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={isLoading}
-            >
-              <ThemedText weight="bold" style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
-                {isLoading ? 'Continuing...' : 'Continue'}
-              </ThemedText>
-            </TouchableOpacity>
+            {/* Button and Login Container */}
+            <View style={!isTablet ? { marginBottom: Math.max(52, insets.bottom + 20) } : {}}>
+              {/* Button */}
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  styles.finishButton,
+                  isLoading && OnboardingStyles.buttonDisabled,
+                ]}
+                onPress={handleContinue}
+                disabled={isLoading}
+              >
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                  {isLoading ? 'Continuing...' : 'Continue'}
+                </ThemedText>
+              </TouchableOpacity>
+
+              {/* Already have an account */}
+              <View style={styles.signInRow}>
+                <ThemedText style={styles.signInText}>Already have an account? </ThemedText>
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerLightHaptic();
+                    navigation.navigate('Auth' as any, { screen: 'Login' });
+                  }}
+                >
+                  <ThemedText style={styles.signInLink}>Login</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
 
           </View>
         </View>
@@ -375,6 +388,25 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     // Additional custom styling if needed
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 32,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   signInRow: {
     flexDirection: 'row',

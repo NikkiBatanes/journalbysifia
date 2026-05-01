@@ -28,7 +28,7 @@ export interface NotificationQueueItem {
   data?: Record<string, any>;
   scheduled_for?: string;
   priority: 'low' | 'normal' | 'high' | 'critical';
-  status?: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status?: 'pending' | 'sent' | 'failed' | 'cancelled' | 'read' | 'batched' | 'processing';
   retry_count?: number;
   created_at?: string;
 }
@@ -403,7 +403,7 @@ class NotificationManagementService {
         .from('notification_queue')
         .select('*')
         .eq('user_id', userId)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'sent'])
         .order('scheduled_for', { ascending: false });
 
       if (error) {
@@ -414,7 +414,18 @@ class NotificationManagementService {
         return [];
       }
 
-      return data || [];
+      const now = Date.now();
+      return (data || []).filter(notification => {
+        if (notification.status === 'sent') {
+          return true;
+        }
+
+        if (!notification.scheduled_for) {
+          return true;
+        }
+
+        return new Date(notification.scheduled_for).getTime() <= now;
+      });
     } catch (error) {
       Logger.error('Error in getPendingNotifications', error as Error, {
       component: 'notificationManagementService',
@@ -493,7 +504,7 @@ class NotificationManagementService {
         .from('notification_queue')
         .update({
           status: 'read',
-          read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', notificationId)
         .eq('user_id', userId);
@@ -523,19 +534,38 @@ class NotificationManagementService {
    */
   async markAllNotificationsAsRead(userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const nowIso = new Date().toISOString();
+      const { error: sentError } = await supabase
         .from('notification_queue')
         .update({
-          status: 'read',
-          read_at: new Date().toISOString(),
+          status: 'cancelled',
+          updated_at: nowIso,
         })
         .eq('user_id', userId)
-        .in('status', ['pending', 'sent']);
+        .eq('status', 'sent');
 
+      // NULL scheduled_for rows: lte() silently skips NULLs in Postgres, so include them explicitly
+      const { error: duePendingError } = await supabase
+        .from('notification_queue')
+        .update({
+          status: 'cancelled',
+          updated_at: nowIso,
+        })
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
+
+      const error = sentError || duePendingError;
       if (error) {
         Logger.error('Error marking all notifications as read', error as Error, {
           component: 'notificationManagementService',
           userId,
+          errorDetails: {
+            message: (error as any).message,
+            code: (error as any).code,
+            details: (error as any).details,
+            hint: (error as any).hint,
+          },
         });
         return false;
       }
@@ -555,12 +585,21 @@ class NotificationManagementService {
    */
   async getUnreadNotificationCount(userId: string): Promise<number> {
     try {
-      const { count, error } = await supabase
+      const nowIso = new Date().toISOString();
+      const { count: sentCount, error: sentError } = await supabase
         .from('notification_queue')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .in('status', ['pending', 'sent']);
+        .eq('status', 'sent');
 
+      const { count: duePendingCount, error: duePendingError } = await supabase
+        .from('notification_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .or(`scheduled_for.lte.${nowIso},scheduled_for.is.null`);
+
+      const error = sentError || duePendingError;
       if (error) {
         Logger.error('Error getting unread notification count', error as Error, {
           component: 'notificationManagementService',
@@ -569,7 +608,7 @@ class NotificationManagementService {
         return 0;
       }
 
-      return count || 0;
+      return (sentCount || 0) + (duePendingCount || 0);
     } catch (error) {
       Logger.error('Failed to get unread notification count', error as Error, {
         component: 'notificationManagementService',

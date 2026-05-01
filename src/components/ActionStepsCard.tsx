@@ -899,7 +899,7 @@ export default function ActionStepsCard({
               textColor ? { color: textColor } : {},
             ]}
           >
-            {titleOverride ? titleOverride : `${steps.length} Faithful Actions`}
+            {titleOverride ? titleOverride : 'Faithful Actions'}
           </ThemedText>
           {expanded && (
             <TouchableOpacity
@@ -1220,6 +1220,7 @@ export default function ActionStepsCard({
           actionStepNumber={selectedActionStep?.stepNumber}
           actionStepTitle={selectedActionStep?.stepTitle}
           existingPrayer={null}
+          selectedDate={new Date()}
           onSave={handlePrayerSave}
           onCancel={() => {
             setActiveModal(null);

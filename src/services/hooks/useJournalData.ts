@@ -143,13 +143,7 @@ export const useTodayWinData = (userId: string, date: string) => {
   return useQuery({
     queryKey: queryKeys.journal.todayWin(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'today_win');
-      if (cached) {
-        return cached;
-      }
-
-      // Fetch from API
+      // Always fetch from API to ensure fresh data
       const entries = await JournalApi.getTodayWinEntries(userId, date);
 
       // Cache the results
@@ -541,12 +535,10 @@ export const useUpdateLookingForwardEntry = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
       JournalApi.updateJournalEntry(id, updates),
     onSuccess: (data) => {
-      // Update the specific entry in the looking forward query
-      queryClient.setQueryData(
-        queryKeys.journal.lookingForward(data.user_id, data.selected_date),
-        (old: JournalApiEntry[] = []) =>
-          old.map(entry => entry.id === data.id ? data : entry)
-      );
+      // Invalidate query to force refetch from database
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.lookingForward(data.user_id, data.selected_date),
+      });
 
       // Clear cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'looking_forward');
@@ -588,16 +580,12 @@ export const useCreateTodayWinEntry = () => {
       // Error handling is now managed at component level
     },
     onSuccess: (data, variables) => {
-      // Update cache with the new data instead of invalidating
+      // Invalidate query to force refetch from database
       const queryKey = queryKeys.journal.todayWin(variables.user_id, variables.selected_date);
-      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => {
-        // Add the new entry to the cache
-        return [...old, data];
-      });
+      queryClient.invalidateQueries({ queryKey });
 
       // Clear local cache
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
-
     },
   });
 };
@@ -852,6 +840,51 @@ export const useUpdateTodoEntry = () => {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
       JournalApi.updateJournalEntry(id, updates),
+    onMutate: async ({ id, updates }) => {
+      // Cancel any outgoing refetches for all todo queries to prevent race conditions
+      await queryClient.cancelQueries({ queryKey: ['journal', 'todos'] });
+
+      // Snapshot the previous value
+      let previousData: JournalApiEntry[] | undefined;
+
+      // Try to find the entry being updated to get user_id and selected_date
+      const allQueries = queryClient.getQueriesData({ queryKey: ['journal', 'todos'] });
+      for (const [queryKey, data] of allQueries) {
+        const entries = data as JournalApiEntry[] | undefined;
+        if (entries) {
+          const entry = entries.find(e => e.id === id);
+          if (entry) {
+            previousData = entries;
+            // Optimistically update the entry
+            queryClient.setQueryData(
+              queryKey,
+              entries.map(e => e.id === id ? { ...e, ...updates } : e)
+            );
+            break;
+          }
+        }
+      }
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      Logger.error('Error updating todo entry', err as Error, {
+        component: 'useJournalData',
+      });
+      if (context?.previousData) {
+        try {
+          // Rollback to previous value
+          queryClient.setQueryData(
+            ['journal', 'todos'],
+            context.previousData
+          );
+        } catch (rollbackError) {
+          Logger.error('Error rolling back todo entry update', rollbackError as Error, {
+            component: 'useJournalData',
+          });
+        }
+      }
+    },
     onSuccess: (data) => {
       // Update the specific entry in the todos query
       queryClient.setQueryData(

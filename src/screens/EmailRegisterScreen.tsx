@@ -46,6 +46,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [svH, setSvH] = useState<number>(0);
   const [contentH, setContentH] = useState<number>(0);
   const scrollRef = useRef<ScrollView | null>(null);
+  const firstNameInputRef = useRef<any>(null);
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
   // Responsive logo sizing for different devices
@@ -66,14 +67,14 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       maxWidth: 720,
     },
     lottieAnimation: {
-      width: isVerySmallPhone ? 280 : 350,
-      height: isVerySmallPhone ? 280 : 350,
+      width: isVerySmallPhone ? 220 : 260,
+      height: isVerySmallPhone ? 220 : 260,
       marginTop: isVerySmallPhone ? -100 : -100,
     },
     titleContainer: {
       alignItems: 'center',
       marginBottom: isVerySmallPhone ? 6 : 20,
-      marginTop: isVerySmallPhone ? -60 : -80,
+      marginTop: isVerySmallPhone ? -40 : -60,
     },
     title: {
       fontSize: isVerySmallPhone ? 22 : 28,
@@ -152,22 +153,8 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const { error: signUpError } = await signUp(emailTrim, password, {
-      firstName: first,
-      lastName: last,
-    });
-
-    if (signUpError) {
-      Logger.error('❌ Email registration failed', signUpError as Error, {
-        component: 'EmailRegisterScreen',
-      });
-      // Stay on this page and show inline error so user can fix inputs
-      triggerErrorHaptic();
-      setError(signUpError.message || 'Registration failed. Please try again.');
-      return;
-    }
-
-    // Set a post-auth redirect so Root/Splash can route instantly without flicker
+    // Write the redirect BEFORE signUp so Splash always finds it, even if the
+    // auth-state-change fires before the await below returns.
     const displayName = first || emailTrim.split('@')[0] || '';
     try {
       await AsyncStorage.setItem(
@@ -177,12 +164,27 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           params: { name: displayName, registrationMethod: 'email' },
         })
       );
-
     } catch (e) {
       Logger.warn('Could not set post-auth redirect flag', { component: 'EmailRegisterScreen', data: e });
     }
-    // Do not navigate here; the auth state change will switch stacks and Splash will redirect immediately
-    return;
+
+    Keyboard.dismiss();
+    const { error: signUpError } = await signUp(emailTrim, password, {
+      firstName: first,
+      lastName: last,
+    });
+
+    if (signUpError) {
+      Logger.error('❌ Email registration failed', signUpError as Error, {
+        component: 'EmailRegisterScreen',
+      });
+      // Undo the redirect so a retry doesn't accidentally route to Personalization
+      try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+      triggerErrorHaptic();
+      setError(signUpError.message || 'Registration failed. Please try again.');
+      return;
+    }
+    // Auth state change switches stacks; Splash reads post_auth_redirect and navigates to OnboardingPersonalization.
   };
 
   const handleLogin = () => {
@@ -215,6 +217,13 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, []);
 
+  // Auto-focus first name input on mount
+  useEffect(() => {
+    setTimeout(() => {
+      firstNameInputRef.current?.focus();
+    }, 100);
+  }, []);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -231,7 +240,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            automaticallyAdjustKeyboardInsets
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             bounces={false}
             alwaysBounceVertical={false}
@@ -281,6 +289,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             <View style={[styles.inputContainer, styles.nameInput]}>
               <Ionicons name="person" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
               <ThemedTextInput
+                ref={firstNameInputRef}
                 style={styles.input}
                 placeholder="First Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"
@@ -293,19 +302,13 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                   if (!hasAutoScrolled) {
                     setHasAutoScrolled(true);
                     setTimeout(() => {
-                      if (ctaY != null && svH > 0) {
-                        const safety = 8;
-                        const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
-                        const clamped = Math.min(Math.max(0, raw), maxScrollableY);
-                        scrollRef.current?.scrollTo({ y: clamped, animated: true });
-                      } else {
-                        scrollRef.current?.scrollTo({ y: maxScrollableY, animated: true });
-                      }
+                      scrollRef.current?.scrollTo({ y: 20, animated: true });
                     }, 140);
                   }
                 }}
                 autoCapitalize="words"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
             </View>
 
@@ -337,6 +340,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 }}
                 autoCapitalize="words"
                 autoCorrect={false}
+                keyboardAppearance="dark"
               />
             </View>
           </View>
@@ -370,6 +374,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              keyboardAppearance="dark"
             />
           </View>
 
@@ -402,6 +407,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              keyboardAppearance="dark"
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -416,7 +422,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={styles.registerButton}
+            style={[styles.primaryButton, styles.finishButton]}
             onPress={handleRegister}
             disabled={loading}
             onLayout={(e) => {
@@ -427,7 +433,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#274673" />
             ) : (
-              <ThemedText weight="bold" style={styles.registerButtonText}>Create an Account</ThemedText>
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>Create an Account</ThemedText>
             )}
           </TouchableOpacity>
         </View>
@@ -532,13 +538,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 50,
     marginBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 28,
     height: 56,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   inputIcon: {
     marginRight: 12,
@@ -573,6 +579,25 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
     color: '#fff',
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 2,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   loginContainer: {
     flexDirection: 'row',

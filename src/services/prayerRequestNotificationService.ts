@@ -1,6 +1,7 @@
 import { notificationSchedulerService } from '../services/notificationSchedulerService';
 import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
+import { buildSmartNotificationCopy } from './notifications/notificationCopyBank';
 
 /**
  * Prayer Request Notification Service
@@ -59,16 +60,21 @@ class PrayerRequestNotificationService {
         scheduledFor.setDate(scheduledFor.getDate() + 1);
       }
 
+      const copy = buildSmartNotificationCopy('prayer_request_care', {
+        personName: prayerForPerson.trim(),
+      });
       const success = await notificationSchedulerService.scheduleNotification({
         user_id: userId,
-        type: 'prayer_request_reminder',
-        title: `🙏🏼 Remember to Pray for ${prayerForPerson}`,
-        message: prayerRequest || `Don't forget to pray for ${prayerForPerson}`,
+        type: 'prayer_request_care',
+        title: copy.title,
+        message: copy.message,
         scheduled_for: scheduledFor.toISOString(),
         priority: 'normal', // Normal priority for scheduled reminders
         data: {
-          deep_link: `sifia://prayer/${prayerId || 'new'}`,
-          type: 'prayer_request_reminder',
+          deep_link: 'sifia://journal/prayer?tab=requests',
+          type: 'prayer_request_care',
+          dedupe_key: `prayer_request_care:${prayerId || 'new'}`,
+          privacy_level: 'sensitive',
           prayerForPerson,
           prayerRequest,
           prayerId,

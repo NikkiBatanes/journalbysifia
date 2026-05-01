@@ -10,11 +10,8 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { toLocalDateString } from '../../utils/date';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
+import PlaybookMetaSection from './PlaybookMetaSection';
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -40,6 +37,9 @@ interface PrayerLogEditorProps {
   initialActiveTab?: 'freeform' | 'people';
   initialPersonName?: string;
   initialPrayerRequest?: string;
+  stepBody?: string;
+  stepExample?: string | null;
+  selectedDate?: Date;
 }
 
 export interface PrayerLogEditorRef {
@@ -135,9 +135,9 @@ const defaultStyles = {
     gap: 12,
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
@@ -154,7 +154,7 @@ const defaultStyles = {
     backgroundColor: Colors.anchorBlue,
   },
   cancelFab: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   fabDisabled: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
@@ -367,7 +367,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
     initialContent = '',
     subtaskTitle: _subtaskTitle,
     subtaskId,
@@ -381,12 +380,38 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     initialActiveTab,
     initialPersonName,
     initialPrayerRequest,
+    stepBody,
+    stepExample,
+    selectedDate = new Date(),
   },
   ref
 ) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const regularFont = getFontFamily(fontKey, 'regular');
+
+  // Dynamic labels based on date context
+  const getCurrentDate = () => {
+    const date = selectedDate;
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+
+    // Don't show year if it's the current year
+    if (dateYear === currentYear) {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      });
+    } else {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  };
 
   // Calculate estimated line count based on text length and newlines
   const calculateLineCount = (text: string, charsPerLine: number = 30): number => {
@@ -400,9 +425,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   // Dynamic title font sizing - fixed size based on line count
   // Original: 22px, reduce to 18px if > 3 lines
   const titleFontSize = calculateLineCount(_subtaskTitle || '', 30) > 3 ? 18 : 22;
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
   const s = {
     ...defaultStyles,
     ...styles,
@@ -676,25 +698,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
   const handleSave = async () => {
     try {
-      // Check if feature is gated for seeker accounts
-      if (smartJournalingGating.isLocked) {
-        try { triggerLightHaptic(); } catch {}
-        // Close modal first before navigating
-        if (onUpgradeRequired) {
-          try { onUpgradeRequired(); } catch {}
-        }
-        setTimeout(() => {
-          (navigation as any).navigate('OnboardingSalesOffer', {
-            source: 'smart_journaling_lock',
-            feature: 'smart_journaling',
-            tier: subscription?.tier || 'seeker',
-            upgradeMode: false,
-            skipNotificationPreference: true,
-          });
-        }, 300);
-        return;
-      }
-
       // Clear any existing draft since we're saving the entry
       try {
         await AsyncStorage.removeItem(getDraftKey());
@@ -786,7 +789,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
       {/* Header - matching reflection editor structure */}
       <View style={s.header}>
-        <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
+        <ThemedText weight="bold" style={s.title}>{dateString || getCurrentDate()}</ThemedText>
         <View style={s.modeToggle}>
           {/* Prayer mode icons - compact layout */}
           <TouchableOpacity
@@ -842,23 +845,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex, { fontSize: titleFontSize }]}>
                   {_subtaskTitle || ''}
                 </ThemedText>
-                {smartJournalingGating.isLocked && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      (navigation as any).navigate('OnboardingSalesOffer', {
-                        source: 'smart_journaling_lock',
-                        feature: 'smart_journaling',
-                        tier: subscription?.tier || 'seeker',
-                        upgradeMode: false,
-                        skipNotificationPreference: true,
-                      });
-                    }}
-                    hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                  >
-                    <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                  </TouchableOpacity>
-                )}
               </View>
 
               {/* Conditional content based on active tab */}
@@ -873,6 +859,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   onChangeText={handleContentChange}
                   multiline
                   textAlignVertical="top"
+                  keyboardAppearance="dark"
                 />
               ) : (
                 /* Prayers for People Tab */
@@ -884,6 +871,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     placeholderTextColor={Colors.trustGrey}
                     value={prayerForPerson}
                     onChangeText={handlePersonChange}
+                    keyboardAppearance="dark"
                   />
                   <View style={s.gap} />
                   <TextInput
@@ -895,6 +883,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     onChangeText={handleRequestChange}
                     multiline
                     textAlignVertical="top"
+                    keyboardAppearance="dark"
                   />
                 </View>
               )}
@@ -903,22 +892,14 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                  Only show when we have a real playbook title. This keeps dashboard-triggered
                  prayers (scripture/declarations) from being labeled as FROM PLAYBOOK. */}
               {playbookTitle && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                    <ThemedText weight="medium" style={s.fromText}>
-                      FROM PLAYBOOK
-                    </ThemedText>
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                    {actionStepNumber && actionStepTitle && (
-                      <ThemedText style={s.metadataText}>
-                        Step {actionStepNumber}: {actionStepTitle}
-                      </ThemedText>
-                    )}
-                  </View>
-                </View>
+                <PlaybookMetaSection
+                  playbookTitle={playbookTitle}
+                  actionLabel={actionStepNumber && actionStepTitle
+                    ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                    : undefined}
+                  stepBody={stepBody}
+                  stepExample={stepExample}
+                />
               )}
             </ScrollView>
           </View>
@@ -935,7 +916,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   onCancel();
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
               {/* Save FAB */}
@@ -952,9 +933,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

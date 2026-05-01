@@ -11,18 +11,16 @@ import {
   Alert,
   Keyboard,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
-import { Pencil, X } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { Logger } from '../../utils/ProductionLogger';
 import ThemedText from '../common/ThemedText';
-import { useSmartJournalingGating } from '../../hooks/useSmartJournalingGating';
-import { useNavigation } from '@react-navigation/native';
-import { useSubscription } from '../../hooks/useSubscription';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import PlaybookMetaSection from './PlaybookMetaSection';
+import { isToday, isYesterday, startOfDay } from 'date-fns';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -40,10 +38,25 @@ interface GratitudeLogEditorProps {
   actionStepTitle?: string;
   isLoading?: boolean;
   styles?: any;
+  stepBody?: string;
+  stepExample?: string | null;
+  selectedDate?: Date;
 }
 
+type DateContext = 'today' | 'yesterday' | 'earlier';
+
+// Helper to compute date context from selected date
+const getDateContext = (selectedDate: Date): DateContext => {
+  const day = startOfDay(selectedDate);
+
+  if (isToday(day)) {return 'today';}
+  if (isYesterday(day)) {return 'yesterday';}
+  return 'earlier';
+};
+
 export interface GratitudeLogEditorRef {
-  focusInput: () => void;
+  focusInput: (skipScroll?: boolean) => void;
+  reset: () => void;
 }
 
 // Styles matching reflection log editor pattern
@@ -299,11 +312,35 @@ const defaultStyles = {
     marginBottom: 8,
     opacity: 0.9,
   },
+  gratitudeItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  gratitudeNumberContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gratitudeNumber: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
   gratitudeItemInput: {
+    flex: 1,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    padding: 16,
+    fontSize: 18,
     color: Colors.hopeWhite,
-    fontSize: 16,
-    minHeight: 60,
-    marginBottom: 8,
+    minHeight: 50,
     textAlignVertical: 'top',
   },
   removeButton: {
@@ -354,11 +391,16 @@ const defaultStyles = {
     gap: 12,
   },
   fab: {
-    width: 24,
-    height: 24,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,
@@ -375,23 +417,24 @@ const defaultStyles = {
     bottom: 16,
   },
   addFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   cancelFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   itemMarginBottom: {
     marginBottom: 8,
   },
   lastItemMarginBottom: {
     marginBottom: 0,
-  },
-  rotateIcon: {
-    transform: [{ rotate: '45deg' }],
   },
   boldIcon: {
     // fontWeight handled by ThemedText weight="bold"
@@ -405,7 +448,6 @@ const GratitudeLogEditorInner = (
   const {
     onSave,
     onCancel: _onCancel,
-    onUpgradeRequired,
     initialItems = [],
     subtaskTitle: _subtaskTitle,
     playbookTitle,
@@ -413,84 +455,102 @@ const GratitudeLogEditorInner = (
     actionStepTitle,
     isLoading = false,
     styles,
+    stepBody,
+    stepExample,
+    selectedDate = new Date(),
   } = props;
-  const navigation = useNavigation();
-  const { subscription } = useSubscription();
-  const smartJournalingGating = useSmartJournalingGating();
+
+  const dateContext = getDateContext(selectedDate);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
 
   const s = { ...defaultStyles, ...styles };
 
-  // Helper function to ensure items have proper numbering (optimized)
-  const addNumbersToItems = useCallback((items: string[]): string[] => {
-    return items.map((item, index) => {
-      if (!item.trim()) {
-        return item; // Keep empty items as is
-      }
-      const expectedPrefix = `${index + 1}. `;
-      // If item doesn't start with the expected number, add it
-      if (!item.startsWith(expectedPrefix)) {
-        // Remove any existing number prefix first
-        const cleanItem = item.replace(/^\d+\. /, '');
-        return expectedPrefix + cleanItem;
-      }
-      return item;
+  // Dynamic labels based on date context
+  const getTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'What are you grateful for today?';
+      case 'yesterday': return 'What were you grateful for yesterday?';
+      case 'earlier': return 'What were you grateful for on this day?';
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (dateContext) {
+      case 'today': return "I'm grateful for...";
+      case 'yesterday': return 'I was grateful for...';
+      case 'earlier': return 'I was grateful for...';
+    }
+  };
+
+  // Helper function to remove number prefixes from items (for backward compatibility)
+  const removeNumbersFromItems = useCallback((items: string[]): string[] => {
+    return items.map((item) => {
+      // Remove any existing number prefix
+      return item.replace(/^\d+\. /, '');
     });
   }, []);
 
-  // Process initial items to ensure they have numbers
-  const processedInitialItems = initialItems.length > 0 ? addNumbersToItems(initialItems) : ['', '', ''];
+  // Process initial items to remove any number prefixes (for backward compatibility)
+  const processedInitialItems = initialItems.length > 0 ? removeNumbersFromItems(initialItems) : ['', '', ''];
 
   // State for gratitude items
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
 
-  // Refs for inputs
+  // Add button: show only when the 3rd input (index 2) is non-empty
+  const shouldShowAddButton = (gratitudeItems[2] ?? '').trim().length > 0;
+
+  // Add button spring animation — conditionally mounted so it never takes layout space when hidden
+  const buttonGroupAnim = useRef(new Animated.Value(0)).current;
+  const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+  const [addButtonMounted, setAddButtonMounted] = React.useState(false);
+
+  // Refs for inputs and scrollview
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
-    focusInput: () => {
+    focusInput: (skipScroll = false) => {
       // Ensure input refs array is properly initialized
       if (!inputRefs.current || inputRefs.current.length === 0) {
-        // Initialize refs array if not already done
-        inputRefs.current = Array(gratitudeItems.length).fill(null);
+        inputRefs.current = [null, null, null];
       }
 
-      // Find the first empty input field
-      let firstEmptyIndex = -1;
-      for (let i = 0; i < gratitudeItems.length; i++) {
-        if (gratitudeItems[i].trim().length === 0) {
-          firstEmptyIndex = i;
-          break;
-        }
-      }
-
-      // If all fields have content, focus on the last field and position cursor at the end
-      const targetIndex = firstEmptyIndex >= 0 ? firstEmptyIndex : gratitudeItems.length - 1;
-
-      if (inputRefs.current[targetIndex]) {
-        inputRefs.current[targetIndex]!.focus();
-        // Position cursor at the end of the text (or start if empty)
+      // Focus the first non-empty input
+      const targetIndex = gratitudeItems.findIndex(item => item.trim().length === 0);
+      if (targetIndex === -1) {
+        // All inputs have text, add a new one and focus it
+        setGratitudeItems(prev => [...prev, '']);
         setTimeout(() => {
-          if (inputRefs.current[targetIndex]) {
-            const text = gratitudeItems[targetIndex] || '';
-            inputRefs.current[targetIndex]!.setSelection(text.length, text.length);
+          if (inputRefs.current[inputRefs.current.length - 1]) {
+            inputRefs.current[inputRefs.current.length - 1]!.focus();
+            // Scroll to the bottom of the content (always scroll when adding new item)
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
           }
-        }, 100);
+        }, 200);
       } else {
-        Logger.warn('[GratitudeLogEditor] Input ref not available at index: ' + targetIndex, {
-          component: 'GratitudeLogEditor',
-        });
-        // Retry focus after a short delay
+        // Focus the first empty input
         setTimeout(() => {
           if (inputRefs.current[targetIndex]) {
             inputRefs.current[targetIndex]!.focus();
+            // Only scroll to bottom if skipScroll is false
+            if (!skipScroll) {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }
           }
         }, 200);
       }
+    },
+    reset: () => {
+      setGratitudeItems(['', '', '']);
+      setHasUserMadeChanges(false);
     },
   }));
 
@@ -498,49 +558,49 @@ const GratitudeLogEditorInner = (
 
   // Update gratitude items when initialItems changes (for React Query data loading)
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) {
+    if (initialItems && initialItems.length > 0 && !hasUserMadeChanges) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
-      if (hasExistingData && !hasUserMadeChanges) {
-        const numberedItems = addNumbersToItems(initialItems);
-        setGratitudeItems(numberedItems);
+      if (hasExistingData) {
+        const cleanItems = removeNumbersFromItems(initialItems);
+        setGratitudeItems(cleanItems);
       }
     }
-  }, [initialItems, hasUserMadeChanges, addNumbersToItems]);
+  }, [initialItems, removeNumbersFromItems, hasUserMadeChanges]);
 
 
 
-  // Optimized text formatting function
-  const formatText = useCallback((text: string, index: number): string => {
-    // Allow complete erasure - if text is empty or just the prefix, keep it empty
-    if (text.length === 0) {
-      return '';
+  // Mount add button before animating in, unmount after animating out
+  useEffect(() => {
+    if (shouldShowAddButton) {
+      setAddButtonMounted(true);
+      buttonGroupAnim.setValue(0);
+      Animated.spring(buttonGroupAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 14,
+      }).start();
+    } else {
+      Animated.spring(buttonGroupAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 120,
+        friction: 14,
+      }).start(({ finished }) => {
+        if (finished) { setAddButtonMounted(false); }
+      });
     }
+  }, [shouldShowAddButton, buttonGroupAnim]);
 
-    const expectedPrefix = `${index + 1}. `;
-
-    // If user tries to delete the prefix (text is just the number and dot), clear completely
-    if (text === `${index + 1}.` || text === `${index + 1}`) {
-      return '';
-    }
-
-    // Auto-add numbering when user starts typing (optimized logic)
-    if (!text.startsWith(expectedPrefix)) {
-      // Check if text starts with any number pattern (e.g., "1.", "2.", etc.)
-      const numberPattern = /^\d+\. /;
-      if (!numberPattern.test(text)) {
-        return expectedPrefix + text;
-      } else {
-        // Replace existing number with correct one
-        return text.replace(/^\d+\. /, expectedPrefix);
-      }
-    }
-
+  // Optimized text formatting function - no longer adds numbers since they're displayed separately
+  const formatText = useCallback((text: string): string => {
+    // Just return the text as-is since numbering is handled separately
     return text;
   }, []);
 
   // Optimized item change handler with batched state updates
   const handleItemChange = useCallback((index: number, text: string) => {
-    const formattedText = formatText(text, index);
+    const formattedText = formatText(text);
     setGratitudeItems(prev => {
       const newItems = [...prev];
       newItems[index] = formattedText;
@@ -551,32 +611,38 @@ const GratitudeLogEditorInner = (
 
   const addGratitudeItem = useCallback(() => {
     triggerLightHaptic(); // Add haptic feedback
-    const newIndex = gratitudeItems.length;
-    setGratitudeItems(prev => [...prev, '']);
+    setGratitudeItems(prev => {
+      const newIndex = prev.length;
+      const newItems = [...prev, ''];
+      // Focus the new input after state update
+      setTimeout(() => {
+        if (inputRefs.current[newIndex]) {
+          inputRefs.current[newIndex]?.focus();
+          // Scroll to the bottom of the content
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }, 150);
+      return newItems;
+    });
     setHasUserMadeChanges(true);
-
-    // Focus the new input after it's rendered
-    setTimeout(() => {
-      if (inputRefs.current[newIndex]) {
-        inputRefs.current[newIndex]?.focus();
-      }
-    }, 100);
-  }, [gratitudeItems.length]);
+  }, []);
 
   const getCurrentDate = () => {
-    const today = new Date();
+    const date = selectedDate;
     const currentYear = new Date().getFullYear();
-    const todayYear = today.getFullYear();
+    const dateYear = date.getFullYear();
 
     // Don't show year if it's the current year
-    if (todayYear === currentYear) {
-      return today.toLocaleDateString('en-US', {
+    if (dateYear === currentYear) {
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
       });
     } else {
-      return today.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
@@ -586,25 +652,6 @@ const GratitudeLogEditorInner = (
   };
 
   const handleSave = useCallback(() => {
-    // Check if feature is gated for seeker accounts
-    if (smartJournalingGating.isLocked) {
-      try { triggerLightHaptic(); } catch {}
-      // Close modal first before navigating
-      if (onUpgradeRequired) {
-        try { onUpgradeRequired(); } catch {}
-      }
-      setTimeout(() => {
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'smart_journaling_lock',
-          feature: 'smart_journaling',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-        });
-      }, 300);
-      return;
-    }
-
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
@@ -625,7 +672,7 @@ const GratitudeLogEditorInner = (
       date: new Date(),
     });
 
-  }, [smartJournalingGating, onUpgradeRequired, navigation, subscription?.tier, gratitudeItems, onSave]);
+  }, [gratitudeItems, onSave]);
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
@@ -657,6 +704,7 @@ const GratitudeLogEditorInner = (
       >
         <View style={s.contentCard}>
           <ScrollView
+            ref={scrollViewRef}
             style={s.content}
             contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -664,25 +712,8 @@ const GratitudeLogEditorInner = (
             {/* Title section with lock icon */}
             <View style={s.titleRow}>
               <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText, s.titleTextFlex]}>
-                What are you grateful for today?
+                {getTitle()}
               </ThemedText>
-              {smartJournalingGating.isLocked && (
-                <TouchableOpacity
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    (navigation as any).navigate('OnboardingSalesOffer', {
-                      source: 'smart_journaling_lock',
-                      feature: 'smart_journaling',
-                      tier: subscription?.tier || 'seeker',
-                      upgradeMode: false,
-                      skipNotificationPreference: true,
-                    });
-                  }}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <MaterialCommunityIcons name="lock" size={20} color={Colors.alertCoral} />
-                </TouchableOpacity>
-              )}
             </View>
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
@@ -694,68 +725,47 @@ const GratitudeLogEditorInner = (
                   index === gratitudeItems.length - 1 && s.lastItemMarginBottom,
                 ]}
               >
-                <TextInput
-                  ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
-                  style={[s.entryInput, s.entryContentInput, { fontFamily: fontRegular }]}
-                  placeholder={`${index + 1}. I'm grateful for...`}
-                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                  value={item}
-                  onChangeText={(text) => {
-                    // Use optimized text formatting
-                    handleItemChange(index, text);
-                  }}
-                  multiline
-                  textAlignVertical="top"
-                  returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
-                  onSubmitEditing={() => {
-                    if (index < gratitudeItems.length - 1) {
-                      inputRefs.current[index + 1]?.focus();
-                    } else {
-                      Keyboard.dismiss();
-                    }
-                  }}
-                  blurOnSubmit={index === gratitudeItems.length - 1}
-                />
-
+                <View style={s.gratitudeItemRow}>
+                  <View style={s.gratitudeNumberContainer}>
+                    <ThemedText weight="semiBold" style={s.gratitudeNumber}>{index + 1}</ThemedText>
+                  </View>
+                  <TextInput
+                    ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
+                    style={[s.gratitudeItemInput, { fontFamily: fontRegular }]}
+                    placeholder={getPlaceholder()}
+                    placeholderTextColor={Colors.textGray}
+                    value={item}
+                    onChangeText={(text) => {
+                      // Use optimized text formatting
+                      handleItemChange(index, text);
+                    }}
+                    multiline
+                    keyboardAppearance="dark"
+                    textAlignVertical="top"
+                    returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
+                    onSubmitEditing={() => {
+                      if (index < gratitudeItems.length - 1) {
+                        inputRefs.current[index + 1]?.focus();
+                      } else {
+                        Keyboard.dismiss();
+                      }
+                    }}
+                    blurOnSubmit={index === gratitudeItems.length - 1}
+                  />
+                </View>
               </View>
             ))}
 
-            {/* Add more button - positioned to the right - only show if first 3 are filled */}
-            {gratitudeItems.slice(0, 3).every(item => item.trim().length > 0) && (
-              <View style={s.addMoreContainer}>
-                <TouchableOpacity style={s.addMoreButton} onPress={addGratitudeItem}>
-                  <View style={s.rotateIcon}>
-                    <Ionicons name="close" size={13} color={Colors.alertCoral} style={s.boldIcon} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
             {/* Metadata section - matching reflection editor format */}
             {(_subtaskTitle || playbookTitle) && (
-              <View style={s.metadataContainer}>
-                <View style={s.verticalLine} />
-                <View>
-                  <ThemedText weight="medium" style={s.fromText}>
-                    FROM PLAYBOOK
-                  </ThemedText>
-                  {playbookTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {playbookTitle}
-                    </ThemedText>
-                  )}
-                  {actionStepNumber && actionStepTitle && (
-                    <ThemedText style={s.metadataText}>
-                      Step {actionStepNumber}: {actionStepTitle}
-                    </ThemedText>
-                  )}
-                  {_subtaskTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {_subtaskTitle}
-                    </ThemedText>
-                  )}
-                </View>
-              </View>
+              <PlaybookMetaSection
+                playbookTitle={playbookTitle}
+                actionLabel={actionStepNumber && actionStepTitle
+                  ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                  : (_subtaskTitle && !actionStepTitle ? _subtaskTitle : undefined)}
+                stepBody={stepBody}
+                stepExample={stepExample}
+              />
             )}
           </ScrollView>
         </View>
@@ -769,14 +779,31 @@ const GratitudeLogEditorInner = (
               <TouchableOpacity
                 style={[s.fab, s.cancelFab]}
                 onPress={() => {
-                  triggerLightHaptic(); // Add haptic feedback for FAB
+                  triggerLightHaptic();
                   _onCancel();
                 }}
               >
-                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
 
-              {/* Save FAB */}
+              {/* Add More FAB — only mounted when 3rd field is filled, springs in/out */}
+              {addButtonMounted && (
+                <Animated.View
+                  style={{ opacity: buttonGroupAnim, transform: [{ scale: addButtonScale }] }}
+                >
+                  <TouchableOpacity
+                    style={[s.fab, s.addFab]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      addGratitudeItem();
+                    }}
+                  >
+                    <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+
+              {/* Save FAB — always at its natural position */}
               <TouchableOpacity
                 style={[
                   s.fab,
@@ -785,14 +812,14 @@ const GratitudeLogEditorInner = (
                 ]}
                 disabled={!isFormValid || isLoading}
                 onPress={() => {
-                  triggerLightHaptic(); // Add haptic feedback for FAB
+                  triggerLightHaptic();
                   handleSave();
                 }}
               >
                 {isLoading ? (
-                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                  <ActivityIndicator size={17} color={Colors.hopeWhite} />
                 ) : (
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
             </View>

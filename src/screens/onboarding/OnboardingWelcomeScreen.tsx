@@ -26,7 +26,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Colors } from '../../theme/colors';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
-import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -200,10 +199,10 @@ const OnboardingWelcomeScreen: React.FC = () => {
                 .single();
 
               if (profile?.onboarding_completed) {
-                // User completed onboarding - ignore personalization redirect and go to main
-                Logger.info('WelcomeScreen: User completed onboarding - ignoring personalization redirect');
+                // User completed onboarding - ignore personalization redirect and go to UserInput
+                Logger.info('WelcomeScreen: User completed onboarding - ignoring personalization redirect, navigating to UserInput');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-                (navigation as any).reset?.({ index: 0, routes: [{ name: 'MainTabs', params: {} }] });
+                (navigation as any).reset?.({ index: 0, routes: [{ name: 'UserInput', params: {} }] });
                 return;
               }
             } catch (error) {
@@ -556,21 +555,21 @@ const OnboardingWelcomeScreen: React.FC = () => {
           ]}
         >
           <TouchableOpacity
-            style={[styles.createButton, dynamicStyles.primaryButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
+            style={[styles.primaryButton, styles.finishButton, dynamicStyles.primaryButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleCreateAccount}
             disabled={isLoading}
           >
-            <ThemedText weight="medium" style={styles.createButtonText}>
+            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
               {isAuthenticated ? 'Continue Setup' : 'Create an Account'}
             </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.loginButton, dynamicStyles.loginButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
+            style={[styles.secondaryButton, dynamicStyles.loginButtonCompact, isLoading && OnboardingStyles.buttonDisabled, styles.fullWidthButton, { maxWidth: contentWidth }]}
             onPress={handleLogin}
             disabled={isLoading}
           >
-            <ThemedText weight="medium" style={styles.loginButtonText}>
+            <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
               {isAuthenticated ? 'Get Started' : 'Login'}
             </ThemedText>
           </TouchableOpacity>
@@ -706,30 +705,42 @@ const styles = StyleSheet.create({
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
-
-  // Fix login button to match primary button styling
-  loginButton: {
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
+    marginTop: 'auto',
+  },
+  finishButton: {
+    marginTop: 32,
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
     marginTop: 12,
   },
-  loginButtonText: {
-    color: Colors.hopeWhite,
+  secondaryButtonText: {
     fontSize: 16,
-    fontFamily: Fonts.system.medium,
-    fontWeight: '500',
+    color: Colors.hopeWhite,
   },
 
   termsText: {

@@ -11,6 +11,7 @@ import { useActionSteps } from '../context/ActionStepsContext';
 import {
   useCreateJournalEntry,
   useUpdateJournalEntry,
+  useDeleteJournalEntry,
 } from '../services/hooks/useJournalData';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { JournalApi } from '../services/api/journalApi';
@@ -29,6 +30,9 @@ interface SmartJournalingGratitudeModalProps {
   existingGratitude?: any;
   onSave: (entry: any) => void;
   onCancel: () => void;
+  stepBody?: string;
+  stepExample?: string | null;
+  selectedDate?: Date;
 }
 
 const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps> = ({
@@ -44,6 +48,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   existingGratitude,
   onSave,
   onCancel,
+  stepBody,
+  stepExample,
+  selectedDate = new Date(),
 }) => {
 
 
@@ -89,7 +96,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   }, [playbookTitle]);
 
   // Fetch existing gratitude data for this subtask
-  const dateStr = toLocalDateString(new Date());
+  const dateStr = toLocalDateString(selectedDate);
   const { data: existingGratitudeEntries = [] } = useQuery({
     queryKey: ['gratitude', user?.id, dateStr, subtaskId],
     queryFn: async () => {
@@ -122,15 +129,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // Get the most recent gratitude entry for this subtask
   const currentGratitudeEntry = existingGratitudeEntries[0] || existingGratitude;
 
-  // Track when data becomes available
-  useEffect(() => {
-    if (currentGratitudeEntry) {
-
-    } else {
-
-    }
-  }, [currentGratitudeEntry]);
-
   //     subtaskTitle,
   //     subtaskId,
   //     subtaskIdType: typeof subtaskId,
@@ -153,6 +151,16 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [prevActive, setPrevActive] = useState(false); // Start with false to detect initial activation
   const [prevVisible, setPrevVisible] = useState(false); // Start with false to detect initial visibility
 
+  // Check if metadata is present (from faithful actions pencil tooltip)
+  const hasMetadata = Boolean(
+    preservedSubtaskTitle ||
+    preservedPlaybookTitle ||
+    preservedActionStepNumber ||
+    preservedActionStepTitle ||
+    stepBody ||
+    stepExample
+  );
+
   useEffect(() => {
     // Focus when modal becomes active (either through visibility change or isActive prop change)
     if (isActive && !prevActive) {
@@ -161,12 +169,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Use a longer delay to ensure modal is fully rendered and keyboard is ready
       setTimeout(() => {
         if (gratitudeEditorRef.current) {
-          gratitudeEditorRef.current.focusInput();
+          // Skip scroll to bottom when metadata is present (from faithful actions)
+          gratitudeEditorRef.current.focusInput(hasMetadata);
         }
       }, 800); // Increased delay for better reliability
     }
     setPrevActive(isActive);
-  }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+  }, [isActive, prevActive, currentGratitudeEntry, actionSteps, stepId, subtaskId, hasMetadata]);
 
   // Also trigger focus when visible prop changes (for dashboard usage)
   useEffect(() => {
@@ -177,16 +186,18 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Use a longer delay to ensure modal is fully rendered and keyboard is ready
       setTimeout(() => {
         if (gratitudeEditorRef.current) {
-          gratitudeEditorRef.current.focusInput();
+          // Skip scroll to bottom when metadata is present (from faithful actions)
+          gratitudeEditorRef.current.focusInput(hasMetadata);
         }
       }, 800); // Increased delay for better reliability
     }
     setPrevVisible(visible);
-  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId]);
+  }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId, hasMetadata]);
 
   // React Query mutations
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
+  const deleteMutation = useDeleteJournalEntry();
 
   // Track mutation states
   useEffect(() => {
@@ -223,6 +234,29 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         })
         .filter(item => item.length > 0);
 
+      // Delete only gratitude entries that match this subtaskId to prevent duplicates
+      // If no subtaskId, delete all entries for the day (general gratitude editing)
+      const allEntries = await JournalApi.getGratitudeEntries(user.id, dateStr);
+      const entriesToDelete = subtaskId
+        ? allEntries.filter((entry: any) => {
+            // Check subtask_id in metadata field first (new format)
+            if (entry.metadata?.subtask_id) {
+              return entry.metadata.subtask_id === subtaskId;
+            }
+            // Fallback to checking in content for backward compatibility (old format)
+            try {
+              const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+              return parsedContent.metadata?.subtask_id === subtaskId || parsedContent.subtask_id === subtaskId;
+            } catch {
+              return false;
+            }
+          })
+        : allEntries; // Delete all if no subtaskId (general gratitude from journal screen)
+
+      for (const entry of entriesToDelete) {
+        await deleteMutation.mutateAsync(entry.id);
+      }
+
       const gratitudeEntry = {
         user_id: user?.id || '',
         selected_date: toLocalDateString(gratitudeData.date),
@@ -242,30 +276,20 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         },
       };
 
-      let result;
-      if (currentGratitudeEntry?.id) {
-        // Update existing gratitude entry
-
-        result = await updateMutation.mutateAsync({
-          id: currentGratitudeEntry.id,
-          updates: gratitudeEntry,
-        });
-      } else {
-        // Create new gratitude entry
-
-        result = await createMutation.mutateAsync(gratitudeEntry);
-      }
+      // Always create a new entry after deleting all existing ones
+      const result = await createMutation.mutateAsync(gratitudeEntry);
 
       // Call parent onSave callback immediately
       onSave(result);
 
-      // Show success modal immediately for better UX
-      const isEditing = !!currentGratitudeEntry?.id;
-      successModal.showSuccess({
-        title: isEditing ? 'Gratitude Updated' : 'Gratitude Saved',
-        message: isEditing ? 'Your gratitude has been updated.' : 'Your gratitude has been saved to your journal.',
-        showEditButton: true,
-      });
+      // Show success modal after a delay so user can see their saved content
+      setTimeout(() => {
+        successModal.showSuccess({
+          title: 'Gratitude Saved',
+          message: 'Your gratitude has been saved to your journal.',
+          showEditButton: true,
+        });
+      }, 500);
 
       // PERFORMANCE: All cache invalidation is non-blocking - happens after UI updates
       if (user?.id) {
@@ -273,13 +297,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           queryClient.invalidateQueries({
             queryKey: ['journal', 'gratitude', user.id, dateStr],
           });
-
-          // Also invalidate 'journal, all' for new entries
-          if (!currentGratitudeEntry?.id) {
-            queryClient.invalidateQueries({
-              queryKey: ['journal', 'all'],
-            });
-          }
+          queryClient.invalidateQueries({
+            queryKey: ['journal', 'all'],
+          });
         }, 0);
       }
 
@@ -327,7 +347,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (gratitudeEditorRef.current) {
-        gratitudeEditorRef.current.focusInput();
+        // Skip scroll to bottom when metadata is present (from faithful actions)
+        gratitudeEditorRef.current.focusInput(hasMetadata);
       }
     }, 300); // Small delay to allow modal to close
     // Keep modal open for continued editing
@@ -354,22 +375,24 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             onSave={saveGratitude}
             onCancel={onCancel}
             onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
-            initialItems={currentGratitudeEntry?.content ?
-              (() => {
+            selectedDate={selectedDate}
+            initialItems={(() => {
+              if (currentGratitudeEntry?.content) {
                 try {
                   const parsedContent = typeof currentGratitudeEntry.content === 'string'
                     ? JSON.parse(currentGratitudeEntry.content)
                     : currentGratitudeEntry.content;
-                  return parsedContent.items || [];
+                  const items = parsedContent.items || [];
+                  return items;
                 } catch (error) {
                   Logger.error('Error parsing gratitude content for initialItems', error as Error, {
       component: 'SmartJournalingGratitudeModal',
     });
                   return [];
                 }
-              })()
-              : undefined
-            }
+              }
+              return undefined;
+            })()}
             subtaskTitle={preservedSubtaskTitle}
             subtaskId={subtaskId}
             stepId={stepId}
@@ -378,6 +401,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             actionStepTitle={preservedActionStepTitle}
             isLoading={createMutation.isPending || updateMutation.isPending}
             styles={reflectionLogStyles}
+            stepBody={stepBody}
+            stepExample={stepExample}
           />
 
           {/* New success modal system - completely isolated and robust */}

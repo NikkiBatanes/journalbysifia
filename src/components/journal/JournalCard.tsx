@@ -83,10 +83,6 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Only render header when empty (no content and not editing/adding)
   if (!showContent) {
-    // In inline and moments view, don't show empty components at all
-    if (viewMode === 'inline' || viewMode === 'moments') {
-      return null;
-    }
 
     const getEmptyCardStyle = () => {
       const baseStyle = [styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides];
@@ -398,7 +394,7 @@ const styles = StyleSheet.create({
     // Content is always visible
     paddingTop: 8,
     paddingBottom: 12, // add bottom spacing so bottom-right buttons fit inside rounded corner
-    paddingRight: 6,   // slight right spacing to avoid hugging the curved edge
+    paddingHorizontal: 6,   // slight spacing to avoid hugging the curved edges
   },
   addButton: {
     padding: 6,

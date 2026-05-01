@@ -3,6 +3,8 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, DeviceEventEmitter } from 'react-native';
+import type { NavigationProp } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
@@ -15,7 +17,6 @@ import {
   useTodaysFocusData,
   useCreateJournalEntry,
   useUpdateJournalEntry,
-  useDeleteTodaysFocusEntry,
 } from '../../services/hooks/useJournalData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
@@ -37,6 +38,7 @@ interface PriorityItem {
 
 interface TodayFocusData {
   focus: string;
+  personalText: string;
   priorities: PriorityItem[];
 }
 
@@ -48,6 +50,7 @@ interface TodaysFocusProps {
   expanded?: boolean;
   onExpand?: () => void;
   planningEnabled?: boolean;
+  navigation?: NavigationProp<any>;
 }
 
 type FocusCTA = 'begin' | 'update' | 'revisit' | 'plan' | 'editPlan';
@@ -60,7 +63,7 @@ interface FocusCardState {
   ctaAction: FocusCTA;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -78,11 +81,17 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // React Query hooks with performance tracking
   const loadStartTime = useRef<number>(Date.now());
-  const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr, refreshKey);
+  const { data: focusEntries = [], error, isLoading, refetch } = useTodaysFocusData(user?.id || '', dateStr, refreshKey);
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
-  const deleteMutation = useDeleteTodaysFocusEntry();
+
+  // Refetch data when screen comes back into focus (after saving in walkthrough)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;
@@ -116,11 +125,13 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
         return {
           focus: parsedContent.focus || '',
+          personalText: parsedContent.personalText || '',
           priorities,
         };
       } catch (parseError) {
         return {
           focus: '',
+          personalText: '',
           priorities: [
             { id: 'fallback_1', text: '', completed: false },
             { id: 'fallback_2', text: '', completed: false },
@@ -130,6 +141,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }
     })() : {
       focus: '',
+      personalText: '',
       priorities: [
         { id: 'default_1', text: '', completed: false },
         { id: 'default_2', text: '', completed: false },
@@ -187,7 +199,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ? (hasEntry ? 'Update your focus and priorities' : 'Set your focus and priorities')
           : (hasEntry
               ? 'Stay focused on what matters'
-              : 'Set your focus and priorities to make today count in faith and action—then begin'),
+              : 'Set your focus and priorities to make today count in faith and action. Then begin.'),
         ctaLabel: hasEntry ? 'Update Focus' : 'Begin',
         ctaAction: hasEntry ? 'update' : 'begin',
       };
@@ -377,7 +389,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     }
 
     if (isEditing) {
-      // Save when exiting edit mode
+      // Save when exiting edit mode (for global edit mode compatibility)
       const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
       if (hasContent) {
         saveFocus(data).then(() => {
@@ -397,22 +409,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         }
       }
     } else {
-      // Enter edit mode - ensure we have exactly 3 priorities
-      const currentPriorities = data.priorities;
-      const ensuredPriorities = [
-        currentPriorities[0] || { id: '1', text: '', completed: false },
-        currentPriorities[1] || { id: '2', text: '', completed: false },
-        currentPriorities[2] || { id: '3', text: '', completed: false },
-      ];
-
-      const editData = {
-        ...data,
-        priorities: ensuredPriorities,
-      };
-
-      originalData.current = { ...editData };
-      setData(editData);
-      setIsEditing(true);
+      // Navigate to walkthrough screen instead of inline editor
+      if (navigation) {
+        triggerLightHaptic();
+        navigation.navigate('TodaysFocusWalkthrough' as any, {
+          selectedDate: selectedDate.toISOString(),
+          existingEntry,
+        });
+      }
     }
   };
 
@@ -423,55 +427,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const updateFocus = (text: string) => {
     setData(prev => ({ ...prev, focus: text }));
-  };
-
-  const clearFocus = async () => {
-    // Check if there are any priorities with text
-    const hasPriorities = data.priorities.some(p => p.text.trim() !== '');
-
-    if (existingEntry?.id && !hasPriorities) {
-      // Only delete the entire entry if there are no priorities
-      try {
-        await deleteMutation.mutateAsync(existingEntry.id);
-        // Mark as deleted and reset to empty state
-        setWasDeleted(true);
-        setData({
-          focus: '',
-          priorities: [
-            { id: '1', text: '', completed: false },
-            { id: '2', text: '', completed: false },
-            { id: '3', text: '', completed: false },
-          ],
-        });
-        setIsEditing(false);
-      } catch (deleteError) {
-        Logger.error('Error deleting focus entry', deleteError as Error, {
-          component: 'TodaysFocusReactQuery',
-        });
-      }
-    } else {
-      // If there are priorities, just clear the focus text and update the entry
-      setData(prev => ({ ...prev, focus: '' }));
-      if (existingEntry?.id && hasPriorities) {
-        // Update the entry with empty focus but keep priorities
-        try {
-          const updatedContent = {
-            focus: '',
-            priorities: data.priorities,
-          };
-          await updateMutation.mutateAsync({
-            id: existingEntry.id,
-            updates: {
-              content: JSON.stringify(updatedContent),
-            },
-          });
-        } catch (updateError) {
-          Logger.error('Error updating focus entry', updateError as Error, {
-            component: 'TodaysFocusReactQuery',
-          });
-        }
-      }
-    }
   };
 
   const updatePriority = (index: number, text: string) => {
@@ -512,32 +467,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     // Persist to database and wait for completion before emitting event
     // This ensures Moments screen fetches updated data
     await saveFocus(updated).catch(() => {});
-  };
-
-  const removePriority = (priorityId: string) => {
-    try { triggerLightHaptic(); } catch {}
-    Alert.alert(
-      'Remove Priority',
-      'Are you sure you want to remove this priority?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try { triggerLightHaptic(); } catch {}
-            const updated = {
-              ...data,
-              priorities: data.priorities.filter(p => p.id !== priorityId),
-            };
-            // Update local state immediately
-            setData(updated);
-            // Persist deletion and wait for completion
-            await saveFocus(updated).catch(() => {});
-          },
-        },
-      ]
-    );
   };
 
   // Individual priority edit handlers
@@ -709,8 +638,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   completed: false,
                 }}
                 onToggle={() => {}}
-                onDelete={() => clearFocus()}
-                disableSwipe={viewMode === 'carousel' && !expanded}
+                onDelete={() => {}}
+                disableSwipe={true}
                 hideCheckbox={true}
                 variant="gratitude"
               >
@@ -782,6 +711,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               ? (
                 <View style={styles.viewContainer}>
                   {data.focus && <ThemedText weight="semiBold" style={styles.focusText}>{data.focus}</ThemedText>}
+                  {data.personalText && <ThemedText style={styles.personalText}>{data.personalText}</ThemedText>}
                   <View style={styles.prioritiesList}>
                     {data.priorities.some(p => p.text.trim() !== '') && (() => {
                       const priorityCount = data.priorities.filter(p => p.text.trim() !== '').length;
@@ -800,9 +730,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                             completed: priority.completed,
                           }}
                           onToggle={() => togglePriority(index)}
-                          onDelete={() => removePriority(priority.id)}
-                          hideCheckbox={true}
-                          disableSwipe={viewMode === 'carousel' && !expanded}
+                          onDelete={() => {}}
+                          disableSwipe={true}
+                          containerStyle={styles.priorityItemWrapper}
                           ref={ref => {
                             if (ref) {
                               swipeableRefs.current[priority.id] = ref;
@@ -846,21 +776,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                               </View>
                             </View>
                           ) : (
-                            <>
-                              <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
-                                {priority.completed && (
-                                  <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
-                                )}
-                              </View>
-                              <ThemedText
-                                style={[
-                                  styles.priorityText,
-                                  priority.completed && styles.completedText,
-                                ]}
-                              >
-                                {priority.text}
-                              </ThemedText>
-                            </>
+                            <ThemedText
+                              style={[
+                                styles.priorityText,
+                                priority.completed && styles.completedText,
+                              ]}
+                            >
+                              {priority.text}
+                            </ThemedText>
                           )}
                         </SwipeableTodoItem>
                       ))
@@ -930,6 +853,14 @@ const styles = StyleSheet.create({
   prioritiesList: {
     marginTop: 0,
   },
+  priorityItemWrapper: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    padding: 20,
+    width: '100%',
+    marginBottom: 4,
+  },
   prioritiesContainer: {
     marginBottom: 8,
   },
@@ -982,6 +913,14 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 8,
     lineHeight: 26,
+    textAlign: 'center',
+  },
+  personalText: {
+    // weight handled by ThemedText
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 12,
+    lineHeight: 20,
     textAlign: 'center',
   },
   placeholderText: {
@@ -1147,21 +1086,6 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     marginRight: 0,
-  },
-  tickBox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.trustGrey,
-    backgroundColor: 'rgba(176, 184, 193, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  tickBoxCompleted: {
-    backgroundColor: Colors.growthGreen,
-    borderColor: Colors.growthGreen,
   },
   prioritiesTitle: {
     fontSize: 11,

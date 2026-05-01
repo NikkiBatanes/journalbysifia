@@ -1,10 +1,11 @@
 // New Subscription Hook for React Components
 // Created: 2025-08-20
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
-import { supabase } from '../services/supabaseClient';
+import { billingNotificationService } from '../services/billingNotificationService';
 import {
   Subscription,
   SubscriptionCheck,
@@ -38,7 +39,7 @@ interface UseSubscriptionResult {
   startTrial: (options?: Partial<TrialStartOptions>) => Promise<void>;
   upgradeSubscription: (options: SubscriptionUpgradeOptions) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  incrementUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => Promise<void>;
+  incrementUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => Promise<void>;
   checkUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => Promise<SubscriptionCheck>;
   refreshSubscription: () => Promise<void>;
 }
@@ -46,6 +47,7 @@ interface UseSubscriptionResult {
 export function useNewSubscription(userId: string): UseSubscriptionResult {
   const queryClient = useQueryClient();
   const [usageCheck, setUsageCheck] = useState<SubscriptionCheck | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   // Query for subscription data
   const {
@@ -55,44 +57,18 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     refetch,
   } = useQuery({
     queryKey: ['subscription', userId],
-    queryFn: () => NewSubscriptionService.getUserSubscription(userId),
+    queryFn: () => NewSubscriptionService.getUserSubscription(userId, true), // Force fresh data from database
     enabled: !!userId,
     staleTime: 0, // Always consider stale to ensure immediate updates after payment
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: 'always', // Always refetch on mount to get latest state
   });
 
-  // Listen for real-time changes to the subscription row
-  useEffect(() => {
-    if (!userId) {return;}
-
-    const channel = supabase
-      .channel(`subscription-realtime:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'user_subscriptions_new',
-          filter: `user_id=eq.${userId}`,
-        },
-        (_payload) => {
-          // Invalidate the query so it refetches with fresh data
-          queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
-
   // Computed properties
   const isSeeker = subscription?.tier === 'seeker';
   const isTrial = subscription?.tier === 'free_trial';
   const isPaid = subscription && !isSeeker && !isTrial;
-  const isUnlimited = subscription?.tier === 'transformation'; // POST-LAUNCH: || subscription?.tier === 'family'
+  const isUnlimited = subscription?.playbooks_limit === -1 || subscription?.devotionals_limit === -1;
   const showDashboardCounts = subscription?.limits?.show_dashboard_counts ?? false;
   const daysRemaining = subscription?.days_remaining ?? 0;
 
@@ -133,8 +109,8 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
   // Increment usage mutation
   const incrementUsageMutation = useMutation({
-    mutationFn: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') =>
-      NewSubscriptionService.incrementUsage(userId, action),
+    mutationFn: ({ action, isOnboarding }: { action: 'playbook' | 'devotional' | 'smart_journal' | 'export'; isOnboarding?: boolean }) =>
+      NewSubscriptionService.incrementUsage(userId, action, isOnboarding),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
       // Refresh usage check
@@ -184,6 +160,27 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     updateUsageCheck();
   }, [updateUsageCheck]);
 
+  // Issue 3 fix: trigger reset check when app comes to foreground
+  useEffect(() => {
+    if (!userId) {return;}
+    const appStateSub = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextState;
+      if (prev.match(/inactive|background/) && nextState === 'active') {
+        const didReset = await NewSubscriptionService.checkAndResetMonthlyUsage(userId);
+        if (didReset) {
+          queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
+        }
+        // Issue 10 fix: check for billing_issue on foreground and notify user
+        const sub = await NewSubscriptionService.getUserSubscription(userId, true);
+        if ((sub as any).billing_issue) {
+          billingNotificationService.handlePaymentFailure(userId).catch(() => {});
+        }
+      }
+    });
+    return () => appStateSub.remove();
+  }, [userId, queryClient]);
+
   // Action functions
   const startTrial = useCallback(async (options: Partial<TrialStartOptions> = {}) => {
     const trialOptions: TrialStartOptions = {
@@ -227,9 +224,9 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     }
   }, [cancelSubscriptionMutation]);
 
-  const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => {
+  const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => {
     try {
-      await incrementUsageMutation.mutateAsync(action);
+      await incrementUsageMutation.mutateAsync({ action, isOnboarding });
     } catch (catchError) {
       throw new SubscriptionError(
         `Failed to increment usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,

@@ -744,7 +744,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     accessibilityLabel="Reflect on this question"
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
+                    <ThemedText weight="medium" style={styles.reflectButtonText}>Begin</ThemedText>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -760,11 +760,9 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: 'transparent',
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 0,
-    borderColor: 'transparent',
     minHeight: 120,
   },
   header: {
@@ -799,6 +797,7 @@ const styles = StyleSheet.create({
   },
   // New carousel styles
   scrollContainer: {
+    paddingVertical: 0,
     paddingRight: 0,
     // Don't center content - align to start
     justifyContent: 'flex-start',

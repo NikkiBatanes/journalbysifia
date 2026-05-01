@@ -30,6 +30,9 @@ interface SmartJournalingPrayerModalProps {
   initialActiveTab?: 'freeform' | 'people';
   initialPersonName?: string;
   initialPrayerRequest?: string;
+  stepBody?: string;
+  stepExample?: string | null;
+  selectedDate?: Date;
 }
 
 const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
@@ -47,6 +50,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   initialActiveTab,
   initialPersonName,
   initialPrayerRequest,
+  stepBody,
+  stepExample,
+  selectedDate = new Date(),
 }) => {
   // Log all props received by SmartJournalingPrayerModal
 
@@ -93,7 +99,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const prayerEditorRef = useRef<PrayerLogEditorRef>(null);
 
   // Fetch existing prayer data for this subtask
-  const dateStr = toLocalDateString(new Date());
+  const dateStr = toLocalDateString(selectedDate);
   const { data: existingPrayerEntries = [] } = useQuery({
     queryKey: ['personal_prayers', user?.id, dateStr, subtaskId],
     queryFn: async () => {
@@ -480,6 +486,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             initialActiveTab={initialActiveTab}
             initialPersonName={initialPersonName}
             initialPrayerRequest={initialPrayerRequest}
+            stepBody={stepBody}
+            stepExample={stepExample}
+            selectedDate={selectedDate}
             dateString={(function() {
               const now = new Date();
               const year = now.getFullYear();

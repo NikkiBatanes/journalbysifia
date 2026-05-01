@@ -8,6 +8,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
   refreshKey,
   viewMode,
   filters,
+  navigation,
 }) => {
   const Component = plugin.component;
 
@@ -18,6 +19,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
     // Pass viewMode for future use (backward compatible)
     ...(viewMode && { viewMode }),
     ...(filters && { filters }),
+    ...(navigation && { navigation }),
   };
 
   return (

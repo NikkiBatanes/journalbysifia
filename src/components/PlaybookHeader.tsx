@@ -31,6 +31,7 @@ interface PlaybookHeaderProps {
   userInputTextColor?: string;
   onProfilePress?: () => void;
   onExportPress?: () => void;
+  showProgressRow?: boolean;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -55,6 +56,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputTextColor,
   onProfilePress,
   onExportPress,
+  showProgressRow = true,
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => (part || '').trim()).filter(part => part.length > 0);
@@ -86,6 +88,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
     },
     userInputText: {
       color: userInputTextColor || textColor,
+    },
+    userInputLabel: {
+      color: textColor,
     },
     progressBarBg: {
       backgroundColor: backgroundColor === Colors.anchorBlue
@@ -136,6 +141,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                 }}
                 activeOpacity={0.9}
               >
+                <ThemedText weight="semiBold" style={[styles.userInputLabel, dynamicStyles.userInputLabel]}>
+                  The moment you brought in:
+                </ThemedText>
                 <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
                   {userInput}
                 </ThemedText>
@@ -162,17 +170,19 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               </ThemedText>
             )}
 
-            <View style={[
-              styles.progressRow,
-              alignTasksLeft && styles.progressRowLeftAligned,
-            ]}>
-              <View style={styles.progressLeft}>
-                <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
-                  <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
+            {showProgressRow && (
+              <View style={[
+                styles.progressRow,
+                alignTasksLeft && styles.progressRowLeftAligned,
+              ]}>
+                <View style={styles.progressLeft}>
+                  <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
+                    <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
+                  </View>
+                  <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
+                    {completedTasks}/{totalTasks} Steps Explored
+                  </ThemedText>
                 </View>
-                <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
-                  {completedTasks}/{totalTasks} Steps Explored
-                </ThemedText>
 
                 {showToggle && onToggleView && (
                   <View style={styles.toggleRow}>
@@ -211,24 +221,23 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                   </View>
                 )}
               </View>
-
-              {onExportPress && (
-                <TouchableOpacity
-                  onPress={() => {
-                    try { triggerLightHaptic(); } catch {}
-                    onExportPress();
-                  }}
-                  activeOpacity={0.8}
-                  style={styles.exportIconButton}
-                >
-                  <Ionicons
-                    name="share-outline"
-                    size={18}
-                    color={Colors.hopeWhite}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
+            {onExportPress && (
+              <TouchableOpacity
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  onExportPress();
+                }}
+                activeOpacity={0.8}
+                style={styles.exportIconButton}
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={18}
+                  color={Colors.hopeWhite}
+                />
+              </TouchableOpacity>
+            )}
           </View>
 
           {(showProfileImage) && (
@@ -285,7 +294,7 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     width: '100%',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   headerRight: {
     position: 'absolute',
@@ -315,9 +324,9 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     // fontFamily handled by ThemedText weight="bold"
-    textAlign: 'left',
+    textAlign: 'center',
     marginTop: 2,
   },
   titleLineSpacing: {
@@ -410,6 +419,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
     lineHeight: 18,
     paddingRight: 32,
+  },
+  userInputLabel: {
+    alignSelf: 'flex-start',
+    fontSize: 14,
+    marginBottom: 4,
+    letterSpacing: 0.3,
   },
   editIconButton: {
     position: 'absolute',

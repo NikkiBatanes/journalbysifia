@@ -154,12 +154,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Handle navigation after animation completes
   useEffect(() => {
     if (shouldNavigate && navigationData) {
-
-      (navigation as any).replace('OnboardingPlaybookReady', {
+      // Navigate directly to PlaybookWalkthrough — popup overlay handled there
+      (navigation as any).replace('PlaybookWalkthrough', {
         playbook: navigationData,
-        challengeCategory: params.challengeCategory,
-        specificChallenge: params.specificChallenge,
-        userInput: params.userInput,
+        source: 'onboarding',
       });
     }
   }, [shouldNavigate, navigationData, navigation, params]);
@@ -436,6 +434,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       reference: '1 Peter 5:7',
                     },
                     directChallenge: playbook.directChallenge || 'Take one step forward in faith this week.',
+                    wordToSpeak: playbook.wordToSpeak || '',
+                    prayer: playbook.prayer || '',
+                    userInput: params.userInput || '',
+                    bibleVerseReflection: playbook.bibleVerseReflection || '',
                   };
 
                   // DEBUG: Log what we're passing to the ready screen
@@ -557,7 +559,6 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             if (__DEV__ && error.message?.includes('Circuit breaker is OPEN')) {
               import('../../utils/circuitBreaker').then(({ resetCircuit }) => {
                 resetCircuit('openai-generation');
-                console.log('🔄 Circuit breaker reset for development');
               });
             }
           });
@@ -603,6 +604,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                           reference: '1 Peter 5:7',
                         },
                         directChallenge: completePlaybook.directChallenge || 'Take one step forward in faith this week.',
+                        wordToSpeak: completePlaybook.wordToSpeak || '',
+                        prayer: completePlaybook.prayer || '',
+                        userInput: params.userInput || '',
+                        bibleVerseReflection: completePlaybook.bibleVerseReflection || '',
                       };
 
                       // Animate progress to 100% and navigate
@@ -612,11 +617,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                         useNativeDriver: false,
                       }).start(() => {
                         setTimeout(() => {
-                          (navigation as any).replace('OnboardingPlaybookReady', {
+                          (navigation as any).replace('PlaybookWalkthrough', {
                             playbook: realGeneratedPlaybook,
-                            challengeCategory: params.challengeCategory,
-                            specificChallenge: params.specificChallenge,
-                            userInput: params.userInput,
+                            source: 'onboarding',
                           });
                         }, 500);
                       });
@@ -1197,9 +1200,9 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: Colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
   },
   retryButtonText: {
     fontSize: 16,
@@ -1294,9 +1297,9 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    borderRadius: 50,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',

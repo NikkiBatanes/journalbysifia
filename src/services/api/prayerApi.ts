@@ -6,7 +6,7 @@ import { toLocalDateString } from '../../utils/date';
 export interface PrayerApiEntry {
   id: string;
   user_id: string;
-  prayer_type: 'journal' | 'people' | 'devotional';
+  prayer_type: 'journal' | 'people' | 'devotional' | 'guided_playbook';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   metadata?: Record<string, any>;
@@ -107,6 +107,78 @@ const ensureAuthenticated = async () => {
 };
 
 export class PrayerApi {
+  private static async suppressAnsweredCheckNotifications(
+    prayerId: string,
+    userId?: string | null
+  ): Promise<void> {
+    const nowIso = new Date().toISOString();
+    const deepLink = `sifia://journal/prayer?id=${prayerId}`;
+    const logUserId = userId ?? undefined;
+
+    try {
+      let queueQuery = supabase
+        .from('notification_queue')
+        .update({ status: 'cancelled', updated_at: nowIso })
+        .eq('type', 'prayer_answered_check')
+        .in('status', ['pending', 'sent', 'processing'])
+        .filter('data->>source_id', 'eq', prayerId)
+        .select('id');
+
+      if (userId) {
+        queueQuery = queueQuery.eq('user_id', userId);
+      }
+
+      const { data: cancelledQueueRows, error: queueError } = await queueQuery;
+
+      if (queueError) {
+        Logger.warn('Failed to suppress prayer_answered_check queue items', {
+          component: 'prayerApi',
+          prayerId,
+          userId: logUserId,
+          error: queueError,
+        });
+      }
+
+      const markHistoryRead = async (field: string, value: string) => {
+        let historyQuery = supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .filter(field, 'eq', value);
+
+        if (userId) {
+          historyQuery = historyQuery.eq('user_id', userId);
+        }
+
+        const { error } = await historyQuery;
+        if (error) {
+          Logger.warn('Failed to suppress prayer_answered_check history item', {
+            component: 'prayerApi',
+            prayerId,
+            userId: logUserId,
+            field,
+            error,
+          });
+        }
+      };
+
+      await Promise.all([
+        markHistoryRead('data->>source_id', prayerId),
+        markHistoryRead('data->>deep_link', deepLink),
+        ...((cancelledQueueRows || []) as Array<{ id: string }>).flatMap(row => [
+          markHistoryRead('data->>notification_id', row.id),
+          markHistoryRead('data->>queue_notification_id', row.id),
+        ]),
+      ]);
+    } catch (error) {
+      Logger.warn('Failed to suppress answered-prayer notifications', {
+        component: 'prayerApi',
+        prayerId,
+        userId: logUserId,
+        error: error as Error,
+      });
+    }
+  }
+
   // Get all prayers for a user and date
   static async getPrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
     const { data, error } = await supabase
@@ -132,6 +204,7 @@ export class PrayerApi {
    * Criteria: is_prayer_request = true AND prayed != true
    */
   static async getUnprayedPrayerRequests(userId: string): Promise<PrayerApiEntry[]> {
+    console.log('[PrayerApi.getUnprayedPrayerRequests] Fetching for user:', userId);
     const session = await ensureAuthenticated();
 
     if (userId !== session.user.id) {
@@ -153,12 +226,13 @@ export class PrayerApi {
 
     if (error) {
       Logger.error('Error fetching unprayed prayer requests', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
+        component: 'prayerApi',
+        action: 'error',
     });
       throw new Error(`Failed to fetch unprayed prayer requests: ${error.message}`);
     }
 
+    console.log('[PrayerApi.getUnprayedPrayerRequests] Found', data?.length || 0, 'unprayed requests');
     return (data || []).map((p) => ({
       ...p,
       type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'devotional'),
@@ -297,7 +371,23 @@ export class PrayerApi {
       userId = session.user.id;
     }
 
-    return this.getPrayersByType(userId, date, 'devotional');
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('selected_date', date)
+      .in('prayer_type', ['devotional', 'guided_playbook'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      Logger.error('Error fetching devotional prayers', error as Error, {
+        component: 'prayerApi',
+        action: 'error',
+      });
+      throw new Error(`Failed to fetch devotional prayers: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   // Get all devotional prayers for a user (for prayedItems display)
@@ -318,7 +408,7 @@ export class PrayerApi {
       .from('prayers')
       .select('*')
       .eq('user_id', userId)
-      .eq('prayer_type', 'devotional')
+      .in('prayer_type', ['devotional', 'guided_playbook'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -519,6 +609,10 @@ export class PrayerApi {
       throw new Error(`Failed to update prayer: ${error.message}`);
     }
 
+    if (dbUpdates.status === 'answered') {
+      await this.suppressAnsweredCheckNotifications(id, data.user_id);
+    }
+
     // Transform back to API format
     return {
       ...data,
@@ -531,18 +625,34 @@ export class PrayerApi {
 
   // Delete a prayer
   static async deletePrayer(id: string): Promise<void> {
-    const { error } = await supabase
+    console.log('[PrayerApi.deletePrayer] Deleting prayer with id:', id);
+    const session = await ensureAuthenticated();
+    const userId = session?.user?.id;
+
+    let deleteQuery = supabase
       .from('prayers')
       .delete()
       .eq('id', id);
 
+    if (userId) {
+      deleteQuery = deleteQuery.eq('user_id', userId);
+    }
+
+    const { error } = await deleteQuery;
+
     if (error) {
+      console.error('[PrayerApi.deletePrayer] Error deleting prayer:', error);
       Logger.error('Error deleting prayer', error as Error, {
       component: 'prayerApi',
       action: 'error',
     });
       throw new Error(`Failed to delete prayer: ${error.message}`);
     }
+
+    console.log('[PrayerApi.deletePrayer] Successfully deleted prayer from database');
+    // Cancel queue rows and hide history rows tied to this prayer so deleted
+    // prayers cannot keep surfacing in notification center.
+    await this.suppressAnsweredCheckNotifications(id, userId);
   }
 
   // Mark supplication as answered

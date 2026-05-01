@@ -82,11 +82,15 @@ export const useAllDevotionalPrayerData = (userId: string) => {
 export const useUnprayedPrayerRequests = (userId: string) => {
   return useQuery({
     queryKey: queryKeys.prayers.unprayedRequests(userId),
-    queryFn: () => PrayerApi.getUnprayedPrayerRequests(userId),
-    staleTime: 0, // Always refetch to ensure UI is up-to-date after marking as prayed
+    queryFn: () => {
+      console.log('[useUnprayedPrayerRequests] Fetching prayer requests for user:', userId);
+      return PrayerApi.getUnprayedPrayerRequests(userId);
+    },
+    staleTime: 0, // Always consider stale to ensure immediate updates after deletion
     enabled: !!userId,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
-    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnMount: true, // Refetch on mount to ensure dashboard shows latest data
+    refetchOnWindowFocus: true, // Refetch when app comes to foreground
   });
 };
 
@@ -208,12 +212,25 @@ export const useCreatePrayer = () => {
           queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
           (old = []) => [optimisticPrayer, ...old]
         );
-        // Cache updated optimistically
+      }
 
+      // Also optimistically update the unprayed requests cache for instant dashboard display
+      let previousUnprayedRequests: PrayerApiEntry[] | undefined;
+      if (newPrayer.prayer_type === 'people' && newPrayer.is_prayer_request === true) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+        });
+        previousUnprayedRequests = queryClient.getQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id)
+        );
+        queryClient.setQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          (old = []) => [optimisticPrayer, ...old]
+        );
       }
 
       // Return a context object with the snapshotted values
-      return { previousPrayers, previousPeoplePrayers, optimisticPrayer };
+      return { previousPrayers, previousPeoplePrayers, previousUnprayedRequests, optimisticPrayer };
     },
     onError: (err: Error, newPrayer, context) => {
       Logger.error('Error creating prayer', err as Error, {
@@ -230,6 +247,12 @@ export const useCreatePrayer = () => {
         queryClient.setQueryData(
           queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
           context.previousPeoplePrayers
+        );
+      }
+      if (context?.previousUnprayedRequests !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          context.previousUnprayedRequests
         );
       }
     },
@@ -303,38 +326,91 @@ export const useUpdatePrayer = () => {
       _dateStr: string;
     }) => PrayerApi.updatePrayer(id, updates),
     onMutate: async ({ id, updates, _userId, _dateStr }) => {
-      // Cancel any outgoing refetches
+      // Cancel any outgoing refetches for entries, people, and acts caches
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
 
       // Snapshot previous values for rollback
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
       );
-      // (No need to snapshot other caches for update here)
-
-      // Optimistically update to the new value
-      queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(_userId, _dateStr),
-        (old = []) => old.map(prayer =>
-          prayer.id === id
-            ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
-            : prayer
-        )
+      const previousPeoplePrayers = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.people(_userId, _dateStr)
+      );
+      const previousActsPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.acts(_userId, _dateStr)
       );
 
-      return { previousPrayers };
+      const applyUpdate = (prayer: PrayerApiEntry) =>
+        prayer.id === id
+          ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
+          : prayer;
+
+      // Optimistically update entries cache
+      queryClient.setQueryData(
+        queryKeys.prayers.entries(_userId, _dateStr),
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map(applyUpdate);
+        }
+      );
+
+      // Optimistically update people cache (covers answered tracking, etc.)
+      queryClient.setQueryData(
+        queryKeys.prayers.people(_userId, _dateStr),
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map(applyUpdate);
+        }
+      );
+
+      // Optimistically update acts cache (object shape: {adoration, confession, ...})
+      queryClient.setQueryData(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old: any) => {
+          if (!old || typeof old !== 'object' || Array.isArray(old)) {return old;}
+          const updateArr = (arr: any[]) => Array.isArray(arr) ? arr.map(applyUpdate) : arr;
+          return {
+            ...old,
+            adoration: updateArr(old.adoration),
+            confession: updateArr(old.confession),
+            thanksgiving: updateArr(old.thanksgiving),
+            supplication: updateArr(old.supplication),
+            freeform: updateArr(old.freeform),
+          };
+        }
+      );
+
+      return { previousPrayers, previousPeoplePrayers, previousActsPrayers };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       Logger.error('Error updating prayer', err as Error, {
       component: 'usePrayerData',
     });
-      // If the mutation fails, use the context to roll back
+      // Roll back all caches on failure
       if (context?.previousPrayers) {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
+        );
+      }
+      if (context?.previousPeoplePrayers) {
+        queryClient.setQueryData(
+          queryKeys.prayers.people(_userId, _dateStr),
+          context.previousPeoplePrayers
+        );
+      }
+      if (context?.previousActsPrayers) {
+        queryClient.setQueryData(
+          queryKeys.prayers.acts(_userId, _dateStr),
+          context.previousActsPrayers
         );
       }
     },
@@ -342,6 +418,14 @@ export const useUpdatePrayer = () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      // Invalidate people cache so server state is consistent
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.people(_userId, _dateStr),
+      });
+      // Invalidate acts cache for journal prayer answered tracking
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
       // Also refresh unprayed requests for dashboard in case an item transitioned
       // into/out of the unprayed requests set (e.g., marking prayed or toggling request flag)
@@ -447,6 +531,7 @@ export const useDeletePrayer = () => {
       }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
+      console.log('[useDeletePrayer] onSettled called - invalidating caches for user:', _userId);
       // Always refetch after error or success to ensure all views update
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
@@ -463,6 +548,7 @@ export const useDeletePrayer = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
+      console.log('[useDeletePrayer] Cache invalidation complete');
     },
   });
 };
@@ -501,20 +587,23 @@ export const useMarkSupplicationAnswered = () => {
         queryKeys.prayers.acts(_userId, _dateStr)
       );
 
-      // Update entries query
-      queryClient.setQueryData<PrayerApiEntry[]>(
+      // Update entries query (guard against non-array cache)
+      queryClient.setQueryData(
         queryKeys.prayers.entries(_userId, _dateStr),
-        (old = []) => old.map(prayer =>
-          prayer.id === id
-            ? {
-                ...prayer,
-                is_answered: isAnswered,
-                answered_date: isAnswered ? new Date().toISOString() : null,
-                status: isAnswered ? 'answered' : 'pending',
-                updated_at: new Date().toISOString(),
-              }
-            : prayer
-        )
+        (old: any) => {
+          if (!old || !Array.isArray(old)) {return old;}
+          return old.map((prayer: any) =>
+            prayer.id === id
+              ? {
+                  ...prayer,
+                  is_answered: isAnswered,
+                  answered_date: isAnswered ? new Date().toISOString() : null,
+                  status: isAnswered ? 'answered' : 'pending',
+                  updated_at: new Date().toISOString(),
+                }
+              : prayer
+          );
+        }
       );
 
       // Update ACTS query (this is the one the component uses)
@@ -561,7 +650,22 @@ export const useMarkSupplicationAnswered = () => {
         );
       }
     },
-    onSuccess: async (data, { isAnswered, _userId }) => {
+    onSuccess: async (data, { id, isAnswered, _userId, _dateStr }) => {
+      // Directly update ACTS cache with confirmed server data to prevent refetch race
+      queryClient.setQueryData(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old: any) => {
+          if (!old) {return old;}
+          const updatePrayer = (prayer: any) =>
+            prayer.id === id ? { ...prayer, ...data } : prayer;
+          return {
+            ...old,
+            supplication: old.supplication?.map(updatePrayer) || [],
+            freeform: old.freeform?.map(updatePrayer) || [],
+          };
+        }
+      );
+
       // Award faith points when marking prayer as answered (once per day)
       if (isAnswered && _userId) {
         try {
@@ -776,10 +880,11 @@ export const useCreateDevotionalPrayer = () => {
       dayNumber: number;
       dayTitle: string;
       totalDays?: number;
+      prayer_type?: string;
     }) => {
       return PrayerApi.createPrayer({
         user_id: prayer.userId,
-        prayer_type: 'devotional',
+        prayer_type: (prayer.prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'],
         content: prayer.content,
         selected_date: prayer.dateStr,
         status: 'pending',
@@ -790,7 +895,8 @@ export const useCreateDevotionalPrayer = () => {
         total_days: prayer.totalDays,
       });
     },
-    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays }) => {
+    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays, prayer_type }) => {
+      const actualPrayerType = (prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'];
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
       await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
@@ -805,7 +911,7 @@ export const useCreateDevotionalPrayer = () => {
       const existsIn = (list: any[] | undefined) =>
         !!list?.some((p: any) =>
           p?.user_id === userId &&
-          p?.prayer_type === 'devotional' &&
+          (p?.prayer_type === 'devotional' || p?.prayer_type === 'guided_playbook') &&
           p?.selected_date === dateStr &&
           p?.devotional_title === devotionalTitle &&
           p?.day_number === dayNumber
@@ -821,7 +927,7 @@ export const useCreateDevotionalPrayer = () => {
       const optimisticPrayer: PrayerApiEntry = {
         id: `temp-${Date.now()}`,
         user_id: userId,
-        prayer_type: 'devotional',
+        prayer_type: actualPrayerType,
         content,
         selected_date: dateStr,
         created_at: new Date().toISOString(),
@@ -831,7 +937,7 @@ export const useCreateDevotionalPrayer = () => {
         day_number: dayNumber,
         day_title: dayTitle,
         total_days: totalDays,
-        type: 'devotional',
+        type: 'devotional' as const,
         is_answered: false,
       };
 

@@ -173,6 +173,9 @@ PLAYBOOK TITLE:
 [Main Title - Keep it simple, direct, and specific. Do NOT use quotes. Do NOT start with 'Navigating' or similar verbs. Make each title unique and clear.]
 [Subtitle or Summary - Optional, keep it concise]
 
+CATEGORY:
+[Select ONE category from this exact list that best fits this playbook: Relationships, Family, Marriage, Singleness, Friendship, Work & Career, Calling & Purpose, Finance & Stewardship, Decision-Making, Conflict & Boundaries, Hurt & Forgiveness, Faith & Obedience, Church & Ministry, Parenting, Emotions & Inner Life, Anxiety & Peace, Fear & Trust, Waiting & Uncertainty, Grief & Loss, Shame & Guilt. Output ONLY the category name, nothing else.]
+
 TRUTH SUMMARY:
 {userName}, [10-15 word summary of the core truth]
 

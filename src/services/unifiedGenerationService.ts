@@ -99,8 +99,7 @@ export class UnifiedGenerationService {
    */
   async generatePlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
-      // 1. Check subscription limits
-      // IMPORTANT: Onboarding bypasses limits (seeker gets 1 free playbook)
+      // 1. Check subscription limits. Onboarding counts against the same monthly quota.
       const canGenerate = await subscriptionService.canGenerate(
         request.userId,
         'playbook',
@@ -242,7 +241,7 @@ export class UnifiedGenerationService {
       // Get user subscription for tier-based key selection
       const subscription = await subscriptionService.getUserSubscription(request.userId);
 
-      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-playbook`;
+      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook`;
       const bibleVersion = await this.getPreferredBibleVersion();
       const userMetadata = await this.getUserMetadata(request.userId);
 
@@ -301,11 +300,16 @@ export class UnifiedGenerationService {
         id: result.id,
         title: result.title,
         userInput: request.userInput,
+        category: result.category || undefined,
         truthInLove: result.truthInLove,
         actionSteps: result.actionSteps || [],
         affirmations: result.affirmations || [],
         bibleVerse: result.bibleVerse,
+        bibleVerseReflection: result.bibleVerseReflection,
         directChallenge: result.directChallenge,
+        prayer: result.prayer,
+        wordToSpeak: result.wordToSpeak,
+        transitionLine: result.transition_line || '',
         challengeCTA: result.challengeCTA || '',
         status: 'ongoing' as const,
         createdAt: result.createdAt || new Date().toISOString(),
@@ -322,6 +326,13 @@ export class UnifiedGenerationService {
           saveResult.error ? new Error(String(saveResult.error)) : new Error('Unknown save error'), {
           component: 'unifiedGenerationService',
         });
+      } else {
+        await subscriptionService.trackUsage(
+          request.userId,
+          'playbook',
+          0,
+          request.isOnboarding || false
+        );
       }
     } catch (error) {
       Logger.error('[UnifiedGenerationService] Direct generation error', error as Error, {

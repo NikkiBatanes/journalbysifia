@@ -90,23 +90,23 @@ class TierRestrictionService {
     // Basic content generation
     {
       feature: 'playbook_generation',
-      requiredTier: 'free_trial',
+      requiredTier: 'seeker',
       usageType: 'playbooks',
     },
     {
       feature: 'devotional_generation',
-      requiredTier: 'free_trial',
+      requiredTier: 'seeker',
       usageType: 'devotionals',
     },
 
-    // Content creation limits
+    // Higher monthly content quotas
     {
-      feature: 'unlimited_playbooks',
+      feature: 'more_playbooks',
       requiredTier: 'growth',
       usageType: 'playbooks',
     },
     {
-      feature: 'unlimited_devotionals',
+      feature: 'more_devotionals',
       requiredTier: 'spark',
       usageType: 'devotionals',
     },
@@ -114,7 +114,7 @@ class TierRestrictionService {
     // Copy incomplete todos
     {
       feature: 'copy_incomplete_todos',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       featureFlag: 'copyIncompleteTodosEnabled',
     },
 
@@ -128,12 +128,12 @@ class TierRestrictionService {
     // Guided prompts
     {
       feature: 'guided_prompts',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       usageType: 'guidedPrompts',
     },
     {
       feature: 'unlimited_guided_prompts',
-      requiredTier: 'free_trial',
+      requiredTier: 'spark',
       usageType: 'guidedPrompts',
     },
   ];
@@ -201,7 +201,7 @@ class TierRestrictionService {
       if (restriction.usageType && !options.skipUsageCheck) {
         const usage = await subscriptionService.getCurrentUsage(userId);
         const currentUsage = this.getCurrentUsageForType(usage, restriction.usageType);
-        const limit = this.getLimitForType(limits as any, restriction.usageType);
+        const limit = this.getSubscriptionLimitForType(subscription, limits as any, restriction.usageType);
 
         if (limit > 0 && currentUsage >= limit) {
           return {
@@ -209,7 +209,7 @@ class TierRestrictionService {
             reason: 'usage_limit',
             currentUsage,
             limit,
-            requiredTier: this.getNextTierWithUnlimitedAccess(restriction.usageType),
+            requiredTier: this.getNextTierForMoreAccess(restriction.usageType),
             upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
           };
         }
@@ -355,20 +355,35 @@ class TierRestrictionService {
   }
 
   /**
-   * Get the next tier that provides unlimited access for a usage type
+   * Prefer the user's stored/enriched subscription limits for quota-backed
+   * generation features. This keeps free_trial checks on trial limits instead
+   * of the paid tier's post-trial limits.
    */
-  private getNextTierWithUnlimitedAccess(usageType: string): SubscriptionTier {
-    // Define which tiers provide unlimited access for each usage type
-    const unlimitedTiers = {
+  private getSubscriptionLimitForType(subscription: any, limits: SubscriptionLimits, type: string): number {
+    switch (type) {
+      case 'playbooks':
+        return subscription?.playbooks_limit ?? this.getLimitForType(limits, type);
+      case 'devotionals':
+        return subscription?.devotionals_limit ?? this.getLimitForType(limits, type);
+      default:
+        return this.getLimitForType(limits, type);
+    }
+  }
+
+  /**
+   * Get the next tier that provides a larger quota for a usage type.
+   */
+  private getNextTierForMoreAccess(usageType: string): SubscriptionTier {
+    const higherQuotaTiers = {
       'playbooks': 'growth',
       'devotionals': 'growth',
       'exports': 'transformation',
       'apiCalls': 'transformation',
       // POST-LAUNCH: 'familyMembers': 'family',
-      'guidedPrompts': 'free_trial', // Unlimited guided prompts start at free trial
+      'guidedPrompts': 'spark',
     } as Record<string, SubscriptionTier>;
 
-    return unlimitedTiers[usageType] || 'transformation';
+    return higherQuotaTiers[usageType] || 'transformation';
   }
 
   /**
@@ -390,8 +405,8 @@ class TierRestrictionService {
       'advanced_analytics': 'Advanced Analytics',
       'priority_support': 'Priority Support',
       'family_sharing': 'Family Sharing',
-      'unlimited_playbooks': 'Unlimited Playbooks',
-      'unlimited_devotionals': 'Unlimited Devotionals',
+      'more_playbooks': 'More Playbooks',
+      'more_devotionals': 'More Devotionals',
       'copy_incomplete_todos': 'Copy Incomplete Todos',
       'answered_prayer_tracking': 'Prayer Tracking',
       'guided_prompts': 'Guided Prompts',

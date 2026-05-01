@@ -21,9 +21,55 @@ export class NewSubscriptionService {
 
   // ===== TIER CONFIGURATION =====
   /**
-   * Get limits and features for a subscription tier
+   * Get trial limits based on chosen tier
+   * @param trialChosenTier - The tier the user chose for trial
+   * @returns Tier limits for the trial period
    */
-  static getTierLimits(tier: SubscriptionTier): {
+  static getTrialLimits(trialChosenTier?: SubscriptionTier): {
+    playbooks_limit: number;
+    devotionals_limit: number;
+    smart_journaling_enabled: boolean;
+    show_dashboard_counts: boolean;
+  } {
+    const tier = ((trialChosenTier || 'growth') as string).replace('_annual', '') as SubscriptionTier;
+    switch (tier) {
+      case 'spark':
+        return {
+          playbooks_limit: 5,
+          devotionals_limit: 5,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      case 'growth':
+        return {
+          playbooks_limit: 15,
+          devotionals_limit: 15,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      case 'transformation':
+        return {
+          playbooks_limit: 25,
+          devotionals_limit: 25,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+      default:
+        return {
+          playbooks_limit: 15,
+          devotionals_limit: 15,
+          smart_journaling_enabled: true,
+          show_dashboard_counts: true,
+        };
+    }
+  }
+
+  /**
+   * Get tier limits and features for a subscription tier
+   * @param tier - The subscription tier
+   * @param subscription - Optional full subscription object for trial_chosen_tier lookup
+   */
+  static getTierLimits(tier: SubscriptionTier, subscription?: Subscription | null): {
     playbooks_limit: number;
     devotionals_limit: number;
     smart_journaling_enabled: boolean;
@@ -35,53 +81,51 @@ export class NewSubscriptionService {
     switch (baseTier) {
       case 'seeker':
         return {
-          playbooks_limit: 0,
-          devotionals_limit: 0,
-          smart_journaling_enabled: false,
-          show_dashboard_counts: true,
-        };
-      case 'free_trial':
-        // Free trial: Limited to 2 playbooks and 2 devotionals for 3 days
-        return {
           playbooks_limit: 2,
-          devotionals_limit: 2,
+          devotionals_limit: 1,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
+      case 'free_trial':
+        // Free trial: Limits depend on trial_chosen_tier
+        // Spark: 5/5, Growth: 15/15, Transformation: 25/25
+        // Use stored trial_chosen_tier if available, otherwise default to Growth
+        const trialChosenTier = (subscription as any)?.trial_chosen_tier || 'growth';
+        return this.getTrialLimits(trialChosenTier);
       case 'spark':
         return {
-          playbooks_limit: 8,
-          devotionals_limit: 8,
+          playbooks_limit: 10,
+          devotionals_limit: 10,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
       case 'growth':
         return {
-          playbooks_limit: 20,
-          devotionals_limit: 20,
+          playbooks_limit: 25,
+          devotionals_limit: 25,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
       case 'transformation':
         return {
-          playbooks_limit: 999999, // Effectively unlimited, but database-compatible
-          devotionals_limit: 999999, // Effectively unlimited, but database-compatible
+          playbooks_limit: 60,
+          devotionals_limit: 60,
           smart_journaling_enabled: true,
-          show_dashboard_counts: false, // Hide counts for unlimited
+          show_dashboard_counts: true,
         };
       // POST-LAUNCH: Family tier
       // case 'family':
       //   return {
-      //     playbooks_limit: 999999, // Effectively unlimited, but database-compatible
-      //     devotionals_limit: 999999, // Effectively unlimited, but database-compatible
+      //     playbooks_limit: -1,
+      //     devotionals_limit: -1,
       //     smart_journaling_enabled: true,
       //     show_dashboard_counts: false, // Hide counts for unlimited
       //   };
       default:
         // Fallback to seeker limits for unknown tiers
         return {
-          playbooks_limit: 0,
-          devotionals_limit: 0,
+          playbooks_limit: 2,
+          devotionals_limit: 1,
           smart_journaling_enabled: false,
           show_dashboard_counts: true,
         };
@@ -89,10 +133,19 @@ export class NewSubscriptionService {
   }
 
   /**
-   * Get onboarding playbook limit (special case for seeker during onboarding)
+   * Get onboarding playbook limit.
+   * Seeker onboarding playbook is free and does not increment playbooks_used.
    */
-  static getOnboardingPlaybookLimit(tier: SubscriptionTier): number {
-    return tier === 'seeker' ? 1 : this.getTierLimits(tier).playbooks_limit;
+  static getOnboardingPlaybookLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
+    return this.getTierLimits(tier, subscription).playbooks_limit;
+  }
+
+  /**
+   * Get onboarding devotional limit.
+   * Seeker onboarding devotional is free and does not increment devotionals_used.
+   */
+  static getOnboardingDevotionalLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
+    return this.getTierLimits(tier, subscription).devotionals_limit;
   }
 
   // ===== USER SUBSCRIPTION MANAGEMENT =====
@@ -141,21 +194,105 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Only reset for active paid subscriptions
-      // Skip if: Seeker tier, free_trial, or monthly (monthly handled by webhook)
-      if (subscription.tier === 'seeker' || subscription.tier === 'free_trial') {
-        return false; // No resets for seeker or trial
+      // Skip free_trial — no resets during trial period
+      if (subscription.tier === 'free_trial') {
+        return false;
+      }
+
+      // Seeker: reset 30 days after last_usage_reset.
+      // For fresh seekers: last_usage_reset = account creation date.
+      // For post-trial seekers: last_usage_reset = trial_end_date (cooldown clock).
+      // Both cases: usage resets exactly 30 days after last_usage_reset, no rollover.
+      if (subscription.tier === 'seeker') {
+        const now = new Date();
+        const lastReset = subscription.last_usage_reset
+          ? new Date(subscription.last_usage_reset)
+          : new Date(subscription.created_at);
+        const nextReset = new Date(lastReset.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        if (now >= nextReset) {
+          const { error: resetError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              playbooks_used: 0,
+              devotionals_used: 0,
+              last_usage_reset: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (resetError) {
+            Logger.error('[NewSubscriptionService] Failed to reset seeker monthly usage', resetError as Error, {
+              component: 'NewSubscriptionService',
+              userId,
+            });
+            return false;
+          }
+
+          Logger.info('[NewSubscriptionService] Seeker monthly usage reset', {
+            component: 'NewSubscriptionService',
+            userId,
+            daysAfterLastReset: Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24)),
+          });
+          return true;
+        }
+        return false;
       }
 
       const isAnnual = subscription.billing_cycle === 'annual' ||
                        subscription.tier?.includes('_annual');
 
+      // Monthly paid subs: webhook is primary reset mechanism, but perform a
+      // client-side calendar check as a fallback so the profile never shows stale counts.
       if (!isAnnual) {
-        return false; // Monthly subs reset via DID_RENEW webhook only
-        // CANCELLATION BEHAVIOR FOR MONTHLY:
-        // - User cancels → No more DID_RENEW webhooks fire
-        // - Therefore NO resets after cancellation
-        // - On expiration: EXPIRED webhook downgrades to Seeker
+        const anchor = new Date(subscription.subscription_start_date || subscription.created_at);
+        const billingDay = anchor.getDate(); // e.g. 15th of every month
+        const now = new Date();
+
+        // Find the start of the current billing period (same calendar day, this or last month)
+        // Clamp billing day to last day of current/prior month to prevent overflow (e.g., Feb 31 → Mar 3)
+        const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const clampedDay = Math.min(billingDay, lastDayOfCurrentMonth);
+        let periodStart: Date;
+        if (now.getDate() >= clampedDay) {  // compare against clamped day so short months (Feb) are detected
+          periodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
+        } else {
+          const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+          const clampedPriorDay = Math.min(billingDay, lastDayOfPriorMonth);
+          periodStart = new Date(now.getFullYear(), now.getMonth() - 1, clampedPriorDay);
+        }
+
+        const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
+
+        if (lastReset < periodStart) {
+          const { error: resetError } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              playbooks_used: 0,
+              devotionals_used: 0,
+              last_usage_reset: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (resetError) {
+            Logger.error('[NewSubscriptionService] Failed to reset monthly paid usage', resetError as Error, {
+              component: 'NewSubscriptionService',
+              userId,
+            });
+            return false;
+          }
+
+          Logger.info('[NewSubscriptionService] Monthly paid subscription client-side reset', {
+            component: 'NewSubscriptionService',
+            userId,
+            tier: subscription.tier,
+            billingDay,
+            periodStart: periodStart.toISOString(),
+          });
+          return true;
+        }
+        return false;
       }
 
       // CANCELLATION BEHAVIOR FOR ANNUAL:
@@ -164,16 +301,23 @@ export class NewSubscriptionService {
       // - Keeps annual badge/tier until expiration
       // - On Day 365: EXPIRED webhook downgrades to Seeker
 
-      // For annual: Calculate from billing anchor (subscription_start_date)
+      // Issue 8 fix: Use calendar-month arithmetic instead of 30-day rolling periods
+      // to avoid drift (e.g., buy on Jan 15 → reset on Feb 15, Mar 15, not Feb 14, Mar 16)
       const billingAnchor = new Date(subscription.subscription_start_date || subscription.created_at);
       const now = new Date();
-      const daysSinceAnchor = (now.getTime() - billingAnchor.getTime()) / (1000 * 60 * 60 * 24);
+      const anchorDay = billingAnchor.getDate();
 
-      // Calculate which 30-day period we're in (0-based)
-      const currentPeriod = Math.floor(daysSinceAnchor / 30);
-
-      // Calculate when the current period started
-      const currentPeriodStart = new Date(billingAnchor.getTime() + (currentPeriod * 30 * 24 * 60 * 60 * 1000));
+      // Clamp anchor day to last day of current/prior month to prevent overflow (e.g., Feb 31 → Mar 3)
+      const lastDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const clampedDay = Math.min(anchorDay, lastDayOfCurrentMonth);
+      let currentPeriodStart: Date;
+      if (now.getDate() >= clampedDay) {  // compare against clamped day so short months (Feb) are detected
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), clampedDay);
+      } else {
+        const lastDayOfPriorMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        const clampedPriorDay = Math.min(anchorDay, lastDayOfPriorMonth);
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, clampedPriorDay);
+      }
 
       // Check if we already reset for this period
       const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
@@ -202,8 +346,7 @@ export class NewSubscriptionService {
           component: 'NewSubscriptionService',
           userId,
           tier: subscription.tier,
-          period: currentPeriod + 1,
-          daysSinceAnchor: Math.floor(daysSinceAnchor),
+          periodStart: currentPeriodStart.toISOString(),
         });
 
         return true;
@@ -242,10 +385,23 @@ export class NewSubscriptionService {
         wrongTier: subscription.tier,
       });
 
-      // Force correct the tier to seeker
+      const seekerLimits = this.getTierLimits('seeker');
+
+      // Force correct the tier and limits to seeker
       const { error: updateError } = await supabase
         .from('user_subscriptions_new')
-        .update({ tier: 'seeker' })
+        .update({
+          tier: 'seeker',
+          subscription_display_name: 'siFia Seeker',
+          playbooks_limit: seekerLimits.playbooks_limit,
+          devotionals_limit: seekerLimits.devotionals_limit,
+          smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+          show_dashboard_counts: seekerLimits.show_dashboard_counts,
+          playbooks_used: 0,
+          devotionals_used: 0,
+          last_usage_reset: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .eq('user_id', userId);
 
       if (updateError) {
@@ -284,29 +440,31 @@ export class NewSubscriptionService {
       // Create or update subscription record with trial dates for proper expiry management
       const chosenTier = (trial_chosen_tier as SubscriptionTier) || 'spark';
 
-      // IMPORTANT: All trials get 2/2 limits regardless of chosen tier
-      // The chosen tier only applies AFTER they convert to paid
-      const trialLimits = this.getTierLimits('free_trial'); // Always 2/2 for trials
+      // IMPORTANT: Trial limits depend on chosen tier
+      // Spark: 5/5, Growth: 15/15, Transformation: 25/25
+      const trialLimits = this.getTrialLimits(chosenTier);
 
       // Generate display name for trial: "siFia Spark Trial", "siFia Growth Trial", etc.
       const tierDisplayName = this.getTierDisplayName(chosenTier);
       const displayName = `${tierDisplayName} Trial`;
 
+      const trialNow = new Date().toISOString();
       const subscriptionData = {
         user_id: user_id,
         status: 'active', // Trial users have 'active' status, distinguished by trial_start_date
         tier: 'free_trial', // Set tier to 'free_trial' during trial period
-        trial_start_date: new Date().toISOString(),
+        trial_start_date: trialNow,
         trial_end_date: trialEndDate.toISOString(),
         trial_chosen_tier: chosenTier, // Remember which tier they want after trial
         billing_cycle: billing_cycle || 'monthly', // Store billing cycle for conversion
         subscription_display_name: displayName, // e.g., "siFia Spark Trial"
-        playbooks_limit: trialLimits.playbooks_limit, // Always 2 for trials
-        devotionals_limit: trialLimits.devotionals_limit, // Always 2 for trials
+        playbooks_limit: trialLimits.playbooks_limit,
+        devotionals_limit: trialLimits.devotionals_limit,
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
-        updated_at: new Date().toISOString(),
+        last_usage_reset: trialNow, // Issue 7: initialize so first foreground check has a valid anchor
+        updated_at: trialNow,
         // CRITICAL: Store transaction IDs for webhook lookup
         platform_transaction_id: platform_transaction_id,
         original_transaction_id: original_transaction_id,
@@ -381,10 +539,28 @@ export class NewSubscriptionService {
           actualTier: finalSubscription.tier,
         });
 
-        // Force correct the tier one last time
+        // Force correct the full trial state one last time
         await supabase
           .from('user_subscriptions_new')
-          .update({ tier: 'free_trial' })
+          .update({
+            tier: 'free_trial',
+            status: 'active',
+            trial_start_date: trialNow,
+            trial_end_date: trialEndDate.toISOString(),
+            trial_chosen_tier: chosenTier,
+            billing_cycle: billing_cycle || 'monthly',
+            subscription_display_name: displayName,
+            playbooks_limit: trialLimits.playbooks_limit,
+            devotionals_limit: trialLimits.devotionals_limit,
+            smart_journaling_enabled: trialLimits.smart_journaling_enabled,
+            playbooks_used: 0,
+            devotionals_used: 0,
+            last_usage_reset: trialNow,
+            platform_transaction_id,
+            original_transaction_id,
+            platform_subscription_id,
+            updated_at: new Date().toISOString(),
+          })
           .eq('user_id', user_id);
 
         return await this.getUserSubscription(user_id);
@@ -426,6 +602,7 @@ export class NewSubscriptionService {
           playbooks_used: 0, // Reset usage when converting from trial to paid
           devotionals_used: 0,
           subscription_start_date: new Date().toISOString(),
+          last_usage_reset: new Date().toISOString(), // Initialize reset anchor for paid billing cycle
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
@@ -470,16 +647,19 @@ export class NewSubscriptionService {
     // Special case: If updating to same tier but it's a trial tier, we need to update trial fields
     if (isSameTierUpgrade && to_tier === 'free_trial') {
       // Update trial-specific fields even if tier is the same
-      const limits = this.getTierLimits(to_tier);
-      const displayName = this.getTierDisplayName(to_tier);
+      // Use tier-specific trial limits based on trial_chosen_tier
+      const subscription = await this.getUserSubscription(userId);
+      const trialChosenTier = subscription?.trial_chosen_tier || 'growth';
+      const limits = this.getTrialLimits(trialChosenTier);
+      const displayName = this.getTierDisplayName(to_tier, trialChosenTier);
 
       const updateData: any = {
         subscription_display_name: displayName,
         playbooks_limit: limits.playbooks_limit,
         devotionals_limit: limits.devotionals_limit,
         smart_journaling_enabled: limits.smart_journaling_enabled,
-        playbooks_used: 0, // ALWAYS reset usage for trial - should be 0/2
-        devotionals_used: 0, // ALWAYS reset usage for trial - should be 0/2
+        playbooks_used: 0, // ALWAYS reset usage for trial
+        devotionals_used: 0, // ALWAYS reset usage for trial
         updated_at: new Date().toISOString(),
       };
 
@@ -708,13 +888,13 @@ export class NewSubscriptionService {
       }
     }
 
-    const limits = this.getTierLimits(subscription.tier);
+    const limits = this.getTierLimits(subscription.tier, subscription);
 
     switch (action) {
       case 'playbook':
         return this.checkPlaybookLimit(subscription, limits, isOnboarding);
       case 'devotional':
-        return this.checkDevotionalLimit(subscription, limits);
+        return this.checkDevotionalLimit(subscription, limits, isOnboarding);
       case 'smart_journal':
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
@@ -738,40 +918,60 @@ export class NewSubscriptionService {
       throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
 
-    // Skip incrementing usage for onboarding playbooks - they're free for all tiers
-    if (isOnboarding && action === 'playbook') {
-      return;
-    }
-
     // Increment the appropriate counter
     const updateField = action === 'playbook' ? 'playbooks_used' :
                        action === 'devotional' ? 'devotionals_used' : null;
 
     if (updateField) {
-      // Get current value and increment manually to avoid RPC issues
-      const { data: currentSub } = await supabase
-        .from('user_subscriptions_new')
-        .select(`${updateField}`)
-        .eq('user_id', userId)
-        .single();
+      // Optimistic-lock increment with a fresh limit check on every retry.
+      // This prevents concurrent requests from pushing usage beyond the monthly quota.
+      const doAtomicIncrement = async (): Promise<void> => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const currentSubscription = await this.getUserSubscription(userId, true);
+          const currentValue = (currentSubscription as any)?.[updateField] || 0;
+          const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
+          const limit = action === 'playbook' ? limits.playbooks_limit : limits.devotionals_limit;
 
-      const currentValue = (currentSub as any)?.[updateField] || 0;
+          if (limit !== -1 && currentValue >= limit) {
+            throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
+          }
 
-      const { error } = await supabase
-        .from('user_subscriptions_new')
-        .update({
-          [updateField]: currentValue + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
+          const { data: updated, error } = await supabase
+            .from('user_subscriptions_new')
+            .update({
+              [updateField]: currentValue + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq(updateField, currentValue)
+            .select(updateField)
+            .maybeSingle();
 
-      if (error) {
-        throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
+          if (error) {
+            throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
+          }
+
+          if (updated) {
+            return;
+          }
+        }
+
+        throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
+      };
+
+      // Seeker onboarding and free_trial usage is never counted against the quota.
+      const skipCount = (isOnboarding && subscription.tier === 'seeker')
+        || subscription.tier === 'free_trial';
+      if (!skipCount) {
+        await doAtomicIncrement();
       }
     }
 
-    // Also update usage tracking table (but skip for onboarding)
-    if (!isOnboarding || action !== 'playbook' || subscription.tier !== 'seeker') {
+    // Also update the legacy usage tracking table where enabled.
+    const isTrialOrOnboardingSeeker =
+      subscription.tier === 'free_trial' ||
+      (isOnboarding && subscription.tier === 'seeker');
+    if (!isTrialOrOnboardingSeeker) {
       await this.updateUsageTracking(userId, action);
     }
   }
@@ -970,8 +1170,10 @@ export class NewSubscriptionService {
       //   return isAnnual ? 'siFia Family Annual' : 'siFia Family';
       case 'free_trial':
         // Show which tier the trial is for (e.g., siFia Spark Trial)
-        const chosenTier = trialChosenTier || 'spark';
-        return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)} Trial`;
+        const chosenTierRaw = (trialChosenTier || 'spark') as string;
+        const chosenTier = chosenTierRaw.replace('_annual', '');
+        const trialBilling = chosenTierRaw.includes('_annual') ? ' Annual' : '';
+        return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)}${trialBilling} Trial`;
       default:
         return `siFia ${String(baseTier).replace('_', ' ')}`;
     }
@@ -981,42 +1183,56 @@ export class NewSubscriptionService {
    * Enrich subscription data with computed properties
    */
   private static enrichSubscriptionData(data: any): Subscription {
-    const tierLimits = this.getTierLimits(data.tier);
+    const tierLimits = this.getTierLimits(data.tier, data);
     const displayName = this.getTierDisplayName(data.tier, data.trial_chosen_tier);
+
+    // Always use calculated limits as the source of truth. Server/webhook rows may
+    // contain stale historical limits (for example old trial or Transformation values).
+    const useCalculatedLimits = true;
 
     // Create UI-friendly data structure
     const subscription: Subscription = {
       ...data,
-      // Only override if stored values are missing/invalid (null/undefined), NOT if they're valid from upgrades
-      playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-      smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
-      show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+      // Use calculated limits so stale stored rows cannot bypass or hide quotas.
+      playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+      smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
       // Add limits property for dashboard compatibility
       limits: {
-        playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-        devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-        smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
-        show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+        playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+        devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+        smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
         // Add backward compatibility aliases
-        playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-        devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+        playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+        devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       },
       // UI fields - use actual limits (not stored values that might be outdated)
-      playbooks_ui: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals_ui: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-      playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+      playbooks_ui: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals_ui: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+      playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
     };
 
-    // Calculate trial expiry
-    if (subscription.trial_end_date) {
-      const trialEnd = new Date(subscription.trial_end_date);
+    // Add trial expiration tracking for free_trial tier
+    if (data.tier === 'free_trial' && data.trial_end_date) {
+      const trialEnd = new Date(data.trial_end_date);
       const now = new Date();
       subscription.is_expired = trialEnd < now;
       subscription.days_remaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    // Add cooldown state detection for users who ended trial without upgrading
+    // Cooldown state: tier === 'seeker' AND trial_start_date IS NOT NULL AND playbooks_used >= playbooks_limit
+    if (data.tier === 'seeker' && data.trial_start_date && data.playbooks_used >= data.playbooks_limit) {
+      subscription.is_in_cooldown = true;
+      // Calculate replenish date = last_usage_reset + 30 days
+      if (data.last_usage_reset) {
+        const lastReset = new Date(data.last_usage_reset);
+        const replenishDate = new Date(lastReset.getTime() + 30 * 24 * 60 * 60 * 1000);
+        subscription.replenish_date = replenishDate.toISOString();
+      }
     }
 
     return subscription;
@@ -1051,9 +1267,9 @@ export class NewSubscriptionService {
     const gracePeriodEnd = (subscription as any).grace_period_end_date;
     const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
 
-    // Use onboarding limit for seeker tier during onboarding
+    // Onboarding usage counts against the same monthly quota as regular usage.
     const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
-      ? this.getOnboardingPlaybookLimit(subscription.tier)
+      ? this.getOnboardingPlaybookLimit(subscription.tier, subscription)
       : limits.playbooks_limit;
 
     const isUnlimited = effectiveLimit === -1;
@@ -1077,15 +1293,20 @@ export class NewSubscriptionService {
   /**
    * Check devotional generation limit
    */
-  private static checkDevotionalLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+  private static checkDevotionalLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
     // PHASE 5: Grace period check - block generation if billing issue
     const isInGracePeriod = (subscription as any).billing_issue === true;
     const gracePeriodEnd = (subscription as any).grace_period_end_date;
     const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
 
-    const isUnlimited = limits.devotionals_limit === -1;
-    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.devotionals_used < limits.devotionals_limit);
-    const remaining = isUnlimited ? -1 : Math.max(0, limits.devotionals_limit - subscription.devotionals_used);
+    // Onboarding usage counts against the same monthly quota as regular usage.
+    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
+      ? this.getOnboardingDevotionalLimit(subscription.tier, subscription)
+      : limits.devotionals_limit;
+
+    const isUnlimited = effectiveLimit === -1;
+    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.devotionals_used < effectiveLimit);
+    const remaining = isGracePeriodActive ? 0 : (isUnlimited ? -1 : Math.max(0, effectiveLimit - subscription.devotionals_used));
 
     return {
       can_generate_playbook: true, // Will be checked separately
@@ -1137,9 +1358,6 @@ export class NewSubscriptionService {
     }
   }
 
-  /**
-   * Check smart journaling access
-   */
   private static checkSmartJournalingLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
@@ -1153,9 +1371,6 @@ export class NewSubscriptionService {
     };
   }
 
-  /**
-   * Check export limit (no limits for now)
-   */
   private static checkExportLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,

@@ -6,7 +6,6 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
-  Switch,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +46,7 @@ const OnboardingNotificationSetupScreen = () => {
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown'); // Used in lines 83-89
 
   // Derive display name for welcome message (first name only)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const displayName = (() => {
     // Try first_name first
     const firstName = (user as any)?.user_metadata?.first_name?.trim();
@@ -120,7 +120,7 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Journal Reminders',
       description: 'Occasional nudges to pause, reflect, and write',
       icon: 'create-outline',
-      enabled: true,
+      enabled: false,
     },
     {
       id: 'prayer_reminders',
@@ -141,8 +141,8 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Trial Reminders',
       description: 'Helpful updates so you can decide with peace',
       icon: 'time-outline',
-      enabled: true,
-      required: effectiveUserType === 'trial',
+      enabled: false,
+      required: false,
     },
     {
       id: 'prayer_request_alerts',
@@ -225,16 +225,16 @@ const OnboardingNotificationSetupScreen = () => {
         }
 
         Alert.alert(
-          '🌸 Notifications Enabled!',
-          'You\'ll receive personalized reminders to help you stay connected with God.',
+          '✨Notifications enabled',
+          'You\'ll receive gentle reminders to help you return, reflect, and stay connected with God.',
           [
             {
-              text: 'Let\'s Go!',
+              text: 'Let\'s go',
               onPress: () => {
-                // Navigate to MainTabs after notification setup (post-purchase)
+                // Navigate to UserInput after notification setup (post-purchase)
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'MainTabs' as any }],
+                  routes: [{ name: 'UserInput' as any }],
                 });
               },
             },
@@ -249,10 +249,10 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Continue Anyway',
               onPress: () => {
-                // Navigate to MainTabs after notification setup (post-purchase)
+                // Navigate to UserInput after notification setup (post-purchase)
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'MainTabs' as any }],
+                  routes: [{ name: 'UserInput' as any }],
                 });
               },
             },
@@ -271,12 +271,12 @@ const OnboardingNotificationSetupScreen = () => {
         'You can always enable notifications later in your profile settings.',
         [
           {
-            text: 'Continue',
+            text: 'Let\'s Go!',
             onPress: () => {
-              // Navigate to MainTabs after notification setup (post-purchase)
+              // Navigate to UserInput after notification setup (post-purchase)
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'MainTabs' as any }],
+                routes: [{ name: 'UserInput' as any }],
               });
             },
           },
@@ -302,10 +302,10 @@ const OnboardingNotificationSetupScreen = () => {
         {
           text: 'Skip',
           onPress: () => {
-            // Navigate to MainTabs after notification setup (post-purchase)
+            // Navigate to UserInput after notification setup (post-purchase)
             navigation.reset({
               index: 0,
-              routes: [{ name: 'MainTabs' as any }],
+              routes: [{ name: 'UserInput' as any }],
             });
           },
         },
@@ -318,37 +318,43 @@ const OnboardingNotificationSetupScreen = () => {
     const fromCancelledSales = (route.params as any)?.fromCancelledSales;
     if (fromCancelledSales) {
       return {
-        title: 'Welcome, Seeker',
-        subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
-        badge: 'Seeker Access',
+        title: 'Welcome to siFia',
+        subtitle: 'Your free Seeker plan includes 2 playbooks and 1 devotional each month.\nMove at a pace that feels right for your season.',
+        badge: 'Free Access',
       };
     }
 
     const currentTier = subscription?.tier || tier || 'seeker';
+    const baseTier = currentTier.replace('_annual', '');
+    const trialChosenTier = (subscription as any)?.trial_chosen_tier?.replace('_annual', '') || 'growth';
+    const trialLimits =
+      trialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
+      trialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
+      { playbooks: 15, devotionals: 15 };
 
-    switch (currentTier) {
+    switch (baseTier) {
       case 'free_trial':
         return {
           title: 'Make the Most of Your Free Trial',
-          subtitle: 'Get timely reminders for your 2 playbooks and 2 devotionals over the next 3 days.',
+          subtitle: `Get timely reminders for your ${trialLimits.playbooks} playbooks and ${trialLimits.devotionals} devotionals over the next 3 days.`,
           badge: '3-Day Trial Active',
         };
       case 'spark':
         return {
           title: 'Welcome to Spark',
-          subtitle: 'Get reminders for your 8 monthly playbooks, devotionals, and journaling.',
+          subtitle: 'Get reminders for your 10 monthly playbooks, 10 devotionals, and journaling.',
           badge: 'Spark Subscriber',
         };
       case 'growth':
         return {
           title: 'Welcome to Growth',
-          subtitle: 'Make the most of your 20 monthly resources with helpful reminders.',
+          subtitle: 'Make the most of your 25 monthly playbooks and 25 devotionals with helpful reminders.',
           badge: 'Growth Subscriber',
         };
       case 'transformation':
         return {
           title: 'Welcome to siFia Transformation',
-          subtitle: 'Enjoy unlimited access with gentle reminders to support your daily walk.',
+          subtitle: 'Enjoy 60 monthly playbooks and 60 devotionals with gentle reminders to support your daily walk.',
           badge: 'Transformation Subscriber',
         };
       // POST-LAUNCH: Family tier removed
@@ -361,9 +367,9 @@ const OnboardingNotificationSetupScreen = () => {
       case 'seeker':
       default:
         return {
-          title: 'Welcome, Seeker',
-          subtitle: 'You\'re welcome to stay here for now.\nMove at a pace that feels right for your season.',
-          badge: 'Seeker Access',
+          title: 'Welcome to siFia',
+          subtitle: 'Your free Seeker plan includes 2 playbooks and 1 devotional each month.\nMove at a pace that feels right for your season.',
+          badge: 'Free Access',
         };
     }
   };
@@ -396,7 +402,7 @@ const OnboardingNotificationSetupScreen = () => {
             adjustsFontSizeToFit
             minimumFontScale={0.9}
           >
-            {`Welcome, ${displayName}`}
+            {welcomeData.title}
           </ThemedText>
           <ThemedText style={styles.welcomeSubtitle}>
             {welcomeData.subtitle}
@@ -408,7 +414,9 @@ const OnboardingNotificationSetupScreen = () => {
           <ThemedText weight="bold" style={styles.settingsTitle}>Notification Preferences</ThemedText>
           <ThemedText style={styles.settingsSubtitle}>Choose what would be helpful for you right now. You can change these anytime.</ThemedText>
 
-          {notificationSettings.map((setting) => (
+          {notificationSettings
+            .filter(setting => !(setting.id === 'trial_reminders' && effectiveUserType === 'trial'))
+            .map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
               <View style={styles.settingLeft}>
                 <View style={styles.settingIconContainer}>
@@ -422,13 +430,23 @@ const OnboardingNotificationSetupScreen = () => {
                   )}
                 </View>
               </View>
-              <Switch
-                value={setting.enabled}
-                onValueChange={() => handleToggleSetting(setting.id)}
-                trackColor={{ false: Colors.switchTrackInactive, true: Colors.switchTrackActive }}
-                thumbColor={setting.enabled ? Colors.hopeWhite : Colors.lightGray}
+              <TouchableOpacity
+                onPress={() => !setting.required && handleToggleSetting(setting.id)}
+                activeOpacity={0.7}
                 disabled={setting.required}
-              />
+                style={[
+                  styles.toggle,
+                  setting.enabled && styles.toggleActive,
+                  setting.required && styles.toggleDisabled,
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: setting.enabled, disabled: setting.required }}
+              >
+                <View style={[
+                  styles.toggleIndicator,
+                  setting.enabled && styles.toggleIndicatorActive,
+                ]} />
+              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -443,13 +461,13 @@ const OnboardingNotificationSetupScreen = () => {
       </ScrollView>
 
       {/* Sticky Footer Actions */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 2 }] }>
-        <TouchableOpacity style={styles.enableButton} onPress={handleEnableNotifications}>
-          <ThemedText weight="bold" style={styles.enableButtonText}>Enable Notifications</ThemedText>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }] }>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleEnableNotifications}>
+          <ThemedText weight="semiBold" style={styles.primaryButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <ThemedText weight="medium" style={styles.skipButtonText}>Maybe Later</ThemedText>
+        <TouchableOpacity style={[styles.secondaryButton, styles.devotionalButton]} onPress={handleSkip}>
+          <ThemedText weight="semiBold" style={styles.secondaryButtonText}>Maybe Later</ThemedText>
         </TouchableOpacity>
 
         <ThemedText style={styles.privacyNote}>
@@ -471,7 +489,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingTop: 4,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: 'transparent',
   },
   header: {
@@ -530,17 +549,17 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   settingsTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   settingsSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
-    opacity: 0.75,
-    lineHeight: 20,
-    marginBottom: 16,
+    opacity: 0.8,
+    lineHeight: 22,
+    marginBottom: 12,
     textAlign: 'left',
   },
   settingItem: {
@@ -548,7 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
   },
@@ -612,44 +631,62 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  enableButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    height: 56,
+  primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
   },
-  enableButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  primaryButtonText: {
+    fontSize: 16,
     color: Colors.hopeWhite,
-    textAlign: 'center',
   },
-  skipButton: {
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  skipButtonText: {
-    color: Colors.hopeWhite,
+  secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    color: Colors.hopeWhite,
+  },
+  devotionalButton: {
+    marginTop: 12,
+  },
+  toggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  toggleDisabled: {
+    opacity: 0.5,
+  },
+  toggleIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 18,
+    backgroundColor: Colors.hopeWhite,
+    alignSelf: 'flex-start',
+  },
+  toggleIndicatorActive: {
+    alignSelf: 'flex-end',
   },
   privacyNote: {
     fontSize: 12,

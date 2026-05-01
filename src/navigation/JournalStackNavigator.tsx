@@ -3,6 +3,8 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
+import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
+import ReflectionEditorScreen from '../screens/ReflectionEditorScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +18,26 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="TimeBlockEditor"
+        component={TimeBlockEditorScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="ReflectionEditor"
+        component={ReflectionEditorScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
         }}

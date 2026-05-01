@@ -118,10 +118,16 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
     const currentTier = pricingTiers.find(t => t.id === baseTierKey);
 
     if (isTrial) {
+      const trialLimitByTier: Record<string, { playbooks: number; devotionals: number }> = {
+        spark: { playbooks: 5, devotionals: 5 },
+        growth: { playbooks: 15, devotionals: 15 },
+        transformation: { playbooks: 25, devotionals: 25 },
+      };
+      const trialLimits = trialLimitByTier[baseTierKey] || trialLimitByTier.growth;
       const benefits = [
         `Explore siFia ${baseName}${billingCycle} for 3 days`,
-        'Create 2 playbooks during your trial',
-        'Create 2 devotionals during your trial',
+        `Create ${trialLimits.playbooks} playbooks during your trial`,
+        `Create ${trialLimits.devotionals} devotionals during your trial`,
         'Return anytime when a moment comes up',
         'Cancel anytime before your trial ends',
       ];

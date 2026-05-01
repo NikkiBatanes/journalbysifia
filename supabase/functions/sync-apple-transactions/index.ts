@@ -51,10 +51,10 @@ function getTierFromProductId(productId: string): string {
 function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
   const baseTier = tier.replace('_annual', '');
   switch (baseTier) {
-    case 'spark': return { playbooks_limit: 8, devotionals_limit: 8, smart_journaling_enabled: true };
-    case 'growth': return { playbooks_limit: 20, devotionals_limit: 20, smart_journaling_enabled: true };
-    case 'transformation': return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
-    default: return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
+    case 'spark': return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
+    case 'growth': return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
+    case 'transformation': return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
+    default: return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
   }
 }
 
@@ -260,13 +260,18 @@ serve(async (req) => {
         const limits = getTierLimits(tier);
         const billingCycle = latestPaid.productId.includes('annual') ? 'annual' : 'monthly';
 
-        // Calculate subscription_end_date
+        // Calculate subscription_end_date — prefer Apple's actual expiresDate
         const now = new Date();
-        const subscriptionEndDate = new Date(now);
-        if (billingCycle === 'annual') {
-          subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
+        let subscriptionEndDate: Date;
+        if (latestPaid.expiresDate) {
+          subscriptionEndDate = new Date(latestPaid.expiresDate);
         } else {
-          subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
+          subscriptionEndDate = new Date(now);
+          if (billingCycle === 'annual') {
+            subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
+          } else {
+            subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
+          }
         }
 
         // Upgrade user to paid tier
@@ -282,6 +287,7 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: limits.smart_journaling_enabled,
+            show_dashboard_counts: true,
             subscription_start_date: new Date(latestPaid.purchaseDate).toISOString(),
             subscription_end_date: subscriptionEndDate.toISOString(),
             trial_converted_date: new Date(latestPaid.purchaseDate).toISOString(),

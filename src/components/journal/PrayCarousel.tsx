@@ -13,12 +13,14 @@ import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
-
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 
 interface PrayCarouselProps {
   selectedDate: Date;
   initialScrollIndex?: number;
   onScrollIndexChange?: (index: number) => void;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
 interface CarouselItem {
@@ -29,7 +31,7 @@ interface CarouselItem {
   color: string;
 }
 
-const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScrollIndex = 0, onScrollIndexChange }) => {
+const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScrollIndex = 0, onScrollIndexChange, navigation }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isLandscape = screenWidth > screenHeight;
 
@@ -95,13 +97,13 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
       id: 'prayerjournal',
       title: 'PRAYER JOURNAL',
       icon: 'hand-left-outline',
-      component: <PrayerJournalReactQuery selectedDate={selectedDate} variant="carousel" />,
+      component: <PrayerJournalReactQuery selectedDate={selectedDate} variant="carousel" navigation={navigation} />,
       color: Colors.anchorBlue,
     },
     {
       id: 'devotionalprayers',
       title: 'PRAYED DEVOTIONALS',
-      icon: 'book-heart',
+      icon: 'notebook-heart-outline',
       component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode="carousel" />,
       color: Colors.hopeWhite,
     },
@@ -109,7 +111,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
       id: 'peopleprayers',
       title: 'PRAYER LIST (PEOPLE)',
       icon: 'people-outline',
-      component: <EnhancedPrayerListReactQuery selectedDate={selectedDate} />,
+      component: <EnhancedPrayerListReactQuery selectedDate={selectedDate} navigation={navigation} />,
       color: Colors.alertCoral,
     },
   ];

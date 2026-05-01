@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -6,25 +6,20 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Check, Pencil } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 // import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts'; // Unused
 import { JournalCard } from './JournalCard';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../../services/queryKeys';
 import {
   useACTSPrayerData,
-  useCreatePrayer,
   useMarkSupplicationAnswered,
   useDeletePrayer,
-  useUpdatePrayer,
 } from '../../services/hooks/usePrayerData';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -37,9 +32,9 @@ import {
   triggerSelectionHaptic,
   triggerErrorHaptic,
 } from '../../utils/haptics';
-import { PrayerStyleSelectionModal } from '../modals/PrayerStyleSelectionModal';
 import type { PluginFilters } from '../../systems/journal/types';
-import { faithPointsService } from '../../services/faithPointsService';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -95,8 +90,8 @@ interface SwipeablePrayerCardProps {
   prayer: any;
   type: any;
   onMarkAnswered: (id: string, isAnswered: boolean) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (prayer: any) => void;
+  onDelete?: (prayer: any) => void;
 }
 
 const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
@@ -106,93 +101,154 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const swipeableRef = useRef<Swipeable>(null);
-
-  const renderRightActions = () => (
-    <View style={styles.prayerSwipeActions}>
-      <TouchableOpacity
-        style={styles.editActionBtn}
-        onPress={() => {
-          onEdit(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="create-outline" size={22} color="white" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteActionBtn}
-        onPress={() => {
-          onDelete(prayer.id);
-          swipeableRef.current?.close();
-        }}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="trash-outline" size={22} color="white" />
-      </TouchableOpacity>
-    </View>
-  );
 
   return (
-    <View style={styles.swipeableContainer}>
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-      >
-        <View
-          style={[
-            styles.prayerItem,
-            prayer.answered_at && styles.prayerItemAnswered,
-          ]}
+    <TouchableOpacity
+      style={[
+        styles.prayerItem,
+        prayer.answered_at && styles.prayerItemAnswered,
+      ]}
+      onPress={() => {
+        if (onEdit) {
+          triggerLightHaptic();
+          onEdit(prayer);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete) {
+          triggerLightHaptic();
+          onDelete(prayer);
+        }
+      }}
+      activeOpacity={0.7}
+    >
+      <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
+
+      {/* Mark as Answered Button - for supplication and open prayer when tracking is enabled */}
+      {((type.key === 'supplication' || type.key === 'freeform') && prayer.metadata?.track_answered === true) && (
+        <TouchableOpacity
+          style={[styles.markAnsweredButton, prayer.answered_at && styles.markAnsweredButtonActive]}
+          onPress={() => {
+            // Toggle answered state
+            onMarkAnswered(prayer.id, !prayer.answered_at);
+          }}
+          activeOpacity={0.8}
         >
-          <ThemedText style={styles.prayerText}>{prayer.content}</ThemedText>
-
-          {/* Mark as Answered Button - for supplication and open prayer when not answered */}
-          {((type.key === 'supplication' || type.key === 'freeform') && !prayer.answered_at) && (
-            <TouchableOpacity
-              style={styles.markAnsweredButton}
-              onPress={() => {
-                // Directly mark as answered (no confirmation)
-                onMarkAnswered(prayer.id, true);
-              }}
-            >
-              <Check size={12} color="#FF9500" />
-              <ThemedText style={styles.markAnsweredText}>Mark as Answered</ThemedText>
-            </TouchableOpacity>
-          )}
-
-          {/* Answered Indicator - Tappable to mark as unanswered */}
+          <Ionicons name={prayer.answered_at ? 'sparkles' : 'checkmark-circle-outline'} size={14} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
+            {prayer.answered_at ? 'Answered' : 'Mark Answered'}
+          </ThemedText>
           {prayer.answered_at && (
-            <TouchableOpacity
-              style={styles.answeredIndicator}
-              onPress={() => {
-                if ((type.key === 'supplication' || type.key === 'freeform')) {
-                  Alert.alert(
-                    'Mark as Unanswered',
-                    'Mark this prayer as unanswered?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Mark Unanswered',
-                        onPress: () => onMarkAnswered(prayer.id, false),
-                      },
-                    ]
-                  );
-                }
-              }}
-            >
-              <Check size={12} color={Colors.growthGreen} />
-              <View style={styles.answeredTextContainer}>
-                <ThemedText style={styles.answeredText}>Answered</ThemedText>
-                <ThemedText style={styles.answeredTimestamp}>
-                  {formatAnsweredDate(prayer.answered_at)}
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
+            <ThemedText style={styles.answeredDateText}>
+              {formatAnsweredDate(prayer.answered_at)}
+            </ThemedText>
           )}
+        </TouchableOpacity>
+      )}
+
+    </TouchableOpacity>
+  );
+};
+
+// CombinedCASTPrayerCard Component - displays CAST prayers as one whole prayer with supplication at bottom
+interface CombinedCASTPrayerCardProps {
+  allPrayers: any[];
+  supplicationPrayer: any | null;
+  onMarkAnswered: (id: string, isAnswered: boolean) => void;
+  onEdit?: (prayer: any) => void;
+  onDelete?: (prayer: any) => void;
+}
+
+const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
+  allPrayers,
+  supplicationPrayer,
+  onMarkAnswered,
+  onEdit,
+  onDelete,
+}) => {
+  // Get prayers in order (confession, adoration, supplication, thanksgiving)
+  const order = ['confession', 'adoration', 'supplication', 'thanksgiving'];
+  const orderedPrayers = order
+    .map(type => allPrayers.find((p: any) => p.type === type))
+    .filter(Boolean);
+
+  // Split content: before supplication and after supplication
+  const supplicationIndex = orderedPrayers.findIndex((p: any) => p.type === 'supplication');
+  const beforeSupplication = orderedPrayers.slice(0, supplicationIndex);
+  const afterSupplication = orderedPrayers.slice(supplicationIndex + 1);
+
+  return (
+    <TouchableOpacity
+      style={styles.combinedCASTCard}
+      onPress={() => {
+        if (onEdit && orderedPrayers.length > 0) {
+          triggerLightHaptic();
+          onEdit(orderedPrayers[0]);
+        }
+      }}
+      onLongPress={() => {
+        if (onDelete && orderedPrayers.length > 0) {
+          triggerLightHaptic();
+          onDelete(orderedPrayers[0]);
+        }
+      }}
+      activeOpacity={0.7}
+    >
+      {/* Opening */}
+      <View style={styles.combinedContentSection}>
+        <ThemedText style={styles.combinedOpeningText}>Heavenly Father,</ThemedText>
+      </View>
+
+      {/* Content before supplication (confession, adoration) */}
+      {beforeSupplication.map((prayer: any) => (
+        <View key={prayer.id} style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
         </View>
-      </Swipeable>
-    </View>
+      ))}
+
+      {/* Supplication content */}
+      {supplicationPrayer && (
+        <View style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>  {supplicationPrayer.content}</ThemedText>
+        </View>
+      )}
+
+      {/* Tracking indicator for supplication - shown right after supplication */}
+      {supplicationPrayer && supplicationPrayer.metadata?.track_answered === true && (
+        <View style={styles.trackingSection}>
+          {/* Mark as Answered Button - always visible, toggles state */}
+          <TouchableOpacity
+            style={[styles.markAnsweredButton, supplicationPrayer.answered_at && styles.markAnsweredButtonActive]}
+            onPress={() => {
+              onMarkAnswered(supplicationPrayer.id, !supplicationPrayer.answered_at);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={supplicationPrayer.answered_at ? 'sparkles' : 'checkmark-circle-outline'} size={14} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
+              {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
+            </ThemedText>
+            {supplicationPrayer.answered_at && (
+              <ThemedText style={styles.answeredDateText}>
+                {formatAnsweredDate(supplicationPrayer.answered_at)}
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Content after supplication (thanksgiving) */}
+      {afterSupplication.map((prayer: any) => (
+        <View key={prayer.id} style={styles.combinedContentSection}>
+          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
+        </View>
+      ))}
+
+      {/* Closing */}
+      <View style={styles.combinedContentSection}>
+        <ThemedText style={styles.combinedOpeningText}>In Jesus' Name, Amen</ThemedText>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -268,6 +324,7 @@ interface PrayerJournalProps {
   expanded?: boolean;
   onExpand?: () => void;
   filters?: PluginFilters;
+  navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
@@ -277,6 +334,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   expanded,
   onExpand,
   filters,
+  navigation,
 }) => {
   // Global edit mode context (only for inline view)
   const globalEditMode = useEditModeSafe();
@@ -288,20 +346,12 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const dateCategory = getDateCategory(selectedDate);
 
   // React Query hooks
-  const queryClient = useQueryClient();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
-  const createMutation = useCreatePrayer();
   const markAnsweredMutation = useMarkSupplicationAnswered();
-  const deleteMutation = useDeletePrayer();
-  const updateMutation = useUpdatePrayer();
+  const deletePrayerMutation = useDeletePrayer();
 
   // Local state
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedPrayerType, setSelectedPrayerType] = useState<string>('');
-  const [prayerText, setPrayerText] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [showStyleModal, setShowStyleModal] = useState(false);
-  const [editingPrayerId, setEditingPrayerId] = useState<string | null>(null);
 
   // Transform API data to local format
   const existingPrayers = useMemo(() => {
@@ -325,8 +375,29 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       status: entry.status,
       is_answered: entry.is_answered,
       answered_at: entry.answered_date,
+      metadata: entry.metadata,
     }));
   }, [prayerEntries]);
+
+  // Show more / show less state for CAST and Open Prayer
+  const initialLimits = useMemo(() => {
+    const actsPrayers = existingPrayers.filter((p: any) => p.type !== 'freeform');
+    const openPrayers = existingPrayers.filter((p: any) => p.type === 'freeform');
+
+    if (actsPrayers.length > 0 && openPrayers.length > 0) {
+      return { acts: 1, open: 1 };
+    } else if (actsPrayers.length > 0) {
+      return { acts: 2, open: 0 };
+    } else if (openPrayers.length > 0) {
+      return { acts: 0, open: 2 };
+    }
+    return { acts: 0, open: 0 };
+  }, [existingPrayers]);
+
+  const [userExpanded, setUserExpanded] = useState(false);
+
+  const actsDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type !== 'freeform').length : initialLimits.acts;
+  const openDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type === 'freeform').length : initialLimits.open;
 
   // Map filters to local type keys used by this component
   const allowedTypeKeysFromFilters = useMemo(() => {
@@ -372,29 +443,47 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
     if (isEditing) {
-      const selectedType = PRAYER_TYPES.find(t => t.key === selectedPrayerType);
-      return selectedType?.method === 'ACTS' ? 'ACTS Method Prayer' : 'Open Prayer';
+      return 'CAST Method & Open Prayer';
     }
     if (hasContent) {
-      const totalCount = displayPrayers.length;
-      const supplicationCount = displayPrayers.filter(p => p.type === 'supplication').length;
-      const openCount = displayPrayers.filter(p => p.type === 'freeform').length;
+      // Count ACTS prayer sessions (1 CAST prayer = 1 prayer, not per step)
+      const actsPrayers = displayPrayers.filter(p => p.type !== 'freeform');
+      const openPrayers = displayPrayers.filter(p => p.type === 'freeform');
+
+      // Group ACTS prayers by time window (entries within 2 minutes = 1 prayer session)
+      const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      let actsCount = 0;
+      let lastSessionTime = 0;
+      const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+
+      for (const prayer of sortedActs) {
+        const prayerTime = new Date(prayer.created_at).getTime();
+        if (prayerTime - lastSessionTime > SESSION_WINDOW_MS) {
+          actsCount++;
+          lastSessionTime = prayerTime;
+        }
+      }
+
+      // Open prayers are counted individually
+      const openCount = openPrayers.length;
+
+      const totalCount = actsCount + openCount;
       const answeredCount = displayPrayers.filter(p => p.is_answered || p.status === 'answered' || !!p.answered_at).length;
 
-      // Main prayer count line
+      // Determine prayer path type
+      let prayerPath = '';
+      if (actsCount > 0 && openCount > 0) {
+        prayerPath = 'CAST & Open';
+      } else if (actsCount > 0) {
+        prayerPath = 'CAST Method';
+      } else if (openCount > 0) {
+        prayerPath = 'Open Prayer';
+      }
+
+      // Main prayer count line with path
       let subtitle = totalCount === 1 ? '1 Prayer' : `${totalCount} Prayers`;
-
-      // Add prayer type breakdown
-      const typeParts = [];
-      if (supplicationCount > 0) {
-        typeParts.push(`${supplicationCount} Supplication`);
-      }
-      if (openCount > 0) {
-        typeParts.push(`${openCount} Open`);
-      }
-
-      if (typeParts.length > 0) {
-        subtitle += ` • ${typeParts.join(', ')}`;
+      if (prayerPath) {
+        subtitle += ` • ${prayerPath}`;
       }
 
       // Add answered count on a new line if there are answered prayers
@@ -404,141 +493,20 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
       return subtitle;
     }
-    return 'ACTS & Open Prayer';
+    return 'CAST Method & Open Prayer';
   };
 
-  // Handle edit mode - directly open modal
+  // Handle edit mode - navigate to walkthrough
   const toggleEditing = useCallback(() => {
-    // Directly open modal without changing selection
-    setShowStyleModal(true);
-  }, []);
-
-  // Handle prayer type selection
-  const handlePrayerTypeSelect = useCallback((type: string) => {
-    setSelectedPrayerType(type);
-  }, []);
-
-  // Handle style selection modal
-  // handleOpenStyleModal and handleConfirmStyle removed - were defined but never used
-
-  const handleCloseStyleModal = useCallback(() => {
-    setShowStyleModal(false);
-    setPrayerText('');
-    // Clear selection when closing so nothing remains selected outside the modal
-    setSelectedPrayerType('');
-    setEditingPrayerId(null);
-  }, []);
-
-  // Handle prayer text change
-  const handlePrayerTextChange = useCallback((text: string) => {
-    setPrayerText(text);
-  }, []);
-
-  // Handle save prayer
-  const handleSavePrayer = useCallback(async () => {
-    if (!prayerText.trim()) {
-      Alert.alert('Empty Prayer', 'Please enter your prayer before saving.');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      if (editingPrayerId) {
-        // Update existing prayer
-        await updateMutation.mutateAsync({
-          id: editingPrayerId,
-          updates: {
-            content: prayerText.trim(),
-          },
-          _userId: user?.id || '',
-          _dateStr: dateStr,
-        });
-
-        // Manually invalidate ACTS prayer cache to ensure UI updates
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.acts(user?.id || '', dateStr),
-        });
-
-        analytics.track('prayer_journal_entry_updated', {
-          prayer_id: editingPrayerId,
-          date: dateStr,
-          content_length: prayerText.trim().length,
-        });
-      } else {
-        // Require the user to choose a prayer type before creating
-        if (!selectedPrayerType) {
-          Alert.alert('Choose Prayer Type', 'Please select a prayer type (ACTS or Open Prayer) before saving.');
-          setIsSaving(false);
-          return;
-        }
-        // Create new prayer
-        await createMutation.mutateAsync({
-          user_id: user?.id || '',
-          selected_date: dateStr,
-          prayer_type: 'journal',
-          journal_category: selectedPrayerType === 'freeform' ? 'personal_prayer' : selectedPrayerType as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
-          content: prayerText.trim(),
-          status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
-        });
-
-        if (user?.id) {
-          const activityKey: Parameters<typeof faithPointsService.awardPoints>[1] =
-            selectedPrayerType === 'freeform' ? 'prayer_journal_open' : 'prayer_journal_acts';
-
-          faithPointsService
-            .awardPoints(user.id, activityKey, {
-              suppressNotification: true,
-              source: 'prayer_journal',
-              journal_category: selectedPrayerType,
-              selected_date: dateStr,
-            })
-            .catch(error => {
-              Logger.warn('[PrayerJournalReactQuery] Failed to award prayer journal faith points', { component: 'PrayerJournalReactQuery', data: error });
-            });
-        }
-
-        analytics.track('prayer_journal_entry_created', {
-          prayer_type: selectedPrayerType,
-          date: dateStr,
-          content_length: prayerText.trim().length,
-        });
-      }
-
-      // Success feedback only after confirmed mutation success
-      triggerSuccessHaptic();
-
-      // Reset form
-      setPrayerText('');
-      setSelectedPrayerType('');
-      setIsEditing(false);
-      setEditingPrayerId(null);
-
-      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
-        globalEditMode.setGlobalEditMode(false);
-      }
-    } catch (saveError) {
-      Logger.error('Error saving prayer', saveError as Error, {
-        component: 'PrayerJournalReactQuery',
+    if (navigation) {
+      navigation.navigate('PrayerJournalWalkthrough', {
+        selectedDate: toLocalDateString(selectedDate),
       });
-      Alert.alert('Error', 'Failed to save prayer. Please try again.');
-      // Error feedback
-      triggerErrorHaptic();
-    } finally {
-      setIsSaving(false);
     }
-  }, [prayerText, selectedPrayerType, user?.id, dateStr, createMutation, updateMutation, editingPrayerId, globalEditMode, viewMode, queryClient]);
-
-  // Handle save from modal
-  const handleSaveFromModal = useCallback(async () => {
-    await handleSavePrayer();
-    setShowStyleModal(false);
-  }, [handleSavePrayer]);
+  }, [navigation, selectedDate]);
 
   // Handle cancel editing
   const handleCancelEdit = useCallback(() => {
-    setPrayerText('');
-    // Ensure no selection remains when cancelling add/edit
-    setSelectedPrayerType('');
     setIsEditing(false);
 
     if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
@@ -574,83 +542,233 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
   }, [markAnsweredMutation, dateStr, user?.id]);
 
+  // Handle delete prayer
+  const handleDeletePrayer = useCallback((prayer: any) => {
+    Alert.alert(
+      'Delete Prayer',
+      'Are you sure you want to delete this prayer?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              triggerLightHaptic();
+
+              // For CAST prayers, delete the entire session (all prayers within 2 minutes)
+              if (prayer.type !== 'freeform') {
+                const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+                const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+                const prayerTime = new Date(prayer.created_at).getTime();
+
+                // Find all prayers in the same session
+                const sessionPrayers = actsPrayers.filter((p: any) => {
+                  const pTime = new Date(p.created_at).getTime();
+                  return Math.abs(pTime - prayerTime) <= SESSION_WINDOW_MS;
+                });
+
+                // Delete all prayers in the session in parallel to avoid sequential animations
+                await Promise.all(
+                  sessionPrayers.map(p =>
+                    deletePrayerMutation.mutateAsync({
+                      id: p.id,
+                      _userId: user?.id || '',
+                      _dateStr: dateStr,
+                    })
+                  )
+                );
+              } else {
+                // For open prayers, delete individually
+                await deletePrayerMutation.mutateAsync({
+                  id: prayer.id,
+                  _userId: user?.id || '',
+                  _dateStr: dateStr,
+                });
+              }
+
+              triggerSuccessHaptic();
+            } catch (error) {
+              console.error('Failed to delete prayer:', error);
+              Alert.alert('Error', 'Failed to delete prayer. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }, [deletePrayerMutation, dateStr, user?.id, displayPrayers]);
+
+  // Handle edit prayer - navigate to walkthrough with pre-selected type
+  const handleEditPrayer = useCallback((prayer: any) => {
+    if (!navigation) {return;}
+
+    // Determine prayer type: 'acts' for CAST method, 'open' for open prayer
+    const prayerType = prayer.type === 'freeform' ? 'open' : 'acts';
+
+    // Navigate to walkthrough with pre-selected type
+    navigation.navigate('PrayerJournalWalkthrough', {
+      selectedDate: dateStr,
+      initialPrayerType: prayerType,
+      editingPrayerId: prayer.id,
+    });
+  }, [navigation, dateStr]);
+
   // Handle global edit mode changes for inline view
   React.useEffect(() => {
     if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode && !isEditing) {
       setIsEditing(true);
     } else if (viewMode === 'inline' && !globalEditMode?.isGlobalEditMode && isEditing) {
       setIsEditing(false);
-      setPrayerText('');
-      setSelectedPrayerType('');
     }
   }, [globalEditMode?.isGlobalEditMode, viewMode, isEditing]);
 
-  // Render existing prayers
-  const renderExistingPrayers = () => (
-    <View
-      style={[
-        styles.prayersContainer,
-        (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
-      ]}
-    >
-      {PRAYER_TYPES.map((type) => {
-        const typePrayers = displayPrayers.filter((p: any) => p.type === type.key);
-        if (typePrayers.length === 0) { return null; }
+  // Render existing prayers - redesigned to show CAST vs Open Prayer structure
+  const renderExistingPrayers = () => {
+    const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+    const openPrayers = displayPrayers.filter((p: any) => p.type === 'freeform');
 
-        return (
-          <View key={type.key} style={styles.prayerTypeSection}>
-            <View style={styles.prayerTypeSectionHeader}>
-              <Ionicons
-                name={type.icon}
-                size={16}
-                color={Colors.hopeWhite}
+    // Group ACTS prayers by session (within 2 minutes)
+    const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+    const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const actsSessions: any[][] = [];
+    let currentSession: any[] = [];
+
+    for (const prayer of sortedActs) {
+      const prayerTime = new Date(prayer.created_at).getTime();
+      if (currentSession.length === 0) {
+        currentSession.push(prayer);
+      } else {
+        const lastPrayerTime = new Date(currentSession[currentSession.length - 1].created_at).getTime();
+        if (prayerTime - lastPrayerTime <= SESSION_WINDOW_MS) {
+          currentSession.push(prayer);
+        } else {
+          actsSessions.push(currentSession);
+          currentSession = [prayer];
+        }
+      }
+    }
+    if (currentSession.length > 0) {
+      actsSessions.push(currentSession);
+    }
+
+    // Apply display limits
+    const displayedActsSessions = actsSessions.slice(0, actsDisplayLimit);
+    const displayedOpenPrayers = openPrayers.slice(0, openDisplayLimit);
+
+    // Check if we need to show show more/less button
+    const hasMoreActs = actsSessions.length > actsDisplayLimit;
+    const hasMoreOpen = openPrayers.length > openDisplayLimit;
+    const hasMoreItems = hasMoreActs || hasMoreOpen;
+    const canShowLess = userExpanded;
+
+    return (
+      <View
+        style={[
+          styles.prayersContainer,
+          (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
+        ]}
+      >
+        {/* CAST Method Section */}
+        {displayedActsSessions.length > 0 && (
+          <View style={styles.prayerPathSection}>
+            <View style={styles.prayerPathHeader}>
+              <MaterialCommunityIcons
+                name="layers"
+                size={18}
+                color={Colors.alertCoral}
               />
-              <ThemedText style={styles.prayerTypeSectionTitle} weight="semiBold">{type.displayName}</ThemedText>
+              <ThemedText style={styles.prayerPathTitle} weight="semiBold">CAST METHOD</ThemedText>
+              <View style={styles.prayerPathDivider} />
             </View>
-            {typePrayers.map((prayer: any) => (
-              <SwipeablePrayerCard
-                key={prayer.id}
-                prayer={prayer}
-                type={type}
-                onMarkAnswered={handleMarkAnswered}
-                onEdit={(prayerId: string) => {
-                  // Find the prayer and open modal with its content
-                  const prayerToEdit = existingPrayers.find(p => p.id === prayerId);
-                  if (prayerToEdit) {
-                    setEditingPrayerId(prayerId);
-                    setSelectedPrayerType(prayerToEdit.type);
-                    setPrayerText(prayerToEdit.content);
-                    setShowStyleModal(true);
-                  }
-                }}
-                onDelete={(prayerId: string) => {
-                  Alert.alert(
-                    'Delete Prayer',
-                    'Are you sure you want to delete this prayer?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => {
-                          deleteMutation.mutate({
-                            id: prayerId,
-                            _userId: user?.id || '',
-                            _dateStr: dateStr,
-                          });
-                          triggerSuccessHaptic();
-                        },
-                      },
-                    ]
-                  );
-                }}
-              />
-            ))}
+            <View style={styles.castStepsContainer}>
+              {displayedActsSessions.map((session, sessionIndex) => {
+                const supplication = session.find((p: any) => p.type === 'supplication');
+
+                return (
+                  <CombinedCASTPrayerCard
+                    key={`session-${sessionIndex}`}
+                    allPrayers={session}
+                    supplicationPrayer={supplication || null}
+                    onMarkAnswered={handleMarkAnswered}
+                    onEdit={handleEditPrayer}
+                    onDelete={handleDeletePrayer}
+                  />
+                );
+              })}
+            </View>
           </View>
-        );
-      })}
-    </View>
-  );
+        )}
+
+        {/* Open Prayer Section */}
+        {displayedOpenPrayers.length > 0 && (
+          <View style={styles.prayerPathSection}>
+            <View style={styles.prayerPathHeader}>
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={18}
+                color={Colors.alertCoral}
+              />
+              <ThemedText style={styles.prayerPathTitle} weight="semiBold">OPEN PRAYER</ThemedText>
+              <View style={styles.prayerPathDivider} />
+            </View>
+            <View style={styles.openPrayerContainer}>
+              {displayedOpenPrayers.map((prayer: any) => {
+                const type = PRAYER_TYPES.find(t => t.key === 'freeform');
+                return (
+                  <SwipeablePrayerCard
+                    key={prayer.id}
+                    prayer={prayer}
+                    type={type}
+                    onMarkAnswered={handleMarkAnswered}
+                    onEdit={handleEditPrayer}
+                    onDelete={handleDeletePrayer}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Show More / Show Less Button */}
+        {(hasMoreItems || canShowLess) && (
+          <View style={styles.paginationContainer}>
+            <View style={styles.paginationButtonGroup}>
+              {hasMoreItems && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showMoreButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+              {canShowLess && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showLessButton]}
+                  onPress={() => {
+                    triggerSelectionHaptic();
+                    setUserExpanded(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ErrorBoundary>
@@ -713,18 +831,6 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Prayer Style Selection Modal */}
-        <PrayerStyleSelectionModal
-          visible={showStyleModal}
-          selectedPrayerType={selectedPrayerType}
-          prayerText={prayerText}
-          onSelectPrayerType={handlePrayerTypeSelect}
-          onPrayerTextChange={handlePrayerTextChange}
-          onSave={handleSaveFromModal}
-          onCancel={handleCloseStyleModal}
-          isSaving={isSaving}
-        />
       </JournalCard>
     </ErrorBoundary>
   );
@@ -734,33 +840,153 @@ const styles = StyleSheet.create({
   editContainer: {
     gap: 16,
   },
-  sectionTitle: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    marginBottom: 4,
-  },
   prayersContainer: {
+    gap: 24,
     maxHeight: 200,
   },
+  combinedCASTCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 14,
+    gap: 12,
+  },
+  combinedContentSection: {
+    gap: 12,
+  },
+  trackingSection: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  combinedPrayerText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  combinedOpeningText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    fontStyle: 'italic',
+    lineHeight: 22,
+  },
+  supplicationSection: {
+    gap: 8,
+    marginTop: 8,
+  },
+  supplicationDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginVertical: 4,
+  },
+  supplicationLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+  },
+  supplicationText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
   prayersContainerExpanded: {
+    gap: 16,
     maxHeight: undefined,
   },
+  prayerPathSection: {
+    gap: 16,
+  },
+  prayerPathHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  prayerPathTitle: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.alertCoral,
+  },
+  prayerPathDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  castStepsContainer: {
+    gap: 16,
+  },
+  castStepSection: {
+    gap: 8,
+  },
+  castStepLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+  },
+  openPrayerContainer: {
+    gap: 8,
+  },
+  paginationContainer: {
+    marginTop: 12,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.textGray,
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: 'System',
+    fontWeight: '500',
+    lineHeight: 14,
+    color: Colors.hopeWhite,
+  },
   prayerTypeSection: {
+    gap: 12,
     marginBottom: 8,
   },
   prayerTypeSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginBottom: 8,
   },
   prayerTypeSectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.hopeWhite,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
   },
   prayerItem: {
-    backgroundColor: '#35537e',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
     padding: 14,
   },
   prayerContent: {
@@ -772,36 +998,51 @@ const styles = StyleSheet.create({
   markAnsweredButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignSelf: 'center',
-    marginTop: 4,
-    gap: 6,
+    gap: 4,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 8,
+  },
+  markAnsweredButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   markAnsweredText: {
-    fontSize: 11,
-    color: '#FF9500',
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+  markAnsweredTextActive: {
+    color: Colors.alertCoral,
+  },
+  answeredDateText: {
+    color: 'rgba(255, 107, 107, 0.9)',
+    fontSize: 12,
+    marginLeft: 6,
   },
   answeredIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
+    gap: 6,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
   answeredText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.growthGreen,
   },
-  answeredTextContainer: {
-    marginLeft: 4,
-  },
   answeredTimestamp: {
-    fontSize: 9,
-    color: Colors.textGray,
-    marginTop: 1,
+    color: 'rgba(76, 175, 80, 0.9)',
+    fontSize: 10,
+    marginLeft: 4,
   },
   emptyStateContainer: {
     alignItems: 'center',

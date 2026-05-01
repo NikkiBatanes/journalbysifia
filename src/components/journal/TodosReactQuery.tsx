@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform, Animated } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -29,7 +29,6 @@ import {
   useTodosData,
   useCreateTodoEntry,
   useUpdateTodoEntry,
-  useDeleteTodoEntry,
 } from '../../services/hooks/useJournalData';
 
 interface TodoItem {
@@ -95,8 +94,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState('');
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
@@ -107,9 +104,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow;
   });
-  const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
   const shouldFocusInput = useRef(false); // Track when we need to focus
+
+  // Add button animation — conditionally mounted so it never takes layout space when hidden
+  const buttonGroupAnim = useRef(new Animated.Value(0)).current;
+  const addButtonScale = useRef(buttonGroupAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] })).current;
+  const [addButtonMounted, setAddButtonMounted] = useState(false);
 
   const toggleCalendar = () => {
     triggerLightHaptic();
@@ -125,6 +126,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+
+  // Show add (+) button only when the input field has content
+  const shouldShowAddButton = newTodo.trim().length > 0;
 
   // Auth and date context
   const { user } = useAuth();
@@ -177,7 +181,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const createTodoMutation = useCreateTodoEntry();
   const updateTodoMutation = useUpdateTodoEntry();
-  const deleteTodoMutation = useDeleteTodoEntry();
 
   // Transform API data to local TodoItem format
   const todos: TodoItem[] = todosData.map(entry => {
@@ -205,6 +208,38 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setShowCompletedAtBottom(false);
     setShowOnlyPriorities(false);
   }, [dateStr, refreshKey]);
+
+  // Reset add button mount state when form opens/closes
+  useEffect(() => {
+    setAddButtonMounted(false);
+    buttonGroupAnim.stopAnimation();
+    buttonGroupAnim.setValue(0);
+  }, [shouldShowAddingMode, buttonGroupAnim]);
+
+  // Mount add button before animating in, unmount after animating out
+  useEffect(() => {
+    if (!shouldShowAddingMode) { return; }
+    if (shouldShowAddButton) {
+      setAddButtonMounted(true);
+      buttonGroupAnim.setValue(0);
+      Animated.spring(buttonGroupAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 12,
+      }).start();
+    } else {
+      Animated.spring(buttonGroupAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 12,
+      }).start(({ finished }) => {
+        if (finished) { setAddButtonMounted(false); }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldShowAddButton, shouldShowAddingMode]);
 
   // Focus input field when it's rendered and we need to focus
   useEffect(() => {
@@ -234,12 +269,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     }
   }, [error]);
 
-  const closeAllSwipeables = () => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) {ref.close();}
-    });
-  };
-
   const startAdding = () => {
     // Check if planning is locked for future dates
     if (planningGating.isLocked) {
@@ -247,16 +276,17 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       return;
     }
 
-    closeAllSwipeables();
-    setVisibleCount(5);
-    setIsAdding(true);
-    setNewTodo('');
-    // Set flag to indicate we need to focus the input
-    shouldFocusInput.current = true;
+    // Navigate to walkthrough screen instead of inline editor
+    if (navigation) {
+      triggerLightHaptic();
+      navigation.navigate('TodosWalkthrough' as any, {
+        selectedDate: selectedDate.toISOString(),
+        existingEntry: todosData.length > 0 ? todosData[0] : undefined,
+      });
+    }
   };
 
   const cancelAdding = () => {
-    closeAllSwipeables();
     setVisibleCount(5);
     setIsAdding(false);
     setNewTodo('');
@@ -270,7 +300,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     const todoText = newTodo.trim();
     if (!todoText || !user) {return;}
 
-    closeAllSwipeables();
 
     // Clear input immediately for better UX
     setNewTodo('');
@@ -317,99 +346,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     }
   };
 
-  // Remove a todo (with confirmation + haptics)
-  const removeTodo = (id: string) => {
-    const todo = todos.find(t => t.id === id);
-    try { triggerLightHaptic(); } catch {}
-    Alert.alert(
-      'Delete To-do',
-      'Are you sure you want to delete this to-do?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try { triggerLightHaptic(); } catch {}
-            try {
-              await deleteTodoMutation.mutateAsync(id);
-              if (todo) {
-                analytics.trackTodoEvent('todo_deleted', {
-                  todo_id: id,
-                  was_completed: todo.completed,
-                  date: dateStr,
-                }, user?.id);
-              }
-            } catch (deleteError) {
-              Logger.error('Failed to delete todo', deleteError as Error, {
-        component: 'TodosReactQuery',
-      });
-              Alert.alert('Error', 'Failed to delete todo. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Edit a todo
-  const editTodo = (id: string) => {
-    const todo = todos.find(t => t.id === id);
-    if (!todo) {return;}
-
-    setEditingId(id);
-    setEditingText(todo.text);
-    closeAllSwipeables();
-    // Focus the edit input field (autoFocus should handle this, but let's ensure it)
-    setTimeout(() => {
-      // Focus the edit input - it will be the first TextInput with autoFocus
-    }, 100);
-  };
-
-  // Save edited todo
-  const saveEditedTodo = async () => {
-    if (!editingId || !editingText.trim()) {return;}
-
-    const todo = todos.find(t => t.id === editingId);
-    if (!todo) {return;}
-
-    try {
-      await updateTodoMutation.mutateAsync({
-        id: editingId,
-        updates: {
-          content: JSON.stringify({
-            text: editingText.trim(),
-            completed: todo.completed,
-            priority: todo.priority || false,
-          }),
-        },
-      });
-
-      // Track analytics
-      analytics.trackTodoEvent('todo_created', {
-        text_length: editingText.trim().length,
-        has_priority: todo.priority || false,
-        date: dateStr,
-      }, user?.id);
-
-      // Reset edit state
-      setEditingId(null);
-      setEditingText('');
-    } catch (editError) {
-      Logger.error('Failed to update todo', editError as Error, {
-        component: 'TodosReactQuery',
-      });
-      Alert.alert('Error', 'Failed to update todo. Please try again.');
-    }
-  };
-
-  // Cancel editing
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingText('');
-  };
-
-  // Add a todo
   const addTodo = async (value: string): Promise<boolean> => {
     if (!user || !value.trim()) {
       return false;
@@ -440,7 +376,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     const todoText = newTodo.trim();
     if (!todoText) {return;}
 
-    closeAllSwipeables();
 
     // Clear input immediately for better UX
     const originalText = newTodo;
@@ -490,7 +425,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         };
       }
 
-      await updateTodoMutation.mutateAsync({
+      updateTodoMutation.mutateAsync({
         id,
         updates: {
           content: JSON.stringify(updatedContent),
@@ -522,13 +457,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const loadMore = () => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount((prev: number) => Math.min(prev + 5, todos.length));
   };
 
   const showLess = () => {
     triggerLightHaptic();
-    closeAllSwipeables();
     setVisibleCount(5);
     // Scroll to top when showing less
     setTimeout(() => {
@@ -974,79 +907,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onToggle={(id, isPriority) => {
                 if (isPriority) { triggerLightHaptic(); }
                 toggleTodo(id, isPriority);
-                closeAllSwipeables();
               }}
               onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
-              onDelete={removeTodo}
-              onEdit={editTodo}
-              onRowPress={(id) => {
-                // If already editing, switch editing focus to the tapped item instead of toggling
-                if (editingId !== null) {
-                  const t = todos.find(tt => tt.id === id);
-                  if (t) {
-                    setEditingId(id);
-                    setEditingText(t.text);
-                  }
-                  return;
-                }
-                // Otherwise, behave like a normal toggle tap
-                toggleTodo(id, false);
-                closeAllSwipeables();
-              }}
-              disableSwipe={viewMode === 'carousel' && !expanded}
-              ref={ref => {
-                if (ref) {
-                  swipeableRefs.current[item.id] = ref;
-                } else {
-                  delete swipeableRefs.current[item.id];
-                }
-              }}
+              onDelete={() => {}}
+              disableSwipe={true}
+              containerStyle={styles.todoItemWrapper}
             >
-              {editingId === item.id ? (
-                <View style={styles.editContainer}>
-                  <TextInput
-                    style={[styles.editInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                    value={editingText}
-                    onChangeText={setEditingText}
-                    autoFocus
-                    multiline
-                    onSubmitEditing={saveEditedTodo}
-                    returnKeyType="done"
-                    blurOnSubmit={false}
-                  />
-                  <View style={styles.editButtons}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerLightHaptic();
-                        cancelEdit();
-                      }}
-                      style={[styles.editActionButton, styles.editCancelButton]}
-                    >
-                      <Ionicons name="close" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerLightHaptic();
-                        saveEditedTodo();
-                      }}
-                      style={[styles.editActionButton, styles.editSaveButton]}
-                      disabled={!editingText.trim()}
-                    >
-                      <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <ThemedText
-                  style={[
-                    styles.todoText,
-                    item.completed && styles.completedText,
-                  ]}
-                  accessibilityElementsHidden={true}
-                >
-                  {item.text}
-                </ThemedText>
-              )}
+              <ThemedText
+                style={[
+                  styles.todoText,
+                  item.completed && styles.completedText,
+                ]}
+              >
+                {item.text}
+              </ThemedText>
             </SwipeableTodoItem>
           </View>
         ))}
@@ -1109,23 +983,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             />
           </View>
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                handleAddInput();
-              }}
-              style={[styles.button, styles.addAnotherButton]}
-              accessibilityRole="button"
-              accessibilityLabel="Add another todo"
-              accessibilityHint="Adds the current todo and allows you to add another one"
-            >
-              <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
-                <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.buttonGroup}>
+            <View style={styles.actionButtonsGroup}>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, styles.inlineCancelButton]}
                 onPress={() => {
                   triggerLightHaptic();
                   cancelAdding();
@@ -1137,6 +997,26 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
+              {addButtonMounted && (
+                <Animated.View
+                  style={{ opacity: buttonGroupAnim, transform: [{ scale: addButtonScale }] }}
+                >
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerLightHaptic();
+                      handleAddInput();
+                    }}
+                    style={[styles.button, styles.addAnotherButton]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add another todo"
+                    accessibilityHint="Adds the current todo and allows you to add another one"
+                  >
+                    <View style={styles.plusIcon}>
+                      <Ionicons name="add" size={17} color={Colors.alertCoral} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   triggerLightHaptic();
@@ -1186,7 +1066,15 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <ThemedText weight="medium" style={styles.chooseDateLabel}>Choose a date</ThemedText>
           <View style={styles.datePickerContainer}>
             <TouchableOpacity
-              style={styles.datePickerButton}
+              style={[
+                styles.datePickerButton,
+                (() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const isTomorrowSelected = copyTargetDate.toDateString() === tomorrow.toDateString();
+                  return isTomorrowSelected && styles.datePickerButtonActive;
+                })(),
+              ]}
               onPress={() => {
                 triggerLightHaptic();
                 // Simple date picker - tomorrow
@@ -1199,7 +1087,15 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.datePickerButton}
+              style={[
+                styles.datePickerButton,
+                (() => {
+                  const nextWeek = new Date();
+                  nextWeek.setDate(nextWeek.getDate() + 7);
+                  const isNextWeekSelected = copyTargetDate.toDateString() === nextWeek.toDateString();
+                  return isNextWeekSelected && styles.datePickerButtonActive;
+                })(),
+              ]}
               onPress={() => {
                 triggerLightHaptic();
                 // Simple date picker - next week
@@ -1405,6 +1301,14 @@ const styles = StyleSheet.create({
   todosContainer: {
     width: '100%',
   },
+  todoItemWrapper: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+    padding: 20,
+    width: '100%',
+    marginBottom: 4,
+  },
 
   // Header styles
   headerRightContainer: {
@@ -1487,9 +1391,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
     marginBottom: 4,
     width: '100%',
-  },
-  closeIcon: {
-    fontWeight: 'bold',
   },
   todoText: {
     flex: 1,
@@ -1582,7 +1483,7 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 12,
     padding: 0,
@@ -1590,6 +1491,16 @@ const styles = StyleSheet.create({
   buttonGroup: {
     flexDirection: 'row',
     gap: 8,
+  },
+  actionButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inlineCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   button: {
     width: 24,
@@ -1627,66 +1538,72 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    padding: 28,
+    borderRadius: 32,
+    padding: 32,
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 360,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: Colors.hopeWhite,
     textAlign: 'left',
     paddingHorizontal: 4,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   modalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     justifyContent: 'flex-start',
   },
   modalTitleIcon: {
-    marginTop: -10,
+    marginTop: -2,
   },
   modalSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: Colors.hopeWhite,
     textAlign: 'left',
-    marginBottom: 24,
-    opacity: 0.9,
+    marginBottom: 28,
+    opacity: 0.5,
     paddingHorizontal: 4,
     alignSelf: 'flex-start',
   },
   chooseDateLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 12,
-    opacity: 0.8,
+    opacity: 0.75,
+    paddingHorizontal: 4,
   },
   datePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    gap: 12,
   },
   datePickerButton: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    marginHorizontal: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 40,
+  },
+  datePickerButtonActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.6)',
   },
   datePickerText: {
     fontSize: 14,
@@ -1702,7 +1619,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginBottom: 12,
   },
@@ -1739,28 +1656,28 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 16,
+    gap: 12,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
-    marginHorizontal: 6,
+    borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   copyButton: {
@@ -1770,13 +1687,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    textAlignVertical: 'center',
   },
   copyButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    letterSpacing: 0.2,
   },
   monthHeaderText: {
     fontSize: 16,

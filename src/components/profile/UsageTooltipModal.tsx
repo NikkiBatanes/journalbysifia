@@ -4,10 +4,8 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -119,15 +117,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (playbooksRemaining === 0) {
             // All trial playbooks used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'playbooks without a monthly counter' : `${fullLimits.playbooks} playbooks`} every month.`;
           } else {
-            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'playbooks without a monthly counter' : `${fullLimits.playbooks} playbooks`} every month.`;
           }
         } else if (playbooksLimit === -1) {
-          playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
+          playbooksDesc = `You are on ${displayName}. This plan does not use a monthly playbook counter.`;
         } else if (playbooksLimit === 0) {
-          // Seeker tier - no playbooks
-          playbooksDesc = 'You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!';
+          // Defensive fallback if limits failed to load.
+          playbooksDesc = 'Your monthly playbook limit could not be loaded. The free Seeker plan includes 2 playbooks each month.';
         } else {
           if (playbooksRemaining === 0) {
             // All playbooks used for paid plans
@@ -155,15 +153,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (devotionalsRemaining === 0) {
             // All trial devotionals used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
           } else {
-            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
           }
         } else if (devotionalsLimit === -1) {
-          devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
+          devotionalsDesc = `You are on ${displayName}. This plan does not use a monthly devotional counter.`;
         } else if (devotionalsLimit === 0) {
-          // Seeker tier - no devotionals
-          devotionalsDesc = 'You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!';
+          // Defensive fallback if limits failed to load.
+          devotionalsDesc = 'Your monthly devotional limit could not be loaded. The free Seeker plan includes 1 devotional each month.';
         } else {
           // Paid plan with monthly limit: use Apple-style monthly reset date from subscription_start_date
           const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
@@ -237,20 +235,21 @@ const UsageTooltipModal: React.FC<Props> = ({
   const getFullTierLimits = (tier: string): { playbooks: number; devotionals: number } => {
     switch (tier) {
       case 'spark':
-        return { playbooks: 8, devotionals: 8 };
+        return { playbooks: 10, devotionals: 10 };
       case 'growth':
-        return { playbooks: 20, devotionals: 20 };
+        return { playbooks: 25, devotionals: 25 };
       case 'transformation':
+        return { playbooks: 60, devotionals: 60 };
       case 'family':
         return { playbooks: -1, devotionals: -1 };
       default:
-        return { playbooks: 0, devotionals: 0 };
+        return { playbooks: 2, devotionals: 1 };
     }
   };
 
   const content = getTooltipContent();
 
-  // Check if user is on Seeker tier (0 limits)
+  // Check if user is on Seeker tier.
   const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) ||
                    subscription?.tier === 'seeker';
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
@@ -300,59 +299,40 @@ const UsageTooltipModal: React.FC<Props> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.tooltipContainer}>
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                  <MaterialCommunityIcons
-                    name={content.icon}
-                    size={24}
-                    color={content.iconColor}
-                  />
-                  <ThemedText weight="bold" style={styles.title}>
-                    {content.title}
-                  </ThemedText>
-                </View>
-                <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <MaterialCommunityIcons name="close" size={24} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Content */}
-              <View style={styles.content}>
-                <ThemedText weight="regular" style={styles.description}>
-                  {content.description}
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={styles.modalContainer}>
+          <ThemedText weight="medium" style={styles.modalTitle}>{content.title}</ThemedText>
+          <View style={styles.content}>
+            <ThemedText weight="regular" style={styles.description}>
+              {content.description}
+            </ThemedText>
+          </View>
+          {showUpgradeButton ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.primaryButton} onPress={handleUpgrade} activeOpacity={0.7}>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                  Upgrade Now
                 </ThemedText>
-              </View>
-
-              {/* Footer */}
-              {showUpgradeButton ? (
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade} activeOpacity={0.7}>
-                    <ThemedText weight="semiBold" style={styles.upgradeButtonText}>
-                      Upgrade Now
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.secondaryButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
-                    <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-                      Maybe Later
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity style={styles.closeButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
-                  <ThemedText weight="semiBold" style={styles.closeButtonText}>
-                    Got it!
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
+                <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
+                  Maybe Later
+                </ThemedText>
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+          ) : (
+            <TouchableOpacity style={styles.fullWidthButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                Got it!
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableWithoutFeedback>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -363,85 +343,72 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
-  tooltipContainer: {
+  modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderRadius: 24,
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    maxWidth: 340,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
+  modalTitle: {
+    fontSize: 16,
     color: Colors.hopeWhite,
+    marginBottom: 16,
+    textTransform: 'uppercase',
   },
   content: {
-    padding: 20,
+    marginBottom: 20,
   },
   description: {
     fontSize: 15,
     lineHeight: 24,
     color: Colors.hopeWhite,
   },
-  closeButton: {
-    backgroundColor: Colors.alertCoral,
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    margin: 20,
-    marginTop: 0,
+    gap: 16,
+    marginTop: 8,
   },
-  upgradeButton: {
+  fullWidthButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  primaryButton: {
     flex: 1,
     backgroundColor: Colors.alertCoral,
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     alignItems: 'center',
+    minHeight: 48,
   },
-  upgradeButtonText: {
-    fontSize: 16,
+  primaryButtonText: {
+    fontSize: 14,
     color: Colors.hopeWhite,
   },
   secondaryButton: {
     flex: 1,
-    backgroundColor: 'transparent',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 50,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.hopeWhite,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 48,
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
   },
 });

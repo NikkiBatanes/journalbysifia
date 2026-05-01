@@ -390,14 +390,29 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     ];
 
 
-    // Define valid categories
+    // Define valid categories (matching guided playbook categories)
     const validCategories = [
-      'Marriage', 'Family', 'Parenting', 'Work', 'Career', 'Business',
-      'Finance', 'Stewardship', 'Giving', 'Time Management', 'Health',
-      'Mental Health', 'Self-Care', 'Anxiety/Worry', 'Purpose', 'Calling',
-      'Ministry', 'Worship', 'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution',
-      'Forgiveness', 'Gratitude', 'Grief', 'Evangelism', 'Discipleship',
-      'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment',
+      'Relationships',
+      'Family',
+      'Marriage',
+      'Singleness',
+      'Friendship',
+      'Work & Career',
+      'Calling & Purpose',
+      'Finance & Stewardship',
+      'Decision-Making',
+      'Conflict & Boundaries',
+      'Hurt & Forgiveness',
+      'Faith & Obedience',
+      'Church & Ministry',
+      'Parenting',
+      'Emotions & Inner Life',
+      'Health & Wellness',
+      'Anxiety & Peace',
+      'Fear & Trust',
+      'Waiting & Uncertainty',
+      'Grief & Loss',
+      'Shame & Guilt',
     ];
 
     // Extract category with multiple patterns
@@ -621,6 +636,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     if (dayMatches.length === 0 && duration === 1) {
       console.log('[DEVOTIONAL PARSER] No days found, using full content as single day');
       dayMatches = [[null, '1', content]];
+    }
+
+    // Extract reflection questions from the end of the entire response (shared across all days)
+    let sharedReflectionQuestions: ReflectionQuestion[] = [];
+    const globalQuestionsMatch = content.match(/REFLECTION QUESTIONS:\s*([\s\S]*?)(?=PRAYER:|$)/i);
+    if (globalQuestionsMatch) {
+      const questionsRaw = globalQuestionsMatch[1];
+      sharedReflectionQuestions = questionsRaw
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q && q.match(/^\d+\./))
+        .map((q, i) => ({
+          id: `q${i + 1}`,
+          text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
+        }));
+      console.log(`[DEVOTIONAL PARSER] Extracted ${sharedReflectionQuestions.length} shared reflection questions from end of response`);
     }
 
     for (const [, dayNum, dayContent] of dayMatches) {
@@ -902,10 +933,15 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           }
         }
         
-        // If we still have no questions, treat as a hard parse error
+        // If we still have no questions, use shared questions from end of response
         if (reflectionQuestions.length === 0) {
-          console.error(`[DEVOTIONAL PARSER] Day ${dayNum} has no reflection questions - this is not allowed`);
-          throw new Error(`Failed to parse reflection questions for Day ${dayNum}. AI must provide properly formatted questions.`);
+          if (sharedReflectionQuestions.length > 0) {
+            reflectionQuestions = sharedReflectionQuestions;
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using shared reflection questions from end of response`);
+          } else {
+            console.error(`[DEVOTIONAL PARSER] Day ${dayNum} has no reflection questions - this is not allowed`);
+            throw new Error(`Failed to parse reflection questions for Day ${dayNum}. AI must provide properly formatted questions.`);
+          }
         }
 
         // Extract prayer text - first try day-specific, then fall back to series-level prayer
@@ -1056,6 +1092,39 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
   }
 }
 
+function getBearerToken(authHeader: string | null): string | null {
+  const [scheme, token] = authHeader?.split(' ') ?? [];
+  return scheme?.toLowerCase() === 'bearer' && token ? token : null;
+}
+
+function getUserIdentifierFromAuthHeader(authHeader: string | null): string {
+  const token = getBearerToken(authHeader);
+  if (!token) {
+    return 'anonymous';
+  }
+
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) {
+      return 'authenticated-user';
+    }
+
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - normalizedPayload.length % 4) % 4),
+      '='
+    );
+    const decoded = JSON.parse(atob(paddedPayload));
+
+    return typeof decoded?.sub === 'string' && decoded.sub
+      ? decoded.sub
+      : 'authenticated-user';
+  } catch (error) {
+    console.warn('[Generate-Devotional] Failed to decode auth token for user identifier:', error);
+    return 'authenticated-user';
+  }
+}
+
 /**
  * Main server handler
  */
@@ -1103,7 +1172,7 @@ serve(async (req: Request): Promise<Response> => {
 
   // Extract user ID from authorization header for rate limiting
   const authHeader = req.headers.get('authorization');
-  const userId = authHeader ? authHeader.split(' ')[1] : 'anonymous';
+  const userId = getUserIdentifierFromAuthHeader(authHeader);
 
   // Check rate limit
   console.log('[Generate-Devotional] Checking rate limit for user:', userId);
@@ -1305,7 +1374,7 @@ serve(async (req: Request): Promise<Response> => {
       const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark');
       console.log(`[Generate-Devotional] Resolved tierForKey: ${tierForKey}`);
       
-      const apiKey = keyPoolManager.getBestKey(authHeader?.split(' ')[1] || 'anonymous', tierForKey);
+      const apiKey = keyPoolManager.getBestKey(userId, tierForKey);
       
       if (!apiKey) {
         console.error(`[Generate-Devotional] No API key available for tier: ${tierForKey}`);
@@ -1313,66 +1382,153 @@ serve(async (req: Request): Promise<Response> => {
       }
       
       console.log(`[Generate-Devotional] Using API key: ${apiKey.id} for tier: ${tierForKey}`);
-      
-      const openAIRes = await CircuitBreaker.execute(
-        CIRCUIT_KEYS.OPENAI_DEVOTIONAL,
-        async () => await fetchWithRetry(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey.key}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: buildSystemPrompt(input, originalUserInput),
-              },
-              {
-                role: 'user',
-                content: buildUserMessage(originalUserInput, input),
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: duration === 7 ? 8000 : 6000,
-          }),
-        },
-        OPENAI_RETRY_CONFIG
-        )
-      );
 
-      console.log('[Generate-Devotional] OpenAI API call successful');
-      
-      // Mark key as healthy on success
-      keyPoolManager.markHealthy(apiKey.id);
-      
-      return openAIRes;
+      try {
+        const openAIRes = await CircuitBreaker.execute(
+          CIRCUIT_KEYS.OPENAI_DEVOTIONAL,
+          async () => await fetchWithRetry(
+            'https://api.openai.com/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey.key}`,
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  {
+                    role: 'system',
+                    content: buildSystemPrompt(input, originalUserInput),
+                  },
+                  {
+                    role: 'user',
+                    content: buildUserMessage(originalUserInput, input),
+                  },
+                ],
+                temperature: 0.7,
+                max_tokens: duration === 7 ? 8000 : 6000,
+              }),
+            },
+            OPENAI_RETRY_CONFIG
+          )
+        );
+
+        if (!openAIRes.ok) {
+          const errorText = await openAIRes.text();
+          console.error('[Generate-Devotional] OpenAI API returned non-2xx response:', {
+            status: openAIRes.status,
+            statusText: openAIRes.statusText,
+            body: errorText,
+            keyId: apiKey.id,
+          });
+
+          let upstreamMessage = `OpenAI request failed with status ${openAIRes.status}`;
+          try {
+            const parsedError = JSON.parse(errorText);
+            upstreamMessage = parsedError?.error?.message || parsedError?.message || upstreamMessage;
+          } catch {
+            if (errorText) {
+              upstreamMessage = errorText;
+            }
+          }
+
+          throw new Error(upstreamMessage);
+        }
+
+        console.log('[Generate-Devotional] OpenAI API call successful');
+
+        keyPoolManager.setKeyHealth(apiKey.id, true);
+        return openAIRes;
+      } catch (error) {
+        keyPoolManager.setKeyHealth(apiKey.id, false);
+        console.error(`[Generate-Devotional] API key ${apiKey.id} failed, marked as unhealthy`);
+        throw error;
+      }
     };
 
     let effectiveUserInput = userInput;
     let usedParaphrasing = false;
+    let aiData: Record<string, unknown> | null = null;
+    let rawContent = '';
+    let lastCompletionIssue = '';
 
-    let openAIRes = await executeOpenAIRequest(effectiveUserInput);
-    let aiData = await openAIRes.json();
-    let rawContent = aiData.choices?.[0]?.message?.content || '';
-
-    if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
-      console.log('[Generate-Devotional] AI refused, paraphrasing input and retrying...');
-      effectiveUserInput = paraphraseInput(userInput);
-      usedParaphrasing = true;
-      console.log('[Generate-Devotional] Original input:', userInput.substring(0, 100));
-      console.log('[Generate-Devotional] Paraphrased input:', effectiveUserInput.substring(0, 100));
-
-      openAIRes = await executeOpenAIRequest(effectiveUserInput);
+    const maxCompletionAttempts = 3;
+    for (let completionAttempt = 1; completionAttempt <= maxCompletionAttempts; completionAttempt++) {
+      const openAIRes = await executeOpenAIRequest(effectiveUserInput);
       aiData = await openAIRes.json();
-      rawContent = aiData.choices?.[0]?.message?.content || '';
+
+      const choice = (aiData as any)?.choices?.[0];
+      const finishReason = choice?.finish_reason;
+      rawContent = typeof choice?.message?.content === 'string' ? choice.message.content : '';
+
+      if (!rawContent.trim()) {
+        lastCompletionIssue = `AI returned empty content on attempt ${completionAttempt}`;
+        console.warn('[Generate-Devotional] Empty AI response content, retrying if possible', {
+          completionAttempt,
+          maxCompletionAttempts,
+          finishReason,
+        });
+
+        if (completionAttempt < maxCompletionAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500 * completionAttempt));
+          continue;
+        }
+
+        break;
+      }
+
+      if (refusalPatterns.some(pattern => pattern.test(rawContent.toLowerCase()))) {
+        lastCompletionIssue = `AI refused on attempt ${completionAttempt}`;
+        if (completionAttempt < maxCompletionAttempts) {
+          console.log('[Generate-Devotional] AI refused, paraphrasing input and retrying...');
+          effectiveUserInput = paraphraseInput(userInput);
+          usedParaphrasing = true;
+          console.log('[Generate-Devotional] Original input:', userInput.substring(0, 100));
+          console.log('[Generate-Devotional] Paraphrased input:', effectiveUserInput.substring(0, 100));
+          await new Promise(resolve => setTimeout(resolve, 500 * completionAttempt));
+          continue;
+        }
+
+        break;
+      }
+
+      if (typeof finishReason === 'string' && finishReason !== 'stop') {
+        lastCompletionIssue = `AI response ended before completion with finish_reason=${finishReason}`;
+        console.warn('[Generate-Devotional] Incomplete AI response, retrying before parse', {
+          completionAttempt,
+          maxCompletionAttempts,
+          finishReason,
+          contentLength: rawContent.length,
+          contentPreview: rawContent.substring(0, 300),
+        });
+
+        if (completionAttempt < maxCompletionAttempts) {
+          if (!usedParaphrasing) {
+            effectiveUserInput = paraphraseInput(userInput);
+            usedParaphrasing = effectiveUserInput !== userInput;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500 * completionAttempt));
+          continue;
+        }
+
+        break;
+      }
+
+      lastCompletionIssue = '';
+      break;
     }
 
     if (usedParaphrasing) {
       console.log('[Generate-Devotional] Used paraphrasing to bypass refusal');
+    }
+
+    if (lastCompletionIssue) {
+      throw new Error(`${lastCompletionIssue}. Please try again in a moment.`);
+    }
+
+    if (!aiData) {
+      throw new Error('AI response data was not returned');
     }
 
     // Log the raw OpenAI response for debugging

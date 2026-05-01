@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,10 +17,142 @@ import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
 
+type PaidPlanTier = 'spark' | 'growth' | 'transformation';
+
+const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
+
+const SubscriptionSkeleton: React.FC = () => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const isMounted = React.useRef(true);
+
+  React.useEffect(() => {
+    isMounted.current = true;
+
+    const animate = () => {
+      if (!isMounted.current) {return;}
+
+      Animated.sequence([
+        Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ]).start((finished) => {
+        if (finished && isMounted.current) {
+          animate();
+        }
+      });
+    };
+
+    animate();
+
+    return () => {
+      isMounted.current = false;
+      animatedValue.stopAnimation();
+    };
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  return (
+    <View style={skeletonStyles.container}>
+      {/* Plan card skeleton */}
+      <View style={skeletonStyles.planCard}>
+        <Animated.View style={[skeletonStyles.badgePill, { opacity }]} />
+        <Animated.View style={[skeletonStyles.planName, { opacity }]} />
+        <Animated.View style={[skeletonStyles.planDescription, { opacity }]} />
+        <Animated.View style={[skeletonStyles.billingBadge, { opacity }]} />
+
+        {/* Feature lines */}
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          <Animated.View key={`feature-${i}`} style={[skeletonStyles.featureLine, { opacity, width: i % 2 === 0 ? '85%' : '70%' }]} />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const skeletonStyles = StyleSheet.create({
+  container: {
+    padding: 24,
+  },
+  planCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    paddingTop: 56,
+  },
+  badgePill: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    height: 24,
+    width: 80,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  planName: {
+    height: 24,
+    width: '60%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  planDescription: {
+    height: 14,
+    width: '50%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  billingBadge: {
+    height: 20,
+    width: 60,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  featureLine: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+});
+
+const normalizePaidPlanTier = (tier?: string | null): PaidPlanTier | undefined => {
+  const normalized = String(tier || '').toLowerCase().replace(/_annual$/, '');
+  return PAID_PLAN_ORDER.includes(normalized as PaidPlanTier) ? normalized as PaidPlanTier : undefined;
+};
+
+const getNextPaidPlanTier = (tier?: string | null): PaidPlanTier => {
+  const current = normalizePaidPlanTier(tier);
+  if (!current) {
+    return 'growth';
+  }
+
+  const currentIndex = PAID_PLAN_ORDER.indexOf(current);
+  return PAID_PLAN_ORDER[Math.min(currentIndex + 1, PAID_PLAN_ORDER.length - 1)];
+};
+
+const isAnnualBillingCycle = (billingCycle?: string | null): boolean => {
+  const normalized = String(billingCycle || '').toLowerCase();
+  return normalized === 'annual' || normalized === 'yearly' || normalized === 'year';
+};
+
 interface SubscriptionPlanModalProps {
   visible: boolean;
   onClose: () => void;
   navigation?: any;
+  onContinueWithSiFia?: () => void; // Optional callback to close parent modal
+  // Test mode props for simulating subscription states
+  testModeTier?: string;
+  testModeStatus?: string;
+  testModeBillingCycle?: 'monthly' | 'annual';
+  testModeTrialChosenTier?: string;
+  testModeHasUsedTrial?: boolean;
+  testModeCancelAtPeriodEnd?: boolean;
 }
 
 interface Subscription {
@@ -39,6 +172,7 @@ interface Subscription {
   has_used_trial?: boolean;
   current_period_start?: string;
   current_period_end?: string;
+  trial_end_date?: string;
   cancel_at_period_end?: boolean;
 }
 
@@ -46,27 +180,68 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   visible,
   onClose,
   navigation,
+  onContinueWithSiFia,
+  testModeTier,
+  testModeStatus,
+  testModeBillingCycle,
+  testModeTrialChosenTier,
+  testModeHasUsedTrial,
+  testModeCancelAtPeriodEnd,
 }) => {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Check if in test mode
+  const isTestMode = !!testModeTier;
+
   const loadSubscriptionData = React.useCallback(async (forceRefresh = false) => {
-    if (!user?.id) {return;}
+    if (!user?.id && !isTestMode) {return;}
 
     try {
       setLoading(true);
+
+      // Use test mode data if provided
+      if (isTestMode) {
+        const testSubscription: Subscription = {
+          id: 'test-id',
+          tier: testModeTier || 'seeker',
+          status: testModeStatus || (testModeTier === 'seeker' ? 'active' : 'active'),
+          limits: testModeTier === 'seeker' ? { playbooks: 2, devotionals: 1 } :
+                   testModeTier === 'spark' ? { playbooks: 10, devotionals: 10 } :
+                   testModeTier === 'growth' ? { playbooks: 25, devotionals: 25 } :
+                   testModeTier === 'transformation' ? { playbooks: 60, devotionals: 60 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
+                   testModeTier === 'free_trial' ? { playbooks: 15, devotionals: 15 } :
+                   { playbooks: 2, devotionals: 1 },
+          playbooks_used: 0,
+          devotionals_used: 0,
+          subscription_display_name: testModeTier === 'free_trial' ? `siFia ${testModeTrialChosenTier || 'Growth'} Trial` : undefined,
+          trial_chosen_tier: testModeTrialChosenTier,
+          billing_cycle: testModeBillingCycle || 'monthly',
+          has_used_trial: testModeHasUsedTrial,
+          cancel_at_period_end: testModeCancelAtPeriodEnd,
+          current_period_end: testModeStatus === 'trialing' ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        };
+        setSubscription(testSubscription);
+        return;
+      }
+
       Logger.info('[SubscriptionPlanModal] Loading subscription data', {
-        userId: user.id,
+        userId: user?.id,
         forceRefresh,
         component: 'SubscriptionPlanModal',
       });
 
       // Force fresh read when modal opens to get latest subscription data
+      if (!user?.id) {
+        return;
+      }
       const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, forceRefresh);
 
       Logger.info('[SubscriptionPlanModal] Subscription data loaded', {
-        userId: user.id,
+        userId: user?.id,
         tier: subscriptionData?.tier,
         status: subscriptionData?.status,
         trialEndDate: subscriptionData?.trial_end_date,
@@ -79,28 +254,28 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     } catch (error) {
       Logger.error('Failed to load subscription data for modal', error as Error, {
         component: 'SubscriptionPlanModal',
-        userId: user.id,
+        userId: user?.id,
       });
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isTestMode, testModeTier, testModeStatus, testModeBillingCycle, testModeTrialChosenTier, testModeHasUsedTrial, testModeCancelAtPeriodEnd]);
 
   // Load subscription data when modal becomes visible
   // Force refresh to get latest data after purchases
   useEffect(() => {
-    if (visible && user?.id) {
+    if (visible && (user?.id || isTestMode)) {
       loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
-  }, [visible, user?.id, loadSubscriptionData]);
+  }, [visible, user?.id, isTestMode, loadSubscriptionData]);
 
   // Also refresh when modal comes back into focus (after returning from purchase flow)
   useFocusEffect(
     React.useCallback(() => {
-      if (visible && user?.id) {
+      if (visible && (user?.id || isTestMode)) {
         loadSubscriptionData(true); // Force refresh when returning from purchase
       }
-    }, [visible, user?.id, loadSubscriptionData])
+    }, [visible, user?.id, isTestMode, loadSubscriptionData])
   );
 
   const getTierInfo = (tier: string): {
@@ -119,35 +294,38 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'seeker':
         return {
           name: 'siFia Seeker',
-          description: 'Free access',
+          description: 'A quiet place to begin',
           features: [
+            '2 playbooks each month',
+            '1 devotional each month',
             'Basic journaling for personal reflection',
-            'A quiet space to write and process your thoughts',
-            'Explore siFia’s approach to discernment',
+            'A quiet space to write and process what\'s on your heart',
+            'Begin exploring siFia\'s approach to reflection and discernment',
           ],
           limits: {
             playbooks: 2,
-            devotionals: 2,
+            devotionals: 1,
           },
           color: Colors.textGray,
         };
       case 'spark':
         return {
           name: 'siFia Spark',
-          description: 'For consistent encouragement',
+          description: 'For getting started',
           features: [
-            '8 playbooks each month',
-            '8 devotionals each month',
-            'Access 1-day, 3-day devotionals',
-            'Gentle reminders to keep you on track',
+            '10 playbooks each month',
+            '10 devotionals each month',
+            'Access 1-day and 3-day devotionals',
+            'Gentle reminders',
             'Track your progress week by week',
-                        'Calendar Sync to stay on track',
-            'Copy To-Dos to other dates for flexibility',
-            'Smart Journaling for personalized reflection',
+            'Plan Ahead inside your journal',
+            'Copy To-Dos to other dates',
+            'Guided prompts',
+            'Smart Journaling',
           ],
           limits: {
-            playbooks: 8,
-            devotionals: 8,
+            playbooks: 10,
+            devotionals: 10,
           },
           color: Colors.alertCoral,
         };
@@ -156,20 +334,21 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Growth',
           description: 'For deeper transformation',
           features: [
-            '20 playbooks each month',
-            '20 devotionals each month',
-            'Access 1-day, 3-day, 5-day devotionals',
-            'Gentle reminders to keep you on track',
+            '25 playbooks each month',
+            '25 devotionals each month',
+            'Access 1-day, 3-day, and 5-day devotionals',
+            'Gentle reminders',
             'Track your progress week by week',
-                        'Calendar Sync to stay on track',
-            'Copy To-Dos to other dates for flexibility',
-            'Advanced reflection prompts',
-            'Smart Journaling for personalized reflection',
-            'Export to PDF for sharing and printing',
+            'Plan Ahead inside your journal',
+            'Copy To-Dos to other dates',
+            'Guided prompts',
+            'Smart Journaling',
+            'Calendar Auto-Sync',
+            'Export to PDF',
           ],
           limits: {
-            playbooks: 20,
-            devotionals: 20,
+            playbooks: 25,
+            devotionals: 25,
           },
           color: Colors.growthGreen,
         };
@@ -178,45 +357,93 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Transformation',
           description: 'For a life transformed in spirit and purpose',
           features: [
-            'Unlimited playbooks',
-            'Unlimited devotionals',
-            'Access 1-day, 3-day, 5-day, 7-day devotionals',
-            'Gentle reminders to keep you on track',
+            '60 playbooks each month',
+            '60 devotionals each month',
+            'Access 1-day, 3-day, 5-day, and 7-day devotionals',
+            'Gentle reminders',
             'Track your progress week by week',
-                        'Calendar Sync to stay on track',
-            'Copy To-Dos to other dates for flexibility',
-            'Advanced reflection prompts',
-            'Smart Journaling for personalized reflection',
-            'Export to PDF for sharing and printing',
+            'Plan Ahead inside your journal',
+            'Copy To-Dos to other dates',
+            'Guided prompts',
+            'Smart Journaling',
+            'Calendar Auto-Sync',
+            'Export to PDF',
             'Priority support',
           ],
           limits: {
-            playbooks: -1, // Unlimited
-            devotionals: -1, // Unlimited
+            playbooks: 60,
+            devotionals: 60,
           },
           color: Colors.faithGold,
         };
       case 'free_trial':
-        // For trials, show trial-specific info with trial limits (2/2)
-        const chosenTier = subscription?.trial_chosen_tier || 'growth';
+        // For trials, show trial-specific info with tier-specific limits
+        const chosenTier = (subscription?.trial_chosen_tier || 'growth').replace(/_annual$/, '');
         const chosenTierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
         const billingCycle = subscription?.billing_cycle === 'annual' ? ' Annual' : '';
 
+        // Get tier-specific trial limits
+        const trialLimits = chosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
+                            chosenTier === 'growth' ? { playbooks: 15, devotionals: 15 } :
+                            chosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
+                            { playbooks: 15, devotionals: 15 }; // default to growth
+
+        // Get tier-specific features based on chosen tier
+        const tierFeatures = chosenTier === 'spark' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day and 3-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+        ] : chosenTier === 'growth' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day, 3-day, and 5-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+          'Calendar Auto-Sync',
+          'Export to PDF',
+        ] : chosenTier === 'transformation' ? [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day, 3-day, 5-day, and 7-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+          'Calendar Auto-Sync',
+          'Export to PDF',
+          'Priority support',
+        ] : [
+          `${trialLimits.playbooks} playbooks during trial`,
+          `${trialLimits.devotionals} devotionals during trial`,
+          'Access 1-day and 3-day devotionals',
+          'Gentle reminders',
+          'Track your progress week by week',
+          'Plan Ahead inside your journal',
+          'Copy To-Dos to other dates',
+          'Guided prompts',
+          'Smart Journaling',
+        ];
+
         return {
           name: `siFia ${chosenTierName}${billingCycle} Trial`,
-          description: `3-day free trial of ${chosenTierName}`,
+          description: `3-day free trial with full access to ${chosenTierName}`,
           features: [
-            `3 days free access to the ${chosenTierName}${billingCycle} plan`,
-            '2 playbooks during trial',
-            '2 devotionals during trial',
-            'Full access to all features',
-            'Cancel anytime',
-            'No commitment',
+            ...tierFeatures,
+            'Cancel anytime before trial ends',
           ],
-          limits: {
-            playbooks: 2,
-            devotionals: 2,
-          },
+          limits: trialLimits,
           color: Colors.alertCoral,
         };
       default:
@@ -234,8 +461,26 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       };
     }
 
+    // Check if this is a trial subscription (tier is free_trial)
+    const isTrial = subscriptionData.tier === 'free_trial';
+
     switch (status) {
       case 'active':
+        // For trial subscriptions, show trial end date
+        if (isTrial) {
+          const trialEnd = subscriptionData.trial_end_date
+            ? new Date(subscriptionData.trial_end_date).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })
+            : 'Trial period';
+          return {
+            text: `Trial ends ${trialEnd}`,
+            badge: true,
+            color: Colors.alertCoral,
+          };
+        }
         if (subscriptionData.cancel_at_period_end) {
           return {
             text: 'Cancels at period end',
@@ -248,12 +493,17 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           color: Colors.growthGreen,
         };
       case 'trialing':
-        const trialEnd = subscriptionData.current_period_end
-          ? new Date(subscriptionData.current_period_end).toLocaleDateString()
+        const trialEnd = subscriptionData.trial_end_date
+          ? new Date(subscriptionData.trial_end_date).toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })
           : 'Trial period';
         return {
           text: `Trial ends ${trialEnd}`,
-          color: Colors.faithGold,
+          badge: true,
+          color: Colors.alertCoral,
         };
       case 'canceled':
         return {
@@ -275,64 +525,91 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
   const tierInfo = subscription ? getTierInfo(subscription.tier) : getTierInfo('seeker');
   const statusInfo = subscription ? getStatusInfo(subscription.status, subscription) : { text: 'Loading...', color: Colors.textGray };
+  const isTrial = subscription?.tier === 'free_trial';
 
   // Determine billing period
-  const tierBase = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
+  const tierBase = normalizePaidPlanTier(subscription?.tier) || subscription?.tier?.replace(/_annual$/, '') || 'seeker';
   // For trials, use billing_cycle field; for paid tiers, check tier suffix
   const isAnnual = subscription?.tier === 'free_trial'
-    ? subscription?.billing_cycle === 'annual'
-    : subscription?.tier?.includes('_annual') || false;
+    ? isAnnualBillingCycle(subscription?.billing_cycle)
+    : Boolean(subscription?.tier?.includes('_annual') || isAnnualBillingCycle(subscription?.billing_cycle));
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
+  const currentTrialPlanTier = normalizePaidPlanTier(subscription?.trial_chosen_tier) || 'growth';
+  const currentTrialBillingCycle = isAnnualBillingCycle(subscription?.billing_cycle) || isAnnual ? 'annual' : 'monthly';
+  const isHighestAnnualPlan = tierBase === 'transformation' && isAnnual;
+  const isHighestAnnualTrialPlan = tierBase === 'free_trial' && currentTrialPlanTier === 'transformation' && currentTrialBillingCycle === 'annual';
+  const showTrialViewOtherPlans = tierBase === 'free_trial' && !isHighestAnnualTrialPlan;
 
-  // Check if user should see upgrade button - show for all tiers except yearly Transformation
-  const showUpgradeButton = !(tierBase === 'transformation' && isAnnual);
+  // Check if user should see upgrade button - show for all tiers except annual Transformation
+  const showUpgradeButton = !isHighestAnnualPlan;
 
   // Get contextual button text based on current tier
   const getUpgradeButtonText = () => {
     switch (tierBase) {
       case 'seeker':
+        return 'View all plans';
+      case 'free_trial':
         return 'Continue with siFia';
       case 'spark':
-        return 'Upgrade Plan';
+        return 'Upgrade to Growth';
       case 'growth':
-        return 'Upgrade Plan';
+        return 'Upgrade to Transformation';
       case 'transformation':
-        return isAnnual ? 'Manage Plan' : 'Upgrade Plan to Annual';
+        return isAnnual ? 'Manage Plan' : 'Switch to Transformation Annual';
       default:
         return 'View Plans';
     }
   };
 
   const handleUpgradePress = () => {
-    try {
-      triggerLightHaptic();
-    } catch {}
-
-    console.log('SubscriptionPlanModal: handleUpgradePress called', { navigation: !!navigation, tier: subscription?.tier });
-
-    if (navigation && navigation.navigate) {
-      console.log('SubscriptionPlanModal: Navigating to OnboardingSalesOffer');
-      // Don't close modal immediately - let user close it manually
-
+    if (navigation) {
       // For annual users, show only annual plans to prevent downgrading to monthly
       // For Transformation monthly users, show only annual transformation option
       // For other tiers, use normal upgrade mode
       const isTransformationMonthly = tierBase === 'transformation' && !isAnnual;
       const isAnnualUser = isAnnual && tierBase !== 'seeker';
       const isSeekerUser = tierBase === 'seeker';
+      const isTrialUser = tierBase === 'free_trial';
+      const currentPaidTier = normalizePaidPlanTier(tierBase);
+      const selectedPaidUpgradeTier = getNextPaidPlanTier(currentPaidTier);
+      const selectedTrialUpgradeTier = getNextPaidPlanTier(currentTrialPlanTier);
+      const selectedTrialBillingCycle = currentTrialPlanTier === 'transformation' && currentTrialBillingCycle === 'monthly'
+        ? 'annual'
+        : currentTrialBillingCycle;
 
-      (navigation as any).navigate('OnboardingSalesOffer', {
+      const params = {
         source: 'profile_upgrade',
         currentTier: subscription?.tier || 'seeker',
+        currentTrialChosenTier: currentTrialPlanTier,
+        currentTrialBillingCycle,
+        selectedTier: isTrialUser
+          ? selectedTrialUpgradeTier
+          : isSeekerUser
+            ? undefined
+            : selectedPaidUpgradeTier,
+        selectedBillingCycle: isTrialUser
+          ? selectedTrialBillingCycle
+          : (isTransformationMonthly || isAnnual) ? 'annual' : 'monthly',
+        profileTrialViewPlans: isTrialUser,
         skipNotificationPreference: true,
         // Seeker users tapping "Avail Plan" should see the default onboarding copy ("Your Journey Begins"),
         // not limit-gating copy like "Unlock playbooks".
         upgradeMode: isSeekerUser ? false : (!isTransformationMonthly && !isAnnualUser),
         forceTransformationAnnual: isTransformationMonthly, // Custom flag to filter to only annual transformation
         forceAnnualOnly: isAnnualUser, // Show only annual plans for current tier
-      });
+        testModeTier: isTestMode ? subscription?.tier : undefined,
+        testModeIsOnTrial: isTestMode && isTrialUser ? true : undefined,
+        testModeHasStartedTrial: isTestMode && isTrialUser ? true : undefined,
+        testModeTrialChosenTier: isTestMode ? currentTrialPlanTier : undefined,
+        testModeBillingCycle: isTestMode ? currentTrialBillingCycle : undefined,
+        testModeHasEverStartedTrial: isTestMode ? (testModeHasUsedTrial ?? isTrialUser) : undefined,
+      };
+
+      onClose();
+      setTimeout(() => {
+        (navigation as any).navigate('OnboardingSalesOffer', params);
+      }, 250);
     } else {
-      console.log('SubscriptionPlanModal: Navigation not available');
       onClose();
     }
   };
@@ -350,7 +627,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             style={styles.backButton}
             onPress={() => { try { triggerLightHaptic(); } catch {} onClose(); }}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
+            <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <ThemedText weight="bold" style={styles.headerTitle}>
             Current Plan
@@ -361,21 +638,28 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, showUpgradeButton && styles.scrollContentWithFooter]}
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Ionicons name="diamond" size={48} color={Colors.hopeWhite} />
-              <ThemedText weight="medium" style={styles.loadingText}>
-                Loading plan details...
-              </ThemedText>
-            </View>
+            <SubscriptionSkeleton />
           ) : (
             <>
               {/* Plan Card */}
               <View style={styles.planCard}>
-                {statusInfo.badge && (
+                {/* Trial ends pill in upper left corner */}
+                {isTrial && statusInfo.badge && (
+                  <View style={styles.trialEndsPillContainer}>
+                    <View style={styles.trialEndsPill}>
+                      <ThemedText style={styles.trialEndsPillText}>
+                        {statusInfo.text}
+                      </ThemedText>
+                    </View>
+                  </View>
+                )}
+
+                {/* Status badge for non-trial subscriptions */}
+                {statusInfo.badge && !isTrial && (
                   <View style={styles.badgeContainer}>
                     <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
                       <ThemedText style={styles.statusBadgeText}>
@@ -403,7 +687,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 </View>
 
-                {!statusInfo.badge && (
+                {!statusInfo.badge && tierBase !== 'free_trial' && (
                   <View style={styles.statusContainer}>
                     <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
                     <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
@@ -425,22 +709,64 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 ))}
               </View>
-
-              {/* Upgrade Button */}
-              {showUpgradeButton && (
-                <TouchableOpacity
-                  style={styles.upgradeButton}
-                  onPress={handleUpgradePress}
-                  activeOpacity={0.85}
-                >
-                  <ThemedText weight="bold" style={styles.upgradeButtonText}>
-                    {getUpgradeButtonText()}
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
             </>
           )}
         </ScrollView>
+
+        {/* Sticky Footer with Buttons */}
+        {showUpgradeButton && (
+          <SafeAreaView style={styles.stickyFooter}>
+            {tierBase === 'free_trial' ? (
+              <>
+                {/* Primary button for trial users: Continue with siFia */}
+                <TouchableOpacity
+                  style={styles.upgradeButton}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    onClose();
+                    if (onContinueWithSiFia) {
+                      onContinueWithSiFia();
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <ThemedText weight="bold" style={styles.upgradeButtonText}>
+                    Continue with siFia
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {/* Secondary button for trial users: View Other Plans */}
+                {showTrialViewOtherPlans && (
+                  <TouchableOpacity
+                    style={styles.viewPlansButton}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      handleUpgradePress();
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <ThemedText weight="bold" style={styles.viewPlansButtonText}>
+                      View Other Plans
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  handleUpgradePress();
+                }}
+                activeOpacity={0.85}
+              >
+                <ThemedText weight="bold" style={styles.upgradeButtonText}>
+                  {getUpgradeButtonText()}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </SafeAreaView>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -476,14 +802,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 32,
+  },
+  scrollContentWithFooter: {
+    paddingBottom: 15,
+  },
+  stickyFooter: {
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   loadingContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: 40,
   },
   loadingText: {
     fontSize: 18,
@@ -495,6 +830,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
+    paddingTop: 56,
+  },
+  trialEndsPillContainer: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  trialEndsPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.faithGold,
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+  },
+  trialEndsPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
   },
   planHeader: {
     alignItems: 'center',
@@ -505,13 +859,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeContainer: {
-    alignItems: 'center',
-    marginBottom: 12,
+    position: 'absolute',
+    top: 16,
+    left: 16,
   },
   planName: {
     fontSize: 24,
     color: Colors.hopeWhite,
     marginBottom: 4,
+    textAlign: 'center',
   },
   planDescription: {
     fontSize: 14,
@@ -578,15 +934,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   upgradeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
     marginTop: 16,
   },
   upgradeButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 18,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  viewPlansButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    marginTop: 12,
+  },
+  viewPlansButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
     textAlign: 'center',
   },
 });

@@ -20,6 +20,7 @@ export interface PluginFilters {
   answeredOnly?: boolean;
   allowedJournalCategories?: string[];
   excludeJournalCategories?: string[];
+  hideEmptyComponents?: boolean;
 }
 
 export interface ViewConfiguration {
@@ -45,4 +46,5 @@ export interface PluginRenderProps {
   viewMode: ViewMode;
   // Optional filtering context for plugins to respect renderer-level filters
   filters?: PluginFilters;
+  navigation?: any;
 }

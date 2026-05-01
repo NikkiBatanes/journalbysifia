@@ -294,8 +294,8 @@ case 'DID_RENEW': {
 tier: 'spark' (or growth/transformation)
 subscription_display_name: 'siFia Spark'
 billing_cycle: 'monthly'
-playbooks_limit: 8 (spark) or 20 (growth) or 999999 (transformation)
-devotionals_limit: 8 (spark) or 20 (growth) or 999999 (transformation)
+playbooks_limit: 10 (spark) or 25 (growth) or 999999 (transformation)
+devotionals_limit: 10 (spark) or 25 (growth) or 999999 (transformation)
 playbooks_used: 0
 devotionals_used: 0
 trial_converted_date: '2024-12-30T12:00:00Z'

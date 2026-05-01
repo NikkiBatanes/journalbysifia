@@ -62,10 +62,69 @@ class NotificationDeliveryService {
    * Process all pending notifications (public for testing)
    */
   async processPendingNotifications(): Promise<void> {
-    // Server-side process-notification-queue handles push delivery via APNS.
-    // This client service only handles in-app notification display.
-    // Do not process the queue here to avoid duplicates.
-    return;
+    if (this.isProcessing) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    try {
+      Logger.info('Processing pending notifications', {
+        component: 'NotificationDeliveryService',
+      });
+
+      // Get all pending notifications that are due
+      const now = new Date().toISOString();
+      const { data: pendingNotifications, error } = await supabase
+        .from('notification_queue')
+        .select('*')
+        .eq('status', 'pending')
+        .lte('scheduled_for', now)
+        .order('scheduled_for', { ascending: true })
+        .limit(50);
+
+      if (error) {
+        Logger.error('Error fetching pending notifications', error as Error, {
+          component: 'NotificationDeliveryService',
+        });
+        return;
+      }
+
+      if (!pendingNotifications || pendingNotifications.length === 0) {
+        Logger.info('No pending notifications to process', {
+          component: 'NotificationDeliveryService',
+        });
+        return;
+      }
+
+      Logger.info(`Found ${pendingNotifications.length} pending notifications`, {
+        component: 'NotificationDeliveryService',
+      });
+
+      // Process each notification
+      const processingPromises = pendingNotifications.map(notification =>
+        this.deliverNotification(notification).catch(deliveryError => {
+          Logger.error(`Failed to deliver notification ${notification.id}`, deliveryError as Error, {
+            component: 'NotificationDeliveryService',
+            notificationId: notification.id,
+          });
+        })
+      );
+
+      await Promise.allSettled(processingPromises);
+
+      Logger.info('Completed processing pending notifications', {
+        component: 'NotificationDeliveryService',
+        count: pendingNotifications.length,
+      });
+
+    } catch (error) {
+      Logger.error('Error in processPendingNotifications', error as Error, {
+        component: 'NotificationDeliveryService',
+      });
+    } finally {
+      this.isProcessing = false;
+    }
   }
 
   /**
@@ -73,6 +132,26 @@ class NotificationDeliveryService {
    */
   private async deliverNotification(notification: any): Promise<void> {
     try {
+      const cancellationReason = await this.getCancellationReason(notification);
+      if (cancellationReason) {
+        await supabase
+          .from('notification_queue')
+          .update({
+            status: 'cancelled',
+            error_message: cancellationReason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', notification.id);
+
+        Logger.info(`Cancelled stale notification ${notification.id}`, {
+          component: 'NotificationDeliveryService',
+          notificationId: notification.id,
+          type: notification.type,
+          reason: cancellationReason,
+        });
+        return;
+      }
+
       Logger.info(`Delivering notification ${notification.id}`, {
         component: 'NotificationDeliveryService',
         notificationId: notification.id,
@@ -131,11 +210,57 @@ class NotificationDeliveryService {
         .from('notification_queue')
         .update({
           status: 'failed',
-          error: (error as Error).message,
+          error_message: (error as Error).message,
           updated_at: new Date().toISOString(),
         })
         .eq('id', notification.id);
     }
+  }
+
+  private async getCancellationReason(notification: any): Promise<string | null> {
+    if (notification.type !== 'prayer_answered_check') {
+      return null;
+    }
+
+    const prayerId = notification.data?.source_id;
+    if (typeof prayerId !== 'string' || prayerId.length === 0) {
+      return null;
+    }
+
+    const { data: prayer, error } = await supabase
+      .from('prayers')
+      .select('id, status, prayed, is_prayer_request, metadata')
+      .eq('id', prayerId)
+      .eq('user_id', notification.user_id)
+      .maybeSingle();
+
+    if (error) {
+      Logger.warn('Unable to validate prayer before notification delivery', {
+        component: 'NotificationDeliveryService',
+        notificationId: notification.id,
+        prayerId,
+        error,
+      });
+      return null;
+    }
+
+    if (!prayer) {
+      return 'prayer_not_found';
+    }
+
+    if (prayer.status === 'answered') {
+      return 'prayer_already_answered';
+    }
+
+    if (prayer.is_prayer_request === true) {
+      return 'prayer_request_not_tracked';
+    }
+
+    if (prayer.metadata?.track_answered !== true) {
+      return 'answered_tracking_disabled';
+    }
+
+    return null;
   }
 
   /**
@@ -143,11 +268,18 @@ class NotificationDeliveryService {
    */
   private async deliverLocalNotification(notification: any): Promise<void> {
     await pushNotificationService.scheduleLocalNotification({
+      id: notification.id,
       title: notification.title,
       message: notification.message,
       badge: notification.badge,
       sound: notification.sound || 'default',
-      data: notification.data || {},
+      data: {
+        ...(notification.data || {}),
+        notification_id: notification.id,
+        queue_notification_id: notification.id,
+        user_id: notification.user_id,
+        type: notification.type,
+      },
     }, new Date());
   }
 
@@ -155,12 +287,61 @@ class NotificationDeliveryService {
    * Deliver push notification
    */
   private async deliverPushNotification(notification: any): Promise<void> {
-    // Push delivery is handled server-side via APNS.
-    // This client only displays notifications in the in-app notification center.
-    Logger.info('Push notification handled server-side', {
-      component: 'NotificationDeliveryService',
-      notificationId: notification.id,
-    });
+    try {
+      // Get the user's device token from the database
+      const { data: deviceToken, error: tokenError } = await supabase
+        .from('device_tokens')
+        .select('token')
+        .eq('user_id', notification.user_id)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !deviceToken?.token) {
+        throw new Error(`No device token found for user ${notification.user_id}`);
+      }
+
+      // Since PushNotificationService only supports local notifications,
+      // we'll deliver as local notification but with push-like behavior
+      // In a real implementation, this would integrate with FCM/APNS
+      await pushNotificationService.scheduleLocalNotification({
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        badge: notification.badge,
+        sound: notification.sound || 'default',
+        data: {
+          ...notification.data,
+          notification_id: notification.id,
+          queue_notification_id: notification.id,
+          user_id: notification.user_id,
+          type: notification.type,
+          push_notification: true,
+          device_token: deviceToken.token,
+        },
+      }, new Date());
+
+      Logger.info('Push notification delivered (via local service)', {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+        notificationId: notification.id,
+        type: notification.type,
+        deviceToken: deviceToken.token.substring(0, 10) + '...',
+      });
+
+    } catch (error) {
+      Logger.error('Failed to send push notification', error as Error, {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+        notificationId: notification.id,
+      });
+
+      // Fallback to local notification if push fails
+      Logger.info('Falling back to local notification', {
+        component: 'NotificationDeliveryService',
+        userId: notification.user_id,
+      });
+      await this.deliverLocalNotification(notification);
+    }
   }
 
   /**
