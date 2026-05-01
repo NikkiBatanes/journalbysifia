@@ -35,7 +35,6 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const { signIn, loading } = useAuth();
@@ -111,13 +110,11 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const onShow = (e: any) => {
-      const h = e?.endCoordinates?.height ?? 0;
-      setKeyboardHeight(h);
+    const onShow = () => {
+      // Keyboard show event
     };
 
     const onHide = () => {
-      setKeyboardHeight(0);
       setHasAutoScrolled(false);
     };
 
