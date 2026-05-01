@@ -1260,6 +1260,9 @@ export async function getPlaybook(
           id: subTask.id,
           text: subTask.text,
           completed: subTask.completed || false,
+          is_example: subTask.is_example,
+          isExample: subTask.is_example,
+          example_interactive: subTask.example_interactive || false,
         }));
 
       // Parse guided format metadata from examples field if it contains __meta JSON

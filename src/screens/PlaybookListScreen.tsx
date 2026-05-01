@@ -4,7 +4,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
 import {
   View,
   StyleSheet,
@@ -59,12 +58,16 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Playbook } from '../interfaces/playbook';
-import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
+import { deletePlaybook, getPlaybook, getPlaybooks } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useQuery } from '@tanstack/react-query';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 import { PlaybookSkeleton } from '../components/SkeletonLoader/PlaybookSkeleton';
+import { pdfExportService } from '../utils/pdfExportService';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
+import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler'; // This is needed for gesture handling
@@ -922,6 +925,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
 
@@ -1674,98 +1678,146 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [handleCardLongPress]);
 
   const handleExportPdfPress = useCallback(async (item: Playbook) => {
+    // Check feature access
+    if (!pdfExportAccess.hasAccess) {
+      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+      const upgradeMessage = typeof upgradePrompt?.message === 'string'
+        ? upgradePrompt.message
+        : typeof upgradePrompt === 'object' && upgradePrompt?.message
+          ? (upgradePrompt as any).message
+          : PDF_EXPORT_UPGRADE_PROMPT;
+
+      Alert.alert(
+        'Upgrade Required',
+        upgradeMessage,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              (navigation as any).navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: pdfExportAccess.accessResult?.requiredTier,
+                skipNotificationPreference: true,
+                featureType: 'export_pdf',
+                source: 'playbook_list',
+              });
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     try {
       triggerLightHaptic();
       setMenuVisible(null);
 
-      // Generate HTML content for the PDF
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-            h1 { color: #1e3a8a; margin-bottom: 10px; }
-            h2 { color: #4a5568; margin-top: 20px; margin-bottom: 10px; }
-            .truth-in-love { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; }
-            .scripture { background: #fef3c7; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic; }
-            .action-step { margin: 15px 0; padding-left: 20px; }
-            .action-step.completed { text-decoration: line-through; color: #6b7280; }
-            .affirmation { background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 15px 0; }
-          </style>
-        </head>
-        <body>
-          <h1>${item.title}</h1>
-          ${item.userInput ? `<p><strong>Your Challenge:</strong> ${item.userInput}</p>` : ''}
-          
-          ${(item.truthInLove as any)?.text ? `
-            <h2>Truth in Love</h2>
-            <div class="truth-in-love">
-              ${(item.truthInLove as any)?.text || ''}
-            </div>
-          ` : ''}
-          
-          ${(item.bibleVerse as any)?.text ? `
-            <h2>Scripture to Anchor</h2>
-            <div class="scripture">
-              ${(item.bibleVerse as any)?.text || ''}
-              ${(item.bibleVerse as any)?.reference ? `<br><em>- ${(item.bibleVerse as any)?.reference}</em>` : ''}
-            </div>
-          ` : ''}
-          
-          ${item.actionSteps && item.actionSteps.length > 0 ? `
-            <h2>Faithful Actions</h2>
-            ${item.actionSteps.map((step: any, index: number) => `
-              <div class="action-step ${step.completed ? 'completed' : ''}">
-                <strong>${index + 1}. ${step.title || ''}</strong>
-                ${step.description ? `<p>${step.description}</p>` : ''}
-                ${step.subTasks && step.subTasks.length > 0 ? `
-                  <ul>
-                    ${step.subTasks.map((subTask: any) => `
-                      <li class="${subTask.completed ? 'completed' : ''}">${subTask.text || ''}</li>
-                    `).join('')}
-                  </ul>
-                ` : ''}
-              </div>
-            `).join('')}
-          ` : ''}
-          
-          ${item.affirmations && item.affirmations.length > 0 ? `
-            <h2>Affirmations</h2>
-            ${item.affirmations.map((affirmation: any) => `
-              <div class="affirmation">${typeof affirmation === 'string' ? affirmation : affirmation.text || ''}</div>
-            `).join('')}
-          ` : ''}
-          
-          <p style="margin-top: 30px; color: #6b7280; font-size: 12px;">
-            Generated by siFia - ${new Date().toLocaleDateString()}
-          </p>
-        </body>
-        </html>
-      `;
-
-      const options = {
-        html: htmlContent,
-        fileName: `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
-        directory: 'Documents',
-      };
-
-      const file = await RNHTMLtoPDF.generatePDF(options);
-
-      if (file?.filePath) {
-        Alert.alert(
-          'Success',
-          'PDF exported successfully!',
-          [{ text: 'OK' }]
-        );
-      } else {
-        throw new Error('Failed to generate PDF file');
+      // Fetch the full playbook before exporting
+      if (!userId) {
+        Alert.alert('Error', 'Unable to export this playbook right now.');
+        return;
       }
+
+      const fullPlaybook = await getPlaybook(userId, item.id);
+      if (!fullPlaybook) {
+        Alert.alert('Error', 'Could not load the full playbook for export.');
+        return;
+      }
+
+      // Get user metadata for name replacement
+      const metaUser: any = (user as any)?.user_metadata || {};
+      const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+      const metaDisplayName = (user as any)?.displayName ||
+                            metaUser.full_name ||
+                            [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
+                            '';
+
+      // Get bible version from user preferences or default to NASB
+      const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+      // Use pdfExportService to generate and share PDF
+      pdfExportService.exportPlaybookPDF({
+        title: fullPlaybook.title,
+        truthInLove: replaceAllNamePlaceholders(
+          typeof fullPlaybook.truthInLove === 'string' ? fullPlaybook.truthInLove : fullPlaybook.truthInLove?.text || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
+        truthInLoveSummary: replaceAllNamePlaceholders(
+          typeof fullPlaybook.truthInLove === 'string' ? '' : fullPlaybook.truthInLove?.summary || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
+        bibleVerse: {
+          ...fullPlaybook.bibleVerse,
+          version: bibleVersion,
+        },
+        bibleVerseReflection: fullPlaybook.bibleVerseReflection || '',
+        actionSteps: fullPlaybook.actionSteps?.map(step => {
+          // Derive examples similar to ActionStepsCard
+          let examples: string[] = [];
+
+          const rawExamples: any = (step as any).examples;
+
+          if (rawExamples && typeof rawExamples === 'string') {
+            if (/Example:\s*/i.test(rawExamples)) {
+              const exampleMatches = rawExamples
+                .split(/Example:\s*/i)
+                .filter((text: string) => text.trim().length > 0);
+              examples = exampleMatches.map((ex: string) => ex.replace(/^Example:\s*/i, '').trim());
+            } else if (rawExamples.includes(';')) {
+              examples = rawExamples
+                .split(';')
+                .map((ex: string) => ex.replace(/^Example:\s*/i, '').trim())
+                .filter(Boolean);
+            } else if (rawExamples.trim()) {
+              examples = [rawExamples.replace(/^Example:\s*/i, '').trim()];
+            }
+          } else if (Array.isArray(rawExamples)) {
+            examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').replace(/^Example:\s*/i, '').trim());
+          } else if (step.subTasks && step.subTasks.length > 0) {
+            // Extract examples from subtasks that have is_example flag OR start with "example:"
+            examples = step.subTasks
+              .filter((st: any) =>
+                (typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')) ||
+                st.is_example === true ||
+                st.isExample === true
+              )
+              .map((st: any) => st.text.replace(/^Example:\s*/i, '').trim());
+          }
+
+          return {
+            title: step.title,
+            description: step.description || '',
+            subtasks: step.subTasks?.map((st: any) => st.text || st.title || st) || [],
+            examples,
+          };
+        }),
+        affirmations: fullPlaybook.affirmations?.map((a: any) =>
+          replaceAllNamePlaceholders(
+            typeof a === 'string' ? a : a?.text || '',
+            { firstName: metaFirstName, displayName: metaDisplayName },
+            { replaceHardcodedNames: true }
+          )
+        ) || [],
+        prayer: fullPlaybook.prayer || '',
+        wordsToSpeak: fullPlaybook.wordToSpeak || '',
+        directChallenge: replaceAllNamePlaceholders(
+          typeof fullPlaybook.directChallenge === 'string' ? fullPlaybook.directChallenge : fullPlaybook.directChallenge?.text || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
+        createdAt: fullPlaybook.createdAt,
+      });
     } catch (error) {
-      Logger.error('Error exporting PDF', error as Error, { component: 'PlaybookListScreen' });
-      Alert.alert('Error', 'Failed to export PDF. Please try again.');
+      console.error('PDF Export Error:', error);
+      Alert.alert('Error', 'Failed to export PDF');
     }
-  }, [triggerLightHaptic]);
+  }, [pdfExportAccess, navigation, triggerLightHaptic, user, userId]);
 
   // Stable renderItem for the date-view FlatList.
   // Defined with useCallback so its reference only changes when actual data/handlers change —

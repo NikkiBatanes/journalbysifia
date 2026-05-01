@@ -31,11 +31,14 @@ import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
 import { useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { faithPointsService } from '../services/faithPointsService';
 import { toLocalDateString } from '../utils/date';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -1547,6 +1550,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
       return initialStep;
@@ -1804,16 +1808,128 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     [slideAnim]
   );
 
-  const handleShare = useCallback(async () => {
-    try {
-      triggerLightHaptic();
-      await Share.share({
-        message: `I just completed the "${playbook?.title}" playbook on siFia — walking it out one step at a time. 🙏`,
-      });
-    } catch (_error) {
-      // User cancelled share — silent
+  const handleExportPDF = useCallback(async () => {
+    // Check feature access
+    if (!pdfExportAccess.hasAccess) {
+      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+      const upgradeMessage = typeof upgradePrompt?.message === 'string'
+        ? upgradePrompt.message
+        : typeof upgradePrompt === 'object' && upgradePrompt?.message
+          ? (upgradePrompt as any).message
+          : PDF_EXPORT_UPGRADE_PROMPT;
+
+      Alert.alert(
+        'Upgrade Required',
+        upgradeMessage,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              (navigation as any).navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: pdfExportAccess.accessResult?.requiredTier,
+                skipNotificationPreference: true,
+                featureType: 'export_pdf',
+                source: 'playbook_walkthrough',
+              });
+            },
+          },
+        ]
+      );
+      return;
     }
-  }, [playbook?.title]);
+
+    if (!playbook) { return; }
+
+    // Get user metadata for name replacement
+    const metaUser: any = (user as any)?.user_metadata || {};
+    const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
+    const metaDisplayName = (user as any)?.displayName ||
+                          metaUser.full_name ||
+                          [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
+                          '';
+
+    // Get bible version from user preferences or default to NASB
+    const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+    pdfExportService.exportPlaybookPDF({
+      title: playbook.title,
+      truthInLove: replaceAllNamePlaceholders(
+        typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text || '',
+        { firstName: metaFirstName, displayName: metaDisplayName },
+        { replaceHardcodedNames: true }
+      ),
+      truthInLoveSummary: replaceAllNamePlaceholders(
+        typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary || '',
+        { firstName: metaFirstName, displayName: metaDisplayName },
+        { replaceHardcodedNames: true }
+      ),
+      bibleVerse: {
+        ...playbook.bibleVerse,
+        version: bibleVersion,
+      },
+      bibleVerseReflection: playbook.bibleVerseReflection || '',
+      actionSteps: playbook.actionSteps?.map(step => {
+        // Derive examples similar to ActionStepsCard
+        let examples: string[] = [];
+
+        const rawExamples: any = (step as any).examples;
+
+        if (rawExamples && typeof rawExamples === 'string') {
+          if (/Example:\s*/i.test(rawExamples)) {
+            const exampleMatches = rawExamples
+              .split(/Example:\s*/i)
+              .filter((text: string) => text.trim().length > 0);
+            examples = exampleMatches.map((ex: string) => ex.replace(/^Example:\s*/i, '').trim());
+          } else if (rawExamples.includes(';')) {
+            examples = rawExamples
+              .split(';')
+              .map((ex: string) => ex.trim())
+              .filter(Boolean);
+          } else if (rawExamples.trim()) {
+            examples = [rawExamples.trim()];
+          }
+        } else if (Array.isArray(rawExamples)) {
+          examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').replace(/^Example:\s*/i, '').trim());
+        } else if (step.subTasks && step.subTasks.length > 0) {
+          // Extract examples from subtasks that have is_example flag OR start with "example:"
+          examples = step.subTasks
+            .filter((st: any) =>
+              (typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')) ||
+              st.is_example === true ||
+              st.isExample === true
+            )
+            .map((st: any) => st.text.replace(/^Example:\s*/i, '').trim());
+        }
+
+        return {
+          title: step.title,
+          description: step.description || '',
+          subtasks: step.subTasks?.map((st: any) => st.text || st.title || st) || [],
+          examples,
+        };
+      }),
+      affirmations: playbook.affirmations?.map(a =>
+        replaceAllNamePlaceholders(
+          a.text,
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        )
+      ) || [],
+      prayer: playbook.prayer || '',
+      wordsToSpeak: playbook.wordToSpeak || '',
+      directChallenge: replaceAllNamePlaceholders(
+        typeof playbook.directChallenge === 'string' ? playbook.directChallenge : playbook.directChallenge?.text || '',
+        { firstName: metaFirstName, displayName: metaDisplayName },
+        { replaceHardcodedNames: true }
+      ),
+      createdAt: playbook.createdAt,
+    });
+  }, [playbook, user, pdfExportAccess, navigation]);
 
   const handleFinish = useCallback(() => {
     triggerMediumHaptic();
@@ -2145,7 +2261,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
         >
           <TouchableOpacity
-            onPress={handleShare}
+            onPress={handleExportPDF}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
