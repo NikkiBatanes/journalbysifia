@@ -547,53 +547,24 @@ const OnboardingTrialOfferScreen = () => {
         // ENTERPRISE IMPROVEMENT: Update loading steps
         setLoadingStep('activating');
 
-        // Sync subscription
-        try {
-          logger.info('🔄 TRIAL STEP 5: Starting subscription sync', {
-            userId: user.id,
-            timestamp: new Date().toISOString(),
-          });
+        // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks.
+        // Do not immediately run Apple sync here: getAvailablePurchases can be stale right
+        // after purchase and should not override the just-created trial state.
+        logger.debug('🔄 TRIAL STEP 5: Invalidating subscription cache for immediate UI update', {
+          userId: user.id,
+          timestamp: new Date().toISOString(),
+        });
 
-          const syncStartTime = Date.now();
-          const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
-          const storeKitService = AppleStoreKitService.getInstance();
+        await queryClient.invalidateQueries({
+          queryKey: ['subscription', user.id],
+          refetchType: 'active',
+        });
 
-          // NOTE: Stale purchase validation now handled in AppleStoreKitService.handlePurchaseUpdate
-          // The service automatically rejects purchases older than 5 minutes from initiation
-          // This ensures only fresh trial activations are processed
-
-          await storeKitService.checkAndSyncSubscriptionStatus(user.id, false);
-
-          const syncDuration = Date.now() - syncStartTime;
-          logger.info(`✅ TRIAL STEP 6: Subscription sync completed (${syncDuration}ms)`, {
-            userId: user.id,
-            duration: syncDuration,
-            timestamp: new Date().toISOString(),
-          });
-
-          // CRITICAL: Invalidate subscription cache to trigger UI updates across all hooks
-          logger.debug('🔄 TRIAL STEP 7: Invalidating subscription cache for immediate UI update', {
-            userId: user.id,
-            timestamp: new Date().toISOString(),
-          });
-
-          await queryClient.invalidateQueries({
-            queryKey: ['subscription', user.id],
-            refetchType: 'active', // Force immediate refetch of active queries
-          });
-
-          logger.info('✅ TRIAL STEP 8: All trial steps completed successfully', {
-            userId: user.id,
-            selectedTierId,
-            timestamp: new Date().toISOString(),
-          });
-
-        } catch (syncError) {
-          logger.error('❌ TRIAL STEP 6: Subscription sync failed', syncError as Error, {
-            userId: user.id,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        logger.info('✅ TRIAL STEP 6: All trial steps completed successfully', {
+          userId: user.id,
+          selectedTierId,
+          timestamp: new Date().toISOString(),
+        });
 
         // Final step
         setLoadingStep('completing');

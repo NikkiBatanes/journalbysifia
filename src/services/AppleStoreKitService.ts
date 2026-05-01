@@ -1868,17 +1868,19 @@ export class AppleStoreKitService {
         return;
       }
 
-      // CRITICAL: Use cancelSubscription instead of upgradeSubscription for proper seeker downgrade
-      // This ensures all limits and fields are correctly reset with built-in failsafes
-      Logger.info('[StoreKit] No active subscription found - downgrading to seeker', {
+      if (currentSub?.platform === 'apple' || currentSub?.platform_subscription_id || currentSub?.tier === 'free_trial') {
+        Logger.warn('[StoreKit] No Apple purchases returned, preserving local subscription until receipt/webhook confirms expiration', {
+          component: 'AppleStoreKitService',
+          currentTier: currentSub?.tier,
+          platform: currentSub?.platform,
+          hasPlatformSubscriptionId: !!currentSub?.platform_subscription_id,
+        });
+        return;
+      }
+
+      Logger.info('[StoreKit] No active subscription found and no Apple transaction is stored - leaving subscription unchanged', {
         component: 'AppleStoreKitService',
         currentTier: currentSub?.tier,
-      });
-
-      await NewSubscriptionService.cancelSubscription(userId);
-
-      Logger.info('[StoreKit] Successfully downgraded to seeker', {
-        component: 'AppleStoreKitService',
       });
 
     } catch (error) {

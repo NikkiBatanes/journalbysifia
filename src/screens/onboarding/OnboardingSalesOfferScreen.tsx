@@ -691,14 +691,25 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       subscriptionTier: subscription?.tier,
     });
 
-    // Reset subscription to seeker when user cancels sales offer (only in onboarding, not upgrade)
+    // Reset subscription to seeker only when an unpaid seeker cancels the onboarding sales offer.
+    // Do not mark a just-purchased trial/paid Apple subscription as cancelled on modal close.
     if (!isUpgradeMode && user?.id) {
       try {
-        logger.debug('Resetting subscription to seeker for cancelled sales offer');
+        const currentSubscription = await NewSubscriptionService.getUserSubscription(user.id, true);
+        const canCancelAsSeeker =
+          currentSubscription?.tier === 'seeker' &&
+          !currentSubscription?.platform_subscription_id &&
+          !currentSubscription?.trial_start_date;
 
-        // Reset user to seeker tier using cancelSubscription method
-        await NewSubscriptionService.cancelSubscription(user.id);
-        logger.debug('Successfully reset subscription to seeker');
+        if (canCancelAsSeeker) {
+          logger.debug('Keeping cancelled onboarding sales offer on seeker plan');
+        } else {
+          logger.debug('Skipping seeker reset because user already has subscription state', {
+            tier: currentSubscription?.tier,
+            hasPlatformSubscriptionId: !!currentSubscription?.platform_subscription_id,
+            hasTrialStartDate: !!currentSubscription?.trial_start_date,
+          });
+        }
 
         // Reset UI state immediately to prevent any race conditions
         // Preserve the user's initial selection or manual selection instead of forcing spark
