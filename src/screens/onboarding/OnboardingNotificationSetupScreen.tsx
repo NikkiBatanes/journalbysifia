@@ -6,7 +6,6 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
-  Switch,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -226,11 +225,11 @@ const OnboardingNotificationSetupScreen = () => {
         }
 
         Alert.alert(
-          '🌸 Notifications Enabled!',
-          'You\'ll receive personalized reminders to help you stay connected with God.',
+          '✨Notifications enabled',
+          'You\'ll receive gentle reminders to help you return, reflect, and stay connected with God.',
           [
             {
-              text: 'Let\'s Go!',
+              text: 'Let\'s go',
               onPress: () => {
                 // Navigate to UserInput after notification setup (post-purchase)
                 navigation.reset({
@@ -431,13 +430,23 @@ const OnboardingNotificationSetupScreen = () => {
                   )}
                 </View>
               </View>
-              <Switch
-                value={setting.enabled}
-                onValueChange={() => handleToggleSetting(setting.id)}
-                trackColor={{ false: Colors.switchTrackInactive, true: Colors.switchTrackActive }}
-                thumbColor={setting.enabled ? Colors.hopeWhite : Colors.lightGray}
+              <TouchableOpacity
+                onPress={() => !setting.required && handleToggleSetting(setting.id)}
+                activeOpacity={0.7}
                 disabled={setting.required}
-              />
+                style={[
+                  styles.toggle,
+                  setting.enabled && styles.toggleActive,
+                  setting.required && styles.toggleDisabled,
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: setting.enabled, disabled: setting.required }}
+              >
+                <View style={[
+                  styles.toggleIndicator,
+                  setting.enabled && styles.toggleIndicatorActive,
+                ]} />
+              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -452,13 +461,13 @@ const OnboardingNotificationSetupScreen = () => {
       </ScrollView>
 
       {/* Sticky Footer Actions */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 2 }] }>
-        <TouchableOpacity style={styles.enableButton} onPress={handleEnableNotifications}>
-          <ThemedText weight="bold" style={styles.enableButtonText}>Enable Notifications</ThemedText>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }] }>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleEnableNotifications}>
+          <ThemedText weight="semiBold" style={styles.primaryButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <ThemedText weight="medium" style={styles.skipButtonText}>Maybe Later</ThemedText>
+        <TouchableOpacity style={[styles.secondaryButton, styles.devotionalButton]} onPress={handleSkip}>
+          <ThemedText weight="semiBold" style={styles.secondaryButtonText}>Maybe Later</ThemedText>
         </TouchableOpacity>
 
         <ThemedText style={styles.privacyNote}>
@@ -480,7 +489,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingTop: 4,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: 'transparent',
   },
   header: {
@@ -539,17 +549,17 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   settingsTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   settingsSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
-    opacity: 0.75,
-    lineHeight: 20,
-    marginBottom: 16,
+    opacity: 0.8,
+    lineHeight: 22,
+    marginBottom: 12,
     textAlign: 'left',
   },
   settingItem: {
@@ -557,7 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
   },
@@ -621,44 +631,62 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  enableButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingVertical: 15,
-    borderRadius: 50,
-    marginBottom: 8,
-    height: 56,
+  primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
     paddingHorizontal: 28,
+    gap: 8,
   },
-  enableButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  primaryButtonText: {
+    fontSize: 16,
     color: Colors.hopeWhite,
-    textAlign: 'center',
   },
-  skipButton: {
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
+    gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  skipButtonText: {
-    color: Colors.hopeWhite,
+  secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    color: Colors.hopeWhite,
+  },
+  devotionalButton: {
+    marginTop: 12,
+  },
+  toggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  toggleDisabled: {
+    opacity: 0.5,
+  },
+  toggleIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 18,
+    backgroundColor: Colors.hopeWhite,
+    alignSelf: 'flex-start',
+  },
+  toggleIndicatorActive: {
+    alignSelf: 'flex-end',
   },
   privacyNote: {
     fontSize: 12,
