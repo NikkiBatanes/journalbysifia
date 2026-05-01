@@ -9,6 +9,7 @@ interface CopyContext {
   verseText?: string;
   questionText?: string;
   wordToSpeak?: string;
+  reflectionLine?: string;
   heartJournalTitle?: string;
   personName?: string;
   personNames?: string[];
@@ -114,6 +115,12 @@ export function buildSmartNotificationCopy(
         message: compact(pbVerseMessage),
       };
     }
+
+    case 'playbook_verse_reflection':
+      return {
+        title: 'A word worth carrying',
+        message: compact(context.reflectionLine || 'Revisit the reflection from your Scripture anchor today.'),
+      };
 
     case 'playbook_prayer_revisit':
       return {

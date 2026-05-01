@@ -42,7 +42,9 @@ type PlaybookRowLike = {
   bible_verse?: {
     reference?: string;
     text?: string;
+    reflection?: string;
   } | null;
+  bible_verse_reflection?: string | null;
   word_to_speak?: string | null;
   direct_challenge?: unknown;
   prayer?: string | null;
@@ -142,6 +144,7 @@ const createCandidate = ({
     playbook_word_to_speak: 'playbook',
     playbook_faithful_action: 'playbook',
     playbook_verse_revisit: 'playbook',
+    playbook_verse_reflection: 'playbook',
     playbook_prayer_revisit: 'playbook',
     playbook_to_devotional: 'playbook',
     journal_todays_focus: 'journal',
@@ -406,6 +409,7 @@ const getPlaybooks = async (userId: string): Promise<PlaybookRowLike[]> => {
       status,
       completed_at,
       bible_verse,
+      bible_verse_reflection,
       word_to_speak,
       direct_challenge,
       prayer,
@@ -476,6 +480,22 @@ const getWordsToSpeak = (playbook: PlaybookRowLike): string[] => {
     .map(item => safeText(item.text))
     .filter(Boolean)
     .slice(0, 5);
+};
+
+const getReflectionLines = (playbook: PlaybookRowLike): string[] => {
+  // NOTE: do NOT run safeText on the full string — it collapses \n to spaces before split.
+  // Split on newlines first, then sanitize each line individually.
+  const splitRaw = (raw: unknown): string[] => {
+    if (typeof raw !== 'string' || !raw.trim()) {return [];}
+    return raw.split(/\n+/).map(l => safeText(l)).filter(Boolean);
+  };
+
+  // Primary: dedicated column (normalized schema)
+  const fromColumn = splitRaw(playbook.bible_verse_reflection);
+  if (fromColumn.length > 0) {return fromColumn;}
+
+  // Fallback: piggybacked inside bible_verse JSONB (legacy modernPlaybookApi storage)
+  return splitRaw(playbook.bible_verse?.reflection);
 };
 
 const getRemainingUsage = (subscription: Subscription): { playbooks: number; devotionals: number } => {
@@ -920,6 +940,82 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         .eq('user_id', userId);
     }
     // If all verses have been notified, don't send any more until reset
+  }
+
+  // playbook_verse_reflection: send 2 reflection lines per day (morning + afternoon)
+  // from all playbooks (in-progress or completed), rotating through every line.
+  {
+    const allPlaybooksWithReflection = playbooks.filter(pb => getReflectionLines(pb).length > 0);
+
+    if (allPlaybooksWithReflection.length > 0) {
+      // Build a flat list of all {playbookId, lineIndex, line} across all playbooks
+      const allLines: Array<{ playbookId: string; lineIndex: number; line: string; playbookTitle: string | null | undefined; verseRef: string }> = [];
+      for (const pb of allPlaybooksWithReflection) {
+        const lines = getReflectionLines(pb);
+        const verseRef = notificationText(pb.bible_verse?.reference);
+        lines.forEach((line, idx) => {
+          allLines.push({ playbookId: pb.id, lineIndex: idx, line, playbookTitle: pb.title, verseRef });
+        });
+      }
+
+      const notifiedLines = (userMetadata.notified_reflection_lines as string[]) || [];
+      const lastReflectionReset = userMetadata.last_reflection_line_reset as string | undefined;
+
+      const shouldResetReflectionTracking =
+        !lastReflectionReset ||
+        (new Date().getTime() - new Date(lastReflectionReset).getTime() > 30 * 24 * 60 * 60 * 1000) ||
+        notifiedLines.length >= allLines.length;
+
+      const effectiveNotified: string[] = shouldResetReflectionTracking ? [] : notifiedLines;
+
+      // Pick up to 2 unnotified lines for today
+      const availableLines = allLines.filter(l => !effectiveNotified.includes(`${l.playbookId}:${l.lineIndex}`));
+      const todayLines = availableLines.slice(0, 2);
+      const timeWindows: SmartNotificationTimeWindow[] = ['morning', 'afternoon'];
+
+      const newlyNotified: string[] = [];
+
+      for (let i = 0; i < todayLines.length; i++) {
+        const { playbookId, lineIndex, line, verseRef } = todayLines[i];
+        const lineKey = `${playbookId}:${lineIndex}`;
+        const window = timeWindows[i];
+
+        candidates.push(createCandidate({
+          type: 'playbook_verse_reflection',
+          timeWindow: window,
+          score: 62 - i * 4,
+          dedupeKey: buildDedupeKey('playbook_verse_reflection', lineKey, currentDate),
+          deepLink: `sifia://playbooks/${playbookId}/walkthrough/verse`,
+          sourceType: 'playbook',
+          sourceId: playbookId,
+          sourceSubId: String(lineIndex),
+          copyContext: { reflectionLine: line, verseReference: verseRef },
+          metadata: {
+            reflection_line: line,
+            verse_reference: verseRef,
+            line_index: lineIndex,
+          },
+        }));
+
+        newlyNotified.push(lineKey);
+      }
+
+      if (newlyNotified.length > 0 || shouldResetReflectionTracking) {
+        const updatedNotified = [...new Set([...effectiveNotified, ...newlyNotified])];
+        await supabase
+          .from('user_profiles')
+          .update({
+            metadata: {
+              ...userMetadata,
+              notified_reflection_lines: updatedNotified,
+              last_reflection_line_reset: shouldResetReflectionTracking
+                ? new Date().toISOString()
+                : (lastReflectionReset || new Date().toISOString()),
+            },
+          })
+          .eq('user_id', userId);
+      }
+    }
   }
 
   if (ongoingPlaybook) {

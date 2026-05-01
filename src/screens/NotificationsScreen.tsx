@@ -555,7 +555,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       Alert.alert(
         'Welcome to the Family!',
-        'You have successfully joined the family subscription with unlimited access!',
+        'You have successfully joined the family subscription.',
         [
           {
             text: 'OK',

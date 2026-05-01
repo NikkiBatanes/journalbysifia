@@ -172,6 +172,25 @@ export class NotificationTester {
       ctx._playbookVerseText = bv.text;
     }
 
+    // Reflection lines from bibleVerseReflection (column or piggybacked into bible_verse.reflection)
+    // NOTE: do NOT call safeStr on the full string before splitting — safeStr collapses \n to spaces.
+    const splitReflection = (raw: unknown): string[] => {
+      if (typeof raw !== 'string' || !raw.trim()) {return [];}
+      return raw.split(/\n+/).map((l: string) => strip(l.replace(/\*\*|__|\*/g, '').trim())).filter(Boolean);
+    };
+    const getReflectionLines = (pb: any): string[] => {
+      const fromColumn = splitReflection(pb.bibleVerseReflection || pb.bible_verse_reflection);
+      if (fromColumn.length > 0) {return fromColumn;}
+      const bv = pb.bibleVerse || pb.bible_verse;
+      return splitReflection(bv && typeof bv === 'object' ? bv.reflection : undefined);
+    };
+    const pbWithReflection = playbooks.find((pb: any) => getReflectionLines(pb).length > 0);
+    if (pbWithReflection) {
+      const lines = getReflectionLines(pbWithReflection);
+      ctx._playbookReflectionLine = strip(lines[new Date().getDate() % lines.length]);
+      ctx._playbookReflectionVerseRef = strip(safeStr((pbWithReflection.bibleVerse || pbWithReflection.bible_verse)?.reference));
+    }
+
     // devotional verse is already in ctx.verseText / ctx.verseReference from the devotional block above
 
     // Prayer request names (for prayer_request_care group/individual)
@@ -264,6 +283,11 @@ export class NotificationTester {
       resolvedCtx.verseReference = ctx._playbookVerseReference;
     }
 
+    if (type === 'playbook_verse_reflection') {
+      resolvedCtx.reflectionLine = ctx._playbookReflectionLine;
+      resolvedCtx.verseReference = ctx._playbookReflectionVerseRef;
+    }
+
     if (type === 'prayer_answered_check') {
       resolvedCtx.prayerText = ctx._unansweredPrayerText;
       resolvedCtx.personName = ctx._unansweredPrayerPersonName;
@@ -288,6 +312,7 @@ export class NotificationTester {
       playbook_word_to_speak: 'wordToSpeak',
       playbook_faithful_action: 'actionText',
       playbook_verse_revisit: '_playbookVerseText',
+      playbook_verse_reflection: '_playbookReflectionLine',
       devotional_day_ready: 'dayNumber',
       devotional_reflection_prompt: 'questionText',
       devotional_verse_revisit: 'verseText',
