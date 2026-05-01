@@ -545,7 +545,6 @@ const DevotionalsScreen = () => {
                       }}
                     >
                       <View style={styles.dropdownItemContent}>
-                        <Ionicons name="document-text-outline" size={16} color={Colors.anchorBlue} />
                         <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
                       </View>
                     </TouchableOpacity>
