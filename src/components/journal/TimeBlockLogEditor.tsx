@@ -645,15 +645,14 @@ const createDefaultStyles = (_fonts: any) => ({
   customModalButtons: {
     flexDirection: 'row',
     marginTop: 20,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 10,
   },
   customModalButton: {
-    flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 50,
+    paddingHorizontal: 24,
+    borderRadius: 24,
     alignItems: 'center',
-    marginHorizontal: 5,
     minHeight: 40,
   },
   customModalCancelButton: {
@@ -938,6 +937,10 @@ function TimeBlockLogEditorInner(
   const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
+  // Date picker for faithful actions context
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   // Keyboard position state for FAB
   const fabBottomPosition = useRef(new Animated.Value(80)).current;
 
@@ -1025,7 +1028,7 @@ function TimeBlockLogEditorInner(
         isAllDay,
         alert,
         alarmMinutes: alertToAlarmMinutes(alert), // Add converted alarm minutes for calendar sync
-        date: new Date(),
+        date: selectedDate,
         // Provide repeat info mirroring journal screen
         repeatFrequency: ((): any => {
           const lower = repeatOption.toLowerCase();
@@ -1102,6 +1105,28 @@ function TimeBlockLogEditorInner(
 
             {/* Form content based on active tab */}
             <View style={s.formContainer}>
+              {/* Date Picker - Only for faithful actions context */}
+              {context === 'faithful-actions' && (
+                <TouchableOpacity
+                  style={s.repeatButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setShowDatePicker(true);
+                  }}
+                >
+                  <View style={s.buttonContent}>
+                    <Ionicons name="calendar" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                    <ThemedText weight="medium" style={s.repeatText}>Date</ThemedText>
+                  </View>
+                  <View style={s.repeatOptionContainer}>
+                    <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, s.selectedOptionText]}>
+                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </ThemedText>
+                    <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+                  </View>
+                </TouchableOpacity>
+              )}
+
               {/* Time and All Day Row */}
               <View style={s.timeRowContainer}>
                 <View style={s.timeSection}>
@@ -1618,6 +1643,54 @@ function TimeBlockLogEditorInner(
                   </View>
                 </View>
               </Modal>
+
+              {/* Date Picker Modal for Faithful Actions */}
+              {context === 'faithful-actions' && (
+                <Modal
+                  visible={showDatePicker}
+                  transparent={true}
+                  animationType="fade"
+                  onRequestClose={() => setShowDatePicker(false)}
+                >
+                  <View style={s.timePickerModal}>
+                    <View style={s.timePickerContainer}>
+                      <ThemedText weight="semiBold" style={s.timePickerTitle}>Select Date</ThemedText>
+                      <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="spinner"
+                        textColor={Colors.hopeWhite}
+                        themeVariant="dark"
+                        onChange={(event, newDate) => {
+                          if (newDate) {
+                            setSelectedDate(newDate);
+                          }
+                        }}
+                      />
+                      <View style={s.customModalButtons}>
+                        <TouchableOpacity
+                          style={[s.customModalButton, s.customModalCancelButton]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setShowDatePicker(false);
+                          }}
+                        >
+                          <ThemedText weight="semiBold" style={s.customModalButtonText}>Cancel</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[s.customModalButton, s.customModalConfirmButton]}
+                          onPress={async () => {
+                            await triggerLightHaptic();
+                            setShowDatePicker(false);
+                          }}
+                        >
+                          <ThemedText weight="semiBold" style={s.customModalButtonText}>Done</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </Modal>
+              )}
 
               {/* Location Input */}
               <View style={s.locationInputContainer}>

@@ -234,7 +234,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
-        selected_date: selectedDate || toLocalDateString(timeBlockData.date),
+        selected_date: toLocalDateString(timeBlockData.date),
         start_time: timeBlockData.startTime.toISOString(),
         end_time: timeBlockData.endTime.toISOString(),
         all_day: timeBlockData.isAllDay,
