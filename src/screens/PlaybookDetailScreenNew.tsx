@@ -1397,7 +1397,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         } else if (step.subTasks && step.subTasks.length > 0) {
           // Extract examples from subtasks that have is_example flag OR start with "example:"
           examples = step.subTasks
-            .filter((st: any) => 
+            .filter((st: any) =>
               (typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')) ||
               st.is_example === true ||
               st.isExample === true
