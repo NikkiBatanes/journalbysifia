@@ -189,44 +189,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         {/* User input card — revealed when chevron is tapped */}
         {showUserInput && (
           <View style={styles.userInputCard}>
-            <ThemedText style={styles.userInputText} selectable={true} selectionColor="rgba(255, 107, 107, 0.3)">{userInput}</ThemedText>
-            <TouchableOpacity
-              style={styles.cardMenuButton}
-              onPress={() => {
-                triggerMediumHaptic();
-                if (Platform.OS === 'ios') {
-                  const options = ['Copy', ...(onEditUserInput ? ['Edit'] : []), 'Cancel'];
-                  const cancelButtonIndex = options.length - 1;
-                  ActionSheetIOS.showActionSheetWithOptions(
-                    {
-                      options,
-                      cancelButtonIndex,
-                    },
-                    (buttonIndex) => {
-                      if (buttonIndex === 0) {
-                        Clipboard.setString(userInput);
-                        triggerLightHaptic();
-                        Alert.alert('Copied', 'Your text has been copied to the clipboard.');
-                      } else if (buttonIndex === 1 && onEditUserInput) {
-                        triggerLightHaptic();
-                        onEditUserInput();
-                      }
-                    }
-                  );
-                } else {
-                  const buttons: any[] = [
-                    { text: 'Copy', onPress: () => { Clipboard.setString(userInput); triggerLightHaptic(); Alert.alert('Copied', 'Your text has been copied to the clipboard.'); } },
-                  ];
-                  if (onEditUserInput) {
-                    buttons.push({ text: 'Edit', onPress: () => { triggerLightHaptic(); onEditUserInput(); } });
-                  }
-                  buttons.push({ text: 'Cancel', style: 'cancel' });
-                  Alert.alert('User Input', 'Choose an action', buttons);
-                }
-              }}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
+            <ThemedText style={styles.userInputText} selectable={true}>{userInput}</ThemedText>
           </View>
         )}
       </StepFadeIn>
@@ -2510,19 +2473,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
     padding: 14,
     marginBottom: 20,
-    position: 'relative',
-  },
-  cardMenuButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 4,
   },
   userInputText: {
     fontSize: 14,
     color: Colors.hopeWhite,
     lineHeight: 20,
-    paddingRight: 24,
   },
   title: {
     fontSize: 16,
