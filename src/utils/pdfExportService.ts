@@ -668,7 +668,7 @@ class PDFExportService {
           `}
 
           <div class="footer">
-            <div class="footer-text">A quiet companion for real-life moments.</div>
+            <div class="footer-text">A companion for real-life moments, rooted in Scripture.</div>
             <div class="footer-logo"> siFia</div>
           </div>
         </body>
@@ -1330,7 +1330,7 @@ class PDFExportService {
           ` : ''}
 
           <div class="footer">
-            <div class="footer-text">A quiet companion for real-life moments.</div>
+            <div class="footer-text">A companion for real-life moments, rooted in Scripture.</div>
             <div class="footer-logo"> siFia</div>
           </div>
         </body>
