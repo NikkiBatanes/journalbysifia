@@ -348,29 +348,9 @@ const DevotionalsScreen = () => {
 
       const handleDaySelection = async (buttonIndex: number) => {
         if (buttonIndex === 0) {
-          // "All Days" selected
+          // "All Days" selected - export all days in a single PDF
           triggerLightHaptic();
-          Alert.alert(
-            'Export All Days',
-            `This will export ${devotional.totalDays} separate PDFs. Continue?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Export All',
-                onPress: async () => {
-                  triggerLightHaptic();
-                  // Export all days sequentially
-                  for (let i = 0; i < devotional.days.length; i++) {
-                    await exportDevotionalDay(devotional, devotional.days[i], devotional.days[i].dayNumber);
-                    // Small delay between exports to avoid overwhelming the system
-                    if (i < devotional.days.length - 1) {
-                      await new Promise(resolve => setTimeout(resolve, 500));
-                    }
-                  }
-                },
-              },
-            ]
-          );
+          await exportAllDaysDevotional(devotional);
         } else if (buttonIndex > 0 && buttonIndex < devotional.days.length + 1) {
           // Specific day selected (adjust index by -1 to skip "All Days")
           const selectedDay = devotional.days[buttonIndex - 1];

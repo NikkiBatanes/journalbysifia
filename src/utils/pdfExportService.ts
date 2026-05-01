@@ -12,10 +12,23 @@ export interface DevotionalPDFData {
   title: string;
   /** Overall devotional title (e.g. "Finding Strength in God") */
   duration: string;
-  /** Optional day title (e.g. "When You Feel Overwhelmed") */
+  /** Optional single day title (e.g. "When You Feel Overwhelmed") */
   dayTitle?: string;
   /** Optional label like "Day 2 of 5" */
   dayLabel?: string;
+  /** Multiple days for "All Days" export */
+  days?: Array<{
+    dayNumber: number;
+    title: string;
+    scripture?: {
+      text: string;
+      reference: string;
+      version?: string;
+    };
+    reflection?: string;
+    reflectionQuestions?: Array<{ text: string }>;
+    prayer?: string;
+  }>;
   bibleVerse?: {
     text: string;
     reference: string;
@@ -167,7 +180,7 @@ class PDFExportService {
    * Generate HTML template for devotional PDF
    */
   private generateDevotionalHTML(data: DevotionalPDFData): string {
-    const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt } = data;
+    const { title, duration, dayTitle, dayLabel, bibleVerse, reflection, questionsToPonder, prayer, actionSteps, createdAt, days } = data;
 
     // Escape all text content to prevent HTML injection/breaking
     const safeTitle = this.escapeHtml(title);
@@ -226,6 +239,85 @@ class PDFExportService {
     const safeVerseVersion = !rawVerseVersion || referenceIncludesVersion
       ? ''
       : this.escapeHtml(rawVerseVersion);
+
+    // Generate HTML for multiple days if provided
+    const daysHtml = days && days.length > 0 ? days.map((day, index) => {
+      const safeDayNum = this.escapeHtml(`Day ${day.dayNumber}`);
+      const safeDayTitleText = this.escapeHtml(day.title || '');
+      const safeDayReflection = this.escapeHtml(day.reflection || '');
+      const safeDayQuestions = (day.reflectionQuestions || [])
+        .map(q => this.escapeHtml(q.text || ''))
+        .filter(Boolean);
+      let safeDayPrayer = (day.prayer || '').trim();
+      if (safeDayPrayer) {
+        safeDayPrayer = safeDayPrayer.replace(/\s+/g, ' ');
+        safeDayPrayer = safeDayPrayer.replace(/^Heavenly Father[.,]?\s*/i, 'Heavenly Father.\n\n');
+        safeDayPrayer = safeDayPrayer.replace(/\s*In Jesus[’']?\s*name[,]?\s*amen\.?\s*$/i, '\n\nIn Jesus\' name, amen');
+      }
+      safeDayPrayer = this.escapeHtml(safeDayPrayer);
+
+      const safeDayVerseText = this.escapeHtml(day.scripture?.text || '');
+      const safeDayVerseRef = this.escapeHtml((day.scripture?.reference || '').replace(/\s*\(\s*\)\s*/g, '').trim());
+      const safeDayVerseVersion = !day.scripture?.version || safeDayVerseRef.toUpperCase().includes(day.scripture.version.toUpperCase())
+        ? ''
+        : this.escapeHtml(day.scripture.version);
+
+      const pageBreak = index < days.length - 1 ? '<div class="page-break"></div>' : '';
+
+      return `
+        <div class="section${index > 0 ? ' page-break' : ''}">
+          <div class="day-divider"></div>
+          <div class="day-label">${safeDayNum}</div>
+          <div class="day-title">${safeDayTitleText}</div>
+          <div class="day-divider"></div>
+        </div>
+
+        ${day.scripture ? `
+          <div class="section">
+            <div class="section-title scripture-title">Today's Scripture</div>
+            <div class="verse-box">
+              <div class="verse-bar"></div>
+              <div class="verse-content">
+                <div class="verse-text">${safeDayVerseText}</div>
+                <div class="verse-reference">— ${safeDayVerseRef}${safeDayVerseVersion ? ' ' + safeDayVerseVersion : ''}</div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${safeDayReflection ? `
+          <div class="section">
+            <div class="section-title">Reflection</div>
+            <div class="content-text">${safeDayReflection}</div>
+          </div>
+        ` : ''}
+
+        ${safeDayQuestions.length ? `
+          <div class="section">
+            <div class="section-title">Questions to Ponder</div>
+            <ul class="questions-list">
+              ${safeDayQuestions
+                .map((q, qIndex) => `
+                  <li>
+                    <span class="question-badge">${qIndex + 1}</span>
+                    <span class="question-text">${q}</span>
+                  </li>
+                `)
+                .join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${safeDayPrayer ? `
+          <div class="section">
+            <div class="section-title">Prayer</div>
+            <div class="content-text prayer-text">${safeDayPrayer}</div>
+          </div>
+        ` : ''}
+
+        ${pageBreak}
+      `;
+    }).join('') : '';
 
     return `
       <!DOCTYPE html>
@@ -508,66 +600,68 @@ class PDFExportService {
             <div class="duration">A ${safeDuration} Series</div>
           </div>
 
-          ${shouldShowDaySection && (safeDayLabel || safeDayTitle) ? `
-            <div class="section" style="margin-top: 4px;">
-              ${safeDayLabel ? `<div class="day-label">${safeDayLabel}</div>` : ''}
-              ${safeDayTitle ? `<div class="day-title">${safeDayTitle}</div>` : ''}
-              <div class="day-divider"></div>
-            </div>
-          ` : ''}
+          ${daysHtml ? daysHtml : `
+            ${shouldShowDaySection && (safeDayLabel || safeDayTitle) ? `
+              <div class="section" style="margin-top: 4px;">
+                ${safeDayLabel ? `<div class="day-label">${safeDayLabel}</div>` : ''}
+                ${safeDayTitle ? `<div class="day-title">${safeDayTitle}</div>` : ''}
+                <div class="day-divider"></div>
+              </div>
+            ` : ''}
 
-          ${bibleVerse ? `
-            <div class="section">
-              <div class="day-divider"></div>
-              <div class="section-title scripture-title">Today's Scripture</div>
-              <div class="verse-box">
-                <div class="verse-bar"></div>
-                <div class="verse-content">
-                  <div class="verse-text">${safeVerseText}</div>
-                  <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+            ${bibleVerse ? `
+              <div class="section">
+                <div class="day-divider"></div>
+                <div class="section-title scripture-title">Today's Scripture</div>
+                <div class="verse-box">
+                  <div class="verse-bar"></div>
+                  <div class="verse-content">
+                    <div class="verse-text">${safeVerseText}</div>
+                    <div class="verse-reference">— ${safeVerseRef}${safeVerseVersion ? ' ' + safeVerseVersion : ''}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ` : ''}
+            ` : ''}
 
-          ${safeReflection ? `
-            <div class="section">
-              <div class="section-title">Reflection</div>
-              <div class="content-text">${safeReflection}</div>
-            </div>
-          ` : ''}
+            ${safeReflection ? `
+              <div class="section">
+                <div class="section-title">Reflection</div>
+                <div class="content-text">${safeReflection}</div>
+              </div>
+            ` : ''}
 
-          ${safeQuestions.length ? `
-            <div class="section">
-              <div class="section-title">Questions to Ponder</div>
-              <ul class="questions-list">
-                ${safeQuestions
-                  .map((q, index) => `
-                    <li>
-                      <span class="question-badge">${index + 1}</span>
-                      <span class="question-text">${q}</span>
-                    </li>
-                  `)
-                  .join('')}
-              </ul>
-            </div>
-          ` : ''}
+            ${safeQuestions.length ? `
+              <div class="section">
+                <div class="section-title">Questions to Ponder</div>
+                <ul class="questions-list">
+                  ${safeQuestions
+                    .map((q, index) => `
+                      <li>
+                        <span class="question-badge">${index + 1}</span>
+                        <span class="question-text">${q}</span>
+                      </li>
+                    `)
+                    .join('')}
+                </ul>
+              </div>
+            ` : ''}
 
-          ${safePrayer ? `
-            <div class="section">
-              <div class="section-title">Prayer</div>
-              <div class="content-text prayer-text">${safePrayer}</div>
-            </div>
-          ` : ''}
+            ${safePrayer ? `
+              <div class="section">
+                <div class="section-title">Prayer</div>
+                <div class="content-text prayer-text">${safePrayer}</div>
+              </div>
+            ` : ''}
 
-          ${actionSteps && actionSteps.length > 0 ? `
-            <div class="section">
-              <div class="section-title">Action Steps</div>
-              <ul class="action-steps">
-                ${actionSteps.map(step => `<li>${step}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
+            ${actionSteps && actionSteps.length > 0 ? `
+              <div class="section">
+                <div class="section-title">Action Steps</div>
+                <ul class="action-steps">
+                  ${actionSteps.map(step => `<li>${step}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          `}
 
           <div class="footer">
             <div class="footer-text">Walk in faith, one step at a time.</div>
