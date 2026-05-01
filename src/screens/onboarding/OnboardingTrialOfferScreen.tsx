@@ -934,11 +934,11 @@ const OnboardingTrialOfferScreen = () => {
   }, [handleSuccessModalContinue]);
 
   // Reset auto-dismissal state when component unmounts
-  useEffect(() => {
-    return () => {
-      setAutoDismissScheduled(false);
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     setAutoDismissScheduled(false);
+  //   };
+  // }, []);
 
   return (
     <SafeAreaView style={styles.container}>
