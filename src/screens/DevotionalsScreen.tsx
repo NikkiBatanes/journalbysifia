@@ -1757,7 +1757,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 150,
+    zIndex: 50,
   },
   screenBackdrop: {
     position: 'absolute',
@@ -1765,7 +1765,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 200,
+    zIndex: 50,
   },
   dropdownMenu: {
     position: 'absolute',
@@ -1774,7 +1774,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
     borderRadius: 18,
     minWidth: 180,
-    zIndex: 100,
+    zIndex: 150,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
