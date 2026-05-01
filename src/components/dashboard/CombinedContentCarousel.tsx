@@ -2129,16 +2129,17 @@ const styles = StyleSheet.create({
   dropdownBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 999,
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingVertical: 3,
+    marginLeft: 12,
   },
   dropdownBadgeText: {
-    fontSize: 10,
-    color: Colors.hopeWhite,
+    fontSize: 9,
     fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginLeft: 2,
   },
   modalOverlay: {
     flex: 1,
