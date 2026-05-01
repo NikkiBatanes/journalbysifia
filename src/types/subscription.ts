@@ -85,6 +85,8 @@ export interface Subscription {
   is_trial?: boolean;
   is_expired?: boolean;
   days_remaining?: number;
+  is_in_cooldown?: boolean; // User ended trial without upgrading, in 30-day cooldown
+  replenish_date?: string; // Date when cooldown ends and usage resets
 }
 
 // POST-LAUNCH: Family Subscription Group Interface

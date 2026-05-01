@@ -93,11 +93,15 @@ BEGIN
     playbooks_limit = 2,
     devotionals_limit = 1,
     smart_journaling_enabled = true,
-    playbooks_used = 0,
-    devotionals_used = 0,
-    last_usage_reset = NOW(),
-    trial_end_date = NULL,
+    -- Set usage to limit (0 available) - cooldown state
+    playbooks_used = 2,
+    devotionals_used = 1,
+    -- Keep trial_end_date for cooldown display - don't null it
+    -- trial_end_date = trial_end_date (unchanged),
+    -- Set last_usage_reset to trial_end_date to start 30-day cooldown clock
+    last_usage_reset = trial_end_date,
     -- keep trial_start_date to prevent users from starting a second free trial
+    -- trial_start_date = trial_start_date (unchanged),
     trial_chosen_tier = NULL,
     billing_cycle = NULL,
     billing_issue = false,

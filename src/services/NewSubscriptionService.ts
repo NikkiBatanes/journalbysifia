@@ -134,7 +134,7 @@ export class NewSubscriptionService {
 
   /**
    * Get onboarding playbook limit.
-   * Onboarding usage counts against the same monthly quota as in-app usage.
+   * Seeker onboarding playbook is free and does not increment playbooks_used.
    */
   static getOnboardingPlaybookLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
     return this.getTierLimits(tier, subscription).playbooks_limit;
@@ -142,7 +142,7 @@ export class NewSubscriptionService {
 
   /**
    * Get onboarding devotional limit.
-   * Onboarding usage counts against the same monthly quota as in-app usage.
+   * Seeker onboarding devotional is free and does not increment devotionals_used.
    */
   static getOnboardingDevotionalLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
     return this.getTierLimits(tier, subscription).devotionals_limit;
@@ -957,11 +957,19 @@ export class NewSubscriptionService {
         throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
-      await doAtomicIncrement();
+      // Seeker onboarding and free_trial usage is never counted against the quota.
+      const skipCount = (isOnboarding && subscription.tier === 'seeker')
+        || subscription.tier === 'free_trial';
+      if (!skipCount) {
+        await doAtomicIncrement();
+      }
     }
 
     // Also update the legacy usage tracking table where enabled.
-    if (!isOnboarding || action !== 'playbook' || subscription.tier !== 'seeker') {
+    const isTrialOrOnboardingSeeker =
+      subscription.tier === 'free_trial' ||
+      (isOnboarding && subscription.tier === 'seeker');
+    if (!isTrialOrOnboardingSeeker) {
       await this.updateUsageTracking(userId, action);
     }
   }
@@ -1144,7 +1152,6 @@ export class NewSubscriptionService {
       playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
       devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
-      show_dashboard_counts: useCalculatedLimits ? tierLimits.show_dashboard_counts : (data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts),
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
       // Add limits property for dashboard compatibility
@@ -1152,7 +1159,6 @@ export class NewSubscriptionService {
         playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
         smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
-        show_dashboard_counts: useCalculatedLimits ? tierLimits.show_dashboard_counts : (data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts),
         // Add backward compatibility aliases
         playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
@@ -1170,6 +1176,18 @@ export class NewSubscriptionService {
       const now = new Date();
       subscription.is_expired = trialEnd < now;
       subscription.days_remaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    // Add cooldown state detection for users who ended trial without upgrading
+    // Cooldown state: tier === 'seeker' AND trial_start_date IS NOT NULL AND playbooks_used >= playbooks_limit
+    if (data.tier === 'seeker' && data.trial_start_date && data.playbooks_used >= data.playbooks_limit) {
+      subscription.is_in_cooldown = true;
+      // Calculate replenish date = last_usage_reset + 30 days
+      if (data.last_usage_reset) {
+        const lastReset = new Date(data.last_usage_reset);
+        const replenishDate = new Date(lastReset.getTime() + 30 * 24 * 60 * 60 * 1000);
+        subscription.replenish_date = replenishDate.toISOString();
+      }
     }
 
     return subscription;
