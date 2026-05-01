@@ -29,6 +29,7 @@ export interface GooglePlayPurchaseResult {
   transactionId?: string;
   receipt?: string;
   error?: string;
+  errorCode?: string;
 }
 
 export class GooglePlayBillingService {

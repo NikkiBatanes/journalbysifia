@@ -19,6 +19,7 @@ export interface UnifiedPurchaseResult {
   transactionId?: string;
   receipt?: string;
   error?: string;
+  errorCode?: string;
 }
 
 export interface SubscriptionStatus {
@@ -211,6 +212,7 @@ export class PlatformPaymentService {
         transactionId: result.transactionId,
         receipt: result.receipt,
         error: result.error,
+        errorCode: result.errorCode,
       };
     } catch (error) {
       Logger.error('[PlatformPayment] Purchase failed', error as Error, {
@@ -219,6 +221,7 @@ export class PlatformPaymentService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error ? (error as any).code : undefined,
       };
     }
   }

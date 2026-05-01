@@ -33,7 +33,7 @@ export interface PaymentFailureContext {
 }
 
 export interface PaymentFailureAnalysis {
-  category: 'network' | 'product_config' | 'user_cancelled' | 'server_error' | 'validation' | 'timeout' | 'unknown';
+  category: 'network' | 'product_config' | 'user_cancelled' | 'already_subscribed' | 'server_error' | 'validation' | 'timeout' | 'unknown';
   severity: 'low' | 'medium' | 'high' | 'critical';
   suggestedAction: string;
   canRetry: boolean;
@@ -82,6 +82,20 @@ export class PaymentFailureLogger {
    */
   private static analyzePaymentFailure(context: PaymentFailureContext): PaymentFailureAnalysis {
     const errorMessage = context.error.message.toLowerCase();
+    const errorCode = String((context.error as any).code || '').toLowerCase();
+    const searchableError = `${errorCode} ${errorMessage}`;
+
+    // Apple reports "already subscribed" as SKErrorDomain/E_UNKNOWN with an
+    // ASDServerErrorDomain 3532 underlying error. Treat it as account sync, not retry.
+    if (this.containsAny(searchableError, ['already_subscribed', 'currently subscribed', 'already subscribed'])) {
+      return {
+        category: 'already_subscribed',
+        severity: 'low',
+        suggestedAction: 'Prompt user to restore purchases for this Apple ID',
+        canRetry: false,
+        userFriendlyMessage: 'This Apple ID already has an active subscription. Restore purchases to sync access to this account.',
+      };
+    }
 
     // Network-related failures
     if (this.containsAny(errorMessage, ['network', 'connection', 'timeout', 'unreachable', 'dns', 'socket'])) {

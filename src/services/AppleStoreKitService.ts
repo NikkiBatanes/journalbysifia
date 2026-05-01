@@ -56,6 +56,7 @@ export interface PurchaseResult {
   transactionId?: string;
   receipt?: string;
   error?: string;
+  errorCode?: string;
   validated?: boolean;
   receiptId?: string;
 }
@@ -65,6 +66,26 @@ export interface ServerValidationResult {
   data?: any;
   error?: string;
 }
+
+type StoreKitErrorDetails = {
+  code?: string;
+  message?: string;
+  debugMessage?: string;
+  domain?: string;
+  underlyingCode?: string;
+  underlyingDomain?: string;
+  failureReason?: string;
+  isAlreadySubscribed: boolean;
+};
+
+type NormalizedStoreKitError = Error & {
+  code?: string;
+  debugMessage?: string;
+  domain?: string;
+  originalError?: unknown;
+  nativeDetails?: StoreKitErrorDetails;
+  isAlreadySubscribed?: boolean;
+};
 
 export class AppleStoreKitService {
   private static instance: AppleStoreKitService;
@@ -597,6 +618,11 @@ export class AppleStoreKitService {
           }
         }, 60000); // 60 seconds - longer than validate-receipt timeout (30s)
       });
+      // The native purchase error listener can reject this before
+      // requestSubscription returns. Attach a handler immediately so an early
+      // native rejection does not become an unhandled promise if the request
+      // call itself also throws.
+      purchasePromise.catch(() => {});
 
       // Validate that the promise was created and stored
       if (!this.pendingPurchaseResolvers.has(productId)) {
@@ -643,20 +669,20 @@ export class AppleStoreKitService {
             result: requestResult,
           });
         } catch (requestError) {
-          Logger.error('[StoreKit] ❌ CRITICAL: Failed to show payment sheet', requestError as Error, {
+          const normalizedRequestError = this.normalizePurchaseError(requestError);
+
+          Logger.error('[StoreKit] ❌ CRITICAL: Failed to show payment sheet', normalizedRequestError, {
             component: 'AppleStoreKitService',
             productId,
-            errorDetails: requestError,
+            errorDetails: normalizedRequestError.nativeDetails,
           });
 
-          // CRITICAL FIX: Reject pending promise before throwing
-          const resolver = this.pendingPurchaseResolvers.get(productId);
-          if (resolver) {
-            resolver.reject(requestError);
-            this.pendingPurchaseResolvers.delete(productId);
-          }
+          // The request itself failed before we started awaiting purchasePromise.
+          // Clear the resolver and throw the normalized error directly to avoid
+          // leaving a separately rejected promise behind.
+          this.pendingPurchaseResolvers.delete(productId);
 
-          throw requestError;
+          throw normalizedRequestError;
         }
       } else {
         // For Android, we'll handle this in GooglePlayBillingService
@@ -672,6 +698,8 @@ export class AppleStoreKitService {
 
       return result;
     } catch (error) {
+      const purchaseError = this.normalizePurchaseError(error);
+
       // Clear timestamp on error
       this.purchaseInitiatedTimestamp = null;
       this.currentPurchaseEligibility = undefined;
@@ -682,7 +710,7 @@ export class AppleStoreKitService {
         productId: productId,
         screen: productId.includes('freetrial') ? 'trial_offer' : 'sales_offer',
         action: 'purchase',
-        error: error instanceof Error ? error : new Error('Unknown error'),
+        error: purchaseError,
         timestamp: new Date(),
         deviceInfo: {
           platform: Platform.OS,
@@ -698,9 +726,10 @@ export class AppleStoreKitService {
 
       const analysis = PaymentFailureLogger.logPaymentFailure(failureContext);
 
-      Logger.error('[StoreKit] Purchase failed', error as Error, {
+      Logger.error('[StoreKit] Purchase failed', purchaseError, {
         component: 'AppleStoreKitService',
         productId,
+        errorCode: purchaseError.code,
         category: analysis.category,
         severity: analysis.severity,
         canRetry: analysis.canRetry,
@@ -710,6 +739,7 @@ export class AppleStoreKitService {
       return {
         success: false,
         error: analysis.userFriendlyMessage, // Use user-friendly message
+        errorCode: purchaseError.code,
       };
     }
   }
@@ -1305,23 +1335,220 @@ export class AppleStoreKitService {
     return null;
   }
 
+  private normalizePurchaseError(error: unknown): NormalizedStoreKitError {
+    const nativeDetails = this.getStoreKitErrorDetails(error);
+    const message = nativeDetails.isAlreadySubscribed
+      ? 'This Apple ID already has an active subscription for this plan.'
+      : nativeDetails.message || nativeDetails.debugMessage || nativeDetails.failureReason || 'An unknown error occurred';
+
+    const normalizedError = new Error(message) as NormalizedStoreKitError;
+    normalizedError.name = error instanceof Error && error.name !== 'Unknown'
+      ? error.name
+      : 'StoreKitPurchaseError';
+    normalizedError.code = nativeDetails.isAlreadySubscribed
+      ? 'ALREADY_SUBSCRIBED'
+      : nativeDetails.code || 'E_UNKNOWN';
+    normalizedError.debugMessage = nativeDetails.debugMessage;
+    normalizedError.domain = nativeDetails.domain;
+    normalizedError.originalError = error;
+    normalizedError.nativeDetails = nativeDetails;
+    normalizedError.isAlreadySubscribed = nativeDetails.isAlreadySubscribed;
+
+    if (error instanceof Error && error.stack) {
+      normalizedError.stack = error.stack;
+    }
+
+    return normalizedError;
+  }
+
+  private getStoreKitErrorDetails(error: unknown): StoreKitErrorDetails {
+    const root = this.asRecord(error);
+    const userInfo = this.asRecord(root?.userInfo);
+    const underlyingError = this.asRecord(userInfo?.NSUnderlyingError) ||
+      this.findRecordValue(error, 'NSUnderlyingError');
+    const underlyingUserInfo = this.asRecord(underlyingError?.userInfo);
+
+    const code = this.asString(root?.code);
+    const message = error instanceof Error ? error.message : this.asString(root?.message);
+    const debugMessage = this.asString(root?.debugMessage);
+    const domain = this.asString(root?.domain);
+    const underlyingCode = this.asString(underlyingError?.code);
+    const underlyingDomain = this.asString(underlyingError?.domain);
+    const failureReason = this.asString(underlyingUserInfo?.NSLocalizedFailureReason) ||
+      this.findStringValue(error, 'NSLocalizedFailureReason');
+    const errorText = [
+      code,
+      message,
+      debugMessage,
+      domain,
+      underlyingCode,
+      underlyingDomain,
+      failureReason,
+      ...this.collectStoreKitErrorStrings(error),
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return {
+      code,
+      message,
+      debugMessage,
+      domain,
+      underlyingCode,
+      underlyingDomain,
+      failureReason,
+      isAlreadySubscribed:
+        errorText.includes('already_subscribed') ||
+        errorText.includes('already has an active subscription') ||
+        errorText.includes('currently subscribed') ||
+        errorText.includes('already subscribed') ||
+        (underlyingCode === '3532' && underlyingDomain === 'ASDServerErrorDomain'),
+    };
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
+  private asString(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    return undefined;
+  }
+
+  private collectStoreKitErrorStrings(
+    value: unknown,
+    depth = 0,
+    seen: WeakSet<object> = new WeakSet()
+  ): string[] {
+    if (value === null || value === undefined || depth > 5) {
+      return [];
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return [String(value)];
+    }
+
+    if (typeof value !== 'object') {
+      return [];
+    }
+
+    if (seen.has(value)) {
+      return [];
+    }
+    seen.add(value);
+
+    const values: string[] = [];
+
+    if (value instanceof Error) {
+      values.push(value.name, value.message);
+    }
+
+    const record = this.asRecord(value);
+    if (!record) {
+      return values;
+    }
+
+    Object.entries(record).forEach(([key, entryValue]) => {
+      if (key === 'nativeStackIOS') {
+        return;
+      }
+
+      values.push(...this.collectStoreKitErrorStrings(entryValue, depth + 1, seen));
+    });
+
+    return values;
+  }
+
+  private findRecordValue(
+    value: unknown,
+    keyToFind: string,
+    depth = 0,
+    seen: WeakSet<object> = new WeakSet()
+  ): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || depth > 5 || seen.has(value)) {
+      return null;
+    }
+
+    seen.add(value);
+    const record = this.asRecord(value);
+    if (!record) {
+      return null;
+    }
+
+    for (const [key, entryValue] of Object.entries(record)) {
+      if (key === keyToFind) {
+        return this.asRecord(entryValue);
+      }
+
+      const nested = this.findRecordValue(entryValue, keyToFind, depth + 1, seen);
+      if (nested) {
+        return nested;
+      }
+    }
+
+    return null;
+  }
+
+  private findStringValue(
+    value: unknown,
+    keyToFind: string,
+    depth = 0,
+    seen: WeakSet<object> = new WeakSet()
+  ): string | undefined {
+    if (!value || typeof value !== 'object' || depth > 5 || seen.has(value)) {
+      return undefined;
+    }
+
+    seen.add(value);
+    const record = this.asRecord(value);
+    if (!record) {
+      return undefined;
+    }
+
+    for (const [key, entryValue] of Object.entries(record)) {
+      if (key === keyToFind) {
+        return this.asString(entryValue);
+      }
+
+      const nested = this.findStringValue(entryValue, keyToFind, depth + 1, seen);
+      if (nested) {
+        return nested;
+      }
+    }
+
+    return undefined;
+  }
+
   /**
    * Handle purchase errors
    */
   private handlePurchaseError(error: PurchaseError): void {
-    Logger.error('[StoreKit] Purchase error details', undefined, {
-  component: 'AppleStoreKitService',
-      code: error.code,
-      message: error.message,
-      debugMessage: error.debugMessage,
+    const normalizedError = this.normalizePurchaseError(error);
+
+    Logger.error('[StoreKit] Purchase error details', normalizedError, {
+      component: 'AppleStoreKitService',
+      code: normalizedError.code,
+      message: normalizedError.message,
+      debugMessage: normalizedError.debugMessage,
+      nativeDetails: normalizedError.nativeDetails,
     });
 
     // Check if user cancelled (SKErrorDomain error 2)
-    const errorCode = String(error.code);
-    const isCancelled = error.code === 'E_USER_CANCELLED' ||
+    const errorCode = String(normalizedError.code);
+    const isCancelled = normalizedError.code === 'E_USER_CANCELLED' ||
+                       normalizedError.code === 'USER_CANCELLED' ||
                        errorCode === '2' ||
-                       error.message?.toLowerCase().includes('cancel') ||
-                       error.message?.toLowerCase().includes('user cancel');
+                       normalizedError.message?.toLowerCase().includes('cancel') ||
+                       normalizedError.message?.toLowerCase().includes('user cancel');
 
     if (isCancelled) {
 
@@ -1337,13 +1564,13 @@ export class AppleStoreKitService {
       this.pendingPurchaseResolvers.clear();
     } else {
       // Real error - reject all pending promises with the original error
-      Logger.error('[StoreKit] Real purchase error', error as Error, {
+      Logger.error('[StoreKit] Real purchase error', normalizedError, {
       component: 'AppleStoreKitService',
       action: 'error',
     });
       this.pendingPurchaseResolvers.forEach((resolver) => {
 
-        resolver.reject(error);
+        resolver.reject(normalizedError);
       });
       this.pendingPurchaseResolvers.clear();
     }

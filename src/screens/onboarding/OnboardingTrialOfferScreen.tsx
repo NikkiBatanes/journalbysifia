@@ -122,6 +122,47 @@ const OnboardingTrialOfferScreen = () => {
   const [_trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
   const [navigationInProgressRef] = [React.useRef(false)];
 
+  const isAlreadySubscribedPurchaseError = (error: any) => {
+    const code = String(error?.code || error?.errorCode || '').toLowerCase();
+    const message = String(error?.message || error?.error || '').toLowerCase();
+
+    return code === 'already_subscribed' ||
+      message.includes('already subscribed') ||
+      message.includes('currently subscribed') ||
+      message.includes('already has an active subscription');
+  };
+
+  const getCurrentStackBackCount = () => {
+    try {
+      const state = navigation.getState?.();
+      if (state && typeof state.index === 'number') {
+        return state.index;
+      }
+    } catch {}
+
+    return 0;
+  };
+
+  const safelyPopScreens = (requestedCount: number) => {
+    const availableBackCount = getCurrentStackBackCount();
+
+    if (availableBackCount > 0) {
+      navigation.dispatch(StackActions.pop(Math.min(requestedCount, availableBackCount)));
+      return true;
+    }
+
+    if (navigation.canGoBack?.()) {
+      navigation.goBack();
+      return true;
+    }
+
+    logger.warn('No navigation history available to pop from trial offer', {
+      routeName: route.name,
+      routeParams,
+    });
+    return false;
+  };
+
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
       logger.debug('handleClose blocked', { isClosing, isStartingTrial, navInProgress: navigationInProgressRef.current });
@@ -151,39 +192,12 @@ const OnboardingTrialOfferScreen = () => {
     // If from user profile with dismissBothModalsOnClose flag, dismiss all modals
     if (fromUserProfile && dismissBothModalsOnClose) {
       logger.debug('Closing from user profile - dismissing both modals', { fromUserProfile, dismissBothModalsOnClose });
-      try {
-        // Use goBack twice with proper timing to dismiss Trial and Sales Offer
-        // This is more reliable than pop(2) for modal navigation
-        navigation.goBack(); // Close Trial screen
-        setTimeout(() => {
-          navigation.goBack(); // Close Sales Offer screen
-          logger.debug('Both modals dismissed, should be back at UserProfile');
-        }, 100);
-      } catch (error) {
-        logger.error('Modal dismissal failed', error as Error);
-        // Fallback: try going back once
-        try {
-          navigation.goBack();
-        } catch (fallbackError) {
-          logger.error('Fallback navigation also failed', fallbackError as Error);
-        }
-      }
+      safelyPopScreens(2);
     }
     // If from user profile (regular case)
     else if (fromUserProfile) {
       logger.debug('Closing from user profile - going back twice');
-      try {
-        // First pop this screen (Trial Offer)
-        navigation.goBack();
-        // Then after a brief delay, pop Sales Offer and navigate to UserProfile
-        setTimeout(() => {
-          navigation.goBack(); // Pop Sales Offer
-          // UserProfile should now be visible since it's a modal in HomeStack
-        }, 100);
-      } catch (error) {
-        // Fallback
-        try { navigation.goBack(); } catch {}
-      }
+      safelyPopScreens(2);
     } else if (fromRegistrationOnboarding) {
       // Only show notification setup for registration onboarding users
       logger.debug('Registration onboarding flow - navigating to notification setup');
@@ -196,19 +210,7 @@ const OnboardingTrialOfferScreen = () => {
       }, 50);
     } else if (routeParams?.closeAllOnDismiss) {
       logger.debug('closeAllOnDismiss - popping 2 screens');
-      try {
-        // Atomically pop Trial and Sales Offer to return to the previous context (e.g., PlaybookDetail)
-        const popAction = StackActions.pop(2);
-        navigation.dispatch(popAction);
-      } catch (error) {
-        // Fallback: try going back twice
-        try {
-          navigation.goBack();
-          setTimeout(() => {
-            navigation.goBack();
-          }, 50);
-        } catch {}
-      }
+      safelyPopScreens(2);
     } else {
       // Default: For upgrade/profile users, dismiss both trial and sales offer screens
       logger.debug('Default close behavior (upgrade/profile user - dismissing both screens)', {
@@ -219,26 +221,28 @@ const OnboardingTrialOfferScreen = () => {
 
       if (routeParams?.returnTo) {
         // Navigate to specific return screen after dismissing both modals
-        try {
-          navigation.goBack(); // Close Trial screen
-          setTimeout(() => {
-            navigation.goBack(); // Close Sales Offer screen
-            setTimeout(() => {
-              (navigation as any).navigate(routeParams.returnTo);
-            }, 50);
-          }, 50);
-        } catch (error) {
-          logger.error('Navigation to returnTo failed', error as Error);
-          // Fallback: try going back twice
-          navigation.goBack();
-          setTimeout(() => navigation.goBack(), 50);
-        }
-      } else {
-        // Just go back twice to dismiss both trial and sales offer screens
-        navigation.goBack(); // Close Trial screen
+        safelyPopScreens(2);
         setTimeout(() => {
-          navigation.goBack(); // Close Sales Offer screen
+          (navigation as any).navigate(routeParams.returnTo);
         }, 50);
+      } else {
+        // Dismiss Trial and Sales Offer when both are on the stack; otherwise
+        // only pop the screens that actually exist.
+        const didPop = safelyPopScreens(2);
+        if (!didPop) {
+          if (routeParams?.skipNotificationPreference) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'UserInput' as any }],
+            });
+          } else {
+            (navigation as any).navigate('OnboardingNotificationSetup', {
+              userType: 'freemium',
+              fromCancelledTrial: true,
+              onboardingFlow: true,
+            });
+          }
+        }
       }
     }
 
@@ -470,6 +474,10 @@ const OnboardingTrialOfferScreen = () => {
       } catch (purchaseError) {
         // Provide more specific error messages
         if (purchaseError instanceof Error) {
+          if (isAlreadySubscribedPurchaseError(purchaseError)) {
+            throw purchaseError;
+          }
+
           if (purchaseError.message.includes('timeout')) {
             throw new Error('Purchase timed out. Please check your internet connection and try again.');
           } else if (purchaseError.message.includes('cancelled') || purchaseError.message.includes('USER_CANCELLED')) {
@@ -481,6 +489,12 @@ const OnboardingTrialOfferScreen = () => {
 
         setIsStartingTrial(false);
         throw new Error('Failed to initiate purchase. Please try again.');
+      }
+
+      if (!result.success && isAlreadySubscribedPurchaseError(result)) {
+        const alreadySubscribedError = new Error(result.error || 'ALREADY_SUBSCRIBED') as Error & { code?: string };
+        alreadySubscribedError.code = result.errorCode || 'ALREADY_SUBSCRIBED';
+        throw alreadySubscribedError;
       }
 
       // Update loading step
@@ -599,6 +613,27 @@ const OnboardingTrialOfferScreen = () => {
         error?.message?.toLowerCase().includes('timeout') ||
         error?.message === 'STALE_PURCHASE_CACHE' ||
         error?.message?.includes('Purchase timeout');
+
+      if (isAlreadySubscribedPurchaseError(error)) {
+        setPurchaseValidated(false);
+        setShowSuccessModal(false);
+        setLoadingStep('processing');
+        Alert.alert(
+          'Subscription Already Active',
+          'This Apple ID already has an active siFia subscription. Restore purchases to sync access to this account.',
+          [
+            {
+              text: 'Not Now',
+              style: 'cancel',
+            },
+            {
+              text: 'Restore Purchases',
+              onPress: handleRestorePurchase,
+            },
+          ],
+        );
+        return;
+      }
 
       if (isCancelled) {
         // CRITICAL: Reset ALL purchase state to prevent stale/cached validation

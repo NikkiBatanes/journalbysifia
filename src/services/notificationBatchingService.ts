@@ -45,6 +45,7 @@ class NotificationBatchingService {
     'journal_todays_win',
     'journal_looking_forward',
     'prayer_request_care',
+    'payment_successful',
   ];
 
   // Time window for batching (in minutes)

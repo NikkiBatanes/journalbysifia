@@ -451,14 +451,43 @@ class NotificationSchedulerService {
    * Schedule payment success notification
    */
   async schedulePaymentSuccessNotification(userId: string, newTier: string, amount: number): Promise<boolean> {
+    // Deduplication: Check if a similar payment success notification was recently sent
+    const fiveMinutesAgo = new Date();
+    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+
+    const { data: recentNotifications, error: checkError } = await supabase
+      .from('notification_queue')
+      .select('id, type, data')
+      .eq('user_id', userId)
+      .eq('type', 'payment_successful')
+      .gte('created_at', fiveMinutesAgo.toISOString())
+      .in('status', ['pending', 'sent', 'processing']);
+
+    if (!checkError && recentNotifications && recentNotifications.length > 0) {
+      // Check if any recent notification is for the same tier
+      const hasRecentTierNotification = recentNotifications.some((notif: any) => {
+        return notif.data?.new_tier === newTier;
+      });
+
+      if (hasRecentTierNotification) {
+        Logger.info('Payment success notification already sent recently for this tier - skipping duplicate', {
+          component: 'notificationSchedulerService',
+          userId,
+          newTier,
+          recentCount: recentNotifications.length,
+        });
+        return false; // Skip duplicate notification
+      }
+    }
+
     const scheduledFor = new Date();
     scheduledFor.setMinutes(scheduledFor.getMinutes() + 5); // 5 minutes from now
 
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'payment_successful',
-      title: `Welcome to ${newTier}! 🌸`,
-      message: `Your payment of ₱${amount} was successful. Enjoy your enhanced spiritual journey!`,
+      title: `Welcome to ${newTier}! 🩵`,
+      message: `Your payment was successful. You now have more room for reflection, playbooks, and devotionals.`,
       data: {
         deep_link: 'sifia://dashboard',
         new_tier: newTier,
