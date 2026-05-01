@@ -14,6 +14,7 @@ import {
   Alert,
   DeviceEventEmitter,
   Platform,
+  Clipboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -190,19 +191,53 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
 
         {/* User input card — revealed when chevron is tapped */}
         {showUserInput && (
-          <View style={styles.userInputCard}>
+          <TouchableOpacity
+            style={styles.userInputCard}
+            onLongPress={() => {
+              triggerLightHaptic();
+              Alert.alert(
+                'Moment you shared',
+                'What would you like to do?',
+                [
+                  {
+                    text: 'Copy',
+                    onPress: () => {
+                      triggerLightHaptic();
+                      Clipboard.setString(userInput);
+                      Alert.alert('Copied', 'Moment copied to clipboard');
+                    },
+                  },
+                  {
+                    text: 'Edit',
+                    onPress: () => {
+                      triggerLightHaptic();
+                      _onEditUserInput?.();
+                    },
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ],
+                { cancelable: true }
+              );
+            }}
+            activeOpacity={0.7}
+          >
             {Platform.OS === 'ios' ? (
               <TextInput
                 value={userInput}
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                style={[styles.userInputText, { fontFamily }]}
+                contextMenuHidden={true}
+                textAlignVertical="top"
+                style={[styles.userInputText, { fontFamily, padding: 0, margin: 0 }]}
               />
             ) : (
-              <ThemedText style={styles.userInputText} selectable={true}>{userInput}</ThemedText>
+              <ThemedText style={styles.userInputText} selectable={false}>{userInput}</ThemedText>
             )}
-          </View>
+          </TouchableOpacity>
         )}
       </StepFadeIn>
 
@@ -2766,8 +2801,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 20,
     marginBottom: 20,
+    minHeight: 60,
   },
   userInputText: {
     fontSize: 14,

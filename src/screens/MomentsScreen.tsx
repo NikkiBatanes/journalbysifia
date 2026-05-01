@@ -192,11 +192,12 @@ export const MomentsScreen: React.FC = () => {
               <View style={styles.searchInputWrapper}>
                 <TextInput
                   ref={searchInputRef}
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { padding: 0, margin: 0 }]}
                   placeholder="Search Moments..."
                   placeholderTextColor={'rgba(255,255,255,0.4)'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
+                  textAlignVertical="top"
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"

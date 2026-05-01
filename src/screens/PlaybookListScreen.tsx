@@ -2015,11 +2015,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 <View style={styles.searchInputWrapper}>
                   <TextInput
                     ref={searchInputRef}
-                    style={styles.searchInput}
+                    style={[styles.searchInput, { padding: 0, margin: 0 }]}
                     placeholder="Search all playbooks..."
                     placeholderTextColor={'rgba(3,32,61,0.35)'}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    textAlignVertical="top"
                     autoCapitalize="none"
                     autoCorrect={false}
                     returnKeyType="search"
