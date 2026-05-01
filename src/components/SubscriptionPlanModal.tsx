@@ -172,6 +172,7 @@ interface Subscription {
   has_used_trial?: boolean;
   current_period_start?: string;
   current_period_end?: string;
+  trial_end_date?: string;
   cancel_at_period_end?: boolean;
 }
 
@@ -460,8 +461,26 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       };
     }
 
+    // Check if this is a trial subscription (tier is free_trial)
+    const isTrial = subscriptionData.tier === 'free_trial';
+
     switch (status) {
       case 'active':
+        // For trial subscriptions, show trial end date
+        if (isTrial) {
+          const trialEnd = subscriptionData.trial_end_date
+            ? new Date(subscriptionData.trial_end_date).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })
+            : 'Trial period';
+          return {
+            text: `Trial ends ${trialEnd}`,
+            badge: true,
+            color: Colors.alertCoral,
+          };
+        }
         if (subscriptionData.cancel_at_period_end) {
           return {
             text: 'Cancels at period end',
@@ -474,8 +493,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           color: Colors.growthGreen,
         };
       case 'trialing':
-        const trialEnd = subscriptionData.current_period_end
-          ? new Date(subscriptionData.current_period_end).toLocaleDateString('en-US', {
+        const trialEnd = subscriptionData.trial_end_date
+          ? new Date(subscriptionData.trial_end_date).toLocaleDateString('en-US', {
               weekday: 'short',
               month: 'short',
               day: 'numeric',
@@ -483,7 +502,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           : 'Trial period';
         return {
           text: `Trial ends ${trialEnd}`,
-          color: Colors.faithGold,
+          badge: true,
+          color: Colors.alertCoral,
         };
       case 'canceled':
         return {
@@ -505,6 +525,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
   const tierInfo = subscription ? getTierInfo(subscription.tier) : getTierInfo('seeker');
   const statusInfo = subscription ? getStatusInfo(subscription.status, subscription) : { text: 'Loading...', color: Colors.textGray };
+  const isTrial = subscription?.tier === 'free_trial';
 
   // Determine billing period
   const tierBase = normalizePaidPlanTier(subscription?.tier) || subscription?.tier?.replace(/_annual$/, '') || 'seeker';
@@ -627,7 +648,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
               {/* Plan Card */}
               <View style={styles.planCard}>
                 {/* Trial ends pill in upper left corner */}
-                {tierBase === 'free_trial' && (
+                {isTrial && statusInfo.badge && (
                   <View style={styles.trialEndsPillContainer}>
                     <View style={styles.trialEndsPill}>
                       <ThemedText style={styles.trialEndsPillText}>
@@ -637,7 +658,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   </View>
                 )}
 
-                {statusInfo.badge && tierBase !== 'free_trial' && (
+                {/* Status badge for non-trial subscriptions */}
+                {statusInfo.badge && !isTrial && (
                   <View style={styles.badgeContainer}>
                     <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
                       <ThemedText style={styles.statusBadgeText}>
@@ -784,7 +806,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   scrollContentWithFooter: {
-    paddingBottom: 180,
+    paddingBottom: 15,
   },
   stickyFooter: {
     backgroundColor: Colors.anchorBlue,
