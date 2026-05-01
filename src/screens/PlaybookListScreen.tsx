@@ -364,7 +364,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
       <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
         <View style={st.gradientContainer}>
           <View style={st.categoryLabel}><ThemedText weight="bold" style={st.categoryLabelText}>{category}</ThemedText></View>
-          <TouchableOpacity style={st.menuButton} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(isMenuOpen ? null : item.id); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity style={st.menuButton} onPress={() => { try { _triggerHaptic(); } catch {} _onMenuToggle(isMenuOpen ? null : item.id); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
           </TouchableOpacity>
         </View>

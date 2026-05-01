@@ -12,6 +12,9 @@ import {
   Animated,
   DeviceEventEmitter,
   Alert,
+  Modal,
+  TextInput,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,6 +34,11 @@ import DevotionalModal from '../DevotionalModal';
 import { normalizeDevotionalCategory } from '../../utils/devotionalCategories';
 import { extractCleanTitle } from '../../utils/titleUtils';
 import { useDevotionalOperations } from '../../services/hooks/useDevotionalDataSimplified';
+import { deletePlaybook } from '../../services/apiIntegration';
+import { pdfExportService } from '../../utils/pdfExportService';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { PDF_EXPORT_UPGRADE_PROMPT } from '../../services/tierRestrictionService';
+import { replaceAllNamePlaceholders } from '../../utils/nameReplacement';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
@@ -109,6 +117,7 @@ interface PlaybookContent {
   completedAt?: string;
   status?: string;
   truthInLove?: any;
+  tag?: string;
 }
 
 interface DevotionalContent extends BaseContent {
@@ -221,9 +230,21 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [tagModalVisible, setTagModalVisible] = useState(false);
+  const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<PlaybookContent | null>(null);
+  const [selectedPlaybookForTag, setSelectedPlaybookForTag] = useState<PlaybookContent | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
+  const [customTag, setCustomTag] = useState('');
+  const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
 
   // Devotional operations for delete functionality
   const { deleteDevotional } = useDevotionalOperations(user?.id || '');
+
+  // Feature access checks for PDF export
+  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
+  const devotionalPdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
 
   // Helper functions for devotional card
   const formatDate = (dateString: string) => {
@@ -240,6 +261,15 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       setMenuVisible(null);
     } catch (deleteError) {
       console.error('Error deleting devotional', deleteError);
+    }
+  };
+
+  const handleDeletePlaybook = async (playbookId: string) => {
+    try {
+      await deletePlaybook(playbookId, user?.id || '');
+      setMenuVisible(null);
+    } catch (deleteError) {
+      console.error('Error deleting playbook', deleteError);
     }
   };
 
@@ -260,6 +290,385 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         },
       ]
     );
+  };
+
+  const showPlaybookDeleteConfirm = (playbookId: string) => {
+    setMenuVisible(null);
+    Alert.alert(
+      'Delete Playbook',
+      'Are you sure you want to delete this playbook?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDeletePlaybook(playbookId),
+        },
+      ]
+    );
+  };
+
+  const handleRenamePress = (playbook: PlaybookContent) => {
+    setMenuVisible(null);
+    setSelectedPlaybookForRename(playbook);
+    setNewTitle(playbook.title);
+    setRenameModalVisible(true);
+  };
+
+  const handleTagPress = (playbook: PlaybookContent) => {
+    setMenuVisible(null);
+    setSelectedPlaybookForTag(playbook);
+    setSelectedTag(playbook.tag || '');
+    setTagModalVisible(true);
+  };
+
+  const handleRenamePlaybook = async () => {
+    if (!selectedPlaybookForRename || !newTitle.trim()) { return; }
+
+    try {
+      triggerLightHaptic();
+      const { supabase } = await import('../../services/supabaseClient');
+      const { error } = await supabase
+        .from('playbooks')
+        .update({ title: newTitle.trim(), updated_at: new Date().toISOString() })
+        .eq('id', selectedPlaybookForRename.id);
+
+      if (error) { throw error; }
+
+      setRenameModalVisible(false);
+      setNewTitle('');
+      setSelectedPlaybookForRename(null);
+      fetchContent();
+    } catch (err) {
+      console.error('Error renaming playbook', err);
+      Alert.alert('Error', 'Failed to rename playbook. Please try again.');
+    }
+  };
+
+  const handleTagPlaybook = async () => {
+    if (!selectedPlaybookForTag) { return; }
+
+    const finalTag = selectedTag === 'Custom' ? customTag.trim() : selectedTag;
+    if (!finalTag) { return; }
+
+    try {
+      triggerLightHaptic();
+      const { supabase } = await import('../../services/supabaseClient');
+      const { error } = await supabase
+        .from('playbooks')
+        .update({ tag: finalTag, updated_at: new Date().toISOString() })
+        .eq('id', selectedPlaybookForTag.id);
+
+      if (error) { throw error; }
+
+      setTagModalVisible(false);
+      setSelectedTag('');
+      setCustomTag('');
+      setSelectedPlaybookForTag(null);
+      fetchContent();
+    } catch (err) {
+      console.error('Error tagging playbook', err);
+      Alert.alert('Error', 'Failed to tag playbook. Please try again.');
+    }
+  };
+
+  const handleExportPdfPress = async (playbook: PlaybookContent) => {
+    console.log('[PDF Export] handleExportPdfPress called for playbook:', playbook.id);
+    setMenuVisible(null);
+
+    // Check feature access
+    console.log('[PDF Export] Checking feature access:', pdfExportAccess.hasAccess);
+    if (!pdfExportAccess.hasAccess) {
+      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+      const upgradeMessage = typeof upgradePrompt?.message === 'string'
+        ? upgradePrompt.message
+        : typeof upgradePrompt === 'object' && upgradePrompt?.message
+          ? (upgradePrompt as any).message
+          : PDF_EXPORT_UPGRADE_PROMPT;
+
+      Alert.alert(
+        'Upgrade Required',
+        upgradeMessage,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              (navigation as any).navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: pdfExportAccess.accessResult?.requiredTier,
+                skipNotificationPreference: true,
+                featureType: 'export_pdf',
+                source: 'dashboard_carousel',
+              });
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+      console.log('[PDF Export] Haptic triggered, fetching playbook data...');
+
+      // Fetch the full playbook before exporting
+      if (!user?.id) {
+        console.log('[PDF Export] No user ID found');
+        Alert.alert('Error', 'Unable to export this playbook right now.');
+        return;
+      }
+
+      const { getPlaybook } = await import('../../services/apiIntegration');
+      console.log('[PDF Export] Calling getPlaybook...');
+      const fullPlaybook = await getPlaybook(user.id, playbook.id);
+      console.log('[PDF Export] Full playbook received:', fullPlaybook ? 'yes' : 'no');
+      if (!fullPlaybook) {
+        Alert.alert('Error', 'Could not load the full playbook for export.');
+        return;
+      }
+
+      // Get user metadata for name replacement
+      const metaUser: any = user?.user_metadata || {};
+      const metaFirstName = metaUser.first_name || '';
+      const metaDisplayName = metaUser.full_name ||
+                            [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
+                            '';
+
+      // Get bible version from user preferences or default to NASB
+      const bibleVersion = user?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+      // Use pdfExportService to generate and share PDF
+      pdfExportService.exportPlaybookPDF({
+        title: fullPlaybook.title,
+        truthInLove: replaceAllNamePlaceholders(
+          typeof fullPlaybook.truthInLove === 'string' ? fullPlaybook.truthInLove : fullPlaybook.truthInLove?.text || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
+        truthInLoveSummary: replaceAllNamePlaceholders(
+          typeof fullPlaybook.truthInLove === 'string' ? '' : fullPlaybook.truthInLove?.summary || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
+        bibleVerse: {
+          ...fullPlaybook.bibleVerse,
+          version: bibleVersion,
+        },
+        bibleVerseReflection: fullPlaybook.bibleVerseReflection || '',
+        actionSteps: fullPlaybook.actionSteps?.map((step: any) => {
+          // Derive examples similar to ActionStepsCard
+          let examples: string[] = [];
+
+          const rawExamples: any = step.examples;
+
+          if (rawExamples && typeof rawExamples === 'string') {
+            if (/Example:\s*/i.test(rawExamples)) {
+              const exampleMatches = rawExamples
+                .split(/Example:\s*/i)
+                .filter((text: string) => text.trim().length > 0);
+              examples = exampleMatches.map((ex: string) => ex.replace(/^Example:\s*/i, '').trim());
+            } else if (rawExamples.includes(';')) {
+              examples = rawExamples
+                .split(';')
+                .map((ex: string) => ex.replace(/^Example:\s*/i, '').trim())
+                .filter(Boolean);
+            } else if (rawExamples.trim()) {
+              examples = [rawExamples.replace(/^Example:\s*/i, '').trim()];
+            }
+          } else if (Array.isArray(rawExamples)) {
+            examples = rawExamples.map((ex: string) => ex.replace(/^"+|"+$/g, '').replace(/^Example:\s*/i, '').trim());
+          } else if (step.subTasks && step.subTasks.length > 0) {
+            // Extract examples from subtasks that have is_example flag OR start with "example:"
+            examples = step.subTasks
+              .filter((st: any) =>
+                (typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')) ||
+                st.is_example === true ||
+                st.isExample === true
+              )
+              .map((st: any) => st.text.replace(/^Example:\s*/i, '').trim());
+          }
+
+          return {
+            title: step.title,
+            description: step.description || '',
+            subtasks: step.subTasks?.map((st: any) => st.text || st.title || st) || [],
+            examples,
+          };
+        }),
+        affirmations: fullPlaybook.affirmations?.map((a: any) =>
+          replaceAllNamePlaceholders(
+            typeof a === 'string' ? a : a?.text || '',
+            { firstName: metaFirstName, displayName: metaDisplayName },
+            { replaceHardcodedNames: true }
+          )
+        ),
+        prayer: fullPlaybook.prayer || '',
+        wordsToSpeak: typeof fullPlaybook.wordsToSpeak === 'string'
+          ? replaceAllNamePlaceholders(fullPlaybook.wordsToSpeak, { firstName: metaFirstName, displayName: metaDisplayName }, { replaceHardcodedNames: true })
+          : '',
+        directChallenge: typeof fullPlaybook.directChallenge === 'string'
+          ? replaceAllNamePlaceholders(fullPlaybook.directChallenge, { firstName: metaFirstName, displayName: metaDisplayName }, { replaceHardcodedNames: true })
+          : '',
+        createdAt: fullPlaybook.createdAt,
+      });
+    } catch (error) {
+      console.error('Error exporting playbook PDF:', error);
+      Alert.alert('Error', 'Failed to export playbook as PDF. Please try again.');
+    }
+  };
+
+  const handleExportDevotionalPdf = async (devotional: DevotionalContent) => {
+    console.log('[PDF Export] handleExportDevotionalPdf called for devotional:', devotional.id);
+    setMenuVisible(null);
+
+    // Check feature access
+    console.log('[PDF Export] Checking devotional feature access:', devotionalPdfExportAccess.hasAccess);
+    if (!devotionalPdfExportAccess.hasAccess) {
+      const upgradePrompt = devotionalPdfExportAccess.accessResult?.upgradePrompt;
+      const upgradeMessage = typeof upgradePrompt?.message === 'string'
+        ? upgradePrompt.message
+        : typeof upgradePrompt === 'object' && upgradePrompt?.message
+          ? (upgradePrompt as any).message
+          : PDF_EXPORT_UPGRADE_PROMPT;
+
+      Alert.alert(
+        'Upgrade Required',
+        upgradeMessage,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              (navigation as any).navigate('OnboardingSalesOffer' as any, {
+                upgradeMode: true,
+                currentTier: devotionalPdfExportAccess.accessResult?.requiredTier,
+                skipNotificationPreference: true,
+                featureType: 'export_pdf',
+                source: 'dashboard_carousel',
+              });
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    try {
+      triggerLightHaptic();
+      console.log('[PDF Export] Exporting devotional PDF...');
+
+      // Get bible version from user preferences or default to NASB
+      const bibleVersion = user?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
+
+      const totalDays = devotional.total_days || 1;
+
+      // Helper function to export a single day
+      const exportDevotionalDay = async (day: any, dayNumber: number) => {
+        const dayTitle = day.title || devotional.title;
+        const dayLabel = totalDays > 1 ? `Day ${dayNumber} of ${totalDays}` : 'Day 1';
+        const duration = `${totalDays} Day${totalDays > 1 ? 's' : ''}`;
+
+        pdfExportService.exportDevotionalPDF({
+          title: devotional.title,
+          duration,
+          dayTitle,
+          dayLabel,
+          bibleVerse: day.scripture ? {
+            text: day.scripture.text,
+            reference: day.scripture.reference,
+            version: bibleVersion,
+          } : undefined,
+          reflection: day.reflection,
+          questionsToPonder: day.reflectionQuestions?.map((q: any) => q.text) || [],
+          prayer: day.prayer,
+        });
+      };
+
+      // Helper function to export all days
+      const exportAllDaysDevotional = async () => {
+        const duration = `${totalDays} Day${totalDays > 1 ? 's' : ''}`;
+        const daysData = devotional.days?.map((day: any) => ({
+          dayNumber: day.dayNumber,
+          title: day.title,
+          scripture: day.scripture ? {
+            text: day.scripture.text,
+            reference: day.scripture.reference,
+            version: bibleVersion,
+          } : undefined,
+          reflection: day.reflection,
+          reflectionQuestions: day.reflectionQuestions?.map((q: any) => ({ text: q.text })) || [],
+          prayer: day.prayer,
+        })) || [];
+
+        pdfExportService.exportDevotionalPDF({
+          title: devotional.title,
+          duration,
+          days: daysData,
+        });
+      };
+
+      // If single-day devotional, export directly
+      if (totalDays === 1 && devotional.days && devotional.days.length > 0) {
+        await exportDevotionalDay(devotional.days[0], 1);
+        return;
+      }
+
+      // Multi-day devotional: show day selection dialog
+      const dayOptions = devotional.days?.map((day: any) => `Day ${day.dayNumber}: ${day.title}`) || [];
+      const options = ['All Days', ...dayOptions, 'Cancel'];
+
+      const handleDaySelection = async (buttonIndex: number) => {
+        // Don't trigger haptic for Cancel button (last index)
+        if (buttonIndex !== options.length - 1) {
+          triggerLightHaptic();
+        }
+        if (buttonIndex === 0) {
+          // "All Days" selected - export all days in a single PDF
+          await exportAllDaysDevotional();
+        } else if (buttonIndex > 0 && devotional.days && buttonIndex < devotional.days.length + 1) {
+          // Specific day selected (adjust index by -1 to skip "All Days")
+          const selectedDay = devotional.days[buttonIndex - 1];
+          const dayNumber = selectedDay.dayNumber;
+          await exportDevotionalDay(selectedDay, dayNumber);
+        }
+      };
+
+      if (Platform.OS === 'ios') {
+        const { ActionSheetIOS } = require('react-native');
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            cancelButtonIndex: options.length - 1,
+          },
+          handleDaySelection
+        );
+      } else {
+        // Android: use Alert with buttons
+        const buttons = [{ text: 'All Days', onPress: async () => await handleDaySelection(0) }];
+        devotional.days?.forEach((day: any, index: number) => {
+          buttons.push({
+            text: `Day ${day.dayNumber}: ${day.title}`,
+            onPress: async () => await handleDaySelection(index + 1),
+          });
+        });
+        buttons.push({ text: 'Cancel', onPress: async () => {} });
+
+        Alert.alert('Select Day to Export', '', buttons);
+      }
+    } catch (error) {
+      console.error('Error exporting devotional PDF:', error);
+      Alert.alert('Error', 'Failed to export devotional as PDF. Please try again.');
+    }
   };
 
   React.useEffect(() => {
@@ -723,11 +1132,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           triggerLightHaptic();
           onPlaybookPress?.(playbook);
         }}
-        onLongPress={() => {
-          try { triggerLightHaptic(); } catch {}
-          setSelectedPlaybookForDevotional(playbook);
-          setDevotionalModalVisible(true);
-        }}
         activeOpacity={0.85}
       >
         <Animated.View
@@ -749,14 +1153,92 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             <TouchableOpacity
               style={styles.menuButton}
               onPress={() => {
+                console.log('[Menu Button] Pressed for playbook:', playbook.id);
                 try { triggerLightHaptic(); } catch {}
-                setSelectedPlaybookForDevotional(playbook);
-                setDevotionalModalVisible(true);
+                setMenuVisible(menuVisible === playbook.id ? null : playbook.id);
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
             </TouchableOpacity>
+            {menuVisible === playbook.id && (
+              <View style={styles.dropdownMenu}>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setSelectedPlaybookForDevotional(playbook);
+                    setDevotionalModalVisible(true);
+                    setMenuVisible(null);
+                  }}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into devotional</ThemedText>
+                    {devotionalsCount[playbook.id] > 0 && (
+                      <View style={styles.dropdownBadge}>
+                        <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
+                        {devotionalsCount[playbook.id] >= 2 && (
+                          <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[playbook.id]}</ThemedText>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    handleRenamePress(playbook);
+                  }}
+                >
+                  <ThemedText weight="medium" style={styles.dropdownItemText}>Rename</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    handleTagPress(playbook);
+                  }}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <ThemedText weight="medium" style={styles.dropdownItemText}>Tag</ThemedText>
+                    {playbook.tag && (
+                      <View style={styles.dropdownBadge}>
+                        <ThemedText style={styles.dropdownBadgeText}>{playbook.tag}</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    handleExportPdfPress(playbook);
+                  }}
+                >
+                  <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dropdownItem, styles.dropdownItemLast]}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    showPlaybookDeleteConfirm(playbook.id);
+                  }}
+                >
+                  <View style={styles.dropdownItemContent}>
+                    <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                    <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+            {menuVisible === playbook.id && (
+              <TouchableOpacity
+                style={styles.menuBackdrop}
+                onPress={() => setMenuVisible(null)}
+                activeOpacity={1}
+              />
+            )}
           </View>
 
           <View style={styles.dateWithBadge}>
@@ -901,6 +1383,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={() => {
+                  console.log('[Menu Button] Pressed for devotional:', devotional.id);
                   try { triggerLightHaptic(); } catch {}
                   setMenuVisible(menuVisible === devotional.id ? null : devotional.id);
                 }}
@@ -910,6 +1393,17 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               </TouchableOpacity>
               {menuVisible === devotional.id && (
                 <View style={styles.dropdownMenu}>
+                  <TouchableOpacity
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      handleExportDevotionalPdf(devotional);
+                    }}
+                  >
+                    <View style={styles.dropdownItemContent}>
+                      <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
+                    </View>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.dropdownItem, styles.dropdownItemLast]}
                     onPress={() => {
@@ -1017,6 +1511,95 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     }
   };
 
+  // Rename Modal
+  const renderRenameModal = () => (
+    <Modal visible={renameModalVisible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ThemedText weight="bold" style={styles.modalTitle}>Rename Playbook</ThemedText>
+          <TextInput
+            style={styles.modalInput}
+            value={newTitle}
+            onChangeText={setNewTitle}
+            placeholder="Enter new name"
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          />
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonCancel]}
+              onPress={() => {
+                setRenameModalVisible(false);
+                setNewTitle('');
+                setSelectedPlaybookForRename(null);
+              }}
+            >
+              <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonConfirm]}
+              onPress={handleRenamePlaybook}
+            >
+              <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Tag Modal
+  const renderTagModal = () => (
+    <Modal visible={tagModalVisible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ThemedText weight="bold" style={styles.modalTitle}>Tag Playbook</ThemedText>
+          <View style={styles.tagList}>
+            {['Work', 'Personal', 'Growth', 'Faith', 'Custom'].map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.tagItem,
+                  selectedTag === tag && styles.tagItemSelected,
+                ]}
+                onPress={() => setSelectedTag(tag)}
+              >
+                <ThemedText style={styles.tagItemText}>{tag}</ThemedText>
+              </TouchableOpacity>
+            ))}
+            {selectedTag === 'Custom' && (
+              <TextInput
+                style={styles.modalInput}
+                value={customTag}
+                onChangeText={setCustomTag}
+                placeholder="Enter custom tag"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              />
+            )}
+          </View>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonCancel]}
+              onPress={() => {
+                setTagModalVisible(false);
+                setSelectedTag('');
+                setCustomTag('');
+                setSelectedPlaybookForTag(null);
+              }}
+            >
+              <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonConfirm]}
+              onPress={handleTagPlaybook}
+            >
+              <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
       <View style={styles.emptyCard}>
@@ -1108,6 +1691,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
         }}
       />
+      {renderRenameModal()}
+      {renderTagModal()}
     </View>
   );
 };
@@ -1495,6 +2080,91 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextDelete: {
     color: Colors.alertCoral,
+  },
+  dropdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  dropdownBadgeText: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalButtonCancel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalButtonConfirm: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  modalButtonTextCancel: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalButtonTextConfirm: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tagList: {
+    maxHeight: 200,
+    marginBottom: 16,
+  },
+  tagItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  tagItemSelected: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  tagItemText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
   },
   date: {
     fontSize: 12,
