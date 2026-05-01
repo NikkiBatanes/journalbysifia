@@ -873,7 +873,7 @@ class PDFExportService {
             .truth-summary {
               font-size: 16px;
               font-weight: 600;
-              color: #FF6B6B; /* alert coral */
+              color: #000000; /* black */
               line-height: 1.6;
               margin-bottom: 12px;
             }
