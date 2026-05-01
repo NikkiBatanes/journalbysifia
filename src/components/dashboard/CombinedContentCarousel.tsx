@@ -1184,7 +1184,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                   }}
                 >
                   <View style={styles.dropdownItemContent}>
-                    <Ionicons name="book" size={16} color={Colors.hopeWhite} />
                     <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into devotional</ThemedText>
                     {devotionalsCount[playbook.id] >= 2 && (
                       <View style={styles.dropdownBadge}>
