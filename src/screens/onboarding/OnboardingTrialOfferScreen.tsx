@@ -113,7 +113,7 @@ const OnboardingTrialOfferScreen = () => {
   const [currencyInfo, setCurrencyInfo] = useState<any>(null);
   const [_isNavigatingAway, _setIsNavigatingAway] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
-  const [autoDismissScheduled, setAutoDismissScheduled] = useState(false);
+  // const [autoDismissScheduled, setAutoDismissScheduled] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
@@ -888,30 +888,27 @@ const OnboardingTrialOfferScreen = () => {
   };
 
   // ENTERPRISE IMPROVEMENT: Simple navigation wrapper without complex guards
-  const safeNavigate = useCallback((action: () => void, _actionName: string) => {
-    try {
-      action();
-    } catch (error) {
-      // Fallback to basic navigation
-      try {
-        navigation.goBack();
-      } catch (fallbackError) {
-        // Navigation failed - component will handle this gracefully
-      }
-    }
-  }, [navigation]);
+  // const safeNavigate = useCallback((action: () => void, _actionName: string) => {
+  //   try {
+  //     action();
+  //   } catch (error) {
+  //     // Fallback to basic navigation
+  //     try {
+  //       navigation.goBack();
+  //     } catch (fallbackError) {
+  //       // Navigation failed - component will handle this gracefully
+  //     }
+  //   }
+  // }, [navigation]);
 
   // ENTERPRISE IMPROVEMENT: Enhanced success modal continue handler
   const handleSuccessModalContinue = useCallback(() => {
     logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
-    setAutoDismissScheduled(false); // Reset auto-dismissal state
+    // setAutoDismissScheduled(false); // Reset auto-dismissal state
 
     // Re-enable faith points notifications after modal is hidden
     notificationService.suppressPointsNotifications(false);
-
-    // Use a more reliable navigation approach
-    const skipNotificationPreference = route?.params?.skipNotificationPreference;
 
     // Navigate to UserInput screen
     setTimeout(() => {

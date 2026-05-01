@@ -330,13 +330,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     try {
       triggerLightHaptic();
-      const { supabase } = await import('../../services/supabaseClient');
-      const { error } = await supabase
+      const { supabase: supabaseClient } = await import('../../services/supabaseClient');
+      const { error: renameError } = await supabaseClient
         .from('playbooks')
         .update({ title: newTitle.trim(), updated_at: new Date().toISOString() })
         .eq('id', selectedPlaybookForRename.id);
 
-      if (error) { throw error; }
+      if (renameError) { throw renameError; }
 
       setRenameModalVisible(false);
       setNewTitle('');
@@ -356,13 +356,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     try {
       triggerLightHaptic();
-      const { supabase } = await import('../../services/supabaseClient');
-      const { error } = await supabase
+      const { supabase: supabaseClient } = await import('../../services/supabaseClient');
+      const { error: tagError } = await supabaseClient
         .from('playbooks')
         .update({ tag: finalTag, updated_at: new Date().toISOString() })
         .eq('id', selectedPlaybookForTag.id);
 
-      if (error) { throw error; }
+      if (tagError) { throw tagError; }
 
       setTagModalVisible(false);
       setSelectedTag('');
@@ -518,8 +518,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         ),
         createdAt: fullPlaybook.createdAt,
       });
-    } catch (error) {
-      console.error('Error exporting playbook PDF:', error);
+    } catch (exportError) {
+      console.error('Error exporting playbook PDF:', exportError);
       Alert.alert('Error', 'Failed to export playbook as PDF. Please try again.');
     }
   };
@@ -672,8 +672,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
         Alert.alert('Select Day to Export', '', buttons);
       }
-    } catch (error) {
-      console.error('Error exporting devotional PDF:', error);
+    } catch (devotionalExportError) {
+      console.error('Error exporting devotional PDF:', devotionalExportError);
       Alert.alert('Error', 'Failed to export devotional as PDF. Please try again.');
     }
   };
