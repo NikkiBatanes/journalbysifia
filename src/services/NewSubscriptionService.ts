@@ -199,16 +199,18 @@ export class NewSubscriptionService {
         return false;
       }
 
-      // Seeker: monthly reset (2 PB / 1 DEV per month, no rollover)
+      // Seeker: reset 30 days after last_usage_reset.
+      // For fresh seekers: last_usage_reset = account creation date.
+      // For post-trial seekers: last_usage_reset = trial_end_date (cooldown clock).
+      // Both cases: usage resets exactly 30 days after last_usage_reset, no rollover.
       if (subscription.tier === 'seeker') {
-        const anchor = new Date(subscription.created_at);
         const now = new Date();
-        const daysSinceCreation = (now.getTime() - anchor.getTime()) / (1000 * 60 * 60 * 24);
-        const currentPeriod = Math.floor(daysSinceCreation / 30);
-        const currentPeriodStart = new Date(anchor.getTime() + currentPeriod * 30 * 24 * 60 * 60 * 1000);
-        const lastReset = subscription.last_usage_reset ? new Date(subscription.last_usage_reset) : new Date(0);
+        const lastReset = subscription.last_usage_reset
+          ? new Date(subscription.last_usage_reset)
+          : new Date(subscription.created_at);
+        const nextReset = new Date(lastReset.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-        if (lastReset < currentPeriodStart) {
+        if (now >= nextReset) {
           const { error: resetError } = await supabase
             .from('user_subscriptions_new')
             .update({
@@ -230,7 +232,7 @@ export class NewSubscriptionService {
           Logger.info('[NewSubscriptionService] Seeker monthly usage reset', {
             component: 'NewSubscriptionService',
             userId,
-            period: currentPeriod + 1,
+            daysAfterLastReset: Math.floor((now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24)),
           });
           return true;
         }

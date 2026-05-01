@@ -213,18 +213,12 @@ const DevotionalsScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
 
-      const focusTime = Date.now();
-      Logger.debug('[DevotionalsScreen] Screen focused', { component: 'DevotionalsScreen', focusTime });
-
       // CRITICAL: Use InteractionManager to prevent VirtualizedList freeze
       // requestAnimationFrame doesn't wait for navigation animations to complete
       const { InteractionManager } = require('react-native');
       InteractionManager.runAfterInteractions(() => {
-        const interactionTime = Date.now();
-        Logger.debug('[DevotionalsScreen] InteractionManager fired, refetching playbooks', { component: 'DevotionalsScreen', delay: interactionTime - focusTime });
         // Force a refetch regardless of staleTime, so newly created playbooks are visible
         refetchPlaybooks();
-        Logger.debug('[DevotionalsScreen] Playbooks refetch triggered', { component: 'DevotionalsScreen' });
       });
     }, [refetchPlaybooks, setShowTabBar])
   );
@@ -1022,24 +1016,15 @@ const DevotionalsScreen = () => {
   // Fallback: whenever this screen gains focus, ensure it's at the top
   useFocusEffect(
     useCallback(() => {
-      const focusTime = Date.now();
-      Logger.debug('[DevotionalsScreen] Scroll focus effect triggered', { component: 'DevotionalsScreen', focusTime });
-
       // ENTERPRISE-GRADE: Defer scroll operation to after navigation transition completes
       const raf = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame
         : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
       raf(() => {
-        const rafTime = Date.now();
-        Logger.debug('[DevotionalsScreen] RAF fired for scroll', { component: 'DevotionalsScreen', delay: rafTime - focusTime });
         try {
           const hasData = Array.isArray(sections) && sections.length > 0 && Array.isArray(sections[0]?.data) && sections[0].data.length > 0;
           if (hasData) {
-            Logger.debug('[DevotionalsScreen] Scrolling to top', { component: 'DevotionalsScreen' });
             sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
-            Logger.debug('[DevotionalsScreen] Scroll complete', { component: 'DevotionalsScreen' });
-          } else {
-            Logger.debug('[DevotionalsScreen] No data to scroll', { component: 'DevotionalsScreen' });
           }
         } catch (e) {
           Logger.error('[DevotionalsScreen] Scroll error', e as Error, { component: 'DevotionalsScreen' });

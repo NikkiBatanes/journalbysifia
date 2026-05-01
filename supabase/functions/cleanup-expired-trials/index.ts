@@ -10,15 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
-  switch (tier) {
-    case 'seeker':
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
-    default:
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -57,28 +48,31 @@ serve(async (req) => {
 
     console.log(`[CleanupExpiredTrials] Found ${expiredTrials.length} expired trials to process`);
 
-    const seekerLimits = getTierLimits('seeker');
     const results = [];
 
     for (const trial of expiredTrials) {
       console.log(`[CleanupExpiredTrials] Processing user ${trial.user_id}, trial ended: ${trial.trial_end_date}`);
 
-      // Revert to seeker
+      // Revert to seeker with cooldown: set used = limit so 0 are available.
+      // last_usage_reset = trial_end_date starts the 30-day replenish clock.
+      // trial_start_date is kept (prevents a second free trial).
+      // trial_end_date is kept (used to detect "had trial, no conversion" state in UI).
       const { error: updateError } = await supabaseClient
         .from('user_subscriptions_new')
         .update({
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
-          playbooks_limit: seekerLimits.playbooks_limit,
-          devotionals_limit: seekerLimits.devotionals_limit,
-          playbooks_used: 0,
-          devotionals_used: 0,
-          smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
-          show_dashboard_counts: true,
+          playbooks_limit: 2,
+          devotionals_limit: 1,
+          playbooks_used: 2,
+          devotionals_used: 1,
+          smart_journaling_enabled: true,
+          last_usage_reset: trial.trial_end_date,
           billing_cycle: null,
           billing_issue: false,
           grace_period_end_date: null,
-          subscription_end_date: new Date().toISOString(),
+          subscription_end_date: trial.trial_end_date,
+          trial_chosen_tier: null,
           auto_renew_enabled: false,
           status: 'expired',
           updated_at: new Date().toISOString(),
