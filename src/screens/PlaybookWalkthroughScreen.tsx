@@ -12,11 +12,8 @@ import {
   Dimensions,
   TextInput,
   Alert,
-  Share,
   DeviceEventEmitter,
   Platform,
-  ActionSheetIOS,
-  Clipboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -141,7 +138,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   userName,
   transitionLine,
   onContinue: _onContinue,
-  onEditUserInput,
+  onEditUserInput: _onEditUserInput,
   insets,
 }) => {
   const { currentFont } = useTheme();
@@ -1761,7 +1758,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                         styles.completionChoiceText,
                         selectedChoice === choice && styles.completionChoiceTextActive,
                         selectedChoice === choice && { fontWeight: '600' as any },
-                        { fontFamily }
+                        { fontFamily },
                       ]}
                     />
                   ) : (

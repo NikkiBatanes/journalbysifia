@@ -784,7 +784,7 @@ class PDFExportService {
 
     // Ensure prayer ends with "In Jesus's Name, Amen"
     let finalPrayer = safePrayer;
-    if (safePrayer && !safePrayer.toLowerCase().includes("in jesus")) {
+    if (safePrayer && !safePrayer.toLowerCase().includes('in jesus')) {
       finalPrayer = safePrayer + (safePrayer.endsWith('.') ? '' : '.') + '<br><br>In Jesus\'s Name, Amen';
     }
 
