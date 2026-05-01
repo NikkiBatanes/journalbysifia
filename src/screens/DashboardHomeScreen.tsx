@@ -1324,8 +1324,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   };
 
   const renderPrayerRequestsCard = () => {
-    // Hide entirely when not loading and there are no unprayed requests
-    if (!loadingRequests && !fetchingRequests && unprayedRequests.length === 0) {
+    // Hide entirely when there are no unprayed requests (including during loading)
+    if (unprayedRequests.length === 0) {
       return null;
     }
 
@@ -1656,7 +1656,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <View style={styles.sectionGap} />
 
           {/* Prayer Requests Section (hide when empty) */}
-          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && renderPrayerRequestsCard()}
+          {unprayedRequests.length > 0 && renderPrayerRequestsCard()}
 
           <View style={styles.sectionGap} />
 
