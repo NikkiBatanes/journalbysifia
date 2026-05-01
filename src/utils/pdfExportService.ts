@@ -189,6 +189,10 @@ class PDFExportService {
     // Determine if we should show Day X of Y block (skip for 1-day devotionals)
     const shouldShowDaySection = !!dayLabel && !/of\s*1\b/i.test(dayLabel);
 
+    // Determine if it's a single-day devotional for the duration label
+    const isSingleDay = !days || days.length === 1 || (dayLabel && /of\s*1\b/i.test(dayLabel));
+    const durationLabel = isSingleDay ? 'Devotional' : 'Series';
+
     const safeDayTitle = this.escapeHtml(dayTitle || '');
     const safeDayLabel = this.escapeHtml(dayLabel || '');
     const safeReflection = this.escapeHtml(reflection || '');
@@ -597,7 +601,7 @@ class PDFExportService {
               <img src="https://sifia.app/images/sifia-logo-blue.png" class="logo-image" />
             </div>
             <h1>${safeTitle}</h1>
-            <div class="duration">A ${safeDuration} Series</div>
+            <div class="duration">A ${safeDuration} ${durationLabel}</div>
           </div>
 
           ${daysHtml ? daysHtml : `
