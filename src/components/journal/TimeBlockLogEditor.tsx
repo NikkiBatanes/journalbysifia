@@ -1120,7 +1120,12 @@ function TimeBlockLogEditorInner(
                   </View>
                   <View style={s.repeatOptionContainer}>
                     <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, s.selectedOptionText]}>
-                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      {selectedDate.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: selectedDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                      })}
                     </ThemedText>
                     <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                   </View>
