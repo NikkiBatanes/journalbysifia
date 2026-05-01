@@ -1632,6 +1632,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         isTrial={shouldUseTrialProduct}
         isAnnual={isAnnual}
         isValidated={purchaseValidated}
+        isOnboarding={!!routeParams?.onboardingFlow}
         onContinue={handleSuccessModalContinue}
       />
 
@@ -2335,10 +2336,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.14)',
-    borderRadius: 16,
+    borderRadius: 30,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   profileTrialNoteTitle: {
     fontSize: 14,

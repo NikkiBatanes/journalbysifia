@@ -911,21 +911,25 @@ const OnboardingTrialOfferScreen = () => {
   const handleSuccessModalContinue = useCallback(() => {
     logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
-    // setAutoDismissScheduled(false); // Reset auto-dismissal state
 
     // Re-enable faith points notifications after modal is hidden
     notificationService.suppressPointsNotifications(false);
 
-    // Navigate to UserInput screen
     setTimeout(() => {
       try {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'UserInput' as any }],
-        });
+        if (routeParams?.onboardingFlow) {
+          (navigation as any).navigate('OnboardingNotificationSetup', {
+            userType: 'paid',
+            onboardingFlow: true,
+          });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
+        }
       } catch (error) {
-        logger.error('Failed to navigate to UserInput', error as Error);
-        // Fallback: try basic navigation
+        logger.error('Failed to navigate after success modal', error as Error);
         try {
           (navigation as any).navigate('UserInput');
         } catch (fallbackError) {
@@ -933,7 +937,7 @@ const OnboardingTrialOfferScreen = () => {
         }
       }
     }, 100);
-  }, [navigation]);
+  }, [navigation, routeParams?.onboardingFlow]);
 
   const handleSuccessModalDismiss = useCallback(() => {
     handleSuccessModalContinue();
@@ -959,6 +963,7 @@ const OnboardingTrialOfferScreen = () => {
         tier={selectedTierId}
         isTrial={true}
         isValidated={purchaseValidated}
+        isOnboarding={routeParams?.onboardingFlow === true}
         onContinue={handleSuccessModalDismiss}
       />
 

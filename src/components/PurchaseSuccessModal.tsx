@@ -33,7 +33,8 @@ interface PurchaseSuccessModalProps {
   tier: string;
   isTrial: boolean;
   isValidated: boolean;
-  isAnnual?: boolean; // Add isAnnual prop for proper display
+  isAnnual?: boolean;
+  isOnboarding?: boolean;
   onContinue: () => void;
 }
 
@@ -43,6 +44,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   isTrial,
   isValidated,
   isAnnual = false,
+  isOnboarding = false,
   onContinue,
 }) => {
   const theme = useTheme();
@@ -258,7 +260,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
             }}
             activeOpacity={0.85}
           >
-            <ThemedText style={[styles.continueButtonText, { fontFamily: theme.fontFamily, fontWeight: '600' }]}>Process another moment</ThemedText>
+            <ThemedText style={[styles.continueButtonText, { fontFamily: theme.fontFamily, fontWeight: '600' }]}>{isOnboarding ? 'Continue with siFia' : 'Process another moment'}</ThemedText>
           </TouchableOpacity>
         </Animated.View>
       </View>

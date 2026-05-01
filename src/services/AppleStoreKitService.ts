@@ -561,7 +561,7 @@ export class AppleStoreKitService {
           .select('tier, trial_start_date')
           .eq('user_id', userId)
           .single();
-        if (existingSub?.trial_start_date) {
+        if (existingSub?.trial_start_date && existingSub?.tier !== 'free_trial') {
           Logger.warn('[StoreKit] Trial eligibility rejected - user already used a trial', {
             component: 'AppleStoreKitService',
             userId,
