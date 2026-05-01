@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
 import {
   View,
   StyleSheet,
@@ -324,12 +325,12 @@ interface CarouselCardProps {
   onPress: (item: Playbook) => void; onLongPress: (item: Playbook) => void;
   onMenuToggle: (id: string | null) => void; onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
-  onDevotionalPress: (item: Playbook) => void; triggerHaptic: () => void;
+  onDevotionalPress: (item: Playbook) => void; onExportPdfPress: (item: Playbook) => void; triggerHaptic: () => void;
 }
 const CURRENT_YEAR = new Date().getFullYear();
 const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
-const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic }: CarouselCardProps) => {
+const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic }: CarouselCardProps) => {
   // Interpolation input range depends only on index — stable dep
   const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
@@ -363,27 +364,6 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
           <TouchableOpacity style={st.menuButton} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(isMenuOpen ? null : item.id); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
           </TouchableOpacity>
-          {isMenuOpen && (
-            <View style={st.dropdownMenu}>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onDevotionalPress(item); }}>
-                <View style={st.dropdownItemContent}>
-                  <ThemedText weight="medium" style={st.dropdownItemText}>Turn into devotional</ThemedText>
-                  {devotionalCount > 0 && <View style={st.dropdownBadge}><MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />{devotionalCount >= 2 && <ThemedText style={st.dropdownBadgeText}>{devotionalCount}</ThemedText>}</View>}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onRenamePress(item); }}><ThemedText weight="medium" style={st.dropdownItemText}>Rename</ThemedText></TouchableOpacity>
-              <TouchableOpacity style={st.dropdownItem} onPress={() => { try { triggerHaptic(); } catch {} onTagPress(item); }}>
-                <View style={st.dropdownItemContent}><ThemedText weight="medium" style={st.dropdownItemText}>Tag</ThemedText>{item.tag && <View style={st.dropdownBadge}><ThemedText style={st.dropdownBadgeText}>{item.tag}</ThemedText></View>}</View>
-              </TouchableOpacity>
-              <TouchableOpacity style={[st.dropdownItem, st.dropdownItemLast]} onPress={() => { try { triggerHaptic(); } catch {} onMenuToggle(null); onDelete(item.id); }}>
-                <View style={st.dropdownItemContent}>
-                  <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
-                  <ThemedText weight="medium" style={[st.dropdownItemText, st.dropdownItemTextDelete]}>Delete</ThemedText>
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
-          {isMenuOpen && <TouchableOpacity style={st.menuBackdrop} onPress={() => onMenuToggle(null)} activeOpacity={1} />}
         </View>
         <View style={st.dateWithBadge}>
           {!isCardCompleted && updatedDateStr ? (
@@ -449,13 +429,14 @@ interface CategoryCarouselRowProps {
   onRenamePress: (item: Playbook) => void;
   onTagPress: (item: Playbook) => void;
   onDevotionalPress: (item: Playbook) => void;
+  onExportPdfPress: (item: Playbook) => void;
   triggerHaptic: () => void;
 }
 
 const CategoryCarouselRow = React.memo(({
   category, playbooks, cardStyles: st, sessionStates, devotionalsCount,
   menuVisible, onPress, onLongPress, onMenuToggle, onDelete,
-  onRenamePress, onTagPress, onDevotionalPress, triggerHaptic,
+  onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic,
 }: CategoryCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
 
@@ -477,9 +458,10 @@ const CategoryCarouselRow = React.memo(({
       onRenamePress={onRenamePress}
       onTagPress={onTagPress}
       onDevotionalPress={onDevotionalPress}
+      onExportPdfPress={onExportPdfPress}
       triggerHaptic={triggerHaptic}
     />
-  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, triggerHaptic]);
+  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic, playbooks]);
 
   const getItemLayout = useCallback((_: any, index: number) => ({
     length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
@@ -515,7 +497,7 @@ const CategoryCarouselRow = React.memo(({
         directionalLockEnabled={true}
         disableIntervalMomentum={false}
         bounces={false}
-        removeClippedSubviews={true}
+        removeClippedSubviews={false}
       />
     </View>
   );
@@ -1189,6 +1171,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const searchInputRef = useRef<TextInput>(null);
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [selectedPlaybookForMenu, setSelectedPlaybookForMenu] = useState<Playbook | null>(null);
   const menuVisibleRef = useRef<string | null>(null);
   useEffect(() => { menuVisibleRef.current = menuVisible; }, [menuVisible]);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -1690,6 +1673,100 @@ const PlaybookListScreen = ({ navigation }: any) => {
     setMenuVisible(null); handleCardLongPress(pb);
   }, [handleCardLongPress]);
 
+  const handleExportPdfPress = useCallback(async (item: Playbook) => {
+    try {
+      triggerLightHaptic();
+      setMenuVisible(null);
+
+      // Generate HTML content for the PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+            h1 { color: #1e3a8a; margin-bottom: 10px; }
+            h2 { color: #4a5568; margin-top: 20px; margin-bottom: 10px; }
+            .truth-in-love { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; }
+            .scripture { background: #fef3c7; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic; }
+            .action-step { margin: 15px 0; padding-left: 20px; }
+            .action-step.completed { text-decoration: line-through; color: #6b7280; }
+            .affirmation { background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <h1>${item.title}</h1>
+          ${item.userInput ? `<p><strong>Your Challenge:</strong> ${item.userInput}</p>` : ''}
+          
+          ${(item.truthInLove as any)?.text ? `
+            <h2>Truth in Love</h2>
+            <div class="truth-in-love">
+              ${(item.truthInLove as any)?.text || ''}
+            </div>
+          ` : ''}
+          
+          ${(item.bibleVerse as any)?.text ? `
+            <h2>Scripture to Anchor</h2>
+            <div class="scripture">
+              ${(item.bibleVerse as any)?.text || ''}
+              ${(item.bibleVerse as any)?.reference ? `<br><em>- ${(item.bibleVerse as any)?.reference}</em>` : ''}
+            </div>
+          ` : ''}
+          
+          ${item.actionSteps && item.actionSteps.length > 0 ? `
+            <h2>Faithful Actions</h2>
+            ${item.actionSteps.map((step: any, index: number) => `
+              <div class="action-step ${step.completed ? 'completed' : ''}">
+                <strong>${index + 1}. ${step.title || ''}</strong>
+                ${step.description ? `<p>${step.description}</p>` : ''}
+                ${step.subTasks && step.subTasks.length > 0 ? `
+                  <ul>
+                    ${step.subTasks.map((subTask: any) => `
+                      <li class="${subTask.completed ? 'completed' : ''}">${subTask.text || ''}</li>
+                    `).join('')}
+                  </ul>
+                ` : ''}
+              </div>
+            `).join('')}
+          ` : ''}
+          
+          ${item.affirmations && item.affirmations.length > 0 ? `
+            <h2>Affirmations</h2>
+            ${item.affirmations.map((affirmation: any) => `
+              <div class="affirmation">${typeof affirmation === 'string' ? affirmation : affirmation.text || ''}</div>
+            `).join('')}
+          ` : ''}
+          
+          <p style="margin-top: 30px; color: #6b7280; font-size: 12px;">
+            Generated by siFia - ${new Date().toLocaleDateString()}
+          </p>
+        </body>
+        </html>
+      `;
+
+      const options = {
+        html: htmlContent,
+        fileName: `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
+        directory: 'Documents',
+      };
+
+      const file = await RNHTMLtoPDF.generatePDF(options);
+
+      if (file?.filePath) {
+        Alert.alert(
+          'Success',
+          'PDF exported successfully!',
+          [{ text: 'OK' }]
+        );
+      } else {
+        throw new Error('Failed to generate PDF file');
+      }
+    } catch (error) {
+      Logger.error('Error exporting PDF', error as Error, { component: 'PlaybookListScreen' });
+      Alert.alert('Error', 'Failed to export PDF. Please try again.');
+    }
+  }, [triggerLightHaptic]);
+
   // Stable renderItem for the date-view FlatList.
   // Defined with useCallback so its reference only changes when actual data/handlers change —
   // not on every parent render. Without this, FlatList re-renders ALL visible items on each
@@ -1720,16 +1797,25 @@ const PlaybookListScreen = ({ navigation }: any) => {
           menuVisible={menuVisible}
           onPress={handleCardPress}
           onLongPress={handleCardLongPress}
-          onMenuToggle={setMenuVisible}
+          onMenuToggle={(id) => {
+            if (id) {
+              const playbook = playbooks.find(p => p.id === id);
+              setSelectedPlaybookForMenu(playbook || null);
+            } else {
+              setSelectedPlaybookForMenu(null);
+            }
+            setMenuVisible(id);
+          }}
           onDelete={handleDelete}
           onRenamePress={handleRenamePress}
           onTagPress={handleTagPress}
           onDevotionalPress={handleDevotionalPress}
+          onExportPdfPress={handleExportPdfPress}
           triggerHaptic={triggerLightHaptic}
         />
       </View>
     );
-  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, triggerLightHaptic]);
+  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic]);
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
@@ -1947,11 +2033,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   menuVisible={menuVisible}
                   onPress={handleCardPress}
                   onLongPress={handleCardLongPress}
-                  onMenuToggle={setMenuVisible}
+                  onMenuToggle={(id) => {
+            if (id) {
+              const playbook = playbooks.find(p => p.id === id);
+              setSelectedPlaybookForMenu(playbook || null);
+            } else {
+              setSelectedPlaybookForMenu(null);
+            }
+            setMenuVisible(id);
+          }}
                   onDelete={handleDelete}
                   onRenamePress={handleRenamePress}
                   onTagPress={handleTagPress}
                   onDevotionalPress={handleDevotionalPress}
+                  onExportPdfPress={handleExportPdfPress}
                   triggerHaptic={triggerLightHaptic}
                 />
               )}
@@ -2040,11 +2135,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
-                      onMenuToggle={setMenuVisible}
+                      onMenuToggle={(id) => {
+            if (id) {
+              const playbook = playbooks.find(p => p.id === id);
+              setSelectedPlaybookForMenu(playbook || null);
+            } else {
+              setSelectedPlaybookForMenu(null);
+            }
+            setMenuVisible(id);
+          }}
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
                       onDevotionalPress={handleDevotionalPress}
+                      onExportPdfPress={handleExportPdfPress}
                       triggerHaptic={triggerLightHaptic}
                     />
                   )}
@@ -2104,11 +2208,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
-                      onMenuToggle={setMenuVisible}
+                      onMenuToggle={(id) => {
+            if (id) {
+              const playbook = playbooks.find(p => p.id === id);
+              setSelectedPlaybookForMenu(playbook || null);
+            } else {
+              setSelectedPlaybookForMenu(null);
+            }
+            setMenuVisible(id);
+          }}
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
                       onDevotionalPress={handleDevotionalPress}
+                      onExportPdfPress={handleExportPdfPress}
                       triggerHaptic={triggerLightHaptic}
                     />
                   )}
@@ -2187,11 +2300,20 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         menuVisible={menuVisible}
                         onPress={handleCardPress}
                         onLongPress={handleCardLongPress}
-                        onMenuToggle={setMenuVisible}
+                        onMenuToggle={(id) => {
+            if (id) {
+              const playbook = playbooks.find(p => p.id === id);
+              setSelectedPlaybookForMenu(playbook || null);
+            } else {
+              setSelectedPlaybookForMenu(null);
+            }
+            setMenuVisible(id);
+          }}
                         onDelete={handleDelete}
                         onRenamePress={handleRenamePress}
                         onTagPress={handleTagPress}
                         onDevotionalPress={handleDevotionalPress}
+                        onExportPdfPress={handleExportPdfPress}
                         triggerHaptic={triggerLightHaptic}
                       />
                     ))}
@@ -2315,9 +2437,97 @@ const PlaybookListScreen = ({ navigation }: any) => {
         onDevotionalCreated={(devotionalId: string) => {
           setDevotionalModalVisible(false);
           setSelectedPlaybookForDevotional(null); // Reset selected playbook
-          navigation.navigate('DevotionalDetail' as any, { devotionalId });
+          try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
         }}
       />
+      {/* Dropdown menu modal - rendered outside carousel structure to prevent clipping */}
+      <Modal
+        visible={menuVisible !== null}
+        transparent
+        animationType="none"
+        onRequestClose={() => setMenuVisible(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuModalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(null)}
+        >
+          {selectedPlaybookForMenu && (
+            <View style={styles.modalDropdownMenu}>
+              <TouchableOpacity
+                style={styles.modalDropdownItem}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(null);
+                  handleDevotionalPress(selectedPlaybookForMenu);
+                }}
+              >
+                <View style={styles.dropdownItemContent}>
+                  <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into devotional</ThemedText>
+                  {devotionalsCount[selectedPlaybookForMenu.id] > 0 && (
+                    <View style={styles.dropdownBadge}>
+                      <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
+                      {devotionalsCount[selectedPlaybookForMenu.id] >= 2 && (
+                        <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[selectedPlaybookForMenu.id]}</ThemedText>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDropdownItem}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(null);
+                  handleRenamePress(selectedPlaybookForMenu);
+                }}
+              >
+                <ThemedText weight="medium" style={styles.dropdownItemText}>Rename</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDropdownItem}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(null);
+                  handleTagPress(selectedPlaybookForMenu);
+                }}
+              >
+                <View style={styles.dropdownItemContent}>
+                  <ThemedText weight="medium" style={styles.dropdownItemText}>Tag</ThemedText>
+                  {selectedPlaybookForMenu.tag && (
+                    <View style={styles.dropdownBadge}>
+                      <ThemedText style={styles.dropdownBadgeText}>{selectedPlaybookForMenu.tag}</ThemedText>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDropdownItem}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(null);
+                  handleExportPdfPress(selectedPlaybookForMenu);
+                }}
+              >
+                <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalDropdownItem, styles.dropdownItemLast]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setMenuVisible(null);
+                  handleDelete(selectedPlaybookForMenu.id);
+                }}
+              >
+                <View style={styles.dropdownItemContent}>
+                  <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                  <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Modal>
 
       {/* Rename modal */}
       <Modal
@@ -2444,11 +2654,15 @@ const createStyles = (_theme: any) => StyleSheet.create({
   carouselCardTouch: {
     width: ITEM_WIDTH,
     marginRight: ITEM_SPACING,
+    overflow: 'visible',
+    position: 'relative',
   },
   carouselCard: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 26,
     padding: 16,
+    overflow: 'visible',
+    position: 'relative',
   },
   carouselTypeIndicator: {
     flexDirection: 'row',
@@ -2756,6 +2970,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   // ── Category section rows ─────────────────────────────────────
   categorySection: {
     marginTop: 24,
+    overflow: 'visible',
   },
   categorySectionHeader: {
     flexDirection: 'row',
@@ -2789,7 +3004,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'linear-gradient(135deg, rgba(231, 238, 247, 0.2) 0%, rgba(219, 230, 244, 0.2) 45%, rgba(244, 239, 230, 0.2) 100%)',
-    overflow: 'visible',
   },
   gradientRelationships: {
     backgroundColor: 'linear-gradient(135deg, rgba(230, 237, 247, 0.2) 0%, rgba(213, 227, 245, 0.2) 50%, rgba(245, 235, 232, 0.2) 100%)',
@@ -2868,16 +3082,16 @@ const createStyles = (_theme: any) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 5,
+    zIndex: 999,
   },
   dropdownMenu: {
     position: 'absolute',
-    top: 40,
-    right: 8,
+    top: 35,
+    right: 10,
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
     borderRadius: 18,
     minWidth: 180,
-    zIndex: 100,
+    zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -2927,6 +3141,30 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  menuModalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  modalDropdownMenu: {
+    position: 'absolute',
+    top: 210,
+    right:40,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 18,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    paddingVertical: 8,
+  },
+  modalDropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   modalContent: {
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
@@ -3244,6 +3482,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     position: 'relative',
     zIndex: 2,
+    overflow: 'visible',
   },
   floatingButton: {
     position: 'absolute',
