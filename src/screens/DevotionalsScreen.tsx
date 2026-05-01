@@ -343,7 +343,7 @@ const DevotionalsScreen = () => {
       }
 
       // Multi-day devotional: show day selection dialog
-      const dayOptions = devotional.days?.map((day, index) => `Day ${day.dayNumber}: ${day.title}`) || [];
+      const dayOptions = devotional.days?.map((day, _index) => `Day ${day.dayNumber}: ${day.title}`) || [];
       const options = ['All Days', ...dayOptions, 'Cancel'];
 
       const handleDaySelection = async (buttonIndex: number) => {
@@ -387,18 +387,11 @@ const DevotionalsScreen = () => {
       Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
       Alert.alert('Error', 'Failed to export PDF');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfExportAccess, navigation, user, triggerLightHaptic]);
 
   const exportDevotionalDay = useCallback(async (devotional: Devotional, day: any, dayNumber: number) => {
     try {
-      // Get user metadata for name replacement
-      const metaUser: any = (user as any)?.user_metadata || {};
-      const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-      const metaDisplayName = (user as any)?.displayName ||
-                            metaUser.full_name ||
-                            [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
-                            '';
-
       // Get bible version from user preferences or default to NASB
       const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
 
@@ -426,7 +419,7 @@ const DevotionalsScreen = () => {
       Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
       Alert.alert('Error', 'Failed to export PDF');
     }
-  }, [user, triggerLightHaptic]);
+  }, [user]);
 
   const exportAllDaysDevotional = useCallback(async (devotional: Devotional) => {
     try {
@@ -460,7 +453,7 @@ const DevotionalsScreen = () => {
       Logger.error('Error exporting devotional PDF', error as Error, { component: 'DevotionalsScreen' });
       Alert.alert('Error', 'Failed to export PDF');
     }
-  }, [user, triggerLightHaptic]);
+  }, [user]);
 
   // Ref for SectionList to allow programmatic scrolling to top
   const sectionListRef = useRef<SectionList<any>>(null);
@@ -670,7 +663,7 @@ const DevotionalsScreen = () => {
           </TouchableOpacity>
       </View>
     );
-  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm, filter]);
+  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm, filter, handleExportDevotionalPdf]);
 
   // Filter-specific empty state component
   const renderFilterEmptyState = useCallback(() => {

@@ -333,7 +333,7 @@ interface CarouselCardProps {
 const CURRENT_YEAR = new Date().getFullYear();
 const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
-const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic }: CarouselCardProps) => {
+const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount: _devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle: _onMenuToggle, onDelete: _onDelete, onRenamePress: _onRenamePress, onTagPress: _onTagPress, onDevotionalPress: _onDevotionalPress, onExportPdfPress: _onExportPdfPress, triggerHaptic: _triggerHaptic }: CarouselCardProps) => {
   // Interpolation input range depends only on index — stable dep
   const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
@@ -464,7 +464,7 @@ const CategoryCarouselRow = React.memo(({
       onExportPdfPress={onExportPdfPress}
       triggerHaptic={triggerHaptic}
     />
-  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic, playbooks]);
+  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic]);
 
   const getItemLayout = useCallback((_: any, index: number) => ({
     length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
@@ -1867,7 +1867,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         />
       </View>
     );
-  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic]);
+  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic, playbooks]);
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
