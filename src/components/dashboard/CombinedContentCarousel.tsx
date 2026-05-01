@@ -755,6 +755,15 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       }
       const devotionalsData = devotionalsQuery.data || [];
 
+      // Calculate devotionals count per playbook
+      const devotionalsCountMap: Record<string, number> = {};
+      devotionalsData.forEach((devotional: any) => {
+        if (devotional.playbook_id) {
+          devotionalsCountMap[devotional.playbook_id] = (devotionalsCountMap[devotional.playbook_id] || 0) + 1;
+        }
+      });
+      setDevotionalsCount(devotionalsCountMap);
+
       const playbooksWithProgress = playbooksData.map((playbook) => {
         // getPlaybooks API already returns processed data with walkthroughProgress and actionSteps
         // Calculate completed/total stats from actionSteps
