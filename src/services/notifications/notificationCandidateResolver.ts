@@ -163,7 +163,6 @@ const createCandidate = ({
     usage_room_playbook: 'subscription',
     content_refresh_wait: 'subscription',
     upgrade_room: 'subscription',
-    recovery_prayer: 'recovery',
   };
 
   const sensitiveTypes: SmartNotificationType[] = [
@@ -1376,15 +1375,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     timeWindow: 'morning',
     score: 44,
     dedupeKey: buildDedupeKey('prayer_today', currentDate),
-    deepLink: 'sifia://journal/prayer',
-    sourceType: 'fallback',
-  }));
-
-  candidates.push(createCandidate({
-    type: 'recovery_prayer',
-    timeWindow: 'night',
-    score: 38,
-    dedupeKey: buildDedupeKey('recovery_prayer', currentDate),
     deepLink: 'sifia://journal/prayer',
     sourceType: 'fallback',
   }));

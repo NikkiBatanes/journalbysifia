@@ -733,7 +733,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       usage_room_playbook: 'leaf',
       content_refresh_wait: 'hourglass',
       upgrade_room: 'sparkles',
-      recovery_prayer: 'refresh-circle',
       trial_notification: 'time',
       weekly_summary: 'stats-chart',
     };

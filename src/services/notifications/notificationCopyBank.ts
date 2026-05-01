@@ -267,12 +267,6 @@ export function buildSmartNotificationCopy(
         message: compact('Upgrade for more room to keep going with new playbooks and devotionals.'),
       };
 
-    case 'recovery_prayer':
-      return {
-        title: 'Begin again with prayer',
-        message: compact('You do not need to catch up. Just begin with prayer.'),
-      };
-
     default:
       return {
         title: 'Open siFia',

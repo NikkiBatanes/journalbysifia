@@ -30,7 +30,6 @@ export const SMART_NOTIFICATION_TYPES = [
   'usage_room_playbook',
   'content_refresh_wait',
   'upgrade_room',
-  'recovery_prayer',
 ] as const;
 
 export type SmartNotificationType = typeof SMART_NOTIFICATION_TYPES[number];
@@ -127,7 +126,6 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
   usage_room_playbook: 'playbook_steps',
   content_refresh_wait: 'trial_notifications',
   upgrade_room: 'trial_notifications',
-  recovery_prayer: 'prayer_reminders',
 };
 
 export const SMART_NOTIFICATION_IMPORTANT_TYPES: SmartNotificationType[] = [
@@ -139,5 +137,4 @@ export const SMART_NOTIFICATION_IMPORTANT_TYPES: SmartNotificationType[] = [
   'playbook_verse_reflection',
   'prayer_request_care',
   'journal_looking_forward',
-  'recovery_prayer',
 ];

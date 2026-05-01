@@ -272,10 +272,10 @@ const OnboardingTrialOfferScreen = () => {
         const currentSubscription = await NewSubscriptionService.getUserSubscription(user.id);
 
         if (currentSubscription.tier === 'free_trial') {
-          // Show success modal immediately since trial is already active
+          // Trial already active — show success and stop; don't attempt another purchase
           setIsStartingTrial(false);
           setShowSuccessModal(true);
-          // Removed auto-dismiss - user must tap "Go to my playbook" button
+          return;
         }
       } catch (checkError) {
         // Continue with purchase attempt
