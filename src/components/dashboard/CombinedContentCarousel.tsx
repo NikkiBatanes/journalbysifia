@@ -575,11 +575,14 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       // Helper function to export a single day
       const exportDevotionalDay = async (day: any, dayNumber: number) => {
         const dayTitle = day.title || devotional.title;
-        const dayLabel = totalDays > 1 ? `Day ${dayNumber} of ${totalDays}` : 'Day 1';
+        const dayLabel = totalDays > 1 ? `Day ${dayNumber} of ${totalDays}` : '';
         const duration = `${totalDays} Day${totalDays > 1 ? 's' : ''}`;
 
+        // Clean title to remove CATEGORY: prefix
+        const cleanTitle = devotional.title.replace(/^CATEGORY:[^\n]*\n?/i, '');
+
         pdfExportService.exportDevotionalPDF({
-          title: devotional.title,
+          title: cleanTitle,
           duration,
           dayTitle,
           dayLabel,
@@ -597,6 +600,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       // Helper function to export all days
       const exportAllDaysDevotional = async () => {
         const duration = `${totalDays} Day${totalDays > 1 ? 's' : ''}`;
+
+        // Clean title to remove CATEGORY: prefix
+        const cleanTitle = devotional.title.replace(/^CATEGORY:[^\n]*\n?/i, '');
+
         const daysData = devotional.days?.map((day: any) => ({
           dayNumber: day.dayNumber,
           title: day.title,
@@ -611,7 +618,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         })) || [];
 
         pdfExportService.exportDevotionalPDF({
-          title: devotional.title,
+          title: cleanTitle,
           duration,
           days: daysData,
         });
