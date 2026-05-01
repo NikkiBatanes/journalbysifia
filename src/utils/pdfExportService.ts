@@ -1028,11 +1028,12 @@ class PDFExportService {
             }
 
             .examples-list li {
+              font-family: 'Arvo', 'Lexend', serif;
+              font-style: italic;
               padding: 4px 0;
               font-size: 11px;
               color: #475569;
               line-height: 1.6;
-              font-style: italic;
             }
 
             .examples-list li:before {
@@ -1134,10 +1135,11 @@ class PDFExportService {
             }
 
             .prayer-text {
+              font-family: 'Arvo', 'Lexend', serif;
+              font-style: italic;
               font-size: 12px;
               color: #475569;
               line-height: 1.8;
-              font-style: italic;
             }
 
             .words-to-speak-box {
@@ -1156,6 +1158,7 @@ class PDFExportService {
             }
 
             .bible-reflection {
+              font-family: 'Arvo', 'Lexend', serif;
               font-size: 12px;
               color: #6b7280;
               line-height: 1.6;
