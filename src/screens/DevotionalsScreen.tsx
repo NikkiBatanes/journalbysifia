@@ -1211,6 +1211,15 @@ const DevotionalsScreen = () => {
     <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right']}>
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
+      {/* Screen-level backdrop for dropdown dismissal */}
+      {menuVisible && (
+        <TouchableOpacity
+          style={styles.screenBackdrop}
+          onPress={() => setMenuVisible(null)}
+          activeOpacity={1}
+        />
+      )}
+
       {/* Header */}
       {/* Header on white background - matching PlaybookListScreen structure */}
       <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
@@ -1748,7 +1757,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 5,
+    zIndex: 150,
+  },
+  screenBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 200,
   },
   dropdownMenu: {
     position: 'absolute',

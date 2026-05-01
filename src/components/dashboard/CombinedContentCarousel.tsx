@@ -1640,6 +1640,14 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Screen-level backdrop for dropdown dismissal */}
+      {menuVisible && (
+        <TouchableOpacity
+          style={styles.screenBackdrop}
+          onPress={() => setMenuVisible(null)}
+          activeOpacity={1}
+        />
+      )}
       <View style={styles.headerCenter}>
         <ThemedText weight="semiBold" style={styles.title}>CONTINUE YOUR JOURNEY</ThemedText>
       </View>
@@ -2046,6 +2054,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 150,
+  },
+  screenBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 200,
   },
   dropdownMenu: {
     position: 'absolute',
