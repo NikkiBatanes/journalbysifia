@@ -117,15 +117,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (playbooksRemaining === 0) {
             // All trial playbooks used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+            playbooksDesc = `You are on ${displayName}. You have used all ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.playbooks === -1 ? 'playbooks without a monthly counter' : `${fullLimits.playbooks} playbooks`} every month.`;
           } else {
-            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'unlimited playbooks' : `${fullLimits.playbooks} playbooks`} every month.`;
+            playbooksDesc = `You are on ${displayName}. You have ${playbooksLimit} ${playbooksLimit === 1 ? 'playbook' : 'playbooks'} available during your trial and have used ${playbooksUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.playbooks === -1 ? 'playbooks without a monthly counter' : `${fullLimits.playbooks} playbooks`} every month.`;
           }
         } else if (playbooksLimit === -1) {
-          playbooksDesc = `You are on ${displayName}. You have unlimited playbooks! Generate as many as you need to support your spiritual journey.`;
+          playbooksDesc = `You are on ${displayName}. This plan does not use a monthly playbook counter.`;
         } else if (playbooksLimit === 0) {
-          // Seeker tier - no playbooks
-          playbooksDesc = 'You are on the free Seeker plan. This plan does not include playbook generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared playbooks\n• Explore all app features\n\nUpgrade to unlock personalized playbook generation!';
+          // Defensive fallback if limits failed to load.
+          playbooksDesc = 'Your monthly playbook limit could not be loaded. The free Seeker plan includes 2 playbooks each month.';
         } else {
           if (playbooksRemaining === 0) {
             // All playbooks used for paid plans
@@ -153,15 +153,15 @@ const UsageTooltipModal: React.FC<Props> = ({
           if (devotionalsRemaining === 0) {
             // All trial devotionals used
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
           } else {
-            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'unlimited devotionals' : `${fullLimits.devotionals} devotionals`} every month.`;
+            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
           }
         } else if (devotionalsLimit === -1) {
-          devotionalsDesc = `You are on ${displayName}. You have unlimited devotionals! Generate as many as you need for your daily spiritual growth.`;
+          devotionalsDesc = `You are on ${displayName}. This plan does not use a monthly devotional counter.`;
         } else if (devotionalsLimit === 0) {
-          // Seeker tier - no devotionals
-          devotionalsDesc = 'You are on the free Seeker plan. This plan does not include devotional generation.\n\nHowever, you can still:\n• Use journaling tools\n• Track your spiritual progress\n• Interact with any shared devotionals\n• Explore all app features\n\nUpgrade to unlock personalized devotional generation!';
+          // Defensive fallback if limits failed to load.
+          devotionalsDesc = 'Your monthly devotional limit could not be loaded. The free Seeker plan includes 1 devotional each month.';
         } else {
           // Paid plan with monthly limit: use Apple-style monthly reset date from subscription_start_date
           const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
@@ -239,16 +239,17 @@ const UsageTooltipModal: React.FC<Props> = ({
       case 'growth':
         return { playbooks: 25, devotionals: 25 };
       case 'transformation':
+        return { playbooks: 60, devotionals: 60 };
       case 'family':
         return { playbooks: -1, devotionals: -1 };
       default:
-        return { playbooks: 0, devotionals: 0 };
+        return { playbooks: 2, devotionals: 1 };
     }
   };
 
   const content = getTooltipContent();
 
-  // Check if user is on Seeker tier (0 limits)
+  // Check if user is on Seeker tier.
   const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) ||
                    subscription?.tier === 'seeker';
   const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');

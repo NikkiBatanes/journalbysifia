@@ -590,7 +590,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       const canGenerateCheck = await subscriptionService.canGenerate(userId, 'devotional', isOnboarding);
 
       if (!canGenerateCheck.allowed) {
-        // For Seeker users during onboarding, they should be allowed 1 devotional
+        // Seeker users can use their 1 monthly devotional during onboarding.
         const isSeeker = devotionalGating.tier === 'seeker';
         if (isSeeker && isOnboarding) {
           // Onboarding exception should allow this, so log and continue
@@ -627,7 +627,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     // Check if user has no remaining devotionals - check directly from subscription
     const devotionalsUsed = devotionalGating.subscription?.devotionals_used || 0;
     const baseLimit = devotionalGating.subscription?.devotionals_limit || 0;
-    // During onboarding, seekers get 1 free devotional regardless of their base tier limit
+    // During onboarding, seekers use the same 1-devotional monthly quota.
     const devotionalsLimit = (isOnboarding && devotionalGating.tier === 'seeker') ? 1 : baseLimit;
     const hasNoRemaining = devotionalsLimit !== -1 && devotionalsUsed >= devotionalsLimit;
     const isSeeker = devotionalGating.tier === 'seeker';
@@ -1270,8 +1270,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
                   });
 
-                  const isUnlimitedTrial = isOnTrial && (trialChosenTier === 'transformation');
-                  if (isUnlimitedTrial) {
+                  const isTopTrialPlan = isOnTrial && (trialChosenTier === 'transformation');
+                  if (isTopTrialPlan) {
                     // Show a single dismiss button so the user can close the popup
                     return (
                       <View style={styles.usageLimitButtons}>

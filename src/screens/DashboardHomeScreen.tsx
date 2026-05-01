@@ -2281,7 +2281,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'playbooks',
                   testModeTier: 'free_trial',
                   testModeRemaining: 0,
-                  testModeLimit: 10,
+                  testModeLimit: 15,
                   testModeIsOnTrial: true,
                   testModeHasStartedTrial: true,
                   testModeTrialChosenTier: 'growth',
@@ -2291,7 +2291,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining (Chosen Growth)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 10 playbooks included in your free trial. Your Growth plan starts soon with 25 playbooks each month.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 15 playbooks included in your free trial. Your Growth plan starts soon with 25 playbooks each month.</ThemedText>
             </TouchableOpacity>
 
             {/* Trial User - No Remaining - Chosen Transformation */}
@@ -2356,7 +2356,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   featureType: 'devotionals',
                   testModeTier: 'free_trial',
                   testModeRemaining: 0,
-                  testModeLimit: 10,
+                  testModeLimit: 15,
                   testModeIsOnTrial: true,
                   testModeHasStartedTrial: true,
                   testModeTrialChosenTier: 'growth',
@@ -2366,7 +2366,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Trial - No Remaining Devotionals (Chosen Growth)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 10 devotionals included in your free trial. Your Growth plan starts soon with 25 devotionals each month.</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>You've used all 15 devotionals included in your free trial. Your Growth plan starts soon with 25 devotionals each month.</ThemedText>
             </TouchableOpacity>
 
             {/* Trial User - No Remaining Devotionals - Chosen Transformation */}
@@ -3031,7 +3031,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Monthly)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>10 playbooks, 10 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>15 playbooks, 15 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -3043,7 +3043,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Growth Annual)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>10 playbooks, 10 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>15 playbooks, 15 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -3079,7 +3079,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Monthly)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Transformation monthly</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Spark monthly</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -3091,7 +3091,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               }}
             >
               <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>Free Trial (Transformation Annual)</ThemedText>
-              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Transformation annual</ThemedText>
+              <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>25 playbooks, 25 devotionals. Secondary: View Other Plans - Spark annual</ThemedText>
             </TouchableOpacity>
 
           </ScrollView>

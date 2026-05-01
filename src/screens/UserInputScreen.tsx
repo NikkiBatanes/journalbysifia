@@ -36,7 +36,6 @@ import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unifiedGenerationService } from '../services/unifiedGenerationService';
 import { faithPointsService } from '../services/faithPointsService';
-import { subscriptionService } from '../services/subscriptionService';
 import type { Playbook } from '../interfaces/playbook';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
@@ -914,11 +913,6 @@ const UserInputScreen: React.FC = () => {
           Logger.error('[UserInputScreen] Failed to award faith points', pointsError as Error);
         }
 
-        try {
-          await subscriptionService.trackUsage(user.id, 'playbook', 0, false);
-        } catch (usageError) {
-          Logger.error('[UserInputScreen] Failed to track usage', usageError as Error);
-        }
       }
 
       try {

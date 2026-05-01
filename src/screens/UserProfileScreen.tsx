@@ -2428,6 +2428,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SubscriptionPlanModal
         visible={subscriptionPlanModal}
         onClose={() => setSubscriptionPlanModal(false)}
+        onContinueWithSiFia={() => {
+          setSubscriptionPlanModal(false);
+          navigation.goBack();
+        }}
         navigation={navigation}
       />
     </SafeAreaView>
@@ -2862,35 +2866,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: Colors.hopeWhite,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  settingGroup: {
-    marginBottom: 24,
-  },
-  settingTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 12,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
-  settingValue: {
-    fontSize: 16,
-    color: Colors.textGray,
     textTransform: 'capitalize',
   },
   settingItemColumnNotification: {
@@ -2906,7 +2881,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10 as any,
+    gap: 10,
   },
   permissionActionText: {
     color: Colors.hopeWhite,
@@ -3433,6 +3408,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.hopeWhite,
     flex: 1,
+  },
+  settingGroup: {
+    marginBottom: 16,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+  },
+  settingLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
 });  // Removed test button styles
 

@@ -13,9 +13,9 @@ const corsHeaders = {
 function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
   switch (tier) {
     case 'seeker':
-      return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
     default:
-      return { playbooks_limit: 0, devotionals_limit: 0, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
   }
 }
 
@@ -74,6 +74,7 @@ serve(async (req) => {
           playbooks_used: 0,
           devotionals_used: 0,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+          show_dashboard_counts: true,
           billing_cycle: null,
           billing_issue: false,
           grace_period_end_date: null,

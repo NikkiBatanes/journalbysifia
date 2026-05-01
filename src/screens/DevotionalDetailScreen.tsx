@@ -30,7 +30,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
-import { subscriptionService } from '../services/subscriptionService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
@@ -785,17 +784,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // CRITICAL FIX: Don't await anything - pure fire-and-forget
     // Submit rating in background without blocking modal close
     submitDevotionalRating(devotional.id, rating)
-      .then(() => {
-        // Track usage after rating succeeds
-        if (user?.id) {
-          subscriptionService.trackUsage(user.id, 'devotional')
-            .catch((error) => {
-              Logger.error('[DevotionalDetail] Failed to track usage', error as Error, {
-                component: 'DevotionalDetailScreen',
-              });
-            });
-        }
-      })
       .catch((error) => {
         Logger.error('Error submitting rating', error as Error, {
           component: 'DevotionalDetailScreen',

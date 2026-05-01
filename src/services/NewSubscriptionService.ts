@@ -31,7 +31,7 @@ export class NewSubscriptionService {
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
-    const tier = trialChosenTier || 'growth'; // Default to growth if not specified
+    const tier = ((trialChosenTier || 'growth') as string).replace('_annual', '') as SubscriptionTier;
     switch (tier) {
       case 'spark':
         return {
@@ -66,8 +66,10 @@ export class NewSubscriptionService {
 
   /**
    * Get tier limits and features for a subscription tier
+   * @param tier - The subscription tier
+   * @param subscription - Optional full subscription object for trial_chosen_tier lookup
    */
-  static getTierLimits(tier: SubscriptionTier): {
+  static getTierLimits(tier: SubscriptionTier, subscription?: Subscription | null): {
     playbooks_limit: number;
     devotionals_limit: number;
     smart_journaling_enabled: boolean;
@@ -81,19 +83,15 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 2,
           devotionals_limit: 1,
-          smart_journaling_enabled: false,
+          smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
       case 'free_trial':
         // Free trial: Limits depend on trial_chosen_tier
         // Spark: 5/5, Growth: 15/15, Transformation: 25/25
-        // Default to Growth limits if no chosen tier specified
-        return {
-          playbooks_limit: 15,
-          devotionals_limit: 15,
-          smart_journaling_enabled: true,
-          show_dashboard_counts: true,
-        };
+        // Use stored trial_chosen_tier if available, otherwise default to Growth
+        const trialChosenTier = (subscription as any)?.trial_chosen_tier || 'growth';
+        return this.getTrialLimits(trialChosenTier);
       case 'spark':
         return {
           playbooks_limit: 10,
@@ -118,16 +116,16 @@ export class NewSubscriptionService {
       // POST-LAUNCH: Family tier
       // case 'family':
       //   return {
-      //     playbooks_limit: 999999, // Effectively unlimited, but database-compatible
-      //     devotionals_limit: 999999, // Effectively unlimited, but database-compatible
+      //     playbooks_limit: -1,
+      //     devotionals_limit: -1,
       //     smart_journaling_enabled: true,
       //     show_dashboard_counts: false, // Hide counts for unlimited
       //   };
       default:
         // Fallback to seeker limits for unknown tiers
         return {
-          playbooks_limit: 0,
-          devotionals_limit: 0,
+          playbooks_limit: 2,
+          devotionals_limit: 1,
           smart_journaling_enabled: false,
           show_dashboard_counts: true,
         };
@@ -135,17 +133,19 @@ export class NewSubscriptionService {
   }
 
   /**
-   * Get onboarding playbook limit (special case for seeker during onboarding)
+   * Get onboarding playbook limit.
+   * Onboarding usage counts against the same monthly quota as in-app usage.
    */
-  static getOnboardingPlaybookLimit(tier: SubscriptionTier): number {
-    return tier === 'seeker' ? 1 : this.getTierLimits(tier).playbooks_limit;
+  static getOnboardingPlaybookLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
+    return this.getTierLimits(tier, subscription).playbooks_limit;
   }
 
   /**
-   * Get onboarding devotional limit (special case for seeker during onboarding)
+   * Get onboarding devotional limit.
+   * Onboarding usage counts against the same monthly quota as in-app usage.
    */
-  static getOnboardingDevotionalLimit(tier: SubscriptionTier): number {
-    return tier === 'seeker' ? 1 : this.getTierLimits(tier).devotionals_limit;
+  static getOnboardingDevotionalLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
+    return this.getTierLimits(tier, subscription).devotionals_limit;
   }
 
   // ===== USER SUBSCRIPTION MANAGEMENT =====
@@ -383,10 +383,23 @@ export class NewSubscriptionService {
         wrongTier: subscription.tier,
       });
 
-      // Force correct the tier to seeker
+      const seekerLimits = this.getTierLimits('seeker');
+
+      // Force correct the tier and limits to seeker
       const { error: updateError } = await supabase
         .from('user_subscriptions_new')
-        .update({ tier: 'seeker' })
+        .update({
+          tier: 'seeker',
+          subscription_display_name: 'siFia Seeker',
+          playbooks_limit: seekerLimits.playbooks_limit,
+          devotionals_limit: seekerLimits.devotionals_limit,
+          smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
+          show_dashboard_counts: seekerLimits.show_dashboard_counts,
+          playbooks_used: 0,
+          devotionals_used: 0,
+          last_usage_reset: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .eq('user_id', userId);
 
       if (updateError) {
@@ -524,12 +537,27 @@ export class NewSubscriptionService {
           actualTier: finalSubscription.tier,
         });
 
-        // Force correct the tier one last time
+        // Force correct the full trial state one last time
         await supabase
           .from('user_subscriptions_new')
           .update({
             tier: 'free_trial',
-            last_usage_reset: new Date().toISOString(), // Ensure billing anchor is set
+            status: 'active',
+            trial_start_date: trialNow,
+            trial_end_date: trialEndDate.toISOString(),
+            trial_chosen_tier: chosenTier,
+            billing_cycle: billing_cycle || 'monthly',
+            subscription_display_name: displayName,
+            playbooks_limit: trialLimits.playbooks_limit,
+            devotionals_limit: trialLimits.devotionals_limit,
+            smart_journaling_enabled: trialLimits.smart_journaling_enabled,
+            playbooks_used: 0,
+            devotionals_used: 0,
+            last_usage_reset: trialNow,
+            platform_transaction_id,
+            original_transaction_id,
+            platform_subscription_id,
+            updated_at: new Date().toISOString(),
           })
           .eq('user_id', user_id);
 
@@ -621,7 +649,7 @@ export class NewSubscriptionService {
       const subscription = await this.getUserSubscription(userId);
       const trialChosenTier = subscription?.trial_chosen_tier || 'growth';
       const limits = this.getTrialLimits(trialChosenTier);
-      const displayName = this.getTierDisplayName(to_tier);
+      const displayName = this.getTierDisplayName(to_tier, trialChosenTier);
 
       const updateData: any = {
         subscription_display_name: displayName,
@@ -858,7 +886,7 @@ export class NewSubscriptionService {
       }
     }
 
-    const limits = this.getTierLimits(subscription.tier);
+    const limits = this.getTierLimits(subscription.tier, subscription);
 
     switch (action) {
       case 'playbook':
@@ -888,64 +916,51 @@ export class NewSubscriptionService {
       throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
 
-    // Skip incrementing usage for onboarding playbooks and devotionals - they're free for all tiers
-    if (isOnboarding && (action === 'playbook' || action === 'devotional')) {
-      return;
-    }
-
     // Increment the appropriate counter
     const updateField = action === 'playbook' ? 'playbooks_used' :
                        action === 'devotional' ? 'devotionals_used' : null;
 
     if (updateField) {
-      // Issue 9 fix: optimistic-lock increment to guard against fast double-tap races.
-      // Read current value, then UPDATE WHERE user_id = ? AND field = currentValue.
-      // If 0 rows updated (race was lost), re-read once and retry.
+      // Optimistic-lock increment with a fresh limit check on every retry.
+      // This prevents concurrent requests from pushing usage beyond the monthly quota.
       const doAtomicIncrement = async (): Promise<void> => {
-        const { data: currentSub } = await supabase
-          .from('user_subscriptions_new')
-          .select(`${updateField}`)
-          .eq('user_id', userId)
-          .single();
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const currentSubscription = await this.getUserSubscription(userId, true);
+          const currentValue = (currentSubscription as any)?.[updateField] || 0;
+          const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
+          const limit = action === 'playbook' ? limits.playbooks_limit : limits.devotionals_limit;
 
-        const currentValue = (currentSub as any)?.[updateField] || 0;
+          if (limit !== -1 && currentValue >= limit) {
+            throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
+          }
 
-        const { data: updated, error } = await supabase
-          .from('user_subscriptions_new')
-          .update({
-            [updateField]: currentValue + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId)
-          .eq(updateField, currentValue) // Optimistic lock: only matches if nobody else incremented
-          .select(updateField)
-          .maybeSingle();
-
-        if (error) {
-          throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
-        }
-
-        if (!updated) {
-          // Race: another request already incremented — re-read and retry once
-          const { error: retryError } = await supabase
+          const { data: updated, error } = await supabase
             .from('user_subscriptions_new')
             .update({
-              [updateField]: currentValue + 2,
+              [updateField]: currentValue + 1,
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
-            .eq(updateField, currentValue + 1);
+            .eq(updateField, currentValue)
+            .select(updateField)
+            .maybeSingle();
 
-          if (retryError) {
-            throw new SubscriptionError(`Failed to increment usage on retry: ${retryError.message}`, 'USAGE_UPDATE_ERROR', retryError);
+          if (error) {
+            throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
+          }
+
+          if (updated) {
+            return;
           }
         }
+
+        throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
       await doAtomicIncrement();
     }
 
-    // Also update usage tracking table (but skip for onboarding)
+    // Also update the legacy usage tracking table where enabled.
     if (!isOnboarding || action !== 'playbook' || subscription.tier !== 'seeker') {
       await this.updateUsageTracking(userId, action);
     }
@@ -1102,8 +1117,10 @@ export class NewSubscriptionService {
       //   return isAnnual ? 'siFia Family Annual' : 'siFia Family';
       case 'free_trial':
         // Show which tier the trial is for (e.g., siFia Spark Trial)
-        const chosenTier = trialChosenTier || 'spark';
-        return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)} Trial`;
+        const chosenTierRaw = (trialChosenTier || 'spark') as string;
+        const chosenTier = chosenTierRaw.replace('_annual', '');
+        const trialBilling = chosenTierRaw.includes('_annual') ? ' Annual' : '';
+        return `siFia ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)}${trialBilling} Trial`;
       default:
         return `siFia ${String(baseTier).replace('_', ' ')}`;
     }
@@ -1113,39 +1130,43 @@ export class NewSubscriptionService {
    * Enrich subscription data with computed properties
    */
   private static enrichSubscriptionData(data: any): Subscription {
-    const tierLimits = this.getTierLimits(data.tier);
+    const tierLimits = this.getTierLimits(data.tier, data);
     const displayName = this.getTierDisplayName(data.tier, data.trial_chosen_tier);
+
+    // Always use calculated limits as the source of truth. Server/webhook rows may
+    // contain stale historical limits (for example old trial or Transformation values).
+    const useCalculatedLimits = true;
 
     // Create UI-friendly data structure
     const subscription: Subscription = {
       ...data,
-      // Only override if stored values are missing/invalid (null/undefined), NOT if they're valid from upgrades
-      playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-      smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
-      show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+      // Use calculated limits so stale stored rows cannot bypass or hide quotas.
+      playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+      smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
+      show_dashboard_counts: useCalculatedLimits ? tierLimits.show_dashboard_counts : (data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts),
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
       // Add limits property for dashboard compatibility
       limits: {
-        playbooks_limit: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-        devotionals_limit: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-        smart_journaling_enabled: data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled,
-        show_dashboard_counts: data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts,
+        playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+        devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+        smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
+        show_dashboard_counts: useCalculatedLimits ? tierLimits.show_dashboard_counts : (data.show_dashboard_counts != null ? data.show_dashboard_counts : tierLimits.show_dashboard_counts),
         // Add backward compatibility aliases
-        playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-        devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+        playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+        devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       },
       // UI fields - use actual limits (not stored values that might be outdated)
-      playbooks_ui: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals_ui: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
-      playbooks: data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit,
-      devotionals: data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit,
+      playbooks_ui: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals_ui: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+      playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
+      devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
     };
 
-    // Calculate trial expiry
-    if (subscription.trial_end_date) {
-      const trialEnd = new Date(subscription.trial_end_date);
+    // Add trial expiration tracking for free_trial tier
+    if (data.tier === 'free_trial' && data.trial_end_date) {
+      const trialEnd = new Date(data.trial_end_date);
       const now = new Date();
       subscription.is_expired = trialEnd < now;
       subscription.days_remaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
@@ -1183,9 +1204,9 @@ export class NewSubscriptionService {
     const gracePeriodEnd = (subscription as any).grace_period_end_date;
     const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
 
-    // Use onboarding limit for seeker tier during onboarding
+    // Onboarding usage counts against the same monthly quota as regular usage.
     const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
-      ? this.getOnboardingPlaybookLimit(subscription.tier)
+      ? this.getOnboardingPlaybookLimit(subscription.tier, subscription)
       : limits.playbooks_limit;
 
     const isUnlimited = effectiveLimit === -1;
@@ -1215,9 +1236,9 @@ export class NewSubscriptionService {
     const gracePeriodEnd = (subscription as any).grace_period_end_date;
     const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
 
-    // Use onboarding limit for seeker tier during onboarding
+    // Onboarding usage counts against the same monthly quota as regular usage.
     const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
-      ? this.getOnboardingDevotionalLimit(subscription.tier)
+      ? this.getOnboardingDevotionalLimit(subscription.tier, subscription)
       : limits.devotionals_limit;
 
     const isUnlimited = effectiveLimit === -1;

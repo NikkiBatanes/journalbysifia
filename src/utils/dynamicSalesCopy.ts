@@ -174,7 +174,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     // Trial limits based on chosen tier
     const trialLimits = {
       'spark': 5,
-      'growth': 10,
+      'growth': 15,
       'transformation': 25,
     };
     const trialLimit = trialLimits[trialTier as keyof typeof trialLimits] || 5;

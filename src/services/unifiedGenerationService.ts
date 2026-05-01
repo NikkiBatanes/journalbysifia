@@ -99,8 +99,7 @@ export class UnifiedGenerationService {
    */
   async generatePlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
-      // 1. Check subscription limits
-      // IMPORTANT: Onboarding bypasses limits (seeker gets 1 free playbook)
+      // 1. Check subscription limits. Onboarding counts against the same monthly quota.
       const canGenerate = await subscriptionService.canGenerate(
         request.userId,
         'playbook',
@@ -327,6 +326,13 @@ export class UnifiedGenerationService {
           saveResult.error ? new Error(String(saveResult.error)) : new Error('Unknown save error'), {
           component: 'unifiedGenerationService',
         });
+      } else {
+        await subscriptionService.trackUsage(
+          request.userId,
+          'playbook',
+          0,
+          request.isOnboarding || false
+        );
       }
     } catch (error) {
       Logger.error('[UnifiedGenerationService] Direct generation error', error as Error, {

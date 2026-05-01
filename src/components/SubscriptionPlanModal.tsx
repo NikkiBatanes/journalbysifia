@@ -145,6 +145,7 @@ interface SubscriptionPlanModalProps {
   visible: boolean;
   onClose: () => void;
   navigation?: any;
+  onContinueWithSiFia?: () => void; // Optional callback to close parent modal
   // Test mode props for simulating subscription states
   testModeTier?: string;
   testModeStatus?: string;
@@ -178,6 +179,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   visible,
   onClose,
   navigation,
+  onContinueWithSiFia,
   testModeTier,
   testModeStatus,
   testModeBillingCycle,
@@ -204,12 +206,14 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           id: 'test-id',
           tier: testModeTier || 'seeker',
           status: testModeStatus || (testModeTier === 'seeker' ? 'active' : 'active'),
-          limits: testModeTier === 'seeker' ? { playbooks: 2, devotionals: 2 } :
+          limits: testModeTier === 'seeker' ? { playbooks: 2, devotionals: 1 } :
                    testModeTier === 'spark' ? { playbooks: 10, devotionals: 10 } :
                    testModeTier === 'growth' ? { playbooks: 25, devotionals: 25 } :
-                   testModeTier === 'transformation' ? { playbooks: -1, devotionals: -1 } :
-                   testModeTier === 'free_trial' ? { playbooks: 2, devotionals: 2 } :
-                   { playbooks: 2, devotionals: 2 },
+                   testModeTier === 'transformation' ? { playbooks: 60, devotionals: 60 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
+                   testModeTier === 'free_trial' ? { playbooks: 15, devotionals: 15 } :
+                   { playbooks: 2, devotionals: 1 },
           playbooks_used: 0,
           devotionals_used: 0,
           subscription_display_name: testModeTier === 'free_trial' ? `siFia ${testModeTrialChosenTier || 'Growth'} Trial` : undefined,
@@ -291,13 +295,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Seeker',
           description: 'A quiet place to begin',
           features: [
+            '2 playbooks each month',
+            '1 devotional each month',
             'Basic journaling for personal reflection',
             'A quiet space to write and process what\'s on your heart',
             'Begin exploring siFia\'s approach to reflection and discernment',
           ],
           limits: {
             playbooks: 2,
-            devotionals: 2,
+            devotionals: 1,
           },
           color: Colors.textGray,
         };
@@ -371,15 +377,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         };
       case 'free_trial':
         // For trials, show trial-specific info with tier-specific limits
-        const chosenTier = subscription?.trial_chosen_tier || 'growth';
+        const chosenTier = (subscription?.trial_chosen_tier || 'growth').replace(/_annual$/, '');
         const chosenTierName = chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1);
         const billingCycle = subscription?.billing_cycle === 'annual' ? ' Annual' : '';
 
         // Get tier-specific trial limits
         const trialLimits = chosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
-                            chosenTier === 'growth' ? { playbooks: 10, devotionals: 10 } :
+                            chosenTier === 'growth' ? { playbooks: 15, devotionals: 15 } :
                             chosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
-                            { playbooks: 10, devotionals: 10 }; // default to growth
+                            { playbooks: 15, devotionals: 15 }; // default to growth
 
         // Get tier-specific features based on chosen tier
         const tierFeatures = chosenTier === 'spark' ? [
@@ -696,8 +702,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
                     onClose();
-                    if (navigation) {
-                      navigation.navigate('DashboardHome' as any);
+                    if (onContinueWithSiFia) {
+                      onContinueWithSiFia();
                     }
                   }}
                   activeOpacity={0.85}

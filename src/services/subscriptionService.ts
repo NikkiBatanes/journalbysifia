@@ -7,9 +7,20 @@ import type { Subscription, SubscriptionTier, SubscriptionLimits, SubscriptionCh
 
 // Augmented limits shape expected by legacy code
 export interface LegacySubscriptionLimits extends SubscriptionLimits {
+  // Legacy aliases used by tierRestrictionService and older UI
+  playbooks: number;
+  devotionals: number;
   // Additional legacy fields
   exports: number; // -1 unlimited, 0 none, N limited
+  apiCalls: number;
+  familyMembers: number;
   intelligenceEnabled: boolean;
+  smartJournalingEnabled: boolean;
+  calendarSyncEnabled: boolean;
+  advancedAnalytics: boolean;
+  prioritySupport: boolean;
+  copyIncompleteTodosEnabled: boolean;
+  answeredPrayerTrackingEnabled: boolean;
 }
 
 // Result shape for legacy canGenerate checks
@@ -39,8 +50,9 @@ async function fetchUsageTracking(userId: string): Promise<{ export_count?: numb
 }
 
 function mapIntelligenceEnabled(tier: SubscriptionTier): boolean {
+  const baseTier = tier.replace('_annual', '') as SubscriptionTier;
   // Enable intelligence for paid tiers
-  switch (tier) {
+  switch (baseTier) {
     case 'spark':
     case 'growth':
     case 'transformation':
@@ -52,8 +64,9 @@ function mapIntelligenceEnabled(tier: SubscriptionTier): boolean {
 }
 
 function mapExportsLimit(tier: SubscriptionTier): number {
+  const baseTier = tier.replace('_annual', '') as SubscriptionTier;
   // Conservative defaults: no exports for seeker, unlimited for paid and trial
-  switch (tier) {
+  switch (baseTier) {
     case 'seeker':
       return 0;
     default:
@@ -73,10 +86,25 @@ export const subscriptionService = {
   // Legacy: return limits with extra fields expected by older services
   getSubscriptionLimits(tier: SubscriptionTier): LegacySubscriptionLimits {
     const base = NSS.getTierLimits(tier);
+    const normalizedTier = tier.replace('_annual', '') as SubscriptionTier;
+    const isPaidTier = normalizedTier !== 'seeker' && normalizedTier !== 'free_trial';
+    const isGrowthOrHigher = normalizedTier === 'growth' || normalizedTier === 'transformation';
+    const isTransformation = normalizedTier === 'transformation';
+
     return {
       ...base,
+      playbooks: base.playbooks_limit,
+      devotionals: base.devotionals_limit,
       exports: mapExportsLimit(tier),
+      apiCalls: -1,
+      familyMembers: 0,
       intelligenceEnabled: mapIntelligenceEnabled(tier),
+      smartJournalingEnabled: base.smart_journaling_enabled,
+      calendarSyncEnabled: isGrowthOrHigher,
+      advancedAnalytics: isGrowthOrHigher,
+      prioritySupport: isTransformation,
+      copyIncompleteTodosEnabled: isPaidTier,
+      answeredPrayerTrackingEnabled: tier !== 'seeker',
     };
   },
 
@@ -115,9 +143,9 @@ export const subscriptionService = {
   ): Promise<LegacyCanGenerateResult> {
     const sub = await NSS.getUserSubscription(userId);
 
-    // Special-case onboarding for seekers on playbook generation
+    // Onboarding generation uses the same monthly quota as regular usage.
     if (type === 'playbook' && isOnboarding) {
-      const onboardingLimit = NSS.getOnboardingPlaybookLimit(sub.tier);
+      const onboardingLimit = NSS.getOnboardingPlaybookLimit(sub.tier, sub);
       const used = (sub as any).playbooks_used || 0;
       const allowed = onboardingLimit === -1 || used < onboardingLimit;
       return {
@@ -125,13 +153,13 @@ export const subscriptionService = {
         upgradeRequired: !allowed,
         remaining: onboardingLimit === -1 ? 'Unlimited' : Math.max(0, onboardingLimit - used),
         limit: onboardingLimit === -1 ? 'Unlimited' : onboardingLimit,
-        message: allowed ? undefined : `You've used all ${onboardingLimit} onboarding playbooks. Upgrade for more!`,
+        message: allowed ? undefined : `You've used all ${onboardingLimit} monthly playbooks. Upgrade for more!`,
       };
     }
 
-    // Special-case onboarding for seekers on devotional generation
+    // Onboarding generation uses the same monthly quota as regular usage.
     if (type === 'devotional' && isOnboarding) {
-      const onboardingLimit = NSS.getOnboardingDevotionalLimit(sub.tier);
+      const onboardingLimit = NSS.getOnboardingDevotionalLimit(sub.tier, sub);
       const used = (sub as any).devotionals_used || 0;
       const allowed = onboardingLimit === -1 || used < onboardingLimit;
       return {
@@ -139,7 +167,7 @@ export const subscriptionService = {
         upgradeRequired: !allowed,
         remaining: onboardingLimit === -1 ? 'Unlimited' : Math.max(0, onboardingLimit - used),
         limit: onboardingLimit === -1 ? 'Unlimited' : onboardingLimit,
-        message: allowed ? undefined : `You've used all ${onboardingLimit} onboarding devotionals. Upgrade for more!`,
+        message: allowed ? undefined : `You've used all ${onboardingLimit} monthly devotionals. Upgrade for more!`,
       };
     }
 
@@ -150,7 +178,7 @@ export const subscriptionService = {
     let limit: number | 'Unlimited' = 0;
 
     if (type === 'playbook') {
-      const limits = NSS.getTierLimits(sub.tier);
+      const limits = NSS.getTierLimits(sub.tier, sub);
       const isUnlimited = limits.playbooks_limit === -1;
       const used = (sub as any).playbooks_used || 0;
       remaining = isUnlimited ? 'Unlimited' : Math.max(0, limits.playbooks_limit - used);
@@ -165,7 +193,7 @@ export const subscriptionService = {
     }
 
     if (type === 'devotional') {
-      const limits = NSS.getTierLimits(sub.tier);
+      const limits = NSS.getTierLimits(sub.tier, sub);
       const isUnlimited = limits.devotionals_limit === -1;
       const used = (sub as any).devotionals_used || 0;
       remaining = isUnlimited ? 'Unlimited' : Math.max(0, limits.devotionals_limit - used);

@@ -29,7 +29,7 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
     perMinute: 1,
     perHour: 3,
     perDay: 10,
-    perMonth: 999999, // No monthly limit - subscription service handles this
+    perMonth: 999999, // High ceiling; subscription service handles monthly quota
     cooldownSeconds: 30, // Prevent button mashing
   },
 
@@ -38,8 +38,8 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
   spark: {
     perMinute: 3,     // Can generate 3 quickly if needed
     perHour: 10,      // Generous - normal users won't hit this
-    perDay: 999999,   // No daily limit - subscription handles monthly
-    perMonth: 999999, // No monthly limit - subscription handles this
+    perDay: 999999,   // High ceiling; subscription handles monthly quota
+    perMonth: 999999, // High ceiling; subscription handles monthly quota
     cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
 
@@ -48,12 +48,12 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
   growth: {
     perMinute: 5,     // Very generous
     perHour: 20,      // More than they can use
-    perDay: 999999,   // No daily limit - subscription handles monthly
-    perMonth: 999999, // No monthly limit - subscription handles this
+    perDay: 999999,   // High ceiling; subscription handles monthly quota
+    perMonth: 999999, // High ceiling; subscription handles monthly quota
     cooldownSeconds: 5, // Just prevent accidental double-clicks
   },
 
-  // Transformation tier - Unlimited (but prevent abuse)
+  // Transformation tier - 60 generations/month in subscription service; these only prevent abuse
   transformation: {
     perMinute: 10,    // Very generous
     perHour: 50,      // More than anyone needs
