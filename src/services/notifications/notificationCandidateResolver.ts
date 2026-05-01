@@ -409,7 +409,6 @@ const getPlaybooks = async (userId: string): Promise<PlaybookRowLike[]> => {
       status,
       completed_at,
       bible_verse,
-      bible_verse_reflection,
       word_to_speak,
       direct_challenge,
       prayer,

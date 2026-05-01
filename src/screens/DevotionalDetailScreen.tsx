@@ -1120,9 +1120,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 contentInsetAdjustmentBehavior="never"
                 automaticallyAdjustContentInsets={false}
                 bounces={false}
-                // Performance optimizations
-                removeClippedSubviews={true}
-                scrollEventThrottle={32} // Reduced from 16 for better performance
+                scrollEventThrottle={32}
                 onScroll={(event) => {
                   // Only handle scroll for current day to reduce unnecessary calculations
                   if (index === currentDayIndex) {
@@ -1255,21 +1253,18 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     delayLongPress={300}
                   >
                     <View style={styles.questionCardContainer}>
-                  <View style={[
-                    styles.questionCardNumberCircle,
-                    isQuestionJournaled(index + 1, idx + 1) && styles.journaledNumberCircle,
-                  ]}>
-                    <ThemedText weight="bold" style={styles.questionCardNumberText}>
-                      {idx + 1}
-                    </ThemedText>
-                  </View>
-                  <ThemedText
-                    style={styles.questionCardText}
-                    selectable={true}
-                  >
-                    {question.text || 'Reflection question'}
-                  </ThemedText>
-                </View>
+                      <View style={[
+                        styles.questionCardNumberCircle,
+                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledNumberCircle,
+                      ]}>
+                        <ThemedText weight="bold" style={styles.questionCardNumberText}>
+                          {idx + 1}
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.questionCardText}>
+                        {question.text || 'Reflection question'}
+                      </ThemedText>
+                    </View>
               </Pressable>
                 ))
               ) : (
@@ -1624,24 +1619,24 @@ const styles = StyleSheet.create({
   questionCardContainer: {
     backgroundColor: Colors.inputBackground,
     borderRadius: 32,
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingLeft: 50,
-    paddingRight: 14,
-    position: 'relative',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    overflow: 'visible',
   },
   questionCardNumberCircle: {
-    position: 'absolute',
-    top: 16,
-    left: 14,
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 2,
   },
   journaledNumberCircle: {
     backgroundColor: Colors.growthGreen,
@@ -1652,6 +1647,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   questionCardText: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
