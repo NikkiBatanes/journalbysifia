@@ -156,6 +156,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Track last known viewport height for accurate comparisons
   const lastViewportHeightRef = useRef<number>(0);
   const [showFAB, setShowFAB] = useState(false);
+  // FAB spring animation
+  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+  const fabPressScaleAnim = useRef(new Animated.Value(1)).current;
   // Track scroll positions for each day to reset when needed
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
   // Flag to prevent feedback loop between programmatic and user scrolls
@@ -333,6 +336,25 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     return () => clearTimeout(timer);
   }, [currentDayIndex]);
+
+  // Animate FAB entrance with spring when showFAB changes
+  useEffect(() => {
+    if (showFAB) {
+      Animated.spring(fabScaleAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(fabScaleAnim, {
+        toValue: 0,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showFAB, fabScaleAnim]);
 
   useEffect(() => {
     // Log for debugging
@@ -518,6 +540,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Set guards to prevent multiple executions
     setIsMarkingComplete(true);
     modalOpenedRef.current = true;
+
+    // Trigger press animation
+    Animated.sequence([
+      Animated.spring(fabPressScaleAnim, {
+        toValue: 0.9,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.spring(fabPressScaleAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Trigger haptic feedback immediately
     triggerSuccessHaptic();
@@ -877,13 +915,24 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
       {/* Floating Action Button - only show when scrolled to bottom and day is not completed */}
       {currentDay && !currentDay.completed && showFAB && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={handleMarkComplete}
-          activeOpacity={0.8}
+        <Animated.View
+          style={[
+            styles.fab,
+            {
+              transform: [
+                { scale: Animated.multiply(fabScaleAnim, fabPressScaleAnim) },
+              ],
+            },
+          ]}
         >
-          <Ionicons name="checkmark-sharp" size={32} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.fabInner}
+            onPress={handleMarkComplete}
+            activeOpacity={1}
+          >
+            <Ionicons name="checkmark-sharp" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Devotional Completion Modal */}
@@ -1611,16 +1660,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     left: '50%',
-    marginLeft: -30, // Half of the width to center it perfectly
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    marginLeft: -25, // Half of the width to center it perfectly
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.growthGreen,
     justifyContent: 'center',
     alignItems: 'center',
     // Remove shadows and elevation for flat, modern appearance
     elevation: 0,
     zIndex: 100,
+  },
+  fabInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   swipeIndicatorContainer: {
     position: 'absolute',
