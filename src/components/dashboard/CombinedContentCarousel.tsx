@@ -965,7 +965,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   useFocusEffect(
     useCallback(() => {
       fetchContent();
-      return () => {};
+      return () => {
+        // Dismiss dropdown menu when navigating away
+        setMenuVisible(null);
+      };
     }, [fetchContent])
   );
 
