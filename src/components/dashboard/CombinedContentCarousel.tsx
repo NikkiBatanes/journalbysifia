@@ -1172,10 +1172,11 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
             </TouchableOpacity>
             {menuVisible === playbook.id && (
-              <View style={styles.dropdownMenu}>
+              <View style={styles.dropdownMenu} onStartShouldSetResponder={() => true}>
                 <TouchableOpacity
                   style={styles.dropdownItem}
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
                     setSelectedPlaybookForDevotional(playbook);
                     setDevotionalModalVisible(true);
@@ -1183,8 +1184,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                   }}
                 >
                   <View style={styles.dropdownItemContent}>
+                    <Ionicons name="book" size={16} color={Colors.hopeWhite} />
                     <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into devotional</ThemedText>
-                    {devotionalsCount[playbook.id] > 0 && (
+                    {devotionalsCount[playbook.id] >= 2 && (
                       <View style={styles.dropdownBadge}>
                         <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
                         {devotionalsCount[playbook.id] >= 2 && (
@@ -1196,7 +1198,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dropdownItem}
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
                     handleRenamePress(playbook);
                   }}
@@ -1205,7 +1208,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dropdownItem}
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
                     handleTagPress(playbook);
                   }}
@@ -1221,7 +1225,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dropdownItem}
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
                     handleExportPdfPress(playbook);
                   }}
@@ -1230,7 +1235,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.dropdownItem, styles.dropdownItemLast]}
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
                     showPlaybookDeleteConfirm(playbook.id);
                   }}
@@ -1402,10 +1408,11 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
               </TouchableOpacity>
               {menuVisible === devotional.id && (
-                <View style={styles.dropdownMenu}>
+                <View style={styles.dropdownMenu} onStartShouldSetResponder={() => true}>
                   <TouchableOpacity
                     style={styles.dropdownItem}
-                    onPress={() => {
+                    onPress={(e) => {
+                      e.stopPropagation();
                       try { triggerLightHaptic(); } catch {}
                       handleExportDevotionalPdf(devotional);
                     }}
@@ -1416,7 +1423,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.dropdownItem, styles.dropdownItemLast]}
-                    onPress={() => {
+                    onPress={(e) => {
+                      e.stopPropagation();
                       try { triggerLightHaptic(); } catch {}
                       showDeleteConfirm(devotional.id);
                     }}
@@ -1647,14 +1655,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Screen-level backdrop for dropdown dismissal */}
-      {menuVisible && (
-        <TouchableOpacity
-          style={styles.screenBackdrop}
-          onPress={() => setMenuVisible(null)}
-          activeOpacity={1}
-        />
-      )}
       <View style={styles.headerCenter}>
         <ThemedText weight="semiBold" style={styles.title}>CONTINUE YOUR JOURNEY</ThemedText>
       </View>
@@ -2063,6 +2063,17 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   screenBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
+  },
+  carouselContainer: {
+    position: 'relative',
+  },
+  carouselBackdrop: {
     position: 'absolute',
     top: 0,
     left: 0,
