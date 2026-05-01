@@ -510,12 +510,12 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           )
         ),
         prayer: fullPlaybook.prayer || '',
-        wordsToSpeak: typeof fullPlaybook.wordsToSpeak === 'string'
-          ? replaceAllNamePlaceholders(fullPlaybook.wordsToSpeak, { firstName: metaFirstName, displayName: metaDisplayName }, { replaceHardcodedNames: true })
-          : '',
-        directChallenge: typeof fullPlaybook.directChallenge === 'string'
-          ? replaceAllNamePlaceholders(fullPlaybook.directChallenge, { firstName: metaFirstName, displayName: metaDisplayName }, { replaceHardcodedNames: true })
-          : '',
+        wordsToSpeak: fullPlaybook.wordToSpeak || '',
+        directChallenge: replaceAllNamePlaceholders(
+          typeof fullPlaybook.directChallenge === 'string' ? fullPlaybook.directChallenge : fullPlaybook.directChallenge?.text || '',
+          { firstName: metaFirstName, displayName: metaDisplayName },
+          { replaceHardcodedNames: true }
+        ),
         createdAt: fullPlaybook.createdAt,
       });
     } catch (error) {
