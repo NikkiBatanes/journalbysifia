@@ -66,6 +66,7 @@ import InAppReview from 'react-native-in-app-review';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
+import { navigateFromRoot } from '../utils/navigationHelpers';
 
 const { width } = Dimensions.get('window');
 
@@ -97,6 +98,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
+
+  const navigateToSalesOffer = useCallback((params: Record<string, unknown>) => {
+    const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
+    if (!didNavigate) {
+      Logger.warn('[UserProfileScreen] Unable to navigate to sales offer', {
+        component: 'UserProfileScreen',
+      });
+    }
+  }, [navigation]);
 
   // POST-LAUNCH: Family subscription hook
   // const {
@@ -1534,27 +1544,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onValueChange={async (value) => {
               try { triggerLightHaptic(); } catch {}
 
-              // If enabling auto-sync, request calendar permissions first
+              // If enabling auto-sync, gate locked tiers before requesting system calendar permission.
               if (value) {
-                const { requestCalendarPermissions } = await import('../services/calendarSyncService');
-                const hasPermission = await requestCalendarPermissions();
-
-                if (!hasPermission) {
-                  // Permission denied, don't enable auto-sync (system prompt already shown)
-                  return;
-                }
-
                 // Check if user is on Seeker tier only (trial users should have access)
                 const { NewSubscriptionService: SubscriptionService } = await import('../services/NewSubscriptionService');
                 try {
                   const subscriptionData = await SubscriptionService.getUserSubscription(user?.id || '');
                   if (subscriptionData.tier === 'seeker') {
                     // Navigate to sales offer with return navigation context
-                    navigation.navigate('OnboardingSalesOffer', {
+                    navigateToSalesOffer({
                       source: 'calendar_auto_sync',
                       feature: 'Calendar Auto-Sync & Future Planning',
                       context: 'profile_settings',
                       skipNotificationPreference: true,
+                      dismissBehavior: 'goBack',
                       returnTo: 'UserProfile',
                       title: 'Upgrade to Plan Ahead',
                       subtitle: 'Unlock calendar auto-sync—plus guided journaling, playbooks, and devotionals to support your journey.',
@@ -1573,6 +1576,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     component: 'UserProfileScreen',
                   });
                   // On error, allow the toggle to proceed (fail open for paid users)
+                }
+
+                const { requestCalendarPermissions } = await import('../services/calendarSyncService');
+                const hasPermission = await requestCalendarPermissions();
+
+                if (!hasPermission) {
+                  // Permission denied, don't enable auto-sync (system prompt already shown)
+                  return;
                 }
               }
 

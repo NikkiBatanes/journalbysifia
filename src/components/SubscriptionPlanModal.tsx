@@ -16,6 +16,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
+import { navigateFromRoot } from '../utils/navigationHelpers';
 
 type PaidPlanTier = 'spark' | 'growth' | 'transformation';
 
@@ -608,7 +609,12 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
       onClose();
       setTimeout(() => {
-        navigation.navigate('OnboardingSalesOffer' as any, params);
+        const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
+        if (!didNavigate) {
+          Logger.warn('[SubscriptionPlanModal] Unable to navigate to sales offer', {
+            component: 'SubscriptionPlanModal',
+          });
+        }
       }, 300);
     } else {
       onClose();

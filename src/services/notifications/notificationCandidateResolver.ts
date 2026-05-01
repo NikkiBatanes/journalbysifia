@@ -836,41 +836,32 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   if (ongoingPlaybook) {
     const steps = sortByOrder(ongoingPlaybook.playbook_action_steps || []);
 
-    // Get all incomplete actions (up to 3)
+    // Collect all incomplete actions
     const incompleteActions: Array<{ action: any; actionIndex: number }> = [];
-    for (let i = 0; i < steps.length && incompleteActions.length < 3; i++) {
+    for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
-      if (step.completed === true) {
-        continue;
-      }
-
+      if (step.completed === true) { continue; }
       const subTasks = step.playbook_sub_tasks || [];
       if (subTasks.length === 0 || subTasks.some(subTask => subTask.completed !== true)) {
         incompleteActions.push({ action: step, actionIndex: i });
       }
     }
 
-    // Shuffle so a random incomplete action gets the top score each time
-    for (let i = incompleteActions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [incompleteActions[i], incompleteActions[j]] = [incompleteActions[j], incompleteActions[i]];
-    }
-
-    // Create notifications for each incomplete action
-    for (const { action, actionIndex } of incompleteActions) {
+    // Pick one at random so a different action step is notified each time
+    if (incompleteActions.length > 0) {
+      const randomIndex = Math.floor(Math.random() * incompleteActions.length);
+      const { action, actionIndex } = incompleteActions[randomIndex];
       const actionText = notificationText(action.text);
       candidates.push(createCandidate({
         type: 'playbook_faithful_action',
         timeWindow: 'midday',
-        score: 84 - incompleteActions.indexOf({ action, actionIndex }) * 5,
-        dedupeKey: buildDedupeKey('playbook_faithful_action', ongoingPlaybook.id, action.id, currentDate),
+        score: 84,
+        dedupeKey: buildDedupeKey('playbook_faithful_action', ongoingPlaybook.id, currentDate),
         deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions/${actionIndex}`,
         sourceType: 'action_step',
         sourceId: ongoingPlaybook.id,
         sourceSubId: action.id,
-        copyContext: {
-          actionText,
-        },
+        copyContext: { actionText },
         metadata: {
           playbook_title: ongoingPlaybook.title,
           action_text: actionText,

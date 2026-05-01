@@ -96,7 +96,6 @@ export function buildSmartNotificationCopy(
       const faithfulTitles = [
         'Take one faithful step',
         'Return to your next step',
-        'Keep going with what God has placed before you',
         'Come back to the step in front of you',
       ];
       const faithfulDay = context._simulatedDayOfWeek ?? new Date().getDay();
