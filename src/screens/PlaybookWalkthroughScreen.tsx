@@ -1596,6 +1596,9 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   onTurnIntoDevotional,
   devotionalGenerated = false,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [selectedChoice, setSelectedChoice] = useState<string | null>(persistedCompletionChoice);
   const headerAnim = useRef(new Animated.Value(40)).current;
   const buttonsAnim = useRef(new Animated.Value(30)).current;
@@ -1666,13 +1669,33 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           <View style={styles.completionHeaderContainer}>
             <View style={styles.stepLabelRow}>
               <Ionicons name="flash" size={18} color={Colors.alertCoral} />
-              <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
-                You've completed
-              </ThemedText>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value="You've completed"
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.stepLabelWhite, { fontWeight: '600' as any, fontFamily }]}
+                />
+              ) : (
+                <ThemedText weight="semiBold" style={styles.stepLabelWhite} selectable={true}>
+                  You've completed
+                </ThemedText>
+              )}
             </View>
-            <ThemedText weight="bold" style={styles.completionTitle}>
-              {title}
-            </ThemedText>
+            {Platform.OS === 'ios' ? (
+              <TextInput
+                value={title}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={[styles.completionTitle, { fontWeight: '700' as any, fontFamily }]}
+              />
+            ) : (
+              <ThemedText weight="bold" style={styles.completionTitle} selectable={true}>
+                {title}
+              </ThemedText>
+            )}
             <ThemedText style={styles.completionPlaybookLabel}>PLAYBOOK</ThemedText>
           </View>
         </Animated.View>
@@ -1681,10 +1704,30 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       <StepFadeIn delay={100}>
         <>
           {contextLine && (
-            <ThemedText style={styles.completionContext}>{contextLine}</ThemedText>
+            Platform.OS === 'ios' ? (
+              <TextInput
+                value={contextLine}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={[styles.completionContext, { fontFamily }]}
+              />
+            ) : (
+              <ThemedText style={styles.completionContext} selectable={true}>{contextLine}</ThemedText>
+            )
           )}
           {questionLine && (
-            <ThemedText style={styles.completionQuestion}>{questionLine}</ThemedText>
+            Platform.OS === 'ios' ? (
+              <TextInput
+                value={questionLine}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={[styles.completionQuestion, { fontFamily }]}
+              />
+            ) : (
+              <ThemedText style={styles.completionQuestion} selectable={true}>{questionLine}</ThemedText>
+            )
           )}
         </>
       </StepFadeIn>
@@ -1708,15 +1751,31 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                   }}
                   activeOpacity={0.8}
                 >
-                  <ThemedText
-                    weight={selectedChoice === choice ? 'semiBold' : undefined}
-                    style={[
-                      styles.completionChoiceText,
-                      selectedChoice === choice && styles.completionChoiceTextActive,
-                    ]}
-                  >
-                    {choice}
-                  </ThemedText>
+                  {Platform.OS === 'ios' ? (
+                    <TextInput
+                      value={choice}
+                      editable={false}
+                      multiline={true}
+                      scrollEnabled={false}
+                      style={[
+                        styles.completionChoiceText,
+                        selectedChoice === choice && styles.completionChoiceTextActive,
+                        selectedChoice === choice && { fontWeight: '600' as any },
+                        { fontFamily }
+                      ]}
+                    />
+                  ) : (
+                    <ThemedText
+                      weight={selectedChoice === choice ? 'semiBold' : undefined}
+                      style={[
+                        styles.completionChoiceText,
+                        selectedChoice === choice && styles.completionChoiceTextActive,
+                      ]}
+                      selectable={true}
+                    >
+                      {choice}
+                    </ThemedText>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -1729,9 +1788,19 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                       {index + 1}
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.completionActionLine}>
-                    {line}
-                  </ThemedText>
+                  {Platform.OS === 'ios' ? (
+                    <TextInput
+                      value={line}
+                      editable={false}
+                      multiline={true}
+                      scrollEnabled={false}
+                      style={[styles.completionActionLine, { fontFamily }]}
+                    />
+                  ) : (
+                    <ThemedText style={styles.completionActionLine} selectable={true}>
+                      {line}
+                    </ThemedText>
+                  )}
                 </View>
               ))}
             </View>
