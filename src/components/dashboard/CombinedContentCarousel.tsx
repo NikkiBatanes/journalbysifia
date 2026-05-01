@@ -1184,7 +1184,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                   }}
                 >
                   <View style={styles.dropdownItemContent}>
-                    <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into devotional</ThemedText>
+                    <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into a devotional</ThemedText>
                     {devotionalsCount[playbook.id] >= 2 && (
                       <View style={styles.dropdownBadge}>
                         <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
