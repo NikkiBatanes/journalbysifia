@@ -271,14 +271,7 @@ const OnboardingTrialOfferScreen = () => {
           // Show success modal immediately since trial is already active
           setIsStartingTrial(false);
           setShowSuccessModal(true);
-
-          // Auto-dismiss after showing success briefly
-          if (!autoDismissScheduled) {
-            setAutoDismissScheduled(true);
-            setTimeout(() => {
-              handleSuccessModalContinue();
-            }, 2000);
-          }
+          // Removed auto-dismiss - user must tap "Go to my playbook" button
         }
       } catch (checkError) {
         // Continue with purchase attempt
@@ -620,15 +613,7 @@ const OnboardingTrialOfferScreen = () => {
         // CRITICAL: Suppress faith points notifications during success modal to prevent z-index conflicts
         notificationService.suppressPointsNotifications(true);
         setShowSuccessModal(true);
-
-        // Auto-dismiss trial offer screen after successful payment
-        // Auto-navigate after a short delay to show success briefly
-        if (!autoDismissScheduled) {
-          setAutoDismissScheduled(true);
-          setTimeout(() => {
-            handleSuccessModalContinue();
-          }, 2000); // Show success for 2 seconds then auto-dismiss
-        }
+        // Removed auto-dismiss - user must tap "Go to my playbook" button
       } else {
         throw new Error(result.error || 'Trial subscription failed');
       }
@@ -928,31 +913,24 @@ const OnboardingTrialOfferScreen = () => {
     // Use a more reliable navigation approach
     const skipNotificationPreference = route?.params?.skipNotificationPreference;
 
-    // Small delay to ensure modal is fully hidden
+    // Navigate to UserInput screen
     setTimeout(() => {
-      if (skipNotificationPreference) {
-        logger.info('Navigating back (skipNotificationPreference=true)');
-        safeNavigate(() => navigation.goBack(), 'go_back_to_sales');
-      } else if (fromRegistrationOnboarding) {
-        // Only show notification setup for registration onboarding users
-        logger.info('Navigating to OnboardingNotificationSetup (registration onboarding)');
+      try {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UserInput' as any }],
+        });
+      } catch (error) {
+        logger.error('Failed to navigate to UserInput', error as Error);
+        // Fallback: try basic navigation
         try {
-          (navigation as any).navigate('OnboardingNotificationSetup', {
-            userType: 'trial',
-            fromTrial: true,
-            onboardingFlow: true,
-          });
-        } catch (navError) {
-          safeNavigate(() => navigation.goBack(), 'go_back_first_modal');
-          setTimeout(() => {
-            safeNavigate(() => navigation.goBack(), 'go_back_second_modal');
-          }, 100);
+          (navigation as any).navigate('UserInput');
+        } catch (fallbackError) {
+          logger.error('Fallback navigation failed', fallbackError as Error);
         }
-      } else {
-        safeNavigate(() => navigation.goBack(), 'go_back_default');
       }
     }, 100);
-  }, [route?.params?.skipNotificationPreference, navigation, safeNavigate, fromRegistrationOnboarding]);
+  }, [navigation]);
 
   const handleSuccessModalDismiss = useCallback(() => {
     handleSuccessModalContinue();

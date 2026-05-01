@@ -530,10 +530,10 @@ export class AppleStoreKitService {
     try {
       await this.initialize();
 
-      // Issue 6 fix: Enforce trial eligibility before showing the Apple payment sheet.
-      // Apple's App Store already enforces one trial per account at the store level,
-      // but this client-side gate prevents duplicate DB rows and confusing UX.
-      if (productId.includes('freetrial')) {
+      // All iOS subscription SKUs currently include `.freetrial`.
+      // Only block when the caller is explicitly trying to start a new free trial.
+      // Ineligible/past-trial users still need to purchase these same SKUs as paid upgrades.
+      if (productId.includes('freetrial') && this.currentPurchaseEligibility === true) {
         const { data: existingSub } = await supabase
           .from('user_subscriptions_new')
           .select('tier, trial_start_date')
@@ -546,6 +546,7 @@ export class AppleStoreKitService {
             previousTrialStart: existingSub.trial_start_date,
             productId,
           });
+          this.currentPurchaseEligibility = undefined;
           return {
             success: false,
             error: 'You have already used your free trial. Please choose a paid subscription.',
@@ -666,11 +667,13 @@ export class AppleStoreKitService {
 
       // Clear timestamp on success
       this.purchaseInitiatedTimestamp = null;
+      this.currentPurchaseEligibility = undefined;
 
       return result;
     } catch (error) {
       // Clear timestamp on error
       this.purchaseInitiatedTimestamp = null;
+      this.currentPurchaseEligibility = undefined;
 
       // ENHANCED: Comprehensive payment failure logging
       const failureContext: PaymentFailureContext = {
@@ -896,7 +899,8 @@ export class AppleStoreKitService {
       const isTrialProduct = purchase.productId.includes('freetrial');
 
       if (isTrialProduct) {
-        // Get user's current tier to determine if this is NEW TRIAL or PAID UPGRADE
+        // `.freetrial` is part of every iOS product id. The eligibility flag, not the
+        // product id suffix, decides whether this purchase should create a new trial.
         const { data: currentSub } = await supabase
           .from('user_subscriptions_new')
           .select('tier')
@@ -904,60 +908,54 @@ export class AppleStoreKitService {
           .single();
 
         const currentTier = currentSub?.tier || 'seeker';
+        const isEligibleTrialStart = currentTier === 'seeker' && this.currentPurchaseEligibility === true;
+        const isExistingTrialWithoutUpgrade = currentTier === 'free_trial' && this.currentPurchaseEligibility !== false;
 
-        // CRITICAL: Skip for BOTH seeker and free_trial
-        // - seeker + .freetrial = NEW TRIAL START → Skip (createTrial handles it)
-        // - free_trial + .freetrial = TRIAL ALREADY ACTIVE → Skip (webhook will handle conversion)
-        // Only paid tiers + .freetrial = TIER UPGRADE → Process
-        if (currentTier === 'seeker' || currentTier === 'free_trial') {
-          // NEW TRIAL or TRIAL ALREADY ACTIVE: Skip update
-          Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial-related purchase - skipping database update`, {
+        if (isEligibleTrialStart || isExistingTrialWithoutUpgrade) {
+          Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial purchase - skipping paid database update`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             productId: purchase.productId,
             currentTier,
             tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            message: currentTier === 'seeker'
+            isEligibleForTrial: this.currentPurchaseEligibility,
+            message: isEligibleTrialStart
               ? 'New trial - will be handled by createTrial()'
-              : 'User already on trial - webhook will handle conversion after 3 days',
+              : 'Existing trial transaction - leaving trial state unchanged',
             timestamp: new Date().toISOString(),
           });
 
-          // ALWAYS store transaction IDs for BOTH new trials (seeker) and existing trials (free_trial)
-          // This ensures webhook can find users when trials convert to paid
-          if (currentTier === 'seeker' || currentTier === 'free_trial') {
-            try {
-              await supabase
-                .from('user_subscriptions_new')
-                .update({
-                  original_transaction_id: purchase.transactionId,
-                  platform_transaction_id: purchase.transactionId,
-                  platform_subscription_id: purchase.transactionId, // Add platform_subscription_id for webhook fallback
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', this.currentUserId);
+          try {
+            await supabase
+              .from('user_subscriptions_new')
+              .update({
+                original_transaction_id: purchase.transactionId,
+                platform_transaction_id: purchase.transactionId,
+                platform_subscription_id: purchase.transactionId,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', this.currentUserId);
 
-              Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
-                component: 'AppleStoreKitService',
-                transactionId: purchase.transactionId?.substring(0, 10) + '...',
-              });
-            } catch (error) {
-              Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
-                component: 'AppleStoreKitService',
-              });
-            }
+            Logger.info(`[StoreKit][${debugId}] ✅ Original transaction ID stored for webhook`, {
+              component: 'AppleStoreKitService',
+              transactionId: purchase.transactionId?.substring(0, 10) + '...',
+            });
+          } catch (error) {
+            Logger.error('[StoreKit] Failed to store original transaction ID', error as Error, {
+              component: 'AppleStoreKitService',
+            });
           }
         } else {
-          // TIER UPGRADE: User on paid tier purchasing .freetrial product (tier upgrade)
-          Logger.info(`[StoreKit][${debugId}] 💳 STEP 5: TIER UPGRADE detected - processing database update`, {
+          Logger.info(`[StoreKit][${debugId}] 💳 STEP 5: Paid purchase/upgrade detected - processing database update`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             productId: purchase.productId,
             currentTier,
             targetTier: tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
-            message: 'Paid tier upgrade',
+            isEligibleForTrial: this.currentPurchaseEligibility,
+            message: 'Using .freetrial SKU as paid purchase because user is not trial-eligible',
             timestamp: new Date().toISOString(),
           });
 
@@ -965,7 +963,7 @@ export class AppleStoreKitService {
           await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
           const dbUpdateDuration = Date.now() - dbUpdateStartTime;
 
-          Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Tier upgrade completed successfully`, {
+          Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Paid purchase/upgrade completed successfully`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
             tier,
@@ -1542,7 +1540,7 @@ export class AppleStoreKitService {
     receiptData: string,
     userId: string,
     productId?: string,
-    _isEligibleForTrial?: boolean
+    isEligibleForTrial?: boolean
   ): Promise<ServerValidationResult> {
     try {
       // Add 10 second timeout to prevent hanging
@@ -1550,13 +1548,14 @@ export class AppleStoreKitService {
         setTimeout(() => reject(new Error('Server validation timeout after 10s')), 10000)
       );
 
+      const eligibilityForValidation = isEligibleForTrial ?? this.currentPurchaseEligibility;
       const validationPromise = supabase.functions.invoke('validate-receipt', {
         body: {
           receiptData,
           userId,
           platform: 'ios',
           productId,
-          isEligibleForTrial: this.currentPurchaseEligibility || undefined,
+          isEligibleForTrial: eligibilityForValidation,
         },
       });
 

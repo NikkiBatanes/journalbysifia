@@ -20,7 +20,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-// import { useTheme } from '../theme/ThemeContext'; // Unused
+import { useTheme } from '../theme/ThemeContext';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -45,7 +45,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   isAnnual = false,
   onContinue,
 }) => {
-  // const theme = useTheme(); // Unused
+  const theme = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
@@ -128,7 +128,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
         `Explore siFia ${baseName}${billingCycle} for 3 days`,
         `Create ${trialLimits.playbooks} playbooks during your trial`,
         `Create ${trialLimits.devotionals} devotionals during your trial`,
-        'Return anytime when a moment comes up',
+        'Return anytime when a new moment comes up',
         'Cancel anytime before your trial ends',
       ];
 
@@ -193,7 +193,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
               },
             ]}
           >
-            <Ionicons name="checkmark" size={48} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={36} color="#FFFFFF" />
           </Animated.View>
 
           {/* Success Message */}
@@ -224,7 +224,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           <View style={styles.benefitsContainer}>
             <ThemedText style={[styles.benefitsTitle, { color: Colors.hopeWhite }]}
             >
-              What you can do next:
+              What you can do next
             </ThemedText>
             {tierInfo.benefits.map((benefit, index) => (
               <View key={index} style={styles.benefitRow}>
@@ -251,15 +251,14 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
           {/* Continue Button */}
           <TouchableOpacity
-            style={[styles.continueButton, { backgroundColor: tierInfo.color }]}
+            style={styles.continueButton}
             onPress={() => {
               triggerLightHaptic();
               onContinue();
             }}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <ThemedText style={styles.continueButtonText}>Go to my playbook</ThemedText>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+            <ThemedText style={[styles.continueButtonText, { fontFamily: theme.fontFamily, fontWeight: '600' }]}>Process another moment</ThemedText>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -278,7 +277,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: width - 60,
     maxWidth: 360,
-    borderRadius: 22,
+    borderRadius: 40,
     padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
@@ -300,9 +299,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   checkmarkContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -374,15 +373,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    marginTop: 12,
   },
   continueButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 8,
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
 });

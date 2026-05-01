@@ -259,7 +259,7 @@ serve(async (req) => {
     // Get user's current subscription tier and trial info
     const { data: currentSub } = await supabase
       .from('user_subscriptions_new')
-      .select('tier, trial_end_date')
+      .select('tier, trial_start_date, trial_end_date, trial_chosen_tier, billing_cycle, playbooks_limit, devotionals_limit')
       .eq('user_id', userId)
       .single();
 
@@ -279,7 +279,7 @@ serve(async (req) => {
       isActive,
       isExpired,
       expiresAt: validationResult.data?.expiresAt?.toISOString(),
-      expectedTrialLogic: 'seeker + eligible + Apple trial period = NEW TRIAL'
+      expectedTrialLogic: 'seeker + eligible + no previous trial + Apple trial period = NEW TRIAL'
     });
 
     // CRITICAL: Handle expired subscriptions
@@ -316,15 +316,16 @@ serve(async (req) => {
     }
 
     // LOGIC:
-    // - seeker + eligible + Apple trial period = NEW TRIAL (create trial with tier-specific limits)
-    // - seeker + not eligible = PAID PURCHASE (direct to paid tier)
-    // - free_trial + any purchase = TRIAL CONVERSION (convert to paid tier)
+    // - seeker + eligible + no previous trial + Apple trial period = NEW TRIAL
+    // - seeker + not eligible/previous trial = PAID PURCHASE (same .freetrial SKU, no new trial)
+    // - free_trial + eligible/background receipt = keep active trial
+    // - free_trial + not eligible = PAID UPGRADE/CONVERSION
     // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
 
     // isAppleTrialPeriod is unreliable in sandbox — Apple sometimes returns false even for
     // the first charge on a .freetrial product. Use the product ID as the authoritative signal.
     const isFreeTrial = (validationResult.data?.productId || '').includes('freetrial');
-    if (currentTier === 'seeker' && isEligibleForTrial === true && (isAppleTrialPeriod || isFreeTrial)) {
+    if (currentTier === 'seeker' && !currentSub?.trial_start_date && isEligibleForTrial === true && (isAppleTrialPeriod || isFreeTrial)) {
       // NEW TRIAL: Eligible user starting trial - create trial with tier-specific limits
       console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
         currentTier,
@@ -362,13 +363,14 @@ serve(async (req) => {
       const trialEndDate = currentSub?.trial_end_date ? new Date(currentSub.trial_end_date) : null;
       const isTrialStillActive = trialEndDate && trialEndDate > new Date();
       
-      if (isTrialStillActive) {
+      if (isTrialStillActive && isEligibleForTrial !== false) {
         // Trial is still active - do NOT convert to paid, just validate
         console.log('[ValidateReceipt] TRIAL STILL ACTIVE - keeping as trial', {
           currentTier,
           targetTier,
           trialEndDate: trialEndDate?.toISOString(),
           productId: validationResult.data?.productId,
+          isEligibleForTrial,
           reason: 'Trial period has not ended yet',
         });
 
@@ -405,16 +407,17 @@ serve(async (req) => {
         }
         // Trial stays as trial with correct tier-specific limits
       } else {
-        // Trial has ended - convert to paid
-        console.log('[ValidateReceipt] TRIAL CONVERSION detected - converting to paid', {
+        // Trial user chose a paid upgrade, or the stored trial has ended - convert to paid
+        console.log('[ValidateReceipt] TRIAL PAID CONVERSION detected - converting to paid', {
           currentTier,
           targetTier,
           trialEndDate: trialEndDate?.toISOString(),
           productId: validationResult.data?.productId,
-          reason: 'Trial period has ended',
+          isEligibleForTrial,
+          reason: isEligibleForTrial === false ? 'Trial user is not eligible for another free trial' : 'Trial period has ended',
         });
         await updateUserSubscription(supabase, userId, validationResult.data);
-        console.log('[ValidateReceipt] Trial converted to paid successfully');
+        console.log('[ValidateReceipt] Trial paid conversion completed successfully');
       }
     } else if (currentTier !== 'seeker' && currentTier !== 'free_trial') {
       // TIER UPGRADE: User on paid tier upgrading to different tier

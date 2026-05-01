@@ -51,6 +51,8 @@
 	<string>siFia uses your location to personalize your experience (for example, local pricing and regional content). We only access your location when the app is in use.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>siFia may access your location to personalize your experience (for example, local pricing and regional content). Location is only used to improve the app experience and is not shared.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>siFia connects to the local development server when running debug builds.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app may save images to your photo library when updating your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
