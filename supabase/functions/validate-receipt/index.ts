@@ -129,7 +129,6 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         playbooks_used: 0,
         devotionals_used: 0,
         smart_journaling_enabled: true,
-        show_dashboard_counts: true,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
@@ -300,8 +299,7 @@ serve(async (req) => {
           status: 'expired',
           playbooks_limit: 2,
           devotionals_limit: 1,
-          smart_journaling_enabled: false,
-          show_dashboard_counts: true,
+          smart_journaling_enabled: true,
           auto_renew_enabled: false,
           updated_at: new Date().toISOString(),
         })
@@ -323,7 +321,10 @@ serve(async (req) => {
     // - free_trial + any purchase = TRIAL CONVERSION (convert to paid tier)
     // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
 
-    if (currentTier === 'seeker' && isEligibleForTrial === true && isAppleTrialPeriod) {
+    // isAppleTrialPeriod is unreliable in sandbox — Apple sometimes returns false even for
+    // the first charge on a .freetrial product. Use the product ID as the authoritative signal.
+    const isFreeTrial = (validationResult.data?.productId || '').includes('freetrial');
+    if (currentTier === 'seeker' && isEligibleForTrial === true && (isAppleTrialPeriod || isFreeTrial)) {
       // NEW TRIAL: Eligible user starting trial - create trial with tier-specific limits
       console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
         currentTier,
@@ -641,7 +642,6 @@ async function updateUserSubscription(
       playbooks_limit: number;
       devotionals_limit: number;
       smart_journaling_enabled: boolean;
-      show_dashboard_counts: boolean;
     } = {
       user_id: userId,
       tier: tier,
@@ -663,7 +663,6 @@ async function updateUserSubscription(
       trial_end_date: null,
       trial_chosen_tier: null,
       updated_at: new Date().toISOString(),
-      show_dashboard_counts: true,
     };
 
     // CRITICAL: Set limit columns to actual values for new tier
@@ -672,7 +671,6 @@ async function updateUserSubscription(
     subscriptionData.playbooks_limit = tierLimits.playbooks_limit;
     subscriptionData.devotionals_limit = tierLimits.devotionals_limit;
     subscriptionData.smart_journaling_enabled = tierLimits.smart_journaling_enabled;
-    subscriptionData.show_dashboard_counts = tierLimits.show_dashboard_counts;
 
     if (existingSub) {
       // Check if this is a tier upgrade (different tier)
@@ -760,62 +758,26 @@ function getTierLimits(tier: string): {
   playbooks_limit: number;
   devotionals_limit: number;
   smart_journaling_enabled: boolean;
-  show_dashboard_counts: boolean;
 } {
   switch (tier) {
     case 'seeker':
-      return {
-        playbooks_limit: 2,
-        devotionals_limit: 1,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
     case 'free_trial':
-      return {
-        playbooks_limit: 15,
-        devotionals_limit: 15,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 15, devotionals_limit: 15, smart_journaling_enabled: true };
     case 'spark':
     case 'spark_annual':
-      return {
-        playbooks_limit: 10,
-        devotionals_limit: 10,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
     case 'growth':
     case 'growth_annual':
-      return {
-        playbooks_limit: 25,
-        devotionals_limit: 25,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
     case 'transformation':
     case 'transformation_annual':
-      return {
-        playbooks_limit: 60,
-        devotionals_limit: 60,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
     case 'family':
     case 'family_annual':
-      return {
-        playbooks_limit: 999999,
-        devotionals_limit: 999999,
-        smart_journaling_enabled: true,
-        show_dashboard_counts: false,
-      };
+      return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
     default:
-      return {
-        playbooks_limit: 2,
-        devotionals_limit: 1,
-        smart_journaling_enabled: false,
-        show_dashboard_counts: true,
-      };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
   }
 }
 
