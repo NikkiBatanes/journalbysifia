@@ -39,6 +39,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 type PricingTier = ServicePricingTier;
 type BillingCycle = 'monthly' | 'annual';
 type PaidPlanTier = 'spark' | 'growth' | 'transformation';
+type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
 
 const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
 
@@ -86,6 +87,7 @@ interface RouteParams {
   returnTo?: string; // e.g., 'UserProfile' - screen to return to on close
   returnToReflection?: boolean; // when launched from reflection editor
   dismissBothModalsOnClose?: boolean; // when both modals should be dismissed on close
+  dismissBehavior?: OfferDismissBehavior;
   forceTransformationAnnual?: boolean; // Show only annual transformation option
   forceAnnualOnly?: boolean; // Show only annual plans for current tier
   onboardingFlow?: boolean; // True when in initial registration onboarding
@@ -139,6 +141,35 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Check if we're in upgrade mode (from devotional modal) or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
+
+  const resetToUserInput = useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'UserInput' as any }],
+    });
+  }, [navigation]);
+
+  const navigateToNotificationSetup = useCallback((userType: 'paid' | 'freemium', extraParams?: Record<string, any>) => {
+    (navigation as any).navigate('OnboardingNotificationSetup', {
+      userType,
+      ...extraParams,
+    });
+  }, [navigation]);
+
+  const goBackOrFallback = useCallback((fallback: 'userInput' | 'notificationSetup' = 'userInput') => {
+    if (navigation.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+
+    if (fallback === 'notificationSetup') {
+      navigateToNotificationSetup('freemium', { fromCancelledSales: true });
+      return;
+    }
+
+    resetToUserInput();
+  }, [navigation, navigateToNotificationSetup, resetToUserInput]);
+
   const subscription = devotionalGating.subscription;
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
@@ -398,56 +429,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     notificationService.suppressPointsNotifications(false);
 
     setTimeout(() => {
-      if (isUpgradeMode) {
-        // In upgrade mode, handle navigation based on context
-        const source = routeParams?.source;
-        const returnTo = routeParams?.returnTo;
-        const returnToReflection = routeParams?.returnToReflection;
-        const dismissBothModalsOnClose = routeParams?.dismissBothModalsOnClose;
-
-        // Handle special navigation cases
-        if (returnTo) {
-          // Navigate to specific screen
-          (navigation as any).navigate(returnTo);
-        } else if (returnToReflection) {
-          // Navigate to UserInput screen
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'UserInput' as any }],
-          });
-        } else if (dismissBothModalsOnClose) {
-          // Dismiss both modals (e.g., from export restriction upgrade)
-          logger.debug('Dismissing both modals for export restriction upgrade, navigating to UserInput');
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'UserInput' as any }],
-          });
-        } else if (source === 'repeat_options' || source === 'calendar_upgrade_prompt' || source === 'repeat_upgrade_prompt' || source === 'calendar_sync') {
-          // Navigate to UserInput screen
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'UserInput' as any }],
-          });
-        } else {
-          // Navigate to UserInput screen
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'UserInput' as any }],
-          });
-        }
-      } else if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
+      if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
         // In onboarding flow or when skipNotificationPreference is false, navigate to notification setup
         logger.debug('Navigating to notification setup for onboarding flow');
-        (navigation as any).navigate('OnboardingNotificationSetup', { userType: 'paid' });
+        navigateToNotificationSetup('paid');
       } else {
-        // Navigate to UserInput screen
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'UserInput' as any }],
-        });
+        // The purchase success modal CTA is the intentional "Process another moment" path.
+        resetToUserInput();
       }
     }, 100);
-  }, [navigation, isUpgradeMode, routeParams]);
+  }, [navigateToNotificationSetup, resetToUserInput, routeParams]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
@@ -729,44 +720,32 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       }
     }
 
-    // Check if we came from a specific screen (e.g., UserProfile) - prioritize returning there
-    if (routeParams?.returnTo === 'UserProfile' || routeParams?.context === 'profile_settings') {
-      logger.info('Returning to user profile from feature gating');
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'UserInput' as any }],
-        });
-      }, 50);
-      return;
-    }
-
     // Default navigation based on context
-    logger.info('Navigating based on skipNotificationPreference');
+    logger.info('Dismissing sales offer based on origin context');
     setTimeout(() => {
-      if (isUpgradeMode) {
-        // In feature gating / upgrade mode, navigate to UserInput
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'UserInput' as any }],
-        });
+      if (routeParams?.dismissBehavior === 'userInput') {
+        resetToUserInput();
         return;
       }
 
-      if (!routeParams?.skipNotificationPreference) {
+      if (routeParams?.dismissBehavior === 'notificationSetup') {
+        navigateToNotificationSetup('freemium', { fromCancelledSales: true });
+        return;
+      }
+
+      if (routeParams?.dismissBehavior === 'goBack') {
+        goBackOrFallback('userInput');
+        return;
+      }
+
+      if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
         // During onboarding flow, go to notification setup
         logger.debug('Onboarding flow - navigating to notification setup');
-        (navigation as any).navigate('OnboardingNotificationSetup', {
-          userType: 'freemium',
-          fromCancelledSales: true,
-        });
-      } else {
-        // If skip pref set, navigate to UserInput
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'UserInput' as any }],
-        });
+        navigateToNotificationSetup('freemium', { fromCancelledSales: true });
+        return;
       }
+
+      goBackOrFallback('userInput');
     }, 100);
   };
 
@@ -2022,6 +2001,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   billing: isAnnual ? 'annual' : 'monthly',
                   skipNotificationPreference: routeParams?.skipNotificationPreference,
                   onboardingFlow: routeParams?.onboardingFlow,
+                  source: routeParams?.source,
+                  feature: routeParams?.feature,
+                  returnTo: routeParams?.returnTo,
+                  context: routeParams?.context,
+                  dismissBothModalsOnClose: routeParams?.dismissBothModalsOnClose,
+                  dismissBehavior: routeParams?.dismissBehavior,
                   isTrialEligible: true,
                 });
                 logger.info('Navigation to trial offer screen initiated successfully');

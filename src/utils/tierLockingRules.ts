@@ -224,8 +224,11 @@ export const PLANNING_LOCK_RULES = {
   seeker: true,           // Future planning locked
   free_trial: false,      // Future planning allowed
   spark: false,           // Future planning allowed
+  spark_annual: false,    // Future planning allowed
   growth: false,          // Future planning allowed
+  growth_annual: false,   // Future planning allowed
   transformation: false,  // Future planning allowed
+  transformation_annual: false, // Future planning allowed
 } as Record<SubscriptionTier, boolean>;
 
 // Planning usage messages per tier
@@ -233,8 +236,11 @@ export const PLANNING_USAGE_MESSAGES = {
   seeker: 'Future Planning Locked',
   free_trial: 'Future Planning Available',
   spark: 'Future Planning Available',
+  spark_annual: 'Future Planning Available',
   growth: 'Future Planning Available',
+  growth_annual: 'Future Planning Available',
   transformation: 'Future Planning Available',
+  transformation_annual: 'Future Planning Available',
 } as Record<SubscriptionTier, string>;
 
 // Planning upgrade messages by context
@@ -262,6 +268,88 @@ export const PLANNING_UPGRADE_MESSAGES = {
     family: '',
   },
 } as Record<'onboarding' | 'inApp', Record<SubscriptionTier, string>>;
+
+const SUBSCRIPTION_TIER_ALIASES: Record<string, SubscriptionTier> = {
+  seeker: 'seeker',
+  free: 'seeker',
+  basic: 'seeker',
+  free_trial: 'free_trial',
+  trial: 'free_trial',
+  spark: 'spark',
+  spark_annual: 'spark_annual',
+  growth: 'growth',
+  growth_annual: 'growth_annual',
+  transformation: 'transformation',
+  transformation_annual: 'transformation_annual',
+  premium: 'transformation',
+  premium_annual: 'transformation_annual',
+};
+
+function normalizePlanningTierInput(tier: unknown): SubscriptionTier | null {
+  if (typeof tier !== 'string' || !tier.trim()) {
+    return null;
+  }
+
+  const normalized = tier
+    .toLowerCase()
+    .trim()
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_month(ly)?$/, '');
+
+  return SUBSCRIPTION_TIER_ALIASES[normalized] || null;
+}
+
+/**
+ * Resolve the tier used for planning gates. Trial users inherit their chosen
+ * plan's unlocks; if the chosen plan is missing, the trial itself is unlocked.
+ */
+export function getEffectivePlanningTier(
+  subscription?: {
+    tier?: unknown;
+    subscription_tier?: unknown;
+    trial_chosen_tier?: unknown;
+  } | null
+): SubscriptionTier {
+  const tier = normalizePlanningTierInput(subscription?.tier ?? subscription?.subscription_tier) || 'seeker';
+
+  if (tier !== 'free_trial') {
+    return tier;
+  }
+
+  return normalizePlanningTierInput(subscription?.trial_chosen_tier) || 'free_trial';
+}
+
+function toLocalDateKey(date: Date | string): string | null {
+  if (typeof date === 'string') {
+    const dateKey = date.includes('T') ? date.split('T')[0] : date;
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateKey) ? dateKey : null;
+  }
+
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Compares only local calendar days, so a future evening UTC offset cannot
+ * accidentally gate today's local journal entry.
+ */
+export function isFuturePlanningDate(date: Date | string): boolean {
+  const targetDate = toLocalDateKey(date);
+  const today = toLocalDateKey(new Date());
+
+  if (!targetDate || !today) {
+    return false;
+  }
+
+  return targetDate > today;
+}
 
 /**
  * Check if future planning is locked for a tier

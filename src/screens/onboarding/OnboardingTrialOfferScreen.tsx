@@ -30,6 +30,8 @@ import { logger } from '../../utils/logger';
 import { notificationService } from '../../services/notificationService';
 import { useQueryClient } from '@tanstack/react-query';
 
+type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
+
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
@@ -55,7 +57,7 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params passed from sales offer screen
   // If user selected transformation + annual in sales offer, trial will default to that
   // But user can change it via "Change Plan" button
-  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean; isTrialEligible?: boolean } | undefined;
+  const routeParams = route?.params as { selectedTierId?: string; billing?: 'annual' | 'monthly'; skipNotificationPreference?: boolean; closeAllOnDismiss?: boolean; returnTo?: string; context?: string; onboardingFlow?: boolean; source?: string; feature?: string; dismissBothModalsOnClose?: boolean; dismissBehavior?: OfferDismissBehavior; isTrialEligible?: boolean } | undefined;
   const initialTierId: string = routeParams?.selectedTierId || 'growth'; // Use sales offer selection or default to growth
   const initialBilling: 'annual' | 'monthly' = routeParams?.billing || 'monthly'; // Default to monthly if not provided
 
@@ -189,8 +191,37 @@ const OnboardingTrialOfferScreen = () => {
 
     logger.debug('Navigation context determined', { fromUserProfile, dismissBothModalsOnClose });
 
+    if (routeParams?.dismissBehavior === 'goBack') {
+      logger.debug('Closing trial offer with goBack dismiss behavior');
+      const didPop = safelyPopScreens(2);
+      if (!didPop) {
+        if (routeParams?.skipNotificationPreference) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'UserInput' as any }],
+          });
+        } else {
+          (navigation as any).navigate('OnboardingNotificationSetup', {
+            userType: 'freemium',
+            fromCancelledTrial: true,
+            onboardingFlow: true,
+          });
+        }
+      }
+    } else if (routeParams?.dismissBehavior === 'userInput') {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'UserInput' as any }],
+      });
+    } else if (routeParams?.dismissBehavior === 'notificationSetup') {
+      (navigation as any).navigate('OnboardingNotificationSetup', {
+        userType: 'freemium',
+        fromCancelledTrial: true,
+        onboardingFlow: true,
+      });
+    }
     // If from user profile with dismissBothModalsOnClose flag, dismiss all modals
-    if (fromUserProfile && dismissBothModalsOnClose) {
+    else if (fromUserProfile && dismissBothModalsOnClose) {
       logger.debug('Closing from user profile - dismissing both modals', { fromUserProfile, dismissBothModalsOnClose });
       safelyPopScreens(2);
     }

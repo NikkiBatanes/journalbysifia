@@ -603,16 +603,12 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         testModeTrialChosenTier: isTestMode ? currentTrialPlanTier : undefined,
         testModeBillingCycle: isTestMode ? currentTrialBillingCycle : undefined,
         testModeHasEverStartedTrial: isTestMode ? (testModeHasUsedTrial ?? isTrialUser) : undefined,
+        dismissBehavior: 'goBack',
       };
 
       onClose();
-      // Use navigation.reset to avoid modal stacking issues
-      // This replaces the entire navigation stack with just the sales offer screen
       setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'OnboardingSalesOffer' as any, params }],
-        });
+        navigation.navigate('OnboardingSalesOffer' as any, params);
       }, 300);
     } else {
       onClose();

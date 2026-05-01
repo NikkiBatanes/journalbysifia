@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { View, StyleSheet, StatusBar, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
@@ -8,6 +8,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateTimeBlock, useUpdateTimeBlock } from '../services/hooks/useTimeBlockData';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
+import { usePlanningGating } from '../hooks/usePlanningGating';
 
 interface RouteParams {
   selectedDate?: string;
@@ -26,12 +27,19 @@ const TimeBlockEditorScreen: React.FC = () => {
   const selectedDate = params?.selectedDate || toLocalDateString(new Date());
   const existingTimeBlock = params?.existingTimeBlock;
   const autoFocus = params?.autoFocus || false;
+  const selectedDateForGate = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
+  const planningGating = usePlanningGating(selectedDateForGate, 'inApp');
 
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
 
   const handleSave = async (data: any) => {
     try {
+      if (planningGating.isLocked) {
+        planningGating.handleLockedAction();
+        return;
+      }
+
       // Create full datetime objects for the selected date
       let startDateTime: Date;
       let endDateTime: Date;
@@ -134,6 +142,7 @@ const TimeBlockEditorScreen: React.FC = () => {
           isLoading={false}
           autoFocus={autoFocus}
           existingTimeBlock={existingTimeBlock}
+          selectedDate={selectedDate}
           context="journal"
           dateString={new Date(selectedDate).toLocaleDateString('en-US', {
             weekday: 'long',

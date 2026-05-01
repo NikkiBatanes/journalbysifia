@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { isAfter, startOfDay, startOfToday } from 'date-fns';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import {
   checkPlanningAccess,
+  getEffectivePlanningTier,
   getPlanningAccessRules,
+  isFuturePlanningDate,
   type PlanningAccessCheck,
   type PlanningAccessRules,
 } from '../utils/tierLockingRules';
@@ -59,31 +60,13 @@ export const usePlanningGating = (
 
   // Determine if the selected date is in the future
   const isFutureDate = useMemo(() => {
-    const today = startOfToday();
-    const targetDay = startOfDay(selectedDate);
-    return isAfter(targetDay, today);
+    return isFuturePlanningDate(selectedDate);
   }, [selectedDate]);
 
   // Get current subscription tier
   const currentTier: SubscriptionTier = useMemo(() => {
-    if (!user || !subscription) {return 'seeker';}
-
-    // Map subscription status to tier
-    const tier = (subscription as any)?.tier || (subscription as any)?.subscription_tier;
-    switch (tier) {
-      case 'free_trial':
-        return 'free_trial';
-      case 'spark':
-        return 'spark';
-      case 'growth':
-        return 'growth';
-      case 'transformation':
-        return 'transformation';
-      // POST-LAUNCH: case 'family':
-      //   return 'family';
-      default:
-        return 'seeker';
-    }
+    if (!user) {return 'seeker';}
+    return getEffectivePlanningTier(subscription);
   }, [user, subscription]);
 
   // Get access rules and checks
@@ -116,6 +99,7 @@ export const usePlanningGating = (
         feature: 'future_planning',
         tier: currentTier,
         skipNotificationPreference: true,
+        dismissBehavior: 'goBack',
       });
     }
   }, [onUpgradeRequired, currentTier, navigation]);

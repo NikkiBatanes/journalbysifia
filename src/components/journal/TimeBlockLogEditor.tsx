@@ -62,11 +62,13 @@ interface TimeBlockLogEditorProps {
   autoFocus?: boolean;
   styles?: any;
   dateString?: string;
+  selectedDate?: Date | string;
   // Context to determine title/subtext: 'journal' for general journal, 'faithful-actions' for playbook action steps
   context?: 'journal' | 'faithful-actions';
   // Existing time block data for editing
   existingTimeBlock?: {
     id?: string;
+    selected_date?: string;
     title?: string;
     start_time?: string;
     end_time?: string;
@@ -803,6 +805,7 @@ function TimeBlockLogEditorInner(
     autoFocus = false,
     styles,
     existingTimeBlock,
+    selectedDate: initialSelectedDate,
     context = 'journal',
     // Unused props: initialContent, _subtaskId, _stepId, dateString
   } = props;
@@ -937,8 +940,26 @@ function TimeBlockLogEditorInner(
   const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
+  const resolvedInitialDate = useMemo(() => {
+    const dateSource = existingTimeBlock?.selected_date || initialSelectedDate;
+
+    if (dateSource instanceof Date) {
+      return dateSource;
+    }
+
+    if (typeof dateSource === 'string' && dateSource.trim()) {
+      const datePart = dateSource.includes('T') ? dateSource.split('T')[0] : dateSource;
+      const parsedDate = new Date(`${datePart}T00:00:00`);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+
+    return new Date();
+  }, [existingTimeBlock?.selected_date, initialSelectedDate]);
+
   // Date picker for faithful actions context
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(resolvedInitialDate);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Keyboard position state for FAB
@@ -979,6 +1000,10 @@ function TimeBlockLogEditorInner(
   useEffect(() => {
     setTempEndTime(endTime);
   }, [endTime]);
+
+  useEffect(() => {
+    setSelectedDate(resolvedInitialDate);
+  }, [resolvedInitialDate]);
 
   // Removed draft functionality
 
@@ -1618,9 +1643,9 @@ function TimeBlockLogEditorInner(
                       display="spinner"
                       textColor={Colors.hopeWhite}
                       themeVariant="dark"
-                      onChange={(event, selectedDate) => {
-                        if (selectedDate) {
-                          setEndRepeatDate(selectedDate);
+                      onChange={(_event, pickedDate) => {
+                        if (pickedDate) {
+                          setEndRepeatDate(pickedDate);
                         }
                       }}
                     />

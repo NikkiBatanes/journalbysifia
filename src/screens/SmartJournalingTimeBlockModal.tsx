@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Modal,
   Alert,
@@ -12,9 +12,16 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useNavigation } from '@react-navigation/native';
 import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
 import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
+import { useSubscription } from '../hooks/useSubscription';
+import {
+  checkPlanningAccess,
+  getEffectivePlanningTier,
+  isFuturePlanningDate,
+} from '../utils/tierLockingRules';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -47,8 +54,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 }) => {
 
   const { user } = useAuth();
+  const navigation = useNavigation();
+  const { subscription } = useSubscription();
   const queryClient = useQueryClient();
   const { handleAutoCheckStep } = useActionSteps();
+  const planningTier = useMemo(() => getEffectivePlanningTier(subscription), [subscription]);
 
   // Store the initial metadata to preserve it
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
@@ -92,9 +102,27 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const [hasSaved, setHasSaved] = useState(false);
   const [_pendingTimeBlockData, _setPendingTimeBlockData] = useState<{ timeBlockEntry: any } | null>(null); // Store data before DB save
   const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
+  const [temporarilyHiddenForUpgrade, setTemporarilyHiddenForUpgrade] = useState(false);
+  const shouldRestoreAfterUpgradeRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener?.('focus', () => {
+      if (shouldRestoreAfterUpgradeRef.current) {
+        shouldRestoreAfterUpgradeRef.current = false;
+        setTemporarilyHiddenForUpgrade(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   // Track visibility changes to detect when modal opens/closes
   useEffect(() => {
+    if (!visible) {
+      shouldRestoreAfterUpgradeRef.current = false;
+      setTemporarilyHiddenForUpgrade(false);
+    }
+
     if (visible && !prevVisible) {
       // Modal just opened
       setIsEditSession(!!existingTimeBlock);
@@ -222,6 +250,22 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         return;
       }
 
+      const planningAccess = checkPlanningAccess(planningTier, 'inApp');
+      if (isFuturePlanningDate(timeBlockData.date) && planningAccess.isLocked) {
+        shouldRestoreAfterUpgradeRef.current = true;
+        setTemporarilyHiddenForUpgrade(true);
+        setTimeout(() => {
+          (navigation as any).navigate('OnboardingSalesOffer', {
+            source: 'planning_lock',
+            feature: 'future_planning',
+            tier: planningTier,
+            skipNotificationPreference: true,
+            dismissBehavior: 'goBack',
+          });
+        }, 50);
+        return;
+      }
+
       // Build repeat rule for calendar sync
       const repeatRule = timeBlockData.repeatFrequency && timeBlockData.repeatFrequency !== 'never' ? {
         frequency: timeBlockData.repeatFrequency as 'daily' | 'weekly' | 'monthly' | 'yearly',
@@ -317,7 +361,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   return (
     <>
       <Modal
-        visible={visible}
+        visible={visible && !temporarilyHiddenForUpgrade}
         animationType="slide"
         transparent={false}
         onRequestClose={handleCancel}
@@ -337,6 +381,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             actionStepTitle={preservedActionStepTitle}
             isLoading={isLoading}
             existingTimeBlock={existingTimeBlock}
+            selectedDate={selectedDate}
             context="faithful-actions"
             dateString={new Date().toLocaleDateString('en-US', {
               weekday: 'long',

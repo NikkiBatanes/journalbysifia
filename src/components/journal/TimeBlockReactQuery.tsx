@@ -644,6 +644,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const addTimeBlock = async () => {
     if (!user) {return;}
 
+    if (planningGating.isLocked) {
+      planningGating.handleLockedAction();
+      return;
+    }
+
     if (!newBlock.title.trim()) {
       setShowTitleError(true);
       return;
@@ -1141,6 +1146,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setVisibleCount(3);
   }, [dateStr]);
 
+  const openTimeBlockEditor = (options?: { autoFocus?: boolean; existingTimeBlock?: any }) => {
+    if (planningGating.isLocked) {
+      planningGating.handleLockedAction();
+      return;
+    }
+
+    (navigation as any).navigate('TimeBlockEditor', {
+      selectedDate: dateStr,
+      ...options,
+    });
+  };
+
   const renderTimeBlock = (block: TimeBlockItem) => {
     const isExpanded = expandedNotes[block.id] || false; // Collapsed by default, expandable on tap
 
@@ -1162,10 +1179,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 style={styles.editActionBtn}
                 onPress={() => {
                   triggerSelectionHaptic();
-                  (navigation as any).navigate('TimeBlockEditor', {
-                    selectedDate: dateStr,
+                  openTimeBlockEditor({
                     existingTimeBlock: {
                       id: block.id,
+                      selected_date: block.selectedDate,
                       title: block.title,
                       start_time: block.startTime.toISOString(),
                       end_time: block.endTime.toISOString(),
@@ -1364,7 +1381,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       showAddButton={hasItems && !shouldShowAddingMode}
       onAdd={() => {
         triggerLightHaptic();
-        (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+        openTimeBlockEditor();
       }}
       isAdding={shouldShowAddingMode}
       variant={variant}
@@ -1402,7 +1419,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.emptyStateButton}
                   onPress={() => {
                     triggerLightHaptic();
-                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr, autoFocus: true });
+                    openTimeBlockEditor({ autoFocus: true });
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Begin planning your day"
@@ -1422,7 +1439,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.emptyStateButton}
                   onPress={() => {
                     triggerLightHaptic();
-                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                    openTimeBlockEditor();
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit yesterday's time blocks"
@@ -1442,7 +1459,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.emptyStateButton}
                   onPress={() => {
                     triggerLightHaptic();
-                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                    openTimeBlockEditor();
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit this day's time blocks"
@@ -1462,7 +1479,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.emptyStateButton}
                   onPress={() => {
                     triggerLightHaptic();
-                    (navigation as any).navigate('TimeBlockEditor', { selectedDate: dateStr });
+                    openTimeBlockEditor();
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="Plan time blocks for this future day"

@@ -1,5 +1,7 @@
 import { Playbook } from '../interfaces/playbook';
 
+type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
+
 export type RootStackParamList = {
   // Auth Stack
   Auth: { screen: 'Login' | 'Register' } | undefined;
@@ -39,6 +41,7 @@ export type RootStackParamList = {
     feature?: string;
     tier?: string;
     skipNotificationPreference?: boolean;
+    dismissBehavior?: OfferDismissBehavior;
     currentTrialChosenTier?: string;
     profileTrialViewPlans?: boolean;
     testModeTier?: string;
@@ -53,13 +56,17 @@ export type RootStackParamList = {
   } | undefined;
   // RE-ENABLED: Trial Offer screen for trial flow navigation
   OnboardingTrialOffer: {
+    selectedTierId?: string;
+    billing?: 'monthly' | 'annual';
     source?: string;
     feature?: string;
     skipNotificationPreference?: boolean;
     returnTo?: string;
     context?: string;
     dismissBothModalsOnClose?: boolean;
+    dismissBehavior?: OfferDismissBehavior;
     onboardingFlow?: boolean;
+    isTrialEligible?: boolean;
   } | undefined;
   OnboardingPaymentConfirmation: {
     userType: 'trial' | 'paid' | 'freemium';

@@ -850,13 +850,19 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }
     }
 
+    // Shuffle so a random incomplete action gets the top score each time
+    for (let i = incompleteActions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [incompleteActions[i], incompleteActions[j]] = [incompleteActions[j], incompleteActions[i]];
+    }
+
     // Create notifications for each incomplete action
     for (const { action, actionIndex } of incompleteActions) {
       const actionText = notificationText(action.text);
       candidates.push(createCandidate({
         type: 'playbook_faithful_action',
         timeWindow: 'midday',
-        score: 84 - incompleteActions.indexOf({ action, actionIndex }) * 5, // Decrease score for later actions
+        score: 84 - incompleteActions.indexOf({ action, actionIndex }) * 5,
         dedupeKey: buildDedupeKey('playbook_faithful_action', ongoingPlaybook.id, action.id, currentDate),
         deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions/${actionIndex}`,
         sourceType: 'action_step',
