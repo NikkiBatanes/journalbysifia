@@ -27,6 +27,8 @@ import { runOnJS } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
 import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
@@ -142,6 +144,9 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   onEditUserInput,
   insets,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [showUserInput, setShowUserInput] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
 
@@ -195,7 +200,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                style={styles.userInputText}
+                style={[styles.userInputText, { fontFamily }]}
               />
             ) : (
               <ThemedText style={styles.userInputText} selectable={true}>{userInput}</ThemedText>
@@ -211,7 +216,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
             editable={false}
             multiline={true}
             scrollEnabled={false}
-            style={[styles.title, { fontWeight: '500' as any }]}
+            style={[styles.title, { fontWeight: '500' as any, fontFamily }]}
           />
         ) : (
           <ThemedText weight="medium" style={styles.title} selectable={true}>{title}</ThemedText>
@@ -227,7 +232,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }]}
+              style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }, { fontFamily }]}
             />
           ) : (
             <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined} selectable={true}>
@@ -245,7 +250,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={styles.transitionLineText}
+              style={[styles.transitionLineText, { fontFamily }]}
             />
           ) : (
             <ThemedText style={styles.transitionLineText} selectable={true}>{transitionLine}</ThemedText>
@@ -268,6 +273,9 @@ interface TruthStepProps {
 const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 
 const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _onNext, insets }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const personalized = replaceAllNamePlaceholders(text, { displayName: userName });
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
@@ -312,7 +320,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  style={styles.bodyText}
+                  style={[styles.bodyText, { fontFamily }]}
                 />
               ) : (
                 <ThemedText style={styles.bodyText} selectable={true}>{para}</ThemedText>
@@ -371,6 +379,9 @@ interface ScriptureStepProps {
 }
 
 const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext: _onNext, insets }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [showCopyright, setShowCopyright] = useState(false);
   const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
@@ -393,7 +404,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={[styles.scriptureRef, { fontWeight: '600' as any }]}
+              style={[styles.scriptureRef, { fontWeight: '600' as any, fontFamily }]}
             />
           ) : (
             <ThemedText weight="semiBold" style={styles.scriptureRef} selectable={true}>
@@ -409,7 +420,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    style={[styles.versionText, { fontWeight: '600' as any }]}
+                    style={[styles.versionText, { fontWeight: '600' as any, fontFamily }]}
                   />
                 ) : (
                   <ThemedText weight="semiBold" style={styles.versionText} selectable={true}>
@@ -434,7 +445,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             editable={false}
             multiline={true}
             scrollEnabled={false}
-            style={[styles.scriptureText, { fontWeight: '500' as any }]}
+            style={[styles.scriptureText, { fontWeight: '500' as any, fontFamily }]}
           />
         ) : (
           <ThemedText weight="medium" style={styles.scriptureText} selectable={true}>
@@ -458,7 +469,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={styles.reflectionNote}
+              style={[styles.reflectionNote, { fontFamily }]}
             />
           ) : (
             <ThemedText key={i} style={styles.reflectionNote} selectable={true}>
@@ -594,6 +605,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   onJournalExpanded,
   onJournalCollapseComplete,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [committedSteps, setCommittedSteps] = useState<Record<number, boolean>>(persistedCommittedSteps);
   const [journalText, setJournalText] = useState('');
   const [journalSaved, setJournalSaved] = useState(false);
@@ -912,7 +926,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                style={styles.actionIntro}
+                style={[styles.actionIntro, { fontFamily }]}
               />
             ) : (
               <ThemedText style={styles.actionIntro} selectable={true}>{intro}</ThemedText>
@@ -927,7 +941,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={styles.actionCounter}
+              style={[styles.actionCounter, { fontFamily }]}
             />
           ) : (
             <ThemedText style={styles.actionCounter} selectable={true}>
@@ -964,7 +978,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                style={[styles.actionTitle, { fontWeight: '600' as any }]}
+                style={[styles.actionTitle, { fontWeight: '600' as any, fontFamily }]}
               />
             ) : (
               <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
@@ -982,7 +996,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    style={styles.bodyLineQuote}
+                    style={[styles.bodyLineQuote, { fontFamily }]}
                   />
                 ) : (
                   <ThemedText key={idx} style={styles.bodyLineQuote} selectable={true}>
@@ -998,7 +1012,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    style={styles.bodyLineIntro}
+                    style={[styles.bodyLineIntro, { fontFamily }]}
                   />
                 ) : (
                   <ThemedText key={idx} style={styles.bodyLineIntro} selectable={true}>
@@ -1021,7 +1035,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                         editable={false}
                         multiline={true}
                         scrollEnabled={false}
-                        style={[styles.choicePillText, isSelected && styles.choicePillTextSelected, isSelected && { fontWeight: '600' as any }]}
+                        style={[styles.choicePillText, isSelected && styles.choicePillTextSelected, isSelected && { fontWeight: '600' as any }, { fontFamily }]}
                       />
                     ) : (
                       <ThemedText
@@ -1043,7 +1057,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    style={[styles.bodyLinePunch, { fontWeight: '500' as any }]}
+                    style={[styles.bodyLinePunch, { fontWeight: '500' as any, fontFamily }]}
                   />
                 ) : (
                   <ThemedText key={idx} weight="medium" style={styles.bodyLinePunch} selectable={true}>
@@ -1058,7 +1072,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  style={styles.actionBodyLine}
+                  style={[styles.actionBodyLine, { fontFamily }]}
                 />
               ) : (
                 <ThemedText key={idx} style={styles.actionBodyLine} selectable={true}>
@@ -1080,7 +1094,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                       editable={false}
                       multiline={true}
                       scrollEnabled={false}
-                      style={styles.exampleText}
+                      style={[styles.exampleText, { fontFamily }]}
                     />
                   ) : (
                     <ThemedText style={styles.exampleText} selectable={true}>{exampleText}</ThemedText>
@@ -1278,6 +1292,9 @@ interface PrayerStepProps {
 }
 
 const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbookId, userId, insets }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [hasPrayed, setHasPrayed] = useState(persistedHasPrayed);
   const [showButton, setShowButton] = useState(persistedHasPrayed); // show immediately if already prayed
   const fadeAnim = useRef(new Animated.Value(persistedHasPrayed ? 1 : 0)).current;
@@ -1355,7 +1372,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  style={styles.prayerText}
+                  style={[styles.prayerText, { fontFamily }]}
                 />
               ) : (
                 <ThemedText style={styles.prayerText} selectable={true}>{line}</ThemedText>
@@ -1374,7 +1391,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    style={styles.prayerText}
+                    style={[styles.prayerText, { fontFamily }]}
                   />
                 ) : (
                   <ThemedText key={`closing-${i}`} style={styles.prayerText} selectable={true}>{line}</ThemedText>
@@ -1440,6 +1457,9 @@ interface WordToSpeakStepProps {
 }
 
 const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, insets }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const [hasRead, setHasRead] = useState(persistedHasRead);
   const [showButton, setShowButton] = useState(persistedHasRead); // show immediately if already read
   const fadeAnim = useRef(new Animated.Value(persistedHasRead ? 1 : 0)).current;
@@ -1500,7 +1520,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  style={[styles.wordText, { fontWeight: '500' as any }]}
+                  style={[styles.wordText, { fontWeight: '500' as any, fontFamily }]}
                 />
               ) : (
                 <ThemedText weight="medium" style={styles.wordText} selectable={true}>
