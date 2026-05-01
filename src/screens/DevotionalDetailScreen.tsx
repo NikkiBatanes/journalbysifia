@@ -1407,7 +1407,12 @@ const styles = StyleSheet.create({
   exportButton: {
     position: 'absolute',
     right: 16,
-    padding: 8,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
   },
   loadingContainer: {
     flex: 1,

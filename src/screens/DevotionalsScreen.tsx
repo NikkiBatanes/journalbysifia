@@ -504,7 +504,10 @@ const DevotionalsScreen = () => {
       <View style={styles.devotionalCardContainer}>
         <TouchableOpacity
           style={styles.devotionalCard}
-          onPress={() => handleDevotionalPress(item)}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            handleDevotionalPress(item);
+          }}
           activeOpacity={1}
         >
             <View style={styles.cardContent}>
