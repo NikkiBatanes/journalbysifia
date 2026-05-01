@@ -1543,9 +1543,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               // No extra line for transformation as requested (no unlocked text)
               processed.push(...tier.features.slice(1));
             } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-              processed.push('Unlimited playbooks each month');
-              processed.push('Unlimited devotionals each month');
-              // Do not add any unlocked duration text
+              processed.push('60 playbooks each month');
+              processed.push('60 devotionals each month');
+              processed.push('Access all devotional durations (1-7 days)');
               processed.push(...tier.features.slice(1));
             } else {
               processed.push(...tier.features);

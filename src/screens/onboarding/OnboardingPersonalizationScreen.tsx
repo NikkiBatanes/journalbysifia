@@ -16,7 +16,6 @@ import { onboardingService } from '../../services/onboardingService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unifiedGenerationService } from '../../services/unifiedGenerationService';
 import { faithPointsService } from '../../services/faithPointsService';
-import { subscriptionService } from '../../services/subscriptionService';
 import type { Playbook } from '../../interfaces/playbook';
 import { Alert } from 'react-native';
 import { triggerSuccessHaptic, triggerErrorHaptic } from '../../utils/haptics';
@@ -1079,11 +1078,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           Logger.error('[OnboardingPersonalizationScreen] Failed to award faith points', pointsError as Error);
         }
 
-        try {
-          await subscriptionService.trackUsage(user.id, 'playbook', 0, true);
-        } catch (usageError) {
-          Logger.error('[OnboardingPersonalizationScreen] Failed to track usage', usageError as Error);
-        }
       }
 
       generationAbortRef.current = true;

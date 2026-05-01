@@ -525,8 +525,7 @@ const OnboardingTrialOfferScreen = () => {
           // - trial_start_date: now
           // - trial_end_date: now + 3 days
           // - trial_chosen_tier: selectedTierId (e.g., 'transformation', 'growth', etc.)
-          // - playbooks_limit: 2
-          // - devotionals_limit: 2
+          // - playbooks_limit/devotionals_limit based on the selected trial tier
           await NewSubscriptionService.startFreeTrial({
             user_id: user.id,
             duration_days: 3,
@@ -810,9 +809,9 @@ const OnboardingTrialOfferScreen = () => {
       case 'growth':
         return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
       case 'spark':
-        return 'You get 10 playbooks, 10 devotionals, and 1,3-day devotionals.';
+        return 'You get 5 playbooks, 5 devotionals, and 1,3-day devotionals.';
       case 'transformation':
-        return 'You get 15 playbooks, 15 devotionals, and 1,3,5 & 7-day devotionals.';
+        return 'You get 25 playbooks, 25 devotionals, and 1,3,5 & 7-day devotionals.';
       default:
         return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
     }
