@@ -70,6 +70,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isProcessingTap, setIsProcessingTap] = useState(false);
   // POST-LAUNCH: const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
 
   // Fetch notifications

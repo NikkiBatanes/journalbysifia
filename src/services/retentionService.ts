@@ -6,6 +6,10 @@
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
+// FEATURE FLAG: Disable retention notifications until discounts are set up in Apple Store/subscription backend
+// Set this to true to enable retention notifications once discounts are configured
+const RETENTION_NOTIFICATIONS_ENABLED = false;
+
 export interface RetentionOffer {
   discount: number; // percentage discount
   duration: 'first_month' | 'first_year';
@@ -88,6 +92,15 @@ export class RetentionService {
    * Check if user should see retention modal for given event
    */
   async checkRetentionTrigger(userId: string, eventType: 'trial_declined' | 'trial_cancelled' | 'subscription_cancelled'): Promise<boolean> {
+    // Check feature flag - disable retention notifications until discounts are configured
+    if (!RETENTION_NOTIFICATIONS_ENABLED) {
+      Logger.info('Retention notifications disabled via feature flag', {
+        component: 'retentionService',
+        eventType,
+      });
+      return false;
+    }
+
     try {
       // Check if user already saw modal for this event in last 30 days
       const thirtyDaysAgo = new Date();
