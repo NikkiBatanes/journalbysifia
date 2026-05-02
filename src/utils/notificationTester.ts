@@ -84,8 +84,8 @@ export class NotificationTester {
       getPlaybooks(userId).catch(() => [] as any[]),
       supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
       supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').order('created_at', { ascending: true }).limit(10),
-      // Tester: no 7-day minimum. Fetch broad set, filter in JS (same logic as resolver).
-      supabase.from('prayers').select('id, content, person_name, is_prayer_request, prayer_type, journal_category, metadata, created_at').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(10),
+      // Tester: no 7-day minimum. Fetch broad set, filter in JS (same logic as resolver). Include selected_date.
+      supabase.from('prayers').select('id, content, person_name, is_prayer_request, prayer_type, journal_category, metadata, created_at, selected_date').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(10),
       supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
     ]);
 
@@ -125,16 +125,22 @@ export class NotificationTester {
 
     // Action steps live in a separate table — fetch them using playbook IDs
     let actionText = '';
+    let actionStepPlaybookId: string | undefined;
+    let actionStepIndex: number | undefined;
     if (playbooks.length > 0) {
       const ids = playbooks.map((pb: any) => pb.id);
       const { data: stepsData } = await supabase
         .from('playbook_action_steps')
-        .select('text, order_index')
+        .select('id, text, order_index, playbook_id, playbook_sub_tasks(text, completed)')
         .in('playbook_id', ids)
         .order('order_index', { ascending: true })
         .limit(10);
       const firstStep = (stepsData || []).find((s: any) => s.text?.trim());
-      if (firstStep) {actionText = strip(String(firstStep.text));}
+      if (firstStep) {
+        actionText = strip(String(firstStep.text));
+        actionStepPlaybookId = firstStep.playbook_id;
+        actionStepIndex = firstStep.order_index;
+      }
     }
 
     const activeDevotional = devotionals.find((d: any) => {
@@ -145,6 +151,7 @@ export class NotificationTester {
     const ctx: Record<string, any> = {};
 
     if (activeDevotional) {
+      ctx._devotionalId = activeDevotional.id;
       const days: any[] = Array.isArray(activeDevotional.days) ? activeDevotional.days : [];
       const dayObj = days.find((d: any) => d?.completed !== true) || days[days.length - 1] || days[0];
       if (dayObj) {
@@ -161,15 +168,23 @@ export class NotificationTester {
     if (pbWithWords) {
       const words = getWords(pbWithWords);
       ctx.wordToSpeak = words[new Date().getDate() % words.length];
+      ctx._playbookId = pbWithWords.id;
     }
 
-    if (actionText) {ctx.actionText = actionText;}
+    if (actionText) {
+      ctx.actionText = actionText;
+      ctx._playbookId = actionStepPlaybookId;
+      ctx._actionIndex = actionStepIndex;
+    }
 
     // Store playbook verse separately so it isn't overwritten by devotional verse
     if (pbWithVerse) {
       const bv = getVerse(pbWithVerse);
       ctx._playbookVerseReference = bv.reference;
       ctx._playbookVerseText = bv.text;
+      if (!ctx._playbookId) {
+        ctx._playbookId = pbWithVerse.id;
+      }
     }
 
     // Reflection lines from bibleVerseReflection (column or piggybacked into bible_verse.reflection)
@@ -206,6 +221,7 @@ export class NotificationTester {
       ctx._unansweredPrayerText = strip(safeStr(up.content));
       ctx._unansweredPrayerPersonName = safeStr(up.person_name) || undefined;
       ctx._unansweredPrayerIsRequest = up.is_prayer_request ?? false;
+      ctx._unansweredPrayerSelectedDate = up.selected_date;
     }
 
     if (sub) {
@@ -245,6 +261,136 @@ export class NotificationTester {
     ].join(' | ');
 
     return { ctx, debug };
+  }
+
+  /**
+   * Generate the appropriate deep link for a notification type based on context.
+   * Mirrors the deep link generation logic in notificationCandidateResolver.ts.
+   */
+  private static generateDeepLinkForType(
+    type: SmartNotificationType,
+    ctx: Record<string, any>,
+  ): string {
+    switch (type) {
+      // Devotional deep links
+      case 'devotional_day_ready':
+      case 'devotional_prayer_prompt':
+      case 'devotional_verse_revisit':
+        if (ctx._devotionalId) {
+          const dayNumber = ctx.dayNumber || 1;
+          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}`;
+        }
+        return 'sifia://devotionals/new';
+
+      case 'devotional_reflection_prompt':
+        if (ctx._devotionalId) {
+          const dayNumber = ctx.dayNumber || 1;
+          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}/reflect`;
+        }
+        return 'sifia://devotionals/new';
+
+      case 'devotional_completed_reflection':
+        if (ctx._devotionalId) {
+          return `sifia://devotionals/${ctx._devotionalId}`;
+        }
+        return 'sifia://devotionals/new';
+
+      // Playbook deep links
+      case 'playbook_faithful_action':
+        if (ctx._playbookId && ctx._actionIndex !== undefined) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/actions/${ctx._actionIndex}`;
+        }
+        return 'sifia://playboards/new';
+
+      case 'playbook_actions_complete':
+      case 'playbook_actions_milestone':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}`;
+        }
+        return 'sifia://playbooks/new';
+
+      case 'playbook_verse_revisit':
+      case 'playbook_verse_reflection':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/verse`;
+        }
+        return 'sifia://playbooks/new';
+
+      case 'playbook_prayer_revisit':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/prayer`;
+        }
+        return 'sifia://playbooks/new';
+
+      case 'playbook_word_to_speak':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/words`;
+        }
+        return 'sifia://playbooks/new';
+
+      case 'playbook_to_devotional':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/devotional`;
+        }
+        return 'sifia://devotionals/new';
+
+      // Prayer deep links
+      case 'prayer_request_care':
+        return 'sifia://journal/prayer?tab=requests';
+
+      case 'prayer_answered_check':
+        if (ctx._unansweredPrayerId) {
+          const selectedDate = ctx._unansweredPrayerSelectedDate
+            ? `&selectedDate=${encodeURIComponent(ctx._unansweredPrayerSelectedDate)}`
+            : '';
+          return `sifia://journal/prayer?id=${ctx._unansweredPrayerId}${selectedDate}`;
+        }
+        return 'sifia://journal/prayer';
+
+      case 'prayer_today':
+        return 'sifia://journal/prayer';
+
+      // Journal deep links
+      case 'journal_todays_focus':
+        return 'sifia://journal/focus';
+
+      case 'journal_todo':
+        return 'sifia://journal/todos';
+
+      case 'journal_gratitude':
+        return 'sifia://journal/gratitude';
+
+      case 'journal_todays_win':
+        return 'sifia://journal/win';
+
+      case 'journal_looking_forward':
+        return 'sifia://journal/looking-forward';
+
+      case 'heart_journal_prompt':
+        if (ctx.heartJournalTitle) {
+          return `sifia://journal/heart?title=${encodeURIComponent(ctx.heartJournalTitle)}`;
+        }
+        return 'sifia://journal';
+
+      // Subscription/upgrade deep links
+      case 'create_first_devotional':
+      case 'create_devotional':
+      case 'usage_room_devotional':
+        return 'sifia://devotionals/new';
+
+      case 'create_playbook':
+      case 'usage_room_playbook':
+        return 'sifia://playbooks/new';
+
+      case 'content_refresh_wait':
+        return 'sifia://journal';
+
+      case 'upgrade_room':
+        return 'sifia://subscription/upgrade';
+
+      default:
+        return 'sifia://dashboard';
+    }
   }
 
   /**
@@ -311,6 +457,8 @@ export class NotificationTester {
     const dataRequired: Partial<Record<SmartNotificationType, string>> = {
       playbook_word_to_speak: 'wordToSpeak',
       playbook_faithful_action: 'actionText',
+      playbook_actions_complete: 'title',
+      playbook_actions_milestone: 'title',
       playbook_verse_revisit: '_playbookVerseText',
       playbook_verse_reflection: '_playbookReflectionLine',
       devotional_day_ready: 'dayNumber',
@@ -330,11 +478,12 @@ export class NotificationTester {
     }
 
     const copy = buildSmartNotificationCopy(type, resolvedCtx);
+    const deepLink = NotificationTester.generateDeepLinkForType(type, resolvedCtx);
 
     await pushNotificationService.scheduleLocalNotification({
       title: copy.title,
       message: copy.message,
-      data: { deep_link: 'sifia://dashboard', test: true, notification_type: type },
+      data: { deep_link: deepLink, test: true, notification_type: type },
       priority: 'high',
     }, new Date(Date.now() + 2000));
 
@@ -732,6 +881,114 @@ export class NotificationTester {
       return count;
     } catch (error) {
       Logger.error('Failed to test multiple faithful actions', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test playbook actions complete notification
+   */
+  static async testPlaybookActionsComplete(userId: string): Promise<number> {
+    try {
+      Logger.info('🧪 Testing playbook actions complete notification', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { getPlaybooks } = await import('../services/modernPlaybookApi');
+
+      const playbooks = await getPlaybooks(userId).catch(() => []);
+      const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
+
+      if (!ongoingPlaybook) {
+        Logger.warn('No ongoing playbook found', { component: 'NotificationTester' });
+        return 0;
+      }
+
+      const copy = buildSmartNotificationCopy('playbook_actions_complete', { title: ongoingPlaybook.title });
+
+      await pushNotificationService.scheduleLocalNotification({
+        title: copy.title,
+        message: copy.message,
+        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}`, test: true, notification_type: 'playbook_actions_complete' },
+        priority: 'high',
+      }, new Date(Date.now() + 1000));
+
+      const count = 1;
+
+      Logger.info(`✅ Tested ${count} playbook actions complete notifications`, {
+        component: 'NotificationTester',
+      });
+
+      return count;
+    } catch (error) {
+      Logger.error('Failed to test playbook actions complete', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test playbook actions milestone notification
+   */
+  static async testPlaybookActionsMilestone(userId: string): Promise<number> {
+    try {
+      Logger.info('🧪 Testing playbook actions milestone notification', {
+        component: 'NotificationTester',
+        userId,
+      });
+
+      const { supabase } = await import('../services/supabaseClient');
+      const { getPlaybooks } = await import('../services/modernPlaybookApi');
+
+      const playbooks = await getPlaybooks(userId).catch(() => []);
+      const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
+
+      if (!ongoingPlaybook) {
+        Logger.warn('No ongoing playbook found', { component: 'NotificationTester' });
+        return 0;
+      }
+
+      const ids = [ongoingPlaybook.id];
+      const { data: stepsData } = await supabase
+        .from('playbook_action_steps')
+        .select('id, completed')
+        .in('playbook_id', ids);
+
+      const allSteps = stepsData || [];
+      const completedCount = allSteps.filter((step: any) => step.completed === true).length;
+      const totalCount = allSteps.length;
+
+      if (totalCount === 0 || completedCount < 4) {
+        Logger.warn('Not enough completed actions for milestone', { component: 'NotificationTester', completedCount, totalCount });
+        return 0;
+      }
+
+      const copy = buildSmartNotificationCopy('playbook_actions_milestone', {
+        title: ongoingPlaybook.title,
+        completedCount,
+        totalCount,
+      });
+
+      await pushNotificationService.scheduleLocalNotification({
+        title: copy.title,
+        message: copy.message,
+        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}`, test: true, notification_type: 'playbook_actions_milestone' },
+        priority: 'high',
+      }, new Date(Date.now() + 1000));
+
+      const count = 1;
+
+      Logger.info(`✅ Tested ${count} playbook actions milestone notifications`, {
+        component: 'NotificationTester',
+      });
+
+      return count;
+    } catch (error) {
+      Logger.error('Failed to test playbook actions milestone', error as Error, {
         component: 'NotificationTester',
       });
       throw error;

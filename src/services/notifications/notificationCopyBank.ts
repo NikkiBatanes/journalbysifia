@@ -138,7 +138,7 @@ export function buildSmartNotificationCopy(
     case 'playbook_actions_complete':
       return {
         title: 'Faithful actions complete',
-        message: compact('You finished every faithful action in "{title}". One step at a time, you kept going.'),
+        message: compact(`You finished every faithful action in "${context.title}". One step at a time, you kept going.`),
       };
 
     case 'playbook_actions_milestone': {
@@ -146,7 +146,7 @@ export function buildSmartNotificationCopy(
       const total = context.totalCount || 0;
       return {
         title: 'Faithful actions progress',
-        message: compact(`You've completed ${completed} of ${total} faithful actions in "{title}". Keep taking one faithful step at a time.`),
+        message: compact(`You've completed ${completed} of ${total} faithful actions in "${context.title}". Keep taking one faithful step at a time.`),
       };
     }
 
