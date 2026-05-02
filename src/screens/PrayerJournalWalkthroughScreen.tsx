@@ -73,10 +73,10 @@ const PRAYER_PATHS: PrayerPath[] = [
 
 // ACTS Prayer Steps
 const ACTS_STEPS = [
-  { key: 'confession', label: 'CONFESSION', title: 'Confession', description: 'Tell the truth about what you need to lay down.', placeholder: 'I confess that...' },
-  { key: 'adoration', label: 'ADORATION', title: 'Adoration', description: 'Name who God is in the middle of this.', placeholder: 'I praise You...' },
-  { key: 'supplication', label: 'SUPPLICATION', title: 'Supplication', description: 'Ask for what you need from the Lord.', placeholder: 'I ask for Your help with...' },
-  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.', placeholder: 'I thank You for...' },
+  { key: 'confession', label: 'CONFESSION', title: 'Confession', description: 'Bring before God what you need to confess, release, or lay down.', placeholder: 'I confess that...' },
+  { key: 'adoration', label: 'ADORATION', title: 'Adoration', description: 'Turn your eyes to who God is, and praise Him for who He is even in the middle of this.', placeholder: 'I praise You...' },
+  { key: 'supplication', label: 'SUPPLICATION', title: 'Supplication', description: 'Bring your needs and the needs of others before God, and ask for His help.', placeholder: 'I ask for Your help with...' },
+  { key: 'thanksgiving', label: 'THANKSGIVING', title: 'Thanksgiving', description: 'Pause and thank God for what is true, good, and already in His hands.', placeholder: 'I thank You for...' },
 ];
 
 // StepFadeIn component
@@ -303,10 +303,10 @@ const CASTDescriptionStep: React.FC<{
   }, [fadeAnims, dotScaleAnims, timelineHeight]);
 
   const prayerSteps = [
-    { label: 'Confession', description: 'Tell the truth about what you need to lay down.', icon: 'hand-right' },
-    { label: 'Adoration', description: 'Name who God is in the middle of this.', icon: 'sparkles' },
-    { label: 'Supplication', description: 'Ask for what you need from the Lord.', icon: 'gift' },
-    { label: 'Thanksgiving', description: 'Thank Him for what is already true and what He has already given.', icon: 'heart' },
+    { label: 'Confession', description: 'Bring before God what you need to confess, release, or lay down.', icon: 'hand-right' },
+    { label: 'Adoration', description: 'Turn your eyes to who God is, and praise Him for who He is even in the middle of this.', icon: 'sparkles' },
+    { label: 'Supplication', description: 'Bring your needs and the needs of others before God, and ask for His help.', icon: 'gift' },
+    { label: 'Thanksgiving', description: 'Pause and thank God for what is true, good, and already in His hands.', icon: 'heart' },
   ];
 
   return (
@@ -349,7 +349,7 @@ const CASTDescriptionStep: React.FC<{
               styles.timelineThickBar,
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 310],
+                outputRange: [0, 380],
               }) },
             ]} />
 
@@ -512,7 +512,7 @@ const OpenPrayerDescriptionStep: React.FC<{
               styles.timelineThickBar,
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 310],
+                outputRange: [0, 380],
               }) },
             ]} />
 
@@ -1561,7 +1561,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   titleRow: {
     flexDirection: 'row',
@@ -1884,7 +1884,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   timelineContainer: {
-    marginTop: 24,
+    marginTop: 8,
     paddingLeft: 20,
     position: 'relative',
   },

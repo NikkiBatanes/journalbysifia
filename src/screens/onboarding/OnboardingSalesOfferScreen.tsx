@@ -119,6 +119,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
+  // Lifecycle logging
+  useEffect(() => {
+    Logger.info('[OnboardingSalesOfferScreen] Component MOUNTED');
+    return () => {
+      Logger.info('[OnboardingSalesOfferScreen] Component UNMOUNTED');
+    };
+  }, []);
+
   // Always show light status bar (white icons) on this screen
   useScreenStatusBar('light', Colors.hopeWhite);
 
@@ -247,6 +255,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [_expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+
+  // Log state changes to debug loading state
+  useEffect(() => {
+    Logger.info('[OnboardingSalesOfferScreen] State changed', {
+      tiersLength: pricingTiers.length,
+      hasCurrency: !!currencyInfo,
+      shouldShowLoading: pricingTiers.length === 0 || !currencyInfo,
+    });
+  }, [pricingTiers, currencyInfo]);
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -1595,6 +1612,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       </View>
     );
   }
+
+  Logger.info('[OnboardingSalesOfferScreen] Exiting loading state, rendering main content', {
+    tiersLength: pricingTiers.length,
+    hasCurrency: !!currencyInfo,
+  });
 
   return (
     <View style={styles.container}>

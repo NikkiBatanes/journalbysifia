@@ -246,6 +246,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     isEditing?: boolean;
     existingId?: string;
   }) => {
+    Logger.info('[TimeBlockModal] saveTimeBlock called', {
+      hasUser: !!user,
+      repeatFrequency: timeBlockData.repeatFrequency,
+      date: timeBlockData.date,
+      planningTier,
+    });
     try {
       if (!user) {
         Alert.alert('Error', 'You must be logged in to save time blocks.');
@@ -256,17 +262,26 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       const lockedByRepeat = planningAccess.isLocked && isRecurringPlanningFrequency(timeBlockData.repeatFrequency);
       const lockedByFutureDate = planningAccess.isLocked && isFuturePlanningDate(timeBlockData.date);
       if (lockedByRepeat || lockedByFutureDate) {
+        Logger.info('[TimeBlockModal] Locked feature detected, navigating to sales offer', {
+          lockedByRepeat,
+          lockedByFutureDate,
+          planningTier,
+        });
         shouldRestoreAfterUpgradeRef.current = true;
-        setTemporarilyHiddenForUpgrade(true);
+        // Close the modal properly before navigating to avoid modal conflict
+        onCancel();
+        // Wait for modal slide animation to complete (300ms matches typical React Native modal animation)
         setTimeout(() => {
-          navigateFromRoot(navigation, 'OnboardingSalesOffer', {
+          Logger.info('[TimeBlockModal] Attempting navigation to OnboardingSalesOffer');
+          const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', {
             source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
             feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
             tier: planningTier,
             skipNotificationPreference: true,
             dismissBehavior: 'goBack',
           });
-        }, 50);
+          Logger.info('[TimeBlockModal] Navigation result', { didNavigate });
+        }, 350);
         return;
       }
 

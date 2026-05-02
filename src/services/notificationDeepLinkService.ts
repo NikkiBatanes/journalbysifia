@@ -43,6 +43,22 @@ class NotificationDeepLinkService {
   }
 
   /**
+   * Navigate to any root-stack screen using the App-level NavigationContainerRef.
+   * More reliable than navigateFromRoot for presenting fullScreenModals after
+   * nested-navigator modal dismissals on iOS Fabric/Bridgeless.
+   */
+  navigateTo(routeName: string, params?: Record<string, unknown>): boolean {
+    if (!this.navigationRef?.current) {
+      Logger.warn('[notificationDeepLinkService] navigateTo: ref not available', {
+        routeName,
+      });
+      return false;
+    }
+    this.navigationRef.current.navigate(routeName as never, params as never);
+    return true;
+  }
+
+  /**
    * Handle notification tap and navigate to appropriate screen
    */
   handleNotificationTap(notification: any): void {

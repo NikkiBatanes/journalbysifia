@@ -129,19 +129,24 @@ export const useCalendarGating = (): CalendarGatingState => {
   };
 
   const handleRepeatLockTap = () => {
+    Logger.info('[useCalendarGating] handleRepeatLockTap called', {
+      current_tier: currentTier,
+      feature: 'repeat_options',
+    });
     analytics.trackTimeBlockEvent('repeat_lock_tapped' as any, {
       current_tier: currentTier,
       feature: 'repeat_options',
     }, user?.id);
 
     // Navigate to upgrade screen with skip notification flag
-    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
+    const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', {
       source: 'repeat_options',
       feature: 'repeat_options',
       context: 'timeblock',
       skipNotificationPreference: true,
       dismissBehavior: 'goBack',
     });
+    Logger.info('[useCalendarGating] Navigation result', { didNavigate });
   };
 
   const showCalendarUpgradePrompt = () => {

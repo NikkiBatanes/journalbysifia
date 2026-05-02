@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { View, StyleSheet, StatusBar, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -47,11 +47,19 @@ const TimeBlockEditorScreen: React.FC = () => {
       const lockedByFutureDate = lockedTier && isFuturePlanningDate(saveDate);
 
       if (lockedByRepeat || lockedByFutureDate) {
-        if (lockedByRepeat) {
-          calendarGating.handleRepeatLockTap();
-        } else {
-          planningGating.handleLockedAction('future_planning');
-        }
+        // We can't navigate to OnboardingSalesOffer directly from here while this
+        // fullScreenModal is still natively presented — the nested-stack native modal
+        // sits above any root-stack screen, so the sales offer would be invisible.
+        // Solution: emit an event for JournalScreen to handle AFTER this screen is
+        // dismissed (JournalScreen regains focus with no competing native modal).
+        console.log('[TimeBlockEditorScreen] Gated feature detected, emitting event and going back');
+        DeviceEventEmitter.emit('open_sales_offer_after_dismiss', {
+          source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
+          feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
+          context: 'timeblock',
+          skipNotificationPreference: true,
+        });
+        navigation.goBack();
         return;
       }
 
@@ -150,8 +158,6 @@ const TimeBlockEditorScreen: React.FC = () => {
           onSave={handleSave}
           onCancel={handleCancel}
           onUpgradeRequired={handleUpgradeRequired}
-          repeatLocked={!calendarGating.canUseRepeat}
-          onRepeatLocked={calendarGating.handleRepeatLockTap}
           initialContent={existingTimeBlock?.description || ''}
           subtaskTitle=""
           _subtaskId={undefined}
