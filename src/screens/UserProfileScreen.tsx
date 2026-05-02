@@ -17,7 +17,7 @@ import {
   Share,
   TextInput,
   Modal,
-  Switch,
+  // Switch removed - using custom toggle
   Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1539,13 +1539,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="calendar-outline" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Auto-sync to Calendar</Text>
-          <Switch
-            value={preferences.calendar?.autoSync || false}
-            onValueChange={async (value) => {
+          <TouchableOpacity
+            onPress={async () => {
               try { triggerLightHaptic(); } catch {}
 
+              const currentValue = preferences.calendar?.autoSync || false;
+              const newValue = !currentValue;
+
               // If enabling auto-sync, gate locked tiers before requesting system calendar permission.
-              if (value) {
+              if (newValue) {
                 // Check if user is on Seeker tier only (trial users should have access)
                 const { NewSubscriptionService: SubscriptionService } = await import('../services/NewSubscriptionService');
                 try {
@@ -1591,7 +1593,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 ...preferences,
                 calendar: {
                   ...preferences.calendar,
-                  autoSync: value,
+                  autoSync: newValue,
                 },
               };
               const result = await updatePreferences(updatedPreferences);
@@ -1599,9 +1601,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 setPreferences(updatedPreferences);
               }
             }}
-            thumbColor={Colors.hopeWhite}
-            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-          />
+            style={styles.switchContainer}
+          >
+            <View style={[
+              styles.switchTrack,
+              (preferences.calendar?.autoSync || false) ? styles.switchTrackActive : styles.switchTrackInactive,
+            ]}>
+              <View style={[
+                styles.switchThumb,
+                { transform: [{ translateX: (preferences.calendar?.autoSync || false) ? 20 : 0 }] },
+              ]} />
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1733,12 +1744,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Haptics</Text>
-          <Switch
-            value={hapticsEnabled}
-            onValueChange={onToggleHaptics}
-            thumbColor={Colors.hopeWhite}
-            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-          />
+          <TouchableOpacity
+            onPress={() => onToggleHaptics(!hapticsEnabled)}
+            style={styles.switchContainer}
+          >
+            <View style={[
+              styles.switchTrack,
+              hapticsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
+            ]}>
+              <View style={[
+                styles.switchThumb,
+                { transform: [{ translateX: hapticsEnabled ? 20 : 0 }] },
+              ]} />
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1749,12 +1768,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Sounds</Text>
-          <Switch
-            value={soundsEnabled}
-            onValueChange={onToggleSounds}
-            thumbColor={Colors.hopeWhite}
-            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-          />
+          <TouchableOpacity
+            onPress={() => onToggleSounds(!soundsEnabled)}
+            style={styles.switchContainer}
+          >
+            <View style={[
+              styles.switchTrack,
+              soundsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
+            ]}>
+              <View style={[
+                styles.switchThumb,
+                { transform: [{ translateX: soundsEnabled ? 20 : 0 }] },
+              ]} />
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1765,12 +1792,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="albums" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
-          <Switch
-            value={showTabLabelsEnabled}
-            onValueChange={onToggleShowTabLabels}
-            thumbColor={Colors.hopeWhite}
-            trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-          />
+          <TouchableOpacity
+            onPress={() => onToggleShowTabLabels(!showTabLabelsEnabled)}
+            style={styles.switchContainer}
+          >
+            <View style={[
+              styles.switchTrack,
+              showTabLabelsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
+            ]}>
+              <View style={[
+                styles.switchThumb,
+                { transform: [{ translateX: showTabLabelsEnabled ? 20 : 0 }] },
+              ]} />
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </View>
     </View>
@@ -2287,90 +2322,154 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.settingGroup}>
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
-              <Switch
-                value={notificationPrefs?.playbook_steps ?? false}
-                onValueChange={(value) => updatePref('playbook_steps', value)}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+              <TouchableOpacity
+                onPress={() => updatePref('playbook_steps', !(notificationPrefs?.playbook_steps ?? false))}
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.playbook_steps ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.playbook_steps ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Devotional Reminders</Text>
-              <Switch
-                value={notificationPrefs?.devotional_reminders ?? false}
-                onValueChange={(value) => updatePref('devotional_reminders', value)}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+              <TouchableOpacity
+                onPress={() => updatePref('devotional_reminders', !(notificationPrefs?.devotional_reminders ?? false))}
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.devotional_reminders ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.devotional_reminders ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Reminders</Text>
-              <Switch
-                value={notificationPrefs?.prayer_reminders ?? false}
-                onValueChange={(value) => updatePref('prayer_reminders', value)}
+              <TouchableOpacity
+                onPress={() => updatePref('prayer_reminders', !(notificationPrefs?.prayer_reminders ?? false))}
                 disabled={!notificationPrefs}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.prayer_reminders ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.prayer_reminders ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Journal Prompts</Text>
-              <Switch
-                value={notificationPrefs?.journal_prompts ?? false}
-                onValueChange={(value) => updatePref('journal_prompts', value)}
+              <TouchableOpacity
+                onPress={() => updatePref('journal_prompts', !(notificationPrefs?.journal_prompts ?? false))}
                 disabled={!notificationPrefs}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.journal_prompts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.journal_prompts ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Progress Updates</Text>
-              <Switch
-                value={notificationPrefs?.milestone_celebrations ?? false}
-                onValueChange={(value) => updatePref('milestone_celebrations', value)}
+              <TouchableOpacity
+                onPress={() => updatePref('milestone_celebrations', !(notificationPrefs?.milestone_celebrations ?? false))}
                 disabled={!notificationPrefs}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.milestone_celebrations ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.milestone_celebrations ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Streak Alerts</Text>
-              <Switch
-                value={notificationPrefs?.streak_alerts ?? false}
-                onValueChange={(value) => updatePref('streak_alerts', value)}
+              <TouchableOpacity
+                onPress={() => updatePref('streak_alerts', !(notificationPrefs?.streak_alerts ?? false))}
                 disabled={!notificationPrefs}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.streak_alerts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.streak_alerts ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
             {subscription?.tier === 'free_trial' && (
               <View style={styles.settingItem}>
                 <Text style={[styles.settingLabel, font]}>Trial Notifications</Text>
-                <Switch
-                  value={notificationPrefs?.trial_notifications ?? false}
-                  onValueChange={(value) => updatePref('trial_notifications', value)}
+                <TouchableOpacity
+                  onPress={() => updatePref('trial_notifications', !(notificationPrefs?.trial_notifications ?? false))}
                   disabled={!notificationPrefs}
-                  trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                  thumbColor={Colors.hopeWhite}
-                />
+                  style={styles.switchContainer}
+                >
+                  <View style={[
+                    styles.switchTrack,
+                    (notificationPrefs?.trial_notifications ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                  ]}>
+                    <View style={[
+                      styles.switchThumb,
+                      { transform: [{ translateX: (notificationPrefs?.trial_notifications ?? false) ? 20 : 0 }] },
+                    ]} />
+                  </View>
+                </TouchableOpacity>
               </View>
             )}
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
-              <Switch
-                value={notificationPrefs?.prayer_request_alerts ?? false}
-                onValueChange={(value) => updatePref('prayer_request_alerts', value)}
+              <TouchableOpacity
+                onPress={() => updatePref('prayer_request_alerts', !(notificationPrefs?.prayer_request_alerts ?? false))}
                 disabled={!notificationPrefs}
-                trackColor={{ false: theme.colors.switchTrackActive, true: theme.colors.switchTrackActive }}
-                thumbColor={Colors.hopeWhite}
-              />
+                style={styles.switchContainer}
+              >
+                <View style={[
+                  styles.switchTrack,
+                  (notificationPrefs?.prayer_request_alerts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
+                ]}>
+                  <View style={[
+                    styles.switchThumb,
+                    { transform: [{ translateX: (notificationPrefs?.prayer_request_alerts ?? false) ? 20 : 0 }] },
+                  ]} />
+                </View>
+              </TouchableOpacity>
             </View>
 
           </View>
@@ -3434,6 +3533,34 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 14,
     color: Colors.hopeWhite,
+  },
+  // Custom toggle styles matching TimeBlockLogEditor
+  switchContainer: {
+    padding: 4,
+  },
+  switchTrack: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  switchThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.hopeWhite,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  switchTrackActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  switchTrackInactive: {
+    backgroundColor: '#E0E0E0',
   },
 });  // Removed test button styles
 
