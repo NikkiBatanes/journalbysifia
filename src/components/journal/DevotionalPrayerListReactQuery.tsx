@@ -274,7 +274,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
-                GUIDED PRAYERS YOU PRAYED
+                GUIDED PRAYERS
               </ThemedText>
             </View>
             <View style={styles.titleContainer}>
