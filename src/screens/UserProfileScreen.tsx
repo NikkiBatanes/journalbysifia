@@ -542,6 +542,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [showTabLabelsEnabled, setShowTabLabelsEnabled] = useState(true);
+  const [isSavingCalendarAutoSync, setIsSavingCalendarAutoSync] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
   const [weekStartModal, setWeekStartModal] = useState(false);
   const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('sunday');
@@ -1227,6 +1228,96 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleToggleCalendarAutoSync = useCallback(async () => {
+    if (isSavingCalendarAutoSync) {
+      return;
+    }
+
+    try {
+      try { triggerLightHaptic(); } catch {}
+      setIsSavingCalendarAutoSync(true);
+
+      const currentValue = preferences.calendar?.autoSync || false;
+      const newValue = !currentValue;
+
+      if (newValue) {
+        try {
+          const subscriptionData = await NewSubscriptionService.getUserSubscription(user?.id || '');
+          if (subscriptionData.tier === 'seeker') {
+            navigateToSalesOffer({
+              source: 'calendar_auto_sync',
+              feature: 'Calendar Auto-Sync & Future Planning',
+              context: 'profile_settings',
+              skipNotificationPreference: true,
+              dismissBehavior: 'goBack',
+              returnTo: 'UserProfile',
+              title: 'Upgrade to Plan Ahead',
+              subtitle: 'Unlock calendar auto-sync—plus guided journaling, playbooks, and devotionals to support your journey.',
+              benefits: [
+                'Auto-sync time blocks to your calendar seamlessly.',
+                'Plan days ahead with clear focus, to-dos, and time blocks.',
+                'Stay consistent with guided journaling that builds faithful rhythms.',
+                'Gain momentum with personalized playbooks and devotionals.',
+              ],
+            });
+            return;
+          }
+        } catch (_error) {
+          Logger.error('Failed to check subscription tier', _error as Error, {
+            component: 'UserProfileScreen',
+          });
+        }
+
+        const { requestCalendarPermissions } = await import('../services/calendarSyncService');
+        const hasPermission = await requestCalendarPermissions();
+
+        if (!hasPermission) {
+          Alert.alert(
+            'Calendar Access Required',
+            'To sync your time blocks to your calendar, please enable calendar access for siFia.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Open Settings',
+                onPress: () => {
+                  Linking.openSettings();
+                },
+              },
+            ]
+          );
+          return;
+        }
+      }
+
+      const updatedPreferences = {
+        ...preferences,
+        calendar: {
+          ...preferences.calendar,
+          autoSync: newValue,
+        },
+      };
+      const result = await updatePreferences(updatedPreferences);
+      if (result.success) {
+        setPreferences(updatedPreferences);
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to update calendar auto-sync');
+      }
+    } catch (_error) {
+      Logger.error('Failed to update calendar auto-sync', _error as Error, {
+        component: 'UserProfileScreen',
+      });
+      Alert.alert('Error', 'Failed to update calendar auto-sync. Please try again.');
+    } finally {
+      setIsSavingCalendarAutoSync(false);
+    }
+  }, [
+    isSavingCalendarAutoSync,
+    preferences,
+    updatePreferences,
+    user?.id,
+    navigateToSalesOffer,
+  ]);
+
   // Initialize draft when opening the Week Start modal
   useEffect(() => {
     if (weekStartModal) {
@@ -1532,74 +1623,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {} }}
+          onPress={handleToggleCalendarAutoSync}
+          disabled={isSavingCalendarAutoSync}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar-outline" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Auto-sync to Calendar</Text>
           <TouchableOpacity
-            onPress={async () => {
-              try { triggerLightHaptic(); } catch {}
-
-              const currentValue = preferences.calendar?.autoSync || false;
-              const newValue = !currentValue;
-
-              // If enabling auto-sync, gate locked tiers before requesting system calendar permission.
-              if (newValue) {
-                // Check if user is on Seeker tier only (trial users should have access)
-                const { NewSubscriptionService: SubscriptionService } = await import('../services/NewSubscriptionService');
-                try {
-                  const subscriptionData = await SubscriptionService.getUserSubscription(user?.id || '');
-                  if (subscriptionData.tier === 'seeker') {
-                    // Navigate to sales offer with return navigation context
-                    navigateToSalesOffer({
-                      source: 'calendar_auto_sync',
-                      feature: 'Calendar Auto-Sync & Future Planning',
-                      context: 'profile_settings',
-                      skipNotificationPreference: true,
-                      dismissBehavior: 'goBack',
-                      returnTo: 'UserProfile',
-                      title: 'Upgrade to Plan Ahead',
-                      subtitle: 'Unlock calendar auto-sync—plus guided journaling, playbooks, and devotionals to support your journey.',
-                      benefits: [
-                        'Auto-sync time blocks to your calendar seamlessly.',
-                        'Plan days ahead with clear focus, to-dos, and time blocks.',
-                        'Stay consistent with guided journaling that builds faithful rhythms.',
-                        'Gain momentum with personalized playbooks and devotionals.',
-                      ],
-                    });
-                    return;
-                  }
-                  // If not seeker/free_trial, continue to enable auto-sync below
-                } catch (_error) {
-                  Logger.error('Failed to check subscription tier', _error as Error, {
-                    component: 'UserProfileScreen',
-                  });
-                  // On error, allow the toggle to proceed (fail open for paid users)
-                }
-
-                const { requestCalendarPermissions } = await import('../services/calendarSyncService');
-                const hasPermission = await requestCalendarPermissions();
-
-                if (!hasPermission) {
-                  // Permission denied, don't enable auto-sync (system prompt already shown)
-                  return;
-                }
-              }
-
-              const updatedPreferences = {
-                ...preferences,
-                calendar: {
-                  ...preferences.calendar,
-                  autoSync: newValue,
-                },
-              };
-              const result = await updatePreferences(updatedPreferences);
-              if (result.success) {
-                setPreferences(updatedPreferences);
-              }
-            }}
+            onPress={handleToggleCalendarAutoSync}
+            disabled={isSavingCalendarAutoSync}
             style={styles.switchContainer}
           >
             <View style={[

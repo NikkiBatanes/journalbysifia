@@ -337,7 +337,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
       case 'synced':
         return <Ionicons name="calendar" size={16} color={Colors.hopeWhite} />;
       case 'error':
-        return <Ionicons name="alert-circle-outline" size={16} color={Colors.hopeWhite} />;
+        return <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />;
       default:
         return <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />;
     }
