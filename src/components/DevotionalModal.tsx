@@ -760,6 +760,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         setGenerationSteps(steps => steps.map(step => ({ ...step, status: 'completed' as StepStatus })));
         checkIconAnims.forEach(anim => anim.setValue(1));
         pulsingDotAnims.forEach(anim => anim.stopAnimation());
+        stepCardBgAnims.forEach(anim => anim.setValue(1));
+        stepCardBorderAnims.forEach(anim => anim.setValue(1));
+        stepCardScaleAnims.forEach(anim => anim.setValue(1));
         // Subtle haptic when success check appears
         try { triggerLightHaptic(); } catch {}
         // Fill progress bar to 100%
