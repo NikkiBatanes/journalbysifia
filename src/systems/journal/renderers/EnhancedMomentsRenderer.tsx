@@ -876,29 +876,37 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       ? (peoplePlugin || prayerPlugin)
                       : prayerPlugin);
 
-                const prayerEntry = {
-                  plugin: targetPlugin,
-                  date: entryDate,
-                  category: 'Prayer',
-                  type: typeLabel,
-                  isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
-                  _isPrayerRequest: (prayer as any)?.is_prayer_request === true,
-                  _searchText: buildSearchText(
-                    contentText,
-                    contentObj,
-                    (prayer as any)?.title,
-                    (prayer as any)?.name,
-                    (prayer as any)?.notes,
-                    (prayer as any)?.people,
-                    (prayer as any)?.prayer_list,
-                    (prayer as any)?.devotional_title,
-                    (prayer as any)?.request,
-                    (prayer as any)?.journal_category,
-                    (prayer as any)?.prayer_type,
-                  ),
-                };
+                const dateKey = entryDate.toDateString();
+                const existingPrayerEntry = entries.find(e =>
+                  e.plugin.id === targetPlugin.id &&
+                  e.date.toDateString() === dateKey
+                );
 
-                entries.push(prayerEntry);
+                if (!existingPrayerEntry) {
+                  const prayerEntry = {
+                    plugin: targetPlugin,
+                    date: entryDate,
+                    category: 'Prayer',
+                    type: typeLabel,
+                    isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
+                    _isPrayerRequest: (prayer as any)?.is_prayer_request === true,
+                    _searchText: buildSearchText(
+                      contentText,
+                      contentObj,
+                      (prayer as any)?.title,
+                      (prayer as any)?.name,
+                      (prayer as any)?.notes,
+                      (prayer as any)?.people,
+                      (prayer as any)?.prayer_list,
+                      (prayer as any)?.devotional_title,
+                      (prayer as any)?.request,
+                      (prayer as any)?.journal_category,
+                      (prayer as any)?.prayer_type,
+                    ),
+                  };
+
+                  entries.push(prayerEntry);
+                }
               } else {
 
               }
