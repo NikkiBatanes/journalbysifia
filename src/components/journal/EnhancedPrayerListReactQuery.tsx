@@ -297,7 +297,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     } finally {
       setIsSaving(false);
     }
-  }, [user?.id, name, prayerText, notes, selectedPrayerType, currentRequestedBy, editingPrayerId, dateStr, peoplePrayers, createPrayerMutation, updatePrayerMutation, queryClient, globalEditMode, viewMode]);
+  }, [user?.id, name, prayerText, notes, selectedPrayerType, currentRequestedBy, editingPrayerId, dateStr, peoplePrayers, createPrayerMutation, updatePrayerMutation, queryClient, globalEditMode, viewMode, navigation]);
 
   const handleAddToMyList = (prayerEntry: PersonPrayer) => {
     // Navigate to the full-screen prayer editor for this prayer request

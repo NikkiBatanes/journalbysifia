@@ -601,7 +601,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           Logger.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points', { component: 'DevotionalDetailScreen', data: error });
         });
     }
-  }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
+  }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation, navigation]);
 
   const isNavigatingRef = useRef(false);
   const navigationTimersRef = useRef<{

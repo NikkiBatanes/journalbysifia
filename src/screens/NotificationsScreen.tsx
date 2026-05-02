@@ -542,7 +542,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       queueSubscription.unsubscribe();
       familyInvitesSubscription?.unsubscribe();
     };
-  }, [user, fetchNotifications]);
+  }, [user, fetchNotifications, isProcessingTap]);
 
   // POST-LAUNCH: Handle family invitation acceptance
   /* const handleAcceptInvitation = async (notification: any) => {

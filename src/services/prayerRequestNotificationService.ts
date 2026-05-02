@@ -1,5 +1,4 @@
 import { notificationSchedulerService } from '../services/notificationSchedulerService';
-import { supabase } from '../services/supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { buildSmartNotificationCopy } from './notifications/notificationCopyBank';
 

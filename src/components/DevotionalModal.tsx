@@ -16,7 +16,6 @@ import useDevotionalGating from '../hooks/useDevotionalGating';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { generateSalesCopy } from '../utils/dynamicSalesCopy';
-import { visibleStreakService } from '../services/visibleStreakService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

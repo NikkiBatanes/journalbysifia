@@ -401,7 +401,7 @@ export default function ActionStepsCard({
     DeviceEventEmitter.emit('playbookProgressUpdate', {
       stepId, subTaskId, type: 'playbook_detail_toggle',
     });
-  }, [handleToggleStep, steps, user?.id, playbookId, queryClient, onToggleSubTaskMutation]);
+  }, [handleToggleStep, steps, user?.id, playbookId, queryClient, onToggleSubTaskMutation, navigation]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
 

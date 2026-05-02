@@ -453,10 +453,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             suppressNotification: true,
             source: 'todos',
             todo_id: id,
-          }).catch(error => {
+          }).catch(faithPointsError => {
             Logger.warn('Failed to award faith points for completed todo', {
               component: 'TodosReactQuery',
-              error: error as Error,
+              error: faithPointsError as Error,
             });
           });
         }

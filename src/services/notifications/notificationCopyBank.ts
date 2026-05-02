@@ -29,7 +29,7 @@ const formatNameList = (names: string[]): string => {
 };
 
 const compact = (str: string, maxLength = Number.POSITIVE_INFINITY): string => {
-  if (!str) return '';
+  if (!str) {return '';}
   return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
 };
 
@@ -38,14 +38,14 @@ const compact = (str: string, maxLength = Number.POSITIVE_INFINITY): string => {
  * If the title looks like a devotional day title, return a fallback
  */
 const sanitizePlaybookTitle = (title?: string | null): string => {
-  if (!title) return 'Playbook';
-  
+  if (!title) {return 'Playbook';}
+
   // Check if title matches devotional day pattern (e.g., "Day 1", "Day 2", etc.)
   const dayPattern = /^Day \d+$/i;
   if (dayPattern.test(title.trim())) {
     return 'Playbook'; // Fallback to generic title
   }
-  
+
   return title;
 };
 

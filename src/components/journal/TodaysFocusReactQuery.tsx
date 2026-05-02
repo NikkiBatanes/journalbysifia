@@ -396,7 +396,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }
-  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation]);
+  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, navigation]);
 
   const toggleEditing = () => {
     // Check if planning is locked for future dates
@@ -472,10 +472,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               suppressNotification: true,
               source: 'todays_focus',
               priority_index: index,
-            }).catch(error => {
+            }).catch(faithPointsError => {
               Logger.warn('Failed to award faith points for completed focus priority', {
                 component: 'TodaysFocusReactQuery',
-                error: error as Error,
+                error: faithPointsError as Error,
               });
             });
           }
