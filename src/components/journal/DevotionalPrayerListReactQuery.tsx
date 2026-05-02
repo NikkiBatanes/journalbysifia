@@ -75,14 +75,14 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   // Determine subtitle based on prayer types
   const getSubtitle = () => {
     if (playbookPrayerCount > 0 && devotionalPrayerCount > 0) {
-      // Mixed: show both counts
-      return `${playbookPrayerCount} prayer${playbookPrayerCount > 1 ? 's' : ''} from your playbook, ${devotionalPrayerCount} prayer${devotionalPrayerCount > 1 ? 's' : ''} from your devotional`;
+      // Mixed: show both counts with line break
+      return `${playbookPrayerCount} from playbook\n${devotionalPrayerCount} from devotional`;
     } else if (playbookPrayerCount > 0) {
       // Only playbook
-      return `${playbookPrayerCount} prayer${playbookPrayerCount > 1 ? 's' : ''} from your playbook`;
+      return `${playbookPrayerCount} from playbook`;
     } else {
       // Only devotional
-      return `${devotionalPrayerCount} prayer${devotionalPrayerCount > 1 ? 's' : ''} from your devotional`;
+      return `${devotionalPrayerCount} from devotional`;
     }
   };
 
