@@ -11,13 +11,13 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { triggerSelectionHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { triggerSelectionHaptic } from '../../utils/haptics';
 
 interface DevotionalPrayerListReactQueryProps {
   selectedDate: Date;
@@ -129,10 +129,11 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   const renderDevotionalPrayers = () => {
     const allPrayers = sortedDates.flatMap(date => groupedPrayers[date]);
 
-    // Limit to 1 prayer initially for inline/moments view, show all when expanded
+    // Determine display limit based on user expansion state
     const displayLimit = userExpanded ? allPrayers.length : 1;
     const displayedPrayers = allPrayers.slice(0, displayLimit);
-    const hasMore = allPrayers.length > 1;
+    const hasMoreItems = allPrayers.length > displayLimit;
+    const canShowLess = userExpanded && allPrayers.length > 1;
 
     if (viewMode === 'carousel') {
       // Vertical stack for carousel view without internal scrolling
@@ -144,7 +145,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             expanded && styles.prayersContainerExpanded,
           ]}
         >
-          {allPrayers.map((prayer) => (
+          {displayedPrayers.map((prayer) => (
             <View style={styles.prayerItem} key={prayer.id}>
               <View style={styles.prayerContentContainer}>
                 <ThemedText style={styles.prayerText}>{prayer.content
@@ -173,6 +174,43 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               </View>
             </View>
           ))}
+          {/* Show More / Show Less Button */}
+          {(hasMoreItems || canShowLess) && (
+            <View style={styles.paginationContainer}>
+              <View style={styles.paginationButtonGroup}>
+                {hasMoreItems && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showMoreButton]}
+                    onPress={() => {
+                      triggerSelectionHaptic();
+                      setUserExpanded(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                    <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                      Show more
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+                {canShowLess && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showLessButton]}
+                    onPress={() => {
+                      triggerSelectionHaptic();
+                      setUserExpanded(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
+                    <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
+                      Show less
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       );
     } else {
@@ -201,7 +239,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           )}
           scrollEventThrottle={16}
         >
-          {displayedPrayers.map((prayer, i) => {
+          {allPrayers.map((prayer, i) => {
             const inputRange = [
               (i - 1) * ITEM_SIZE,
               i * ITEM_SIZE,
@@ -257,44 +295,6 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             );
           })}
         </Animated.ScrollView>
-
-        {/* Show More / Show Less Button */}
-        {(hasMore || userExpanded) && (
-          <View style={styles.paginationContainer}>
-            <View style={styles.paginationButtonGroup}>
-              {hasMore && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-              {userExpanded && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
-                    Show less
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
         </View>
       );
     }
@@ -498,16 +498,17 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtitle: {
     fontSize: 14,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
     textAlign: 'center',
     lineHeight: 20,
   },
   contentContainerWithPadding: {
-    paddingRight: 0,
-    overflow: 'visible',
+    paddingHorizontal: CARD_SPACING,
   },
   paginationContainer: {
     marginTop: 12,
+    alignItems: 'center',
   },
   paginationButtonGroup: {
     flexDirection: 'row',
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   showLessButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   showLessText: {
     color: Colors.textGray,
