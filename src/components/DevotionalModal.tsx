@@ -16,6 +16,7 @@ import useDevotionalGating from '../hooks/useDevotionalGating';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { generateSalesCopy } from '../utils/dynamicSalesCopy';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -83,9 +84,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const isCreatingRef = React.useRef(isCreating);
   const isOnboardingCreatingRef = React.useRef(isOnboardingCreating);
   const isSuccessRef = React.useRef(false); // updated below
+  const onboardingAutoStartedRef = React.useRef(false);
+  const generationInFlightRef = React.useRef(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
+  const [_contentHeight, setContentHeight] = useState(0);
   const [_ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
@@ -198,7 +201,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       setJustCompleted(false);
 
       // Auto-select 3-day duration during onboarding and trigger generation (immediate, no delay)
-      if (isOnboarding && !isCreating && !isSuccess) {
+      if (isOnboarding && !isCreating && !isSuccess && !onboardingAutoStartedRef.current) {
+        onboardingAutoStartedRef.current = true;
         setIsOnboardingCreating(true); // Immediately show building UI
         // Trigger building entry animations
         Animated.parallel([
@@ -209,6 +213,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         ]).start();
         handleSelectDuration(3);
       }
+    } else {
+      onboardingAutoStartedRef.current = false;
+      generationInFlightRef.current = false;
     }
   }, [visible, rotateAnim, isCreating, isSuccess, justCompleted, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -470,7 +477,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           useNativeDriver: false,
         }).start();
         // Subtle haptic feedback on each visible step advancement
-        if (!isLast) {
+        if (!isLast && !isOnboarding) {
           try {
             triggerLightHaptic();
           } catch {}
@@ -571,7 +578,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         clearTimeout(timer);
       }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, progressAnim]);
+  }, [visible, fadeAnim, translateY, progressAnim]);
 
   const togglePlaybookInfo = () => {
     setShowPlaybookInfo((prev) => {
@@ -587,6 +594,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
+    if (generationInFlightRef.current) {
+      return;
+    }
+
     const userId = user?.id;
 
     // Use subscriptionService.canGenerate with onboarding exception
@@ -731,6 +742,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // If no onSelectDuration provided, handle devotional creation here
     if (playbookId) {
+      generationInFlightRef.current = true;
 
       // Haptic feedback when generation starts (parity with playbook generation)
       try { triggerLightHaptic(); } catch {}
@@ -742,48 +754,69 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }, 10000);
       }
 
-      const devotional = await createDevotional({
-        duration: days,
-        playbookId,
-        userInput: userInput || '', // Pass empty string if undefined
-        isOnboarding: isOnboarding, // Pass onboarding flag to API
-      });
+      try {
+        const devotional = await createDevotional({
+          duration: days,
+          playbookId,
+          userInput: userInput || '', // Pass empty string if undefined
+          isOnboarding: isOnboarding, // Pass onboarding flag to API
+        });
 
-      if (progressTimeout) {
-        clearTimeout(progressTimeout);
-      }
+        if (progressTimeout) {
+          clearTimeout(progressTimeout);
+        }
 
-      if (devotional && onDevotionalCreated) {
-        setIsClosing(true);
-        setJustCompleted(true);
-        setCurrentStep(generationSteps.length - 1);
-        setGenerationSteps(steps => steps.map(step => ({ ...step, status: 'completed' as StepStatus })));
-        checkIconAnims.forEach(anim => anim.setValue(1));
-        pulsingDotAnims.forEach(anim => anim.stopAnimation());
-        stepCardBgAnims.forEach(anim => anim.setValue(1));
-        stepCardBorderAnims.forEach(anim => anim.setValue(1));
-        stepCardScaleAnims.forEach(anim => anim.setValue(1));
-        // Subtle haptic when success check appears
-        try { triggerLightHaptic(); } catch {}
-        // Fill progress bar to 100%
-        Animated.timing(progressAnim, {
-          toValue: 100,
-          duration: 500,
-          useNativeDriver: false,
-        }).start();
-        // Don't show checkmark animation - keep generating UI as-is
-        // Close modal and navigate after progress bar fills
-        setTimeout(() => {
-          handleClose(() => {
-            // Navigate after modal has closed
-            setTimeout(() => {
-              onDevotionalCreated(devotional.id);
-              // Reset animation state after navigation
-              setIsClosing(false);
-              checkmarkAnim.setValue(0);
-            }, 300);
-          });
-        }, 800);
+        if (devotional) {
+          setIsClosing(true);
+          setJustCompleted(true);
+          setCurrentStep(generationSteps.length - 1);
+          setGenerationSteps(steps => steps.map(step => ({ ...step, status: 'completed' as StepStatus })));
+          checkIconAnims.forEach(anim => anim.setValue(1));
+          pulsingDotAnims.forEach(anim => anim.stopAnimation());
+          stepCardBgAnims.forEach(anim => anim.setValue(1));
+          stepCardBorderAnims.forEach(anim => anim.setValue(1));
+          stepCardScaleAnims.forEach(anim => anim.setValue(1));
+          try { triggerLightHaptic(); } catch {}
+          Animated.timing(progressAnim, {
+            toValue: 100,
+            duration: 500,
+            useNativeDriver: false,
+          }).start();
+          setTimeout(async () => {
+            const shouldShowStreak = user?.id
+              ? await visibleStreakService.shouldShowCelebration(user.id, 'devotional_generated')
+              : false;
+
+            if (shouldShowStreak && user?.id) {
+              await visibleStreakService.markShownToday(user.id);
+            }
+
+            handleClose(() => {
+              setTimeout(() => {
+                if (shouldShowStreak) {
+                  (navigation as any).navigate('StreakPlan', {
+                    userId,
+                    source: 'devotional_generated',
+                  });
+                } else if (onDevotionalCreated) {
+                  onDevotionalCreated(devotional.id);
+                }
+                setIsClosing(false);
+                checkmarkAnim.setValue(0);
+                generationInFlightRef.current = false;
+              }, 300);
+            });
+          }, 800);
+        } else {
+          generationInFlightRef.current = false;
+        }
+      } catch (error) {
+        if (progressTimeout) {
+          clearTimeout(progressTimeout);
+        }
+        generationInFlightRef.current = false;
+        setIsOnboardingCreating(false);
+        setCreationError(error instanceof Error ? error : new Error('Failed to create devotional'));
       }
     }
   };
@@ -1101,7 +1134,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         triggerLightHaptic();
                         handleSelectDuration(option.days);
                       }}
-                      disabled={isCreating || (isOnboarding && isLocked)}
+                      disabled={isCreating || isOnboardingCreating || generationInFlightRef.current || (isOnboarding && isLocked)}
                       activeOpacity={isLocked ? 0.6 : 0.8}
                     >
                       <View style={styles.optionHeader}>
