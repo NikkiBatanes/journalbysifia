@@ -187,8 +187,8 @@ faithful_actions: 3 to 7 steps. Let the situation determine the count. CRITICAL:
     primary_button: The label for the primary response button. Max 4 words. First-person past tense — what the person says after doing the action. Match the specific verb in the title. Examples: "I've committed", "I wrote it down", "I prayed this", "I said it", "I reached out", "I scheduled it", "I named it". Use "I've committed" only when the step is about making a decision or internal commitment — not when there is a concrete external action.
     secondary_button: Always "Skip" — do not change this.
 
-prayer: The PERSON praying to God — written AS the person speaking directly to God in first person. "I," "me," "my" throughout. NEVER write "pray for [name]" or refer to the person in third person. NEVER say "Lord, help Nikki..." — it must be "Lord, help me..." This is the user's own prayer, not an intercession.
-Begin with either "Lord," or "Heavenly Father," on the first line, then a blank line, then the prayer body. 3-5 sentences. Specific to this person's exact situation — naming what was diagnosed in truth_in_love, confessing where needed, asking for what is actually needed. Not religious-sounding. Not polished. Raw and real. Always end with "\n\nIn Jesus' Name,\nAmen".
+prayer: The PERSON praying to God — written AS the person speaking directly to God in first person. "I," "me," "my" throughout. NEVER write "pray for [name]" or refer to the person in third person. NEVER say "Heavenly Father, help Nikki..." — it must be "Heavenly Father, help me..." This is the user's own prayer, not an intercession.
+Begin with "Heavenly Father," on the first line, then a blank line, then the prayer body. 3-5 sentences. Specific to this person's exact situation — naming what was diagnosed in truth_in_love, confessing where needed, asking for what is actually needed. Not religious-sounding. Not polished. Raw and real. Always end with "\n\nIn Jesus' Name,\nAmen".
 
 words_to_speak: 4-5 declaration lines the person speaks aloud as an act of faith. Short (max 10 words each). First-person present tense. Specific to this person's exact struggle — derived from the specific correction made in truth_in_love.
 BIBLICAL GROUNDING REQUIRED: Every line must stand on Scripture — what God declares, what Christ accomplished, what the Spirit provides, or what faithful obedience looks like. These are not affirmations. They are covenant declarations made in faith.
@@ -303,7 +303,7 @@ faithful_actions:
 7. title: "Thank God that your heart cared"
    body: A numb heart would not even notice — your sensitivity is a gift of the Spirit, not a weakness. Do not shame what God is still forming in you. Example: Say to God: "Thank You that I still care. Help me respond next time."
 
-prayer: "Lord,\n\nThank You for making me aware of the moment and for stirring in me a desire to respond. You know how quickly fear and shyness can take over. Please forgive me where I held back out of fear. Teach me not to live under condemnation, but to grow in simple obedience. Give me courage for the next moment, wisdom to know what to say, and love that is stronger than awkwardness. Help me become more available to You, not more performative.\n\nIn Jesus' Name,\nAmen"
+prayer: "Heavenly Father,\n\nThank You for making me aware of the moment and for stirring in me a desire to respond. You know how quickly fear and shyness can take over. Please forgive me where I held back out of fear. Teach me not to live under condemnation, but to grow in simple obedience. Give me courage for the next moment, wisdom to know what to say, and love that is stronger than awkwardness. Help me become more available to You, not more performative.\n\nIn Jesus' Name,\nAmen"
 
 words_to_speak: ["God did not give me a spirit of fear.", "Christ is forming courage in me, not demanding perfection.", "One hesitation does not erase my desire to obey.", "I can speak simply and still be faithful.", "Fear does not have the final word in my life."]
 
@@ -361,7 +361,7 @@ faithful_actions:
 7. title: "Prepare a truthful sentence for next time"
    body: You do not need to tell everyone everything — honesty does not mean overexposure. Christ was truthful without being reckless; you can be too. Example: "It has been a difficult season financially, and I'm still working through it." That is honest without overexposing yourself.
 
-prayer: "Lord,\n\nYou see the financial weight I have been carrying quietly. You know the fear, the shame, the pressure, and the loneliness underneath it. Please forgive me where silence has become hiding, and where pride or fear has kept me from walking in truth. Give me courage to face what is real, wisdom to know who to tell, and humility to receive help where I need it. Teach me to live in the light, steward my situation honestly, and trust You more than my image.\n\nIn Jesus' Name,\nAmen"
+prayer: "Heavenly Father,\n\nYou see the financial weight I have been carrying quietly. You know the fear, the shame, the pressure, and the loneliness underneath it. Please forgive me where silence has become hiding, and where pride or fear has kept me from walking in truth. Give me courage to face what is real, wisdom to know who to tell, and humility to receive help where I need it. Teach me to live in the light, steward my situation honestly, and trust You more than my image.\n\nIn Jesus' Name,\nAmen"
 
 words_to_speak: ["Concealment has no power where I walk in truth.", "Christ walked in the light and calls me to do the same.", "I do not need silence to protect my dignity.", "Honesty is the beginning of mercy, not the end of safety.", "I can bring this burden into the light without shame."]
 
@@ -421,7 +421,7 @@ faithful_actions:
 7. title: "Build a slower response"
    body: When you feel yourself rising, pause before you speak. Jesus never responded from self-protection — He responded from complete security in the Father, and He offers you that same steadiness. Example: Use one short prayer: "Lord, help me speak from peace, not self-protection."
 
-prayer: "Lord,\n\nThank You for helping me see what was really happening in me. I was not only trying to explain. I was trying to protect myself, prove my point, and gain control. Please forgive me where pride, fear, or sharpness took over my speech. Teach me to notice that shift sooner. Help me speak with honesty and conviction without being ruled by defensiveness. Make me someone who can slow down, stay soft before You, and respond from peace instead of self-protection.\n\nIn Jesus' Name,\nAmen"
+prayer: "Heavenly Father,\n\nThank You for helping me see what was really happening in me. I was not only trying to explain. I was trying to protect myself, prove my point, and gain control. Please forgive me where pride, fear, or sharpness took over my speech. Teach me to notice that shift sooner. Help me speak with honesty and conviction without being ruled by defensiveness. Make me someone who can slow down, stay soft before You, and respond from peace instead of self-protection.\n\nIn Jesus' Name,\nAmen"
 
 words_to_speak: ["Christ did not speak to win — He spoke to bring truth.", "I do not need control to be faithful.", "My security is in God, not in being understood.", "I can name the shift and bring it to repentance.", "Slow speech is wisdom — Christ gives me that steadiness."]
 
@@ -474,7 +474,7 @@ faithful_actions:
 6. title: "Bring the disappointment to God cleanly"
    body: Not as self-criticism. As grief. God receives honest grief — He is not asking you to be fine; He is asking you to be real with Him. Example: Say: "Lord, I let myself hope and it faded. I am bringing the ache to You, not the shame."
 
-prayer: "Lord,\n\nYou know how quickly my heart can feel both hope and disappointment. Thank You that I am not numb, even if that makes me feel exposed. Please guard my heart from shame, fantasy, and self-protection. Help me to stay tender without running ahead, and hopeful without building on what is not yet real. Meet me in the familiar ache of disappointment, and teach me how to hold desire with wisdom and peace before You.\n\nIn Jesus' Name,\nAmen"
+prayer: "Heavenly Father,\n\nYou know how quickly my heart can feel both hope and disappointment. Thank You that I am not numb, even if that makes me feel exposed. Please guard my heart from shame, fantasy, and self-protection. Help me to stay tender without running ahead, and hopeful without building on what is not yet real. Meet me in the familiar ache of disappointment, and teach me how to hold desire with wisdom and peace before You.\n\nIn Jesus' Name,\nAmen"
 
 words_to_speak: ["Hope placed in Christ does not ultimately disappoint.", "I can feel deeply and still guard my heart wisely.", "This disappointment is not the end of God's story for me.", "Christ holds what I cannot hold — including this desire.", "I will not let this ache become a verdict over my future."]
 
