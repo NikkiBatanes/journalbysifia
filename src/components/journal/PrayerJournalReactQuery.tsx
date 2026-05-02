@@ -481,14 +481,14 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       }
 
       // Main prayer count line with path
-      let subtitle = `${totalCount} prayer`;
+      let subtitle = totalCount === 1 ? '1 prayer' : `${totalCount} prayers`;
       if (prayerPath) {
         subtitle += ` • ${prayerPath}`;
       }
 
       // Add answered count on a new line if there are answered prayers
       if (answeredCount > 0) {
-        subtitle += `\n${answeredCount} answered prayer`;
+        subtitle += `\n${answeredCount} answered prayer${answeredCount !== 1 ? 's' : ''}`;
       }
 
       return subtitle;
