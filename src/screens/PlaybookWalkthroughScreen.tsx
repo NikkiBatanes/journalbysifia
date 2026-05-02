@@ -944,6 +944,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             playbookTitle,
             source: 'playbook_walkthrough',
           });
+
+          // Check if streak celebration should show for affirmation read aloud
+          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(userId, 'affirmation_read_aloud');
+          if (shouldShowStreak) {
+            await visibleStreakService.markShownToday(userId);
+            navigation.navigate('StreakPlan' as any, {
+              userId,
+              source: 'affirmation_read_aloud',
+            });
+          }
         } catch (_) {}
       }
 
@@ -2372,7 +2382,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     if (!shouldShowStreakPlan) {
-      navigation.goBack();
+      if (source === 'onboarding') {
+        (navigation as any).navigate('OnboardingSalesOffer', {
+          playbookId,
+          source: 'playbook_walkthrough',
+          onboardingFlow: true,
+        });
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }
       return;
     }
 

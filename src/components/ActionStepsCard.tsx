@@ -75,6 +75,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
 import { ReflectionApi } from '../services/api/reflectionApi';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 // Smart Journaling - Unified Icon System
 // All subtasks now show a single pencil icon that opens a tooltip selector
@@ -307,6 +308,18 @@ export default function ActionStepsCard({
                 playbookId,
                 source: 'ActionStepsCard.onToggleSubTask',
               });
+
+              // Check if streak celebration should show for action step completion
+              const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
+              if (shouldShowStreak) {
+                await visibleStreakService.markShownToday(user.id);
+                if (navigation) {
+                  (navigation as any).navigate('StreakPlan', {
+                    userId: user.id,
+                    source: 'action_step_completed',
+                  });
+                }
+              }
 
               // If that was the final incomplete step for this playbook, award a one-time playbook completion bonus
               try {

@@ -36,6 +36,7 @@ import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unifiedGenerationService } from '../services/unifiedGenerationService';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 import type { Playbook } from '../interfaces/playbook';
 import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
 

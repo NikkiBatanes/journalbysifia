@@ -33,6 +33,7 @@ import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
 import { faithPointsService } from '../../services/faithPointsService';
+import { visibleStreakService } from '../../services/visibleStreakService';
 import type { RootStackParamList } from '../../navigation/types';
 
 // Use the API interface directly
@@ -256,6 +257,18 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               person_name: prayerData.person_name,
               is_prayer_request: prayerData.is_prayer_request,
               selected_date: dateStr,
+            })
+            .then(async () => {
+              if (activityKey === 'prayer_list_request_added') {
+                const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_list_request_added');
+                if (shouldShowStreak && navigation) {
+                  await visibleStreakService.markShownToday(user.id);
+                  (navigation as any).navigate('StreakPlan', {
+                    userId: user.id,
+                    source: 'prayer_list_request_added',
+                  });
+                }
+              }
             })
             .catch(catchError => {
               Logger.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points', { component: 'EnhancedPrayerListReactQuery', data: catchError });

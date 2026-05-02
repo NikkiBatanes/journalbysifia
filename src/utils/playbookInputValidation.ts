@@ -40,9 +40,7 @@ const hasKeyboardMashingPattern = (input: string) => {
     'vbnm',
   ];
 
-  return keyboardSequences.some(sequence => compact.includes(sequence)) ||
-    /[bcdfghjklmnpqrstvwxyz]{4,}/.test(compact) ||
-    /[aeiou]{4,}/.test(compact);
+  return keyboardSequences.some(sequence => compact.includes(sequence));
 };
 
 const isNumericOnly = (input: string) => /^[\d\s.,!?'"-]+$/.test(input);
@@ -76,24 +74,6 @@ const hasEnoughContext = (words: string[]) => {
 
   const [word] = words;
   return Boolean(word && word.length >= 15);
-};
-
-const hasGibberishWordInPhrase = (words: string[]) => {
-  return words.some(word => {
-    if (word.length < 5) {
-      return false;
-    }
-
-    const hasNoVowels = !/[aeiouy]/.test(word);
-    const hasLongConsonantRun = /[bcdfghjklmnpqrstvwxz]{5,}/.test(word);
-    const hasExcessiveRepeats = /(.)\1{2,}/.test(word);
-    const vowelCount = (word.match(/[aeiouy]/gi) || []).length;
-    const vowelRatio = vowelCount / word.length;
-    const hasVeryFewVowels = word.length >= 8 && vowelCount <= 1;
-    const hasSuspiciouslyLowVowelRatio = word.length >= 10 && vowelRatio < 0.2;
-
-    return hasNoVowels || hasLongConsonantRun || hasExcessiveRepeats || hasVeryFewVowels || hasSuspiciouslyLowVowelRatio;
-  });
 };
 
 const hasTooManyEmojis = (input: string) => {
@@ -135,7 +115,6 @@ export const validatePlaybookInputQuality = (input: string): PlaybookInputValida
     isNumericOnly(normalized) ||
     hasMixedRandomAlphaNumericToken(normalized) ||
     isSingleLikelyGibberishWord(words) ||
-    hasGibberishWordInPhrase(words) ||
     hasTooManyEmojis(normalized) ||
     hasExcessiveRepeatedCharacters(normalized) ||
     hasKeyboardMashingPattern(normalized)

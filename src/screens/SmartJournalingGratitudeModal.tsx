@@ -16,6 +16,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { JournalApi } from '../services/api/journalApi';
 import { toLocalDateString } from '../utils/date';
+import { visibleStreakService } from '../services/visibleStreakService';
+import type { NavigationProp } from '@react-navigation/native';
 
 interface SmartJournalingGratitudeModalProps {
   visible: boolean;
@@ -28,8 +30,9 @@ interface SmartJournalingGratitudeModalProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingGratitude?: any;
-  onSave: (entry: any) => void;
-  onCancel: () => void;
+  onSave?: (data: any) => void;
+  onClose?: () => void;
+  navigation?: NavigationProp<any>;
   stepBody?: string;
   stepExample?: string | null;
   selectedDate?: Date;
@@ -47,7 +50,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   actionStepTitle,
   existingGratitude,
   onSave,
-  onCancel,
+  onClose,
+  navigation,
   stepBody,
   stepExample,
   selectedDate = new Date(),
@@ -59,7 +63,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const queryClient = useQueryClient();
   // New success modal system
   const successModal = useSuccessModal(
-    () => onCancel(), // onDone: close the modal
+    () => onClose?.(), // onDone: close the modal
     () => {} // onEdit: keep modal open for editing
   );
   const gratitudeEditorRef = useRef<GratitudeLogEditorRef>(null);
@@ -279,8 +283,23 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Always create a new entry after deleting all existing ones
       const result = await createMutation.mutateAsync(gratitudeEntry);
 
+      // Check if streak celebration should show for gratitude
+      const shouldShowStreak = user?.id
+        ? await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added')
+        : false;
+
+      if (shouldShowStreak && user?.id) {
+        await visibleStreakService.markShownToday(user.id);
+        if (navigation) {
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'journal_gratitude_added',
+          });
+        }
+      }
+
       // Call parent onSave callback immediately
-      onSave(result);
+      onSave?.(result);
 
       // Show success modal after a delay so user can see their saved content
       setTimeout(() => {
@@ -328,14 +347,14 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
     // Completion state handled by parent component
 
-    onCancel();
+    onClose?.();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleSuccessModalClose = () => {
 
     // Handled by success modal hook
-    onCancel(); // Close the main modal
+    onClose?.(); // Close the main modal
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -373,8 +392,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           <GratitudeLogEditor
             ref={gratitudeEditorRef}
             onSave={saveGratitude}
-            onCancel={onCancel}
-            onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
+            onCancel={onClose || (() => {})}
+            onUpgradeRequired={onClose || (() => {})} // Close modal before navigating to upgrade
             selectedDate={selectedDate}
             initialItems={(() => {
               if (currentGratitudeEntry?.content) {

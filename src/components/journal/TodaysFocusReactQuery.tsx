@@ -22,6 +22,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
 import { faithPointsService } from '../../services/faithPointsService';
+import { visibleStreakService } from '../../services/visibleStreakService';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { isToday, isYesterday, isAfter, startOfDay, startOfToday } from 'date-fns';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -358,6 +359,21 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         });
         // Reset wasDeleted flag after creating new entry
         setWasDeleted(false);
+
+        // Check if streak celebration should show for journal focus set
+        const shouldShowStreak = user?.id
+          ? await visibleStreakService.shouldShowCelebration(user.id, 'journal_focus_set')
+          : false;
+
+        if (shouldShowStreak && user?.id) {
+          await visibleStreakService.markShownToday(user.id);
+          if (navigation) {
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'journal_focus_set',
+            });
+          }
+        }
       }
 
       // Track successful focus update

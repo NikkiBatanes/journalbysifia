@@ -25,6 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useScroll } from '../context/ScrollContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -1310,6 +1311,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               prayer_content: prayerContent.substring(0, 100),
               prayed_for: modalPrayerName.trim(),
               suppressNotification: true,
+            })
+            .then(async () => {
+              const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_for_now');
+              if (shouldShowStreak) {
+                await visibleStreakService.markShownToday(user.id);
+                (navigation as any).navigate('StreakPlan', {
+                  userId: user.id,
+                  source: 'prayer_for_now',
+                });
+              }
             })
             .catch((e) => Logger.warn('DashboardHomeScreen: awardPoints failed (background)', { component: 'DashboardHomeScreen', error: e }));
         }

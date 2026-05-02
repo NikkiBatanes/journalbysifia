@@ -783,22 +783,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             useNativeDriver: false,
           }).start();
           setTimeout(async () => {
-            const shouldShowStreak = user?.id
-              ? await visibleStreakService.shouldShowCelebration(user.id, 'devotional_generated')
-              : false;
-
-            if (shouldShowStreak && user?.id) {
-              await visibleStreakService.markShownToday(user.id);
-            }
-
             handleClose(() => {
               setTimeout(() => {
-                if (shouldShowStreak) {
-                  (navigation as any).navigate('StreakPlan', {
-                    userId,
-                    source: 'devotional_generated',
-                  });
-                } else if (onDevotionalCreated) {
+                if (onDevotionalCreated) {
                   onDevotionalCreated(devotional.id);
                 }
                 setIsClosing(false);

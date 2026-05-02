@@ -12,9 +12,11 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 import { analytics } from '../utils/analytics';
 import { Colors } from '../theme';
 import ThemedText from '../components/common/ThemedText';
+import type { NavigationProp } from '@react-navigation/native';
 
 interface SmartJournalingReflectionModalProps {
   visible: boolean;
@@ -29,6 +31,7 @@ interface SmartJournalingReflectionModalProps {
   selectedDate?: Date; // Date to use for reflection (defaults to current date)
   onSave: (entry: any) => void;
   onCancel: () => void;
+  navigation?: NavigationProp<any>;
   // When true, this reflection was opened from a guided prompt and should hide metadata
   isGuidedReflection?: boolean;
   // When true, hide the guided prompt button (heart icon)
@@ -49,12 +52,13 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   actionStepNumber,
   actionStepTitle,
   existingReflection,
-  selectedDate,
+  selectedDate = new Date(),
   onSave,
   onCancel,
+  navigation,
   isGuidedReflection = false,
-  hideGuidedPromptButton = true, // Default to true for backward compatibility
-  isJournalCarousel = false, // Default to false for backward compatibility
+  hideGuidedPromptButton = false,
+  isJournalCarousel = false,
   stepBody,
   stepExample,
 }) => {
@@ -315,6 +319,18 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             error: error as Error,
           });
         });
+
+        // Check if streak celebration should show for reflection (only for new reflections)
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          if (navigation) {
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'reflection_saved',
+            });
+          }
+        }
       }
 
       // Call parent onSave callback

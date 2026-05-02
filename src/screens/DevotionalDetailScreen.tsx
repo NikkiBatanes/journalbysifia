@@ -30,6 +30,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
@@ -586,6 +587,16 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           day_title: currentDay.title,
           selected_date: currentDate,
         })
+        .then(async () => {
+          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_devotional_prayed');
+          if (shouldShowStreak) {
+            await visibleStreakService.markShownToday(user.id);
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'devotional_prayer',
+            });
+          }
+        })
         .catch(error => {
           Logger.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points', { component: 'DevotionalDetailScreen', data: error });
         });
@@ -684,9 +695,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   }, [navigation]);
 
   // Handle continuing after completion modal
-  const handleCompletionContinue = () => {
+  const handleCompletionContinue = async () => {
     if (!devotional) {
       return;
+    }
+
+    // Determine if this is full completion
+    const isFullCompletion = currentDayIndex === devotional.days.length - 1;
+    const activityType = isFullCompletion ? 'devotional_full_completed' : 'devotional_completed';
+
+    // Check if streak celebration should show
+    const shouldShowStreak = userId
+      ? await visibleStreakService.shouldShowCelebration(userId, activityType)
+      : false;
+
+    if (shouldShowStreak && userId) {
+      await visibleStreakService.markShownToday(userId);
     }
 
     // Close modal first
@@ -697,6 +721,15 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     setIsMarkingComplete(false);
     modalOpenedRef.current = false;
     // Keep timing guard to prevent rapid re-completion
+
+    // If streak celebration should show, navigate to StreakPlan
+    if (shouldShowStreak) {
+      (navigation as any).navigate('StreakPlan', {
+        userId,
+        source: activityType,
+      });
+      return;
+    }
 
     // If we're on the last day, navigate back to previous screen
     if (currentDayIndex === devotional.days.length - 1) {
