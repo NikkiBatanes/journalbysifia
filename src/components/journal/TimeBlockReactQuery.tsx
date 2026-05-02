@@ -1155,6 +1155,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const openExistingTimeBlockEditor = (block: TimeBlockItem) => {
     triggerLightHaptic();
     openTimeBlockEditor({
+      autoFocus: true,
       existingTimeBlock: {
         id: block.id,
         selected_date: block.selectedDate,
@@ -1194,10 +1195,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       >
         <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
-            {/* Calendar Sync (inline above time) - hidden when auto-sync is enabled */}
-            {(!autoSyncEnabled && (calendarGating.canSyncToCalendar || !!block.calendarEventId)) && (
-              <View style={styles.calendarSyncInline}>
-                <CalendarSyncButton
+            {/* Calendar Sync (inline above time) - always show so users know feature exists */}
+            <View style={styles.calendarSyncInline}>
+              <CalendarSyncButton
                   timeBlock={block}
                   calendarEventId={block.calendarEventId}
                   onSyncComplete={async (eventId) => {
@@ -1237,7 +1237,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   compact
                 />
               </View>
-            )}
             {block.isAllDay ? (
               <View style={styles.allDayBadge}>
                 <ThemedText weight="semiBold" style={styles.allDayText}>ALL DAY</ThemedText>

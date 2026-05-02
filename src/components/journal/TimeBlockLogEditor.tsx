@@ -892,6 +892,10 @@ function TimeBlockLogEditorInner(
   const s = useMemo(() => ({ ...createDefaultStyles(fonts), ...styles }), [fonts, styles]);
   const inputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
+  const hasAutoFocused = useRef(false);
+
+  // State management
+  const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -910,17 +914,25 @@ function TimeBlockLogEditorInner(
 
   // Auto-focus input when autoFocus prop is true
   useEffect(() => {
-    if (autoFocus) {
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 100);
+    if (autoFocus && !hasAutoFocused.current) {
+      hasAutoFocused.current = true;
+      // Use requestAnimationFrame to ensure the component is fully rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            // Position cursor at the end of the text
+            setTimeout(() => {
+              if (inputRef.current) {
+                inputRef.current.setSelection(title.length, title.length);
+              }
+            }, 50);
+          }
+        }, 100);
+      });
     }
   }, [autoFocus]);
 
-  // State management
-  const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
   const [startTime, setStartTime] = React.useState(() => {
     if (existingTimeBlock?.start_time) {
       return new Date(existingTimeBlock.start_time);

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { View, StyleSheet, StatusBar, Alert, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
@@ -33,17 +33,42 @@ const TimeBlockEditorScreen: React.FC = () => {
   const selectedDateForGate = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
   const planningGating = usePlanningGating(selectedDateForGate, 'inApp');
   const calendarGating = useCalendarGating();
+  const [hasFocused, setHasFocused] = useState(false);
 
   useEffect(() => {
     Logger.info('[TimeBlockEditorScreen] Component MOUNTED', {
       selectedDate,
       hasExistingTimeBlock: !!existingTimeBlock,
       existingTitle: existingTimeBlock?.title,
+      autoFocus,
     });
     return () => {
       Logger.info('[TimeBlockEditorScreen] Component UNMOUNTED');
+      setHasFocused(false); // Reset on unmount
     };
   }, [selectedDate, existingTimeBlock]);
+
+  // Use navigation focus listener to trigger auto-focus when screen comes into focus
+  useLayoutEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      Logger.info('[TimeBlockEditorScreen] Screen FOCUSED', { autoFocus, hasFocused });
+
+      // Always auto-focus the title input when screen opens
+      if (!hasFocused) {
+        setHasFocused(true);
+        setTimeout(() => {
+          if (timeBlockEditorRef.current) {
+            Logger.info('[TimeBlockEditorScreen] Calling focusInput()');
+            timeBlockEditorRef.current.focusInput();
+          } else {
+            Logger.warn('[TimeBlockEditorScreen] timeBlockEditorRef.current is null');
+          }
+        }, 600); // Delay to allow screen transition to complete
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, autoFocus, hasFocused]);
 
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
@@ -209,7 +234,6 @@ const TimeBlockEditorScreen: React.FC = () => {
           actionStepNumber={undefined}
           actionStepTitle={undefined}
           isLoading={false}
-          autoFocus={autoFocus}
           existingTimeBlock={existingTimeBlock}
           selectedDate={selectedDate}
           context="journal"
