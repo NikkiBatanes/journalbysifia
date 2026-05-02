@@ -182,6 +182,7 @@ const DevotionalsScreen = () => {
     devotionals,
     deleteDevotional,
     isLoading,
+    refetch: refetchDevotionals,
   } = useDevotionalOperations(userId || '');
 
   // Fetch user's playbooks to suggest creating devotionals
@@ -205,7 +206,7 @@ const DevotionalsScreen = () => {
     }
   }, [setShowTabBar]);
 
-  // Ensure latest playbooks are shown when returning to this screen
+  // Ensure latest playbooks and devotionals are shown when returning to this screen
   useFocusEffect(
     useCallback(() => {
       // Always expand tab bar when screen gains focus
@@ -218,8 +219,10 @@ const DevotionalsScreen = () => {
       InteractionManager.runAfterInteractions(() => {
         // Force a refetch regardless of staleTime, so newly created playbooks are visible
         refetchPlaybooks();
+        // Also refetch devotionals to show updated progress after completing days
+        refetchDevotionals();
       });
-    }, [refetchPlaybooks, setShowTabBar])
+    }, [refetchPlaybooks, refetchDevotionals, setShowTabBar])
   );
 
   // Subtle haptic feedback, gated by user preference
