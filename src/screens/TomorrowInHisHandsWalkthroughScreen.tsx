@@ -931,19 +931,19 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
-  };
+  }, [currentStep]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
-  };
+  }, [currentStep, navigation]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

@@ -1438,7 +1438,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep === 0) {
       if (selectedPath?.id === 'acts') {
         setCurrentStep(1); // Go to CAST description
@@ -1465,15 +1465,15 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     } else {
       navigation.goBack();
     }
-  };
+  }, [currentStep, selectedPath, prayerTexts, openPrayerText, navigation]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
-  };
+  }, [currentStep, navigation]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Animated,
   StatusBar,
   TextInput,
@@ -1024,15 +1023,15 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [existingEntry]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep === 1) {
       setCurrentStep(2);
     } else if (currentStep === 2) {
       setCurrentStep(3);
     }
-  };
+  }, [currentStep]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep === 1 && isOtherStateActive) {
       setSelectedWinType(null);
       setCustomWin('');
@@ -1045,7 +1044,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } else if (currentStep === 2) {
       setCurrentStep(1);
     }
-  };
+  }, [currentStep, isOtherStateActive]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

@@ -1116,19 +1116,19 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
-  };
+  }, [currentStep]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
-  };
+  }, [currentStep, navigation]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

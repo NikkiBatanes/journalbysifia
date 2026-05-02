@@ -13,16 +13,6 @@ import {
   useTodayWinData,
 } from '../../services/hooks/useJournalData';
 import { useFocusEffect } from '@react-navigation/native';
-
-// Win type names mapping
-const WIN_TYPE_NAMES: Record<string, string> = {
-  'followed-through': 'I followed through',
-  'chose-peace': 'I chose peace',
-  'told-truth': 'I told the truth',
-  'showed-up': 'I showed up',
-  'god-provided': 'God provided',
-  'kept-going': 'I kept going',
-};
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
@@ -162,8 +152,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       console.log('[TodayWin] Old structure win:', result);
 
       return result;
-    } catch (error) {
-      console.error('[TodayWin] Error parsing content:', error);
+    } catch (parseError) {
+      console.error('[TodayWin] Error parsing content:', parseError);
       const result = {
         id: entry.id,
         text: '',

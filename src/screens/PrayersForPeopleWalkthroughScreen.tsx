@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -1173,48 +1173,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const selectedDate = route.params?.selectedDate ? new Date(route.params.selectedDate) : currentDate;
   const dateStr = toLocalDateString(selectedDate);
 
-  const handleNext = () => {
-    if (currentStep === 0) {
-      if (!selectedType) {
-        return;
-      }
-      // Move to name input step
-      setCurrentStep(1);
-    } else if (currentStep === 1) {
-      if (!personName.trim()) {
-        return;
-      }
-      // Move to prayer focus step
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      if (selectedType?.id === 'prayer-request' && !prayerNeed.trim()) {
-        return;
-      }
-      if (selectedType?.id === 'pray-for-someone' && !prayerText.trim()) {
-        return;
-      }
-      // Prayer Request: Skip track option, go directly to completion
-      // Pray for Someone: Go to track option step
-      if (selectedType?.id === 'prayer-request') {
-        savePrayer();
-      } else {
-        setCurrentStep(3);
-      }
-    } else if (currentStep === 3) {
-      // Save and show completion (Pray for Someone only)
-      savePrayer();
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      navigation.goBack();
-    }
-  };
-
-  const savePrayer = async () => {
+  const savePrayer = useCallback(async () => {
     if (!personName.trim()) {
       return;
     }
@@ -1269,7 +1228,48 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  };
+  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation]);
+
+  const handleNext = useCallback(() => {
+    if (currentStep === 0) {
+      if (!selectedType) {
+        return;
+      }
+      // Move to name input step
+      setCurrentStep(1);
+    } else if (currentStep === 1) {
+      if (!personName.trim()) {
+        return;
+      }
+      // Move to prayer focus step
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      if (selectedType?.id === 'prayer-request' && !prayerNeed.trim()) {
+        return;
+      }
+      if (selectedType?.id === 'pray-for-someone' && !prayerText.trim()) {
+        return;
+      }
+      // Prayer Request: Skip track option, go directly to completion
+      // Pray for Someone: Go to track option step
+      if (selectedType?.id === 'prayer-request') {
+        savePrayer();
+      } else {
+        setCurrentStep(3);
+      }
+    } else if (currentStep === 3) {
+      // Save and show completion (Pray for Someone only)
+      savePrayer();
+    }
+  }, [currentStep, selectedType, personName, prayerNeed, prayerText, savePrayer]);
+
+  const handleBack = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    } else {
+      navigation.goBack();
+    }
+  }, [currentStep, navigation]);
 
   const handleDone = () => {
     navigation.goBack();

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, TextInput, StatusBar, Animated, ScrollView, PanResponder, useWindowDimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -121,14 +121,14 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     outputRange: ['0deg', '360deg'],
   });
 
-  const handleSavePrayer = () => {
+  const handleSavePrayer = useCallback(() => {
     // Step 1 → Step 2: just validate and advance to tracking question
     if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
     triggerLightHaptic();
     setCurrentStep(2);
-  };
+  }, [prayerRequest.person_name, modalPrayerRequest]);
 
-  const handleTrackingNext = async () => {
+  const handleTrackingNext = useCallback(async () => {
     // Step 2 → Step 3: save the prayer NOW with the chosen trackAnswered value
     if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
 
@@ -172,34 +172,34 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
       setSavingModalPrayer(false);
     }
-  };
+  }, [prayerRequest.person_name, prayerRequest.content, prayerRequest.id, prayerRequest.user_id, prayerRequest.selected_date, modalPrayerRequest, trackAnswered, user, createPrayerMutation, markPrayedMutation]);
 
   const handleCompletionDone = () => {
     triggerMediumHaptic();
     navigation.popToTop();
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     triggerSelectionHaptic();
     navigation.goBack();
-  };
+  }, [navigation]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 1) {
       triggerMediumHaptic();
       setCurrentStep(currentStep - 1);
     } else {
       handleCancel();
     }
-  };
+  }, [currentStep, handleCancel]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep === 1) {
       handleSavePrayer();
     } else if (currentStep === 2) {
       handleTrackingNext();
     }
-  };
+  }, [currentStep, handleSavePrayer, handleTrackingNext]);
 
   const panResponder = React.useMemo(
     () =>
