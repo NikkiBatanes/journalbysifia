@@ -175,6 +175,9 @@ export class NotificationTester {
       ctx.actionText = actionText;
       ctx._playbookId = actionStepPlaybookId;
       ctx._actionIndex = actionStepIndex;
+      ctx.playbookTitle = playbooks.find((pb: any) => pb.id === actionStepPlaybookId)?.title;
+    } else if (playbooks[0]?.title) {
+      ctx.playbookTitle = playbooks[0].title;
     }
 
     // Store playbook verse separately so it isn't overwritten by devotional verse
@@ -434,6 +437,10 @@ export class NotificationTester {
       resolvedCtx.verseReference = ctx._playbookReflectionVerseRef;
     }
 
+    if (type === 'playbook_actions_complete' || type === 'playbook_actions_milestone') {
+      resolvedCtx.title = ctx.playbookTitle;
+    }
+
     if (type === 'prayer_answered_check') {
       resolvedCtx.prayerText = ctx._unansweredPrayerText;
       resolvedCtx.personName = ctx._unansweredPrayerPersonName;
@@ -457,8 +464,8 @@ export class NotificationTester {
     const dataRequired: Partial<Record<SmartNotificationType, string>> = {
       playbook_word_to_speak: 'wordToSpeak',
       playbook_faithful_action: 'actionText',
-      playbook_actions_complete: 'title',
-      playbook_actions_milestone: 'title',
+      playbook_actions_complete: 'playbookTitle',
+      playbook_actions_milestone: 'playbookTitle',
       playbook_verse_revisit: '_playbookVerseText',
       playbook_verse_reflection: '_playbookReflectionLine',
       devotional_day_ready: 'dayNumber',

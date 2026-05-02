@@ -28,7 +28,7 @@ const formatNameList = (names: string[]): string => {
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 };
 
-const compact = (str: string, maxLength = 60): string => {
+const compact = (str: string, maxLength = Number.POSITIVE_INFINITY): string => {
   if (!str) return '';
   return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
 };
