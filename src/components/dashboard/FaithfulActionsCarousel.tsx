@@ -3,7 +3,7 @@
  * Horizontal carousel displaying incomplete faithful actions from playbooks
  */
 
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -143,22 +143,22 @@ interface FaithfulActionCardProps {
 }
 
 const FaithfulActionCard = React.memo(({ item, index, scrollX, onPress }: FaithfulActionCardProps) => {
-  const scale = useMemo(() => scrollX.interpolate({ 
-    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], 
-    outputRange: [0.96, 1, 0.96], 
-    extrapolate: 'clamp' 
+  const scale = useMemo(() => scrollX.interpolate({
+    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE],
+    outputRange: [0.96, 1, 0.96],
+    extrapolate: 'clamp',
   }), [scrollX, index]);
-  
-  const opacity = useMemo(() => scrollX.interpolate({ 
-    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], 
-    outputRange: [0.9, 1, 0.9], 
-    extrapolate: 'clamp' 
+
+  const opacity = useMemo(() => scrollX.interpolate({
+    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE],
+    outputRange: [0.9, 1, 0.9],
+    extrapolate: 'clamp',
   }), [scrollX, index]);
-  
-  const translateY = useMemo(() => scrollX.interpolate({ 
-    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], 
-    outputRange: [2, 0, 2], 
-    extrapolate: 'clamp' 
+
+  const translateY = useMemo(() => scrollX.interpolate({
+    inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE],
+    outputRange: [2, 0, 2],
+    extrapolate: 'clamp',
   }), [scrollX, index]);
 
   const updatedDateStr = useMemo(() => {

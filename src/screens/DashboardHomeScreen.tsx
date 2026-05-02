@@ -1193,8 +1193,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Fetch faithful actions from playbooks
   useEffect(() => {
     const fetchFaithfulActions = async () => {
-      if (!user?.id) return;
-      
+      if (!user?.id) {
+        return;
+      }
+
       try {
         const playbooksData = await getPlaybooks(user.id, { lightweight: true });
         const actions = extractIncompleteFaithfulActions(playbooksData);

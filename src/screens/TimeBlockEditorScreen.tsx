@@ -43,7 +43,7 @@ const TimeBlockEditorScreen: React.FC = () => {
     return () => {
       Logger.info('[TimeBlockEditorScreen] Component UNMOUNTED');
     };
-  }, []);
+  }, [selectedDate, existingTimeBlock]);
 
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();

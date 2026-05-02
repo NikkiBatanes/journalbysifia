@@ -12,7 +12,6 @@ import {
   Modal,
   Animated,
   useWindowDimensions,
-  ScrollView,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
