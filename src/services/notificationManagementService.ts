@@ -618,45 +618,6 @@ class NotificationManagementService {
     }
   }
 
-  /**
-   * Schedule prayer reminder
-   */
-  async schedulePrayerReminder(userId: string, scheduledFor: Date): Promise<boolean> {
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'prayer_reminder',
-      title: 'Time for Prayer 🙏🏼',
-      message: 'Take a moment to connect with God through prayer.',
-      data: {
-        reminder_type: 'prayer',
-        suggested_duration: '5-10 minutes',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification);
-  }
-
-  /**
-   * Schedule devotional reminder
-   */
-  async scheduleDevotionalReminder(userId: string, scheduledFor: Date): Promise<boolean> {
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'devotional_reminder',
-      title: 'Daily Devotional 🤲🏼',
-      message: 'Start your day with God\'s word and guidance.',
-      data: {
-        reminder_type: 'devotional',
-        action: 'open_devotional',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification);
-  }
 
   /**
    * Schedule journal prompt

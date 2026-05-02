@@ -705,22 +705,22 @@ export class RetentionService {
     if (isHighValue) {
       // High-value users get relationship-focused messaging
       return {
-        title: 'We value your spiritual journey',
-        message: `As a dedicated member of our community, we'd love to welcome you back with ${discount}% off`,
+        title: 'We\'d love to welcome you back',
+        message: `Return to siFia with ${discount}% off and keep making space for prayer, reflection, and faithful next steps.`,
         cta: `Continue My Journey (${discount}% Off)`,
       };
     } else if (isLongTerm) {
       // Long-term win-back campaigns
       return {
-        title: 'Your faith journey is waiting',
-        message: `It's been a while! Restart your spiritual growth with ${discount}% off`,
+        title: 'Your place is still here',
+        message: `It's been a while. Come back with ${discount}% off and return to prayer, reflection, and clarity.`,
         cta: `Restart My Journey (${discount}% Off)`,
       };
     } else {
       // Standard messaging
       return {
-        title: "Don't let your spiritual growth pause",
-        message: `Continue your faith journey with ${discount}% off your subscription`,
+        title: 'Keep going with siFia',
+        message: `Come back with ${discount}% off and keep going with more room for reflection, playbooks, and devotionals.`,
         cta: `Get ${discount}% Off Now`,
       };
     }

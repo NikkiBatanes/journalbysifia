@@ -85,16 +85,16 @@ export class FaithPointsService {
 
   // Level progression system
   private readonly LEVELS: LevelInfo[] = [
-    { level: 1, name: 'Seeker', description: 'Beginning your faith journey', pointsRequired: 0, benefits: ['Basic features'] },
-    { level: 2, name: 'Believer', description: 'Growing in faith', pointsRequired: 100, benefits: ['Enhanced content'] },
-    { level: 3, name: 'Disciple', description: 'Committed to growth', pointsRequired: 300, benefits: ['Priority support'] },
-    { level: 4, name: 'Servant', description: 'Serving others', pointsRequired: 600, benefits: ['Advanced features'] },
-    { level: 5, name: 'Leader', description: 'Leading by example', pointsRequired: 1000, benefits: ['Leadership content'] },
-    { level: 6, name: 'Teacher', description: 'Sharing wisdom', pointsRequired: 1500, benefits: ['Teaching resources'] },
-    { level: 7, name: 'Mentor', description: 'Guiding others', pointsRequired: 2500, benefits: ['Mentorship tools'] },
-    { level: 8, name: 'Elder', description: 'Wise in faith', pointsRequired: 4000, benefits: ['Elder privileges'] },
-    { level: 9, name: 'Steward', description: 'Faithful steward of God\'s gifts', pointsRequired: 6000, benefits: ['Steward status'] },
-    { level: 10, name: 'Ambassador', description: 'Spreading the faith', pointsRequired: 10000, benefits: ['Ambassador recognition'] },
+    { level: 1, name: 'Beginning', description: 'Beginning your faith journey', pointsRequired: 0, benefits: ['Basic features'] },
+    { level: 2, name: 'Growing', description: 'Growing in faith', pointsRequired: 100, benefits: ['Enhanced content'] },
+    { level: 3, name: 'Rooted', description: 'Rooted in faith', pointsRequired: 300, benefits: ['Priority support'] },
+    { level: 4, name: 'Steady', description: 'Steady in faith', pointsRequired: 600, benefits: ['Advanced features'] },
+    { level: 5, name: 'Grounded', description: 'Grounded in truth', pointsRequired: 1000, benefits: ['Leadership content'] },
+    { level: 6, name: 'Faithful', description: 'Faithful in walk', pointsRequired: 1500, benefits: ['Teaching resources'] },
+    { level: 7, name: 'Maturing', description: 'Maturing in faith', pointsRequired: 2500, benefits: ['Mentorship tools'] },
+    { level: 8, name: 'Deepening', description: 'Deepening understanding', pointsRequired: 4000, benefits: ['Deepening privileges'] },
+    { level: 9, name: 'Strengthened', description: 'Strengthened in spirit', pointsRequired: 6000, benefits: ['Strengthened status'] },
+    { level: 10, name: 'Abiding', description: 'Abiding in Christ', pointsRequired: 10000, benefits: ['Abiding recognition'] },
   ];
 
   // Points awarded for different activities
@@ -796,81 +796,81 @@ export class FaithPointsService {
 
       // Level Achievement Badges
       {
-        id: 'seeker',
-        name: 'Seeker',
+        id: 'beginning',
+        name: 'Beginning',
         description: 'Beginning your faith journey',
         icon: '🔍',
         rarity: 'common',
         pointsRequired: 0,
       },
       {
-        id: 'believer',
-        name: 'Believer',
+        id: 'growing',
+        name: 'Growing',
         description: 'Growing in faith',
         icon: '🌱',
         rarity: 'common',
         pointsRequired: 100,
       },
       {
-        id: 'disciple',
-        name: 'Disciple',
-        description: 'Committed to growth',
+        id: 'rooted',
+        name: 'Rooted',
+        description: 'Rooted in faith',
         icon: '⚡',
         rarity: 'rare',
         pointsRequired: 300,
       },
       {
-        id: 'servant',
-        name: 'Servant',
-        description: 'Serving others',
+        id: 'steady',
+        name: 'Steady',
+        description: 'Steady in faith',
         icon: '🤲🏼',
         rarity: 'rare',
         pointsRequired: 600,
       },
       {
-        id: 'leader',
-        name: 'Leader',
-        description: 'Leading by example',
+        id: 'grounded',
+        name: 'Grounded',
+        description: 'Grounded in truth',
         icon: '👑',
         rarity: 'legendary',
         pointsRequired: 1000,
       },
       {
-        id: 'teacher',
-        name: 'Teacher',
-        description: 'Sharing wisdom',
+        id: 'faithful',
+        name: 'Faithful',
+        description: 'Faithful in walk',
         icon: '📚',
         rarity: 'legendary',
         pointsRequired: 1500,
       },
       {
-        id: 'mentor',
-        name: 'Mentor',
-        description: 'Guiding others',
+        id: 'maturing',
+        name: 'Maturing',
+        description: 'Maturing in faith',
         icon: '🎯',
         rarity: 'legendary',
         pointsRequired: 2500,
       },
       {
-        id: 'elder',
-        name: 'Elder',
-        description: 'Wise in faith',
+        id: 'deepening',
+        name: 'Deepening',
+        description: 'Deepening understanding',
         icon: '🦉',
         rarity: 'legendary',
         pointsRequired: 4000,
       },
       {
-        id: 'steward',
-        name: 'Steward',
-        description: 'Faithful steward of God\'s gifts',
+        id: 'strengthened',
+        name: 'Strengthened',
+        description: 'Strengthened in spirit',
         icon: '🌾',
         rarity: 'legendary',
         pointsRequired: 6000,
       },
       {
-        id: 'ambassador',
-        name: 'Ambassador',
-        description: 'Spreading the faith',
+        id: 'abiding',
+        name: 'Abiding',
+        description: 'Abiding in Christ',
         icon: '🌍',
         rarity: 'legendary',
         pointsRequired: 10000,
@@ -937,18 +937,18 @@ export class FaithPointsService {
 
   private getLevelBadgeName(level: number): string {
     const levelNames: { [key: number]: string } = {
-      1: 'Seeker',
-      2: 'Believer',
-      3: 'Disciple',
-      4: 'Servant',
-      5: 'Leader',
-      6: 'Teacher',
-      7: 'Mentor',
-      8: 'Elder',
-      9: 'Steward',
-      10: 'Ambassador',
+      1: 'Beginning',
+      2: 'Growing',
+      3: 'Rooted',
+      4: 'Steady',
+      5: 'Grounded',
+      6: 'Faithful',
+      7: 'Maturing',
+      8: 'Deepening',
+      9: 'Strengthened',
+      10: 'Abiding',
     };
-    return levelNames[level] || 'Seeker';
+    return levelNames[level] || 'Beginning';
   }
 
   /**
@@ -1530,53 +1530,53 @@ export class FaithPointsService {
         return (activityCounts.daily_streak || 0) >= 60;
 
       // Level Achievement Badges
-      case 'Seeker':
+      case 'Beginning':
         // Award after reaching level 1 - ONLY check during achievement/level activities
         // This is given automatically to new users in createUserProfile
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_1_reached || 0) >= 1;
 
-      case 'Believer':
+      case 'Growing':
         // Award after reaching level 2 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_2_reached || 0) >= 1;
 
-      case 'Disciple':
+      case 'Rooted':
         // Award after reaching level 3 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_3_reached || 0) >= 1;
 
-      case 'Servant':
+      case 'Steady':
         // Award after reaching level 4 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_4_reached || 0) >= 1;
 
-      case 'Leader':
+      case 'Grounded':
         // Award after reaching level 5 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_5_reached || 0) >= 1;
 
-      case 'Teacher':
+      case 'Faithful':
         // Award after reaching level 6 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_6_reached || 0) >= 1;
 
-      case 'Mentor':
+      case 'Maturing':
         // Award after reaching level 7 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_7_reached || 0) >= 1;
 
-      case 'Elder':
+      case 'Deepening':
         // Award after reaching level 8 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_8_reached || 0) >= 1;
 
-      case 'Steward':
+      case 'Strengthened':
         // Award after reaching level 9 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_9_reached || 0) >= 1;
 
-      case 'Ambassador':
+      case 'Abiding':
         // Award after reaching level 10 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return (activityCounts.level_10_reached || 0) >= 1;
@@ -1668,53 +1668,53 @@ export class FaithPointsService {
         return await this.getActivityCount(userId, 'daily_streak') >= 60;
 
       // Level Achievement Badges
-      case 'Seeker':
+      case 'Beginning':
         // Award after reaching level 1 - ONLY check during achievement/level activities
         // This is given automatically to new users in createUserProfile
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_1_reached') >= 1;
 
-      case 'Believer':
+      case 'Growing':
         // Award after reaching level 2 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_2_reached') >= 1;
 
-      case 'Disciple':
+      case 'Rooted':
         // Award after reaching level 3 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_3_reached') >= 1;
 
-      case 'Servant':
+      case 'Steady':
         // Award after reaching level 4 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_4_reached') >= 1;
 
-      case 'Leader':
+      case 'Grounded':
         // Award after reaching level 5 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_5_reached') >= 1;
 
-      case 'Teacher':
+      case 'Faithful':
         // Award after reaching level 6 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_6_reached') >= 1;
 
-      case 'Mentor':
+      case 'Maturing':
         // Award after reaching level 7 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_7_reached') >= 1;
 
-      case 'Elder':
+      case 'Deepening':
         // Award after reaching level 8 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_8_reached') >= 1;
 
-      case 'Steward':
+      case 'Strengthened':
         // Award after reaching level 9 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_9_reached') >= 1;
 
-      case 'Ambassador':
+      case 'Abiding':
         // Award after reaching level 10 - ONLY check during achievement/level activities
         if (activity !== 'achievement' && !activity.includes('level')) { return false; }
         return await this.getActivityCount(userId, 'level_10_reached') >= 1;

@@ -193,41 +193,6 @@ export function useNotificationIntegration() {
     }
   }, [user?.id]);
 
-  /**
-   * Schedule specific contextual notifications
-   */
-  const scheduleDevotionalReminder = useCallback(async (_preferredTime?: string) => {
-    if (!user?.id) {
-      return;
-    }
-    await smartNotificationEngine.scheduleForUser(user.id);
-    return true;
-  }, [user?.id]);
-
-  const schedulePrayerReminder = useCallback(async (_preferredTime?: string) => {
-    if (!user?.id) {
-      return;
-    }
-    await smartNotificationEngine.scheduleForUser(user.id);
-    return true;
-  }, [user?.id]);
-
-  const scheduleGratitudeReminder = useCallback(async () => {
-    if (!user?.id) {
-      return;
-    }
-    await smartNotificationEngine.scheduleForUser(user.id);
-    return true;
-  }, [user?.id]);
-
-  const scheduleWinsReminder = useCallback(async () => {
-    if (!user?.id) {
-      return;
-    }
-    await smartNotificationEngine.scheduleForUser(user.id);
-    return true;
-  }, [user?.id]);
-
   return {
     // Activity tracking
     trackPrayer,
@@ -246,9 +211,5 @@ export function useNotificationIntegration() {
 
     // Daily notifications
     scheduleAllDailyNotifications,
-    scheduleDevotionalReminder,
-    schedulePrayerReminder,
-    scheduleGratitudeReminder,
-    scheduleWinsReminder,
   };
 }

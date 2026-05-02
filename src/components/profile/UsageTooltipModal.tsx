@@ -17,6 +17,12 @@ interface TooltipContent {
   description: string;
   icon: string;
   iconColor: string;
+  level?: number;
+  levelTitle?: string;
+  progress?: number;
+  points?: number;
+  pointsNeeded?: number;
+  nextLevelTitle?: string;
 }
 
 interface Props {
@@ -189,25 +195,32 @@ const UsageTooltipModal: React.FC<Props> = ({
         const points = stats?.faithPoints || 0;
         const level = stats?.level || 1;
         const levelTitles: Record<number, string> = {
-          1: 'Seeker', 2: 'Believer', 3: 'Disciple', 4: 'Servant', 5: 'Leader',
-          6: 'Teacher', 7: 'Mentor', 8: 'Elder', 9: 'Steward', 10: 'Ambassador',
+          1: 'Beginning', 2: 'Growing', 3: 'Rooted', 4: 'Steady', 5: 'Grounded',
+          6: 'Faithful', 7: 'Maturing', 8: 'Deepening', 9: 'Strengthened', 10: 'Abiding',
         };
-        const currentLevelTitle = levelTitles[level] || 'Seeker';
-        const nextLevelTitle = levelTitles[level + 1] || 'Ambassador';
+        const currentLevelTitle = levelTitles[level] || 'Beginning';
+        const nextLevelTitle = levelTitles[level + 1] || 'Abiding';
 
         // Calculate points needed for next level
         const levelThresholds = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
-        // currentThreshold removed - was calculated but never used
+        const currentThreshold = levelThresholds[level - 1] || 0;
         const nextThreshold = levelThresholds[level] || 10000;
         const pointsNeeded = Math.max(0, nextThreshold - points);
+        const progress = level < 10 ? Math.min(1, Math.max(0, (points - currentThreshold) / (nextThreshold - currentThreshold))) : 1;
 
-        const faithDesc = `You currently have ${points} Faith Points and are at Level ${level}: ${currentLevelTitle}.\n\nFaith Points are earned by:\n• Completing playbook action steps\n• Finishing devotionals\n• Daily journaling\n• Prayer activities\n• Maintaining streaks\n\n${level < 10 ? `You need ${pointsNeeded} more points to reach Level ${level + 1}: ${nextLevelTitle}.` : 'You have reached the maximum level! Keep growing in faith.'}`;
+        const faithDesc = `You currently have ${points} Faith Points.\n\nFaith Points are earned by:\n• Completing playbook action steps\n• Finishing devotionals\n• Daily journaling\n• Prayer activities\n• Maintaining streaks\n\n${level < 10 ? `You need ${pointsNeeded} more points to reach Level ${level + 1}: ${nextLevelTitle}.` : 'You have reached the maximum level! Keep growing in faith.'}`;
 
         return {
           title: 'Faith Points',
           description: faithDesc,
           icon: 'star-four-points',
           iconColor: Colors.alertCoral,
+          level,
+          levelTitle: currentLevelTitle,
+          progress,
+          points,
+          pointsNeeded,
+          nextLevelTitle,
         };
 
       case 'badges':
@@ -306,6 +319,24 @@ const UsageTooltipModal: React.FC<Props> = ({
       >
         <View style={styles.modalContainer}>
           <ThemedText weight="medium" style={styles.modalTitle}>{content.title}</ThemedText>
+          {type === 'faithPoints' && content.level !== undefined && (
+            <View style={styles.levelSection}>
+              <ThemedText weight="semiBold" style={styles.levelText}>
+                Level {content.level}: {content.levelTitle}
+              </ThemedText>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${(content.progress || 0) * 100}%` }]} />
+              </View>
+              <ThemedText weight="regular" style={styles.pointsText}>
+                {content.points} FP
+                {content.level !== undefined && content.level < 10 && content.pointsNeeded !== undefined && (
+                  <ThemedText weight="regular" style={styles.pointsNeededText}>
+                    {` • ${content.pointsNeeded} to Level ${content.level + 1}`}
+                  </ThemedText>
+                )}
+              </ThemedText>
+            </View>
+          )}
           <View style={styles.content}>
             <ThemedText weight="regular" style={styles.description}>
               {content.description}

@@ -273,69 +273,6 @@ class NotificationSchedulerService {
     }
   }
 
-  /**
-   * Schedule daily devotional reminder
-   */
-  async scheduleDevotionalReminder(userId: string, preferredTime: string = '07:00'): Promise<boolean> {
-    const [hour, min] = preferredTime.split(':').map(Number);
-    const scheduledFor = new Date();
-    scheduledFor.setHours(hour, min, 0, 0);
-
-    // If time has passed today, schedule for tomorrow
-    if (scheduledFor < new Date()) {
-      scheduledFor.setDate(scheduledFor.getDate() + 1);
-    }
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'devotional_reminder',
-      title: 'Daily Devotional Ready 🤲🏼',
-      message: 'Start your day with God\'s Word and wisdom.',
-      data: {
-        deep_link: 'sifia://devotionals/today',
-        reminder_type: 'devotional',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
-  }
-
-  /**
-   * Schedule daily prayer reminder
-   */
-  async schedulePrayerReminder(userId: string, preferredTime: string = '08:00'): Promise<boolean> {
-    const [hour, min] = preferredTime.split(':').map(Number);
-    const scheduledFor = new Date();
-    scheduledFor.setHours(hour, min, 0, 0);
-
-    if (scheduledFor < new Date()) {
-      scheduledFor.setDate(scheduledFor.getDate() + 1);
-    }
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'prayer_reminder',
-      title: 'Time to Connect with God 🙏🏼',
-      message: 'Take 5 minutes to bring your heart before the Lord.',
-      data: {
-        deep_link: 'sifia://journal/prayer',
-        reminder_type: 'prayer',
-        suggested_duration: '5-10 minutes',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
-  }
 
   /**
    * Schedule trial expiring notification
@@ -349,8 +286,8 @@ class NotificationSchedulerService {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'trial_expiring',
-      title: 'Your Trial Ends Tomorrow ⏰',
-      message: 'Continue your spiritual growth journey - upgrade now to keep full access.',
+      title: 'Your trial ends tomorrow',
+      message: 'Keep your access going if you\'d like more room for playbooks, devotionals, and reflection.',
       data: {
         deep_link: 'sifia://subscription/upgrade',
         days_remaining: 1,
@@ -419,33 +356,6 @@ class NotificationSchedulerService {
     });
   }
 
-  /**
-   * Schedule monthly renewal reminder
-   */
-  async scheduleRenewalReminderNotification(userId: string, renewalDate: Date, tier: string): Promise<boolean> {
-    const scheduledFor = new Date(renewalDate);
-    scheduledFor.setDate(scheduledFor.getDate() - 1); // 1 day before renewal
-    scheduledFor.setHours(10, 0, 0, 0); // 10 AM
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'renewal_reminder',
-      title: 'Subscription Renews Tomorrow 🔄',
-      message: `Your ${tier} subscription renews tomorrow. Manage settings if needed.`,
-      data: {
-        deep_link: 'sifia://subscription/manage',
-        renewal_date: renewalDate.toISOString(),
-        tier,
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
-
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
-  }
 
   /**
    * Schedule payment success notification

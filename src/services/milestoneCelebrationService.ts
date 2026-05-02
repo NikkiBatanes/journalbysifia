@@ -22,16 +22,16 @@ class MilestoneCelebrationService {
 
   // Level titles (synced with faithPointsService)
   private readonly LEVEL_TITLES: Record<number, string> = {
-    1: 'Seeker',
-    2: 'Believer',
-    3: 'Disciple',
-    4: 'Servant',
-    5: 'Leader',
-    6: 'Teacher',
-    7: 'Mentor',
-    8: 'Elder',
-    9: 'Steward',
-    10: 'Ambassador',
+    1: 'Beginning',
+    2: 'Growing',
+    3: 'Rooted',
+    4: 'Steady',
+    5: 'Grounded',
+    6: 'Faithful',
+    7: 'Maturing',
+    8: 'Deepening',
+    9: 'Strengthened',
+    10: 'Abiding',
   };
 
   /**
@@ -76,8 +76,8 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: `You Reached ${points} Faith Points! 🌟`,
-        message: 'Your spiritual growth is inspiring. Keep going!',
+        title: `You reached ${points} faith points`,
+        message: 'Keep going. Quiet faithfulness adds up over time.',
         data: {
           deep_link: 'sifia://profile/stats',
           milestone_type: 'faith_points',
@@ -125,8 +125,8 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: `Level Up! You're Now a ${levelTitle}! 🌸`,
-        message: 'Your faith journey is progressing beautifully.',
+        title: `You're now a ${levelTitle}`,
+        message: 'A new step in your journey has opened. Keep walking with God, one faithful step at a time.',
         data: {
           deep_link: 'sifia://profile/stats',
           milestone_type: 'level_up',
@@ -175,8 +175,8 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: 'Playbook Complete! 🌸',
-        message: `You finished "${playbookTitle}"! Celebrate this spiritual milestone.`,
+        title: 'Playbook complete',
+        message: `You finished "${playbookTitle}". Take a moment to notice what God has shown you here.`,
         data: {
           deep_link: `sifia://playbooks/${playbookId}?celebrate=true`,
           milestone_type: 'playbook_complete',
@@ -224,8 +224,8 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: 'God Answered Your Prayer! 🌸',
-        message: 'Praise God! Take a moment to reflect on how He worked in your life.',
+        title: 'Prayer answered',
+        message: 'Praise God for His faithfulness. Take a moment to reflect on how He has moved in this.',
         data: {
           deep_link: `sifia://journal/prayer?answered=true&id=${prayerId}`,
           milestone_type: 'prayer_answered',
