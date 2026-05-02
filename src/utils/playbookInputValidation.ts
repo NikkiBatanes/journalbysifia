@@ -10,6 +10,8 @@ const MISTYPE_MESSAGES = [
   'That was hard to understand. When you’re ready, try putting it into different words.',
 ];
 
+const MIN_CONTEXT_MESSAGE = 'Share a little more about what happened or what you need help with.';
+
 const normalizeInput = (input: string) => input.trim().replace(/\s+/g, ' ');
 
 const getWords = (input: string): string[] => {
@@ -17,15 +19,30 @@ const getWords = (input: string): string[] => {
   return matches ? Array.from(matches) : [];
 };
 
-const hasExcessiveRepeatedCharacters = (input: string) => /(.)\1{4,}/i.test(input);
+const hasExcessiveRepeatedCharacters = (input: string) => /(.)\1{3,}/i.test(input);
 
 const hasKeyboardMashingPattern = (input: string) => {
   const compact = input.toLowerCase().replace(/[^a-z]/g, '');
-  if (compact.length < 10) {
+  if (compact.length < 4) {
     return false;
   }
 
-  return /[bcdfghjklmnpqrstvwxyz]{7,}/.test(compact) || /[aeiou]{6,}/.test(compact);
+  const keyboardSequences = [
+    'qwerty',
+    'asdf',
+    'zxcv',
+    'hjkl',
+    'dfgh',
+    'jkl',
+    'sdf',
+    'fgh',
+    'cvbn',
+    'vbnm',
+  ];
+
+  return keyboardSequences.some(sequence => compact.includes(sequence)) ||
+    /[bcdfghjklmnpqrstvwxyz]{4,}/.test(compact) ||
+    /[aeiou]{4,}/.test(compact);
 };
 
 const isNumericOnly = (input: string) => /^[\d\s.,!?'"-]+$/.test(input);
@@ -41,11 +58,24 @@ const isSingleLikelyGibberishWord = (words: string[]) => {
   }
 
   const word = words[0];
-  if (word.length < 8) {
+  if (word.length < 4) {
     return false;
   }
 
-  return !/[aeiouy]/.test(word) || /[bcdfghjklmnpqrstvwxyz]{6,}/.test(word);
+  return !/[aeiouy]/.test(word) ||
+    /[bcdfghjklmnpqrstvwxyz]{4,}/.test(word) ||
+    /([aeiou][bcdfghjklmnpqrstvwxyz]){3,}/.test(word) ||
+    /([bcdfghjklmnpqrstvwxyz][aeiou]){3,}/.test(word) ||
+    /^(asdf|qwer|qwerty|zxcv|hjkl|dfgh|jkl|sdf|fgh|cvbn|vbnm)/.test(word);
+};
+
+const hasEnoughContext = (words: string[]) => {
+  if (words.length >= 2) {
+    return true;
+  }
+
+  const [word] = words;
+  return Boolean(word && word.length >= 15);
 };
 
 const hasGibberishWordInPhrase = (words: string[]) => {
@@ -93,6 +123,13 @@ export const validatePlaybookInputQuality = (input: string): PlaybookInputValida
   }
 
   const words = getWords(normalized);
+
+  if (!hasEnoughContext(words)) {
+    return {
+      isValid: false,
+      message: MIN_CONTEXT_MESSAGE,
+    };
+  }
 
   if (
     isNumericOnly(normalized) ||

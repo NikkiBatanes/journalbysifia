@@ -45,6 +45,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 import ThemedTextInput from '../../components/common/ThemedTextInput';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
+import { validatePlaybookInputQuality } from '../../utils/playbookInputValidation';
 
 // const { width } = Dimensions.get('window'); // unused
 
@@ -523,6 +524,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>(detailsOnlyFlow ? 'growing' : '');
   const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
+  const [inputFeedback, setInputFeedback] = useState<string | null>(null);
   const detailsInputRef = useRef<TextInput>(null);
 
   // Dynamic input height
@@ -543,6 +545,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     // onContentSizeChange handles growth; clearing handles the empty→min reset.
     if (text.length === 0) {
       setInputHeight(MIN_INPUT_HEIGHT);
+    }
+    if (inputFeedback) {
+      setInputFeedback(null);
     }
     setChallengeDetails(text);
   };
@@ -1467,6 +1472,25 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
+      const inputQuality = validatePlaybookInputQuality(challengeDetails);
+      if (!inputQuality.isValid) {
+        Animated.sequence([
+          Animated.timing(inputBorderWidth, {
+            toValue: 2,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+          Animated.timing(inputBorderWidth, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: false,
+          }),
+        ]).start();
+        try { triggerErrorHaptic(); } catch {}
+        setInputFeedback(inputQuality.message || 'Looks like a mistype. Share what you want siFia to work on.');
+        return;
+      }
+
       try {
         // Mark onboarding as completed using proper service method
         if (user) {
@@ -1930,6 +1954,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </Animated.View>
               </View>
             </Animated.View>
+            {inputFeedback && (
+              <Text style={[styles.inputFeedbackText, font]}>
+                {inputFeedback}
+              </Text>
+            )}
           </View>
         </Animated.View>
       </View>
@@ -2772,6 +2801,13 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     overflow: 'hidden',
+  },
+  inputFeedbackText: {
+    color: Colors.alertCoral,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 10,
+    marginHorizontal: 8,
   },
   askWrapper: {
     position: 'relative',
