@@ -13,6 +13,8 @@ import {
   UIManager,
   LayoutAnimation,
   Keyboard,
+  Dimensions,
+  PanResponder,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +22,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
@@ -302,12 +305,13 @@ const WinTypeSelectionStep: React.FC<{
   selectedWinType: WinType | null;
   onSelect: (winType: WinType) => void;
   onNext: () => void;
+  onOtherStateChange: (isOtherSelected: boolean) => void;
   insets: { top: number; bottom: number };
   navigation: any;
   customWin: string;
   setCustomWin: (text: string) => void;
   dateContext: DateContext;
-}> = ({ selectedWinType, onSelect, onNext, insets, navigation, customWin, setCustomWin, dateContext }) => {
+}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, navigation, customWin, setCustomWin, dateContext }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
@@ -338,10 +342,12 @@ const WinTypeSelectionStep: React.FC<{
   useEffect(() => {
     if (selectedWinType?.id === 'other') {
       setIsOtherSelected(true);
+      onOtherStateChange(true);
     } else {
       setIsOtherSelected(false);
+      onOtherStateChange(false);
     }
-  }, [selectedWinType]);
+  }, [onOtherStateChange, selectedWinType]);
 
   useEffect(() => {
     // When "Other" category is selected in expanded view, automatically select the "other" win type
@@ -419,7 +425,7 @@ const WinTypeSelectionStep: React.FC<{
 
   return (
     <View style={styles.stepContainer}>
-      <ScrollView
+      <GestureScrollView
         style={styles.stepScroll}
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
@@ -564,6 +570,7 @@ const WinTypeSelectionStep: React.FC<{
                 onPress={isOtherSelected ? () => {
                   triggerLightHaptic();
                   setIsOtherSelected(false);
+                  onOtherStateChange(false);
                   setCustomWin('');
                 } : () => {
                   triggerLightHaptic();
@@ -599,7 +606,7 @@ const WinTypeSelectionStep: React.FC<{
         )}
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </GestureScrollView>
 
       {/* Bottom button */}
       {selectedWinType && (!isOtherSelected || customWin.trim() !== '') && (
@@ -712,7 +719,7 @@ const QuietWinStep: React.FC<{
 
   return (
     <View style={styles.stepContainer}>
-      <ScrollView
+      <GestureScrollView
         style={styles.stepScroll}
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
@@ -767,7 +774,7 @@ const QuietWinStep: React.FC<{
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </GestureScrollView>
 
       <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
@@ -895,7 +902,7 @@ const CompletionStep: React.FC<{
 
   return (
     <View style={styles.stepContainer}>
-      <ScrollView
+      <GestureScrollView
         style={styles.stepScroll}
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
@@ -948,7 +955,7 @@ const CompletionStep: React.FC<{
         </StepFadeIn>
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </GestureScrollView>
 
       <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
@@ -975,12 +982,14 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const queryClient = useQueryClient();
   const { selectedDate: selectedDateStr } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+  const screenWidth = Dimensions.get('window').width;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedWinType, setSelectedWinType] = useState<WinType | null>(null);
   const [quietWin, setQuietWin] = useState('');
   const [customWin, setCustomWin] = useState('');
   const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
+  const [isOtherStateActive, setIsOtherStateActive] = useState(false);
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
@@ -1024,10 +1033,55 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleBack = () => {
-    if (currentStep === 2) {
+    if (currentStep === 1 && isOtherStateActive) {
+      setSelectedWinType(null);
+      setCustomWin('');
+      setIsOtherStateActive(false);
+      return;
+    }
+
+    if (currentStep === 3) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
       setCurrentStep(1);
     }
   };
+
+  // Swipe gesture handlers
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          return isHorizontalSwipe;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            if (currentStep > 1) {
+              handleBack();
+              triggerMediumHaptic();
+            }
+          } else if (gestureState.dx < 0) {
+            if (currentStep === 1 && !selectedWinType) {
+              return;
+            }
+            if (currentStep < 3) {
+              handleNext();
+              triggerMediumHaptic();
+            }
+          }
+        },
+      }),
+    [currentStep, handleBack, handleNext, screenWidth, selectedWinType]
+  );
 
   const handleDone = async () => {
     if (!user) {
@@ -1095,7 +1149,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       {currentStep === 1 && (
         <WinTypeSelectionStep
           selectedWinType={selectedWinType}
@@ -1105,6 +1159,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           navigation={navigation}
           customWin={customWin}
           setCustomWin={setCustomWin}
+          onOtherStateChange={setIsOtherStateActive}
           dateContext={dateContext}
         />
       )}

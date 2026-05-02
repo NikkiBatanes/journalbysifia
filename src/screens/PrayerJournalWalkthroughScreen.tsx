@@ -10,10 +10,9 @@ import {
   TextInput,
   Alert,
   Keyboard,
+  PanResponder,
   useWindowDimensions,
 } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -584,13 +583,14 @@ const ACTSPrayerSlidesStep: React.FC<{
   prayerTexts: { [key: string]: string };
   onChange: (key: string, text: string) => void;
   onNext: () => void;
+  onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
   supplicationTrackAnswered: boolean;
   onSupplicationTrackAnsweredChange: (value: boolean) => void;
   castOpening: string;
   castClosing: string;
-}> = ({ prayerTexts, onChange, onNext, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange, castOpening, castClosing }) => {
+}> = ({ prayerTexts, onChange, onNext, onBack, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange, castOpening, castClosing }) => {
   const [actsStepIndex, setActsStepIndex] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -664,13 +664,16 @@ const ACTSPrayerSlidesStep: React.FC<{
   }, [currentStep.key, prayerTexts, trackingOpacity, trackingScale]);
 
   const animateToNext = useCallback(
-    (callback: () => void) => {
+    (callback: () => void, direction: 'forward' | 'backward' = 'forward') => {
+      const exitOffset = direction === 'forward' ? -14 : 14;
+      const enterOffset = direction === 'forward' ? 22 : -22;
+
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
-        Animated.timing(cardTranslateY, { toValue: -14, duration: 160, useNativeDriver: true }),
+        Animated.timing(cardTranslateY, { toValue: exitOffset, duration: 160, useNativeDriver: true }),
       ]).start(() => {
         callback();
-        cardTranslateY.setValue(22);
+        cardTranslateY.setValue(enterOffset);
         Animated.parallel([
           Animated.spring(fadeAnim, { toValue: 1, tension: 75, friction: 8, useNativeDriver: true }),
           Animated.spring(cardTranslateY, { toValue: 0, tension: 75, friction: 8, useNativeDriver: true }),
@@ -712,8 +715,45 @@ const ACTSPrayerSlidesStep: React.FC<{
     }
   }, [isLastStep, onNext, animateToNext, currentStep.key, trackingOpacity, trackingScale]);
 
+  const handleBack = useCallback(() => {
+    triggerMediumHaptic();
+    if (actsStepIndex <= 0) {
+      onBack();
+      return;
+    }
+
+    animateToNext(() => {
+      setActsStepIndex(prev => prev - 1);
+    }, 'backward');
+  }, [actsStepIndex, animateToNext, onBack]);
+
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > 48;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            handleBack();
+          } else if (gestureState.dx < 0) {
+            handleNext();
+          }
+        },
+      }),
+    [handleBack, handleNext]
+  );
+
   return (
-    <View style={styles.stepContainer}>
+    <View style={styles.stepContainer} {...panResponder.panHandlers}>
       <ScrollView
         style={styles.stepScroll}
         contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
@@ -1226,8 +1266,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
   const [prayerTexts, setPrayerTexts] = useState<{ [key: string]: string }>({});
   const [openPrayerText, setOpenPrayerText] = useState('');
-  const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(false);
-  const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(false);
+  const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(true);
+  const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(true);
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name, Amen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
@@ -1412,8 +1452,15 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         setCurrentStep(2); // Go to Open prayer input
       }
     } else if (currentStep === 2 && selectedPath?.id === 'acts') {
+      const hasAnyPrayerText = ACTS_STEPS.some(step => prayerTexts[step.key]?.trim());
+      if (!hasAnyPrayerText) {
+        return;
+      }
       setCurrentStep(3); // Go to completion (handled by ACTSPrayerSlidesStep)
     } else if (currentStep === 2 && selectedPath?.id === 'open') {
+      if (!openPrayerText.trim()) {
+        return;
+      }
       setCurrentStep(3); // Go to completion for open prayer
     } else {
       navigation.goBack();
@@ -1429,30 +1476,42 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   };
 
   // Swipe gesture handlers
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .onEnd((event) => {
-      const { translationX } = event;
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          if (currentStep === 2 && selectedPath?.id === 'acts') {
+            return false;
+          }
 
-      // Swipe right to go back
-      if (translationX > screenWidth * 0.3) {
-        runOnJS(handleBack)();
-        runOnJS(triggerMediumHaptic)();
-      }
-      // Swipe left to go forward
-      else if (translationX < -screenWidth * 0.3) {
-        // Prevent forward swipe on step 0 if no path is selected
-        if (currentStep === 0 && !selectedPath) {
-          return;
-        }
-        runOnJS(handleNext)();
-        runOnJS(triggerMediumHaptic)();
-      }
-    });
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            handleBack();
+            triggerMediumHaptic();
+          } else if (gestureState.dx < 0) {
+            if (currentStep === 0 && !selectedPath) {
+              return;
+            }
+            handleNext();
+            triggerMediumHaptic();
+          }
+        },
+      }),
+    [currentStep, handleBack, handleNext, screenWidth, selectedPath]
+  );
 
   return (
-    <GestureDetector gesture={swipeGesture}>
-      <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
         {currentStep === 0 && (
           <PrayerPathSelectionStep
             selectedPath={selectedPath}
@@ -1486,7 +1545,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onChange={(key: string, text: string) => {
               setPrayerTexts(prev => ({ ...prev, [key]: text }));
             }}
-            onNext={() => setCurrentStep(3)}
+            onNext={handleNext}
+            onBack={handleBack}
             insets={insets}
             navigation={navigation}
             supplicationTrackAnswered={supplicationTrackAnswered}
@@ -1500,7 +1560,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           <OpenPrayerStep
             prayerText={openPrayerText}
             onChange={setOpenPrayerText}
-            onNext={() => setCurrentStep(3)}
+            onNext={handleNext}
             insets={insets}
             navigation={navigation}
             trackAnswered={openPrayerTrackAnswered}
@@ -1525,7 +1585,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           />
         )}
       </View>
-    </GestureDetector>
   );
 };
 

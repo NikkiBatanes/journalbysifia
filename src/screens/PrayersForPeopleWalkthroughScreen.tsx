@@ -10,6 +10,8 @@ import {
   TextInput,
   Alert,
   Keyboard,
+  PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -1116,6 +1118,7 @@ const CompletionStep: React.FC<{
 const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
@@ -1126,7 +1129,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
   const [prayerText, setPrayerText] = useState('');
-  const [trackAnswered, setTrackAnswered] = useState(false);
+  const [trackAnswered, setTrackAnswered] = useState(true);
   const [editingPrayerId, setEditingPrayerId] = useState<string | undefined>(undefined);
 
   // State for prayer modal
@@ -1172,12 +1175,24 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
   const handleNext = () => {
     if (currentStep === 0) {
+      if (!selectedType) {
+        return;
+      }
       // Move to name input step
       setCurrentStep(1);
     } else if (currentStep === 1) {
+      if (!personName.trim()) {
+        return;
+      }
       // Move to prayer focus step
       setCurrentStep(2);
     } else if (currentStep === 2) {
+      if (selectedType?.id === 'prayer-request' && !prayerNeed.trim()) {
+        return;
+      }
+      if (selectedType?.id === 'pray-for-someone' && !prayerText.trim()) {
+        return;
+      }
       // Prayer Request: Skip track option, go directly to completion
       // Pray for Someone: Go to track option step
       if (selectedType?.id === 'prayer-request') {
@@ -1200,6 +1215,16 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   };
 
   const savePrayer = async () => {
+    if (!personName.trim()) {
+      return;
+    }
+    if (selectedType?.id === 'prayer-request' && !prayerNeed.trim()) {
+      return;
+    }
+    if (selectedType?.id === 'pray-for-someone' && !prayerText.trim()) {
+      return;
+    }
+
     try {
       const prayerData = {
         user_id: user?.id || '',
@@ -1264,6 +1289,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   };
 
   const handleSaveModalPrayer = async () => {
+    if (!modalPrayerName.trim()) {
+      Alert.alert('Missing Name', 'Please enter who this prayer is for before saving.');
+      return;
+    }
+
     if (!modalPrayerRequest.trim()) {
       Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
       return;
@@ -1317,8 +1347,41 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     setSavingModalPrayer(false);
   };
 
+  // Swipe gesture handlers
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            handleBack();
+            triggerMediumHaptic();
+          } else if (gestureState.dx < 0) {
+            if (currentStep === 0 && !selectedType) {
+              return;
+            }
+            if (currentStep < 4) {
+              handleNext();
+              triggerMediumHaptic();
+            }
+          }
+        },
+      }),
+    [currentStep, handleBack, handleNext, screenWidth, selectedType]
+  );
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       <StatusBar hidden />
 
       {currentStep === 0 && (
@@ -1483,9 +1546,9 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
               </View>
 
               <TouchableOpacity
-                style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
+                style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerName.trim() && modalPrayerRequest.trim() ? 1 : 0 }]}
                 onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
-                disabled={savingModalPrayer || !modalPrayerRequest.trim()}
+                disabled={savingModalPrayer || !modalPrayerName.trim() || !modalPrayerRequest.trim()}
               >
                 <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
               </TouchableOpacity>

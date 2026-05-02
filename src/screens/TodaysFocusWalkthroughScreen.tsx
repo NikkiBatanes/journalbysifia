@@ -13,10 +13,9 @@ import {
   Platform,
   UIManager,
   Keyboard,
+  PanResponder,
   useWindowDimensions,
 } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1132,32 +1131,40 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   };
 
   // Swipe gesture handlers
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .onEnd((event) => {
-      const { translationX } = event;
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
 
-      // Swipe right to go back
-      if (translationX > screenWidth * 0.3) {
-        runOnJS(handleBack)();
-        runOnJS(triggerMediumHaptic)();
-      }
-      // Swipe left to go forward
-      else if (translationX < -screenWidth * 0.3) {
-        // Prevent forward swipe on step 0 if no category is selected
-        if (currentStep === 0 && !selectedCategory) {
-          return;
-        }
-        if (currentStep < 3) {
-          runOnJS(handleNext)();
-          runOnJS(triggerMediumHaptic)();
-        }
-      }
-    });
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            handleBack();
+            triggerMediumHaptic();
+          } else if (gestureState.dx < 0) {
+            if (currentStep === 0 && !selectedCategory) {
+              return;
+            }
+            if (currentStep < 3) {
+              handleNext();
+              triggerMediumHaptic();
+            }
+          }
+        },
+      }),
+    [currentStep, handleBack, handleNext, screenWidth, selectedCategory]
+  );
 
   return (
-    <GestureDetector gesture={swipeGesture}>
-      <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       {currentStep === 0 && (
         <CategorySelectionStep
           selectedCategory={selectedCategory}
@@ -1224,7 +1231,6 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         />
       )}
     </View>
-    </GestureDetector>
   );
 };
 

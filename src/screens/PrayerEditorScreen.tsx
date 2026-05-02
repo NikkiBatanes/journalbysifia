@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, TextInput, StatusBar, Animated, ScrollView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, TextInput, StatusBar, Animated, ScrollView, PanResponder, useWindowDimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -66,10 +66,11 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   const { prayerRequest } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(1);
   const [modalPrayerRequest, setModalPrayerRequest] = useState('');
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
-  const [trackAnswered, setTrackAnswered] = useState(false);
+  const [trackAnswered, setTrackAnswered] = useState(true);
 
   // Hide status bar when screen is mounted
   useEffect(() => {
@@ -122,13 +123,15 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
   const handleSavePrayer = () => {
     // Step 1 → Step 2: just validate and advance to tracking question
-    if (!modalPrayerRequest.trim()) { return; }
+    if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
     triggerLightHaptic();
     setCurrentStep(2);
   };
 
   const handleTrackingNext = async () => {
     // Step 2 → Step 3: save the prayer NOW with the chosen trackAnswered value
+    if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
+
     try {
       triggerMediumHaptic();
       setSavingModalPrayer(true);
@@ -180,6 +183,48 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     triggerSelectionHaptic();
     navigation.goBack();
   };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      triggerMediumHaptic();
+      setCurrentStep(currentStep - 1);
+    } else {
+      handleCancel();
+    }
+  };
+
+  const handleNext = () => {
+    if (currentStep === 1) {
+      handleSavePrayer();
+    } else if (currentStep === 2) {
+      handleTrackingNext();
+    }
+  };
+
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            handleBack();
+          } else if (gestureState.dx < 0 && currentStep < 3) {
+            handleNext();
+          }
+        },
+      }),
+    [currentStep, handleBack, handleNext, screenWidth]
+  );
 
   // Step 1: Prayer Input
   const renderStep1 = () => (
@@ -422,6 +467,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      {...panResponder.panHandlers}
     >
       {currentStep === 1 && renderStep1()}
       {currentStep === 2 && renderStep2()}
