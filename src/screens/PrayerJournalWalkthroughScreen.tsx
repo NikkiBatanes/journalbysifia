@@ -761,7 +761,7 @@ const ACTSPrayerSlidesStep: React.FC<{
                 style={styles.personalInput}
                 value={prayerTexts[currentStep.key] || ''}
                 onChangeText={(text) => onChange(currentStep.key, text)}
-                placeholder={currentStep.placeholder || 'Write your prayer here...'}
+                placeholder={currentStep.placeholder || 'Begin your prayer here...'}
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 multiline
                 textAlignVertical="top"
@@ -943,7 +943,7 @@ const OpenPrayerStep: React.FC<{
               style={styles.personalInput}
               value={prayerText || ''}
               onChangeText={onChange}
-              placeholder="Write your prayer here..."
+              placeholder="Begin your prayer here..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"

@@ -300,7 +300,7 @@ const PrayerRequestNameStep: React.FC<{
               style={styles.personalInput}
               value={personName}
               onChangeText={onPersonNameChange}
-              placeholder="…"
+              placeholder="Enter their name..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
               keyboardAppearance="dark"
@@ -392,6 +392,11 @@ const PrayerRequestPrayerFocusStep: React.FC<{
   }, [insets.bottom, buttonPosition]);
 
   const canProceed = prayerNeed.trim() !== '';
+  const sibilantEndings = ['s', 'S', 'z', 'Z', 'x', 'X'];
+  const needsApostropheOnly = sibilantEndings.some(ending => personName.endsWith(ending));
+  const possessiveName = needsApostropheOnly
+    ? `${personName}'`
+    : `${personName}'s`;
 
   return (
     <View style={styles.stepContainer}>
@@ -422,7 +427,7 @@ const PrayerRequestPrayerFocusStep: React.FC<{
               style={[styles.personalInput, styles.multilineInput]}
               value={prayerNeed}
               onChangeText={onPrayerNeedChange}
-              placeholder="…"
+              placeholder={`Write ${possessiveName} prayer request...`}
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"
@@ -644,7 +649,7 @@ const PrayForSomeoneNameStep: React.FC<{
               style={styles.personalInput}
               value={personName}
               onChangeText={onPersonNameChange}
-              placeholder="…"
+              placeholder="Enter their name..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
               keyboardAppearance="dark"
@@ -766,7 +771,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
               style={[styles.personalInput, styles.multilineInput]}
               value={prayerText}
               onChangeText={onPrayerTextChange}
-              placeholder="Pray for them here..."
+              placeholder="Begin your prayer here..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"
@@ -1639,10 +1644,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 16,
     color: Colors.hopeWhite,
-    fontSize: 24,
+    fontSize: 18,
     minHeight: 56,
     fontFamily: Fonts.regular,
-    fontWeight: '600',
   },
   multilineInput: {
     minHeight: 120,
