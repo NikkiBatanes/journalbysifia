@@ -774,19 +774,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingVertical: 2,
       paddingHorizontal: 8,
       borderRadius: 10,
-      backgroundColor: Colors.mediumOverlay,
-      gap: 6,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     prayerPaginationButtonText: {
       marginLeft: 2,
       fontSize: 11,
+      fontWeight: '500',
       lineHeight: 14,
     },
     prayerShowMoreButton: {
-      backgroundColor: Colors.lightOverlay,
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
     },
     prayerShowLessButton: {
-      backgroundColor: Colors.restfulShadow,
+      backgroundColor: 'rgba(0, 0, 0, 0.05)',
     },
     prayerShowMoreText: {
       color: Colors.alertCoral,
