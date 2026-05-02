@@ -283,7 +283,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Logo entry animation when generation starts
   React.useEffect(() => {
-    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       Animated.spring(genLogoEntryAnim, {
         toValue: 1,
         useNativeDriver: true,
@@ -293,11 +293,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     } else {
       genLogoEntryAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, genLogoEntryAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, genLogoEntryAnim]);
 
   // Staggered entrance animations for generation elements
   React.useEffect(() => {
-    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       const staggerSequence = Animated.sequence([
         Animated.timing(genCardEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.timing(genHeadingEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -311,11 +311,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       genStepsEntryAnim.setValue(0);
       genProgressEntryAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
 
   // Container bounce animation when generation starts
   React.useEffect(() => {
-    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       Animated.parallel([
         Animated.spring(generatingScaleAnim, {
           toValue: 1,
@@ -333,7 +333,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       generatingScaleAnim.setValue(0.92);
       generatingFadeAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, generatingScaleAnim, generatingFadeAnim]);
+  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, generatingScaleAnim, generatingFadeAnim]);
 
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
@@ -756,6 +756,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       if (devotional && onDevotionalCreated) {
         setIsClosing(true);
         setJustCompleted(true);
+        setCurrentStep(generationSteps.length - 1);
+        setGenerationSteps(steps => steps.map(step => ({ ...step, status: 'completed' as StepStatus })));
+        checkIconAnims.forEach(anim => anim.setValue(1));
+        pulsingDotAnims.forEach(anim => anim.stopAnimation());
         // Subtle haptic when success check appears
         try { triggerLightHaptic(); } catch {}
         // Fill progress bar to 100%
@@ -895,7 +899,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               {(playbookInfo || userInput) && (
                 <Animated.View style={[
                   styles.playbookInfoContainer,
-                  (isCreating || isOnboardingCreating) ? {
+                  (isCreating || isOnboardingCreating || isClosing) ? {
                     opacity: genCardEntryAnim,
                     transform: [{
                       translateY: genCardEntryAnim.interpolate({
@@ -1039,7 +1043,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 />
               </View>
             </View>
-            <ThemedText weight="regular" style={styles.progressLabel}>Phase {currentStep + 1} of 4</ThemedText>
+            <ThemedText weight="regular" style={styles.progressLabel}>Phase {Math.min(currentStep + 1, generationSteps.length)} of 4</ThemedText>
           </Animated.View>
         </>
       ) : (
