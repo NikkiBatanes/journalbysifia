@@ -208,7 +208,7 @@ const UsageTooltipModal: React.FC<Props> = ({
         const pointsNeeded = Math.max(0, nextThreshold - points);
         const progress = level < 10 ? Math.min(1, Math.max(0, (points - currentThreshold) / (nextThreshold - currentThreshold))) : 1;
 
-        const faithDesc = `You currently have ${points} Faith Points.\n\nFaith Points are earned by:\n• Completing playbook action steps\n• Finishing devotionals\n• Daily journaling\n• Prayer activities\n• Maintaining streaks\n\n${level < 10 ? `You need ${pointsNeeded} more points to reach Level ${level + 1}: ${nextLevelTitle}.` : 'You have reached the maximum level! Keep growing in faith.'}`;
+        const faithDesc = `You currently have ${points} Faith Points.`;
 
         return {
           title: 'Faith Points',
@@ -329,18 +329,50 @@ const UsageTooltipModal: React.FC<Props> = ({
               </View>
               <ThemedText weight="regular" style={styles.pointsText}>
                 {content.points} FP
-                {content.level !== undefined && content.level < 10 && content.pointsNeeded !== undefined && (
-                  <ThemedText weight="regular" style={styles.pointsNeededText}>
-                    {` • ${content.pointsNeeded} to Level ${content.level + 1}`}
-                  </ThemedText>
-                )}
               </ThemedText>
+              {content.level !== undefined && content.level < 10 && content.pointsNeeded !== undefined && (
+                <>
+                  <ThemedText weight="regular" style={styles.pointsNeededText}>
+                    You need {content.pointsNeeded} more points to reach
+                  </ThemedText>
+                  <View style={styles.nextLevelPill}>
+                    <ThemedText weight="semiBold" style={styles.nextLevelPillText}>
+                      Level {content.level + 1}: {content.nextLevelTitle}
+                    </ThemedText>
+                  </View>
+                </>
+              )}
             </View>
           )}
           <View style={styles.content}>
-            <ThemedText weight="regular" style={styles.description}>
-              {content.description}
-            </ThemedText>
+            {type === 'faithPoints' ? (
+              <>
+                <ThemedText weight="regular" style={styles.descriptionHeading}>
+                  Faith Points are earned by
+                </ThemedText>
+                <View style={styles.bulletList}>
+                  <ThemedText weight="regular" style={styles.descriptionBullets}>
+                    • Completing playbook action steps
+                  </ThemedText>
+                  <ThemedText weight="regular" style={styles.descriptionBullets}>
+                    • Finishing devotionals
+                  </ThemedText>
+                  <ThemedText weight="regular" style={styles.descriptionBullets}>
+                    • Daily journaling
+                  </ThemedText>
+                  <ThemedText weight="regular" style={styles.descriptionBullets}>
+                    • Prayer activities
+                  </ThemedText>
+                  <ThemedText weight="regular" style={styles.descriptionBullets}>
+                    • Maintaining streaks
+                  </ThemedText>
+                </View>
+              </>
+            ) : (
+              <ThemedText weight="regular" style={styles.description}>
+                {content.description}
+              </ThemedText>
+            )}
           </View>
           {showUpgradeButton ? (
             <View style={styles.buttonRow}>
@@ -393,6 +425,48 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textTransform: 'uppercase',
   },
+  levelSection: {
+    marginBottom: 16,
+  },
+  levelText: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 8,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 4,
+  },
+  pointsText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  nextLevelPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+    marginTop: 12,
+  },
+  nextLevelPillText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  pointsNeededText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginTop: 12,
+  },
   content: {
     marginBottom: 20,
   },
@@ -400,6 +474,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
     color: Colors.hopeWhite,
+  },
+  descriptionHeading: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  bulletList: {
+    gap: 4,
+  },
+  descriptionBullets: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   buttonRow: {
     flexDirection: 'row',

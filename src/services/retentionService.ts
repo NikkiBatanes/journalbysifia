@@ -259,9 +259,9 @@ export class RetentionService {
       'trial_declined': {
         discount: 20, // Additional 20% off as specified
         duration: 'first_month',
-        title: "Don't miss out on your spiritual growth",
-        message: 'Get 20% off your first month and continue your faith journey',
-        cta: 'Get 20% Off Now',
+        title: 'Trial declined',
+        message: 'Keep going with siFia. You can still come back with 20% off your first month if you\'d like more room for playbooks, devotionals, and reflection.',
+        cta: 'Get 20% Off',
         userValueScore: 50, // Default medium value
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
@@ -271,9 +271,9 @@ export class RetentionService {
       'trial_cancelled': {
         discount: 20,
         duration: 'first_month',
-        title: "We'd love to have you back",
-        message: 'Return to your spiritual practice with 20% off your first month',
-        cta: 'Come Back (20% Off)',
+        title: 'Trial cancelled',
+        message: 'Come back when you\'re ready. If you\'d like to return, come back with 20% off your first month and keep going with siFia.',
+        cta: 'Come Back with 20% Off',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
@@ -283,9 +283,9 @@ export class RetentionService {
       'subscription_cancelled': {
         discount: 20,
         duration: 'first_month',
-        title: "Your spiritual journey doesn't have to end",
-        message: 'Restart your subscription with 20% off and continue growing in faith',
-        cta: 'Restart Journey (20% Off)',
+        title: 'Subscription cancelled',
+        message: 'Your place is still here. Return with 20% off and pick up where you left off with playbooks, devotionals, and reflection.',
+        cta: 'Restart with 20% Off',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
