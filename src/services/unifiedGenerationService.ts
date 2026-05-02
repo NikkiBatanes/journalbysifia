@@ -18,6 +18,7 @@ import { intelligenceService } from './intelligenceService';
 import { queueService } from './queueService';
 import { supabase } from './supabaseClient';
 import { savePlaybook } from './modernPlaybookApi';
+import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
 
 export interface PlaybookGenerationRequest {
   userId: string;
@@ -99,6 +100,15 @@ export class UnifiedGenerationService {
    */
   async generatePlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
+      const inputQuality = validatePlaybookInputQuality(request.userInput);
+      if (!inputQuality.isValid) {
+        return {
+          success: false,
+          message: inputQuality.message || 'Please describe a real situation, struggle, decision, or feeling you want guidance for.',
+          upgradeRequired: false,
+        };
+      }
+
       // 1. Check subscription limits. Onboarding counts against the same monthly quota.
       const canGenerate = await subscriptionService.canGenerate(
         request.userId,

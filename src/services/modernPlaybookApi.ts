@@ -16,6 +16,7 @@ import { monitoring } from '../utils/monitoring';
 import { withCircuitBreaker } from '../utils/circuitBreaker';
 import { enterpriseResilience } from '../utils/enterpriseResilience';
 import { ENV } from '../config/environment';
+import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
 // Offline queue utilities available but not currently used
 // import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
 
@@ -1419,6 +1420,11 @@ export function validatePlaybookParams(userInput: string, userName: string): voi
 
   if (userInput.length > 2000) {
     throw new Error('User input must be less than 2000 characters');
+  }
+
+  const inputQuality = validatePlaybookInputQuality(userInput);
+  if (!inputQuality.isValid) {
+    throw new Error(inputQuality.message || 'Please describe a real situation, struggle, decision, or feeling you want guidance for.');
   }
 
   if (!userName || userName.trim().length === 0) {

@@ -37,6 +37,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unifiedGenerationService } from '../services/unifiedGenerationService';
 import { faithPointsService } from '../services/faithPointsService';
 import type { Playbook } from '../interfaces/playbook';
+import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -88,6 +89,7 @@ const UserInputScreen: React.FC = () => {
   // No scrolling needed; content is static and footer is fixed
 
   const [userInput, setUserInput] = useState('');
+  const [inputFeedback, setInputFeedback] = useState<string | null>(null);
   // Dynamic input height — starts at single-line size, grows to MAX then scrolls
   const MIN_INPUT_HEIGHT = 44;
   const MAX_INPUT_HEIGHT = 150;
@@ -739,6 +741,9 @@ const UserInputScreen: React.FC = () => {
     if (text.length > MAX_USER_INPUT_LENGTH) {
       text = text.slice(0, MAX_USER_INPUT_LENGTH);
     }
+    if (inputFeedback) {
+      setInputFeedback(null);
+    }
     setUserInput(text);
     // When text is cleared, reset height immediately — onContentSizeChange
     // doesn't reliably fire on iOS when deleting back to empty.
@@ -996,7 +1001,27 @@ const UserInputScreen: React.FC = () => {
         }),
       ]).start();
       // Input validation - could show inline error instead of alert
+      setInputFeedback('Send what you want siFia to work on.');
 
+      return;
+    }
+
+    const inputQuality = validatePlaybookInputQuality(userInput);
+    if (!inputQuality.isValid) {
+      Animated.sequence([
+        Animated.timing(inputBorderWidth, {
+          toValue: 2,
+          duration: 100,
+          useNativeDriver: false,
+        }),
+        Animated.timing(inputBorderWidth, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: false,
+        }),
+      ]).start();
+      try { triggerErrorHaptic(); } catch {}
+      setInputFeedback(inputQuality.message || 'Looks like a mistype. Send what you want siFia to work on.');
       return;
     }
 
@@ -1623,6 +1648,11 @@ const UserInputScreen: React.FC = () => {
                     </View>
                   </View>
                 </Animated.View>
+                {inputFeedback && (
+                  <Text style={[styles.inputFeedbackText, font]}>
+                    {inputFeedback}
+                  </Text>
+                )}
                 {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
                 {showTooltip && (
                   <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }, { scale: tooltipScale }] }]} pointerEvents="box-none">
@@ -2045,6 +2075,13 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     overflow: 'hidden', // Clip content at container edges
+  },
+  inputFeedbackText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 8,
+    paddingHorizontal: 18,
   },
   actionsOverlay: {
     position: 'absolute',

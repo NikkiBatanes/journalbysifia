@@ -88,6 +88,7 @@ type UnansweredPrayer = {
   prayer_type?: string | null;
   journal_category?: string | null;
   created_at: string;
+  selected_date?: string | null;
 };
 
 const today = (): string => toLocalDateString(new Date());
@@ -364,7 +365,7 @@ const getUnansweredPrayersForCheck = async (userId: string): Promise<UnansweredP
 
   const { data, error } = await supabase
     .from('prayers')
-    .select('id, content, metadata, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at')
+    .select('id, content, metadata, person_name, is_prayer_request, prayed, prayer_type, journal_category, created_at, selected_date')
     .eq('user_id', userId)
     .in('prayer_type', ['journal', 'people'])
     .or('status.is.null,status.neq.answered')
@@ -1146,7 +1147,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       timeWindow: 'midday',
       score: 82,
       dedupeKey: buildDedupeKey('prayer_answered_check', prayer.id, `week:${weekNumber}`),
-      deepLink: `sifia://journal/prayer?id=${prayer.id}`,
+      deepLink: `sifia://journal/prayer?id=${prayer.id}${prayer.selected_date ? `&selectedDate=${encodeURIComponent(prayer.selected_date)}` : ''}`,
       sourceType: 'prayer',
       sourceId: prayer.id,
       copyContext: {

@@ -5,6 +5,7 @@
  */
 
 import { Logger } from '../utils/ProductionLogger';
+import { supabase } from './supabaseClient';
 
 class NotificationDeepLinkService {
   private navigationRef: any = null;
@@ -28,6 +29,138 @@ class NotificationDeepLinkService {
 
       return params;
     }, {});
+  }
+
+  private getNotificationDeepLink(notification: any): string | undefined {
+    return notification?.data?.deep_link ||
+      notification?.data?.deepLink ||
+      notification?.data?.url ||
+      notification?.deep_link ||
+      notification?.deepLink;
+  }
+
+  private async navigateToPrayerById(prayerId: string): Promise<boolean> {
+    if (!prayerId || !this.navigationRef?.current) {
+      return false;
+    }
+
+    try {
+      const { data: prayer, error } = await supabase
+        .from('prayers')
+        .select('*')
+        .eq('id', prayerId)
+        .maybeSingle();
+
+      if (error || !prayer) {
+        Logger.warn('Unable to resolve prayer deep link by id', {
+          component: 'notificationDeepLinkService',
+          prayerId,
+          errorMessage: error?.message,
+        });
+        return false;
+      }
+
+      const isPrayerRequest = prayer.is_prayer_request === true;
+      this.navigationRef.current.navigate('PrayersForPeopleWalkthrough', {
+        initialPersonName: prayer.person_name || '',
+        initialPrayerRequest: isPrayerRequest ? prayer.content : undefined,
+        initialPrayerText: !isPrayerRequest ? prayer.content : undefined,
+        initialPrayerType: isPrayerRequest ? 'prayer-request' : 'pray-for-someone',
+        editingPrayerId: prayer.id,
+        initialTrackAnswered: prayer.metadata?.track_answered,
+        selectedDate: prayer.selected_date
+          ? new Date(`${prayer.selected_date}T12:00:00`).toISOString()
+          : undefined,
+      });
+
+      Logger.info('Navigated directly to prayer editor from deep link', {
+        component: 'notificationDeepLinkService',
+        prayerId,
+        selectedDate: prayer.selected_date,
+      });
+      return true;
+    } catch (error) {
+      Logger.error('Failed to navigate to prayer by id', error as Error, {
+        component: 'notificationDeepLinkService',
+        prayerId,
+      });
+      return false;
+    }
+  }
+
+  private getSelectedDateParam(query: Record<string, string>): string {
+    const rawDate = query.selectedDate || query.date;
+    if (!rawDate) {
+      return new Date().toISOString();
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      return new Date(`${rawDate}T12:00:00`).toISOString();
+    }
+
+    const parsed = new Date(rawDate);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  }
+
+  private navigateToJournalTarget(target: string | undefined, query: Record<string, string>): void {
+    const selectedDate = this.getSelectedDateParam(query);
+
+    switch (target) {
+      case 'focus':
+      case 'todays-focus':
+      case 'todays_focus':
+        this.navigationRef.current.navigate('TodaysFocusWalkthrough', { selectedDate });
+        return;
+      case 'todos':
+      case 'todo':
+        this.navigationRef.current.navigate('TodosWalkthrough', { selectedDate });
+        return;
+      case 'win':
+      case 'wins':
+      case 'todays-win':
+      case 'todays_win':
+        this.navigationRef.current.navigate('TodaysWinWalkthrough', { selectedDate });
+        return;
+      case 'looking-forward':
+      case 'looking_forward':
+      case 'tomorrow':
+        this.navigationRef.current.navigate('TomorrowInHisHandsWalkthrough', { selectedDate });
+        return;
+      case 'gratitude':
+        this.navigationRef.current.navigate('MainTabs', {
+          screen: 'Journal',
+          params: {
+            targetSection: 'gratitude',
+            selectedDate,
+          },
+        });
+        return;
+      case 'heart':
+        this.navigationRef.current.navigate('MainTabs', {
+          screen: 'Journal',
+          params: {
+            screen: 'ReflectionEditor',
+            params: {
+              selectedDate,
+              initialMode: 'guided',
+              initialPrompt: query.title || '',
+              initialTitle: query.title || '',
+              lockTitle: true,
+              source: 'guided',
+            },
+          },
+        });
+        return;
+      default:
+        this.navigationRef.current.navigate('MainTabs', {
+          screen: 'Journal',
+          params: {
+            targetSection: target,
+            ...query,
+            selectedDate,
+          },
+        });
+    }
   }
 
   /**
@@ -66,7 +199,7 @@ class NotificationDeepLinkService {
       Logger.info('Handling notification tap', {
         component: 'notificationDeepLinkService',
         notificationId: notification?.id,
-        deepLink: notification?.data?.deep_link,
+        deepLink: this.getNotificationDeepLink(notification),
       });
 
       if (!this.navigationRef || !this.navigationRef.current) {
@@ -78,7 +211,7 @@ class NotificationDeepLinkService {
         return;
       }
 
-      const deepLink = notification?.data?.deep_link;
+      const deepLink = this.getNotificationDeepLink(notification);
       if (!deepLink) {
         Logger.warn('No deep link found in notification', {
           component: 'notificationDeepLinkService',
@@ -88,7 +221,12 @@ class NotificationDeepLinkService {
       }
 
       // Parse and navigate to deep link
-      this.navigate(deepLink);
+      this.navigate(deepLink).catch(error => {
+        Logger.error('Unhandled notification deep link navigation failure', error as Error, {
+          component: 'notificationDeepLinkService',
+          deepLink,
+        });
+      });
     } catch (error) {
       Logger.error('Failed to handle notification tap', error as Error, {
         component: 'notificationDeepLinkService',
@@ -127,7 +265,7 @@ class NotificationDeepLinkService {
   /**
    * Navigate to a specific deep link
    */
-  navigate(deepLink: string): void {
+  async navigate(deepLink: string): Promise<void> {
     try {
       Logger.info('Navigating to deep link', {
         component: 'notificationDeepLinkService',
@@ -158,9 +296,20 @@ class NotificationDeepLinkService {
       // Navigate based on screen type - use root-level screen navigation
       switch (screen) {
         case 'prayer':
-          // Navigate to Journal screen directly with prayer parameters
-          this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
-          // Journal screen will handle prayer navigation based on notification data
+          if (id) {
+            const didNavigate = await this.navigateToPrayerById(id);
+            if (didNavigate) {
+              break;
+            }
+          }
+          this.navigationRef.current.navigate('MainTabs', {
+            screen: 'Journal',
+            params: {
+              targetSection: 'prayer',
+              targetPrayerId: id,
+              ...query,
+            },
+          });
           Logger.info('Navigated to Journal for prayer', {
             component: 'notificationDeepLinkService',
             prayerId: id,
@@ -249,23 +398,21 @@ class NotificationDeepLinkService {
 
         case 'journal':
           if (id === 'heart' && query.title) {
-            this.navigationRef.current.navigate('MainTabs', {
-              screen: 'Journal',
-              params: {
-                screen: 'ReflectionEditor',
+            this.navigateToJournalTarget(id, query);
+          } else if (id === 'prayer' && query.id) {
+            const didNavigate = await this.navigateToPrayerById(query.id);
+            if (!didNavigate) {
+              this.navigationRef.current.navigate('MainTabs', {
+                screen: 'Journal',
                 params: {
-                  selectedDate: new Date().toISOString(),
-                  initialMode: 'guided',
-                  initialPrompt: query.title,
-                  initialTitle: query.title,
-                  lockTitle: true,
-                  source: 'guided',
+                  targetSection: 'prayer',
+                  targetPrayerId: query.id,
+                  ...query,
                 },
-              },
-            });
+              });
+            }
           } else {
-            // Navigate to Journal screen directly
-            this.navigationRef.current.navigate('MainTabs', { screen: 'Journal' });
+            this.navigateToJournalTarget(id, query);
           }
           Logger.info('Navigated to Journal', {
             component: 'notificationDeepLinkService',

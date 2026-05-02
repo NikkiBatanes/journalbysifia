@@ -30,7 +30,7 @@ export type JournalScreenRef = {
   resetToCurrentDate: () => void;
 };
 
-const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, ref) => {
+const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, route }, ref) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
@@ -80,6 +80,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const [selectedDateForModal, setSelectedDateForModal] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
+  const handledDeepLinkKeyRef = useRef<string | null>(null);
 
   // Pending sales-offer navigation queued by TimeBlockEditorScreen.
   // TimeBlockEditor is a fullScreenModal in the nested JournalStack — its native
@@ -218,6 +219,34 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       setContentScrollRef(null);
     };
   }, [setContentScrollRef]);
+
+  useEffect(() => {
+    const params = route?.params || {};
+    const targetSection = params.targetSection;
+    const selectedDateParam = params.selectedDate;
+    const deepLinkKey = JSON.stringify({ targetSection, selectedDateParam });
+
+    if (!targetSection || handledDeepLinkKeyRef.current === deepLinkKey) {
+      return;
+    }
+
+    handledDeepLinkKeyRef.current = deepLinkKey;
+
+    const targetDate = selectedDateParam ? new Date(selectedDateParam) : new Date();
+    const safeTargetDate = Number.isNaN(targetDate.getTime()) ? new Date() : targetDate;
+
+    setCurrentDate(safeTargetDate);
+    lastSelectedDate.current = safeTargetDate;
+
+    if (targetSection === 'gratitude') {
+      setCarouselIndices(prev => ({ ...prev, reflect: 1 }));
+      setSelectedDateForModal(safeTargetDate);
+      setExistingGratitudeEntry(undefined);
+      setTimeout(() => {
+        setShowGratitudeModal(true);
+      }, 350);
+    }
+  }, [route?.params]);
 
   // Reset carousel positions when screen comes into focus, but preserve selected date
   useFocusEffect(
