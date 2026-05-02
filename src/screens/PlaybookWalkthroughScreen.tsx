@@ -39,6 +39,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
 import { useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 import { toLocalDateString } from '../utils/date';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
@@ -2322,12 +2323,25 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   }, [playbook, user, pdfExportAccess, navigation]);
 
-  const handleFinish = useCallback(() => {
+  const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
 
     // Mark the playbook as completed now that the user pressed Save & Finish
     if (playbookId) {
       updatePlaybookStatus(playbookId, 'completed').catch(() => {});
+      try {
+        const alreadyAwarded = await faithPointsService.hasActivityTodayForPlaybook(userId, 'playbook_completed', playbookId);
+        if (!alreadyAwarded) {
+          await faithPointsService.awardPoints(userId, 'playbook_completed', {
+            suppressNotification: true,
+            source: 'playbook_completion',
+            playbookId,
+            playbookTitle: playbook?.title,
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to award playbook completion faith points', error);
+      }
       // Optimistically update query cache so list reflects completion immediately
       queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
     }
@@ -2341,7 +2355,27 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasRead = false;
     journalNudgeFired = false;
 
-    // Navigate based on source
+    const shouldShowStreakPlan = userId
+      ? await visibleStreakService.shouldShowCelebration(userId, 'playbook_completed')
+      : true;
+
+    if (shouldShowStreakPlan && userId) {
+      await visibleStreakService.markShownToday(userId);
+    }
+
+    if (!shouldShowStreakPlan) {
+      (navigation as any).reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs',
+            state: { routes: [{ name: 'Overview' }], index: 0 },
+          },
+        ],
+      });
+      return;
+    }
+
     if (source === 'onboarding') {
       // Onboarding flow: go to StreakPlanScreen with onboarding flag
       (navigation as any).navigate('StreakPlan', {
@@ -2358,7 +2392,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         source,
       });
     }
-  }, [navigation, playbookId, userId, queryClient, source]);
+  }, [navigation, playbook?.title, playbookId, userId, queryClient, source]);
 
   const goNext = useCallback(() => {
     triggerLightHaptic();

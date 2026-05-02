@@ -14,7 +14,7 @@ import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
-import { supabase } from '../services/supabaseClient';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 interface RouteParams {
   playbookId?: string;
@@ -122,10 +122,7 @@ const StreakPlanScreen: React.FC = () => {
 
   // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
   const toLocalDate = (d: Date): string => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return visibleStreakService.toLocalDate(d);
   };
 
   // Calculate day states for the current week based on actual activity data
@@ -134,81 +131,7 @@ const StreakPlanScreen: React.FC = () => {
     const todayString = toLocalDate(today); // LOCAL date to match user's timezone
 
     // 100-day lookback for accurate streak calculation; 8 days covers any week layout
-    const windowStart = new Date(today.getTime() - 100 * 24 * 60 * 60 * 1000).toISOString();
-    const windowStartDate = toLocalDate(new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000));
-
-    // Collect all activity LOCAL dates
-    const activityDates = new Set<string>();
-
-    // prayers table uses `selected_date` (stored as YYYY-MM-DD local)
-    const { data: prayerData } = await supabase
-      .from('prayers')
-      .select('selected_date')
-      .eq('user_id', user?.id)
-      .gte('selected_date', windowStartDate);
-
-    if (prayerData) {
-      prayerData.forEach((entry: any) => {
-        if (entry.selected_date) { activityDates.add(entry.selected_date.split('T')[0]); }
-      });
-    }
-
-    // devotional_progress table uses `date` field (stored as YYYY-MM-DD local) and `completed` boolean
-    const { data: devotionalData } = await supabase
-      .from('devotional_progress')
-      .select('date')
-      .eq('user_id', user?.id)
-      .eq('completed', true)
-      .gte('date', windowStartDate);
-
-    if (devotionalData) {
-      devotionalData.forEach((entry: any) => {
-        if (entry.date) { activityDates.add(entry.date.split('T')[0]); }
-      });
-    }
-
-    // journal_entries uses `created_at` (UTC timestamp) — convert to local date
-    const { data: journalData } = await supabase
-      .from('journal_entries')
-      .select('created_at')
-      .eq('user_id', user?.id)
-      .gte('created_at', windowStart);
-
-    if (journalData) {
-      journalData.forEach((entry: any) => {
-        activityDates.add(toLocalDate(new Date(entry.created_at)));
-      });
-    }
-
-    // playbooks — count both creation AND completion dates as activity
-    const { data: playbookData } = await supabase
-      .from('playbooks')
-      .select('created_at, completed_at')
-      .eq('user_id', user?.id)
-      .gte('created_at', windowStart);
-
-    if (playbookData) {
-      playbookData.forEach((entry: any) => {
-        activityDates.add(toLocalDate(new Date(entry.created_at)));
-        if (entry.completed_at) {
-          activityDates.add(toLocalDate(new Date(entry.completed_at)));
-        }
-      });
-    }
-
-    // Also catch completions that happened within window but were created earlier
-    const { data: completedPlaybooks } = await supabase
-      .from('playbooks')
-      .select('completed_at')
-      .eq('user_id', user?.id)
-      .not('completed_at', 'is', null)
-      .gte('completed_at', windowStart);
-
-    if (completedPlaybooks) {
-      completedPlaybooks.forEach((entry: any) => {
-        activityDates.add(toLocalDate(new Date(entry.completed_at)));
-      });
-    }
+    const activityDates = user?.id ? await visibleStreakService.getActivityDates(user.id) : new Set<string>();
 
     // Get week start from user preferences
     const metadata = (user as any)?.user_metadata;
@@ -371,7 +294,7 @@ const StreakPlanScreen: React.FC = () => {
 
         {/* Hero text */}
         <Animated.View style={[styles.textContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-          <Text style={[styles.heroText, font]}>{streakCount}-day of Faith in Action</Text>
+          <Text style={[styles.heroText, font]}>{streakCount}-day Faith in Action streak</Text>
           <Text style={[styles.subText, font]}>
             {getStreakMessage(streakCount)}
           </Text>

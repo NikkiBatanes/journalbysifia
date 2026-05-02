@@ -107,14 +107,14 @@ export class FaithPointsService {
     affirmation_read_aloud: 1,
     playbook_opened: 1,
     playbook_revisited_completed: 1,
-    playbook_generated: 2,
+    playbook_generated: 3,
     devotional_opened: 1,
     devotional_revisited_completed: 1,
-    devotional_generated: 2,
+    devotional_generated: 3,
 
     // Completion (HIGHEST tier - scales with length)
-    devotional_completed: 1, // Single day (1/3, 2/3) - very low
-    devotional_full_completed: 5, // Full completion (3/3, 5/5, 7/7)
+    devotional_completed: 2, // Single day (1/3, 2/3)
+    devotional_full_completed: 3, // Full completion (1/1, 3/3, 5/5, 7/7)
     playbook_completed: 5, // Full playbook completion (5/5, 6/6), matches devotional
 
     // Daily activities (medium tier)
@@ -123,11 +123,11 @@ export class FaithPointsService {
     prayer_for_now: 3,
     prayer_journal_acts: 3,
     prayer_journal_open: 3,
-    prayer_devotional_prayed: 3,
-    prayer_playbook_prayed: 3,
+    prayer_devotional_prayed: 2,
+    prayer_playbook_prayed: 2,
     prayer_list_prayed: 3,
-    prayer_list_request_added: 1,
-    prayer_answered: 3, // When marking prayer as answered (once per day)
+    prayer_list_request_added: 2,
+    prayer_answered: 5, // When marking prayer as answered (once per day)
 
     // Action steps (low-medium tier)
     subtask_completed: 1,
@@ -136,14 +136,14 @@ export class FaithPointsService {
     focus_priority_marked: 1,
     journal_todo_added: 1,
     journal_focus_set: 2,
-    journal_timeblock_added: 2,
+    journal_timeblock_added: 1,
     journal_gratitude_added: 2,
     journal_win_added: 2,
     journal_looking_forward_added: 2,
     reflection_saved: 2,
     gratitude_saved: 2,
     prayer_saved: 3,
-    timeblock_saved: 2,
+    timeblock_saved: 1,
 
     // Streaks and milestones
     daily_streak: 3,
