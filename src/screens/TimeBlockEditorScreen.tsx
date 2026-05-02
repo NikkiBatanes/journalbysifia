@@ -9,6 +9,8 @@ import { useCreateTimeBlock, useUpdateTimeBlock } from '../services/hooks/useTim
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 import { usePlanningGating } from '../hooks/usePlanningGating';
+import { useCalendarGating } from '../hooks/useCalendarGating';
+import { isFuturePlanningDate, isRecurringPlanningFrequency } from '../utils/tierLockingRules';
 
 interface RouteParams {
   selectedDate?: string;
@@ -29,14 +31,27 @@ const TimeBlockEditorScreen: React.FC = () => {
   const autoFocus = params?.autoFocus || false;
   const selectedDateForGate = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
   const planningGating = usePlanningGating(selectedDateForGate, 'inApp');
+  const calendarGating = useCalendarGating();
 
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
 
   const handleSave = async (data: any) => {
     try {
-      if (planningGating.isLocked) {
-        planningGating.handleLockedAction();
+      const saveDate = data.date instanceof Date && !Number.isNaN(data.date.getTime())
+        ? data.date
+        : selectedDateForGate;
+      const saveDateString = toLocalDateString(saveDate);
+      const lockedTier = planningGating.accessCheck.isLocked;
+      const lockedByRepeat = !calendarGating.canUseRepeat && isRecurringPlanningFrequency(data.repeatFrequency);
+      const lockedByFutureDate = lockedTier && isFuturePlanningDate(saveDate);
+
+      if (lockedByRepeat || lockedByFutureDate) {
+        if (lockedByRepeat) {
+          calendarGating.handleRepeatLockTap();
+        } else {
+          planningGating.handleLockedAction('future_planning');
+        }
         return;
       }
 
@@ -45,12 +60,12 @@ const TimeBlockEditorScreen: React.FC = () => {
       let endDateTime: Date;
 
       startDateTime = data.isAllDay
-        ? new Date(`${selectedDate}T00:00:00`)
-        : new Date(`${selectedDate}T${data.startTime.toTimeString().slice(0, 8)}`);
+        ? new Date(`${saveDateString}T00:00:00`)
+        : new Date(`${saveDateString}T${data.startTime.toTimeString().slice(0, 8)}`);
 
       endDateTime = data.isAllDay
-        ? new Date(`${selectedDate}T23:59:59`)
-        : new Date(`${selectedDate}T${data.endTime.toTimeString().slice(0, 8)}`);
+        ? new Date(`${saveDateString}T23:59:59`)
+        : new Date(`${saveDateString}T${data.endTime.toTimeString().slice(0, 8)}`);
 
       // Validate that start time is before end time
       if (startDateTime >= endDateTime) {
@@ -60,7 +75,7 @@ const TimeBlockEditorScreen: React.FC = () => {
 
       const timeBlockData = {
         user_id: user?.id || '',
-        selected_date: selectedDate,
+        selected_date: saveDateString,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         all_day: data.isAllDay,
@@ -100,9 +115,12 @@ const TimeBlockEditorScreen: React.FC = () => {
 
       // Invalidate cache to refresh the list
       if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.timeBlocks.byDate(user.id, selectedDate),
-        });
+        const affectedDates = new Set([selectedDate, saveDateString]);
+        for (const affectedDate of affectedDates) {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.timeBlocks.byDate(user.id, affectedDate),
+          });
+        }
         await queryClient.invalidateQueries({
           queryKey: [queryKeys.timeBlocks.all[0]],
         });
@@ -132,6 +150,8 @@ const TimeBlockEditorScreen: React.FC = () => {
           onSave={handleSave}
           onCancel={handleCancel}
           onUpgradeRequired={handleUpgradeRequired}
+          repeatLocked={!calendarGating.canUseRepeat}
+          onRepeatLocked={calendarGating.handleRepeatLockTap}
           initialContent={existingTimeBlock?.description || ''}
           subtaskTitle=""
           _subtaskId={undefined}

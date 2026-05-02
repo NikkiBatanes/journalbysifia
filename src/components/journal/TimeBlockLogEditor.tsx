@@ -42,7 +42,7 @@ interface TimeBlockLogEditorProps {
     alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     alarmMinutes?: number; // Minutes before event for calendar sync
     // Repeat information to mirror journal TimeBlock component
-    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
     repeatEndDate?: Date | null;
     repeatCustomDays?: number[]; // 0-6 (Sun-Sat)
     repeatCustomFrequency?: { value: number; unit: 'day' | 'week' | 'month' | 'year' } | null;
@@ -51,6 +51,8 @@ interface TimeBlockLogEditorProps {
   }) => void;
   onCancel: () => void;
   onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
+  repeatLocked?: boolean;
+  onRepeatLocked?: () => void;
   initialContent?: string;
   subtaskTitle?: string;
   _subtaskId?: string;
@@ -77,6 +79,14 @@ interface TimeBlockLogEditorProps {
     location?: string;
     all_day?: boolean;
     alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
+    repeat_rule?: {
+      frequency?: string;
+      customDays?: number[];
+      customFrequency?: { value: number; unit: 'day' | 'week' | 'month' | 'year' };
+    };
+    repeat_until?: string;
+    repeat_frequency?: string;
+    repeat_end_date?: string;
   };
 }
 
@@ -123,6 +133,15 @@ const createDefaultStyles = (_fonts: any) => ({
     includeFontPadding: false,
     textAlignVertical: 'center',
     marginBottom: 0,
+  },
+  headerDateText: {
+    color: Colors.hopeWhite,
+    opacity: 0.86,
+    fontSize: 17,
+    fontFamily: Fonts.semiBold,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginBottom: 6,
   },
   subtext: {
     color: Colors.hopeWhite,
@@ -803,6 +822,8 @@ function TimeBlockLogEditorInner(
     actionStepTitle,
     isLoading = false,
     autoFocus = false,
+    repeatLocked = false,
+    onRepeatLocked,
     styles,
     existingTimeBlock,
     selectedDate: initialSelectedDate,
@@ -919,10 +940,58 @@ function TimeBlockLogEditorInner(
   const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
   const [alert, setAlert] = React.useState<'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week'>(existingTimeBlock?.alert || 'none');
+  const initialRepeatOption = useMemo(() => {
+    const frequency = String(existingTimeBlock?.repeat_rule?.frequency || existingTimeBlock?.repeat_frequency || 'never')
+      .toLowerCase()
+      .trim();
+
+    switch (frequency) {
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return 'Weekly';
+      case 'bi-weekly':
+      case 'biweekly':
+        return 'Bi-weekly';
+      case 'monthly':
+        return 'Monthly';
+      case 'yearly':
+        return 'Yearly';
+      case 'custom':
+        return 'Custom';
+      case 'never':
+      default:
+        return 'Never';
+    }
+  }, [existingTimeBlock?.repeat_frequency, existingTimeBlock?.repeat_rule?.frequency]);
+  const initialCustomFrequency = useMemo(() => {
+    const existingCustomFrequency = existingTimeBlock?.repeat_rule?.customFrequency;
+    if (
+      existingCustomFrequency &&
+      typeof existingCustomFrequency.value === 'number' &&
+      ['day', 'week', 'month', 'year'].includes(existingCustomFrequency.unit)
+    ) {
+      return existingCustomFrequency;
+    }
+
+    return { value: 1, unit: 'week' as const };
+  }, [existingTimeBlock?.repeat_rule?.customFrequency]);
+  const initialCustomDays = useMemo(() => {
+    return existingTimeBlock?.repeat_rule?.customDays || [];
+  }, [existingTimeBlock?.repeat_rule?.customDays]);
+  const initialRepeatEndDate = useMemo(() => {
+    const endDateValue = existingTimeBlock?.repeat_until || existingTimeBlock?.repeat_end_date;
+    if (!endDateValue) {
+      return null;
+    }
+
+    const parsedEndDate = new Date(endDateValue);
+    return Number.isNaN(parsedEndDate.getTime()) ? null : parsedEndDate;
+  }, [existingTimeBlock?.repeat_end_date, existingTimeBlock?.repeat_until]);
   const [showAlertModal, setShowAlertModal] = React.useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
-  const [repeatOption, setRepeatOption] = React.useState('Never');
+  const [repeatOption, setRepeatOption] = React.useState(initialRepeatOption);
   const [tempStartTime, setTempStartTime] = React.useState(startTime);
   const [tempEndTime, setTempEndTime] = React.useState(endTime);
   // Commenting out add menu for MVP; keep state preserving future functionality
@@ -934,10 +1003,10 @@ function TimeBlockLogEditorInner(
   // Repeat modal state
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
-  const [customFrequency, setCustomFrequency] = useState<{ value: number; unit: 'day' | 'week' | 'month' | 'year' }>({ value: 1, unit: 'week' });
-  const [customDays, setCustomDays] = useState<number[]>([]); // For weekly custom selection
-  const [endRepeatMode, setEndRepeatMode] = useState<'never' | 'date'>('never');
-  const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(null);
+  const [customFrequency, setCustomFrequency] = useState<{ value: number; unit: 'day' | 'week' | 'month' | 'year' }>(initialCustomFrequency);
+  const [customDays, setCustomDays] = useState<number[]>(initialCustomDays); // For weekly custom selection
+  const [endRepeatMode, setEndRepeatMode] = useState<'never' | 'date'>(initialRepeatEndDate ? 'date' : 'never');
+  const [endRepeatDate, setEndRepeatDate] = useState<Date | null>(initialRepeatEndDate);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const resolvedInitialDate = useMemo(() => {
@@ -961,6 +1030,14 @@ function TimeBlockLogEditorInner(
   // Date picker for faithful actions context
   const [selectedDate, setSelectedDate] = useState<Date>(resolvedInitialDate);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const formattedHeaderDate = useMemo(() => {
+    return selectedDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+  }, [selectedDate]);
 
   // Keyboard position state for FAB
   const fabBottomPosition = useRef(new Animated.Value(80)).current;
@@ -1004,6 +1081,14 @@ function TimeBlockLogEditorInner(
   useEffect(() => {
     setSelectedDate(resolvedInitialDate);
   }, [resolvedInitialDate]);
+
+  useEffect(() => {
+    setRepeatOption(initialRepeatOption);
+    setCustomFrequency(initialCustomFrequency);
+    setCustomDays(initialCustomDays);
+    setEndRepeatMode(initialRepeatEndDate ? 'date' : 'never');
+    setEndRepeatDate(initialRepeatEndDate);
+  }, [initialCustomDays, initialCustomFrequency, initialRepeatEndDate, initialRepeatOption]);
 
   // Removed draft functionality
 
@@ -1120,10 +1205,15 @@ function TimeBlockLogEditorInner(
                 <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
                   {context === 'faithful-actions' ? 'Set a time' : 'Time Block'}
                 </ThemedText>
+                {context === 'journal' && (
+                  <ThemedText weight="semiBold" style={s.headerDateText}>
+                    For {formattedHeaderDate}
+                  </ThemedText>
+                )}
                 <ThemedText style={s.subtext}>
                   {context === 'faithful-actions'
                     ? 'Choose when you want to come back to this.'
-                    : 'Schedule and organize your day.'}
+                    : 'Schedule and organize your day'}
                 </ThemedText>
               </View>
             </View>
@@ -1395,6 +1485,12 @@ function TimeBlockLogEditorInner(
                           ]}
                           onPress={async () => {
                             await triggerLightHaptic();
+                            if (option.value !== 'Never' && repeatLocked) {
+                              setShowRepeatModal(false);
+                              onRepeatLocked?.();
+                              return;
+                            }
+
                             if (option.value === 'Custom') {
                               setRepeatOption(option.value);
                               setShowRepeatModal(false);
@@ -1422,6 +1518,13 @@ function TimeBlockLogEditorInner(
                       ]}
                       onPress={async () => {
                         await triggerLightHaptic();
+                        if (repeatLocked) {
+                          setShowRepeatModal(false);
+                          setShowCustomRepeatModal(false);
+                          onRepeatLocked?.();
+                          return;
+                        }
+
                         setRepeatOption('Custom');
                         setShowRepeatModal(false);
                         setShowCustomRepeatModal(true);

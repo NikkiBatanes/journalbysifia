@@ -2,7 +2,6 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Swipeable } from 'react-native-gesture-handler';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -39,6 +38,7 @@ import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 import { useScroll } from '../../context/ScrollContext';
 import { useNavigation } from '@react-navigation/native';
+import { isRecurringPlanningFrequency } from '../../utils/tierLockingRules';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -295,8 +295,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     },
   });
 
-  const swipeableRefs = useRef<{[key: string]: any}>({});
-
   // Auto-cancel edit mode when date changes (carousel swipe to different date)
   // Track previous date to detect changes
   const prevDateRef = useRef(dateStr);
@@ -309,16 +307,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     prevDateRef.current = dateStr;
   }, [dateStr, globalEditMode]);
 
-  const closeAllSwipeActions = () => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref && ref.close) {
-        ref.close();
-      }
-    });
-  };
-
   const toggleNotes = (id: string) => {
-    closeAllSwipeActions();
     setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -646,6 +635,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
     if (planningGating.isLocked) {
       planningGating.handleLockedAction();
+      return;
+    }
+
+    if (planningGating.accessCheck.isLocked && isRecurringPlanningFrequency(newBlock.repeat.frequency)) {
+      planningGating.handleLockedAction('repeat_timeblocks');
       return;
     }
 
@@ -1158,63 +1152,45 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     });
   };
 
+  const openExistingTimeBlockEditor = (block: TimeBlockItem) => {
+    triggerLightHaptic();
+    openTimeBlockEditor({
+      existingTimeBlock: {
+        id: block.id,
+        selected_date: block.selectedDate,
+        title: block.title,
+        start_time: block.startTime.toISOString(),
+        end_time: block.endTime.toISOString(),
+        category: block.category,
+        description: block.notes,
+        location: block.location,
+        all_day: block.isAllDay,
+        alert: block.alert,
+        repeat_rule: {
+          frequency: block.repeat.frequency,
+          customDays: block.repeat.customDays,
+          customFrequency: block.repeat.customFrequency,
+        },
+        repeat_until: block.repeat.endDate?.toISOString(),
+        repeat_frequency: block.repeat.frequency,
+        repeat_end_date: block.repeat.endDate?.toISOString(),
+      },
+    });
+  };
+
   const renderTimeBlock = (block: TimeBlockItem) => {
     const isExpanded = expandedNotes[block.id] || false; // Collapsed by default, expandable on tap
 
     return (
-// ...
-      <View key={block.id} style={[styles.swipeableContainer, styles.swipeableContainerInline]}>
-        <Swipeable
-          ref={(ref: any) => {
-            if (ref) {
-              swipeableRefs.current[block.id] = ref;
-            } else {
-              delete swipeableRefs.current[block.id];
-            }
-          }}
-          onSwipeableWillOpen={() => { try { triggerSelectionHaptic(); } catch {} }}
-          renderRightActions={() => (
-            <View style={styles.timeblockSwipeActions}>
-              <TouchableOpacity
-                style={styles.editActionBtn}
-                onPress={() => {
-                  triggerSelectionHaptic();
-                  openTimeBlockEditor({
-                    existingTimeBlock: {
-                      id: block.id,
-                      selected_date: block.selectedDate,
-                      title: block.title,
-                      start_time: block.startTime.toISOString(),
-                      end_time: block.endTime.toISOString(),
-                      category: block.category,
-                      description: block.notes,
-                      location: block.location,
-                      all_day: block.isAllDay,
-                      alert: block.alert,
-                    },
-                  });
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="create-outline" size={22} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteActionBtn}
-                onPress={() => {
-
-                  try { triggerSelectionHaptic(); } catch {}
-                  handleDeleteBlock(block);
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={22} color="white" />
-              </TouchableOpacity>
-            </View>
-          )}
-          rightThreshold={40}
-          friction={2}
-          overshootRight={false}
-          enabled={true}
+      <TouchableOpacity
+        key={block.id}
+        style={[styles.timeBlockPressable, styles.timeBlockPressableInline]}
+        onPress={() => openExistingTimeBlockEditor(block)}
+        onLongPress={() => handleDeleteBlock(block)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit time block ${block.title}`}
+        accessibilityHint="Tap to edit. Long press to delete."
       >
         <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
@@ -1337,17 +1313,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               )}
 
               {block.notes && (
-  <NotesWithChevron
-    notes={block.notes}
-    isExpanded={isExpanded}
-    onToggle={() => toggleNotes(block.id)}
-  />
-)}
+                <NotesWithChevron
+                  notes={block.notes}
+                  isExpanded={isExpanded}
+                  onToggle={() => toggleNotes(block.id)}
+                />
+              )}
             </View>
           </View>
         </View>
-        </Swipeable>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -2255,40 +2230,12 @@ const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isEx
 export { TimeBlockReactQuery as TimeBlockReactQueryComponent };
 
 const styles = StyleSheet.create({
-  swipeableContainer: {
+  timeBlockPressable: {
     marginBottom: 8, // Match the card's marginBottom
     overflow: 'hidden',
   },
-  swipeableContainerInline: {
+  timeBlockPressableInline: {
     borderRadius: 16, // Match the inline card border radius
-  },
-  swipeableContainerMoments: {
-    borderRadius: 16, // Match the moments card border radius
-  },
-  timeblockSwipeActions: {
-    flexDirection: 'row',
-    width: 168, // Match Todos swipe area width for consistency
-    height: '100%', // Match the card height
-    marginLeft: 8, // Add consistent gap like Todos
-    overflow: 'hidden', // Ensure rounded corners are respected
-    borderRadius: 12, // Match card border radius
-  },
-  editActionBtn: {
-    flex: 1, // Fill all space left of delete button
-    height: '100%',
-    backgroundColor: Colors.anchorBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 12, // Add padding to move icon to the right
-  },
-  deleteActionBtn: {
-    width: 75, // Make delete button smaller
-    height: '100%',
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
   },
   loadingText: {
     color: Colors.textGray,

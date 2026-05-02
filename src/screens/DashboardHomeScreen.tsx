@@ -1711,7 +1711,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               faithfulActions={faithfulActions}
               onPress={(item) => {
                 triggerLightHaptic();
-                navigation.navigate('PlaybookDetail', { playbookId: item.playbookId });
+                navigation.navigate('PlaybookWalkthrough', {
+                  playbook: { id: item.playbookId },
+                  initialStep: 3,
+                  initialActionIndex: item.actionIndex - 1,
+                });
               }}
             />
           )}

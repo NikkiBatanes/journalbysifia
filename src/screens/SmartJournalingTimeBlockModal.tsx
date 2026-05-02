@@ -21,7 +21,9 @@ import {
   checkPlanningAccess,
   getEffectivePlanningTier,
   isFuturePlanningDate,
+  isRecurringPlanningFrequency,
 } from '../utils/tierLockingRules';
+import { navigateFromRoot } from '../utils/navigationHelpers';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -237,7 +239,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     date: Date;
     alert?: 'none' | 'at-time' | '5-min' | '10-min' | '15-min' | '30-min' | '1-hour' | '2-hours' | '1-day' | '2-days' | '1-week';
     alarmMinutes?: number; // For calendar sync
-    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'yearly' | 'custom';
+    repeatFrequency?: 'never' | 'daily' | 'weekly' | 'bi-weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
     repeatEndDate?: Date | null;
     repeatCustomDays?: number[];
     repeatCustomFrequency?: { value: number; unit: 'day' | 'week' | 'month' | 'year' } | null;
@@ -251,13 +253,15 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }
 
       const planningAccess = checkPlanningAccess(planningTier, 'inApp');
-      if (isFuturePlanningDate(timeBlockData.date) && planningAccess.isLocked) {
+      const lockedByRepeat = planningAccess.isLocked && isRecurringPlanningFrequency(timeBlockData.repeatFrequency);
+      const lockedByFutureDate = planningAccess.isLocked && isFuturePlanningDate(timeBlockData.date);
+      if (lockedByRepeat || lockedByFutureDate) {
         shouldRestoreAfterUpgradeRef.current = true;
         setTemporarilyHiddenForUpgrade(true);
         setTimeout(() => {
-          (navigation as any).navigate('OnboardingSalesOffer', {
-            source: 'planning_lock',
-            feature: 'future_planning',
+          navigateFromRoot(navigation, 'OnboardingSalesOffer', {
+            source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
+            feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
             tier: planningTier,
             skipNotificationPreference: true,
             dismissBehavior: 'goBack',

@@ -11,6 +11,9 @@ import {
   type PlanningAccessRules,
 } from '../utils/tierLockingRules';
 import { SubscriptionTier } from '../types/subscription';
+import { navigateFromRoot } from '../utils/navigationHelpers';
+
+export type PlanningLockReason = 'future_planning' | 'repeat_timeblocks';
 
 interface PlanningGatingResult {
   // Access Control
@@ -28,7 +31,7 @@ interface PlanningGatingResult {
   currentTier: SubscriptionTier;
 
   // Actions
-  handleLockedAction: () => void;
+  handleLockedAction: (reason?: PlanningLockReason) => void;
 
   // Feature Specific
   isFutureDate: boolean;
@@ -88,15 +91,15 @@ export const usePlanningGating = (
 
   // Handle locked action - navigate to onboarding sales offer
   const navigation = useNavigation();
-  const handleLockedAction = useMemo(() => () => {
+  const handleLockedAction = useMemo(() => (reason: PlanningLockReason = 'future_planning') => {
     if (onUpgradeRequired) {
       onUpgradeRequired();
     } else {
       // Navigate to onboarding sales offer like devotional modal
-
-      (navigation as any).navigate('OnboardingSalesOffer', {
-        source: 'planning_lock',
-        feature: 'future_planning',
+      const isRepeatLock = reason === 'repeat_timeblocks';
+      navigateFromRoot(navigation, 'OnboardingSalesOffer', {
+        source: isRepeatLock ? 'repeat_options' : 'planning_lock',
+        feature: isRepeatLock ? 'repeat_options' : 'future_planning',
         tier: currentTier,
         skipNotificationPreference: true,
         dismissBehavior: 'goBack',

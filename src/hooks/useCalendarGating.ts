@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { analytics } from '../utils/analytics';
 import { useQuery } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
+import { navigateFromRoot } from '../utils/navigationHelpers';
 
 export interface CalendarGatingState {
   // Calendar sync permissions
@@ -118,11 +119,12 @@ export const useCalendarGating = (): CalendarGatingState => {
     }, user?.id);
 
     // Navigate to upgrade screen
-    (navigation as any).navigate('OnboardingSalesOffer', {
+    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
       source: 'calendar_auto_sync',
       feature: 'calendar_sync',
       context: 'timeblock',
       skipNotificationPreference: true,
+      dismissBehavior: 'goBack',
     });
   };
 
@@ -133,11 +135,12 @@ export const useCalendarGating = (): CalendarGatingState => {
     }, user?.id);
 
     // Navigate to upgrade screen with skip notification flag
-    (navigation as any).navigate('OnboardingSalesOffer', {
+    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
       source: 'repeat_options',
       feature: 'repeat_options',
       context: 'timeblock',
       skipNotificationPreference: true,
+      dismissBehavior: 'goBack',
     });
   };
 
@@ -146,12 +149,13 @@ export const useCalendarGating = (): CalendarGatingState => {
       current_tier: currentTier,
     }, user?.id);
 
-    (navigation as any).navigate('OnboardingSalesOffer', {
+    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
       source: 'calendar_auto_sync',
       feature: 'calendar_sync',
       context: 'timeblock',
       message: 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.',
       skipNotificationPreference: true,
+      dismissBehavior: 'goBack',
     });
   };
 
@@ -160,12 +164,13 @@ export const useCalendarGating = (): CalendarGatingState => {
       current_tier: currentTier,
     }, user?.id);
 
-    (navigation as any).navigate('OnboardingSalesOffer', {
+    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
       source: 'repeat_upgrade_prompt',
       feature: 'repeat_options',
       context: 'timeblock',
       message: 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.',
       skipNotificationPreference: true,
+      dismissBehavior: 'goBack',
     });
   };
 

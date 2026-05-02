@@ -351,6 +351,15 @@ export function isFuturePlanningDate(date: Date | string): boolean {
   return targetDate > today;
 }
 
+export function isRecurringPlanningFrequency(frequency?: unknown): boolean {
+  if (typeof frequency !== 'string') {
+    return false;
+  }
+
+  const normalized = frequency.toLowerCase().trim().replace(/-/g, '');
+  return normalized !== '' && normalized !== 'never' && normalized !== 'none';
+}
+
 /**
  * Check if future planning is locked for a tier
  */
