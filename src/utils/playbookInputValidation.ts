@@ -55,13 +55,14 @@ const hasGibberishWordInPhrase = (words: string[]) => {
     }
 
     const hasNoVowels = !/[aeiouy]/.test(word);
-    const hasLongConsonantRun = /[bcdfghjklmnpqrstvwxyz]{4,}/.test(word);
+    const hasLongConsonantRun = /[bcdfghjklmnpqrstvwxz]{5,}/.test(word);
     const hasExcessiveRepeats = /(.)\1{2,}/.test(word);
     const vowelCount = (word.match(/[aeiouy]/gi) || []).length;
-    const hasTooFewVowels = word.length >= 6 && vowelCount <= 2;
+    const vowelRatio = vowelCount / word.length;
     const hasVeryFewVowels = word.length >= 8 && vowelCount <= 1;
+    const hasSuspiciouslyLowVowelRatio = word.length >= 10 && vowelRatio < 0.2;
 
-    return hasNoVowels || hasLongConsonantRun || hasExcessiveRepeats || hasTooFewVowels || hasVeryFewVowels;
+    return hasNoVowels || hasLongConsonantRun || hasExcessiveRepeats || hasVeryFewVowels || hasSuspiciouslyLowVowelRatio;
   });
 };
 
