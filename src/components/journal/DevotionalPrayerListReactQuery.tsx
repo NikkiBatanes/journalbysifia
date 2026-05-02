@@ -245,7 +245,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasContent ? (devotionalPrayers.length === 1 ? 'GUIDED PRAYER YOU PRAYED' : 'GUIDED PRAYERS YOU PRAYED') : undefined}
+        title={hasContent ? (devotionalPrayers.length === 1 ? 'GUIDED PRAYER' : 'GUIDED PRAYERS') : undefined}
         subtitle={
           hasContent
             ? viewMode === 'carousel'
