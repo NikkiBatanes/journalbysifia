@@ -189,6 +189,11 @@ const normalizeDayTitle = (title?: string | null, options: NormalizeDayTitleOpti
 
   if (!cleaned) { return undefined; }
 
+  // Return undefined if title is just "Day X" (with or without colon/dash)
+  if (dayNumber && cleaned.toLowerCase().match(/^day\s*\d+$/)) {
+    return undefined;
+  }
+
   if (dayNumber && cleaned.toLowerCase() === `day ${dayNumber}`.toLowerCase()) {
     return undefined;
   }
@@ -873,7 +878,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 nextDayNumber = currentDay;
                 const rawDayTitle = typeof dayEntry?.title === 'string' ? dayEntry.title : undefined;
                 const cleanedTitle = normalizeDayTitle(rawDayTitle, { dayNumber: currentDay, category: derivedCategory });
-                nextDayTitle = cleanedTitle || `Day ${currentDay}`;
+                nextDayTitle = cleanedTitle || '';
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
                   estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
