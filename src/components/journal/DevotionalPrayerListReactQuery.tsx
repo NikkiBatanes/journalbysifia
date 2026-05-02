@@ -130,7 +130,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 <View style={styles.metadataContent}>
                   <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
                   {(prayer as any).prayer_type === 'guided_playbook' ? (
-                    <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                    <ThemedText style={styles.metadataText}>Playbook</ThemedText>
                   ) : prayer.total_days ? (
                     <ThemedText style={styles.metadataText}>
                       {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
@@ -211,7 +211,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                     <View style={styles.metadataContent}>
                       <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
                       {(prayer as any).prayer_type === 'guided_playbook' ? (
-                        <ThemedText style={styles.metadataText}>Guided Playbook</ThemedText>
+                        <ThemedText style={styles.metadataText}>Playbook</ThemedText>
                       ) : prayer.total_days ? (
                         <ThemedText style={styles.metadataText}>
                           {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
