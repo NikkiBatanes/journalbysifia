@@ -136,10 +136,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       console.log('[TodayWin] Raw content:', content);
       // Handle new structure with winType and quietWin (check for winType or winTypeName presence)
       if (content.winType || content.winTypeName) {
+        const normalizedWinType = (content.winType || '').toString().toLowerCase();
         const result = {
           id: entry.id,
           text: content.quietWin || '',
-          winType: content.winTypeName || content.winType,
+          winType: normalizedWinType === 'other' ? (content.winTypeName || '') : (content.winTypeName || content.winType),
         };
         console.log('[TodayWin] Parsed win (new structure):', result);
         return result;
@@ -242,9 +243,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         <View style={styles.completionCard}>
           <View style={styles.completionHeader}>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {displayWin.winType || 'Today\'s Win'}
-              </ThemedText>
+              {!!displayWin.winType?.trim() && (
+                <ThemedText weight="semiBold" style={styles.completionCategory}>
+                  {displayWin.winType}
+                </ThemedText>
+              )}
             </View>
           </View>
 

@@ -326,7 +326,7 @@ const WinTypeSelectionStep: React.FC<{
   }
 
   useEffect(() => {
-    if (selectedWinType) {
+    if (selectedWinType && (selectedWinType.id !== 'other' || customWin.trim() !== '')) {
       Animated.spring(buttonScale, {
         toValue: 1,
         tension: 50,
@@ -336,7 +336,7 @@ const WinTypeSelectionStep: React.FC<{
     } else {
       buttonScale.setValue(0);
     }
-  }, [selectedWinType, buttonScale]);
+  }, [selectedWinType, customWin, buttonScale]);
 
   useEffect(() => {
     if (selectedWinType?.id === 'other') {
