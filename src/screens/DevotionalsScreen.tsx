@@ -181,7 +181,6 @@ const DevotionalsScreen = () => {
   const {
     devotionals,
     deleteDevotional,
-    fetchPlaybookById,
     isLoading,
   } = useDevotionalOperations(userId || '');
 

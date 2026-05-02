@@ -1398,8 +1398,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.prayerRequestCTA}
             >
               <Ionicons name="add-circle-outline" size={18} color={Colors.hopeWhite} />
-              <ThemedText 
-                weight="bold" 
+              <ThemedText
+                weight="bold"
                 style={styles.prayerRequestCTAText}
                 numberOfLines={1}
               >
