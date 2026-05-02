@@ -2025,15 +2025,15 @@ const styles = StyleSheet.create({
   },
   barBg: {
     width: '100%',
-    height: 12, // Thicker bar for better visibility
+    height: 6,
     backgroundColor: Colors.mediumOverlay,
-    borderRadius: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 6,
+    borderRadius: 3,
   },
   progressTextContainer: {
     width: 50,
