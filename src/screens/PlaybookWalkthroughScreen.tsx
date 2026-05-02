@@ -1648,6 +1648,8 @@ interface CompletionStepProps {
   insets: { top: number };
   onTurnIntoDevotional?: () => void;
   devotionalGenerated?: boolean;
+  isCompleted?: boolean;
+  navigation: any;
 }
 
 const CompletionStep: React.FC<CompletionStepProps> = ({
@@ -1657,6 +1659,8 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   insets,
   onTurnIntoDevotional,
   devotionalGenerated = false,
+  isCompleted = false,
+  navigation,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1697,14 +1701,15 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
     const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
 
-    // Always show "Before you close:" — inject if not already present
-    const hasContext = lines.some(l => /^before you/i.test(l));
-    if (!hasContext) {lines.unshift('Before you close:');}
+    // Always show context line — inject if not already present
+    // Use "Final reflection:" for completed playbooks, "Before you close:" for new ones
+    const hasContext = lines.some(l => /^before you/i.test(l) || /^final reflection/i.test(l));
+    if (!hasContext) {lines.unshift(isCompleted ? 'Final reflection:' : 'Before you close:');}
 
-    const contextLine = lines.find(l => /^before you/i.test(l));
+    const contextLine = lines.find(l => /^before you/i.test(l) || /^final reflection/i.test(l));
     const questionLine = lines.find(l => l.endsWith('?'));
     const actionLines = lines.filter(l =>
-      l.length > 0 && !/^before you/i.test(l) && !l.endsWith('?')
+      l.length > 0 && !/^before you/i.test(l) && !/^final reflection/i.test(l) && !l.endsWith('?')
     );
 
     // Choice pills: 2-4 short mutually-exclusive options.
@@ -1878,11 +1883,14 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
           <TouchableOpacity
             style={[styles.primaryButton, styles.finishButton]}
-            onPress={onFinish}
+            onPress={isCompleted ? () => {
+              triggerLightHaptic();
+              (navigation as any)?.goBack();
+            } : onFinish}
             activeOpacity={0.85}
           >
             <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-              Save &amp; Finish
+              {isCompleted ? 'Done' : 'Save & Finish'}
             </ThemedText>
           </TouchableOpacity>
 
@@ -2364,15 +2372,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     if (!shouldShowStreakPlan) {
-      (navigation as any).reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Overview' }], index: 0 },
-          },
-        ],
-      });
+      navigation.goBack();
       return;
     }
 
@@ -2633,6 +2633,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 insets={insets}
                 onTurnIntoDevotional={() => setShowDevotionalModal(true)}
                 devotionalGenerated={devotionalGenerated}
+                isCompleted={routePlaybook?.status === 'completed'}
+                navigation={navigation}
               />
             )}
           </Animated.View>
