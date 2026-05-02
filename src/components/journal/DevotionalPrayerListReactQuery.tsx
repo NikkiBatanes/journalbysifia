@@ -68,6 +68,10 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
 
   const hasContent = devotionalPrayers.length > 0;
 
+  // Check if any prayers are from playbook vs devotional
+  const hasPlaybookPrayers = devotionalPrayers.some((prayer: any) => prayer.prayer_type === 'guided_playbook');
+  const sourceText = hasPlaybookPrayers ? 'playbook' : 'devotional';
+
   // Group prayers by date (similar to original PrayedItemsList)
   const groupedPrayers = devotionalPrayers.reduce((groups: {[key: string]: any[]}, prayer) => {
     const dateKey = new Date(prayer.created_at).toDateString();
@@ -250,11 +254,11 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           hasContent
             ? viewMode === 'carousel'
               ? devotionalPrayers.length > 1
-                ? `${devotionalPrayers.length} Prayers from your devotional`
-                : '1 Prayer from your devotional'
+                ? `${devotionalPrayers.length} Prayers from your ${sourceText}`
+                : `1 Prayer from your ${sourceText}`
               : devotionalPrayers.length > 1
-                ? `${devotionalPrayers.length} Prayers from your devotional`
-                : '1 Prayer from your devotional'
+                ? `${devotionalPrayers.length} Prayers from your ${sourceText}`
+                : `1 Prayer from your ${sourceText}`
             : undefined
         }
         variant={variant}
