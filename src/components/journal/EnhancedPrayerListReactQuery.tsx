@@ -676,7 +676,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
-                PRAYER LIST FOR PEOPLE
+                PRAYERS FOR PEOPLE
               </ThemedText>
             </View>
             <View style={styles.titleContainer}>
