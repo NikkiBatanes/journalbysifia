@@ -503,7 +503,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const formattedPrayer = useMemo(() =>
     rawPrayer
       .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-      .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
+      .replace(/(\n?)(In Jesus'? Name,)\s*(Amen)/i, '\n\n$2\n$3')
   , [rawPrayer]);
   useEffect(() => {
     if (rawPrayer) {
