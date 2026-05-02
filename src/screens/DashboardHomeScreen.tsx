@@ -1716,6 +1716,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             />
           )}
 
+          <View style={styles.sectionGap} />
+
           {/* Reflection Questions Card */}
           <ReflectionQuestionsCard
             onQuestionPress={(q: any) => {

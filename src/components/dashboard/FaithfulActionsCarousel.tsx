@@ -229,19 +229,6 @@ const FaithfulActionsCarousel: React.FC<FaithfulActionsCarouselProps> = ({
 }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
 
-  const renderFACard = useCallback(({ item, index }: { item: FaithfulAction; index: number }) => (
-    <FaithfulActionCard
-      item={item}
-      index={index}
-      scrollX={scrollX}
-      onPress={onPress}
-    />
-  ), [scrollX, onPress]);
-
-  const getFAItemLayout = useCallback((_: any, index: number) => ({
-    length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
-  }), []);
-
   if (faithfulActions.length === 0) {
     return null;
   }
@@ -250,21 +237,11 @@ const FaithfulActionsCarousel: React.FC<FaithfulActionsCarouselProps> = ({
     <View style={styles.categorySection}>
       <View style={styles.categorySectionHeader}>
         <ThemedText weight="semiBold" style={styles.categorySectionTitle}>CONTINUE FAITHFUL ACTIONS</ThemedText>
-        <View style={styles.categorySectionCount}>
-          <ThemedText style={styles.categorySectionCountText}>{faithfulActions.length}</ThemedText>
-        </View>
       </View>
-      <Animated.FlatList
+      <Animated.ScrollView
         horizontal
-        data={faithfulActions}
-        keyExtractor={(a: FaithfulAction) => a.id}
-        renderItem={renderFACard}
-        getItemLayout={getFAItemLayout}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={3}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={CAROUSEL_CONTENT_STYLE}
+        contentContainerStyle={[styles.scrollContainer, CAROUSEL_CONTENT_STYLE]}
         decelerationRate="fast"
         snapToInterval={ITEM_SIZE}
         snapToAlignment="center"
@@ -273,50 +250,69 @@ const FaithfulActionsCarousel: React.FC<FaithfulActionsCarouselProps> = ({
           { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
-        directionalLockEnabled={true}
-        disableIntervalMomentum={false}
-        bounces={false}
-        removeClippedSubviews={true}
-      />
+        bounces={true}
+        removeClippedSubviews={false}
+        style={styles.scrollExpanded}
+      >
+        {faithfulActions.map((item, index) => (
+          <View key={item.id} style={styles.itemContainer}>
+            <FaithfulActionCard
+              item={item}
+              index={index}
+              scrollX={scrollX}
+              onPress={onPress}
+            />
+          </View>
+        ))}
+      </Animated.ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   categorySection: {
-    marginBottom: 24,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 30,
+    overflow: 'visible',
+  },
+  scrollContainer: {
+    paddingVertical: 0,
+    paddingRight: 0,
+    overflow: 'visible',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    flexGrow: 1,
+  },
+  scrollExpanded: {
+    overflow: 'visible',
+    marginHorizontal: -16,
   },
   categorySectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    width: '100%',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 16,
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   categorySectionTitle: {
-    fontSize: 16,
-    color: Colors.text,
-    letterSpacing: 0.5,
-  },
-  categorySectionCount: {
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  categorySectionCountText: {
     fontSize: 12,
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  itemContainer: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
   },
   carouselCardTouch: {
     width: ITEM_WIDTH,
+    overflow: 'visible',
+    position: 'relative',
   },
   carouselCard: {
-    backgroundColor: Colors.modalBlue,
-    borderRadius: 16,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 26,
     padding: 16,
     height: 280,
     justifyContent: 'flex-start',
@@ -328,66 +324,73 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   carouselDate: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 0,
   },
   faithfulActionBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,107,107,0.2)',
-    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     marginBottom: 12,
   },
   faithfulActionLabel: {
-    fontSize: 10,
-    color: Colors.alertCoral,
-    letterSpacing: 1,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   faithfulActionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginTop: 0,
   },
   faithfulActionNumberBadge: {
     width: 28,
     height: 28,
-    borderRadius: 8,
-    backgroundColor: Colors.alertCoral,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,107,107,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   faithfulActionNumber: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.alertCoral,
+    lineHeight: 18,
   },
   faithfulActionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.hopeWhite,
+    marginTop: 0,
+    marginBottom: 0,
     flex: 1,
+    flexWrap: 'wrap',
   },
   faithfulActionDescription: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
-    marginBottom: 12,
+    marginTop: 0,
   },
   faithfulActionDivider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 8,
+    marginVertical: 6,
   },
   faithfulActionFrom: {
-    fontSize: 10,
+    fontSize: 11,
     color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 1,
-    marginBottom: 4,
   },
   carouselCardTitle: {
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 20,
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   faithfulActionMeta: {
     fontSize: 11,
