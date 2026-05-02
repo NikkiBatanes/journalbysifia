@@ -12,6 +12,7 @@ import {
   Modal,
   Animated,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,10 +38,10 @@ interface StreakTrackerProps {
 
 
 // Chip sizing and spacing (grid layout)
-const CHIP_SPACING = 8;
-const CONTENT_HORIZONTAL_PADDING = 16;
-const CHIP_COLUMNS = 4; // single row of 4 chips
-const MIN_CHIP_WIDTH = 72;
+const CHIP_SPACING = 4;
+const CONTENT_HORIZONTAL_PADDING = 4;
+const CHIP_COLUMNS = 3; // single row of 3 chips
+const MIN_CHIP_WIDTH = 40;
 
 const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakPress }) => {
   const { user } = useAuth();
@@ -436,19 +437,11 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
         <ThemedText weight="semiBold" style={styles.title}>Streak Tracker</ThemedText>
       </View>
 
-      <View
-        style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}
-        onLayout={event => {
-          const measuredWidth = Math.round(event.nativeEvent.layout.width);
-          if (measuredWidth > 0 && Math.abs(measuredWidth - gridWidth) > 1) {
-            setGridWidth(measuredWidth);
-          }
-        }}
-      >
+      <View style={styles.grid}>
         {streaks.map(streak => (
           <TouchableOpacity
             key={streak.id}
-            style={[styles.chip, { width: chipWidth }]}
+            style={[styles.chip]}
             onPress={() => { triggerLightHaptic(); openSheet(streak); }}
             activeOpacity={0.85}
           >
@@ -597,28 +590,28 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
-    justifyContent: 'center',
+    alignItems: 'center',
     gap: CHIP_SPACING,
+    paddingHorizontal: 12,
   },
   chip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    height: 48,
-    minWidth: MIN_CHIP_WIDTH,
+    height: 44,
     // no vertical margin needed in single-row layout
   },
   streakNumber: {
-    fontSize: 18,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    marginHorizontal: 6,
+    marginHorizontal: 4,
   },
   chipLoading: {
     opacity: 0.5,

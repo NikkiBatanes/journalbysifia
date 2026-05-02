@@ -71,9 +71,8 @@ import { navigateFromRoot } from '../utils/navigationHelpers';
 const { width } = Dimensions.get('window');
 
 // Store metadata for review links
-// TODO: Replace with your real App Store numeric ID once the app is live in the store
-// Example: const APPLE_APP_ID = '1234567890';
-const APPLE_APP_ID = '';
+// App Store ID from sifia.app
+const APPLE_APP_ID = '6751785713';
 // Android package is already defined in app.json and native; keep here for clarity
 const ANDROID_PACKAGE = 'com.sifiaopc.app';
 
@@ -763,7 +762,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const iosUrl = APPLE_APP_ID ? `https://apps.apple.com/app/id${APPLE_APP_ID}` : 'https://sifia.app';
       const androidUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
       const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
-      const message = `I’m using siFia to strengthen my faith journey. Try it here: ${url}`;
+      const message = `I've been using siFia to reflect, pray, and process real-life moments. Try it here: ${url}`;
 
       await Share.share(
         Platform.select({
@@ -2156,7 +2155,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <View style={styles.bibleVersionNoteContainer}>
-            <Ionicons name="information-circle" size={16} color={Colors.faithGold} style={styles.bibleVersionNoteIcon} />
+            <Ionicons name="information-circle" size={18} color={Colors.faithGold} style={styles.bibleVersionNoteIcon} />
             <Text style={[styles.bibleVersionNote, font]}>
               Changing your Bible version only applies to content you generate from now on.
               Existing playbooks and devotionals will keep the version they were created with.
@@ -2312,7 +2311,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(false); }}>
-            <Text style={[styles.cancelText, font]}>Close</Text>
+            <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Notifications</Text>
           <View style={styles.headerSpacer} />
@@ -2570,14 +2569,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingTop: 0,
     paddingBottom: 0,
     flex: 1,
   },
   streakSection: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingBottom: 16,
   },
   headerWrapper: {
@@ -2596,17 +2594,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    height: 36,
   },
   chipActive: {
     backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
   },
   chipText: {
     color: 'rgba(255,255,255,0.92)',
     fontWeight: '600',
+    fontSize: 13,
   },
   chipTextActive: {
     color: Colors.hopeWhite,
@@ -3279,7 +3285,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
@@ -3501,22 +3507,22 @@ const styles = StyleSheet.create({
   bibleVersionNoteContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: Colors.faithGold,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   bibleVersionNoteIcon: {
-    marginRight: 8,
-    marginTop: 2,
+    marginRight: 12,
+    marginTop: 1,
   },
   bibleVersionNote: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.hopeWhite,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.85)',
     flex: 1,
   },
   settingGroup: {
