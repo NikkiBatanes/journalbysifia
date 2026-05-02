@@ -305,7 +305,7 @@ export class NotificationTester {
       case 'playbook_actions_complete':
       case 'playbook_actions_milestone':
         if (ctx._playbookId) {
-          return `sifia://playbooks/${ctx._playbookId}`;
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/actions`;
         }
         return 'sifia://playbooks/new';
 

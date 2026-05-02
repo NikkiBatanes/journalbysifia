@@ -148,6 +148,8 @@ const createCandidate = ({
     playbook_verse_reflection: 'playbook',
     playbook_prayer_revisit: 'playbook',
     playbook_to_devotional: 'playbook',
+    playbook_actions_complete: 'playbook',
+    playbook_actions_milestone: 'playbook',
     journal_todays_focus: 'journal',
     journal_todo: 'journal',
     journal_gratitude: 'journal',
@@ -868,12 +870,12 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           type: 'playbook_actions_complete',
           timeWindow: 'evening',
           score: 95,
-          dedupeKey: buildDedupeKey('playbook_actions_complete', ongoingPlaybook.id, completeKey),
-          deepLink: `sifia://playbooks/${ongoingPlaybook.id}`,
+          dedupeKey: buildDedupeKey('playbook_actions_complete', ongoingPlaybook.id),
+          deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions`,
           sourceType: 'playbook',
           sourceId: ongoingPlaybook.id,
           copyContext: {
-            title: ongoingPlaybook.title,
+            title: ongoingPlaybook.title || 'Playbook',
           },
           metadata: {
             playbook_title: ongoingPlaybook.title,
@@ -892,19 +894,19 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           timeWindow: 'evening',
           score: 80,
           dedupeKey: buildDedupeKey('playbook_actions_milestone', ongoingPlaybook.id, milestoneKey),
-          deepLink: `sifia://playbooks/${ongoingPlaybook.id}`,
+          deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions`,
           sourceType: 'playbook',
           sourceId: ongoingPlaybook.id,
           copyContext: {
-            title: ongoingPlaybook.title,
+            title: ongoingPlaybook.title || 'Playbook',
             completedCount: completedActions,
             totalCount: totalActions,
           },
           metadata: {
             playbook_title: ongoingPlaybook.title,
+            milestone_key: milestoneKey,
             completed_count: completedActions,
             total_count: totalActions,
-            milestone_key: milestoneKey,
           },
         }));
       }
