@@ -1742,7 +1742,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         entries.forEach((entry) => {
           // For Prayer Journal, group all ACTS/Open Prayer under a single card by plugin
-          const typeKey = entry.plugin?.id === 'prayerjournal' ? 'Prayer Journal' : entry.type;
+          // For devotional prayers, group under 'Devotional Prayers' to avoid duplication
+          const isDevotional = entry.type?.toLowerCase().includes('devotional') || entry.plugin?.id === 'devotionalprayers';
+          const typeKey = entry.plugin?.id === 'prayerjournal' ? 'Prayer Journal' : (isDevotional ? 'Devotional Prayers' : entry.type);
           if (!typeGroups[typeKey]) {typeGroups[typeKey] = [];}
           typeGroups[typeKey].push(entry);
         });
