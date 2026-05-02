@@ -186,17 +186,14 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
             // Derive completion from days data if available
             try {
-              const content2 = devotional.content
-                ? (typeof devotional.content === 'string' ? JSON.parse(devotional.content) : devotional.content)
-                : null;
-              let days = (devotional as any).days ?? content2?.days;
+              let days = (devotional as any).days;
               if (typeof days === 'string') {
                 try { days = JSON.parse(days); } catch {}
               }
-              const totalDays: number | undefined = (devotional as any).total_days ?? content2?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              const totalDays: number | undefined = (devotional as any).total_days ?? (Array.isArray(days) ? days.length : undefined);
               totalDaysForReturn = totalDays;
               const currentDay: number = Math.max(1, Math.min(
-                Number((devotional as any).current_day ?? content2?.current_day ?? 1) || 1,
+                Number((devotional as any).current_day ?? 1) || 1,
                 totalDays || 9999,
               ));
 
@@ -212,13 +209,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             } catch {}
 
               // Prefer per-day estimation using next incomplete day
-              let days = (devotional as any).days ?? content?.days;
+              let days = (devotional as any).days;
               if (typeof days === 'string') {
                 try { days = JSON.parse(days); } catch {}
               }
-              const totalDays: number | undefined = (devotional as any).total_days ?? content?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              const totalDays: number | undefined = (devotional as any).total_days ?? (Array.isArray(days) ? days.length : undefined);
               const currentDay: number = Math.max(1, Math.min(
-                Number((devotional as any).current_day ?? content?.current_day ?? 1) || 1,
+                Number((devotional as any).current_day ?? 1) || 1,
                 totalDays || 9999,
               ));
 

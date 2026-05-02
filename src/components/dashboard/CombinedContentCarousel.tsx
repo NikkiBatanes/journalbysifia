@@ -852,13 +852,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 };
               }
 
-              let days = devotionalContent?.days ?? (devotional as any).days;
+              let days = (devotional as any).days;
               if (typeof days === 'string') {
                 try { days = JSON.parse(days); } catch {}
               }
-              const totalDays: number | undefined = (devotional as any).total_days ?? devotionalContent?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              const totalDays: number | undefined = (devotional as any).total_days ?? (Array.isArray(days) ? days.length : undefined);
               const currentDay: number = Math.max(1, Math.min(
-                Number((devotional as any).current_day ?? devotionalContent?.current_day ?? 1) || 1,
+                Number((devotional as any).current_day ?? 1) || 1,
                 totalDays || 9999,
               ));
 
