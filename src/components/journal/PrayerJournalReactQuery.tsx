@@ -933,12 +933,17 @@ const styles = StyleSheet.create({
   },
   paginationButtonGroup: {
     flexDirection: 'row',
-    gap: 8,
     justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -958,10 +963,8 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: 'System',
     fontWeight: '500',
     lineHeight: 14,
-    color: Colors.hopeWhite,
   },
   prayerTypeSection: {
     gap: 12,

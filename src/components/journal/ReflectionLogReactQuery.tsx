@@ -159,6 +159,7 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
+    fontWeight: '500',
     lineHeight: 14,
   },
   showMoreButton: {

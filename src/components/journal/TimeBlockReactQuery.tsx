@@ -2626,22 +2626,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 2,
     paddingHorizontal: 8,
-    borderRadius: 18,
-    backgroundColor: Colors.mediumOverlay,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
+    fontWeight: '500',
     lineHeight: 14,
   },
   showMoreButton: {
-    backgroundColor: Colors.lightOverlay,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
   showMoreText: {
     color: Colors.alertCoral,
   },
   showLessButton: {
-    backgroundColor: Colors.restfulShadow,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   showLessText: {
     color: Colors.textGray,

@@ -1353,12 +1353,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 2,
     paddingHorizontal: 8,
-    borderRadius: 18,
+    borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
+    fontWeight: '500',
     lineHeight: 14,
   },
   showMoreButton: {
