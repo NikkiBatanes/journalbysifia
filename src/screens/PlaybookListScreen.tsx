@@ -133,13 +133,13 @@ const estimateReadTime = (text: string): string => {
   return `${minutes} min read`;
 };
 
-// Extract incomplete faithful actions from in-progress playbooks
+// Extract incomplete faithful actions from playbooks (both in-progress and completed)
 const extractIncompleteFaithfulActions = (playbooks: Playbook[]): FaithfulAction[] => {
   const actions: FaithfulAction[] = [];
 
   for (const playbook of playbooks) {
-    // Only process in-progress playbooks
-    if (playbook.status === 'completed') {continue;}
+    // Process all playbooks, regardless of completion status
+    // A playbook can be marked as completed even if some action steps are still incomplete
     if (!playbook.actionSteps || !Array.isArray(playbook.actionSteps)) {continue;}
 
     const { completed, total } = calculateTaskStats(playbook.actionSteps);
