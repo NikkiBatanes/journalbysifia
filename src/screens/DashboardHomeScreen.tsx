@@ -699,8 +699,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       justifyContent: 'flex-start',
       paddingTop: 10,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    prayerRequestDivider: {
+      height: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: 1,
+      marginBottom: 10,
     },
     prayerRequestCTAText: {
       color: Colors.hopeWhite,
@@ -1391,6 +1395,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             <ThemedText weight="regular" style={styles.prayerRequestDescription} numberOfLines={2}>
               {req.content || '—'}
             </ThemedText>
+
+            {/* Divider */}
+            <View style={styles.prayerRequestDivider} />
 
             {/* CTA */}
             <TouchableOpacity
