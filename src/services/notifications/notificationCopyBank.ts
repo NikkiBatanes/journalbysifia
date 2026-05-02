@@ -28,13 +28,25 @@ const formatNameList = (names: string[]): string => {
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 };
 
-const compact = (value: string, maxLength = 92): string => {
-  const clean = value.replace(/\s+/g, ' ').trim();
-  if (clean.length <= maxLength) {
-    return clean;
-  }
+const compact = (str: string, maxLength = 60): string => {
+  if (!str) return '';
+  return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+};
 
-  return `${clean.slice(0, maxLength - 1).trim()}...`;
+/**
+ * Sanitizes playbook title to prevent devotional-style titles like "Day 2"
+ * If the title looks like a devotional day title, return a fallback
+ */
+const sanitizePlaybookTitle = (title?: string | null): string => {
+  if (!title) return 'Playbook';
+  
+  // Check if title matches devotional day pattern (e.g., "Day 1", "Day 2", etc.)
+  const dayPattern = /^Day \d+$/i;
+  if (dayPattern.test(title.trim())) {
+    return 'Playbook'; // Fallback to generic title
+  }
+  
+  return title;
 };
 
 const plural = (count: number, singular: string, pluralValue = `${singular}s`): string => {
@@ -138,7 +150,7 @@ export function buildSmartNotificationCopy(
     case 'playbook_actions_complete':
       return {
         title: 'Faithful actions complete',
-        message: compact(`You finished every faithful action in "${context.title}". One step at a time, you kept going.`),
+        message: compact(`You finished every faithful action in "${sanitizePlaybookTitle(context.title)}". One step at a time, you kept going.`),
       };
 
     case 'playbook_actions_milestone': {
@@ -146,7 +158,7 @@ export function buildSmartNotificationCopy(
       const total = context.totalCount || 0;
       return {
         title: 'Faithful actions progress',
-        message: compact(`You've completed ${completed} of ${total} faithful actions in "${context.title}". Keep taking one faithful step at a time.`),
+        message: compact(`You've completed ${completed} of ${total} faithful actions in "${sanitizePlaybookTitle(context.title)}". Keep taking one faithful step at a time.`),
       };
     }
 
