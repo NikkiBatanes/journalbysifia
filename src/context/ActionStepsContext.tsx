@@ -28,6 +28,7 @@ type ActionStepsContextType = {
   setActionSteps: React.Dispatch<React.SetStateAction<ActionStep[]>>;
   handleToggleStep: (stepId: string, subTaskId?: string) => void;
   handleAutoCheckStep: (stepId: string, subTaskId: string) => void; // New method for auto-checking
+  handleAutoCompleteStep: (stepId: string) => void;
   getCompletedStepsCount: () => { completed: number; total: number };
   saveActionSteps: (playbookId: string) => Promise<void>;
 };
@@ -222,6 +223,66 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({ playbo
     });
   }, [playbookId, updatePlaybook, normalizeSubTask, setActionSteps]);
 
+  const handleAutoCompleteStep = useCallback((stepId: string) => {
+    Logger.info('[ActionStepsContext] Auto-completing action step with protection', {
+      component: 'ActionStepsContext',
+      stepId,
+    });
+
+    setActionSteps(prev => {
+      const prevCopy = [...prev];
+      const stepIndex = prevCopy.findIndex(step => step.id === stepId);
+
+      if (stepIndex === -1) {
+        Logger.warn(`[WARNING] Step with id ${stepId} not found for auto-complete`, {
+          component: 'ActionStepsContext',
+          stepId,
+        });
+        return prevCopy;
+      }
+
+      const updatedSteps = [...prevCopy];
+      const step = { ...updatedSteps[stepIndex] };
+
+      if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
+        step.subTasks = step.subTasks.map((task, index) => {
+          const normalized = normalizeSubTask(task, index, stepId, true);
+          protectedSubtasks.current.add(normalized.id);
+
+          return {
+            ...normalized,
+            completed: true,
+            _protected: true,
+          };
+        });
+      } else {
+        step.subTasks = [];
+      }
+
+      step.completed = true;
+      updatedSteps[stepIndex] = step;
+
+      if (playbookId) {
+        const stats = calculateTaskStats(updatedSteps);
+        const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === playbookId);
+
+        if (currentPlaybook) {
+          const updatedPlaybook: Playbook = {
+            ...currentPlaybook,
+            actionSteps: updatedSteps,
+            progress: stats.completed / Math.max(stats.total, 1),
+            updatedAt: new Date().toISOString(),
+            totalTasks: stats.total,
+            status: currentPlaybook.status === 'completed' ? 'completed' : 'inProgress',
+          };
+          updatePlaybook(updatedPlaybook);
+        }
+      }
+
+      return updatedSteps;
+    });
+  }, [playbookId, updatePlaybook, normalizeSubTask, setActionSteps]);
+
   const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
 
     setActionSteps(prev => {
@@ -324,9 +385,10 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({ playbo
     setActionSteps,
     handleToggleStep,
     handleAutoCheckStep,
+    handleAutoCompleteStep,
     getCompletedStepsCount,
     saveActionSteps,
-  }), [actionSteps, setActionSteps, handleToggleStep, handleAutoCheckStep, getCompletedStepsCount, saveActionSteps]);
+  }), [actionSteps, setActionSteps, handleToggleStep, handleAutoCheckStep, handleAutoCompleteStep, getCompletedStepsCount, saveActionSteps]);
 
   return (
     <ActionStepsContext.Provider value={contextValue}>

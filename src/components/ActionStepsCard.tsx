@@ -141,7 +141,7 @@ export default function ActionStepsCard({
   onToggleSubTaskMutation,
 }: ActionStepsCardProps) {
   const { user } = useAuth();
-  const { actionSteps: contextSteps, handleToggleStep, handleAutoCheckStep } = useActionSteps();
+  const { actionSteps: contextSteps, handleToggleStep, handleAutoCompleteStep } = useActionSteps();
   const queryClient = useQueryClient();
   const [selectedSubtask, setSelectedSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -630,6 +630,70 @@ export default function ActionStepsCard({
     }, 200); // Small delay for smooth transition
   }, [tooltipSubtask, onJournalTypePress]);
 
+  const autoCompleteSelectedFaithfulAction = React.useCallback(async () => {
+    const stepId = selectedSubtask?.stepInfo?.stepId;
+    const selectedSubTaskId = selectedSubtask?.subTask?.id;
+
+    if (!stepId) {
+      return;
+    }
+
+    handleAutoCompleteStep(stepId);
+
+    const selectedStep = steps.find(step => step.id === stepId);
+    const persistableSubTasks = (selectedStep?.subTasks || []).filter(subTask => {
+      const subTaskId = subTask?.id;
+      if (!subTaskId) {
+        return false;
+      }
+      return !(
+        subTask.isExample ||
+        subTask.is_example ||
+        (typeof subTask.text === 'string' && subTask.text.toLowerCase().startsWith('example:')) ||
+        subTaskId.startsWith('ex-') ||
+        subTaskId.startsWith('example-')
+      );
+    });
+
+    try {
+      if (persistableSubTasks.length > 0) {
+        if (onToggleSubTaskMutation) {
+          await Promise.all(
+            persistableSubTasks.map(subTask =>
+              onToggleSubTaskMutation(stepId, subTask.id, true)
+            )
+          );
+        } else if (user?.id && playbookId) {
+          const { updatePlaybookSubTask } = await import('../services/supabaseApiNormalized');
+          await Promise.all(
+            persistableSubTasks.map(subTask =>
+              updatePlaybookSubTask(user.id, playbookId, stepId, subTask.id, true)
+            )
+          );
+        }
+      }
+
+      const { updateActionStepCompleted } = await import('../services/supabaseApiNormalized');
+      await updateActionStepCompleted(stepId);
+
+      queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
+      queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
+
+      DeviceEventEmitter.emit('playbookProgressUpdate', {
+        stepId,
+        subTaskId: selectedSubTaskId,
+        type: 'smart_journaling_save',
+      });
+    } catch (error) {
+      Logger.error('[ActionStepsCard] Failed to persist smart journaling completion', error as Error, {
+        component: 'ActionStepsCard',
+        data: { stepId, subTaskId: selectedSubTaskId, playbookId },
+      });
+    }
+  }, [handleAutoCompleteStep, onToggleSubTaskMutation, playbookId, queryClient, selectedSubtask, steps, user?.id]);
+
   // Modal handlers
   const handleReflectionSave = React.useCallback(async (_entry: any) => {
 
@@ -648,9 +712,7 @@ export default function ActionStepsCard({
       }
 
       // Auto-check the subtask when reflection is saved (PROTECTED)
-      if (selectedSubtask?.subTask?.id && selectedSubtask?.stepInfo?.stepId) {
-        handleAutoCheckStep(selectedSubtask.stepInfo.stepId, selectedSubtask.subTask.id);
-      }
+      await autoCompleteSelectedFaithfulAction();
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
@@ -661,7 +723,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id, selectedSubtask, handleAutoCheckStep]);
+  }, [queryClient, user?.id, selectedSubtask, autoCompleteSelectedFaithfulAction]);
 
   const handleReflectionCancel = React.useCallback(() => {
 
@@ -690,6 +752,9 @@ export default function ActionStepsCard({
         });
 
       }
+
+      // Auto-check the subtask when gratitude is saved (PROTECTED)
+      await autoCompleteSelectedFaithfulAction();
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
@@ -700,7 +765,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id]);
+  }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
 
   const handleGratitudeCancel = React.useCallback(() => {
 
@@ -729,6 +794,9 @@ export default function ActionStepsCard({
         });
 
       }
+
+      // Auto-check the subtask when prayer is saved (PROTECTED)
+      await autoCompleteSelectedFaithfulAction();
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
@@ -739,7 +807,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id]);
+  }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
 
   const handlePrayerCancel = React.useCallback(() => {
 
@@ -780,6 +848,9 @@ export default function ActionStepsCard({
         });
 
       }
+
+      // Auto-check the subtask when a time block is saved (PROTECTED)
+      await autoCompleteSelectedFaithfulAction();
     } finally {
       // End operation protection after save completes
       setTimeout(() => {
@@ -790,7 +861,7 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id]);
+  }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
 
   const handleTimeBlockCancel = React.useCallback(() => {
 

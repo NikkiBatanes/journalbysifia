@@ -790,9 +790,21 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     [fadeAnim, cardTranslateY]
   );
 
+  const commitCurrentStep = useCallback(() => {
+    if (persistedCommittedSteps[actionStepIndex]) {
+      return;
+    }
+
+    persistedCommittedSteps = { ...persistedCommittedSteps, [actionStepIndex]: true };
+    setCommittedSteps({ ...persistedCommittedSteps });
+    saveCurrentSession();
+    onStepCommit?.(actionStepIndex);
+  }, [actionStepIndex, onStepCommit]);
+
   const advanceStep = useCallback(
     (markDone: boolean) => {
       if (markDone) {
+        commitCurrentStep();
         triggerMediumHaptic();
       } else {
         triggerLightHaptic();
@@ -810,7 +822,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         saveCurrentSession();
       });
     },
-    [isLastStep, onNext, animateToNext, actionStepIndex, setActionStepIndex]
+    [isLastStep, onNext, animateToNext, actionStepIndex, setActionStepIndex, commitCurrentStep]
   );
 
   const handleSaveJournal = useCallback(() => {
@@ -1257,7 +1269,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Reflection Saved', message: 'Your reflection has been saved to your journal.', showEditButton: true }); }}
+          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Reflection Saved', message: 'Your reflection has been saved to your journal.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1271,7 +1283,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Prayer Saved', message: 'Your prayer has been saved.', showEditButton: true }); }}
+          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Prayer Saved', message: 'Your prayer has been saved.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1287,7 +1299,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Gratitude Saved', message: 'Your gratitude has been saved.', showEditButton: true }); }}
+          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Gratitude Saved', message: 'Your gratitude has been saved.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1296,7 +1308,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           visible={true}
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
-          onSave={() => { setActiveJournalModal(null); successModal.showSuccess({ title: 'Scheduled', message: 'Your time block has been scheduled.', showEditButton: false }); }}
+          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Scheduled', message: 'Your time block has been scheduled.', showEditButton: false }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}

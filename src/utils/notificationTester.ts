@@ -697,31 +697,33 @@ export class NotificationTester {
         .order('order_index', { ascending: true })
         .limit(10);
 
-      const steps = stepsData || [];
-      let count = 0;
+      const allSteps = stepsData || [];
 
-      for (const step of steps) {
-        if (count >= 3) {break;}
-
+      // Collect incomplete steps
+      const incompleteSteps = allSteps.filter((step: any) => {
+        if (step.completed === true) { return false; }
         const subTasks = step.playbook_sub_tasks || [];
-        if ((step as any).completed === true && subTasks.every((st: any) => st.completed === true)) {
-          continue;
-        }
+        return subTasks.length === 0 || subTasks.some((st: any) => st.completed !== true);
+      });
 
-        const actionText = step.text?.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim() || '';
-        if (!actionText) {continue;}
-
-        const copy = buildSmartNotificationCopy('playbook_faithful_action', { actionText });
-
-        await pushNotificationService.scheduleLocalNotification({
-          title: copy.title,
-          message: copy.message,
-          data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'playbook_faithful_action' },
-          priority: 'high',
-        }, new Date(Date.now() + count * 3000));
-
-        count++;
+      if (incompleteSteps.length === 0) {
+        Logger.warn('No incomplete steps found', { component: 'NotificationTester' });
+        return 0;
       }
+
+      // Pick one at random
+      const randomStep = incompleteSteps[Math.floor(Math.random() * incompleteSteps.length)] as any;
+      const actionText = randomStep.text?.replace(/\*\*|__|\*/g, '').replace(/<[^>]*>/g, '').trim() || '';
+      const copy = buildSmartNotificationCopy('playbook_faithful_action', { actionText });
+
+      await pushNotificationService.scheduleLocalNotification({
+        title: copy.title,
+        message: copy.message,
+        data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'playbook_faithful_action' },
+        priority: 'high',
+      }, new Date(Date.now() + 1000));
+
+      const count = 1;
 
       Logger.info(`✅ Tested ${count} faithful action notifications`, {
         component: 'NotificationTester',
