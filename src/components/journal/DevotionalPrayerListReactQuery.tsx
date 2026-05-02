@@ -150,7 +150,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               <View style={styles.prayerContentContainer}>
                 <ThemedText style={styles.prayerText}>{prayer.content
                     .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-                    .replace(/In Jesus'? Name,\s*Amen/i, 'In Jesus\' Name,\nAmen')
+                    .replace(/In Jesus'? Name,\s*Amen/i, '\n\nIn Jesus\' Name,\nAmen')
                 }</ThemedText>
               </View>
               <View style={styles.metadataContainer}>
@@ -268,7 +268,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                   <View style={styles.prayerContentContainer}>
                     <ThemedText style={styles.prayerText}>{prayer.content
                         .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-                        .replace(/In Jesus'? Name,\s*Amen/i, 'In Jesus\' Name,\nAmen')
+                        .replace(/In Jesus'? Name,\s*Amen/i, '\n\nIn Jesus\' Name,\nAmen')
                     }</ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
