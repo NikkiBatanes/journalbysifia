@@ -338,16 +338,21 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
     if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
-    // Adjust step interval based on devotional duration
-    // 1-3 day: 3000ms per step (18s total)
-    // 5 day: 7000ms per step (42s total) - slower
-    // 7 day: 8000ms per step (48s total) - slower
-    const getStepDuration = () => {
-      if (!selectedDuration) {return 3000;}
-      if (selectedDuration >= 7) {return 8000;}
-      if (selectedDuration >= 5) {return 7000;}
-      return 3000;
+    // Calculate total expected time based on duration and distribute evenly across steps
+    // This ensures progress bar moves smoothly without getting stuck at phase 4
+    const getTotalDuration = () => {
+      if (!selectedDuration) {return 12000;} // Default 12s
+      // Scale total time proportionally to number of days
+      // 1-day: 8s, 3-day: 12s, 5-day: 20s, 7-day: 28s
+      if (selectedDuration === 1) {return 8000;}
+      if (selectedDuration === 3) {return 12000;}
+      if (selectedDuration === 5) {return 20000;}
+      if (selectedDuration === 7) {return 28000;}
+      return 12000;
     };
+
+    const totalDuration = getTotalDuration();
+    const stepDuration = totalDuration / generationSteps.length;
 
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
@@ -472,7 +477,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
         return isLast ? prev : nextStep;
       });
-    }, getStepDuration());
+    }, stepDuration);
     return () => clearInterval(stepInterval);
   }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1654,6 +1659,7 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
+    borderRadius: 6,
     fontWeight: '500',
     paddingHorizontal: 8,
     includeFontPadding: false,

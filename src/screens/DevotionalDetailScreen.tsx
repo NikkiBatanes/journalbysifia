@@ -1069,7 +1069,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           automaticallyAdjustContentInsets={false}
           contentInset={{ left: 0, right: 0 }}
           // Performance optimizations
-          removeClippedSubviews={true}
+          removeClippedSubviews={false}
           maxToRenderPerBatch={3}
           updateCellsBatchingPeriod={50}
           initialNumToRender={1}
@@ -1228,7 +1228,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               variant="tintOnBlue"
             >
               {day?.reflectionQuestions?.length ? (
-                day.reflectionQuestions.map((question: any, idx: number) => (
+                day.reflectionQuestions.map((question: any, idx: number) => {
+                  return (
                   <Pressable
                     key={question.id || idx}
                     style={styles.questionCardWrapper}
@@ -1252,7 +1253,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                     }}
                     delayLongPress={300}
                   >
-                    <View style={styles.questionCardContainer}>
+                    <View style={styles.questionCardContainer} collapsable={false}>
                       <View style={[
                         styles.questionCardNumberCircle,
                         isQuestionJournaled(index + 1, idx + 1) && styles.journaledNumberCircle,
@@ -1261,14 +1262,30 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                           {idx + 1}
                         </ThemedText>
                       </View>
-                      <ThemedText style={styles.questionCardText} numberOfLines={0}>
-                        {question.text || 'Reflection question'}
-                      </ThemedText>
+                      <View style={styles.questionTextWrapper}>
+                        {Platform.OS === 'ios' ? (
+                          <ThemedTextInput
+                            value={question.text || 'Reflection question'}
+                            editable={false}
+                            multiline={true}
+                            scrollEnabled={false}
+                            pointerEvents="none"
+                            contextMenuHidden={true}
+                            caretHidden={true}
+                            style={styles.questionCardTextInput}
+                          />
+                        ) : (
+                          <ThemedText style={styles.questionCardText}>
+                            {question.text || 'Reflection question'}
+                          </ThemedText>
+                        )}
+                      </View>
                     </View>
               </Pressable>
-                ))
+                  );
+                })
               ) : (
-                <ThemedText style={styles.questionCardText} numberOfLines={0}>No questions for today.</ThemedText>
+                <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
               )}
             </DevotionalSectionCard>
 
@@ -1623,20 +1640,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
     overflow: 'visible',
+    paddingLeft: 52, // Space for the number circle
+    paddingRight: 20,
+  },
+  questionTextWrapper: {
+    flex: 1,
+    minHeight: 24,
   },
   questionCardNumberCircle: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-    marginTop: 2,
   },
   journaledNumberCircle: {
     backgroundColor: Colors.growthGreen,
@@ -1647,10 +1668,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   questionCardText: {
-    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
+    flexShrink: 1,
+    flexGrow: 1,
+  },
+  questionCardTextInput: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    padding: 0,
+    margin: 0,
+    flexShrink: 1,
+    flexGrow: 1,
   },
   fab: {
     position: 'absolute',
