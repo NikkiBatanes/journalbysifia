@@ -321,11 +321,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     if (!targetDay) {return;}
     const key = format(targetDay, 'yyyy-MM-dd');
     if (key !== lastHeaderHapticDateKey.current && now - lastHeaderHapticTime.current > 120) {
-      triggerLightHaptic();
+      // Removed haptic feedback for current date display
       lastHeaderHapticDateKey.current = key;
       lastHeaderHapticTime.current = now;
     }
-  }, [weeks, selectedDayOfWeek, headerWidth, triggerLightHaptic]);
+  }, [weeks, selectedDayOfWeek, headerWidth]);
 
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
