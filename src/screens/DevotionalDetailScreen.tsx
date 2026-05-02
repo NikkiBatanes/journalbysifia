@@ -1232,10 +1232,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   style={[
                     styles.prayerButton,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
-                    createDevotionalPrayerMutation.isPending && styles.prayerButtonLoading,
                   ]}
                   onPress={onPrayPress}
-                  disabled={createDevotionalPrayerMutation.isPending}
                 >
                   <MaterialCommunityIcons
                     name="hands-pray"
@@ -1717,9 +1715,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayContentInactive: {
-    opacity: 0.6,
-  },
-  prayerButtonLoading: {
     opacity: 0.6,
   },
 });
