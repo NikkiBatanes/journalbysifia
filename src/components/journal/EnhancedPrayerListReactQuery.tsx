@@ -164,17 +164,17 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const getSubtitle = () => {
     if (hasVisibleContent) {
       const totalCount = uniqueTotal.size;
-      let subtitle = totalCount === 1 ? '1 Person in your prayer list' : `${totalCount} People in your prayer list`;
+      let subtitle = totalCount === 1 ? '1 person in your prayer list' : `${totalCount} people in your prayer list`;
 
       // Add breakdown on new line with requests first
       const reqCount = uniqueRequests.size;
       const prayedForCount = uniquePersonal.size;
       if (reqCount > 0 && prayedForCount > 0) {
-        subtitle += `\n${reqCount} Request${reqCount > 1 ? 's' : ''} • ${prayedForCount} Prayed for`;
+        subtitle += `\n${reqCount} request • ${prayedForCount} prayed for`;
       } else if (reqCount > 0) {
-        subtitle += `\n${reqCount} Request${reqCount > 1 ? 's' : ''}`;
+        subtitle += `\n${reqCount} request`;
       } else if (prayedForCount > 0) {
-        subtitle += `\n${prayedForCount} Prayed for`;
+        subtitle += `\n${prayedForCount} prayed for`;
       }
 
       return subtitle;
@@ -655,7 +655,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasVisibleContent ? 'PRAYERS FOR PEOPLE' : undefined}
+        title={hasVisibleContent ? 'PRAYER FOR PEOPLE' : undefined}
         subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
@@ -676,7 +676,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
-                PRAYERS FOR PEOPLE
+                PRAYER FOR PEOPLE
               </ThemedText>
             </View>
             <View style={styles.titleContainer}>
