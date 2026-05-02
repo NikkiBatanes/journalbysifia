@@ -849,6 +849,13 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
   const ongoingPlaybook = playbooks.find(playbook => playbook.status !== 'completed' && !playbook.completed_at);
   if (ongoingPlaybook) {
+    Logger.info('[playbook_actions_complete] Debug playbook data', {
+      component: 'notificationCandidateResolver',
+      playbookId: ongoingPlaybook.id,
+      playbookTitle: ongoingPlaybook.title,
+      playbookStatus: ongoingPlaybook.status,
+    });
+
     const steps = sortByOrder(ongoingPlaybook.playbook_action_steps || []);
 
     // Calculate action completion
@@ -882,6 +889,13 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
             completion_key: completeKey,
           },
         }));
+
+        Logger.info('[playbook_actions_complete] Generated notification', {
+          component: 'notificationCandidateResolver',
+          playbookId: ongoingPlaybook.id,
+          playbookTitle: ongoingPlaybook.title,
+          notificationType: 'playbook_actions_complete',
+        });
       }
     }
     // Check for milestone notification (at least 4 completed but not all)
