@@ -72,6 +72,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   const hasPlaybookPrayers = devotionalPrayers.some((p: any) => p.prayer_type === 'guided_playbook');
   const source = hasPlaybookPrayers ? 'playbook' : 'devotional';
 
+  // Log for debugging
+  if (devotionalPrayers.length > 0) {
+    console.log('[DevotionalPrayerList] Prayer types:', devotionalPrayers.map((p: any) => p.prayer_type));
+    console.log('[DevotionalPrayerList] Has playbook prayers:', hasPlaybookPrayers);
+    console.log('[DevotionalPrayerList] Source:', source);
+  }
+
   // Group prayers by date (similar to original PrayedItemsList)
   const groupedPrayers = devotionalPrayers.reduce((groups: {[key: string]: any[]}, prayer) => {
     const dateKey = new Date(prayer.created_at).toDateString();
