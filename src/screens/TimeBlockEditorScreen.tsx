@@ -46,7 +46,7 @@ const TimeBlockEditorScreen: React.FC = () => {
       Logger.info('[TimeBlockEditorScreen] Component UNMOUNTED');
       setHasFocused(false); // Reset on unmount
     };
-  }, [selectedDate, existingTimeBlock]);
+  }, [selectedDate, existingTimeBlock, autoFocus]);
 
   // Use navigation focus listener to trigger auto-focus when screen comes into focus
   useLayoutEffect(() => {

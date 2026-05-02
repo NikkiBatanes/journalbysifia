@@ -931,7 +931,7 @@ function TimeBlockLogEditorInner(
         }, 100);
       });
     }
-  }, [autoFocus]);
+  }, [autoFocus, title.length]);
 
   const [startTime, setStartTime] = React.useState(() => {
     if (existingTimeBlock?.start_time) {
