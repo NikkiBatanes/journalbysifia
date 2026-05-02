@@ -69,15 +69,22 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   const hasContent = devotionalPrayers.length > 0;
 
   // Determine if prayers are from playbook or devotional
-  const hasPlaybookPrayers = devotionalPrayers.some((p: any) => p.prayer_type === 'guided_playbook');
-  const source = hasPlaybookPrayers ? 'playbook' : 'devotional';
+  const playbookPrayerCount = devotionalPrayers.filter((p: any) => p.prayer_type === 'guided_playbook').length;
+  const devotionalPrayerCount = devotionalPrayers.length - playbookPrayerCount;
 
-  // Log for debugging
-  if (devotionalPrayers.length > 0) {
-    console.log('[DevotionalPrayerList] Prayer types:', devotionalPrayers.map((p: any) => p.prayer_type));
-    console.log('[DevotionalPrayerList] Has playbook prayers:', hasPlaybookPrayers);
-    console.log('[DevotionalPrayerList] Source:', source);
-  }
+  // Determine subtitle based on prayer types
+  const getSubtitle = () => {
+    if (playbookPrayerCount > 0 && devotionalPrayerCount > 0) {
+      // Mixed: show both counts
+      return `${playbookPrayerCount} prayer${playbookPrayerCount > 1 ? 's' : ''} from your playbook, ${devotionalPrayerCount} prayer${devotionalPrayerCount > 1 ? 's' : ''} from your devotional`;
+    } else if (playbookPrayerCount > 0) {
+      // Only playbook
+      return `${playbookPrayerCount} prayer${playbookPrayerCount > 1 ? 's' : ''} from your playbook`;
+    } else {
+      // Only devotional
+      return `${devotionalPrayerCount} prayer${devotionalPrayerCount > 1 ? 's' : ''} from your devotional`;
+    }
+  };
 
   // Group prayers by date (similar to original PrayedItemsList)
   const groupedPrayers = devotionalPrayers.reduce((groups: {[key: string]: any[]}, prayer) => {
@@ -257,17 +264,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           />
         ) : undefined}
         title={hasContent ? (devotionalPrayers.length === 1 ? 'GUIDED PRAYER' : 'GUIDED PRAYERS') : undefined}
-        subtitle={
-          hasContent
-            ? viewMode === 'carousel'
-              ? devotionalPrayers.length > 1
-                ? `${devotionalPrayers.length} Prayers from your ${source}`
-                : `1 Prayer from your ${source}`
-              : devotionalPrayers.length > 1
-                ? `${devotionalPrayers.length} Prayers from your ${source}`
-                : `1 Prayer from your ${source}`
-            : undefined
-        }
+        subtitle={hasContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
