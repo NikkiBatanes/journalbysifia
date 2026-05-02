@@ -45,7 +45,7 @@ const MIN_CHIP_WIDTH = 72;
 const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakPress }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [streaks, setStreaks] = useState<Streak[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -391,11 +391,21 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
   const openSheet = (streak: Streak) => {
     setSelected(streak);
     setSheetVisible(true);
-    Animated.timing(sheetAnim, { toValue: 1, duration: 160, useNativeDriver: true }).start();
+    Animated.spring(sheetAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start();
   };
 
   const closeSheet = () => {
-    Animated.timing(sheetAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(({ finished }) => {
+    Animated.spring(sheetAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 7,
+    }).start(({ finished }) => {
       if (finished) {setSheetVisible(false);}
     });
   };
@@ -471,7 +481,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
                 {
                   translateY: sheetAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [260, 0],
+                    outputRange: [windowHeight * 0.4, 0],
                   }),
                 },
               ],
