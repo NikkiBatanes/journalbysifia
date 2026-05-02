@@ -96,6 +96,35 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
 
+  useEffect(() => {
+    if (!userId || !devotional?.id) {
+      return;
+    }
+
+    const activity = devotional.completed ? 'devotional_revisited_completed' : 'devotional_opened';
+
+    faithPointsService.hasActivityToday(userId, activity)
+      .then(alreadyAwarded => {
+        if (alreadyAwarded) {
+          return;
+        }
+
+        return faithPointsService.awardPoints(userId, activity as any, {
+          suppressNotification: true,
+          source: 'devotional_open',
+          devotionalId: devotional.id,
+          devotionalTitle: devotional.title,
+          completed: devotional.completed,
+        });
+      })
+      .catch(error => {
+        Logger.warn('Failed to award devotional open faith points', {
+          component: 'DevotionalDetailScreen',
+          error: error as Error,
+        });
+      });
+  }, [userId, devotional?.id, devotional?.completed, devotional?.title]);
+
   // Cancel queries on unmount to prevent refetch during navigation
   const queryClient = useQueryClient();
   useEffect(() => {

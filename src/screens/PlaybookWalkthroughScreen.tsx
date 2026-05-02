@@ -1392,6 +1392,15 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
         totalDays: 1,
         prayer_type: 'guided_playbook',
       });
+
+      faithPointsService.awardPoints(userId, 'prayer_playbook_prayed', {
+        suppressNotification: true,
+        source: 'playbook_prayer',
+        playbookId,
+        playbookTitle,
+      }).catch(error => {
+        console.warn('Failed to award faith points for playbook prayer', error);
+      });
     }
   };
 
@@ -1984,6 +1993,32 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
+
+  useEffect(() => {
+    if (!userId || !playbookId || !playbook) {
+      return;
+    }
+
+    const activity = playbook.status === 'completed' ? 'playbook_revisited_completed' : 'playbook_opened';
+
+    faithPointsService.hasActivityTodayForPlaybook(userId, activity, playbookId)
+      .then(alreadyAwarded => {
+        if (alreadyAwarded) {
+          return;
+        }
+
+        return faithPointsService.awardPoints(userId, activity as any, {
+          suppressNotification: true,
+          source: 'playbook_open',
+          playbookId,
+          playbookTitle: playbook.title,
+          status: playbook.status,
+        });
+      })
+      .catch(error => {
+        console.warn('Failed to award playbook open faith points', error);
+      });
+  }, [userId, playbookId, playbook]);
 
   // Load session state from AsyncStorage on mount / playbook change.
   // We gate rendering on sessionLoaded so child components always initialize

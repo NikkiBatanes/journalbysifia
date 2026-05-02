@@ -741,6 +741,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       playbook_verse_revisit: 'bookmarks',
       playbook_prayer_revisit: 'hand-right',
       playbook_to_devotional: 'book',
+      playbook_actions_complete: 'trophy',
+      playbook_actions_milestone: 'trending-up',
       prayer_request_care: 'people',
       prayer_today: 'hand-right',
       create_devotional: 'add-circle',

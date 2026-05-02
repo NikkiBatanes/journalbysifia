@@ -849,7 +849,68 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   if (ongoingPlaybook) {
     const steps = sortByOrder(ongoingPlaybook.playbook_action_steps || []);
 
-    // Collect all incomplete actions
+    // Calculate action completion
+    let completedActions = 0;
+    let totalActions = 0;
+    for (const step of steps) {
+      totalActions++;
+      if (step.completed === true) {
+        completedActions++;
+      }
+    }
+
+    // Check for all actions complete notification
+    if (completedActions === totalActions && totalActions > 0) {
+      const completeKey = `${ongoingPlaybook.id}-actions-complete`;
+      const notifiedComplete = (userMetadata.notified_action_completions as string[]) || [];
+      if (!notifiedComplete.includes(completeKey)) {
+        candidates.push(createCandidate({
+          type: 'playbook_actions_complete',
+          timeWindow: 'evening',
+          score: 95,
+          dedupeKey: buildDedupeKey('playbook_actions_complete', ongoingPlaybook.id, completeKey),
+          deepLink: `sifia://playbooks/${ongoingPlaybook.id}`,
+          sourceType: 'playbook',
+          sourceId: ongoingPlaybook.id,
+          copyContext: {
+            title: ongoingPlaybook.title,
+          },
+          metadata: {
+            playbook_title: ongoingPlaybook.title,
+            completion_key: completeKey,
+          },
+        }));
+      }
+    }
+    // Check for milestone notification (at least 4 completed but not all)
+    else if (completedActions >= 4 && completedActions < totalActions && totalActions > 4) {
+      const milestoneKey = `${ongoingPlaybook.id}-actions-${completedActions}`;
+      const notifiedMilestones = (userMetadata.notified_action_milestones as string[]) || [];
+      if (!notifiedMilestones.includes(milestoneKey)) {
+        candidates.push(createCandidate({
+          type: 'playbook_actions_milestone',
+          timeWindow: 'evening',
+          score: 80,
+          dedupeKey: buildDedupeKey('playbook_actions_milestone', ongoingPlaybook.id, milestoneKey),
+          deepLink: `sifia://playbooks/${ongoingPlaybook.id}`,
+          sourceType: 'playbook',
+          sourceId: ongoingPlaybook.id,
+          copyContext: {
+            title: ongoingPlaybook.title,
+            completedCount: completedActions,
+            totalCount: totalActions,
+          },
+          metadata: {
+            playbook_title: ongoingPlaybook.title,
+            completed_count: completedActions,
+            total_count: totalActions,
+            milestone_key: milestoneKey,
+          },
+        }));
+      }
+    }
+
+    // Collect all incomplete actions for faithful action reminder
     const incompleteActions: Array<{ action: any; actionIndex: number }> = [];
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
@@ -1394,14 +1455,28 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     .filter(c => c.type === 'devotional_reflection_prompt' && c.metadata?.question_key)
     .map(c => c.metadata?.question_key as string);
 
-  if (reflectionQuestionKeys.length > 0) {
+  // Mark playbook action completions as notified
+  const actionCompletionKeys = candidates
+    .filter(c => c.type === 'playbook_actions_complete' && c.metadata?.completion_key)
+    .map(c => c.metadata?.completion_key as string);
+
+  // Mark playbook action milestones as notified
+  const actionMilestoneKeys = candidates
+    .filter(c => c.type === 'playbook_actions_milestone' && c.metadata?.milestone_key)
+    .map(c => c.metadata?.milestone_key as string);
+
+  if (reflectionQuestionKeys.length > 0 || actionCompletionKeys.length > 0 || actionMilestoneKeys.length > 0) {
     const updatedNotifiedQuestions = [...new Set([...notifiedQuestions, ...reflectionQuestionKeys])];
+    const updatedNotifiedCompletions = [...new Set([...((userMetadata.notified_action_completions as string[]) || []), ...actionCompletionKeys])];
+    const updatedNotifiedMilestones = [...new Set([...((userMetadata.notified_action_milestones as string[]) || []), ...actionMilestoneKeys])];
     await supabase
       .from('user_profiles')
       .update({
         metadata: {
           ...userMetadata,
           notified_reflection_questions: updatedNotifiedQuestions,
+          notified_action_completions: updatedNotifiedCompletions,
+          notified_action_milestones: updatedNotifiedMilestones,
         },
       })
       .eq('user_id', userId);

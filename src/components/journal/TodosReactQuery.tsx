@@ -9,6 +9,7 @@ import { Colors } from '../../theme/colors';
 
 import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
+import { faithPointsService } from '../../services/faithPointsService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -446,6 +447,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           completion_time_ms: Date.now() - (todo.completedAt || Date.now()),
           date: dateStr,
         }, user?.id);
+
+        if (user?.id) {
+          faithPointsService.awardPoints(user.id, 'todo_completed', {
+            suppressNotification: true,
+            source: 'todos',
+            todo_id: id,
+          }).catch(error => {
+            Logger.warn('Failed to award faith points for completed todo', {
+              component: 'TodosReactQuery',
+              error: error as Error,
+            });
+          });
+        }
       }
     } catch (toggleError) {
       Logger.error('Failed to toggle todo', toggleError as Error, {
@@ -904,11 +918,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           >
             <SwipeableTodoItem
               item={item}
-              onToggle={(id, isPriority) => {
+              onToggle={(id: string, isPriority?: boolean) => {
                 if (isPriority) { triggerLightHaptic(); }
                 toggleTodo(id, isPriority);
               }}
-              onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
+              onLongPress={(id: string) => { triggerLightHaptic(); toggleTodo(id, true); }}
               onDelete={() => {}}
               disableSwipe={true}
               containerStyle={styles.todoItemWrapper}

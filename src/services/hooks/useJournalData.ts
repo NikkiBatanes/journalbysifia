@@ -284,9 +284,20 @@ export const useCreateJournalEntry = () => {
       setTimeout(() => {
         // Award faith points for journal entry (non-blocking)
         if (variables.user_id) {
+          const activityMap: Record<string, Parameters<typeof faithPointsService.awardPoints>[1]> = {
+            todo: 'journal_todo_added',
+            todays_focus: 'journal_focus_set',
+            today_win: 'journal_win_added',
+            looking_forward: 'journal_looking_forward_added',
+            gratitude: 'journal_gratitude_added',
+            reflection: 'reflection_saved',
+          };
+
+          const activity = activityMap[variables.content_type] || 'journal_entry';
+
           faithPointsService.awardPoints(
             variables.user_id,
-            'journal_entry',
+            activity,
             {
               suppressNotification: true,
               content_type: variables.content_type,

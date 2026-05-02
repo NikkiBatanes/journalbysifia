@@ -10,6 +10,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { notificationService } from './notificationService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 import { milestoneCelebrationService } from './milestoneCelebrationService';
+import { streakTrackingService, StreakType } from './streakTrackingService';
 
 export interface FaithPointsProfile {
   userId: string;
@@ -104,7 +105,11 @@ export class FaithPointsService {
   private readonly POINTS_SYSTEM = {
     // Generation (lowest tier)
     affirmation_read_aloud: 1,
+    playbook_opened: 1,
+    playbook_revisited_completed: 1,
     playbook_generated: 2,
+    devotional_opened: 1,
+    devotional_revisited_completed: 1,
     devotional_generated: 2,
 
     // Completion (HIGHEST tier - scales with length)
@@ -119,6 +124,7 @@ export class FaithPointsService {
     prayer_journal_acts: 3,
     prayer_journal_open: 3,
     prayer_devotional_prayed: 3,
+    prayer_playbook_prayed: 3,
     prayer_list_prayed: 3,
     prayer_list_request_added: 1,
     prayer_answered: 3, // When marking prayer as answered (once per day)
@@ -126,6 +132,18 @@ export class FaithPointsService {
     // Action steps (low-medium tier)
     subtask_completed: 1,
     action_step_completed: 2,
+    todo_completed: 1,
+    focus_priority_marked: 1,
+    journal_todo_added: 1,
+    journal_focus_set: 2,
+    journal_timeblock_added: 2,
+    journal_gratitude_added: 2,
+    journal_win_added: 2,
+    journal_looking_forward_added: 2,
+    reflection_saved: 2,
+    gratitude_saved: 2,
+    prayer_saved: 3,
+    timeblock_saved: 2,
 
     // Streaks and milestones
     daily_streak: 3,
@@ -397,6 +415,7 @@ export class FaithPointsService {
       // Record transaction AFTER profile update (non-blocking)
       try {
         await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
+        await this.updateCategoryStreak(userId, activity);
         Logger.debug(`[FaithPointsService] Transaction recorded: ${activity} for ${pointsAwarded} points`, {
           component: 'faithPointsService',
           activity,
@@ -1088,6 +1107,79 @@ export class FaithPointsService {
       component: 'faithPointsService',
     });
       throw error;
+    }
+  }
+
+  private getStreakTypeForActivity(activity: string): StreakType | null {
+    const devotionalActivities = new Set([
+      'devotional_generated',
+      'devotional_created',
+      'devotional_opened',
+      'devotional_revisited_completed',
+      'devotional_completed',
+      'devotional_full_completed',
+      'devotional_day_completed',
+      'reflection_question_answered',
+    ]);
+
+    const prayerActivities = new Set([
+      'prayer_for_now',
+      'prayer_for_others',
+      'prayer_journal_acts',
+      'prayer_journal_open',
+      'prayer_devotional_prayed',
+      'prayer_playbook_prayed',
+      'prayer_list_prayed',
+      'prayer_list_request_added',
+      'prayer_answered',
+      'prayer_saved',
+    ]);
+
+    const journalActivities = new Set([
+      'journal_entry',
+      'journal_todo_added',
+      'journal_focus_set',
+      'journal_timeblock_added',
+      'journal_gratitude_added',
+      'journal_win_added',
+      'journal_looking_forward_added',
+      'todo_completed',
+      'focus_priority_marked',
+      'reflection_saved',
+      'gratitude_saved',
+      'timeblock_saved',
+    ]);
+
+    if (prayerActivities.has(activity)) {
+      return 'prayer';
+    }
+
+    if (devotionalActivities.has(activity)) {
+      return 'devotional';
+    }
+
+    if (journalActivities.has(activity)) {
+      return 'journal';
+    }
+
+    return null;
+  }
+
+  private async updateCategoryStreak(userId: string, activity: string): Promise<void> {
+    const streakType = this.getStreakTypeForActivity(activity);
+    if (!streakType) {
+      return;
+    }
+
+    try {
+      await streakTrackingService.updateStreak(userId, streakType);
+    } catch (error) {
+      Logger.warn('[FaithPointsService] Failed to update category streak', {
+        component: 'faithPointsService',
+        error: error as Error,
+        activity,
+        streakType,
+      });
     }
   }
 

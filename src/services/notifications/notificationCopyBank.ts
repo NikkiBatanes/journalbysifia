@@ -18,6 +18,8 @@ interface CopyContext {
   prayerText?: string;
   isPrayerRequest?: boolean;
   _simulatedDayOfWeek?: number;
+  completedCount?: number;
+  totalCount?: number;
 }
 
 const formatNameList = (names: string[]): string => {
@@ -132,6 +134,21 @@ export function buildSmartNotificationCopy(
         title: 'Turn this into a devotional',
         message: compact('Your playbook can become a devotional for the season you are walking through.'),
       };
+
+    case 'playbook_actions_complete':
+      return {
+        title: 'Faithful actions complete',
+        message: compact('You finished every faithful action in "{title}". One step at a time, you kept going.'),
+      };
+
+    case 'playbook_actions_milestone': {
+      const completed = context.completedCount || 0;
+      const total = context.totalCount || 0;
+      return {
+        title: 'Faithful actions progress',
+        message: compact(`You've completed ${completed} of ${total} faithful actions in "{title}". Keep taking one faithful step at a time.`),
+      };
+    }
 
     case 'journal_todays_focus':
       return {

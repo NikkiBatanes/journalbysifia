@@ -21,6 +21,7 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
+import { faithPointsService } from '../../services/faithPointsService';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { isToday, isYesterday, isAfter, startOfDay, startOfToday } from 'date-fns';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -449,6 +450,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             priority_text_length: p.text.length,
             date: dateStr,
           }, user?.id);
+
+          if (user?.id) {
+            faithPointsService.awardPoints(user.id, 'focus_priority_marked', {
+              suppressNotification: true,
+              source: 'todays_focus',
+              priority_index: index,
+            }).catch(error => {
+              Logger.warn('Failed to award faith points for completed focus priority', {
+                component: 'TodaysFocusReactQuery',
+                error: error as Error,
+              });
+            });
+          }
         }
 
         return { ...p, completed: newCompleted };
