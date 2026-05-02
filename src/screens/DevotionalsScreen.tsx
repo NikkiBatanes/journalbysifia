@@ -254,14 +254,17 @@ const DevotionalsScreen = () => {
   const handlePlaybookPress = useCallback(async (playbookId: string) => {
     try {
       triggerLightHaptic();
-      const playbookData = await fetchPlaybookById(playbookId);
+      // Use getPlaybook (singular) to get all walkthrough-specific fields
+      const { getPlaybook } = await import('../services/supabaseApiNormalized');
+      const playbookData = await getPlaybook(userId || '', playbookId);
       if (playbookData) {
-        navigation.navigate('PlaybookDetail', { playbook: playbookData });
+        // Navigate to playbook walkthrough layout with full playbook data
+        navigation.navigate('PlaybookWalkthrough' as any, { playbook: playbookData, source: 'playbook_list' });
       }
     } catch (error) {
-      Logger.error('Error fetching playbook', error as Error, { component: 'DevotionalsScreen' });
+      Logger.error('Error navigating to playbook walkthrough', error as Error, { component: 'DevotionalsScreen' });
     }
-  }, [triggerLightHaptic, fetchPlaybookById, navigation]);
+  }, [triggerLightHaptic, userId, navigation]);
 
   const handleDeleteDevotional = useCallback(async (devotionalId: string) => {
     try {
@@ -511,16 +514,6 @@ const DevotionalsScreen = () => {
                   <View style={styles.categoryLabel}>
                     <ThemedText weight="bold" style={styles.categoryLabelText}>{item.category || 'Devotional'}</ThemedText>
                   </View>
-                  {item.playbookId && (
-                    <TouchableOpacity
-                      style={styles.gradientPlaybookBadge}
-                      onPress={() => handlePlaybookPress(item.playbookId!)}
-                      activeOpacity={0.8}
-                    >
-                      <MaterialCommunityIcons name="clipboard-text-play" size={10} color="rgba(255, 255, 255, 0.6)" style={styles.gradientPlaybookIcon} />
-                      <ThemedText weight="medium" style={styles.gradientPlaybookText}>from Playbook</ThemedText>
-                    </TouchableOpacity>
-                  )}
                 </View>
                 <TouchableOpacity
                   style={styles.menuButton}
@@ -581,6 +574,18 @@ const DevotionalsScreen = () => {
                 <ThemedText style={styles.description} numberOfLines={2}>
                   {item.description.replace(/^CATEGORY:[^\n]*\n?/i, '')}
                 </ThemedText>
+              )}
+
+              {/* From Playbook Badge */}
+              {item.playbookId && (
+                <TouchableOpacity
+                  style={styles.gradientPlaybookBadge}
+                  onPress={() => handlePlaybookPress(item.playbookId!)}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="clipboard-text-play" size={10} color="rgba(255, 255, 255, 0.6)" style={styles.gradientPlaybookIcon} />
+                  <ThemedText weight="medium" style={styles.gradientPlaybookText}>from Playbook</ThemedText>
+                </TouchableOpacity>
               )}
 
               <View style={styles.progressBarContainer}>
@@ -1811,12 +1816,13 @@ const styles = StyleSheet.create({
   },
   gradientPlaybookBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
   gradientPlaybookIcon: {
     marginRight: 4,

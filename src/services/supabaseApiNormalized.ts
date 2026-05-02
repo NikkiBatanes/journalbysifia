@@ -22,6 +22,7 @@ interface PlaybookRow {
   transition_line: string | null;
   prayer: string | null;
   word_to_speak: string | null;
+  words_to_speak?: string[] | null;
   faithful_actions_intro: string | null;
   status: 'ongoing' | 'completed' | 'paused';
   created_at: string;
@@ -36,6 +37,10 @@ interface ActionStepRow {
   playbook_id: string;
   text: string;
   examples: string | null;
+  action_type?: 'done_skip' | 'commit' | 'choose' | 'text_input' | null;
+  primary_button?: string | null;
+  secondary_button?: string | null;
+  description?: string | null;
   completed: boolean;
   order_index: number;
   created_at: string;
@@ -69,6 +74,17 @@ function transformPlaybookRow(
   subTasks: SubTaskRow[] = [],
   affirmations: AffirmationRow[] = []
 ): Playbook {
+  const bibleVerse = playbookRow.bible_verse || { text: '', reference: '' };
+  const directChallenge = playbookRow.direct_challenge;
+  const directChallengeObject = directChallenge && typeof directChallenge === 'object' ? directChallenge : null;
+  const bibleVerseObject = bibleVerse && typeof bibleVerse === 'object' ? bibleVerse : null;
+  const wordToSpeak = playbookRow.word_to_speak || directChallengeObject?.wordToSpeak || '';
+  const wordsToSpeak = Array.isArray(playbookRow.words_to_speak)
+    ? playbookRow.words_to_speak
+    : wordToSpeak
+      ? String(wordToSpeak).split(/\n+/).map(line => line.trim()).filter(Boolean)
+      : undefined;
+
   // Group sub-tasks by action step ID
   const subTasksByStepId = subTasks.reduce((acc, subTask) => {
     if (!acc[subTask.action_step_id]) {
@@ -85,13 +101,29 @@ function transformPlaybookRow(
   // Transform action steps with their sub-tasks
   const transformedActionSteps: ActionStep[] = actionSteps
     .sort((a, b) => a.order_index - b.order_index)
-    .map(step => ({
-      id: step.id,
-      title: step.text,
-      examples: step.examples || undefined,
-      completed: step.completed,
-      subTasks: subTasksByStepId[step.id] || [],
-    }));
+    .map(step => {
+      let parsedExamples: any = null;
+      if (step.examples) {
+        try {
+          const parsed = JSON.parse(step.examples);
+          if (parsed?.__meta) {
+            parsedExamples = parsed;
+          }
+        } catch {}
+      }
+
+      return {
+        id: step.id,
+        title: step.text,
+        description: step.description || parsedExamples?.description || undefined,
+        examples: parsedExamples?.examples || step.examples || undefined,
+        actionType: step.action_type || parsedExamples?.actionType || undefined,
+        primaryButton: step.primary_button || parsedExamples?.primaryButton || undefined,
+        secondaryButton: step.secondary_button || parsedExamples?.secondaryButton || undefined,
+        completed: step.completed,
+        subTasks: subTasksByStepId[step.id] || [],
+      };
+    });
 
   // Transform affirmations
   const transformedAffirmations: Affirmation[] = affirmations
@@ -109,14 +141,17 @@ function transformPlaybookRow(
     userInput: playbookRow.user_input || '',
     category: playbookRow.category || undefined,
     truthInLove: playbookRow.truth_in_love,
-    bibleVerse: playbookRow.bible_verse,
-    bibleVerseReflection: playbookRow.bible_verse_reflection || '',
-    directChallenge: playbookRow.direct_challenge,
+    bibleVerse,
+    bibleVerseReflection: playbookRow.bible_verse_reflection || bibleVerseObject?.reflection || '',
+    directChallenge: directChallengeObject
+      ? { text: directChallengeObject.text || '', summary: directChallengeObject.summary || '' }
+      : directChallenge,
     challengeCTA: playbookRow.challenge_cta ?? undefined,
     transitionLine: playbookRow.transition_line || '',
-    prayer: playbookRow.prayer || '',
-    wordToSpeak: playbookRow.word_to_speak || '',
-    faithfulActionsIntro: playbookRow.faithful_actions_intro || '',
+    prayer: playbookRow.prayer || directChallengeObject?.prayer || '',
+    wordToSpeak,
+    wordsToSpeak,
+    faithfulActionsIntro: playbookRow.faithful_actions_intro || directChallengeObject?.faithfulActionsIntro || '',
     actionSteps: transformedActionSteps,
     affirmations: transformedAffirmations,
     status: playbookRow.status,
