@@ -61,18 +61,10 @@ class EnhancedNotificationScheduler {
       // Schedule context-based notifications
       await Promise.allSettled([
         // Prayer-related
-        contextualNotificationService.scheduleDailyPrayerReminder(userId, '08:00'),
         contextualNotificationService.schedulePrayerRequestReminder(userId),
-
-        // Playbook progress
-        contextualNotificationService.schedulePlaybookReminder(userId),
 
         // Journal prompts
         contextualNotificationService.scheduleJournalReminder(userId),
-        contextualNotificationService.scheduleWinsReminder(userId),
-
-        // Devotional follow-up
-        contextualNotificationService.scheduleDevotionalReflectionReminder(userId),
       ]);
 
       Logger.info('✅ All daily notifications scheduled successfully', {

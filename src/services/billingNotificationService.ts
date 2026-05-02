@@ -71,7 +71,7 @@ class BillingNotificationService {
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
       if (subscription.subscription_end_date) {
         const renewalDate = new Date(subscription.subscription_end_date);
-        await notificationSchedulerService.scheduleRenewalReminderNotification(userId, renewalDate, newTier);
+        await notificationSchedulerService.scheduleSubscriptionRenewalNotification(userId, newTier);
       }
 
     } catch (error) {
@@ -117,9 +117,8 @@ class BillingNotificationService {
         const renewalDate = new Date(subscription.subscription_end_date);
         const tierDisplayName = subscription.subscription_display_name || subscription.tier;
 
-        await notificationSchedulerService.scheduleRenewalReminderNotification(
+        await notificationSchedulerService.scheduleSubscriptionRenewalNotification(
           userId,
-          renewalDate,
           tierDisplayName
         );
 

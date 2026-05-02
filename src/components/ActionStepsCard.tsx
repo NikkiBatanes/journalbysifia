@@ -1285,7 +1285,7 @@ export default function ActionStepsCard({
           actionStepTitle={selectedActionStep?.stepTitle}
           existingGratitude={null}
           onSave={handleGratitudeSave}
-          onCancel={() => {
+          onClose={() => {
             setActiveModal(null);
             setSelectedSubtask(null);
             setSelectedActionStep(null);

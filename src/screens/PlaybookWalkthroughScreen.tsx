@@ -577,6 +577,7 @@ interface FaithfulActionsStepProps {
   onStepCommit?: (stepIndex: number) => void;
   onJournalExpanded?: (expanded: boolean) => void;
   onJournalCollapseComplete?: () => void;
+  navigation?: any;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -637,6 +638,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   onStepCommit,
   onJournalExpanded,
   onJournalCollapseComplete,
+  navigation,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1311,7 +1313,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
           onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Gratitude Saved', message: 'Your gratitude has been saved.', showEditButton: true }); }}
-          onCancel={() => setActiveJournalModal(null)}
+          onClose={() => setActiveJournalModal(null)}
         />
       )}
       {activeJournalModal === 'timeblock' && (
@@ -2623,6 +2625,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 }}
                 onJournalExpanded={setJournalExpanded}
                 onJournalCollapseComplete={() => setJournalCollapseComplete(true)}
+                navigation={navigation}
               />
             )}
 

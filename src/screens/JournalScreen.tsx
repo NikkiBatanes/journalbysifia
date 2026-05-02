@@ -840,7 +840,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
           // Modal will handle its own success flow
           setRefreshKey(prev => prev + 1);
         }}
-        onCancel={() => {
+        onClose={() => {
           setShowGratitudeModal(false);
           setExistingGratitudeEntry(undefined);
         }}

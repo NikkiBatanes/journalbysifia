@@ -1894,7 +1894,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         onSave={() => {
           // Don't close modal immediately - success modal will handle the flow
         }}
-        onCancel={() => {
+        onClose={() => {
           setShowGratitudeModal(false);
           setSelectedReflection(null);
           setJournalSelectorContent('');
