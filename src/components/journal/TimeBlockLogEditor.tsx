@@ -135,7 +135,7 @@ const createDefaultStyles = (_fonts: any) => ({
     marginBottom: 0,
   },
   headerDateText: {
-    color: Colors.hopeWhite,
+    color: Colors.alertCoral,
     opacity: 0.86,
     fontSize: 17,
     fontFamily: Fonts.semiBold,
