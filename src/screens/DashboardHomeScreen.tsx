@@ -44,6 +44,7 @@ import { pushNotificationService } from '../services/pushNotificationService';
 import { generateSalesCopy, type SalesCopyParams } from '../utils/dynamicSalesCopy';
 
 import CombinedContentCarousel from '../components/dashboard/CombinedContentCarousel';
+import FaithfulActionsCarousel, { extractIncompleteFaithfulActions } from '../components/dashboard/FaithfulActionsCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
 import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
@@ -60,6 +61,7 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
 import { toLocalDateString } from '../utils/date';
+import { getPlaybooks } from '../services/apiIntegration';
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
@@ -1004,6 +1006,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
   const [hasContent, setHasContent] = useState(true); // Track if user has any content
+  const [faithfulActions, setFaithfulActions] = useState<any[]>([]);
   // Reflection Questions state
   const [selectedReflection, setSelectedReflection] = useState<{
     question: string;
@@ -1186,6 +1189,24 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { data: unprayedRequests = [] } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const createPrayerMutation = useCreatePrayer();
+
+  // Fetch faithful actions from playbooks
+  useEffect(() => {
+    const fetchFaithfulActions = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const playbooksData = await getPlaybooks(user.id, { lightweight: true });
+        const actions = extractIncompleteFaithfulActions(playbooksData);
+        // Limit to 5 faithful actions
+        setFaithfulActions(actions.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching faithful actions:', error);
+      }
+    };
+
+    fetchFaithfulActions();
+  }, [user?.id]);
 
   const handleOpenPrayer = (req: any) => {
     // Guard: don't navigate if prayer request is still an optimistic (temp) entry
@@ -1679,6 +1700,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
               }}
               onEmpty={() => setHasContent(false)}
+            />
+          )}
+
+          <View style={styles.sectionGap} />
+
+          {/* Faithful Actions Carousel - limited to 5 */}
+          {faithfulActions.length > 0 && (
+            <FaithfulActionsCarousel
+              faithfulActions={faithfulActions}
+              onPress={(item) => {
+                triggerLightHaptic();
+                navigation.navigate('PlaybookDetail', { playbookId: item.playbookId });
+              }}
             />
           )}
 

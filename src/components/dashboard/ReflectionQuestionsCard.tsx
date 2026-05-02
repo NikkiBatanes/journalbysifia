@@ -465,7 +465,15 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       const selectedDevotional = devotionalQuestions.slice(0, 3);
       const remainingSlots = Math.max(0, 3 - selectedDevotional.length);
       const selectedGuided = guidedQuestions.slice(0, remainingSlots);
-      setQuestions([...selectedDevotional, ...selectedGuided]);
+
+      // For gated accounts (seeker), ensure free/unlock questions appear first
+      if (subscription?.tier === 'seeker') {
+        const freeQuestions = selectedGuided.filter(q => q.isFree);
+        const lockedQuestions = selectedGuided.filter(q => !q.isFree);
+        setQuestions([...freeQuestions, ...selectedDevotional, ...lockedQuestions]);
+      } else {
+        setQuestions([...selectedDevotional, ...selectedGuided]);
+      }
 
     } catch (err) {
       const errorMessage = (err as Error)?.message || '';
