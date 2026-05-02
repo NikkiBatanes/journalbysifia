@@ -87,6 +87,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // while still on screen. It emits this event, dismisses itself, then we
   // navigate here once JournalScreen regains focus (no competing native modal).
   const pendingSalesOfferRef = useRef<Record<string, unknown> | null>(null);
+  const pendingTimeBlockRef = useRef<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener(
@@ -97,6 +98,48 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     );
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(
+      'open_timeblock_editor',
+      (params: Record<string, unknown>) => {
+        pendingTimeBlockRef.current = params;
+      }
+    );
+    return () => sub.remove();
+  }, []);
+
+  // When JournalScreen regains focus after the sales offer is dismissed, open
+  // TimeBlockEditor if one was queued by OnboardingSalesOfferScreen.
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingTimeBlockRef.current) {
+        const params = pendingTimeBlockRef.current;
+        pendingTimeBlockRef.current = null;
+        console.log('[JournalScreen] Pending TimeBlockEditor detected, waiting 450ms for dismiss animation');
+        setTimeout(() => {
+          console.log('[JournalScreen] Navigating to TimeBlockEditor now');
+          navigation.navigate('TimeBlockEditor' as never, params as never);
+        }, 450);
+      }
+    }, [navigation])
+  );
+
+  // When JournalScreen regains focus after TimeBlockEditor is dismissed, fire any
+  // pending sales-offer navigation.
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingSalesOfferRef.current) {
+        const params = pendingSalesOfferRef.current;
+        pendingSalesOfferRef.current = null;
+        console.log('[JournalScreen] Pending sales offer detected, waiting 600ms for dismiss animation to complete');
+        setTimeout(() => {
+          console.log('[JournalScreen] Navigating to OnboardingSalesOffer now');
+          notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params);
+        }, 600);
+      }
+    }, [])
+  );
 
   // Listen for reflection save and delete events to refresh journal components
   useEffect(() => {
@@ -120,28 +163,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
         adminAnalyticsService.trackFeatureUsage(user.id, 'journal', { screen: 'JournalScreen' });
       }
     }, [user?.id])
-  );
-
-  // When JournalScreen regains focus after TimeBlockEditor is dismissed, fire any
-  // pending sales-offer navigation.
-  //
-  // IMPORTANT: useFocusEffect fires as soon as the navigation STATE changes (i.e.
-  // the moment goBack() is called), but the native iOS dismiss animation for
-  // TimeBlockEditor takes ~350 ms to complete.  If we call presentViewController
-  // before that animation finishes, iOS silently drops the presentation.
-  // We wait 450 ms — safely past the animation — before presenting the sales offer.
-  useFocusEffect(
-    useCallback(() => {
-      if (pendingSalesOfferRef.current) {
-        const params = pendingSalesOfferRef.current;
-        pendingSalesOfferRef.current = null;
-        console.log('[JournalScreen] Pending sales offer detected, waiting 600ms for dismiss animation to complete');
-        setTimeout(() => {
-          console.log('[JournalScreen] Navigating to OnboardingSalesOffer now');
-          notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params);
-        }, 600);
-      }
-    }, [])
   );
 
   // Removed: global edit mode (inline view no longer used)
@@ -225,11 +246,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     };
   }, [setContentScrollRef]);
 
-  // Reset to today's date and carousel positions when screen comes into focus
+  // Reset carousel positions when screen comes into focus, but preserve selected date
   useFocusEffect(
     useCallback(() => {
-      const today = new Date();
-      setCurrentDate(today);
+      // Don't reset currentDate - preserve user's selected date
       // Reset all carousels to their starting positions
       setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
       hasInitializedScroll.current = true;
