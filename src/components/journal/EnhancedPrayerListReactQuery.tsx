@@ -655,7 +655,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasVisibleContent ? 'PRAYER LIST FOR PEOPLE' : undefined}
+        title={hasVisibleContent ? 'PRAYERS FOR PEOPLE' : undefined}
         subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
