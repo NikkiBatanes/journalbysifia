@@ -487,7 +487,7 @@ class NotificationSchedulerService {
       user_id: userId,
       type: 'payment_successful',
       title: `Welcome to ${newTier}! 🩵`,
-      message: `Your payment was successful. You now have more room for reflection, playbooks, and devotionals.`,
+      message: 'Your payment was successful. You now have more room for reflection, playbooks, and devotionals.',
       data: {
         deep_link: 'sifia://dashboard',
         new_tier: newTier,

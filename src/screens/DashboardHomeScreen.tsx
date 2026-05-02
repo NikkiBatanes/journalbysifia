@@ -1183,7 +1183,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   }, [notifTestModalVisible, notifTestTab, loadNotifData]);
 
   // Fetch unprayed prayer requests for current user (across all dates)
-  const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests } = useUnprayedPrayerRequests(user?.id || '');
+  const { data: unprayedRequests = [] } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const createPrayerMutation = useCreatePrayer();
 
