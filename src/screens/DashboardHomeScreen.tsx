@@ -1398,8 +1398,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.prayerRequestCTA}
             >
               <Ionicons name="add-circle-outline" size={18} color={Colors.hopeWhite} />
-              <ThemedText weight="bold" style={styles.prayerRequestCTAText}>
-                {`Pray for ${req.person_name || 'them'} now`}
+              <ThemedText 
+                weight="bold" 
+                style={styles.prayerRequestCTAText}
+                numberOfLines={1}
+              >
+                {`Pray for ${(req.person_name || 'them').length > 15 ? req.person_name?.substring(0, 15) + '...' : req.person_name || 'them'} now`}
               </ThemedText>
             </TouchableOpacity>
           </View>
