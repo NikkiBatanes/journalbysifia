@@ -169,18 +169,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Bible copyright modal state
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
 
-  // Heart burst animation state near the Pray button
-  type HeartParticle = {
-    id: number;
-    progress: Animated.Value; // 0 -> 1
-    dx: number; // horizontal drift
-    dy: number; // vertical height
-    size: number; // icon size
-    rotate: number; // degrees
-    color: string;
-    delay: number;
-  };
-
   const triggerSuccessHaptic = () => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
@@ -233,9 +221,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // silent no-op
     }
   };
-  const [heartParticles, setHeartParticles] = useState<HeartParticle[]>([]);
-  const heartIdRef = useRef(0);
-
   const triggerLightHaptic = () => {
     // Use subtle OS-like selection haptic if native module is linked
     try {
@@ -259,41 +244,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   };
 
-  const startHeartBurst = () => {
-    const NUM = 10;
-    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
-    const newParticles: HeartParticle[] = Array.from({ length: NUM }).map((_, i) => {
-      const id = heartIdRef.current++;
-      return {
-        id,
-        progress: new Animated.Value(0),
-        dx: (Math.random() * 80 - 40), // -40..40
-        dy: 70 + Math.random() * 70, // 70..140 upward
-        size: 12 + Math.random() * 10, // 12..22
-        rotate: Math.random() * 60 - 30, // -30..30 deg
-        color: colors[Math.floor(Math.random() * colors.length)],
-        delay: i * 35, // stagger
-      };
-    });
-
-    setHeartParticles(prev => [...prev, ...newParticles]);
-
-    // Kick off animations
-    newParticles.forEach((p) => {
-      Animated.timing(p.progress, {
-        toValue: 1,
-        duration: 900,
-        delay: p.delay,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    // Cleanup after the longest animation
-    setTimeout(() => {
-      setHeartParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
-    }, 1200);
-  };
-
   const prayCooldownRef = useRef<number>(0);
   const onPrayPress = () => {
     // Block if mutation in-flight or within cooldown window
@@ -310,7 +260,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // Match the celebratory pattern: success + 4 light pulses
       triggerSuccessHaptic();
       startPrayerBurstHaptics();
-      startHeartBurst();
     } else {
       // Provide a subtle haptic when unmarking
       triggerLightHaptic();
@@ -1316,49 +1265,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   </ThemedText>
                 )}
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
-                  {/* Heart burst layer above the button, anchored near its position */}
-                  {heartParticles.length > 0 && (
-                    <View pointerEvents="none" style={styles.prayerBurstLayer}>
-                      {heartParticles.map((p) => {
-                        const translateY = p.progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -p.dy],
-                        });
-                        const translateX = p.progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, p.dx],
-                        });
-                        const scale = p.progress.interpolate({
-                          inputRange: [0, 0.3, 1],
-                          outputRange: [0.4, 1.1, 0.8],
-                        });
-                        const opacity = p.progress.interpolate({
-                          inputRange: [0, 0.7, 1],
-                          outputRange: [0, 1, 0],
-                        });
-                        return (
-                          <Animated.View
-                            key={p.id}
-                            style={[
-                              styles.heartParticle,
-                              {
-                                opacity,
-                                transform: [
-                                  { translateX },
-                                  { translateY },
-                                  { scale },
-                                  { rotate: `${p.rotate}deg` },
-                                ],
-                              },
-                            ]}
-                          >
-                            <MaterialCommunityIcons name="hands-pray" size={p.size} color={p.color} />
-                          </Animated.View>
-                        );
-                      })}
-                    </View>
-                  )}
-
                   <TouchableOpacity
                   style={[
                     styles.prayerButton,
@@ -1756,28 +1662,9 @@ const styles = StyleSheet.create({
   prayerIcon: {
     marginRight: 0,
   },
-  // Overlay layer anchored near the Pray button to render heart particles
-  prayerBurstLayer: {
-    position: 'absolute',
-    // Anchor to the same corner as the button
-    right: 20,
-    bottom: 20,
-    width: 120,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 5,
-    // Allow particles to overflow outside the layer if needed
-    overflow: 'visible',
-  },
   prayerButtonWrapper: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 4,
-  },
-  heartParticle: {
-    position: 'absolute',
-    right: 60, // start from center of the layer (half of width)
-    top: 60,  // start from center of the layer (half of height)
   },
   prayerText: {
     fontSize: 16,
