@@ -32,6 +32,7 @@ import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 import ThemedText from '../../components/common/ThemedText';
 import { generateSalesCopy } from '../../utils/dynamicSalesCopy';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { notificationDeepLinkService } from '../../services/notificationDeepLinkService';
 
 // removed Dimensions width as unused
 
@@ -105,6 +106,8 @@ interface RouteParams {
   // Copy todos specific data
   incompleteTodosCount?: number;
   incompleteTodosPercentage?: number;
+  // TimeBlockEditor context: params to re-open the editor after dismissal
+  returnParams?: Record<string, unknown>;
 }
 
 // Logger instance for this component (outside to avoid React Hook dependency issues)
@@ -256,14 +259,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
 
-  // Log state changes to debug loading state
-  useEffect(() => {
-    Logger.info('[OnboardingSalesOfferScreen] State changed', {
-      tiersLength: pricingTiers.length,
-      hasCurrency: !!currencyInfo,
-      shouldShowLoading: pricingTiers.length === 0 || !currencyInfo,
-    });
-  }, [pricingTiers, currencyInfo]);
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -752,6 +747,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       if (routeParams?.dismissBehavior === 'goBack') {
         goBackOrFallback('userInput');
+        return;
+      }
+
+      if (routeParams?.context === 'timeblock' && routeParams?.returnParams) {
+        navigation.goBack();
+        setTimeout(() => {
+          notificationDeepLinkService.navigateTo('TimeBlockEditorModal', routeParams.returnParams);
+        }, 700);
         return;
       }
 

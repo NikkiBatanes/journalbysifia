@@ -40,6 +40,7 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 // New Simplified Onboarding Flow Screens
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
+import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
 // RE-ENABLED: Trial Offer screen for trial flow navigation
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
@@ -278,6 +279,18 @@ export default function RootStackNavigator({
             }}
           />
           {/* RE-ENABLED: Trial Offer screen for trial flow navigation */}
+          <Stack.Screen
+            name="TimeBlockEditorModal"
+            component={TimeBlockEditorScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              animationDuration: 350,
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
+            }}
+          />
           <Stack.Screen
             name="OnboardingTrialOffer"
             component={OnboardingTrialOfferScreen as React.ComponentType}

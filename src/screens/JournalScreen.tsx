@@ -87,7 +87,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // while still on screen. It emits this event, dismisses itself, then we
   // navigate here once JournalScreen regains focus (no competing native modal).
   const pendingSalesOfferRef = useRef<Record<string, unknown> | null>(null);
-  const pendingTimeBlockRef = useRef<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener(
@@ -98,32 +97,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     );
     return () => sub.remove();
   }, []);
-
-  useEffect(() => {
-    const sub = DeviceEventEmitter.addListener(
-      'open_timeblock_editor',
-      (params: Record<string, unknown>) => {
-        pendingTimeBlockRef.current = params;
-      }
-    );
-    return () => sub.remove();
-  }, []);
-
-  // When JournalScreen regains focus after the sales offer is dismissed, open
-  // TimeBlockEditor if one was queued by OnboardingSalesOfferScreen.
-  useFocusEffect(
-    useCallback(() => {
-      if (pendingTimeBlockRef.current) {
-        const params = pendingTimeBlockRef.current;
-        pendingTimeBlockRef.current = null;
-        console.log('[JournalScreen] Pending TimeBlockEditor detected, waiting 450ms for dismiss animation');
-        setTimeout(() => {
-          console.log('[JournalScreen] Navigating to TimeBlockEditor now');
-          navigation.navigate('TimeBlockEditor' as never, params as never);
-        }, 450);
-      }
-    }, [navigation])
-  );
 
   // When JournalScreen regains focus after TimeBlockEditor is dismissed, fire any
   // pending sales-offer navigation.

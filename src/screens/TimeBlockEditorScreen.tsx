@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { View, StyleSheet, StatusBar, Alert, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
@@ -9,6 +9,7 @@ import { useCreateTimeBlock, useUpdateTimeBlock } from '../services/hooks/useTim
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 import { usePlanningGating } from '../hooks/usePlanningGating';
+import { Logger } from '../utils/ProductionLogger';
 import { useCalendarGating } from '../hooks/useCalendarGating';
 import { isFuturePlanningDate, isRecurringPlanningFrequency } from '../utils/tierLockingRules';
 
@@ -33,6 +34,17 @@ const TimeBlockEditorScreen: React.FC = () => {
   const planningGating = usePlanningGating(selectedDateForGate, 'inApp');
   const calendarGating = useCalendarGating();
 
+  useEffect(() => {
+    Logger.info('[TimeBlockEditorScreen] Component MOUNTED', {
+      selectedDate,
+      hasExistingTimeBlock: !!existingTimeBlock,
+      existingTitle: existingTimeBlock?.title,
+    });
+    return () => {
+      Logger.info('[TimeBlockEditorScreen] Component UNMOUNTED');
+    };
+  }, []);
+
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
 
@@ -52,12 +64,43 @@ const TimeBlockEditorScreen: React.FC = () => {
         // sits above any root-stack screen, so the sales offer would be invisible.
         // Solution: emit an event for JournalScreen to handle AFTER this screen is
         // dismissed (JournalScreen regains focus with no competing native modal).
+        // returnParams lets OnboardingSalesOfferScreen re-open this editor on close.
         console.log('[TimeBlockEditorScreen] Gated feature detected, emitting event and going back');
         DeviceEventEmitter.emit('open_sales_offer_after_dismiss', {
           source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
           feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
           context: 'timeblock',
           skipNotificationPreference: true,
+          returnParams: {
+            selectedDate: saveDateString,
+            // Preserve form state so the editor reopens pre-populated.
+            // Use the saved block if editing one, otherwise build a fake
+            // existingTimeBlock from the current form data. No `id` means
+            // TimeBlockEditorScreen will CREATE a new block on save.
+            existingTimeBlock: existingTimeBlock || {
+              selected_date: saveDateString,
+              title: data.title,
+              start_time: data.startTime instanceof Date ? data.startTime.toISOString() : data.startTime,
+              end_time: data.endTime instanceof Date ? data.endTime.toISOString() : data.endTime,
+              category: data.category,
+              description: data.notes || '',
+              location: data.location || '',
+              all_day: data.isAllDay,
+              alert: data.alert || 'none',
+              repeat_frequency: data.repeatFrequency,
+              repeat_rule: {
+                frequency: data.repeatFrequency,
+                customDays: data.repeatCustomDays,
+                customFrequency: data.repeatCustomFrequency ?? null,
+              },
+              repeat_until: data.repeatEndDate instanceof Date
+                ? data.repeatEndDate.toISOString().split('T')[0]
+                : undefined,
+              repeat_end_date: data.repeatEndDate instanceof Date
+                ? data.repeatEndDate.toISOString()
+                : undefined,
+            },
+          },
         });
         navigation.goBack();
         return;
