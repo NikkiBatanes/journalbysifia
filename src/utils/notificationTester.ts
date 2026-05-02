@@ -900,6 +900,12 @@ export class NotificationTester {
       const { getPlaybooks } = await import('../services/modernPlaybookApi');
 
       const playbooks = await getPlaybooks(userId).catch(() => []);
+      Logger.info('🧪 Playbooks fetched by notification tester', {
+        component: 'NotificationTester',
+        playbookCount: playbooks.length,
+        playbooks: playbooks.map((pb: any) => ({ id: pb.id, title: pb.title, status: pb.status, completedAt: pb.completedAt })),
+      });
+
       const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
 
       if (!ongoingPlaybook) {
@@ -907,12 +913,18 @@ export class NotificationTester {
         return 0;
       }
 
+      Logger.info('🧪 Using playbook for notification', {
+        component: 'NotificationTester',
+        playbookId: ongoingPlaybook.id,
+        playbookTitle: ongoingPlaybook.title,
+      });
+
       const copy = buildSmartNotificationCopy('playbook_actions_complete', { title: ongoingPlaybook.title });
 
       await pushNotificationService.scheduleLocalNotification({
         title: copy.title,
         message: copy.message,
-        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}`, test: true, notification_type: 'playbook_actions_complete' },
+        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions`, test: true, notification_type: 'playbook_actions_complete' },
         priority: 'high',
       }, new Date(Date.now() + 1000));
 
@@ -945,12 +957,24 @@ export class NotificationTester {
       const { getPlaybooks } = await import('../services/modernPlaybookApi');
 
       const playbooks = await getPlaybooks(userId).catch(() => []);
+      Logger.info('🧪 Playbooks fetched by notification tester (milestone)', {
+        component: 'NotificationTester',
+        playbookCount: playbooks.length,
+        playbooks: playbooks.map((pb: any) => ({ id: pb.id, title: pb.title, status: pb.status, completedAt: pb.completedAt })),
+      });
+
       const ongoingPlaybook = playbooks.find((pb: any) => pb.status !== 'completed' && !pb.completedAt);
 
       if (!ongoingPlaybook) {
         Logger.warn('No ongoing playbook found', { component: 'NotificationTester' });
         return 0;
       }
+
+      Logger.info('🧪 Using playbook for milestone notification', {
+        component: 'NotificationTester',
+        playbookId: ongoingPlaybook.id,
+        playbookTitle: ongoingPlaybook.title,
+      });
 
       const ids = [ongoingPlaybook.id];
       const { data: stepsData } = await supabase
@@ -976,7 +1000,7 @@ export class NotificationTester {
       await pushNotificationService.scheduleLocalNotification({
         title: copy.title,
         message: copy.message,
-        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}`, test: true, notification_type: 'playbook_actions_milestone' },
+        data: { deep_link: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions`, test: true, notification_type: 'playbook_actions_milestone' },
         priority: 'high',
       }, new Date(Date.now() + 1000));
 
