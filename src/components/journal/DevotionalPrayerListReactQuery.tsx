@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -7,8 +7,10 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -45,10 +47,15 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
   const dateStr = toLocalDateString(selectedDate);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  const [userExpanded, setUserExpanded] = useState(false);
   const { data: devotionalPrayers = [], isLoading, error } = useDevotionalPrayerData(
     user?.id || '',
     dateStr
   );
+
+  // Show more / show less state for inline display
+  const initialLimit = 1;
+  const displayLimit = userExpanded ? devotionalPrayers.length : initialLimit;
 
   // Handle scroll feedback for better UX (must be at top-level)
   const handleScroll = useCallback((_event: any) => {
@@ -168,6 +175,10 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
       );
     } else {
       // Horizontal carousel for inline and moments view - matching Plan carousel with peek
+      const displayedPrayers = allPrayers.slice(0, displayLimit);
+      const hasMorePrayers = allPrayers.length > displayLimit;
+      const canShowLess = userExpanded;
+
       return (
         <View style={styles.edgeToEdgeContainer}>
         <Animated.ScrollView
@@ -192,7 +203,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           )}
           scrollEventThrottle={16}
         >
-          {allPrayers.map((prayer, i) => {
+          {displayedPrayers.map((prayer, i) => {
             const inputRange = [
               (i - 1) * ITEM_SIZE,
               i * ITEM_SIZE,
@@ -248,6 +259,38 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             );
           })}
         </Animated.ScrollView>
+
+        {/* Show More / Show Less Button */}
+        {(hasMorePrayers || canShowLess) && (
+          <View style={styles.paginationContainer}>
+            <View style={styles.paginationButtonGroup}>
+              {hasMorePrayers && (
+                <TouchableOpacity
+                  style={styles.paginationButton}
+                  onPress={() => setUserExpanded(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+              {canShowLess && (
+                <TouchableOpacity
+                  style={styles.paginationButton}
+                  onPress={() => setUserExpanded(false)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
         </View>
       );
     }
@@ -458,6 +501,33 @@ const styles = StyleSheet.create({
   contentContainerWithPadding: {
     paddingRight: 0,
     overflow: 'visible',
+  },
+  paginationContainer: {
+    marginTop: 12,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessText: {
+    color: Colors.textGray,
   },
 });
 
