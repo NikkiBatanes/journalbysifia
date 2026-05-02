@@ -230,7 +230,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 nextDayNumber = currentDay;
                 nextDayTitle = (dayEntry?.title && typeof dayEntry.title === 'string')
                   ? dayEntry.title
-                  : `Day ${currentDay}`;
+                  : '';
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
                   estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
