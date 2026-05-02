@@ -655,7 +655,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasVisibleContent ? 'PRAYER FOR PEOPLE' : undefined}
+        title={hasVisibleContent ? 'PRAYERS FOR PEOPLE' : undefined}
         subtitle={hasVisibleContent ? getSubtitle() : undefined}
         variant={variant}
         viewMode={viewMode}
@@ -676,7 +676,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 style={styles.emptyStateIcon}
               />
               <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
-                PRAYER FOR PEOPLE
+                PRAYERS FOR PEOPLE
               </ThemedText>
             </View>
             <View style={styles.titleContainer}>
