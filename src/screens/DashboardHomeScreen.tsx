@@ -475,9 +475,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     prayerModalSubtitle: {
       color: Colors.secondaryText,
-      fontSize: 14,
+      fontSize: 24,
       marginBottom: 16,
       textAlign: 'center',
+      lineHeight: 30,
     },
     prayerModalTabs: {
       flexDirection: 'row',
@@ -1919,7 +1920,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 </View>
               </View>
 
-              <ThemedText weight="regular" style={styles.prayerModalSubtitle}>Lift up a prayer for {modalPrayerName || 'them'}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.prayerModalSubtitle}>Lift up a prayer for {modalPrayerName || 'them'}</ThemedText>
 
               {/* Name field - pre-filled and non-editable */}
               <TextInput

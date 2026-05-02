@@ -201,7 +201,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         </View>
       </View>
 
-      <ThemedText weight="regular" style={styles.prayerModalSubtitle}>
+      <ThemedText weight="semiBold" style={styles.prayerModalSubtitle}>
         Lift up a prayer for {prayerRequest.person_name || 'them'}
       </ThemedText>
 
@@ -472,9 +472,10 @@ const styles = StyleSheet.create({
   },
   prayerModalSubtitle: {
     color: Colors.secondaryText,
-    fontSize: 14,
+    fontSize: 24,
     marginBottom: 16,
     textAlign: 'center',
+    lineHeight: 30,
   },
   prayerModalNameInput: {
     backgroundColor: Colors.inputBackground,

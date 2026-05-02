@@ -1261,14 +1261,14 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                           {idx + 1}
                         </ThemedText>
                       </View>
-                      <ThemedText style={styles.questionCardText}>
+                      <ThemedText style={styles.questionCardText} numberOfLines={0}>
                         {question.text || 'Reflection question'}
                       </ThemedText>
                     </View>
               </Pressable>
                 ))
               ) : (
-                <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
+                <ThemedText style={styles.questionCardText} numberOfLines={0}>No questions for today.</ThemedText>
               )}
             </DevotionalSectionCard>
 

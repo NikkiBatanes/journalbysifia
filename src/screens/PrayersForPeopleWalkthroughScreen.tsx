@@ -1849,9 +1849,10 @@ const styles = StyleSheet.create({
   },
   prayerModalSubtitle: {
     color: Colors.secondaryText,
-    fontSize: 14,
+    fontSize: 24,
     marginBottom: 16,
     textAlign: 'center',
+    lineHeight: 30,
   },
   prayerModalNameInput: {
     backgroundColor: Colors.inputBackground,
