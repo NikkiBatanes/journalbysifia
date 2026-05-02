@@ -189,38 +189,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   };
 
-  const prayerHapticTimersRef = useRef<number[]>([]);
-  const startPrayerBurstHaptics = () => {
-    try {
-      // Clear any existing timers first
-      prayerHapticTimersRef.current.forEach(id => clearTimeout(id));
-      prayerHapticTimersRef.current = [];
-      // Mirror the 4-pulse timing used elsewhere
-      const schedule = [0, 250, 500, 750];
-      schedule.forEach(delay => {
-        const id = setTimeout(() => {
-          try {
-            const { RNHapticFeedback } = NativeModules as any;
-            if (!RNHapticFeedback) {return;}
-            const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-            if (hapticsPref === false) { return; }
-
-            const Haptic = require('react-native-haptic-feedback');
-            const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
-            if (typeof triggerFn === 'function') {
-              triggerFn('impactLight', {
-                enableVibrateFallback: false,
-                ignoreAndroidSystemSettings: false,
-              });
-            }
-          } catch {}
-        }, delay) as unknown as number;
-        prayerHapticTimersRef.current.push(id);
-      });
-    } catch {
-      // silent no-op
-    }
-  };
   const triggerLightHaptic = () => {
     // Use subtle OS-like selection haptic if native module is linked
     try {
@@ -257,9 +225,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     const nextIsPrayed = !prayedDays[prayerKey];
 
     if (nextIsPrayed) {
-      // Match the celebratory pattern: success + 4 light pulses
       triggerSuccessHaptic();
-      startPrayerBurstHaptics();
     } else {
       // Provide a subtle haptic when unmarking
       triggerLightHaptic();
@@ -616,9 +582,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       if (navigationTimersRef.current.raf) {
         cancelAnimationFrame(navigationTimersRef.current.raf);
       }
-      // Cleanup prayer haptic timers
-      prayerHapticTimersRef.current.forEach(id => clearTimeout(id));
-      prayerHapticTimersRef.current = [];
     };
   }, []);
 
