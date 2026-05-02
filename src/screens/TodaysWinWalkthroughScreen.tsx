@@ -651,6 +651,14 @@ const QuietWinStep: React.FC<{
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
 
+  const getQuietWinTitle = () => {
+    switch (dateContext) {
+      case 'today': return 'What felt like a quiet win today?';
+      case 'yesterday': return 'What felt like a quiet win yesterday?';
+      case 'earlier': return 'What felt like a quiet win this day?';
+    }
+  };
+
   useEffect(() => {
     Animated.timing(verticalLineHeight, {
       toValue: 60,
@@ -720,7 +728,7 @@ const QuietWinStep: React.FC<{
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              What kind of win was this?
+              {getQuietWinTitle()}
             </ThemedText>
           </View>
         </StepFadeIn>

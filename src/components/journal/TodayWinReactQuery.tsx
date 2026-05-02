@@ -143,13 +143,15 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-      // Handle new structure with winType and quietWin
-      if (content.quietWin) {
+      console.log('[TodayWin] Raw content:', content);
+      // Handle new structure with winType and quietWin (check for winType or winTypeName presence)
+      if (content.winType || content.winTypeName) {
         const result = {
           id: entry.id,
-          text: content.quietWin,
+          text: content.quietWin || '',
           winType: content.winTypeName || content.winType,
         };
+        console.log('[TodayWin] Parsed win (new structure):', result);
         return result;
       }
       // Handle old structure with just win
@@ -157,9 +159,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         id: entry.id,
         text: content.win || '',
       };
+      console.log('[TodayWin] Old structure win:', result);
 
       return result;
-    } catch {
+    } catch (error) {
+      console.error('[TodayWin] Error parsing content:', error);
       const result = {
         id: entry.id,
         text: '',
@@ -249,7 +253,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           <View style={styles.completionHeader}>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>
-                {displayWin.winType ? WIN_TYPE_NAMES[displayWin.winType] || displayWin.winType : 'Today\'s Win'}
+                {displayWin.winType || 'Today\'s Win'}
               </ThemedText>
             </View>
           </View>
@@ -258,7 +262,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
           {displayWin.text.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>KIND OF WIN</ThemedText>
+              <ThemedText weight="medium" style={styles.completionSectionLabel}>QUIET WIN</ThemedText>
               <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
             </View>
           )}
