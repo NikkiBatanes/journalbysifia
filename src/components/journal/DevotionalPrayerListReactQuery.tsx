@@ -148,14 +148,10 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           {displayedPrayers.map((prayer) => (
             <View style={styles.prayerItem} key={prayer.id}>
               <View style={styles.prayerContentContainer}>
-                <ThemedText style={styles.prayerText}>{(() => {
-                  const formatted = prayer.content
+                <ThemedText style={styles.prayerText}>{prayer.content
                     .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-                    .replace(/In Jesus'? Name,\s*Amen/i, '\n\nIn Jesus\' Name,\nAmen');
-                  console.log('[DevotionalPrayer] Original:', prayer.content);
-                  console.log('[DevotionalPrayer] Formatted:', formatted);
-                  return formatted;
-                })()}</ThemedText>
+                    .replace(/(\n?)(Amen)/i, '\n\n$2')
+                }</ThemedText>
               </View>
               <View style={styles.metadataContainer}>
                 <View style={styles.verticalLine} />
@@ -270,14 +266,10 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               >
                 <View style={styles.horizontalPrayerItem}>
                   <View style={styles.prayerContentContainer}>
-                    <ThemedText style={styles.prayerText}>{(() => {
-                    const formatted = prayer.content
-                      .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-                      .replace(/In Jesus'? Name,\s*Amen/i, '\n\nIn Jesus\' Name,\nAmen');
-                    console.log('[DevotionalPrayer] Original:', prayer.content);
-                    console.log('[DevotionalPrayer] Formatted:', formatted);
-                    return formatted;
-                  })()}</ThemedText>
+                    <ThemedText style={styles.prayerText}>{prayer.content
+                        .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
+                        .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
+                    }</ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
                     <View style={styles.verticalLine} />
