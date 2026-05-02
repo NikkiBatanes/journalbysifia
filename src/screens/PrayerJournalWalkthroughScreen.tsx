@@ -512,7 +512,7 @@ const OpenPrayerDescriptionStep: React.FC<{
               styles.timelineThickBar,
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 380],
+                outputRange: [0, 300],
               }) },
             ]} />
 
