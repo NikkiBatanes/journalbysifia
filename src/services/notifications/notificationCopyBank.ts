@@ -67,7 +67,7 @@ export function buildSmartNotificationCopy(
     case 'devotional_reflection_prompt':
       return {
         title: 'Pause with this question',
-        message: compact(context.questionText || 'One question from your devotional is ready for your journal.'),
+        message: compact(context.questionText || 'Take a moment to reflect on today\'s question.'),
       };
 
     case 'devotional_verse_revisit': {
@@ -82,8 +82,8 @@ export function buildSmartNotificationCopy(
 
     case 'devotional_completed_reflection':
       return {
-        title: 'What is staying with you?',
-        message: compact('You finished this devotional. What is staying with you today?'),
+        title: 'Reflect on today\'s devotional',
+        message: compact('You finished today\'s devotional. What is staying with you?'),
       };
 
     case 'playbook_word_to_speak':

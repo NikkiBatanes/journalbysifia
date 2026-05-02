@@ -600,6 +600,18 @@ const getRotatingReflectionQuestion = (
   return availableQuestions[nextIndex];
 };
 
+// Simplified function to get the literal "question to ponder" (first question only)
+const getQuestionToPonder = (day: DevotionalDayLike): string => {
+  const questions = (day.reflectionQuestions || [])
+    .map(question => notificationText(question.text))
+    .filter(Boolean);
+
+  if (questions.length === 0) {return '';}
+
+  // Return the first question (question to ponder) without rotation
+  return questions[0];
+};
+
 const getHeartJournalPrompt = async (
   userId: string,
   subscription: SubscriptionWithReset | null
@@ -726,7 +738,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         }
       }
 
-      const questionText = getRotatingReflectionQuestion(day, dayNumber, activeDevotional.id, userId, subscription, notifiedQuestions);
+      const questionText = getQuestionToPonder(day);
       if (questionText) {
         const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, dayNumber);
         if (!hasReflection) {
@@ -759,7 +771,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     if (day1 && day1.dayNumber !== 1) {
       // If dayNumber is not set, assume it's day 1
       const day1Number = 1;
-      const questionText = getRotatingReflectionQuestion(day1, day1Number, activeDevotional.id, userId, subscription, notifiedQuestions);
+      const questionText = getQuestionToPonder(day1);
       if (questionText) {
         const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, day1Number);
         if (!hasReflection) {

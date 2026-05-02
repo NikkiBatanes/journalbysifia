@@ -71,6 +71,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isProcessingTap, setIsProcessingTap] = useState(false);
+  const [locallyDismissedIds, setLocallyDismissedIds] = useState<Set<string>>(new Set());
   // POST-LAUNCH: const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
 
   // Fetch notifications
@@ -190,10 +191,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         return bTime - aTime; // Descending: newer timestamps (larger numbers) appear first
       });
 
-      console.log('🔔 DEBUG: Final notifications count:', mergedNotifications.length);
-      console.log('🔔 DEBUG: Full notification details:', JSON.stringify(mergedNotifications, null, 2));
+      // Filter out locally dismissed notifications
+      const filteredNotifications = mergedNotifications.filter(n => !locallyDismissedIds.has(n.id));
 
-      setNotifications(mergedNotifications);
+      console.log('🔔 DEBUG: Final notifications count:', filteredNotifications.length);
+      console.log('🔔 DEBUG: Full notification details:', JSON.stringify(filteredNotifications, null, 2));
+
+      setNotifications(filteredNotifications);
     } catch (error) {
       Logger.error('Failed to fetch notifications', error as Error, {
         component: 'NotificationsScreen',
@@ -201,7 +205,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, locallyDismissedIds]);
 
   // Refresh notifications
   const onRefresh = async () => {
@@ -214,26 +218,65 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   // Handle notification tap
   const handleNotificationTap = async (notification: any) => {
     try {
+      // Set processing flag to prevent real-time subscription interference
+      setIsProcessingTap(true);
+
       // Add haptic feedback
       triggerLightHaptic();
 
-      // Mark notification as read immediately
-      if (notification.id && notification._notification_source === 'notifications' && !notification.is_read && user?.id) {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('id', notification.id)
-          .eq('user_id', user.id);
+      // Mark notification as read immediately and remove from local state
+      if (notification.id && !notification.is_read && user?.id) {
+        // Add to locally dismissed set to prevent re-fetching
+        setLocallyDismissedIds(prev => new Set(prev).add(notification.id));
 
-        // Update local state to reflect the change immediately
+        // Update local state immediately for instant UI feedback
         setNotifications(prev =>
-          prev.filter(n => !(n.id === notification.id && n._notification_source === 'notifications'))
+          prev.filter(n => n.id !== notification.id)
         );
+
+        // Mark as read in database (fire-and-forget to not block navigation)
+        if (notification._notification_source === 'notifications') {
+          supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notification.id)
+            .eq('user_id', user.id)
+            .then(({ error }) => {
+              if (error) {
+                Logger.error('Failed to mark push notification as read', error, {
+                  component: 'NotificationsScreen',
+                  notificationId: notification.id,
+                });
+              } else {
+                // Remove from locally dismissed set after successful DB update
+                setLocallyDismissedIds(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(notification.id);
+                  return newSet;
+                });
+              }
+            });
+        } else if (notification._notification_source === 'queue') {
+          notificationManagementService.markNotificationAsRead(notification.id, user.id).then(success => {
+            if (success) {
+              // Remove from locally dismissed set after successful DB update
+              setLocallyDismissedIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(notification.id);
+                return newSet;
+              });
+            }
+          });
+        }
       }
 
       // Track analytics (tapped event)
       if (notification.id) {
-        await notificationAnalyticsService.trackTapped(notification.id);
+        notificationAnalyticsService.trackTapped(notification.id).catch(error => {
+          Logger.error('Failed to track notification tap', error as Error, {
+            component: 'NotificationsScreen',
+          });
+        });
       }
 
       // Navigate using deep link
@@ -285,53 +328,22 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         }
       }
 
-      // Mark as read/opened
-      try {
-        if (user?.id && notification.id) {
-          // Check if this is from notifications table (push notifications) or notification_queue
-          if (notification._notification_source === 'notifications') {
-            // This is a push notification from the notifications table
-            const { error } = await supabase
-              .from('notifications')
-              .update({ is_read: true })
-              .eq('id', notification.id)
-              .eq('user_id', user.id);
-
-            if (error) {
-              Logger.error('Failed to mark push notification as read', error, {
-                component: 'NotificationsScreen',
-                notificationId: notification.id,
-                errorDetails: {
-                  message: error.message,
-                  details: error.details,
-                  hint: error.hint,
-                  code: error.code,
-                },
-              });
-            }
-          } else if (notification._notification_source === 'queue') {
-            // This is from notification_queue table
-            const markedRead = await notificationManagementService.markNotificationAsRead(notification.id, user.id);
-            if (markedRead) {
-              setNotifications(prev =>
-                prev.filter(n => !(n.id === notification.id && n._notification_source === 'queue'))
-              );
-            }
-          }
-        }
-      } catch (error) {
-        Logger.error('Failed to mark notification as read', error as Error, {
-          component: 'NotificationsScreen',
-          notificationId: notification.id,
-        });
-      }
-
       // Refresh badge count
-      await fetchBadgeCount();
+      fetchBadgeCount().catch(error => {
+        Logger.error('Failed to refresh badge count', error as Error, {
+          component: 'NotificationsScreen',
+        });
+      });
+
+      // Clear processing flag after a short delay to allow database operations to complete
+      setTimeout(() => {
+        setIsProcessingTap(false);
+      }, 1000);
     } catch (error) {
       Logger.error('Failed to handle notification tap', error as Error, {
         component: 'NotificationsScreen',
       });
+      setIsProcessingTap(false);
     }
   };
 
@@ -460,8 +472,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             event: payload.eventType,
             payload: JSON.stringify(payload),
           });
-          // Refresh notifications list when changes occur
-          fetchNotifications();
+          // Skip refresh if user is currently tapping a notification to prevent interference
+          if (!isProcessingTap) {
+            fetchNotifications();
+          }
         }
       )
       .subscribe((status) => {
@@ -487,7 +501,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             component: 'NotificationsScreen',
             event: payload.eventType,
           });
-          fetchNotifications();
+          // Skip refresh if user is currently tapping a notification to prevent interference
+          if (!isProcessingTap) {
+            fetchNotifications();
+          }
         }
       )
       .subscribe();
