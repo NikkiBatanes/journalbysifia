@@ -473,27 +473,27 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       // Determine prayer path type
       let prayerPath = '';
       if (actsCount > 0 && openCount > 0) {
-        prayerPath = 'CAST & Open';
+        prayerPath = 'CAST & open';
       } else if (actsCount > 0) {
-        prayerPath = 'CAST Method';
+        prayerPath = 'CAST method';
       } else if (openCount > 0) {
-        prayerPath = 'Open Prayer';
+        prayerPath = 'open prayer';
       }
 
       // Main prayer count line with path
-      let subtitle = totalCount === 1 ? '1 Prayer' : `${totalCount} Prayers`;
+      let subtitle = `${totalCount} prayer`;
       if (prayerPath) {
         subtitle += ` • ${prayerPath}`;
       }
 
       // Add answered count on a new line if there are answered prayers
       if (answeredCount > 0) {
-        subtitle += `\n${answeredCount} Answered Prayer${answeredCount !== 1 ? 's' : ''}`;
+        subtitle += `\n${answeredCount} answered prayer`;
       }
 
       return subtitle;
     }
-    return 'CAST Method & Open Prayer';
+    return 'CAST method & open prayer';
   };
 
   // Handle edit mode - navigate to walkthrough
