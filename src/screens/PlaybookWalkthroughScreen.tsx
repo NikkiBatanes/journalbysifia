@@ -32,7 +32,7 @@ import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
-import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -1364,8 +1364,12 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
     : prayer.trimEnd() + "\n\nIn Jesus' Name,\nAmen";
 
   const handlePrayed = () => {
-    triggerMediumHaptic();
     const nowPrayed = !hasPrayed;
+    if (nowPrayed) {
+      triggerSuccessHaptic();
+    } else {
+      triggerLightHaptic();
+    }
     persistedHasPrayed = nowPrayed;
     setHasPrayed(nowPrayed);
     saveCurrentSession();
@@ -1523,8 +1527,12 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
   }, [fadeAnim]);
 
   const handleRead = () => {
-    triggerMediumHaptic();
     const nowRead = !hasRead;
+    if (nowRead) {
+      triggerSuccessHaptic();
+    } else {
+      triggerLightHaptic();
+    }
     persistedHasRead = nowRead;
     setHasRead(nowRead);
     saveCurrentSession();
