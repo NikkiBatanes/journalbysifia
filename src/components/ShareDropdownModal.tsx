@@ -89,10 +89,15 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
     if (shareContext === 'devotional' && devotionalShareData) {
       const { totalDays, dayNumber, title } = devotionalShareData;
       const isSeries = totalDays > 1;
+      const isSingleDay = totalDays === 1;
 
       if (isCompletion) {
         // Completion page share text
-        finalShareText = `I finished a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia today and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+        if (isSingleDay) {
+          finalShareText = `I finished a personalized ${totalDays}-day devotional in siFia on Day 1 and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+        } else {
+          finalShareText = `I finished a personalized ${totalDays}-day devotional series in siFia today and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+        }
       } else {
         // Detail page share text
         finalShareText = `I created a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia to spend time in prayer, reflection, and Scripture. Today I'm on Day ${dayNumber}: ${title}. Try it here: ${appUrl}`;
