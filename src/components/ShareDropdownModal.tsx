@@ -31,6 +31,7 @@ interface ShareDropdownModalProps {
     title: string;
   };
   isCompletion?: boolean; // Indicates if sharing from completion page
+  isFinalDay?: boolean; // Indicates if it's the final day of a multi-day devotional
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -42,6 +43,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   shareContext = 'playbook',
   devotionalShareData,
   isCompletion = false,
+  isFinalDay = false,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -95,8 +97,12 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
         // Completion page share text
         if (isSingleDay) {
           finalShareText = `I finished a personalized ${totalDays}-day devotional in siFia and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+        } else if (isFinalDay) {
+          // Completed the full series
+          finalShareText = `I completed a personalized ${totalDays}-day devotional series in siFia today with prayer, reflection, and Scripture. Try it here: ${appUrl}`;
         } else {
-          finalShareText = `I finished a personalized ${totalDays}-day devotional series in siFia today and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+          // Completed a single day (not final)
+          finalShareText = `I finished Day ${dayNumber}: ${title} from my personalized ${totalDays}-day devotional series in siFia today with prayer, reflection, and Scripture. Try it here: ${appUrl}`;
         }
       } else {
         // Detail page share text
