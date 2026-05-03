@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter, AppState } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -318,13 +318,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     useCallback(() => {
       // Reset header animation to ensure date header is visible
       scrollY.setValue(0);
-      scrollY.setOffset(0);
       setIsHeaderCollapsed(false);
-
-      // Force animation flush to ensure header renders correctly
-      setTimeout(() => {
-        scrollY.setValue(0);
-      }, 50);
 
       // Restore scroll position when screen gains focus
       if (savedScrollPosition.current > 0) {
@@ -341,6 +335,17 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       };
     }, [scrollY])
   );
+
+  // Reset header when app returns from background (not covered by useFocusEffect)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        scrollY.setValue(0);
+        setIsHeaderCollapsed(false);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [headerWidth, setHeaderWidth] = useState<number>(0);
