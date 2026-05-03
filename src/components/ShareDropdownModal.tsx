@@ -117,8 +117,12 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                 <ThemedText weight="semiBold" style={styles.dropdownTitle}>
                   Share
                 </ThemedText>
-                <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close" size={20} color={Colors.hopeWhite} />
+                <TouchableOpacity 
+                  onPress={onClose} 
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.closeButton}
+                >
+                  <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
                 </TouchableOpacity>
               </View>
 
@@ -191,6 +195,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  closeButton: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
   },
   dropdownTitle: {
     fontSize: 18,
