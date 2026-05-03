@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     padding: 0,
     paddingBottom: 32,
-    height: SCREEN_HEIGHT * 0.55,
+    height: SCREEN_HEIGHT * 0.65,
     justifyContent: 'flex-start',
   },
   header: {
@@ -673,13 +673,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 20,
+    paddingTop: 24,
     position: 'relative',
   },
   closeButton: {
     position: 'absolute',
     right: 20,
-    top: 16,
+    top: 20,
     padding: 8,
     width: 42,
     height: 42,
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   shareButton: {
     position: 'absolute',
     right: 70,
-    top: 16,
+    top: 20,
     padding: 8,
     width: 42,
     height: 42,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 48,
     paddingBottom: 20,
     alignItems: 'center',
     justifyContent: 'flex-start',

@@ -191,7 +191,11 @@ export default function RootStackNavigator({
 
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: Colors.anchorBlue },
+        screenContainerStyle: { backgroundColor: Colors.anchorBlue },
+      }}
       initialRouteName="OnboardingSplash"
     >
       {/* Splash Screen */}
@@ -277,6 +281,7 @@ export default function RootStackNavigator({
               animationDuration: 350,
               gestureEnabled: true,
               gestureDirection: 'vertical',
+              contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />
           {/* RE-ENABLED: Trial Offer screen for trial flow navigation */}
@@ -361,7 +366,6 @@ export default function RootStackNavigator({
             component={PlaybookWalkthroughScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'fullScreenModal',
               animation: 'fade',
               gestureEnabled: false,
               contentStyle: { backgroundColor: Colors.anchorBlue },
@@ -485,6 +489,7 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'fade',
+              contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />
 
@@ -497,6 +502,7 @@ export default function RootStackNavigator({
               presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               gestureEnabled: false,
+              contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />
 

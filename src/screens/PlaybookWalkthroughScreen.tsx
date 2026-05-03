@@ -2345,27 +2345,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
 
-    // Mark the playbook as completed now that the user pressed Save & Finish
-    if (playbookId) {
-      updatePlaybookStatus(playbookId, 'completed').catch(() => {});
-      try {
-        const alreadyAwarded = await faithPointsService.hasActivityTodayForPlaybook(userId, 'playbook_completed', playbookId);
-        if (!alreadyAwarded) {
-          await faithPointsService.awardPoints(userId, 'playbook_completed', {
-            suppressNotification: true,
-            source: 'playbook_completion',
-            playbookId,
-            playbookTitle: playbook?.title,
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to award playbook completion faith points', error);
-      }
-      // Optimistically update query cache so list reflects completion immediately
-      queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
-    }
-
-    // Clear persisted state so re-opening the same playbook starts fresh
+    // Clear persisted state immediately
     if (persistedPlaybookId) { clearSessionStorage(persistedPlaybookId); }
     persistedPlaybookId = undefined;
     persistedCommittedSteps = {};
@@ -2374,6 +2354,30 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasRead = false;
     journalNudgeFired = false;
 
+    // Perform async operations in background without blocking navigation
+    (async () => {
+      // Mark the playbook as completed now that the user pressed Save & Finish
+      if (playbookId) {
+        updatePlaybookStatus(playbookId, 'completed').catch(() => {});
+        try {
+          const alreadyAwarded = await faithPointsService.hasActivityTodayForPlaybook(userId, 'playbook_completed', playbookId);
+          if (!alreadyAwarded) {
+            await faithPointsService.awardPoints(userId, 'playbook_completed', {
+              suppressNotification: true,
+              source: 'playbook_completion',
+              playbookId,
+              playbookTitle: playbook?.title,
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to award playbook completion faith points', error);
+        }
+        // Optimistically update query cache so list reflects completion immediately
+        queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
+      }
+    })();
+
+    // Navigate immediately without waiting for async operations
     const shouldShowStreakPlan = userId
       ? await visibleStreakService.shouldShowCelebration(userId, 'playbook_completed')
       : true;
