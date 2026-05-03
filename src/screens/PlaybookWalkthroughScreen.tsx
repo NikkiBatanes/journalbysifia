@@ -51,6 +51,7 @@ import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
+import ShareDropdownModal from '../components/ShareDropdownModal';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep } from '../interfaces/playbook';
@@ -1953,6 +1954,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalGenerated, setDevotionalGenerated] = useState(false);
+  const [showShareDropdown, setShowShareDropdown] = useState(false);
 
   // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
   const [showReadyOverlay, setShowReadyOverlay] = useState(false);
@@ -2724,7 +2726,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
         >
           <TouchableOpacity
-            onPress={handleExportPDF}
+            onPress={() => {
+              triggerLightHaptic();
+              setShowShareDropdown(true);
+            }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
@@ -2784,6 +2789,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         setDevotionalGenerated(true);
         navigation.navigate('DevotionalDetail', { devotionalId });
       }}
+    />
+
+    <ShareDropdownModal
+      visible={showShareDropdown}
+      onClose={() => setShowShareDropdown(false)}
+      onExportPDF={handleExportPDF}
+      playbookTitle={playbook?.title}
     />
 
     {/* Onboarding-only "Your playbook is ready" overlay — appears once */}
