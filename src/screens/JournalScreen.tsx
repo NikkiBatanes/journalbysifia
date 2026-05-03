@@ -320,6 +320,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       scrollY.setValue(0);
       setIsHeaderCollapsed(false);
 
+      // Reset headerWidth to force re-measurement when screen regains focus
+      // This fixes blank white header when returning from background
+      setHeaderWidth(0);
+
       // Restore scroll position when screen gains focus
       if (savedScrollPosition.current > 0) {
         setTimeout(() => {
