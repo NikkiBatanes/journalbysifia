@@ -4,6 +4,7 @@ import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
 // Removed CommonActions import as we navigate directly to UserProfile
+import { Colors } from '../theme/colors';
 
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
@@ -363,6 +364,7 @@ export default function RootStackNavigator({
               presentation: 'fullScreenModal',
               animation: 'fade',
               gestureEnabled: false,
+              contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />
           <Stack.Screen
