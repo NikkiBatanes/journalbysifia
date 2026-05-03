@@ -306,6 +306,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     };
   }, [navigation, resetToTop]);
 
+  // Animation state
+  const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
+
   // Store scroll position to preserve carousel position when navigating away
   const savedScrollPosition = useRef<number>(0);
   const [carouselIndices, setCarouselIndices] = useState({ plan: 0, reflect: 0, pray: 0 });
@@ -372,8 +375,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     }
   }, [weeks, selectedDayOfWeek, headerWidth]);
 
-  // Animation state
-  const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
     inputRange: [0, 40],
     outputRange: [1, 0],
