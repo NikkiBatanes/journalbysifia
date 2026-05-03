@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   cardCollapsed: {
-    height: 320, // Fixed height for clean collapse (increased from 280 to prevent cutoff)
+    height: 340, // Fixed height for clean collapse (increased to match minHeight to prevent cutoff)
     overflow: 'hidden', // Hide overflow for clean collapse
   },
   cardExpanded: {
