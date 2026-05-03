@@ -327,7 +327,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               <Ionicons
                 name="sparkles"
                 size={14}
-                color={Colors.alertCoral}
+                color={index < rating ? Colors.alertCoral : 'rgba(255, 107, 107, 0.3)'}
                 style={styles.starIcon}
               />
             </Animated.View>
