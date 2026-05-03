@@ -551,7 +551,8 @@ const createDefaultStyles = (_fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 20,
-    fontFamily: Fonts.medium,
+    paddingVertical: 12,
+    minHeight: 44,
   },
   timePickerModal: {
     flex: 1,
@@ -1320,7 +1321,7 @@ function TimeBlockLogEditorInner(
                 <View style={{ flex: 1, position: 'relative' }}>
                   <TextInput
                     ref={inputRef}
-                    style={s.titleInputField}
+                    style={[s.titleInputField, { fontFamily: getFontFamily(fontKey, 'medium') }]}
                     placeholder=""
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
                     value={title}
@@ -1329,9 +1330,9 @@ function TimeBlockLogEditorInner(
                     keyboardAppearance="dark"
                   />
                   {!title && (
-                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>
-                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>*</ThemedText>
+                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', marginTop: 12 }}>
+                      <ThemedText weight="medium" style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, lineHeight: 20 }}>
+                        Title <ThemedText weight="medium" style={{ color: Colors.alertCoral, fontSize: 16, lineHeight: 20 }}>*</ThemedText>
                       </ThemedText>
                     </View>
                   )}
