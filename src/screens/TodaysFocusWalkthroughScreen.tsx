@@ -64,22 +64,36 @@ interface FocusCategory {
 }
 
 const FOCUS_CATEGORIES: FocusCategory[] = [
+  // First 12 - Core spiritual & life priorities for Christians
   { id: 'prayer', name: 'Prayer', description: 'Returning to God with honesty and stillness.', icon: 'hands-pray', iconType: 'material' },
-  { id: 'bible-reading', name: 'Bible Reading', description: 'Making space to read, listen, and stay rooted in Scripture.', icon: 'book', iconType: 'ionicons' },
+  { id: 'bible-reading', name: 'Bible Reading', description: 'Making space to read, listen, and stay rooted in Scripture.', icon: 'script-text', iconType: 'material' },
+  { id: 'church', name: 'Church', description: 'Serving, worship, fellowship, and church activities.', icon: 'church', iconType: 'material' },
+  { id: 'sabbath', name: 'Sabbath', description: 'A holy day of rest, worship, and spiritual renewal.', icon: 'weather-night', iconType: 'material' },
   { id: 'discipleship', name: 'Discipleship', description: 'Showing up faithfully for the people God has entrusted to you.', icon: 'people-circle-outline', iconType: 'ionicons' },
-  { id: 'ministry', name: 'Ministry', description: 'Serving, leading, preparing, or carrying what needs care.', icon: 'cross', iconType: 'fontawesome' },
-  { id: 'relationships', name: 'Relationships', description: 'Conversations, boundaries, and care for others.', icon: 'heart', iconType: 'material' },
-  { id: 'health', name: 'Health', description: 'Your body, energy, and what needs attention.', icon: 'heart-pulse', iconType: 'material' },
+  { id: 'family', name: 'Family', description: 'Quality time with your loved ones and family responsibilities.', icon: 'home-heart', iconType: 'material' },
+  { id: 'finances', name: 'Finances', description: 'Managing money wisely as stewardship of God\'s provision.', icon: 'cash', iconType: 'material' },
+  { id: 'self-care', name: 'Self Care', description: 'Mental health, personal care, and taking care of yourself.', icon: 'spa', iconType: 'material' },
   { id: 'work', name: 'Work', description: 'Tasks, decisions, output, and follow-through.', icon: 'briefcase', iconType: 'ionicons' },
-  { id: 'rest', name: 'Rest', description: 'Slowing down, resetting, and not carrying everything.', icon: 'bed', iconType: 'material' },
-  { id: 'nutrition', name: 'Nutrition', description: 'For eating with care, planning meals, and staying attentive to your health.', icon: 'utensils', iconType: 'fontawesome' },
-  { id: 'workout', name: 'Workout', description: 'For movement, exercise, training, and caring for your body.', icon: 'dumbbell', iconType: 'fontawesome' },
   { id: 'school', name: 'School', description: 'For studying, assignments, exams, and academic responsibilities.', icon: 'school', iconType: 'material' },
+  { id: 'workout', name: 'Workout', description: 'For movement, exercise, training, and caring for your body.', icon: 'dumbbell', iconType: 'fontawesome' },
+  { id: 'rest', name: 'Rest', description: 'Slowing down, resetting, and not carrying everything.', icon: 'bed', iconType: 'material' },
+
+  // Second 12 - Practical life categories
+  { id: 'health', name: 'Health', description: 'Your body, energy, and what needs attention.', icon: 'heart-pulse', iconType: 'material' },
+  { id: 'relationships', name: 'Relationships', description: 'Conversations, boundaries, and care for others.', icon: 'heart', iconType: 'material' },
+  { id: 'volunteer', name: 'Volunteer', description: 'Serving others and giving your time to help those in need.', icon: 'hand-heart', iconType: 'material' },
+  { id: 'prayer-fasting', name: 'Prayer & Fasting', description: 'Setting aside time to seek God with focus and surrender.', icon: 'water', iconType: 'material' },
+  { id: 'nutrition', name: 'Nutrition', description: 'For eating with care, planning meals, and staying attentive to your health.', icon: 'utensils', iconType: 'fontawesome' },
+  { id: 'study', name: 'Study', description: 'Personal learning, skill development, and growing your knowledge.', icon: 'book-open-page-variant', iconType: 'material' },
   { id: 'business', name: 'Business', description: 'For building, deciding, leading, and carrying what your work requires today.', icon: 'building', iconType: 'fontawesome' },
   { id: 'home', name: 'Home', description: 'The responsibilities and tensions of daily life.', icon: 'home', iconType: 'material' },
-  { id: 'prayer-fasting', name: 'Prayer & Fasting', description: 'Setting aside time to seek God with focus and surrender.', icon: 'water', iconType: 'material' },
   { id: 'motherhood', name: 'Motherhood', description: 'For caring for your children, guiding your home, and handling what needs you today.', icon: 'baby', iconType: 'material' },
-  { id: 'outreach', name: 'Outreach', description: 'Following through on opportunities to encourage, invite, or share.', icon: 'share-nodes', iconType: 'fontawesome' },
+  { id: 'creative', name: 'Creative', description: 'Creative work, writing, art, and artistic projects.', icon: 'palette', iconType: 'material' },
+  { id: 'worship', name: 'Worship', description: 'Music, praise, and creative expression of faith.', icon: 'music', iconType: 'material' },
+  { id: 'ministry', name: 'Ministry', description: 'Serving, leading, preparing, or carrying what needs care.', icon: 'cross', iconType: 'fontawesome' },
+
+  // Last 9 - Specific/niche categories
+  { id: 'travel', name: 'Travel', description: 'Trips, travel planning, and being on the move.', icon: 'airplane', iconType: 'material' },
   { id: 'events', name: 'Events', description: 'For planning, preparing for, or showing up well to what is coming.', icon: 'calendar', iconType: 'material' },
   { id: 'reading', name: 'Reading', description: 'For learning, slowing down, and giving attention to what you want to take in.', icon: 'reader', iconType: 'ionicons' },
   { id: 'pet-care', name: 'Pet Care', description: 'For caring for your pet, handling practical needs, and showing steady attention.', icon: 'paw', iconType: 'material' },
@@ -194,16 +208,16 @@ const CategorySelectionStep: React.FC<{
   }, [isOtherSelected, chooseAgainScale]);
 
   React.useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -214,8 +228,8 @@ const CategorySelectionStep: React.FC<{
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 
@@ -458,16 +472,16 @@ const PersonalTextInputStep: React.FC<{
   }, [verticalLineHeight]);
 
   React.useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -478,8 +492,8 @@ const PersonalTextInputStep: React.FC<{
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 
@@ -632,16 +646,16 @@ const PrioritiesInputStep: React.FC<{
   }, [verticalLineHeight]);
 
   React.useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -652,8 +666,8 @@ const PrioritiesInputStep: React.FC<{
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 
