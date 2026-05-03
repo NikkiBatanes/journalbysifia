@@ -551,7 +551,6 @@ const createDefaultStyles = (_fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 20,
-    fontFamily: Fonts.medium,
     selectionColor: Colors.white,
   },
   timePickerModal: {
@@ -1332,8 +1331,8 @@ function TimeBlockLogEditorInner(
                   />
                   {!title && (
                     <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>
-                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>*</ThemedText>
+                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: getFontFamily(fontKey, 'medium'), lineHeight: 20 }}>
+                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: getFontFamily(fontKey, 'medium'), lineHeight: 20 }}>*</ThemedText>
                       </ThemedText>
                     </View>
                   )}
