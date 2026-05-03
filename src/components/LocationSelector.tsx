@@ -183,6 +183,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
           returnKeyType="done"
           keyboardAppearance="dark"
+          selectionColor={Colors.white}
         />
 
         <TouchableOpacity

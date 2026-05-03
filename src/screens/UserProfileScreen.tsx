@@ -915,7 +915,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={featureText}
             onChangeText={setFeatureText}
             textAlignVertical="top"
-            selectionColor={Colors.hopeWhite}
+            selectionColor={Colors.white}
           />
           <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
         </ScrollView>
@@ -1029,7 +1029,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setBugReportText}
             textAlignVertical="top"
             autoFocus
-            selectionColor={Colors.hopeWhite}
+            selectionColor={Colors.white}
           />
           <Text style={[styles.bugHint, font]}>We'll take your reported issues into account to improve siFia.</Text>
         </View>
@@ -1932,7 +1932,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
                 placeholderTextColor={Colors.textGray}
-                selectionColor={Colors.hopeWhite}
+                selectionColor={Colors.white}
               />
               <View style={styles.nameDivider} />
               <TextInput
@@ -1941,7 +1941,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
                 placeholderTextColor={Colors.textGray}
-                selectionColor={Colors.hopeWhite}
+                selectionColor={Colors.white}
               />
             </View>
           </View>

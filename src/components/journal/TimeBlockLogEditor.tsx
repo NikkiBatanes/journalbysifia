@@ -1327,6 +1327,7 @@ function TimeBlockLogEditorInner(
                     onChangeText={(text) => handleContentChange('title', text)}
                     multiline={false}
                     keyboardAppearance="dark"
+                    selectionColor={Colors.white}
                   />
                   {!title && (
                     <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
@@ -1659,6 +1660,7 @@ function TimeBlockLogEditorInner(
                             maxLength={2}
                             placeholderTextColor="rgba(255, 255, 255, 0.6)"
                             keyboardAppearance="dark"
+                            selectionColor={Colors.white}
                           />
 
                           <TouchableOpacity
@@ -1866,6 +1868,7 @@ function TimeBlockLogEditorInner(
                       }
                     }, 250);
                   }}
+                  selectionColor={Colors.white}
                 />
               </View>
 

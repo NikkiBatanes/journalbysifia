@@ -1002,6 +1002,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               accessibilityLabel="Add new todo"
               accessibilityHint="Enter text for a new todo item and press next to add it"
               importantForAccessibility="yes"
+              selectionColor={Colors.white}
             />
           </View>
           <View style={styles.buttonRow}>

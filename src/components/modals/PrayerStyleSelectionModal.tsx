@@ -325,6 +325,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
                     scrollViewRef.current?.scrollToEnd({ animated: true });
                   }, 150);
                 }}
+                selectionColor={Colors.white}
               />
             ) : (
               // When nothing is selected, hide input; placeholder text defined for completeness

@@ -457,6 +457,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           accessibilityRole="text"
           accessibilityLabel={`${selectedType.displayName} prayer input`}
           accessibilityHint={`Enter your ${selectedType.description.toLowerCase()} here`}
+          selectionColor={Colors.white}
         />
         <TouchableOpacity
           style={[

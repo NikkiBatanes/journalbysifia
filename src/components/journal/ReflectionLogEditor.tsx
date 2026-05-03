@@ -1505,6 +1505,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     }}
                     underlineColorAndroid="transparent"
                     multiline={true}
+                    selectionColor={Colors.white}
                   />
                   {isSelectedPromptLocked && (
                     <GuidedPromptLockIcon
@@ -1555,6 +1556,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 keyboardAppearance="dark"
                 textAlignVertical="top"
                 autoFocus={!isEditing}
+                selectionColor={Colors.white}
               />
               {(source === 'devotional' || (devotionalTitle && source !== 'thoughts')) && (
                 <View style={s.metadataContainer}>

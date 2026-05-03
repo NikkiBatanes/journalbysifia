@@ -84,6 +84,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
             value={searchQuery}
             onChangeText={onSearchChange}
             autoFocus
+            selectionColor={Colors.white}
           />
         )}
       </View>

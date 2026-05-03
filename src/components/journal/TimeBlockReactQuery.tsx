@@ -1616,6 +1616,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               accessibilityLabel="Time block title"
               accessibilityHint="Enter a descriptive title for your time block. This field is required."
               accessibilityRole="text"
+              selectionColor={Colors.white}
             />
             {showTitleError && <ThemedText style={styles.errorText}>Title is required</ThemedText>}
           </View>
@@ -1818,6 +1819,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                           }));
                         }
                       }}
+                      selectionColor={Colors.white}
                       keyboardType="number-pad"
                       maxLength={2}
                       returnKeyType="done"
@@ -2065,6 +2067,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             multiline
             numberOfLines={2}
             textAlignVertical="top"
+            selectionColor={Colors.white}
           />
 
           {/* Category Picker Modal */}

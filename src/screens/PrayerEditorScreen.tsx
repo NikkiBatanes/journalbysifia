@@ -258,6 +258,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         placeholderTextColor={Colors.placeholderText}
         keyboardAppearance="dark"
         editable={false}
+        selectionColor={Colors.white}
       />
 
       {/* Combined field: Prayer input + Prayer Request inside same card */}
@@ -273,6 +274,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
           numberOfLines={6}
           autoFocus
           keyboardAppearance="dark"
+          selectionColor={Colors.white}
         />
         <View style={styles.combinedDivider} />
         <View style={styles.combinedReadOnlyInner}>

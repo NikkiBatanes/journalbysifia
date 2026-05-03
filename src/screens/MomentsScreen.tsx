@@ -202,6 +202,7 @@ export const MomentsScreen: React.FC = () => {
                   autoCorrect={false}
                   returnKeyType="search"
                   keyboardAppearance="dark"
+                  selectionColor={Colors.white}
                 />
               </View>
               {searchQuery.length > 0 && (

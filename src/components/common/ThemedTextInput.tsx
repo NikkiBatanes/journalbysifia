@@ -2,6 +2,7 @@ import React from 'react';
 import { TextInput, TextInputProps, StyleProp, TextStyle } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { Colors } from '../../theme/colors';
 
 export type ThemedWeight = 'regular' | 'medium' | 'semiBold' | 'bold';
 
@@ -20,7 +21,7 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
     { fontFamily },
   ];
 
-  return <TextInput ref={ref} {...rest} style={combinedStyle} />;
+  return <TextInput ref={ref} {...rest} selectionColor={Colors.white} style={combinedStyle} />;
 });
 
 export default ThemedTextInput;

@@ -312,6 +312,7 @@ const CategorySelectionStep: React.FC<{
                 multiline
                 autoFocus
                 keyboardAppearance="dark"
+                selectionColor={Colors.white}
               />
             </View>
           </StepFadeIn>
@@ -537,6 +538,7 @@ const PersonalTextInputStep: React.FC<{
             textAlignVertical="top"
             autoFocus
             keyboardAppearance="dark"
+            selectionColor={Colors.white}
           />
         </StepFadeIn>
 
@@ -686,6 +688,7 @@ const PrioritiesInputStep: React.FC<{
                 placeholderTextColor={Colors.textGray}
                 autoFocus={index === 0}
                 keyboardAppearance="dark"
+                selectionColor={Colors.white}
               />
             </View>
           ))}

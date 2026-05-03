@@ -1953,6 +1953,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 placeholderTextColor={Colors.placeholderText}
                 keyboardAppearance="dark"
                 editable={false}
+                selectionColor={Colors.white}
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
@@ -1968,6 +1969,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   numberOfLines={6}
                   autoFocus
                   keyboardAppearance="dark"
+                  selectionColor={Colors.white}
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>

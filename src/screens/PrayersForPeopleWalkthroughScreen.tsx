@@ -306,6 +306,7 @@ const PrayerRequestNameStep: React.FC<{
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
               keyboardAppearance="dark"
+              selectionColor={Colors.white}
             />
           </View>
         </StepFadeIn>
@@ -435,6 +436,7 @@ const PrayerRequestPrayerFocusStep: React.FC<{
               textAlignVertical="top"
               autoFocus
               keyboardAppearance="dark"
+              selectionColor={Colors.white}
             />
           </View>
         </StepFadeIn>
@@ -655,6 +657,7 @@ const PrayForSomeoneNameStep: React.FC<{
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
               keyboardAppearance="dark"
+              selectionColor={Colors.white}
             />
           </View>
         </StepFadeIn>
@@ -779,6 +782,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
               textAlignVertical="top"
               autoFocus
               keyboardAppearance="dark"
+              selectionColor={Colors.white}
             />
           </View>
         </StepFadeIn>
@@ -1522,6 +1526,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
                 placeholderTextColor={Colors.placeholderText}
                 keyboardAppearance="dark"
                 editable={false}
+                selectionColor={Colors.white}
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
@@ -1537,6 +1542,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
                   numberOfLines={6}
                   autoFocus
                   keyboardAppearance="dark"
+                  selectionColor={Colors.white}
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>

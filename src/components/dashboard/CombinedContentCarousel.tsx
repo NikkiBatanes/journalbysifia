@@ -1554,6 +1554,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             onChangeText={setNewTitle}
             placeholder="Enter new name"
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            selectionColor={Colors.white}
           />
           <View style={styles.modalButtons}>
             <TouchableOpacity
@@ -1604,6 +1605,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 onChangeText={setCustomTag}
                 placeholder="Enter custom tag"
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                selectionColor={Colors.white}
               />
             )}
           </View>
