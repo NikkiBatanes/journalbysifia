@@ -23,6 +23,7 @@ import HomeStackNavigator from './HomeStackNavigator';
 import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const Tab = createBottomTabNavigator();
 
@@ -363,7 +364,7 @@ const CustomTabBarComponent = ({
         <TouchableOpacity
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
-          onPress={() => setShowTabBar(true)}
+          onPress={() => { try { triggerLightHaptic(); } catch {} setShowTabBar(true); }}
         >
           {circleIcon}
         </TouchableOpacity>

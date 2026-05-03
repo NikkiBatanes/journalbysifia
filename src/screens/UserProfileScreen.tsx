@@ -1777,7 +1777,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Haptics</Text>
           <TouchableOpacity
-            onPress={() => onToggleHaptics(!hapticsEnabled)}
+            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleHaptics(!hapticsEnabled); }}
             style={styles.switchContainer}
           >
             <View style={[
@@ -1801,7 +1801,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Sounds</Text>
           <TouchableOpacity
-            onPress={() => onToggleSounds(!soundsEnabled)}
+            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleSounds(!soundsEnabled); }}
             style={styles.switchContainer}
           >
             <View style={[
@@ -1825,7 +1825,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
           <TouchableOpacity
-            onPress={() => onToggleShowTabLabels(!showTabLabelsEnabled)}
+            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleShowTabLabels(!showTabLabelsEnabled); }}
             style={styles.switchContainer}
           >
             <View style={[
