@@ -959,19 +959,20 @@ export class NewSubscriptionService {
         throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
-      // Seeker onboarding and free_trial usage is never counted against the quota.
-      const skipCount = (isOnboarding && subscription.tier === 'seeker')
-        || subscription.tier === 'free_trial';
+      // Only skip counting for seeker users during onboarding — their first
+      // playbook/devotional is free and should not consume their quota.
+      // free_trial usage MUST be counted so the profile shows accurate progress
+      // (e.g. 3/15) and so the trial limit is actually enforced.
+      const skipCount = (isOnboarding && subscription.tier === 'seeker');
       if (!skipCount) {
         await doAtomicIncrement();
       }
     }
 
     // Also update the legacy usage tracking table where enabled.
-    const isTrialOrOnboardingSeeker =
-      subscription.tier === 'free_trial' ||
-      (isOnboarding && subscription.tier === 'seeker');
-    if (!isTrialOrOnboardingSeeker) {
+    // free_trial is no longer excluded — counts must be recorded there too.
+    const isOnboardingSeeker = (isOnboarding && subscription.tier === 'seeker');
+    if (!isOnboardingSeeker) {
       await this.updateUsageTracking(userId, action);
     }
   }
