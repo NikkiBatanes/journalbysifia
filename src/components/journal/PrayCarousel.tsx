@@ -61,13 +61,15 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
 
   // Restore scroll position on mount
   React.useEffect(() => {
-    if (!hasRestoredPosition.current && initialScrollIndex > 0) {
+    if (!hasRestoredPosition.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
           x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
           animated: false,
         });
         hasRestoredPosition.current = true;
+        // Set expanded index after scroll position is restored
+        setExpandedIndex(initialScrollIndex);
       }, 100);
     }
   }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);

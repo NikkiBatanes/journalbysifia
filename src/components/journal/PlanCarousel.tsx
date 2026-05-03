@@ -86,6 +86,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
           animated: false,
         });
         hasRestoredPosition.current = true;
+        // Set expanded index after scroll position is restored
+        setExpandedIndex(initialScrollIndex);
       }, 100);
     }
   }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);

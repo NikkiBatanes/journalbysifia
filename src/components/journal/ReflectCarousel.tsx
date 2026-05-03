@@ -65,13 +65,15 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
     if (!hasRestoredPosition.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
-          x: 0,
+          x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
           animated: false,
         });
         hasRestoredPosition.current = true;
+        // Set expanded index after scroll position is restored
+        setExpandedIndex(initialScrollIndex);
       }, 100);
     }
-  }, []);
+  }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);
 
   // Listen for collapse event when navigating away from journal screen
   useEffect(() => {
