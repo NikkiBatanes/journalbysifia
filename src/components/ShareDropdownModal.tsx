@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
   },
   dropdownContent: {
     backgroundColor: Colors.modalBlue,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 30,
+    padding: 20,
     gap: 8,
   },
   dropdownHeader: {
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 30,
+    padding: 16,
     gap: 12,
   },
   dropdownItemIconContainer: {
