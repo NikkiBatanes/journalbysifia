@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    left: 20,
+    right: 70,
     top: 16,
     padding: 8,
     width: 42,
