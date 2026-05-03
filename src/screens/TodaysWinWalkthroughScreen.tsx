@@ -456,7 +456,6 @@ const WinTypeSelectionStep: React.FC<{
                 multiline
                 autoFocus
                 keyboardAppearance="dark"
-                selectionColor={Colors.white}
               />
             </View>
           </StepFadeIn>
@@ -751,7 +750,6 @@ const QuietWinStep: React.FC<{
             textAlignVertical="top"
             autoFocus
             keyboardAppearance="dark"
-            selectionColor={Colors.white}
           />
         </StepFadeIn>
 

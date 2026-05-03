@@ -76,7 +76,6 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                 onChangeText={setSearchQuery}
                 autoCorrect={false}
                 autoCapitalize="none"
-                selectionColor={Colors.white}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity

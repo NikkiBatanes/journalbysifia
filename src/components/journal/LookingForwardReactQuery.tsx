@@ -564,7 +564,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             onSubmitEditing={saveEditedEntry}
             returnKeyType="done"
             blurOnSubmit={false}
-            selectionColor={Colors.white}
           />
           <View style={styles.editEntryButtons}>
             <TouchableOpacity
@@ -597,7 +596,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               autoFocus
               returnKeyType="done"
               blurOnSubmit={false}
-              selectionColor={Colors.white}
             />
           </View>
           <View style={styles.buttonRow}>

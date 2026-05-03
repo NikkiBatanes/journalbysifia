@@ -213,7 +213,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               autoCapitalize="words"
               textAlignVertical="center"
               textAlign="left"
-              selectionColor={Colors.white}
             />
           </View>
 
@@ -230,7 +229,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
               numberOfLines={6}
               textAlignVertical="top"
               textAlign="left"
-              selectionColor={Colors.white}
             />
           </View>
 
@@ -250,7 +248,6 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
                 numberOfLines={3}
                 textAlignVertical="top"
                 textAlign="left"
-                selectionColor={Colors.white}
               />
             </View>
           )}

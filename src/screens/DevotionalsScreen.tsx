@@ -1298,7 +1298,6 @@ const DevotionalsScreen = () => {
                       autoCorrect={false}
                       returnKeyType="search"
                       keyboardAppearance="dark"
-                      selectionColor={Colors.white}
                     />
                   </View>
                   {searchQuery.length > 0 && (

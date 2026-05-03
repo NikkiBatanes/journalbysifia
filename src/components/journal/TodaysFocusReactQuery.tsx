@@ -682,7 +682,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   autoFocus
                   accessibilityLabel="Today's focus input"
                   accessibilityHint="Enter your main focus for today"
-                  selectionColor={Colors.white}
                 />
               </SwipeableTodoItem>
               <ThemedText weight="semiBold" style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</ThemedText>
@@ -698,7 +697,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     onSubmitEditing={toggleEditing}
                     accessibilityLabel={`Priority ${index + 1} input`}
                     accessibilityHint={`Enter your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} priority for today`}
-                    selectionColor={Colors.white}
                   />
                 </View>
               ))}

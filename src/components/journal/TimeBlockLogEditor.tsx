@@ -551,9 +551,7 @@ const createDefaultStyles = (_fonts: any) => ({
     color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 20,
-    selectionColor: Colors.white,
-    paddingVertical: 12,
-    minHeight: 44,
+    fontFamily: Fonts.medium,
   },
   timePickerModal: {
     flex: 1,
@@ -1322,19 +1320,18 @@ function TimeBlockLogEditorInner(
                 <View style={{ flex: 1, position: 'relative' }}>
                   <TextInput
                     ref={inputRef}
-                    style={[s.titleInputField, { fontFamily: getFontFamily(fontKey, 'medium') }]}
+                    style={s.titleInputField}
                     placeholder=""
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
                     value={title}
                     onChangeText={(text) => handleContentChange('title', text)}
                     multiline={false}
                     keyboardAppearance="dark"
-                    selectionColor={Colors.white}
                   />
                   {!title && (
-                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', marginTop: 12 }}>
-                      <ThemedText weight="medium" style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, lineHeight: 20 }}>
-                        Title <ThemedText weight="medium" style={{ color: Colors.alertCoral, fontSize: 16, lineHeight: 20 }}>*</ThemedText>
+                    <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                      <ThemedText style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>
+                        Title <ThemedText style={{ color: Colors.alertCoral, fontSize: 16, fontFamily: Fonts.medium, lineHeight: 20 }}>*</ThemedText>
                       </ThemedText>
                     </View>
                   )}
@@ -1662,7 +1659,6 @@ function TimeBlockLogEditorInner(
                             maxLength={2}
                             placeholderTextColor="rgba(255, 255, 255, 0.6)"
                             keyboardAppearance="dark"
-                            selectionColor={Colors.white}
                           />
 
                           <TouchableOpacity
@@ -1870,7 +1866,6 @@ function TimeBlockLogEditorInner(
                       }
                     }, 250);
                   }}
-                  selectionColor={Colors.white}
                 />
               </View>
 

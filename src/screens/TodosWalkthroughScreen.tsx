@@ -419,7 +419,6 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 returnKeyType={index < todos.length - 1 ? 'next' : 'done'}
                 autoFocus={index === 0}
                 keyboardAppearance="dark"
-                selectionColor={Colors.white}
               />
             </View>
           ))}

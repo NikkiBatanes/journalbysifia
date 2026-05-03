@@ -735,7 +735,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 autoFocus={index === 0}
                 accessibilityLabel={`Gratitude item ${index + 1} input`}
                 accessibilityHint={'Enter something you\'re grateful for'}
-                selectionColor={Colors.white}
               />
             ))
           ) : (
@@ -748,7 +747,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   value={item}
                   onChangeText={(value) => handleNewItemChange(index, value)}
                   placeholder="I'm grateful for..."
-                  selectionColor={Colors.white}
                   placeholderTextColor={Colors.textGray}
                   returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}

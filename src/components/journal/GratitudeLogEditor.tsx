@@ -751,7 +751,6 @@ const GratitudeLogEditorInner = (
                       }
                     }}
                     blurOnSubmit={index === gratitudeItems.length - 1}
-                    selectionColor={Colors.white}
                   />
                 </View>
               </View>

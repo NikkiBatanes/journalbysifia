@@ -1613,7 +1613,6 @@ const UserInputScreen: React.FC = () => {
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     blurOnSubmit={false}
-                    selectionColor={Colors.white}
                   />
                   {/* Bottom row overlays: buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">

@@ -343,7 +343,6 @@ const EmotionSelectionStep: React.FC<{
                 multiline
                 autoFocus
                 keyboardAppearance="dark"
-                selectionColor={Colors.white}
               />
             </View>
           </StepFadeIn>
@@ -578,7 +577,6 @@ const LookingAheadInputStep: React.FC<{
             textAlignVertical="top"
             autoFocus
             keyboardAppearance="dark"
-            selectionColor={Colors.white}
           />
         </StepFadeIn>
 

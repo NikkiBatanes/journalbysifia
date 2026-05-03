@@ -2032,7 +2032,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     autoCorrect={false}
                     returnKeyType="search"
                     keyboardAppearance="dark"
-                    selectionColor={Colors.white}
                   />
                 </View>
                 {searchQuery.length > 0 && (
@@ -2702,7 +2701,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
               placeholder="Enter new title"
               placeholderTextColor="rgba(255, 255, 255, 0.5)"
               autoFocus
-              selectionColor={Colors.white}
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -2769,7 +2767,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 onChangeText={setCustomTag}
                 placeholder="Enter custom tag"
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                selectionColor={Colors.white}
               />
             )}
             <View style={styles.modalButtons}>

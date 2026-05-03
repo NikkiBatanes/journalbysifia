@@ -249,7 +249,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
             editable={false}
             multiline={true}
             scrollEnabled={false}
-            selectionColor={Colors.white}
             style={[styles.title, { fontWeight: '500' as any, fontFamily }]}
           />
         ) : (
@@ -266,7 +265,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              selectionColor={Colors.white}
               style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }, { fontFamily }]}
             />
           ) : (
@@ -285,7 +283,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              selectionColor={Colors.white}
               style={[styles.transitionLineText, { fontFamily }]}
             />
           ) : (
@@ -356,7 +353,6 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  selectionColor={Colors.white}
                   style={[styles.bodyText, { fontFamily }]}
                 />
               ) : (
@@ -441,7 +437,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              selectionColor={Colors.white}
               style={[styles.scriptureRef, { fontWeight: '600' as any, fontFamily }]}
             />
           ) : (
@@ -458,7 +453,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    selectionColor={Colors.white}
                     style={[styles.versionText, { fontWeight: '600' as any, fontFamily }]}
                   />
                 ) : (
@@ -484,7 +478,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             editable={false}
             multiline={true}
             scrollEnabled={false}
-            selectionColor={Colors.white}
             style={[styles.scriptureText, { fontWeight: '500' as any, fontFamily }]}
           />
         ) : (
@@ -509,7 +502,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              selectionColor={Colors.white}
               style={[styles.reflectionNote, { fontFamily }]}
             />
           ) : (
@@ -991,7 +983,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                selectionColor={Colors.white}
                 style={[styles.actionIntro, { fontFamily }]}
               />
             ) : (
@@ -1007,7 +998,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              selectionColor={Colors.white}
               style={[styles.actionCounter, { fontFamily }]}
             />
           ) : (
@@ -1045,7 +1035,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                selectionColor={Colors.white}
                 style={[styles.actionTitle, { fontWeight: '600' as any, fontFamily }]}
               />
             ) : (
@@ -1064,7 +1053,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    selectionColor={Colors.white}
                     style={[styles.bodyLineQuote, { fontFamily }]}
                   />
                 ) : (
@@ -1081,7 +1069,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    selectionColor={Colors.white}
                     style={[styles.bodyLineIntro, { fontFamily }]}
                   />
                 ) : (
@@ -1105,7 +1092,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                         editable={false}
                         multiline={true}
                         scrollEnabled={false}
-                        selectionColor={Colors.white}
                         style={[styles.choicePillText, isSelected && styles.choicePillTextSelected, isSelected && { fontWeight: '600' as any }, { fontFamily }]}
                       />
                     ) : (
@@ -1128,7 +1114,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    selectionColor={Colors.white}
                     style={[styles.bodyLinePunch, { fontWeight: '500' as any, fontFamily }]}
                   />
                 ) : (
@@ -1144,7 +1129,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  selectionColor={Colors.white}
                   style={[styles.actionBodyLine, { fontFamily }]}
                 />
               ) : (
@@ -1167,7 +1151,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                       editable={false}
                       multiline={true}
                       scrollEnabled={false}
-                      selectionColor={Colors.white}
                       style={[styles.exampleText, { fontFamily }]}
                     />
                   ) : (
@@ -1459,7 +1442,6 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  selectionColor={Colors.white}
                   style={[styles.prayerText, { fontFamily }]}
                 />
               ) : (
@@ -1479,7 +1461,6 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
                     editable={false}
                     multiline={true}
                     scrollEnabled={false}
-                    selectionColor={Colors.white}
                     style={[styles.prayerText, { fontFamily }]}
                   />
                 ) : (
@@ -1613,7 +1594,6 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  selectionColor={Colors.white}
                   style={[styles.wordText, { fontWeight: '500' as any, fontFamily }]}
                 />
               ) : (
@@ -1774,7 +1754,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
-                  selectionColor={Colors.white}
                   style={[styles.stepLabelWhite, { fontWeight: '600' as any, fontFamily }]}
                 />
               ) : (
@@ -1789,7 +1768,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                selectionColor={Colors.white}
                 style={[styles.completionTitle, { fontWeight: '700' as any, fontFamily }]}
               />
             ) : (
@@ -1811,7 +1789,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                selectionColor={Colors.white}
                 style={[styles.completionContext, { fontFamily }]}
               />
             ) : (
@@ -1825,7 +1802,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                 editable={false}
                 multiline={true}
                 scrollEnabled={false}
-                selectionColor={Colors.white}
                 style={[styles.completionQuestion, { fontFamily }]}
               />
             ) : (
@@ -1860,7 +1836,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                       editable={false}
                       multiline={true}
                       scrollEnabled={false}
-                      selectionColor={Colors.white}
                       style={[
                         styles.completionChoiceText,
                         selectedChoice === choice && styles.completionChoiceTextActive,
@@ -1896,7 +1871,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
                       editable={false}
                       multiline={true}
                       scrollEnabled={false}
-                      selectionColor={Colors.white}
                       style={[styles.completionActionLine, { fontFamily }]}
                     />
                   ) : (
