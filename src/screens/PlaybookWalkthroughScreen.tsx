@@ -15,12 +15,11 @@ import {
   DeviceEventEmitter,
   Platform,
   Clipboard,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GestureDetector, Gesture, Directions } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -1863,9 +1862,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
               {actionLines.map((line, index) => (
                 <View key={index} style={styles.completionActionItem}>
                   <View style={styles.completionActionCircle}>
-                    <ThemedText weight="bold" style={styles.completionActionNumber}>
-                      {index + 1}
-                    </ThemedText>
+                    <Ionicons name="sparkles" size={14} color={Colors.alertCoral} />
                   </View>
                   {Platform.OS === 'ios' ? (
                     <TextInput
@@ -2486,6 +2483,38 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [source, navigation]);
 
+  // Swipe gesture handlers
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const hasEnoughDistance = Math.abs(gestureState.dx) > SCREEN_WIDTH * 0.15;
+          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
+
+          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
+            return;
+          }
+
+          if (gestureState.dx > 0) {
+            // Swipe right - go back
+            goBack();
+            triggerMediumHaptic();
+          } else if (gestureState.dx < 0) {
+            // Swipe left - go next
+            if (stepIndex < TOTAL_STEPS - 1) {
+              goNext();
+              triggerMediumHaptic();
+            }
+          }
+        },
+      }),
+    [stepIndex, goBack, goNext]
+  );
+
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
     return <PlaybookSkeletonLoader />;
@@ -2544,30 +2573,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <>
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       {/* Step content */}
-      <GestureDetector
-        gesture={Gesture.Fling()
-          .direction(Directions.LEFT)
-          .onEnd(() => {
-            if (stepIndex < TOTAL_STEPS - 1) {
-              runOnJS(goNext)();
-            }
-          })}
+      {/* Animated slide container */}
+      <Animated.View
+        style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
       >
-        <GestureDetector
-          gesture={Gesture.Fling()
-            .direction(Directions.RIGHT)
-            .onEnd(() => {
-              if (stepIndex > 0) {
-                runOnJS(goBack)();
-              }
-            })}
-        >
-          {/* Animated slide container */}
-          <Animated.View
-            style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
-          >
             {stepIndex === 0 && (
               <EnterMomentStep
                 title={playbook.title}
@@ -2662,8 +2673,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               />
             )}
           </Animated.View>
-        </GestureDetector>
-      </GestureDetector>
 
       {/* Floating close button — top left (steps 0–5), always closes the screen */}
       {stepIndex !== 6 && (source as any) !== 'onboarding' && (
