@@ -372,16 +372,16 @@ const WinTypeSelectionStep: React.FC<{
   }, [isOtherSelected, chooseAgainScale]);
 
   useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -392,8 +392,8 @@ const WinTypeSelectionStep: React.FC<{
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 
@@ -674,16 +674,16 @@ const QuietWinStep: React.FC<{
   }, [verticalLineHeight]);
 
   useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -694,8 +694,8 @@ const QuietWinStep: React.FC<{
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 

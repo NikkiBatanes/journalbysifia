@@ -233,18 +233,18 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Keyboard visibility tracking
   useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener(
-      'keyboardWillShow',
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
       () => setIsKeyboardVisible(true)
     );
-    const keyboardWillHideListener = Keyboard.addListener(
-      'keyboardWillHide',
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
       () => setIsKeyboardVisible(false)
     );
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, []);
 
@@ -273,16 +273,16 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [verticalLineHeight]);
 
   useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', () => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + 325,
+        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
         tension: 80,
         friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
       Animated.spring(buttonPosition, {
         toValue: insets.bottom + 20,
@@ -293,8 +293,8 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
 
