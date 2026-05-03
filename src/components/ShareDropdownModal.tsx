@@ -30,6 +30,7 @@ interface ShareDropdownModalProps {
     dayNumber: number;
     title: string;
   };
+  isCompletion?: boolean; // Indicates if sharing from completion page
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -40,6 +41,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   shareText,
   shareContext = 'playbook',
   devotionalShareData,
+  isCompletion = false,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -87,7 +89,14 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
     if (shareContext === 'devotional' && devotionalShareData) {
       const { totalDays, dayNumber, title } = devotionalShareData;
       const isSeries = totalDays > 1;
-      finalShareText = `I created a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia to spend time in prayer, reflection, and Scripture. Today I'm on Day ${dayNumber}: ${title}. Try it here: ${appUrl}`;
+
+      if (isCompletion) {
+        // Completion page share text
+        finalShareText = `I finished a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia today and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
+      } else {
+        // Detail page share text
+        finalShareText = `I created a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia to spend time in prayer, reflection, and Scripture. Today I'm on Day ${dayNumber}: ${title}. Try it here: ${appUrl}`;
+      }
     } else if (shareContext === 'devotional') {
       finalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
     } else {

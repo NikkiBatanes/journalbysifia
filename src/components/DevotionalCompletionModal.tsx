@@ -634,6 +634,12 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         }}
         playbookTitle={devotional.title}
         shareContext="devotional"
+        isCompletion={true}
+        devotionalShareData={{
+          totalDays: devotional.totalDays,
+          dayNumber: currentDayNumber,
+          title: devotional.title,
+        }}
       />
     </Modal>
   );
