@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter, KeyboardAvoidingView } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';

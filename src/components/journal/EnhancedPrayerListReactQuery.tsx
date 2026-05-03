@@ -12,7 +12,6 @@ import {
   Platform,
   TextInput,
   StatusBar,
-  DeviceEventEmitter
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../theme/colors';
