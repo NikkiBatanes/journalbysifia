@@ -1310,12 +1310,13 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
-  const [currentStep, setCurrentStep] = useState(editingPrayerId ? 2 : 0);
-  const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
+  // Skip intro/description steps when coming from PlaybookWalkthroughScreen
+  const [currentStep, setCurrentStep] = useState(editingPrayerId || fromPlaybook ? 2 : 0);
+  const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(fromPlaybook ? (initialPrayerType === 'acts' ? PRAYER_PATHS[0] : initialPrayerType === 'open' ? PRAYER_PATHS[1] : null) : null);
   const [prayerTexts, setPrayerTexts] = useState<{ [key: string]: string }>({});
   const [openPrayerText, setOpenPrayerText] = useState('');
   const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(true);
@@ -1520,12 +1521,18 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   }, [currentStep, selectedPath, prayerTexts, openPrayerText, navigation]);
 
   const handleBack = useCallback(() => {
+    // When coming from PlaybookWalkthroughScreen, go back directly without showing intro steps
+    if (fromPlaybook) {
+      navigation.goBack();
+      return;
+    }
+
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
-  }, [currentStep, navigation]);
+  }, [currentStep, navigation, fromPlaybook]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

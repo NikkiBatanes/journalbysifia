@@ -156,6 +156,7 @@ export type RootStackParamList = {
     actionStepTitle?: string;
     stepBody?: string;
     stepExample?: string | null;
+    fromPlaybook?: boolean;
   } | undefined;
 
   // Prayers for People Walkthrough
