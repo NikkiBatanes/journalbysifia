@@ -17,6 +17,8 @@ import ThemedText from './common/ThemedText';
 
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
+import ShareDropdownModal from './ShareDropdownModal';
+import { pdfExportService } from '../utils/pdfExportService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -57,6 +59,7 @@ interface DevotionalCompletionModalProps {
   onClose: () => void;
   onRatingSubmit: (rating: number) => Promise<void>;
   onCheckReveal?: () => void; // Called when the checkmark reveal animation completes
+  dayData?: any; // Current day data for PDF export
 }
 
 const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
@@ -69,6 +72,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   onClose,
   onRatingSubmit,
   onCheckReveal,
+  dayData,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -76,6 +80,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const checkAnim = useRef(new Animated.Value(0)).current;
   const [rating, setRating] = useState(0);
   const starAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(1))).current;
+  const [showShareDropdown, setShowShareDropdown] = useState(false);
 
 
   // Simple celebratory burst particles
@@ -325,9 +330,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           >
             <Animated.View style={{ transform: [{ scale: starAnims[index] }] }}>
               <Ionicons
-                name="sparkles"
+                name={index < rating ? 'sparkles' : 'sparkles-outline'}
                 size={14}
-                color={index < rating ? Colors.alertCoral : 'rgba(255, 107, 107, 0.3)'}
+                color={Colors.alertCoral}
                 style={styles.starIcon}
               />
             </Animated.View>
@@ -353,7 +358,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   });
 
   // Get the current day's data
-  const currentDay = devotional.days.find(day => day.dayNumber === currentDayNumber);
+  const currentDay = devotional.days.find(day => day.dayNumber === currentDayNumber) || dayData;
 
   return (
     <Modal
@@ -380,6 +385,15 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => {
+                triggerLightHaptic();
+                setShowShareDropdown(true);
+              }}
+              style={styles.shareButton}
+            >
+              <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           </View>
 
@@ -599,6 +613,28 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           </View>
         </Animated.View>
       </View>
+
+      <ShareDropdownModal
+        visible={showShareDropdown}
+        onClose={() => setShowShareDropdown(false)}
+        onExportPDF={() => {
+          if (currentDay) {
+            pdfExportService.exportDevotionalPDF({
+              title: devotional.title,
+              duration: `${devotional.totalDays}-Day Devotional`,
+              dayTitle: currentDay.title,
+              dayLabel: `Day ${currentDayNumber} of ${devotional.totalDays}`,
+              bibleVerse: currentDay.scripture,
+              reflection: currentDay.reflection,
+              questionsToPonder: currentDay.reflectionQuestions?.map((q: any) => q.text || '').filter((text: string) => text.trim() !== ''),
+              prayer: currentDay.prayer,
+              createdAt: devotional.createdAt,
+            });
+          }
+        }}
+        playbookTitle={devotional.title}
+        shareContext="devotional"
+      />
     </Modal>
   );
 };
@@ -636,6 +672,18 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     right: 20,
+    top: 16,
+    padding: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareButton: {
+    position: 'absolute',
+    left: 20,
     top: 16,
     padding: 8,
     width: 42,

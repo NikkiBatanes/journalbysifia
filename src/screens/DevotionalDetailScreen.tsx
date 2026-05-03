@@ -919,6 +919,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           visible={showCompletionModal}
           devotional={devotional}
           currentDayNumber={(completedDayIndex ?? 0) + 1}
+          dayData={currentDay}
           completedDays={(() => {
             // Calculate completed days at the time of marking complete to prevent re-calculations
             const currentCompletedCount = devotional.days.filter(day => day.completed).length;
