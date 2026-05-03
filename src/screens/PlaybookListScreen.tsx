@@ -1577,6 +1577,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const dateSectionItems = useMemo((): DateSectionItem[] => {
     switch (deferredDateViewMode) {
       case 'weekly':
+        if (weeklySections.length === 0 || weeklySections.every(s => s.playbooks.length === 0)) {
+          return [{ key: 'weekly-empty', category: '', playbooks: [], showYear: false, isEmpty: true }];
+        }
         return weeklySections.map(s => ({
           key: s.weekStart.toISOString(),
           category: s.label,
@@ -1584,6 +1587,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
           showYear: false,
         }));
       case 'monthly':
+        if (monthlySections.length === 0 || monthlySections.every(s => s.playbooks.length === 0)) {
+          return [{ key: 'monthly-empty', category: '', playbooks: [], showYear: false, isEmpty: true }];
+        }
         return monthlySections.map(s => ({
           key: `${s.year}-${s.month}`,
           category: s.label,
@@ -1592,6 +1598,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
           year: s.year,
         }));
       case 'yearly':
+        if (yearlySections.length === 0 || yearlySections.every(s => s.playbooks.length === 0)) {
+          return [{ key: 'yearly-empty', category: '', playbooks: [], showYear: false, isEmpty: true }];
+        }
         return yearlySections.map(s => ({
           key: String(s.year),
           category: String(s.year),
@@ -1829,46 +1838,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // unrelated state change (e.g. menuVisible toggle, searchQuery keystroke).
   const renderDateSectionItem = useCallback(({ item }: { item: DateSectionItem }) => {
     if (item.isEmpty) {
-      return (
-        <View style={styles.emptyStateContainer}>
-          <View style={styles.heroCard}>
-            <MaterialCommunityIcons
-              name="check-circle"
-              size={32}
-              color={Colors.growthGreen}
-              style={styles.heroIcon}
-            />
-            <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
-            <ThemedText weight="semiBold" style={styles.heroTitle}>No Playbooks in This Date Range</ThemedText>
-            <ThemedText style={styles.heroSubtitle}>
-              You don't have any playbooks in the selected date range.
-            </ThemedText>
-
-            {deferredFilter === 'ongoing' ? (
-              <TouchableOpacity
-                onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                activeOpacity={0.85}
-                style={styles.heroOutlineButton}
-              >
-                <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a New Playbook</ThemedText>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  setFilter('ongoing');
-                }}
-                activeOpacity={0.85}
-                style={styles.heroOutlineButton}
-              >
-                <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View In Progress</ThemedText>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      );
+      return null; // Handle empty state in ListHeaderComponent instead
     }
     return (
       <View>
@@ -2366,7 +2336,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   />
                 )
               ) : categorySections.length === 0 ? (
-                deferredFilter === 'ongoing' ? (
+                <>
                   <View style={styles.emptyStateContainer}>
                     <View style={styles.heroCard}>
                       <MaterialCommunityIcons
@@ -2378,48 +2348,51 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
                       <ThemedText weight="semiBold" style={styles.heroTitle}>No Playbooks in This Category</ThemedText>
                       <ThemedText style={styles.heroSubtitle}>
-                        You don't have any in-progress playbooks in this category yet.
+                        {deferredFilter === 'ongoing'
+                          ? "You don't have any in-progress playbooks in this category yet."
+                          : "You don't have any completed playbooks in this category yet."}
                       </ThemedText>
 
-                      <TouchableOpacity
-                        onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                        activeOpacity={0.85}
-                        style={styles.heroOutlineButton}
-                      >
-                        <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a New Playbook</ThemedText>
-                      </TouchableOpacity>
+                      {deferredFilter === 'ongoing' ? (
+                        <TouchableOpacity
+                          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a New Playbook</ThemedText>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setFilter('ongoing');
+                          }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View In Progress</ThemedText>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
-                ) : (
-                  <View style={styles.emptyStateContainer}>
-                    <View style={styles.heroCard}>
-                      <MaterialCommunityIcons
-                        name="check-circle"
-                        size={32}
-                        color={Colors.growthGreen}
-                        style={styles.heroIcon}
-                      />
-                      <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
-                      <ThemedText weight="semiBold" style={styles.heroTitle}>No Playbooks in This Category</ThemedText>
-                      <ThemedText style={styles.heroSubtitle}>
-                        You don't have any completed playbooks in this category yet.
-                      </ThemedText>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          triggerLightHaptic();
-                          setFilter('ongoing');
-                        }}
-                        activeOpacity={0.85}
-                        style={styles.heroOutlineButton}
-                      >
-                        <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View In Progress</ThemedText>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )
+                  {deferredFilter !== 'completed' && incompleteFaithfulActions.length > 0 && (
+                    <FaithfulActionsCarouselRow
+                      faithfulActions={incompleteFaithfulActions}
+                      cardStyles={styles}
+                      onPress={(action) => {
+                        triggerLightHaptic();
+                        navigation.navigate('PlaybookWalkthrough', {
+                          playbook: { id: action.playbookId },
+                          initialStep: 3,
+                          initialActionIndex: action.actionIndex - 1,
+                        });
+                      }}
+                      triggerHaptic={triggerLightHaptic}
+                    />
+                  )}
+                </>
               ) : (
                 <>
                   {deferredFilter === 'ongoing' && (
@@ -2491,7 +2464,46 @@ const PlaybookListScreen = ({ navigation }: any) => {
               windowSize={3}
               removeClippedSubviews={true}
               ListHeaderComponent={
-                deferredFilter === 'faithful' ? (
+                dateSectionItems.some(item => item.isEmpty) ? (
+                  <View style={styles.emptyStateContainer}>
+                    <View style={styles.heroCard}>
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={32}
+                        color={Colors.growthGreen}
+                        style={styles.heroIcon}
+                      />
+                      <ThemedText weight="semiBold" style={styles.heroOverline}>ALL CAUGHT UP</ThemedText>
+                      <ThemedText weight="semiBold" style={styles.heroTitle}>No Playbooks in This Date Range</ThemedText>
+                      <ThemedText style={styles.heroSubtitle}>
+                        You don't have any playbooks in the selected date range.
+                      </ThemedText>
+
+                      {deferredFilter === 'ongoing' ? (
+                        <TouchableOpacity
+                          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialIcons name="auto-fix-high" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Start a New Playbook</ThemedText>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setFilter('ongoing');
+                          }}
+                          activeOpacity={0.85}
+                          style={styles.heroOutlineButton}
+                        >
+                          <MaterialCommunityIcons name="clipboard-text-play" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                          <ThemedText weight="medium" style={styles.heroOutlineButtonText}>View In Progress</ThemedText>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                ) : deferredFilter === 'faithful' ? (
                   incompleteFaithfulActions.length === 0 ? (
                     <View style={styles.emptyStateContainer}>
                       <View style={styles.heroCard}>

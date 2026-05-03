@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
     marginVertical: 18,
     marginHorizontal: 8,
     elevation: 4,
-    maxHeight: 600,
+    maxHeight: 500,
   },
   headerRow: {
     flexDirection: 'row',
@@ -1286,7 +1286,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   prayersContainerExpanded: {
-    maxHeight: 600,
+    maxHeight: 500,
   },
   checkButton: {
     position: 'absolute',

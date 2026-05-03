@@ -1364,11 +1364,13 @@ const DevotionalsScreen = () => {
               renderFilterEmptyState()
             ) : (
               <>
-                <View style={styles.carouselTitleContainer}>
-                  <ThemedText weight="bold" style={styles.carouselTitle}>
-                    CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
-                  </ThemedText>
-                </View>
+                {deferredFilter === 'ongoing' && (
+                  <View style={styles.carouselTitleContainer}>
+                    <ThemedText weight="bold" style={styles.carouselTitle}>
+                      CONTINUE YOUR DEVOTIONAL{categorySections.reduce((total, section) => total + section.devotionals.length, 0) !== 1 ? 'S' : ''}
+                    </ThemedText>
+                  </View>
+                )}
                 {categorySections.map(({ category, devotionals: categoryDevotionals }) => (
                   <CategoryCarouselRow
                     key={category}
@@ -1405,7 +1407,7 @@ const DevotionalsScreen = () => {
               </View>
             )}
             ListHeaderComponent={
-              dateSectionItems.length > 0 ? (
+              dateSectionItems.length > 0 && deferredFilter === 'ongoing' ? (
                 <View>
                   <View style={styles.carouselTitleContainer}>
                     <ThemedText weight="bold" style={styles.carouselTitle}>

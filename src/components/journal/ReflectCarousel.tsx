@@ -1,11 +1,10 @@
-import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Animated,
   StyleSheet,
   ScrollView,
   useWindowDimensions,
-  DeviceEventEmitter,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
@@ -65,22 +64,12 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
     if (!hasRestoredPosition.current) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({
-          x: initialScrollIndex * (CARD_WIDTH + CARD_SPACING),
+          x: 0,
           animated: false,
         });
         hasRestoredPosition.current = true;
-        // Set expanded index after scroll position is restored
-        setExpandedIndex(initialScrollIndex);
       }, 100);
     }
-  }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);
-
-  // Listen for collapse event when navigating away from journal screen
-  useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
-      setExpandedIndex(null);
-    });
-    return () => subscription.remove();
   }, []);
 
   // Handle scroll feedback with sound
