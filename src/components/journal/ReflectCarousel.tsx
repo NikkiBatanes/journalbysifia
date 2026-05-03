@@ -1,10 +1,11 @@
-import React, { useRef, useCallback, useState, useMemo } from 'react';
+import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react';
 import {
   View,
   Animated,
   StyleSheet,
   ScrollView,
   useWindowDimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
@@ -70,6 +71,14 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         hasRestoredPosition.current = true;
       }, 100);
     }
+  }, []);
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setExpandedIndex(null);
+    });
+    return () => subscription.remove();
   }, []);
 
   // Handle scroll feedback with sound

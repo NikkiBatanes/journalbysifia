@@ -1,5 +1,5 @@
-import React, { useRef, useCallback, useState, useMemo } from 'react';
-import { View, Animated, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react';
+import { View, Animated, StyleSheet, ScrollView, useWindowDimensions, DeviceEventEmitter } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Colors, standardColors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
@@ -89,6 +89,14 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, i
       }, 100);
     }
   }, [initialScrollIndex, CARD_WIDTH, CARD_SPACING]);
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setExpandedIndex(null);
+    });
+    return () => subscription.remove();
+  }, []);
 
   const carouselItems = useMemo(() => [
     {

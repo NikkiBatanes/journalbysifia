@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, ScrollView, DeviceEventEmitter, KeyboardAvoidingView } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -240,6 +240,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [showTitleError, setShowTitleError] = useState(false);
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setVisibleCount(3);
+    });
+    return () => subscription.remove();
+  }, []);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<{
     visible: boolean;

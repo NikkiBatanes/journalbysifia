@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -398,6 +399,14 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   const actsDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type !== 'freeform').length : initialLimits.acts;
   const openDisplayLimit = userExpanded ? existingPrayers.filter((p: any) => p.type === 'freeform').length : initialLimits.open;
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setUserExpanded(false);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Map filters to local type keys used by this component
   const allowedTypeKeysFromFilters = useMemo(() => {

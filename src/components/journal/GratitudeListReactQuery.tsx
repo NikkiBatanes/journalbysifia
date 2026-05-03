@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, DeviceEventEmitter } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
@@ -81,6 +81,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const inputRefs = useRef<(TextInput | null)[]>([]); // Refs for input fields
   const shouldFocusInput = useRef(false); // Track when we need to focus
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setVisibleCount(5);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Animation for add button appearing/disappearing between cancel and save
   const buttonGroupAnim = useRef(new Animated.Value(0)).current;

@@ -3592,7 +3592,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
-    paddingTop: 8,
+    paddingTop: 32,
     paddingBottom: 16,
     paddingHorizontal: 0,
     minHeight: 300,

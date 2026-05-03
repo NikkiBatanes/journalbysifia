@@ -706,9 +706,14 @@ const DevotionalsScreen = () => {
               <TouchableOpacity
                 onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
                 activeOpacity={0.85}
-                style={styles.heroTextButton}
+                style={styles.heroOutlineButton}
               >
-                <ThemedText weight="medium" style={styles.heroLinkText}>
+                {filter === 'ongoing' ? (
+                  <MaterialCommunityIcons name="check-circle-outline" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                ) : (
+                  <MaterialCommunityIcons name="clipboard-text-clock" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                )}
+                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
                   {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
                 </ThemedText>
               </TouchableOpacity>
@@ -1324,7 +1329,7 @@ const DevotionalsScreen = () => {
             onScroll={handleScroll}
             scrollEventThrottle={100}
           >
-            {deferredFilter === 'ongoing' && (
+            {deferredFilter === 'ongoing' && sortedDevotionals.length > 0 && (
               <CategoryCarouselRow
                 category={`CONTINUE YOUR DEVOTIONAL${sortedDevotionals.length !== 1 ? 'S' : ''}`}
                 items={sortedDevotionals}
@@ -2053,7 +2058,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
-    paddingTop: 8,
+    paddingTop: 32,
     paddingBottom: 16,
     paddingHorizontal: 0,
     minHeight: 300,

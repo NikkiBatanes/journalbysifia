@@ -3,7 +3,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { JournalCard } from './JournalCard';
@@ -499,6 +499,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const [visibleCount, setVisibleCount] = useState(3);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setVisibleCount(3);
+    });
+    return () => subscription.remove();
+  }, []);
 
   const handleDeleteEntry = useCallback(async (entryId: string) => {
     const entryToDelete = entries.find(e => e.id === entryId);

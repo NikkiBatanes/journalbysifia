@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform, Animated } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform, Animated, DeviceEventEmitter } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -99,6 +99,14 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
+
+  // Listen for collapse event when navigating away from journal screen
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('collapse_all_expanded', () => {
+      setVisibleCount(5);
+    });
+    return () => subscription.remove();
+  }, []);
   const [showCalendar, setShowCalendar] = useState(false);
   const [copyTargetDate, setCopyTargetDate] = useState<Date>(() => {
     const tomorrow = new Date();

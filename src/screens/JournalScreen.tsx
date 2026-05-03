@@ -248,6 +248,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     }
   }, [route?.params]);
 
+  // Function to collapse all expanded states (show more/less buttons)
+  const collapseAllExpanded = useCallback(() => {
+    // This will be passed to carousels to reset their expandedIndex
+    // The carousels will then collapse their child components
+    DeviceEventEmitter.emit('collapse_all_expanded');
+  }, []);
+
   // Reset carousel positions when screen comes into focus, but preserve selected date
   useFocusEffect(
     useCallback(() => {
@@ -257,8 +264,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       hasInitializedScroll.current = true;
       // Always expand tab bar when returning to Journal
       setShowTabBar(true);
+
+      return () => {
+        // When screen loses focus, collapse all expanded states
+        collapseAllExpanded();
+      };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [collapseAllExpanded])
   );
 
   // Centralized reset: ensure top-of-content and clear transient UI
