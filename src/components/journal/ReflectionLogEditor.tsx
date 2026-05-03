@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 
-import { Pencil, Trash2 } from 'lucide-react-native';
+import { Pencil, Trash2, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 // import { GUIDED_PROMPTS } from './reflectionConstants'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -202,6 +202,24 @@ const fallbackStyles = {
   },
   editableTitle: {
     opacity: 0.9, // Moved from inline style to fix lint warning
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonContainer: {
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.anchorBlue },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
@@ -509,6 +527,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
 
+  // Animation for close button in guided mode
+  const closeButtonAnim = useRef(new Animated.Value(0)).current; // 0 = hidden, 1 = visible
+  // Animation for sliding icons left when close button appears
+  const iconsSlideAnim = useRef(new Animated.Value(0)).current; // 0 = normal position (far right), 1 = slid left
+
   // Internal state - manage view mode
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
     initialMode || 'free-form'
@@ -531,6 +554,43 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       setViewMode(initialMode || 'free-form');
     }
   }, [source, initialPrompt, initialMode, initialEntry.content]);
+
+  // Animate close button and icons when entering/exiting guided mode
+  React.useEffect(() => {
+    if (viewMode === 'guided') {
+      // Show close button, slide icons left
+      Animated.parallel([
+        Animated.spring(closeButtonAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(iconsSlideAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Hide close button, slide icons back to normal position
+      Animated.parallel([
+        Animated.spring(closeButtonAnim, {
+          toValue: 0,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(iconsSlideAnim, {
+          toValue: 0,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [viewMode, closeButtonAnim, iconsSlideAnim]);
 
   // Normalize any stored HTML <br> tags to real newlines for native TextInput
   const normalizeIncoming = (text: string): string => {
@@ -1076,7 +1136,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       )}
       <StatusBar hidden />
     <View style={s.backgroundContainer} />
-    <View style={s.header}>
+      <View style={s.header}>
       {!!dateString && (
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
@@ -1084,12 +1144,25 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         {/* Show pencil icon for playbook/devotional/guided sources (display only) */}
         {(source === 'devotional' || source === 'playbook' || source === 'guided') && (
           <View style={s.modeButton} pointerEvents="none">
-            <Pencil
-              size={22}
-              color={Colors.alertCoral}
-              fill={Colors.alertCoral}
-              strokeWidth={1.5}
-            />
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    translateX: iconsSlideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -40],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Pencil
+                size={22}
+                color={Colors.alertCoral}
+                fill={Colors.alertCoral}
+                strokeWidth={1.5}
+              />
+            </Animated.View>
           </View>
         )}
         {/* Always show pencil toggle for freeform switching */}
@@ -1188,12 +1261,25 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             }, 100);
           }}
         >
-          <Pencil
-            size={22}
-            color={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
-            fill={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
-            strokeWidth={1.5}
-          />
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  translateX: iconsSlideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -40],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Pencil
+              size={22}
+              color={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
+              fill={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.trustGrey}
+              strokeWidth={1.5}
+            />
+          </Animated.View>
         </TouchableOpacity>
         )}
         {/* Delete icon - only visible in edit mode and when onDelete is provided */}
@@ -1202,11 +1288,24 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             style={s.modeButton}
             onPress={handleDelete}
           >
-            <Trash2
-              size={22}
-              color={Colors.trustGrey}
-              strokeWidth={1.5}
-            />
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    translateX: iconsSlideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -40],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Trash2
+                size={22}
+                color={Colors.trustGrey}
+                strokeWidth={1.5}
+              />
+            </Animated.View>
           </TouchableOpacity>
         )}
         {/* Show guided prompt icon for new entries only (not when editing) */}
@@ -1235,13 +1334,70 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               Keyboard.dismiss();
             }}
           >
-            <Ionicons
-              name="heart"
-              size={24}
-              color={selectedPrompt || viewMode === 'guided' ? Colors.alertCoral : Colors.trustGrey}
-            />
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    translateX: iconsSlideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -40],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Ionicons
+                name="heart"
+                size={24}
+                color={selectedPrompt || viewMode === 'guided' ? Colors.alertCoral : Colors.trustGrey}
+              />
+            </Animated.View>
           </TouchableOpacity>
         )}
+        {/* Close button for guided mode - animates in from right beside heart icon */}
+        <Animated.View
+          style={[
+            s.closeButtonContainer,
+            {
+              opacity: closeButtonAnim,
+              transform: [
+                {
+                  translateX: closeButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0],
+                  }),
+                },
+                {
+                  scale: closeButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.3, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onCancel();
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(255, 107, 107, 0.2)',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <X
+              size={16}
+              color={Colors.alertCoral}
+              strokeWidth={3}
+            />
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </View>
 
@@ -1348,7 +1504,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                       }
                     }}
                     underlineColorAndroid="transparent"
-                    selectionColor={Colors.hopeWhite}
                     multiline={true}
                   />
                   {isSelectedPromptLocked && (
