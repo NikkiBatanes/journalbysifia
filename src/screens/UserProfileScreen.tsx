@@ -757,21 +757,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     await openStoreReview();
   };
 
-  // Share app with friends using platform-appropriate store link (with fallback)
+  // Share app with friends using bit.ly link
   const handleShareApp = async () => {
     try {
-      const iosUrl = APPLE_APP_ID ? `https://apps.apple.com/app/id${APPLE_APP_ID}` : 'https://sifia.app';
-      const androidUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
-      const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
-      const message = `I've been using siFia to reflect, pray, and process real-life moments. Try it here: ${url}`;
+      const appUrl = 'https://bit.ly/siFia';
+      const message = `I've been using siFia to reflect, pray, and process real-life moments. Try it here: ${appUrl}`;
 
-      await Share.share(
-        Platform.select({
-          ios: { url, message, title: 'Try siFia', subject: 'Try siFia' },
-          android: { message, title: 'Try siFia' },
-          default: { message, title: 'Try siFia' },
-        }) as any
-      );
+      await Share.share({
+        message: message,
+        url: appUrl,
+      });
     } catch (e) {
       Alert.alert('Share failed', 'Unable to open share sheet right now. Please try again later.');
     }
