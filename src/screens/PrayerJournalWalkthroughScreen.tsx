@@ -807,6 +807,7 @@ const ACTSPrayerSlidesStep: React.FC<{
                 textAlignVertical="top"
                 autoFocus
                 keyboardAppearance="dark"
+                selectionColor={Colors.hopeWhite}
               />
 
               {/* Display suggested closing on thanksgiving step */}
@@ -989,6 +990,7 @@ const OpenPrayerStep: React.FC<{
               textAlignVertical="top"
               autoFocus
               keyboardAppearance="dark"
+              selectionColor={Colors.hopeWhite}
             />
           </View>
         </StepFadeIn>
@@ -1121,6 +1123,7 @@ const CompletionStep: React.FC<{
             placeholder="e.g., Heavenly Father,"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             keyboardAppearance="dark"
+            selectionColor={Colors.hopeWhite}
           />
         </View>
 
@@ -1156,6 +1159,7 @@ const CompletionStep: React.FC<{
             placeholder="e.g., In Jesus' Name, Amen"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             keyboardAppearance="dark"
+            selectionColor={Colors.hopeWhite}
           />
         </View>
       </>

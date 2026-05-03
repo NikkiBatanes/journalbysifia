@@ -915,6 +915,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={featureText}
             onChangeText={setFeatureText}
             textAlignVertical="top"
+            selectionColor={Colors.hopeWhite}
           />
           <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
         </ScrollView>
@@ -1028,6 +1029,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setBugReportText}
             textAlignVertical="top"
             autoFocus
+            selectionColor={Colors.hopeWhite}
           />
           <Text style={[styles.bugHint, font]}>We'll take your reported issues into account to improve siFia.</Text>
         </View>
@@ -1930,6 +1932,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
                 placeholderTextColor={Colors.textGray}
+                selectionColor={Colors.hopeWhite}
               />
               <View style={styles.nameDivider} />
               <TextInput
@@ -1938,6 +1941,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
                 placeholderTextColor={Colors.textGray}
+                selectionColor={Colors.hopeWhite}
               />
             </View>
           </View>
@@ -3416,24 +3420,28 @@ const styles = StyleSheet.create({
   },
   yearPickerCancelButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingHorizontal: 28,
+    paddingVertical: 15,
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 50,
+    minWidth: 100,
   },
   yearPickerDoneButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingHorizontal: 28,
+    paddingVertical: 15,
     alignItems: 'center',
     backgroundColor: Colors.alertCoral,
-    borderRadius: 8,
+    borderRadius: 50,
+    minWidth: 100,
   },
   deleteAccountButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     backgroundColor: 'rgba(255, 59, 48, 0.15)',
-    borderRadius: 12,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: 'rgba(255, 59, 48, 0.5)',
   },
