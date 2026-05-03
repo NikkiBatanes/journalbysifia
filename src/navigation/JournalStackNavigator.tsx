@@ -30,6 +30,9 @@ const JournalStackNavigator: React.FC = () => {
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
+          // Prevent white iOS UIViewController background from flashing through
+          // on app resume before React content is fully re-painted.
+          contentStyle: { backgroundColor: '#1A237E' },
         }}
       />
       <Stack.Screen
@@ -40,6 +43,9 @@ const JournalStackNavigator: React.FC = () => {
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
+          // Prevent white iOS UIViewController background from flashing through
+          // on app resume before React content is fully re-painted.
+          contentStyle: { backgroundColor: '#1a3c5e' },
         }}
       />
     </Stack.Navigator>

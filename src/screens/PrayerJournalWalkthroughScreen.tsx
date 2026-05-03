@@ -31,6 +31,7 @@ import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useUpdatePrayer, useACTSPrayerData, useDeletePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
+import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -264,9 +265,10 @@ const PrayerPathSelectionStep: React.FC<{
 // Step 2: CAST Prayer Description
 const CASTDescriptionStep: React.FC<{
   onNext: () => void;
+  onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ onNext, insets, navigation }) => {
+}> = ({ onNext, onBack, insets, navigation }) => {
   const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
   const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
   const timelineHeight = React.useRef(new Animated.Value(0)).current;
@@ -590,7 +592,28 @@ const ACTSPrayerSlidesStep: React.FC<{
   onSupplicationTrackAnsweredChange: (value: boolean) => void;
   castOpening: string;
   castClosing: string;
-}> = ({ prayerTexts, onChange, onNext, onBack, insets, navigation, supplicationTrackAnswered, onSupplicationTrackAnsweredChange, castOpening, castClosing }) => {
+  playbookTitle?: string;
+  actionStepNumber?: number;
+  actionStepTitle?: string;
+  stepBody?: string;
+  stepExample?: string | null;
+}> = ({
+  prayerTexts,
+  onChange,
+  onNext,
+  onBack,
+  insets,
+  navigation,
+  supplicationTrackAnswered,
+  onSupplicationTrackAnsweredChange,
+  castOpening,
+  castClosing,
+  playbookTitle,
+  actionStepNumber,
+  actionStepTitle,
+  stepBody,
+  stepExample,
+}) => {
   const [actsStepIndex, setActsStepIndex] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -809,6 +832,18 @@ const ACTSPrayerSlidesStep: React.FC<{
                 keyboardAppearance="dark"
               />
 
+              {/* Display metadata below input field for all ACTS steps */}
+              {playbookTitle && (
+                <PlaybookMetaSection
+                  playbookTitle={playbookTitle}
+                  actionLabel={actionStepNumber && actionStepTitle
+                    ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                    : undefined}
+                  stepBody={stepBody}
+                  stepExample={stepExample}
+                />
+              )}
+
               {/* Display suggested closing on thanksgiving step */}
               {isLastStep && (
                 <View style={styles.suggestedTextContainer}>
@@ -896,7 +931,12 @@ const OpenPrayerStep: React.FC<{
   navigation: any;
   trackAnswered: boolean;
   onTrackAnsweredChange: (value: boolean) => void;
-}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange }) => {
+  playbookTitle?: string;
+  actionStepNumber?: number;
+  actionStepTitle?: string;
+  stepBody?: string;
+  stepExample?: string | null;
+}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const trackingOpacity = React.useRef(new Animated.Value(0)).current;
@@ -990,6 +1030,18 @@ const OpenPrayerStep: React.FC<{
               autoFocus
               keyboardAppearance="dark"
             />
+
+            {/* Display metadata below input field */}
+            {playbookTitle && (
+              <PlaybookMetaSection
+                playbookTitle={playbookTitle}
+                actionLabel={actionStepNumber && actionStepTitle
+                  ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                  : undefined}
+                stepBody={stepBody}
+                stepExample={stepExample}
+              />
+            )}
           </View>
         </StepFadeIn>
 
@@ -1258,7 +1310,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
@@ -1553,6 +1605,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onSupplicationTrackAnsweredChange={setSupplicationTrackAnswered}
             castOpening={castOpening}
             castClosing={castClosing}
+            playbookTitle={playbookTitle}
+            actionStepNumber={actionStepNumber}
+            actionStepTitle={actionStepTitle}
+            stepBody={stepBody}
+            stepExample={stepExample}
           />
         )}
 
@@ -1565,6 +1622,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             navigation={navigation}
             trackAnswered={openPrayerTrackAnswered}
             onTrackAnsweredChange={setOpenPrayerTrackAnswered}
+            playbookTitle={playbookTitle}
+            actionStepNumber={actionStepNumber}
+            actionStepTitle={actionStepTitle}
+            stepBody={stepBody}
+            stepExample={stepExample}
           />
         )}
 
@@ -1682,6 +1744,18 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
     textAlign: 'left',
+  },
+  metadataTitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  metadataDescription: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 18,
+    marginTop: 2,
   },
   pathsGrid: {
     gap: 16,

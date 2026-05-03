@@ -51,7 +51,6 @@ import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestions
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import BlueSheet from '../components/layout/BlueSheet';
-import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
 import JournalTypeSelectorTooltip, { JournalType } from '../components/JournalTypeSelectorTooltip';
@@ -1865,28 +1864,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           setSelectedReflection(null);
         }}
       />
-      {/* Prayer Modal */}
-      <SmartJournalingPrayerModal
-        visible={showPrayerModal}
-        subtaskTitle={selectedPrayerRequest ? (selectedPrayerRequest.person_name ? `Pray for ${selectedPrayerRequest.person_name}` : 'Prayer') : (selectedReflection?.question || '')}
-        initialActiveTab={selectedPrayerRequest ? 'people' : undefined}
-        initialPersonName={selectedPrayerRequest?.person_name || ''}
-        initialPrayerRequest={selectedPrayerRequest?.content || ''}
-        onSave={() => {
-          // Don't close modal immediately - success modal will handle the flow
-          // Only handle prayer request marking if it's a prayer request (not dashboard scripture/declaration)
-          if (selectedPrayerRequest) {
-            handlePrayerSaved();
-          }
-        }}
-        onCancel={() => {
-          setShowPrayerModal(false);
-          setSelectedPrayerRequest(null);
-          setSelectedReflection(null);
-          setJournalSelectorContent('');
-        }}
-      />
-
       {/* Gratitude Modal */}
       <SmartJournalingGratitudeModal
         visible={showGratitudeModal}
@@ -2013,12 +1990,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         subtaskText={journalSelectorContent}
         onSelect={(type: JournalType) => {
           setShowJournalTypeSelector(false);
-          // Keep selectedReflection and journalSelectorContent for the modal
           // Open the appropriate modal based on journal type
           if (type === 'reflection') {
             setShowSJModal(true);
           } else if (type === 'prayer') {
-            setShowPrayerModal(true);
+            // Navigate to Unified Prayer Selection Screen with metadata
+            const metadata = {
+              subtaskTitle: selectedReflection?.question || '',
+              selectedDate: toLocalDateString(new Date()),
+            };
+            (navigation as any).navigate('UnifiedPrayerSelection', { metadata });
           } else if (type === 'gratitude') {
             setShowGratitudeModal(true);
           } else if (type === 'timeblock') {

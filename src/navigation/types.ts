@@ -147,6 +147,15 @@ export type RootStackParamList = {
     selectedDate?: string;
     initialPrayerType?: 'acts' | 'open';
     editingPrayerId?: string;
+    subtaskTitle?: string;
+    subtaskId?: string;
+    stepId?: string;
+    playbookId?: string;
+    playbookTitle?: string;
+    actionStepNumber?: number;
+    actionStepTitle?: string;
+    stepBody?: string;
+    stepExample?: string | null;
   } | undefined;
 
   // Prayers for People Walkthrough
@@ -158,6 +167,20 @@ export type RootStackParamList = {
     initialPrayerType?: 'prayer-request' | 'pray-for-someone';
     initialPrayerText?: string;
     initialTrackAnswered?: boolean;
+    subtaskTitle?: string;
+    subtaskId?: string;
+    stepId?: string;
+    playbookId?: string;
+    playbookTitle?: string;
+    actionStepNumber?: number;
+    actionStepTitle?: string;
+    stepBody?: string;
+    stepExample?: string | null;
+  } | undefined;
+
+  // Unified Prayer Selection
+  UnifiedPrayerSelection: {
+    metadata?: any;
   } | undefined;
 
   // Prayer Editor Screen

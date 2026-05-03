@@ -82,6 +82,10 @@ const defaultStyles = {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
+    // Blue background so that when iOS fires spurious keyboard-lifecycle events
+    // on app resume and KAV briefly adds bottom padding, the gap below
+    // contentCard shows blue — not the white container behind it.
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,

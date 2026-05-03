@@ -20,6 +20,7 @@ import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
 import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkthroughScreen';
 import PrayerEditorScreen from '../screens/PrayerEditorScreen';
+import UnifiedPrayerSelectionScreen from '../screens/UnifiedPrayerSelectionScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -440,6 +441,17 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PrayerJournalWalkthrough"
             component={PrayerJournalWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+
+          {/* Unified Prayer Selection Screen */}
+          <Stack.Screen
+            name="UnifiedPrayerSelection"
+            component={UnifiedPrayerSelectionScreen as React.ComponentType}
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',

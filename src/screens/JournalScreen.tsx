@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter, AppState } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -335,6 +335,29 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       };
     }, [scrollY])
   );
+
+  // When the app comes back from background (e.g. user switched to another app),
+  // iOS may have reset the ScrollView's content offset while scrollY (Animated.Value)
+  // still holds the old value — causing the header to appear stuck in the wrong state.
+  // Re-sync both the Animated.Value and the ScrollView to savedScrollPosition so the
+  // header animation matches where the content actually is.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        const y = savedScrollPosition.current;
+        scrollY.setValue(y);
+        setIsHeaderCollapsed(y > 40);
+        // Restore the ScrollView to its saved position in case iOS reset it.
+        setTimeout(() => {
+          try {
+            contentScrollRef.current?.scrollTo?.({ y, animated: false });
+          } catch {}
+        }, 100);
+      }
+    });
+    return () => sub.remove();
+  }, [scrollY]);
+
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [headerWidth, setHeaderWidth] = useState<number>(0);

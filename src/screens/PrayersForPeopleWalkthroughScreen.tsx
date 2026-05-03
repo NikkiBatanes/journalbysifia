@@ -28,6 +28,7 @@ import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -703,7 +704,12 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation }) => {
+  playbookTitle?: string;
+  actionStepNumber?: number;
+  actionStepTitle?: string;
+  stepBody?: string;
+  stepExample?: string | null;
+}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -780,6 +786,18 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
               autoFocus
               keyboardAppearance="dark"
             />
+
+            {/* Display metadata below input field */}
+            {playbookTitle && (
+              <PlaybookMetaSection
+                playbookTitle={playbookTitle}
+                actionLabel={actionStepNumber && actionStepTitle
+                  ? `Action ${actionStepNumber}: ${actionStepTitle}`
+                  : undefined}
+                stepBody={stepBody}
+                stepExample={stepExample}
+              />
+            )}
           </View>
         </StepFadeIn>
 
@@ -1122,6 +1140,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const { subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample } = route.params || {};
 
   // State for walkthrough steps
   const [currentStep, setCurrentStep] = useState(0);
@@ -1452,6 +1471,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           onBack={handleBack}
           insets={insets}
           navigation={navigation}
+          playbookTitle={playbookTitle}
+          actionStepNumber={actionStepNumber}
+          actionStepTitle={actionStepTitle}
+          stepBody={stepBody}
+          stepExample={stepExample}
         />
       )}
 
@@ -1686,11 +1710,29 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  metadataLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: Colors.alertCoral,
+    textTransform: 'uppercase',
+  },
   metadataText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
     textAlign: 'left',
+  },
+  metadataTitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  metadataDescription: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 18,
+    marginTop: 2,
   },
   inputContainer: {
     marginBottom: 24,

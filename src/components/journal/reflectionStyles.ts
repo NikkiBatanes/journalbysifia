@@ -17,6 +17,11 @@ export const styles = StyleSheet.create({
   },
   keyboardAvoidingView: {
     flex: 1,
+    // Blue background on the KAV itself so that when iOS fires spurious
+    // keyboard-lifecycle events on app resume and KAV briefly adds bottom
+    // padding, the gap below contentCard shows blue — not the white container.
+    // This keeps the white container (and its rounded-corner effect) intact.
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
     flexGrow: 1,

@@ -5,8 +5,13 @@ import { Colors } from '../../theme/colors';
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
 const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
-const ITEM_WIDTH = Math.round(VISIBLE_WIDTH * 0.8);
+const isTablet = width >= 768;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
 const ITEM_SPACING = 8;
+const SIDE_INSET = Math.max(
+  0,
+  isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
+);
 
 const SkeletonBlock: React.FC<{ opacity: Animated.AnimatedInterpolation<number>; style: object }> = ({ opacity, style }) => (
   <Animated.View style={[style, { opacity }]} />
@@ -128,6 +133,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     paddingHorizontal: 16,
     paddingVertical: 16,
+    borderRadius: 30,
   },
   header: {
     width: '100%',
@@ -144,7 +150,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     marginHorizontal: -16,
-    paddingHorizontal: 16,
+    paddingHorizontal: SIDE_INSET,
   },
   card: {
     backgroundColor: Colors.inputBackground,

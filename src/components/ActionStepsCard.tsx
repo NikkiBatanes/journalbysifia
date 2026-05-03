@@ -14,7 +14,6 @@ import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
 import SmartJournalingReflectionModal from '../screens/SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
-import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
 import JournalTypeSelectorTooltip, { JournalType } from './JournalTypeSelectorTooltip';
 import { toLocalDateString } from '../utils/date';
@@ -517,46 +516,23 @@ export default function ActionStepsCard({
     if (journalType === 'prayer') {
 
       // Prefetch prayer data and wait for it to complete before opening modal
-      const openPrayerModal = async () => {
-        // Protect against logout during operation
-        if ((globalThis as any).authMonitor) {
-          (globalThis as any).authMonitor.startOperation();
-        }
+      // Navigate to Unified Prayer Selection Screen with metadata
+      if (navigation) {
+        const metadata = {
+          playbookId,
+          playbookTitle,
+          actionStepNumber: stepInfo?.stepNumber,
+          actionStepTitle: stepInfo?.stepTitle,
+          subtaskTitle: subTask.text,
+          subtaskId: subTask.id,
+          selectedDate: toLocalDateString(new Date()),
+        };
 
-        if (user?.id && subTask.id) {
-
-          try {
-            await queryClient.prefetchQuery({
-              queryKey: ['personal_prayers', user.id, toLocalDateString(new Date()), subTask.id],
-              queryFn: () => {
-                // This will prefetch today's prayer entries
-                // The actual API call will be handled by the modal
-                return Promise.resolve([]);
-              },
-            });
-
-          } catch (error) {
-            Logger.warn('[ActionStepsCard] Prayer prefetch failed, opening modal anyway', {
-      component: 'ActionStepsCard',
-      data: error,
-    });
-          }
-        }
-
-        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
-        setSelectedActionStep(stepInfo || null);
-        setActiveModal('prayer');
-
-        // End operation protection after modal opens
-        setTimeout(() => {
-          if ((globalThis as any).authMonitor) {
-            (globalThis as any).authMonitor.endOperation();
-          }
-        }, 1000);
-      };
-
-      openPrayerModal();
-      return;
+        (navigation as any).navigate('UnifiedPrayerSelection', {
+          metadata,
+        });
+        return;
+      }
     }
 
     // Handle timeblock type with modal
@@ -1290,27 +1266,6 @@ export default function ActionStepsCard({
             setSelectedSubtask(null);
             setSelectedActionStep(null);
             handleGratitudeCancel();
-          }}
-        />
-      )}
-      {activeModal === 'prayer' && (
-        <SmartJournalingPrayerModal
-          visible={true}
-          subtaskTitle={selectedSubtask?.subTask?.text || ''}
-          subtaskId={selectedSubtask?.subTask?.id}
-          stepId={selectedActionStep?.stepId}
-          playbookId={playbookId}
-          playbookTitle={playbookTitle}
-          actionStepNumber={selectedActionStep?.stepNumber}
-          actionStepTitle={selectedActionStep?.stepTitle}
-          existingPrayer={null}
-          selectedDate={new Date()}
-          onSave={handlePrayerSave}
-          onCancel={() => {
-            setActiveModal(null);
-            setSelectedSubtask(null);
-            setSelectedActionStep(null);
-            handlePrayerCancel();
           }}
         />
       )}

@@ -29,7 +29,6 @@ import { getFontFamily } from '../theme/fonts';
 import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
-import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
@@ -1287,18 +1286,23 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         />
       )}
       {activeJournalModal === 'prayer' && (
-        <SmartJournalingPrayerModal
-          visible={true}
-          subtaskTitle={currentStep.title ?? ''}
-          playbookId={playbookId}
-          playbookTitle={playbookTitle}
-          actionStepNumber={stepNumber}
-          actionStepTitle={currentStep.title ?? ''}
-          stepBody={mainBodyText || undefined}
-          stepExample={exampleText || undefined}
-          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Prayer Saved', message: 'Your prayer has been saved.', showEditButton: true }); }}
-          onCancel={() => setActiveJournalModal(null)}
-        />
+        // Navigate to Unified Prayer Selection Screen with metadata
+        (() => {
+          const metadata = {
+            playbookId,
+            playbookTitle,
+            actionStepNumber: stepNumber,
+            actionStepTitle: currentStep.title,
+            subtaskTitle: currentStep.title,
+            subtaskId: currentStep.id,
+            selectedDate: toLocalDateString(new Date()),
+            stepBody: mainBodyText || undefined,
+            stepExample: exampleText || undefined,
+          };
+          (navigation as any).navigate('UnifiedPrayerSelection', { metadata });
+          setActiveJournalModal(null);
+          return null;
+        })()
       )}
       {activeJournalModal === 'gratitude' && (
         <SmartJournalingGratitudeModal
