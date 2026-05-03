@@ -318,11 +318,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     useCallback(() => {
       // Reset header animation to ensure date header is visible
       scrollY.setValue(0);
+      scrollY.setOffset(0);
       setIsHeaderCollapsed(false);
 
-      // Reset headerWidth to force re-measurement when screen regains focus
-      // This fixes blank white header when returning from background
-      setHeaderWidth(0);
+      // Force animation flush to ensure header renders correctly
+      setTimeout(() => {
+        scrollY.setValue(0);
+      }, 50);
 
       // Restore scroll position when screen gains focus
       if (savedScrollPosition.current > 0) {
