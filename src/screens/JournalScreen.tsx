@@ -313,6 +313,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   // Save scroll position when screen loses focus, restore when it gains focus
   useFocusEffect(
     useCallback(() => {
+      // Reset header animation to ensure date header is visible
+      scrollY.setValue(0);
+      setIsHeaderCollapsed(false);
+
       // Restore scroll position when screen gains focus
       if (savedScrollPosition.current > 0) {
         setTimeout(() => {
