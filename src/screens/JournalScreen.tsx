@@ -330,7 +330,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       return () => {
         // savedScrollPosition.current is already being updated by handleContentScroll
       };
-    }, [])
+    }, [scrollY])
   );
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
