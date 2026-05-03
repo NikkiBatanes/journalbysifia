@@ -23,6 +23,8 @@ interface ShareDropdownModalProps {
   onClose: () => void;
   onExportPDF: () => void;
   playbookTitle?: string;
+  shareText?: string;
+  shareContext?: 'playbook' | 'devotional';
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -30,6 +32,8 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   onClose,
   onExportPDF,
   playbookTitle,
+  shareText,
+  shareContext = 'playbook',
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -69,12 +73,16 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   const handleShareSiFia = async () => {
     triggerLightHaptic();
     
-    const shareText = `I used siFia to process a real-life moment with prayer and Scripture today. Try it here: https://apps.apple.com/us/app/sifia/id6751785713`;
+    const appUrl = 'https://apps.apple.com/us/app/sifia/id6751785713';
+    const defaultShareText = `I used siFia to process a real-life moment with prayer and Scripture today. Try it here: ${appUrl}`;
+    const devotionalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
+    
+    const finalShareText = shareText || (shareContext === 'devotional' ? devotionalShareText : defaultShareText);
     
     try {
       await Share.share({
-        message: shareText,
-        url: 'https://apps.apple.com/us/app/sifia/id6751785713',
+        message: finalShareText,
+        url: appUrl,
       });
       triggerSuccessHaptic();
       onClose();

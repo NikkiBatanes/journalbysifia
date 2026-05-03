@@ -54,6 +54,8 @@ import { pdfExportService } from '../utils/pdfExportService';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Alert } from 'react-native';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
+import ShareDropdownModal from '../components/ShareDropdownModal';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
@@ -198,6 +200,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Bible copyright modal state
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  // Share dropdown modal state
+  const [showShareDropdown, setShowShareDropdown] = useState(false);
 
   const triggerSuccessHaptic = () => {
     try {
@@ -965,50 +969,61 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               onPress={() => {
                 try { triggerLightHaptic(); } catch {}
 
-                // Check feature access
-                if (!pdfExportAccess.hasAccess) {
-                  const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
-                  Alert.alert(
-                    upgradePrompt?.title || PDF_EXPORT_UPGRADE_PROMPT.title,
-                    upgradePrompt?.message || PDF_EXPORT_UPGRADE_PROMPT.message,
-                    [
-                      { text: 'Maybe Later', style: 'cancel' },
-                      {
-                        text: upgradePrompt?.cta || 'Upgrade Now',
-                        onPress: () => {
-                          // Navigate to subscription screen with export restriction context
-                          navigation.navigate('OnboardingSalesOffer', {
-                            source: 'pdf_export_restriction',
-                            feature: 'export_pdf',
-                            skipNotificationPreference: true,
-                          });
-                        },
-                      },
-                    ]
-                  );
-                  return;
-                }
-
-                if (currentDay) {
-                  pdfExportService.exportDevotionalPDF({
-                    title: devotional.title,
-                    duration: `${devotional.totalDays}-Day Devotional`,
-                    dayTitle: currentDay.title,
-                    dayLabel: `Day ${currentDayIndex + 1} of ${devotional.totalDays}`,
-                    bibleVerse: currentDay.scripture,
-                    reflection: currentDay.reflection,
-                    questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text || '').filter(text => text.trim() !== ''),
-                    prayer: currentDay.prayer,
-                    createdAt: devotional.createdAt,
-                  });
-                }
+                setShowShareDropdown(true);
               }}
+
             >
               <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           )}
         </View>
       </GestureDetector>
+
+      <ShareDropdownModal
+        visible={showShareDropdown}
+        onClose={() => setShowShareDropdown(false)}
+        onExportPDF={() => {
+          // Check feature access
+          if (!pdfExportAccess.hasAccess) {
+            const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
+            Alert.alert(
+              upgradePrompt?.title || PDF_EXPORT_UPGRADE_PROMPT.title,
+              upgradePrompt?.message || PDF_EXPORT_UPGRADE_PROMPT.message,
+              [
+                { text: 'Maybe Later', style: 'cancel' },
+                {
+                  text: upgradePrompt?.cta || 'Upgrade Now',
+                  onPress: () => {
+                    // Navigate to subscription screen with export restriction context
+                    navigation.navigate('OnboardingSalesOffer', {
+                      source: 'pdf_export_restriction',
+                      feature: 'export_pdf',
+                      skipNotificationPreference: true,
+                    });
+                  },
+                },
+              ]
+            );
+            return;
+          }
+
+          if (currentDay) {
+            pdfExportService.exportDevotionalPDF({
+              title: devotional.title,
+              duration: `${devotional.totalDays}-Day Devotional`,
+              dayTitle: currentDay.title,
+              dayLabel: `Day ${currentDayIndex + 1} of ${devotional.totalDays}`,
+              bibleVerse: currentDay.scripture,
+              reflection: currentDay.reflection,
+              questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text || '').filter(text => text.trim() !== ''),
+              prayer: currentDay.prayer,
+              createdAt: devotional.createdAt,
+            });
+          }
+        }}
+        playbookTitle={devotional.title}
+        shareContext="devotional"
+      />
 
       {/* Main content */}
       <View
