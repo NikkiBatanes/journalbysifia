@@ -194,7 +194,6 @@ export default function RootStackNavigator({
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: Colors.anchorBlue },
-        screenContainerStyle: { backgroundColor: Colors.anchorBlue },
       }}
       initialRouteName="OnboardingSplash"
     >

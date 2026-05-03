@@ -70,7 +70,6 @@ class BillingNotificationService {
       // Schedule renewal reminder for next billing cycle
       const subscription = await NewSubscriptionService.getUserSubscription(userId);
       if (subscription.subscription_end_date) {
-        const renewalDate = new Date(subscription.subscription_end_date);
         await notificationSchedulerService.scheduleSubscriptionRenewalNotification(userId, newTier);
       }
 

@@ -4,11 +4,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Dimensions,
   Animated,
-  Platform,
   Share,
-  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from './common/ThemedText';
@@ -16,7 +13,6 @@ import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ShareDropdownModalProps {
   visible: boolean;
@@ -38,7 +34,6 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   visible,
   onClose,
   onExportPDF,
-  playbookTitle,
   shareText,
   shareContext = 'playbook',
   devotionalShareData,
@@ -90,7 +85,6 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
 
     if (shareContext === 'devotional' && devotionalShareData) {
       const { totalDays, dayNumber, title } = devotionalShareData;
-      const isSeries = totalDays > 1;
       const isSingleDay = totalDays === 1;
 
       if (isCompletion) {
@@ -164,8 +158,8 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                 <ThemedText weight="semiBold" style={styles.dropdownTitle}>
                   Share
                 </ThemedText>
-                <TouchableOpacity 
-                  onPress={onClose} 
+                <TouchableOpacity
+                  onPress={onClose}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   style={styles.closeButton}
                 >

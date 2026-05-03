@@ -386,7 +386,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 triggerLightHaptic();
                 setShowShareDropdown(true);

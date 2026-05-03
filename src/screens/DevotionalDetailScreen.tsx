@@ -55,7 +55,6 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Alert } from 'react-native';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 import ShareDropdownModal from '../components/ShareDropdownModal';
-import { triggerLightHaptic } from '../utils/haptics';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
