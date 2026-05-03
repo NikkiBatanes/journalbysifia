@@ -25,6 +25,11 @@ interface ShareDropdownModalProps {
   playbookTitle?: string;
   shareText?: string;
   shareContext?: 'playbook' | 'devotional';
+  devotionalShareData?: {
+    totalDays: number;
+    dayNumber: number;
+    title: string;
+  };
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -34,6 +39,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   playbookTitle,
   shareText,
   shareContext = 'playbook',
+  devotionalShareData,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -72,13 +78,22 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
 
   const handleShareSiFia = async () => {
     triggerLightHaptic();
-    
+
     const appUrl = 'https://apps.apple.com/us/app/sifia/id6751785713';
     const defaultShareText = `I used siFia to process a real-life moment with prayer and Scripture today. Try it here: ${appUrl}`;
-    const devotionalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
-    
-    const finalShareText = shareText || (shareContext === 'devotional' ? devotionalShareText : defaultShareText);
-    
+
+    let finalShareText = shareText;
+
+    if (shareContext === 'devotional' && devotionalShareData) {
+      const { totalDays, dayNumber, title } = devotionalShareData;
+      const isSeries = totalDays > 1;
+      finalShareText = `I created a personalized ${totalDays}-day devotional${isSeries ? ' series' : ''} in siFia to spend time in prayer, reflection, and Scripture. Today I'm on Day ${dayNumber}: ${title}. Try it here: ${appUrl}`;
+    } else if (shareContext === 'devotional') {
+      finalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
+    } else {
+      finalShareText = defaultShareText;
+    }
+
     try {
       await Share.share({
         message: finalShareText,

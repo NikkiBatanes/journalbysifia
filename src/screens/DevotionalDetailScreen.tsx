@@ -1024,6 +1024,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
         }}
         playbookTitle={devotional.title}
         shareContext="devotional"
+        devotionalShareData={{
+          totalDays: devotional.totalDays,
+          dayNumber: currentDayIndex + 1,
+          title: currentDay?.title || devotional.title,
+        }}
       />
 
       {/* Main content */}
