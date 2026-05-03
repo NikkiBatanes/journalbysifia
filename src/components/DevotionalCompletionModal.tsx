@@ -325,9 +325,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           >
             <Animated.View style={{ transform: [{ scale: starAnims[index] }] }}>
               <Ionicons
-                name={index < rating ? 'star' : 'star-outline'}
-                size={24}
-                color={Colors.faithGold}
+                name="sparkles"
+                size={14}
+                color={Colors.alertCoral}
                 style={styles.starIcon}
               />
             </Animated.View>
