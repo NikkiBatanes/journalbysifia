@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter, AppState } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -306,9 +306,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     };
   }, [navigation, resetToTop]);
 
-  // Animation state
-  const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
-
   // Store scroll position to preserve carousel position when navigating away
   const savedScrollPosition = useRef<number>(0);
   const [carouselIndices, setCarouselIndices] = useState({ plan: 0, reflect: 0, pray: 0 });
@@ -335,17 +332,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       };
     }, [scrollY])
   );
-
-  // Reset header when app returns from background (not covered by useFocusEffect)
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        scrollY.setValue(0);
-        setIsHeaderCollapsed(false);
-      }
-    });
-    return () => subscription.remove();
-  }, []);
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [headerWidth, setHeaderWidth] = useState<number>(0);
@@ -386,6 +372,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     }
   }, [weeks, selectedDayOfWeek, headerWidth]);
 
+  // Animation state
+  const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
     inputRange: [0, 40],
     outputRange: [1, 0],

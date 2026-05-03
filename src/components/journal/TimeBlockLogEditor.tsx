@@ -552,6 +552,7 @@ const createDefaultStyles = (_fonts: any) => ({
     fontSize: 16,
     lineHeight: 20,
     fontFamily: Fonts.medium,
+    selectionColor: Colors.white,
   },
   timePickerModal: {
     flex: 1,
