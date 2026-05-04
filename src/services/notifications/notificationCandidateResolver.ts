@@ -1238,26 +1238,19 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }
   }
 
-  // Check for people prayers that need a nudge (prayers for people that haven't been prayed for recently)
+  // Check if user has no people prayers - nudge them to add someone to pray for
   const peoplePrayers = journalEntries.filter(
     (entry: any) => entry.journal_category === 'prayer' && entry.prayer_type === 'people'
   );
-  if (peoplePrayers.length > 0) {
-    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    const index = dayOfYear % peoplePrayers.length;
-    const personPrayer = peoplePrayers[index];
-    const personName = notificationText((personPrayer?.metadata as any)?.person_name || (personPrayer as any)?.person_name);
-
+  if (peoplePrayers.length === 0) {
     candidates.push(createCandidate({
       type: 'prayer_people_nudge',
       timeWindow: 'afternoon',
       score: 70,
-      dedupeKey: buildDedupeKey('prayer_people_nudge', personPrayer?.id || 'people', currentDate),
+      dedupeKey: buildDedupeKey('prayer_people_nudge', currentDate),
       deepLink: 'sifia://journal/prayer-people',
       sourceType: 'prayer',
-      sourceId: personPrayer?.id,
-      copyContext: { personName },
-      metadata: { person_name: personName },
+      metadata: {},
     }));
   }
 
