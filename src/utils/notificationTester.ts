@@ -390,6 +390,15 @@ export class NotificationTester {
       case 'prayer_today':
         return 'sifia://journal/prayer';
 
+      case 'prayer_people_nudge':
+        return 'sifia://journal/prayer-people';
+
+      case 'heart_journal_prompt':
+        if (ctx.heartJournalTitle) {
+          return `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(ctx.heartJournalTitle)}`;
+        }
+        return 'sifia://dashboard';
+
       // Journal deep links
       case 'journal_todays_focus':
         return 'sifia://journal/focus';

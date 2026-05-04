@@ -176,6 +176,9 @@ class NotificationDeepLinkService {
           },
         });
         return;
+      case 'prayer-people':
+        this.navigationRef.current.navigate('PrayersForPeopleWalkthrough');
+        return;
       default:
         this.navigationRef.current.navigate('MainTabs', {
           screen: 'Journal',

@@ -159,6 +159,7 @@ const createCandidate = ({
     prayer_request_care: 'prayer',
     prayer_answered_check: 'prayer',
     prayer_today: 'prayer',
+    prayer_people_nudge: 'prayer',
     create_devotional: 'creation',
     create_playbook: 'creation',
     create_first_devotional: 'creation',
@@ -1235,6 +1236,29 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         metadata: { pending_count: prayerRequestState.count, person_name: personName, is_group: false },
       }));
     }
+  }
+
+  // Check for people prayers that need a nudge (prayers for people that haven't been prayed for recently)
+  const peoplePrayers = journalEntries.filter(
+    (entry: any) => entry.journal_category === 'prayer' && entry.prayer_type === 'people'
+  );
+  if (peoplePrayers.length > 0) {
+    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const index = dayOfYear % peoplePrayers.length;
+    const personPrayer = peoplePrayers[index];
+    const personName = notificationText((personPrayer?.metadata as any)?.person_name || (personPrayer as any)?.person_name);
+
+    candidates.push(createCandidate({
+      type: 'prayer_people_nudge',
+      timeWindow: 'afternoon',
+      score: 70,
+      dedupeKey: buildDedupeKey('prayer_people_nudge', personPrayer?.id || 'people', currentDate),
+      deepLink: 'sifia://journal/prayer-people',
+      sourceType: 'prayer',
+      sourceId: personPrayer?.id,
+      copyContext: { personName },
+      metadata: { person_name: personName },
+    }));
   }
 
   for (const prayer of unansweredPrayers) {

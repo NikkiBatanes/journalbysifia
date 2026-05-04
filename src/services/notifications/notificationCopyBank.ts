@@ -237,6 +237,12 @@ export function buildSmartNotificationCopy(
         message: compact('Bring today before God for a quiet minute.'),
       };
 
+    case 'prayer_people_nudge':
+      return {
+        title: 'Take a moment to pray',
+        message: compact('Someone on your heart needs prayer today. Pause and lift them up.'),
+      };
+
     case 'create_first_devotional':
       return {
         title: 'Create your first devotional',
