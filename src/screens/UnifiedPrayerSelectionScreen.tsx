@@ -425,38 +425,14 @@ const OpenPrayerDescriptionStep: React.FC<{
 };
 
 const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { metadata } = route.params || {};
+  const { metadata, fromPlaybook } = route.params || {};
   const insets = useSafeAreaInsets();
   const buttonScale = React.useRef(new Animated.Value(0)).current;
 
   const dateContext = getDateContext(metadata?.selectedDate);
 
-  // Detect if coming from PlaybookWalkthroughScreen (Faithful Actions)
-  const fromPlaybook = metadata?.playbookId !== undefined && metadata?.actionStepNumber !== undefined;
-
-  const [currentStep, setCurrentStep] = useState(fromPlaybook ? 2 : 0);
-  const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(fromPlaybook ? PRAYER_PATHS[0] : null);
-
-  // Auto-navigate to PrayerJournalWalkthrough when coming from PlaybookWalkthroughScreen
-  React.useEffect(() => {
-    if (fromPlaybook && selectedPath) {
-      triggerMediumHaptic();
-      navigation.navigate('PrayerJournalWalkthrough', {
-        selectedDate: metadata?.selectedDate,
-        initialPrayerType: 'acts',
-        subtaskTitle: metadata?.subtaskTitle,
-        subtaskId: metadata?.subtaskId,
-        stepId: metadata?.stepId,
-        playbookId: metadata?.playbookId,
-        playbookTitle: metadata?.playbookTitle,
-        actionStepNumber: metadata?.actionStepNumber,
-        actionStepTitle: metadata?.actionStepTitle,
-        stepBody: metadata?.stepBody,
-        stepExample: metadata?.stepExample,
-        fromPlaybook: true,
-      });
-    }
-  }, [fromPlaybook, selectedPath, navigation, metadata]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(null);
 
   React.useEffect(() => {
     if (selectedPath) {
@@ -481,7 +457,6 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
     triggerMediumHaptic();
 
     // Show description step for CAST and Open Prayer, direct navigation for Pray for Someone
-    // Skip description step when coming from PlaybookWalkthroughScreen
     if (currentStep === 0) {
       if (selectedPath.id === 'pray-for-someone') {
         // Direct navigation for Pray for Someone
@@ -497,43 +472,8 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
           actionStepTitle: metadata?.actionStepTitle,
           stepBody: metadata?.stepBody,
           stepExample: metadata?.stepExample,
+          fromPlaybook,
         });
-      } else if (fromPlaybook) {
-        // Skip description step when coming from PlaybookWalkthroughScreen
-        switch (selectedPath.id) {
-          case 'acts':
-            navigation.navigate('PrayerJournalWalkthrough', {
-              selectedDate: metadata?.selectedDate,
-              initialPrayerType: 'acts',
-              subtaskTitle: metadata?.subtaskTitle,
-              subtaskId: metadata?.subtaskId,
-              stepId: metadata?.stepId,
-              playbookId: metadata?.playbookId,
-              playbookTitle: metadata?.playbookTitle,
-              actionStepNumber: metadata?.actionStepNumber,
-              actionStepTitle: metadata?.actionStepTitle,
-              stepBody: metadata?.stepBody,
-              stepExample: metadata?.stepExample,
-              fromPlaybook: true,
-            });
-            break;
-          case 'open':
-            navigation.navigate('PrayerJournalWalkthrough', {
-              selectedDate: metadata?.selectedDate,
-              initialPrayerType: 'open',
-              subtaskTitle: metadata?.subtaskTitle,
-              subtaskId: metadata?.subtaskId,
-              stepId: metadata?.stepId,
-              playbookId: metadata?.playbookId,
-              playbookTitle: metadata?.playbookTitle,
-              actionStepNumber: metadata?.actionStepNumber,
-              actionStepTitle: metadata?.actionStepTitle,
-              stepBody: metadata?.stepBody,
-              stepExample: metadata?.stepExample,
-              fromPlaybook: true,
-            });
-            break;
-        }
       } else {
         // Show description step for CAST and Open Prayer
         setCurrentStep(1);
@@ -554,6 +494,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
             actionStepTitle: metadata?.actionStepTitle,
             stepBody: metadata?.stepBody,
             stepExample: metadata?.stepExample,
+            fromPlaybook,
           });
           break;
         case 'open':
@@ -569,6 +510,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
             actionStepTitle: metadata?.actionStepTitle,
             stepBody: metadata?.stepBody,
             stepExample: metadata?.stepExample,
+            fromPlaybook,
           });
           break;
       }
@@ -577,18 +519,12 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
-    // When coming from PlaybookWalkthroughScreen, go back directly without showing selection screen
-    if (fromPlaybook) {
-      navigation.goBack();
-      return;
-    }
-
     if (currentStep === 1) {
       setCurrentStep(0);
     } else {
       navigation.goBack();
     }
-  }, [navigation, currentStep, fromPlaybook]);
+  }, [navigation, currentStep]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

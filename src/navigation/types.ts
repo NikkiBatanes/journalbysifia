@@ -114,7 +114,7 @@ export type RootStackParamList = {
   };
   // Devotional screens
   Devotionals: undefined;
-  DevotionalDetail: { devotionalId: string };
+  DevotionalDetail: { devotionalId: string; scrollToPrayer?: boolean; openReflection?: boolean; reflectionQuestion?: string; reflectionQuestionNumber?: number };
 
   // Journal screen
   Journal: undefined;
@@ -177,11 +177,24 @@ export type RootStackParamList = {
     actionStepTitle?: string;
     stepBody?: string;
     stepExample?: string | null;
+    fromPlaybook?: boolean;
   } | undefined;
 
   // Unified Prayer Selection
   UnifiedPrayerSelection: {
-    metadata?: any;
+    metadata?: {
+      selectedDate?: string;
+      subtaskTitle?: string;
+      subtaskId?: string;
+      stepId?: string;
+      playbookId?: string;
+      playbookTitle?: string;
+      actionStepNumber?: number;
+      actionStepTitle?: string;
+      stepBody?: string;
+      stepExample?: string | null;
+    };
+    fromPlaybook?: boolean;
   } | undefined;
 
   // Prayer Editor Screen

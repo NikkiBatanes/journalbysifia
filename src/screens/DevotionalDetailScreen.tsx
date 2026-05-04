@@ -58,7 +58,7 @@ import ShareDropdownModal from '../components/ShareDropdownModal';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
-  const { devotionalId } = route.params;
+  const { devotionalId, scrollToPrayer, openReflection, reflectionQuestion, reflectionQuestionNumber } = route.params;
   const { user } = useAuth();
   const userId = user?.id;
   // Measured viewport width of the list (works inside modal and with insets)
@@ -183,6 +183,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     existingEntry?: any;
   } | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const scrollViewRefs = useRef<{[key: number]: ScrollView | null}>({});
+  const hasScrolledToPrayerRef = useRef(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   // Track last known viewport height for accurate comparisons
   const lastViewportHeightRef = useRef<number>(0);
@@ -397,6 +399,40 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       scrollToDay(currentDayIndex);
     }
   }, [currentDayIndex, scrollToDay, devotional?.id]);
+
+  // Scroll to bottom (prayer section) when scrollToPrayer parameter is true
+  const handleScrollViewLayout = useCallback((index: number) => {
+    console.log('🔔 ScrollView layout:', { index, currentDayIndex, scrollToPrayer, hasScrolled: hasScrolledToPrayerRef.current });
+    if (scrollToPrayer && index === currentDayIndex && !hasScrolledToPrayerRef.current) {
+      hasScrolledToPrayerRef.current = true;
+      const targetScrollView = scrollViewRefs.current[index];
+      console.log('🔔 Attempting scroll to prayer, ScrollView exists:', !!targetScrollView);
+      if (targetScrollView) {
+        // Much longer delay to ensure content is fully rendered and measured
+        setTimeout(() => {
+          console.log('🔔 Executing scrollToEnd');
+          targetScrollView.scrollToEnd({ animated: true });
+        }, 1000);
+      }
+    }
+  }, [scrollToPrayer, currentDayIndex]);
+
+  // Auto-open reflection modal when openReflection parameter is true
+  useEffect(() => {
+    if (openReflection && reflectionQuestion && devotional) {
+      const dayNumber = currentDayIndex + 1;
+      const questionNumber = reflectionQuestionNumber || 1;
+      const existingEntry = getJournaledEntry(dayNumber, questionNumber);
+
+      setSelectedReflectionQuestion(reflectionQuestion);
+      setSelectedQuestionMeta({
+        dayNumber,
+        questionNumber,
+        existingEntry,
+      });
+      setReflectionModalVisible(true);
+    }
+  }, [openReflection, reflectionQuestion, reflectionQuestionNumber, devotional, currentDayIndex, getJournaledEntry]);
 
   // Ensure currentDay is always defined in render - memoized to prevent re-renders
   const currentDay = useMemo(() => {
@@ -1107,6 +1143,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           renderItem={({ item: day, index }) => (
             <View style={[styles.pageContainer, { width: pageWidth }]}>
               <ScrollView
+                ref={(ref) => { scrollViewRefs.current[index] = ref; }}
+                onLayout={() => handleScrollViewLayout(index)}
                 style={styles.scrollViewContainer}
                 contentContainerStyle={styles.scrollViewContent}
                 showsVerticalScrollIndicator={false}

@@ -47,6 +47,9 @@ class PushNotificationService {
   private eventListeners: Array<{ remove: () => void }> = [];
   private notificationQueue: any[] = [];
   private isProcessingQueue = false;
+  /** Prevents multiple rapid taps from firing concurrent navigations */
+  private lastTapTimestamp = 0;
+  private static readonly TAP_DEBOUNCE_MS = 1500;
 
   async initialize(userId: string): Promise<void> {
     if (this.isInitialized) {
@@ -791,15 +794,20 @@ class PushNotificationService {
   }
 
   private async handleNotificationTap(notification: any): Promise<void> {
-    try {
-      // Save notification to history when tapped
-      // Get userId from notification data or from stored user session
-      const userId = await this.getNotificationUserId(notification);
-      if (userId) {
-        await this.saveNotificationToHistory(userId, notification);
-      }
+    // Debounce: ignore taps that arrive within TAP_DEBOUNCE_MS of the last one
+    const now = Date.now();
+    if (now - this.lastTapTimestamp < PushNotificationService.TAP_DEBOUNCE_MS) {
+      Logger.info('[PushNotification] Tap debounced — ignoring duplicate notification tap', {
+        component: 'pushNotificationService',
+        msSinceLast: now - this.lastTapTimestamp,
+      });
+      return;
+    }
+    this.lastTapTimestamp = now;
 
-      // Import deep link service dynamically to avoid circular dependencies
+    try {
+      // ─── 1. Navigate IMMEDIATELY (non-blocking) ───────────────────────
+      // Deep-link navigation must not wait for any network or storage I/O.
       const normalizedNotification = {
         ...notification,
         data: this.getNotificationData(notification),
@@ -811,6 +819,21 @@ class PushNotificationService {
           component: 'pushNotificationService',
         });
       });
+
+      // ─── 2. Persist history in the background (fire-and-forget) ───────
+      // Never block navigation on these network calls.
+      this.getNotificationUserId(notification)
+        .then((userId) => {
+          if (userId) {
+            return this.saveNotificationToHistory(userId, notification);
+          }
+          return Promise.resolve();
+        })
+        .catch((error) => {
+          Logger.error('[PushNotification] Background history save failed', error as Error, {
+            component: 'pushNotificationService',
+          });
+        });
     } catch (error) {
       Logger.error('[PushNotification] Failed to handle notification tap', error as Error, {
         component: 'pushNotificationService',

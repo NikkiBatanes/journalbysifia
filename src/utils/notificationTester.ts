@@ -173,7 +173,10 @@ export class NotificationTester {
 
     if (actionText) {
       ctx.actionText = actionText;
-      ctx._playbookId = actionStepPlaybookId;
+      // Only set playbook ID from action if we haven't already set it from words
+      if (!ctx._playbookId) {
+        ctx._playbookId = actionStepPlaybookId;
+      }
       ctx._actionIndex = actionStepIndex;
       ctx.playbookTitle = playbooks.find((pb: any) => pb.id === actionStepPlaybookId)?.title;
     } else if (playbooks[0]?.title) {
@@ -215,6 +218,8 @@ export class NotificationTester {
     if (prayers.length > 0) {
       ctx._prayerRequestNames = prayers.map((p: any) => safeStr(p.person_name)).filter(Boolean);
       ctx.personName = ctx._prayerRequestNames[0] || undefined;
+      // Store the first prayer ID for deep linking
+      ctx._prayerRequestId = prayers[0]?.id;
     }
 
     // Unanswered prayers (for prayer_answered_check)
@@ -243,12 +248,33 @@ export class NotificationTester {
       const allocation = guidedPromptGatingService.getDailyPrompts(userId, tier);
       const completedPrompts = await guidedPromptGatingService.getCompletedPrompts();
       const availablePrompts = allocation.freePrompts.filter(prompt => !completedPrompts.includes(prompt));
+
+      // For Seeker tier, only use prompts from freePrompts allocation (not locked prompts)
       if (availablePrompts.length > 0) {
         ctx.heartJournalTitle = availablePrompts[0];
+      } else {
+        // If no free prompts available, use the first free prompt from allocation even if completed
+        // This ensures we only show prompts that are actually free for the user's tier
+        if (allocation.freePrompts.length > 0) {
+          ctx.heartJournalTitle = allocation.freePrompts[0];
+        } else {
+          // Fallback to playbook title if no free prompts at all
+          if (playbooks[0]?.title) {
+            ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
+          } else {
+            // Ultimate fallback to default prompt
+            ctx.heartJournalTitle = 'What is one area of your life where you need to trust God more today?';
+          }
+        }
       }
     } catch (e) {
       // Fallback to playbook title if guided prompt fails
-      if (playbooks[0]?.title) {ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;}
+      if (playbooks[0]?.title) {
+        ctx.heartJournalTitle = `How is God meeting you in "${playbooks[0].title}"?`;
+      } else {
+        // Ultimate fallback to default prompt
+        ctx.heartJournalTitle = 'What is one area of your life where you need to trust God more today?';
+      }
     }
 
     const debug = [
@@ -277,7 +303,6 @@ export class NotificationTester {
     switch (type) {
       // Devotional deep links
       case 'devotional_day_ready':
-      case 'devotional_prayer_prompt':
       case 'devotional_verse_revisit':
         if (ctx._devotionalId) {
           const dayNumber = ctx.dayNumber || 1;
@@ -285,10 +310,18 @@ export class NotificationTester {
         }
         return 'sifia://devotionals/new';
 
-      case 'devotional_reflection_prompt':
+      case 'devotional_prayer_prompt':
         if (ctx._devotionalId) {
           const dayNumber = ctx.dayNumber || 1;
-          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}/reflect`;
+          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}?scrollToPrayer=true`;
+        }
+        return 'sifia://devotionals/new?scrollToPrayer=true';
+
+      case 'devotional_reflection_prompt':
+        if (ctx._devotionalId && ctx.questionText) {
+          const dayNumber = ctx.dayNumber || 1;
+          const questionNumber = ctx.questionNumber || 1;
+          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}?openReflection=true&question=${encodeURIComponent(ctx.questionText)}&questionNumber=${questionNumber}`;
         }
         return 'sifia://devotionals/new';
 
@@ -333,12 +366,16 @@ export class NotificationTester {
 
       case 'playbook_to_devotional':
         if (ctx._playbookId) {
-          return `sifia://playbooks/${ctx._playbookId}/devotional`;
+          // Navigate to completion page (step 6 of walkthrough)
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
         }
         return 'sifia://devotionals/new';
 
       // Prayer deep links
       case 'prayer_request_care':
+        if (ctx._prayerRequestId) {
+          return `sifia://prayer/${ctx._prayerRequestId}`;
+        }
         return 'sifia://journal/prayer?tab=requests';
 
       case 'prayer_answered_check':
@@ -371,9 +408,9 @@ export class NotificationTester {
 
       case 'heart_journal_prompt':
         if (ctx.heartJournalTitle) {
-          return `sifia://journal/heart?title=${encodeURIComponent(ctx.heartJournalTitle)}`;
+          return `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(ctx.heartJournalTitle)}`;
         }
-        return 'sifia://journal';
+        return 'sifia://dashboard';
 
       // Subscription/upgrade deep links
       case 'create_first_devotional':
@@ -1259,6 +1296,72 @@ export class NotificationTester {
       });
     } catch (error) {
       Logger.error('Failed to reset verse tracking', error as Error, {
+        component: 'NotificationTester',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Send all notification types using real user data.
+   * Sends each type that has relevant data, staggered by 3 seconds.
+   * Returns count of notifications actually sent.
+   */
+  static async sendAllNotifications(userId: string): Promise<{ sent: number; skipped: number; results: Array<{ type: string; sent: boolean; reason?: string }> }> {
+    try {
+      Logger.info('🧪 Sending all notifications with real data', {
+        component: 'NotificationTester',
+        userId,
+        count: SMART_NOTIFICATION_TYPES.length,
+      });
+
+      const results: Array<{ type: string; sent: boolean; reason?: string }> = [];
+      let sentCount = 0;
+      let skippedCount = 0;
+
+      // Build real context once for all notifications
+      const { ctx, debug } = await this.buildRealContext(userId);
+
+      for (let index = 0; index < SMART_NOTIFICATION_TYPES.length; index++) {
+        const type = SMART_NOTIFICATION_TYPES[index];
+
+        try {
+          const result = await this.sendSingleTypeTest(type, userId);
+          
+          if (result && result.title && result.message) {
+            results.push({ type, sent: true });
+            sentCount++;
+            Logger.info(`✅ Sent ${type}`, { component: 'NotificationTester' });
+          } else {
+            const reason = result?.debug || 'no data';
+            results.push({ type, sent: false, reason });
+            skippedCount++;
+            Logger.warn(`⏭️ Skipped ${type}`, { component: 'NotificationTester', reason });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          results.push({ type, sent: false, reason: errorMessage });
+          skippedCount++;
+          Logger.warn(`❌ Failed ${type}`, { component: 'NotificationTester', error });
+        }
+
+        // Stagger notifications by 3 seconds
+        if (index < SMART_NOTIFICATION_TYPES.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      Logger.info('✅ All notifications test complete', {
+        component: 'NotificationTester',
+        sent: sentCount,
+        skipped: skippedCount,
+        total: SMART_NOTIFICATION_TYPES.length,
+        debug,
+      });
+
+      return { sent: sentCount, skipped: skippedCount, results };
+    } catch (error) {
+      Logger.error('Failed to send all notifications', error as Error, {
         component: 'NotificationTester',
       });
       throw error;

@@ -18,10 +18,11 @@ import {
   Modal,
   useWindowDimensions,
   StatusBar,
+  Keyboard,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { useScroll } from '../context/ScrollContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { faithPointsService } from '../services/faithPointsService';
@@ -80,6 +81,7 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
 
@@ -814,8 +816,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [notifHistoryItems, setNotifHistoryItems] = useState<any[]>([]);
   const [notifDataLoading, setNotifDataLoading] = useState(false);
   const [notifSending, setNotifSending] = useState<string | null>(null);
+  const [notifSendingAll, setNotifSendingAll] = useState(false);
   const [notifLastSent, setNotifLastSent] = useState<{ type: string; title: string; message: string; debug?: string } | null>(null);
   const [notifSimulatedDay, setNotifSimulatedDay] = useState<number | null>(null);
+  const [notifAllResults, setNotifAllResults] = useState<{ sent: number; skipped: number; results: Array<{ type: string; sent: boolean; reason?: string }> } | null>(null);
   const [salesCopyModalVisible, setSalesCopyModalVisible] = useState(false);
   const [subscriptionPlanModalVisible, setSubscriptionPlanModalVisible] = useState(false);
   const [subscriptionTestMode, setSubscriptionTestMode] = useState<any>(null);
@@ -937,6 +941,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }
   }, [user?.id, subscription]);
 
+  const handleSendAllNotifications = useCallback(async () => {
+    if (!user?.id) {return;}
+    setNotifSendingAll(true);
+    setNotifAllResults(null);
+    try {
+      const results = await NotificationTester.sendAllNotifications(user.id);
+      setNotifAllResults(results);
+      Alert.alert(`Complete`, `Sent ${results.sent} notifications, skipped ${results.skipped} (no data)`);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send all notifications.');
+    } finally {
+      setNotifSendingAll(false);
+    }
+  }, [user?.id]);
+
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
@@ -1026,6 +1045,41 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   } | null>(null);
   const [showSJModal, setShowSJModal] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [hidePencilIcon, setHidePencilIcon] = useState(false);
+
+  // Wrap callbacks in useCallback to prevent modal re-renders
+  const handleSJModalCancel = useCallback(() => {
+    setShowSJModal(false);
+    setSelectedReflection(null);
+    setJournalSelectorContent('');
+    setHidePencilIcon(false);
+  }, []);
+
+  const handleSJModalSave = useCallback(() => {
+    // Don't close modal immediately - success modal will handle the flow
+  }, []);
+
+  // Handle deep link params for guided reflection
+  useEffect(() => {
+    const params = route.params as any;
+    console.log('🔔 DashboardHome route.params:', params);
+    if (params?.openGuidedReflection && params?.guidedReflectionQuestion) {
+      console.log('🔔 Opening guided reflection modal with question:', params.guidedReflectionQuestion);
+      setSelectedReflection({
+        question: params.guidedReflectionQuestion,
+        source: 'Guided Prompt',
+        sourceType: 'guided',
+      });
+      setHidePencilIcon(true); // Hide pencil icon for deep link opened reflections
+      setShowSJModal(true);
+
+      // Clear the params to prevent re-triggering
+      navigation.setParams({
+        openGuidedReflection: undefined,
+        guidedReflectionQuestion: undefined,
+      });
+    }
+  }, [route.params, navigation]);
   // Prayer Requests modal state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
@@ -1822,14 +1876,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }
         // Set isGuidedReflection only for guided prompts to hide metadata for those
         isGuidedReflection={selectedReflection?.sourceType === 'guided'}
-        onSave={() => {
-          // Don't close modal immediately - success modal will handle the flow
-        }}
-        onCancel={() => {
-          setShowSJModal(false);
-          setSelectedReflection(null);
-          setJournalSelectorContent('');
-        }}
+        hidePencilIcon={hidePencilIcon}
+        onSave={handleSJModalSave}
+        onCancel={handleSJModalCancel}
       />
       <DevotionalDetailReflectionModal
         visible={showDevotionalModal}
@@ -2078,6 +2127,32 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginBottom: 4 }}>
                   Tap Send to fire a single notification using your real account data (arrives in ~2 s)
                 </ThemedText>
+                {/* Send All Button */}
+                <TouchableOpacity
+                  onPress={handleSendAllNotifications}
+                  disabled={notifSendingAll || notifSending !== null}
+                  style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: notifSendingAll ? 'rgba(255,255,255,0.1)' : Colors.growthGreen, alignItems: 'center', marginBottom: 8, opacity: (notifSendingAll || notifSending !== null) ? 0.6 : 1 }}
+                >
+                  {notifSendingAll ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 13 }}>Send All Notifications</ThemedText>
+                  )}
+                </TouchableOpacity>
+                {notifAllResults && (
+                  <View style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(76,175,80,0.12)', borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)', marginBottom: 8 }}>
+                    <ThemedText weight="semiBold" style={{ color: '#4caf50', fontSize: 11, marginBottom: 4 }}>
+                      Results: {notifAllResults.sent} sent, {notifAllResults.skipped} skipped
+                    </ThemedText>
+                    <ScrollView style={{ maxHeight: 100 }}>
+                      {notifAllResults.results.map(r => (
+                        <ThemedText key={r.type} weight="regular" style={{ color: r.sent ? '#4caf50' : '#f44336', fontSize: 10 }}>
+                          {r.sent ? '✓' : '✗'} {r.type}{r.reason ? ` (${r.reason})` : ''}
+                        </ThemedText>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
                 {/* Day-of-week simulator — affects rotating copy & group/individual prayer */}
                 <View style={{ marginBottom: 8 }}>
                   <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginBottom: 6 }}>

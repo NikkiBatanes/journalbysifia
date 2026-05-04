@@ -9,6 +9,11 @@ import { supabase } from './supabaseClient';
 
 class NotificationDeepLinkService {
   private navigationRef: any = null;
+  /** Deep links queued before the navigation ref was ready (cold-start taps) */
+  private pendingDeepLink: string | null = null;
+  /** Debounce: timestamp of the last successfully started navigation */
+  private lastNavigateTimestamp = 0;
+  private static readonly NAVIGATE_DEBOUNCE_MS = 1500;
 
   private parseQuery(queryString?: string): Record<string, string> {
     if (!queryString) {
@@ -61,22 +66,38 @@ class NotificationDeepLinkService {
       }
 
       const isPrayerRequest = prayer.is_prayer_request === true;
-      this.navigationRef.current.navigate('PrayersForPeopleWalkthrough', {
-        initialPersonName: prayer.person_name || '',
-        initialPrayerRequest: isPrayerRequest ? prayer.content : undefined,
-        initialPrayerText: !isPrayerRequest ? prayer.content : undefined,
-        initialPrayerType: isPrayerRequest ? 'prayer-request' : 'pray-for-someone',
-        editingPrayerId: prayer.id,
-        initialTrackAnswered: prayer.metadata?.track_answered,
-        selectedDate: prayer.selected_date
-          ? new Date(`${prayer.selected_date}T12:00:00`).toISOString()
-          : undefined,
-      });
+
+      // Navigate to PrayerEditor for prayer requests (like "pray for now" button)
+      // Navigate to PrayersForPeopleWalkthrough for editing existing prayers
+      if (isPrayerRequest) {
+        this.navigationRef.current.navigate('PrayerEditor', {
+          prayerRequest: {
+            person_name: prayer.person_name || '',
+            content: prayer.content || '',
+            id: prayer.id,
+            user_id: prayer.user_id,
+            selected_date: prayer.selected_date || new Date().toLocaleDateString('en-CA'),
+          },
+        });
+      } else {
+        this.navigationRef.current.navigate('PrayersForPeopleWalkthrough', {
+          initialPersonName: prayer.person_name || '',
+          initialPrayerRequest: isPrayerRequest ? prayer.content : undefined,
+          initialPrayerText: !isPrayerRequest ? prayer.content : undefined,
+          initialPrayerType: isPrayerRequest ? 'prayer-request' : 'pray-for-someone',
+          editingPrayerId: prayer.id,
+          initialTrackAnswered: prayer.metadata?.track_answered,
+          selectedDate: prayer.selected_date
+            ? new Date(`${prayer.selected_date}T12:00:00`).toISOString()
+            : undefined,
+        });
+      }
 
       Logger.info('Navigated directly to prayer editor from deep link', {
         component: 'notificationDeepLinkService',
         prayerId,
         selectedDate: prayer.selected_date,
+        isPrayerRequest,
       });
       return true;
     } catch (error) {
@@ -130,23 +151,24 @@ class NotificationDeepLinkService {
         this.navigationRef.current.navigate('MainTabs', {
           screen: 'Journal',
           params: {
-            targetSection: 'gratitude',
-            selectedDate,
+            screen: 'JournalMain',
+            params: {
+              targetSection: 'gratitude',
+              selectedDate,
+            },
           },
         });
         return;
       case 'heart':
+        // Navigate to dashboard to open guided reflection modal with the question
+        console.log('🔔 Heart deep link navigating to dashboard:', { openGuidedReflection: query.openGuidedReflection, question: query.question });
         this.navigationRef.current.navigate('MainTabs', {
-          screen: 'Journal',
+          screen: 'Overview',
           params: {
-            screen: 'ReflectionEditor',
+            screen: 'DashboardHome',
             params: {
-              selectedDate,
-              initialMode: 'guided',
-              initialPrompt: query.title || '',
-              initialTitle: query.title || '',
-              lockTitle: true,
-              source: 'guided',
+              ...(query.openGuidedReflection === 'true' ? { openGuidedReflection: true } : {}),
+              ...(query.question ? { guidedReflectionQuestion: query.question } : {}),
             },
           },
         });
@@ -164,7 +186,8 @@ class NotificationDeepLinkService {
   }
 
   /**
-   * Set the navigation reference for deep linking
+   * Set the navigation reference for deep linking.
+   * Flushes any deep link that arrived before the ref was ready (cold-start tap).
    */
   setNavigationRef(ref: any): void {
     this.navigationRef = ref;
@@ -173,6 +196,25 @@ class NotificationDeepLinkService {
       hasRef: !!ref,
       hasCurrent: !!ref?.current,
     });
+
+    // Flush a pending deep link that arrived before navigation was ready
+    if (this.pendingDeepLink && ref?.current) {
+      const link = this.pendingDeepLink;
+      this.pendingDeepLink = null;
+      Logger.info('Flushing pending deep link after navigation ref became ready', {
+        component: 'notificationDeepLinkService',
+        link,
+      });
+      // Small delay to let the navigator finish mounting
+      setTimeout(() => {
+        this.navigate(link).catch((error) => {
+          Logger.error('Failed to flush pending deep link', error as Error, {
+            component: 'notificationDeepLinkService',
+            link,
+          });
+        });
+      }, 300);
+    }
   }
 
   /**
@@ -202,21 +244,24 @@ class NotificationDeepLinkService {
         deepLink: this.getNotificationDeepLink(notification),
       });
 
-      if (!this.navigationRef || !this.navigationRef.current) {
-        Logger.warn('Navigation ref not set, cannot handle deep link', {
-          component: 'notificationDeepLinkService',
-          hasRef: !!this.navigationRef,
-          hasCurrent: !!this.navigationRef?.current,
-        });
-        return;
-      }
-
       const deepLink = this.getNotificationDeepLink(notification);
       if (!deepLink) {
         Logger.warn('No deep link found in notification', {
           component: 'notificationDeepLinkService',
           notificationId: notification?.id,
         });
+        return;
+      }
+
+      if (!this.navigationRef || !this.navigationRef.current) {
+        // Navigation isn't mounted yet (cold-start tap). Queue the link so
+        // setNavigationRef() can flush it once the navigator is ready.
+        Logger.warn('Navigation ref not ready — queuing deep link for cold-start flush', {
+          component: 'notificationDeepLinkService',
+          hasRef: !!this.navigationRef,
+          deepLink,
+        });
+        this.pendingDeepLink = deepLink;
         return;
       }
 
@@ -267,6 +312,21 @@ class NotificationDeepLinkService {
    */
   async navigate(deepLink: string): Promise<void> {
     try {
+      // Debounce: drop duplicate taps that arrive within the window.
+      // This covers both push-notification taps AND in-app notification list taps,
+      // preventing React Navigation state corruption when the user taps several
+      // notifications in quick succession.
+      const now = Date.now();
+      if (now - this.lastNavigateTimestamp < NotificationDeepLinkService.NAVIGATE_DEBOUNCE_MS) {
+        Logger.info('Deep link navigation debounced — ignoring duplicate tap', {
+          component: 'notificationDeepLinkService',
+          deepLink,
+          msSinceLast: now - this.lastNavigateTimestamp,
+        });
+        return;
+      }
+      this.lastNavigateTimestamp = now;
+
       Logger.info('Navigating to deep link', {
         component: 'notificationDeepLinkService',
         deepLink,
@@ -329,6 +389,7 @@ class NotificationDeepLinkService {
                 prayer: 4,
                 words: 5,
                 speak: 5,
+                completed: 6,
               };
               const initialStep = stepMap[walkthroughTarget] ?? 0;
               const rawActionIndex = walkthroughTarget === 'actions' ? Number(parts[4]) : undefined;
@@ -364,7 +425,13 @@ class NotificationDeepLinkService {
                 initialStep: 3,
               });
             } else {
-              this.navigationRef.current.navigate('PlaybookDetail', { playbookId: id });
+              // No specific target — open the walkthrough at step 0 (overview).
+              // PlaybookWalkthroughScreen detects a partial { id } object and
+              // auto-fetches the full playbook, so passing { id } alone is safe.
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+              });
             }
           } else {
             // Navigate to Playbooks tab if no specific ID
@@ -385,6 +452,10 @@ class NotificationDeepLinkService {
             this.navigationRef.current.navigate('DevotionalDetail', {
               devotionalId: id,
               ...(Number.isFinite(dayNumber) ? { initialDay: dayNumber } : {}),
+              ...(query.scrollToPrayer === 'true' ? { scrollToPrayer: true } : {}),
+              ...(query.openReflection === 'true' ? { openReflection: true } : {}),
+              ...(query.question ? { reflectionQuestion: query.question } : {}),
+              ...(query.questionNumber ? { reflectionQuestionNumber: Number(query.questionNumber) } : {}),
             });
           } else {
             // Navigate to Devotionals tab if no specific ID
@@ -421,7 +492,17 @@ class NotificationDeepLinkService {
 
         case 'dashboard':
         case 'home':
-          this.navigationRef.current.navigate('MainTabs', { screen: 'Overview' });
+          console.log('🔔 Dashboard deep link with params:', query);
+          this.navigationRef.current.navigate('MainTabs', {
+            screen: 'Overview',
+            params: {
+              screen: 'DashboardHome',
+              params: {
+                ...(query.openGuidedReflection === 'true' ? { openGuidedReflection: true } : {}),
+                ...(query.question ? { guidedReflectionQuestion: query.question } : {}),
+              },
+            },
+          });
           Logger.info('Navigated to Dashboard', {
             component: 'notificationDeepLinkService',
           });

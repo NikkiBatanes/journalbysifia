@@ -12,6 +12,7 @@ import {
   Keyboard,
   PanResponder,
   useWindowDimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1324,6 +1325,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name, Amen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
+  const hasAppliedInitialPrayerType = useRef(false);
 
   const dateStr = toLocalDateString(selectedDate);
   const createMutation = useCreatePrayer();
@@ -1336,9 +1338,12 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     if (initialPrayerType) {
       const path = PRAYER_PATHS.find(p => p.id === initialPrayerType);
       if (path) {
-        setSelectedPath(path);
-        // Skip to step 2 (prayer entry) for both CAST and open prayer
-        setCurrentStep(2);
+        if (!hasAppliedInitialPrayerType.current) {
+          setSelectedPath(path);
+          // Skip to step 2 (prayer entry) for both CAST and open prayer
+          setCurrentStep(2);
+          hasAppliedInitialPrayerType.current = true;
+        }
 
         // Load existing prayer data if editingPrayerId is provided
         if (editingPrayerId && prayerEntries) {
@@ -1485,7 +1490,20 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         date: dateStr,
       }, user.id);
 
-      navigation.goBack();
+      if (fromPlaybook) {
+        navigation.pop(2);
+        setTimeout(() => {
+          DeviceEventEmitter.emit('playbookPrayerSaved', {
+            playbookId,
+            stepId,
+            subtaskId,
+            actionStepNumber,
+            isEditing,
+          });
+        }, 300);
+      } else {
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
@@ -1585,6 +1603,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         {currentStep === 1 && selectedPath?.id === 'acts' && (
           <CASTDescriptionStep
             onNext={handleNext}
+            onBack={handleBack}
             insets={insets}
             navigation={navigation}
           />

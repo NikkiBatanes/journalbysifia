@@ -221,10 +221,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   }, [setContentScrollRef]);
 
   useEffect(() => {
-    const params = route?.params || {};
-    const targetSection = params.targetSection;
-    const selectedDateParam = params.selectedDate;
+    const params = route?.params as any;
+    const targetSection = params?.targetSection;
+    const selectedDateParam = params?.selectedDate;
     const deepLinkKey = JSON.stringify({ targetSection, selectedDateParam });
+
+    console.log('🔔 JournalScreen deep link check:', { targetSection, selectedDateParam, params });
 
     if (!targetSection || handledDeepLinkKeyRef.current === deepLinkKey) {
       return;
@@ -239,12 +241,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     lastSelectedDate.current = safeTargetDate;
 
     if (targetSection === 'gratitude') {
-      setCarouselIndices(prev => ({ ...prev, reflect: 1 }));
+      console.log('🔔 Opening gratitude modal for deep link');
       setSelectedDateForModal(safeTargetDate);
       setExistingGratitudeEntry(undefined);
-      setTimeout(() => {
-        setShowGratitudeModal(true);
-      }, 350);
+      // Show modal immediately without relying on carousel index
+      setShowGratitudeModal(true);
     }
   }, [route?.params]);
 

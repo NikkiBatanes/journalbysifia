@@ -624,7 +624,18 @@ const getHeartJournalPrompt = async (
     const completedPrompts = await guidedPromptGatingService.getCompletedPrompts();
     const availablePrompts = allocation.freePrompts.filter(prompt => !completedPrompts.includes(prompt));
 
-    return availablePrompts[0] || '';
+    // For Seeker tier, only use prompts from freePrompts allocation (not locked prompts)
+    if (availablePrompts.length > 0) {
+      return availablePrompts[0];
+    } else {
+      // If no free prompts available, use the first free prompt from allocation even if completed
+      // This ensures we only show prompts that are actually free for the user's tier
+      if (allocation.freePrompts.length > 0) {
+        return allocation.freePrompts[0];
+      }
+      // Return empty string if no free prompts at all - won't send notification
+      return '';
+    }
   } catch (error) {
     Logger.warn('[SmartNotifications] Unable to choose heart journal prompt', {
       component: 'notificationCandidateResolver',
@@ -1217,7 +1228,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         timeWindow: 'midday',
         score: 86,
         dedupeKey: buildDedupeKey('prayer_request_care', person?.id || 'pending', currentDate),
-        deepLink: 'sifia://journal/prayer?tab=requests',
+        deepLink: person?.id ? `sifia://prayer/${person.id}` : 'sifia://journal/prayer?tab=requests',
         sourceType: 'prayer',
         sourceId: person?.id,
         copyContext: { personName },
@@ -1347,7 +1358,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           timeWindow: 'night',
           score: 45,
           dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
-          deepLink: `sifia://journal/heart?title=${encodeURIComponent(heartJournalTitle)}`,
+          deepLink: `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(heartJournalTitle)}`,
           sourceType: 'journal',
           copyContext: {
             heartJournalTitle,

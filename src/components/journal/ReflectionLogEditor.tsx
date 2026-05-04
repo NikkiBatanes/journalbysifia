@@ -57,12 +57,15 @@ interface ReflectionLogEditorProps {
   styles?: any;
   isLoading?: boolean;
   hideGuidedPromptButton?: boolean;
+  hidePencilIcon?: boolean;
   stepBody?: string;
   stepExample?: string | null;
 }
 
 export interface ReflectionLogEditorRef {
   focusInput: () => void;
+  blurInputs: () => void;
+  triggerCancel: () => void;
 }
 
 // Fallback styles in case styles prop is not provided
@@ -461,6 +464,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     styles,
     isLoading = false,
     hideGuidedPromptButton = false,
+    hidePencilIcon = false,
     stepBody,
     stepExample,
   },
@@ -693,6 +697,17 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           }
         }, 100);
       }
+    },
+    blurInputs: () => {
+      if (titleInputRef.current) {
+        titleInputRef.current.blur();
+      }
+      if (contentInputRef.current) {
+        contentInputRef.current.blur();
+      }
+    },
+    triggerCancel: () => {
+      handleCancel();
     },
   }));
 
@@ -1141,8 +1156,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Show pencil icon for playbook/devotional/guided sources (display only) */}
-        {(source === 'devotional' || source === 'playbook' || source === 'guided') && (
+        {/* Show pencil icon for playbook/devotional sources (display only), hide for guided when hidePencilIcon is true */}
+        {((source === 'devotional' || source === 'playbook') || (source === 'guided' && !hidePencilIcon)) && (
           <View style={s.modeButton} pointerEvents="none">
             <Animated.View
               style={{

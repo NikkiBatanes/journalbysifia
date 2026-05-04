@@ -718,6 +718,34 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const currentStep = steps[actionStepIndex];
   const isLastStep = actionStepIndex >= steps.length - 1;
 
+  useEffect(() => {
+    if (activeJournalModal !== 'prayer') {
+      return;
+    }
+
+    const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
+    const exampleSplit = rawDescription.split(/Example:\s*/i);
+    const stepBody = exampleSplit[0]?.replace(/\*\*|__|\*/g, '').trim() || undefined;
+    const stepExample = exampleSplit.length > 1
+      ? exampleSplit.slice(1).join('Example: ').replace(/\*\*|__|\*/g, '').trim()
+      : undefined;
+
+    const metadata = {
+      playbookId,
+      playbookTitle,
+      actionStepNumber: actionStepIndex + 1,
+      actionStepTitle: currentStep.title,
+      subtaskTitle: currentStep.title,
+      subtaskId: currentStep.id,
+      selectedDate: toLocalDateString(new Date()),
+      stepBody,
+      stepExample,
+    };
+
+    setActiveJournalModal(null);
+    (navigation as any).navigate('UnifiedPrayerSelection', { metadata, fromPlaybook: true });
+  }, [activeJournalModal, actionStepIndex, currentStep, navigation, playbookId, playbookTitle]);
+
   // Reset journal + choice state when step changes
   useEffect(() => {
     setJournalText('');
@@ -826,6 +854,42 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     },
     [isLastStep, onNext, animateToNext, actionStepIndex, setActionStepIndex, commitCurrentStep]
   );
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('playbookPrayerSaved', (payload: {
+      playbookId?: string;
+      actionStepNumber?: number;
+      isEditing?: boolean;
+    }) => {
+      if (payload.playbookId && payload.playbookId !== playbookId) {
+        return;
+      }
+
+      const completedIndex = payload.actionStepNumber !== undefined && payload.actionStepNumber > 0
+        ? payload.actionStepNumber - 1
+        : actionStepIndex;
+
+      if (completedIndex === actionStepIndex) {
+        commitCurrentStep();
+      } else {
+        persistedCommittedSteps = { ...persistedCommittedSteps, [completedIndex]: true };
+        setCommittedSteps({ ...persistedCommittedSteps });
+        saveCurrentSession();
+        onStepCommit?.(completedIndex);
+      }
+
+      setActiveJournalModal(null);
+      successModal.showSuccess({
+        title: payload.isEditing ? 'Prayer Updated' : 'Prayer Saved',
+        message: payload.isEditing ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
+        showEditButton: true,
+      });
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [actionStepIndex, commitCurrentStep, onStepCommit, playbookId, successModal]);
 
   const handleSaveJournal = useCallback(() => {
     const trimmed = journalText.trim();
@@ -1284,25 +1348,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Reflection Saved', message: 'Your reflection has been saved to your journal.', showEditButton: true }); }}
           onCancel={() => setActiveJournalModal(null)}
         />
-      )}
-      {activeJournalModal === 'prayer' && (
-        // Navigate to Unified Prayer Selection Screen with metadata
-        (() => {
-          const metadata = {
-            playbookId,
-            playbookTitle,
-            actionStepNumber: stepNumber,
-            actionStepTitle: currentStep.title,
-            subtaskTitle: currentStep.title,
-            subtaskId: currentStep.id,
-            selectedDate: toLocalDateString(new Date()),
-            stepBody: mainBodyText || undefined,
-            stepExample: exampleText || undefined,
-          };
-          (navigation as any).navigate('UnifiedPrayerSelection', { metadata });
-          setActiveJournalModal(null);
-          return null;
-        })()
       )}
       {activeJournalModal === 'gratitude' && (
         <SmartJournalingGratitudeModal

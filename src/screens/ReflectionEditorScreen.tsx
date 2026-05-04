@@ -27,6 +27,7 @@ interface RouteParams {
   dayTitle?: string;
   totalDays?: number;
   questionNumber?: number;
+  openHeart?: boolean;
 }
 
 const ReflectionEditorScreen: React.FC = () => {

@@ -36,11 +36,13 @@ interface SmartJournalingReflectionModalProps {
   isGuidedReflection?: boolean;
   // When true, hide the guided prompt button (heart icon)
   hideGuidedPromptButton?: boolean;
+  // When true, hide the pencil icon for guided reflections
+  hidePencilIcon?: boolean;
   // When true, this is from journal carousel (freeform) not dashboard smart journaling
   isJournalCarousel?: boolean;
   stepBody?: string;
   stepExample?: string | null;
-}
+};
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
   visible,
@@ -58,6 +60,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   navigation,
   isGuidedReflection = false,
   hideGuidedPromptButton = false,
+  hidePencilIcon = false,
   isJournalCarousel = false,
   stepBody,
   stepExample,
@@ -93,10 +96,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
-      // Done callback - close the main modal
-      // Single keyboard dismissal - no animation
-      Keyboard.dismiss();
-      onCancel(); // This closes the main modal
+      // Done callback - use ReflectionLogEditor's handleCancel logic which has proper keyboard dismissal
+      if (reflectionEditorRef.current) {
+        reflectionEditorRef.current.triggerCancel();
+      }
     },
     () => {
       // Edit callback - keep modal open and focus input
@@ -242,7 +245,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             await AsyncStorage.setItem(storageKey, JSON.stringify(list));
           }
           // Emit global event so dashboard can remove the prompt immediately
-          Keyboard.dismiss();
           DeviceEventEmitter.emit('guided_reflection_completed', { question: q, date: dateStrKey });
         } catch (e) {
           Logger.warn('Failed to persist guided completion', {
@@ -370,17 +372,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   };
 
   const handleCancel = () => {
-    // Single keyboard dismissal - prevents slide animation
-    Keyboard.dismiss();
+    // Don't dismiss keyboard here - ReflectionLogEditor handles it properly with blur logic and delay
     onCancel();
   };
-
-  // Dismiss keyboard once when modal closes
-  useEffect(() => {
-    if (!visible) {
-      Keyboard.dismiss();
-    }
-  }, [visible]);
 
   return (
     <>
@@ -426,6 +420,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               } : undefined}
               isLoading={isLoading}
               hideGuidedPromptButton={hideGuidedPromptButton}
+              hidePencilIcon={hidePencilIcon}
               stepBody={stepBody}
               stepExample={stepExample}
             />
@@ -491,4 +486,7 @@ const styles = {
   },
 };
 
-export default withErrorBoundary(SmartJournalingReflectionModal, 'SmartJournalingReflectionModal');
+// Memoize to prevent unnecessary re-renders when props haven't changed
+const MemoizedSmartJournalingReflectionModal = React.memo(SmartJournalingReflectionModal);
+
+export default withErrorBoundary(MemoizedSmartJournalingReflectionModal, 'SmartJournalingReflectionModal');

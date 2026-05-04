@@ -70,7 +70,7 @@ class PrayerRequestNotificationService {
         scheduled_for: scheduledFor.toISOString(),
         priority: 'normal', // Normal priority for scheduled reminders
         data: {
-          deep_link: 'sifia://journal/prayer?tab=requests',
+          deep_link: prayerId ? `sifia://prayer/${prayerId}` : 'sifia://journal/prayer?tab=requests',
           type: 'prayer_request_care',
           dedupe_key: `prayer_request_care:${prayerId || 'new'}`,
           privacy_level: 'sensitive',

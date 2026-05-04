@@ -12,6 +12,7 @@ import {
   Keyboard,
   PanResponder,
   useWindowDimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -1140,7 +1141,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
-  const { subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample } = route.params || {};
+  const { subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
 
   // State for walkthrough steps
   const [currentStep, setCurrentStep] = useState(0);
@@ -1235,6 +1236,21 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       if (result?.id) {
         setSavedPrayerId(result.id);
       }
+
+      if (fromPlaybook) {
+        navigation.pop(2);
+        setTimeout(() => {
+          DeviceEventEmitter.emit('playbookPrayerSaved', {
+            playbookId,
+            stepId,
+            subtaskId,
+            actionStepNumber,
+            isEditing: !!editingPrayerId,
+          });
+        }, 300);
+        return;
+      }
+
       setCurrentStep(4); // Show completion screen
 
       // Track analytics
@@ -1247,7 +1263,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation]);
+  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, stepId, subtaskId, actionStepNumber, navigation]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 0) {
