@@ -1373,7 +1373,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         id: editingPrayerId,
         updates: {
           status: 'answered' as const,
-          is_answered: true,
           answered_date: new Date().toISOString(),
         },
         _userId: user?.id || '',
