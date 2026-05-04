@@ -119,6 +119,16 @@ class NotificationDeepLinkService {
 
       const isTargetPrayerRequest = targetPrayer.is_prayer_request === true;
 
+      if (targetPrayer.prayer_type === 'journal') {
+        this.navigationRef.current.navigate('PrayerJournalWalkthrough', {
+          selectedDate: targetPrayer.selected_date
+            ? new Date(`${targetPrayer.selected_date}T12:00:00`).toISOString()
+            : undefined,
+          initialPrayerType: targetPrayer.journal_category === 'personal_prayer' ? 'open' : 'acts',
+          editingPrayerId: targetPrayer.id,
+          fromNotificationAnsweredCheck: options?.forcePeopleWalkthrough === true,
+        });
+      } else
       // Navigate to PrayerEditor for prayer requests (like "pray for now" button)
       // Navigate to PrayersForPeopleWalkthrough for editing existing prayers
       if (isTargetPrayerRequest && !options?.forcePeopleWalkthrough) {

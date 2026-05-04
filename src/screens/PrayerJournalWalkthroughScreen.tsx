@@ -29,10 +29,12 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreatePrayer, useUpdatePrayer, useACTSPrayerData, useDeletePrayer } from '../services/hooks/usePrayerData';
+import { useCreatePrayer, useUpdatePrayer, useACTSPrayerData, useDeletePrayer, useMarkSupplicationAnswered } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -598,6 +600,9 @@ const ACTSPrayerSlidesStep: React.FC<{
   actionStepTitle?: string;
   stepBody?: string;
   stepExample?: string | null;
+  readOnly?: boolean;
+  actionLabel?: string;
+  initialActsStepIndex?: number;
 }> = ({
   prayerTexts,
   onChange,
@@ -614,8 +619,11 @@ const ACTSPrayerSlidesStep: React.FC<{
   actionStepTitle,
   stepBody,
   stepExample,
+  readOnly = false,
+  actionLabel,
+  initialActsStepIndex = 0,
 }) => {
-  const [actsStepIndex, setActsStepIndex] = useState(0);
+  const [actsStepIndex, setActsStepIndex] = useState(initialActsStepIndex);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -624,7 +632,8 @@ const ACTSPrayerSlidesStep: React.FC<{
   const trackingScale = useRef(new Animated.Value(0.8)).current;
 
   const currentStep = ACTS_STEPS[actsStepIndex];
-  const isLastStep = actsStepIndex >= ACTS_STEPS.length - 1;
+  const isNotificationMode = !!actionLabel;
+  const isLastStep = isNotificationMode || actsStepIndex >= ACTS_STEPS.length - 1;
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -793,18 +802,20 @@ const ACTSPrayerSlidesStep: React.FC<{
 
         <StepFadeIn delay={80}>
           <ThemedText style={styles.actionCounter}>
-            {actsStepIndex + 1} of {ACTS_STEPS.length}
+            {isNotificationMode ? 'Supplication' : `${actsStepIndex + 1} of ${ACTS_STEPS.length}`}
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={100}>
-          <View style={styles.actionProgressBar}>
-            <View style={[
-              styles.actionProgressFill,
-              { width: `${((actsStepIndex + 1) / ACTS_STEPS.length) * 100}%` },
-            ]} />
-          </View>
-        </StepFadeIn>
+        {!isNotificationMode && (
+          <StepFadeIn delay={100}>
+            <View style={styles.actionProgressBar}>
+              <View style={[
+                styles.actionProgressFill,
+                { width: `${((actsStepIndex + 1) / ACTS_STEPS.length) * 100}%` },
+              ]} />
+            </View>
+          </StepFadeIn>
+        )}
 
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <StepFadeIn delay={120}>
@@ -829,8 +840,9 @@ const ACTSPrayerSlidesStep: React.FC<{
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 multiline
                 textAlignVertical="top"
-                autoFocus
+                autoFocus={!readOnly}
                 keyboardAppearance="dark"
+                editable={!readOnly}
               />
 
               {/* Display metadata below input field for all ACTS steps */}
@@ -859,34 +871,36 @@ const ACTSPrayerSlidesStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[
+      {!isNotificationMode && (
+        <Animated.View style={[
         styles.trackingFloatingButton,
         { bottom: buttonPosition },
-      ]}>
-        <Animated.View style={[
-          styles.trackingFloatingButtonInner,
-          {
-            opacity: trackingOpacity,
-            transform: [{ scale: trackingScale }],
-          },
         ]}>
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
-            }}
-            activeOpacity={0.7}
-            style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
-          >
-            <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
-              {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
-            </View>
-            <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
-              Track if answered
-            </ThemedText>
-          </TouchableOpacity>
+          <Animated.View style={[
+            styles.trackingFloatingButtonInner,
+            {
+              opacity: trackingOpacity,
+              transform: [{ scale: trackingScale }],
+            },
+          ]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
+              }}
+              activeOpacity={0.7}
+              style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
+            >
+              <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
+                {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
+              </View>
+              <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
+                Track if answered
+              </ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      )}
 
       <Animated.View style={[
         styles.primaryButton,
@@ -901,7 +915,13 @@ const ACTSPrayerSlidesStep: React.FC<{
             activeOpacity={0.7}
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            {actionLabel ? (
+              <ThemedText weight="semiBold" style={styles.completionButtonText}>
+                {actionLabel}
+              </ThemedText>
+            ) : (
+              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            )}
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -937,7 +957,9 @@ const OpenPrayerStep: React.FC<{
   actionStepTitle?: string;
   stepBody?: string;
   stepExample?: string | null;
-}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample }) => {
+  readOnly?: boolean;
+  actionLabel?: string;
+}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, readOnly = false, actionLabel }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const trackingOpacity = React.useRef(new Animated.Value(0)).current;
@@ -1028,8 +1050,9 @@ const OpenPrayerStep: React.FC<{
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"
-              autoFocus
+              autoFocus={!readOnly}
               keyboardAppearance="dark"
+              editable={!readOnly}
             />
 
             {/* Display metadata below input field */}
@@ -1049,28 +1072,30 @@ const OpenPrayerStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition }]}>
-        <Animated.View style={[
-          styles.trackingFloatingButtonInner,
-          { opacity: trackingOpacity, transform: [{ scale: trackingScale }] },
-        ]}>
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              onTrackAnsweredChange(!trackAnswered);
-            }}
-            activeOpacity={0.7}
-            style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
-          >
-            <View style={[styles.trackAnsweredCheckbox, trackAnswered && styles.trackAnsweredCheckboxChecked]}>
-              {trackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
-            </View>
-            <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
-              Track if answered
-            </ThemedText>
-          </TouchableOpacity>
+      {!actionLabel && (
+        <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition }]}>
+          <Animated.View style={[
+            styles.trackingFloatingButtonInner,
+            { opacity: trackingOpacity, transform: [{ scale: trackingScale }] },
+          ]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                onTrackAnsweredChange(!trackAnswered);
+              }}
+              activeOpacity={0.7}
+              style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
+            >
+              <View style={[styles.trackAnsweredCheckbox, trackAnswered && styles.trackAnsweredCheckboxChecked]}>
+                {trackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
+              </View>
+              <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
+                Track if answered
+              </ThemedText>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      )}
 
       <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <Animated.View style={[
@@ -1086,7 +1111,13 @@ const OpenPrayerStep: React.FC<{
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             disabled={!prayerText}
           >
-            <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            {actionLabel ? (
+              <ThemedText weight="semiBold" style={styles.completionButtonText}>
+                {actionLabel}
+              </ThemedText>
+            ) : (
+              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            )}
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -1312,7 +1343,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
@@ -1332,7 +1363,33 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const createMutation = useCreatePrayer();
   const updateMutation = useUpdatePrayer();
   const deletePrayerMutation = useDeletePrayer();
+  const markSupplicationAnsweredMutation = useMarkSupplicationAnswered();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
+  const successModal = useSuccessModal(
+    () => {
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs' as any,
+            params: {
+              screen: 'Journal',
+              params: {
+                screen: 'JournalMain',
+                params: {
+                  selectedDate: selectedDateStr,
+                  targetSection: 'prayer',
+                  targetPrayerCarouselIndex: initialPrayerType === 'open' ? 0 : 0,
+                  targetPrayerId: editingPrayerId,
+                },
+              },
+            },
+          },
+        ],
+      });
+    },
+    undefined
+  );
 
   // Pre-select prayer path and load existing data when editing
   useEffect(() => {
@@ -1539,6 +1596,41 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     }
   }, [currentStep, selectedPath, prayerTexts, openPrayerText, navigation]);
 
+  const handleMarkAnsweredFromNotification = useCallback(() => {
+    if (!user?.id || !editingPrayerId) {
+      return;
+    }
+
+    if (initialPrayerType === 'acts') {
+      markSupplicationAnsweredMutation.mutateAsync({
+        id: editingPrayerId,
+        isAnswered: true,
+        _userId: user.id,
+        _dateStr: dateStr,
+      }).catch(() => {
+        Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
+      });
+    } else {
+      updateMutation.mutateAsync({
+        id: editingPrayerId,
+        updates: {
+          status: 'answered' as const,
+          answered_date: new Date().toISOString(),
+        },
+        _userId: user.id,
+        _dateStr: dateStr,
+      }).catch(() => {
+        Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
+      });
+    }
+
+    successModal.showSuccess({
+      title: 'Prayer Marked Answered',
+      message: 'This prayer has been marked as answered in your journal.',
+      showEditButton: false,
+    });
+  }, [user?.id, editingPrayerId, initialPrayerType, markSupplicationAnsweredMutation, updateMutation, dateStr, successModal]);
+
   const handleBack = useCallback(() => {
     // When coming from PlaybookWalkthroughScreen, go back directly without showing intro steps
     if (fromPlaybook) {
@@ -1589,6 +1681,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   );
 
   return (
+    <>
     <View style={styles.container} {...panResponder.panHandlers}>
         {currentStep === 0 && (
           <PrayerPathSelectionStep
@@ -1624,7 +1717,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onChange={(key: string, text: string) => {
               setPrayerTexts(prev => ({ ...prev, [key]: text }));
             }}
-            onNext={handleNext}
+            onNext={fromNotificationAnsweredCheck ? handleMarkAnsweredFromNotification : handleNext}
             onBack={handleBack}
             insets={insets}
             navigation={navigation}
@@ -1637,6 +1730,9 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             actionStepTitle={actionStepTitle}
             stepBody={stepBody}
             stepExample={stepExample}
+            readOnly={fromNotificationAnsweredCheck}
+            actionLabel={fromNotificationAnsweredCheck ? 'Mark Answered' : undefined}
+            initialActsStepIndex={fromNotificationAnsweredCheck ? 2 : 0}
           />
         )}
 
@@ -1644,7 +1740,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           <OpenPrayerStep
             prayerText={openPrayerText}
             onChange={setOpenPrayerText}
-            onNext={handleNext}
+            onNext={fromNotificationAnsweredCheck ? handleMarkAnsweredFromNotification : handleNext}
             insets={insets}
             navigation={navigation}
             trackAnswered={openPrayerTrackAnswered}
@@ -1654,6 +1750,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             actionStepTitle={actionStepTitle}
             stepBody={stepBody}
             stepExample={stepExample}
+            readOnly={fromNotificationAnsweredCheck}
+            actionLabel={fromNotificationAnsweredCheck ? 'Mark Answered' : undefined}
           />
         )}
 
@@ -1673,7 +1771,14 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onCastClosingChange={setCastClosing}
           />
         )}
+        <NewSuccessModal
+          visible={successModal.isVisible}
+          config={successModal.config}
+          onDone={successModal.handleDone}
+          onEdit={successModal.handleEdit}
+        />
       </View>
+    </>
   );
 };
 

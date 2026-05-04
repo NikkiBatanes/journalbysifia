@@ -659,7 +659,6 @@ export class PrayerApi {
   static async markSupplicationAnswered(id: string, isAnswered: boolean): Promise<PrayerApiEntry> {
     const updates: Partial<PrayerApiEntry> = {
       status: isAnswered ? 'answered' : 'pending',
-      is_answered: isAnswered,
     };
 
     // Only update the answered_date when marking as answered
