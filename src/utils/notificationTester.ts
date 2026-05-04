@@ -1320,14 +1320,13 @@ export class NotificationTester {
       let skippedCount = 0;
 
       // Build real context once for all notifications
-      const { ctx, debug } = await this.buildRealContext(userId);
+      const { debug } = await this.buildRealContext(userId);
 
       for (let index = 0; index < SMART_NOTIFICATION_TYPES.length; index++) {
         const type = SMART_NOTIFICATION_TYPES[index];
 
         try {
           const result = await this.sendSingleTypeTest(type, userId);
-          
           if (result && result.title && result.message) {
             results.push({ type, sent: true });
             sentCount++;
@@ -1342,7 +1341,7 @@ export class NotificationTester {
           const errorMessage = error instanceof Error ? error.message : String(error);
           results.push({ type, sent: false, reason: errorMessage });
           skippedCount++;
-          Logger.warn(`❌ Failed ${type}`, { component: 'NotificationTester', error });
+          Logger.warn(`❌ Failed ${type}`, { component: 'NotificationTester', reason: errorMessage });
         }
 
         // Stagger notifications by 3 seconds

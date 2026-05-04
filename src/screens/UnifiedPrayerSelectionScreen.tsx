@@ -53,7 +53,9 @@ const PRAYER_PATHS: PrayerPath[] = [
 
 // Helper to compute date context from selected date
 const getDateContext = (selectedDate?: string): 'today' | 'yesterday' | 'earlier' => {
-  if (!selectedDate) return 'today';
+  if (!selectedDate) {
+    return 'today';
+  }
   const date = new Date(selectedDate);
   const today = new Date();
   const yesterday = new Date(today);
@@ -65,8 +67,12 @@ const getDateContext = (selectedDate?: string): 'today' | 'yesterday' | 'earlier
            d1.getDate() === d2.getDate();
   };
 
-  if (isSameDay(date, today)) return 'today';
-  if (isSameDay(date, yesterday)) return 'yesterday';
+  if (isSameDay(date, today)) {
+    return 'today';
+  }
+  if (isSameDay(date, yesterday)) {
+    return 'yesterday';
+  }
   return 'earlier';
 };
 
@@ -452,7 +458,9 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
   };
 
   const handleNext = useCallback(() => {
-    if (!selectedPath) return;
+    if (!selectedPath) {
+      return;
+    }
 
     triggerMediumHaptic();
 

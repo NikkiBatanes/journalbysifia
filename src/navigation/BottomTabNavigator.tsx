@@ -391,7 +391,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
   // Subtle haptic feedback, gated by user preference
-  const triggerLightHaptic = React.useCallback(() => {
+  const triggerTabHaptic = React.useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
       if (!RNHapticFeedback) { return; }
@@ -414,7 +414,8 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       journalScreenRef.current.resetToCurrentDate();
     }
     currentTabRef.current = tabName;
-  }, [triggerLightHaptic]);
+    triggerTabHaptic();
+  }, [triggerTabHaptic]);
 
   // Move tabBar render function outside
   const renderTabBar = React.useCallback(

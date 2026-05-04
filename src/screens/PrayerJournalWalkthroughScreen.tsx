@@ -269,7 +269,7 @@ const CASTDescriptionStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-}> = ({ onNext, onBack, insets, navigation }) => {
+}> = ({ onNext, onBack: _onBack, insets, navigation }) => {
   const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
   const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
   const timelineHeight = React.useRef(new Animated.Value(0)).current;
@@ -1311,7 +1311,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 

@@ -18,7 +18,6 @@ import {
   Modal,
   useWindowDimensions,
   StatusBar,
-  Keyboard,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -948,7 +947,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     try {
       const results = await NotificationTester.sendAllNotifications(user.id);
       setNotifAllResults(results);
-      Alert.alert(`Complete`, `Sent ${results.sent} notifications, skipped ${results.skipped} (no data)`);
+      Alert.alert('Complete', `Sent ${results.sent} notifications, skipped ${results.skipped} (no data)`);
     } catch (e) {
       Alert.alert('Error', 'Failed to send all notifications.');
     } finally {
@@ -1081,7 +1080,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }
   }, [route.params, navigation]);
   // Prayer Requests modal state
-  const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [_showPrayerModal, _setShowPrayerModal] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
   // Gratitude and TimeBlock modal state
   const [showGratitudeModal, setShowGratitudeModal] = useState(false);
@@ -1285,27 +1284,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     });
   };
 
-  const handlePrayerSaved = async () => {
-    try {
-      if (!selectedPrayerRequest) {return;}
-      await markPrayedMutation.mutateAsync({
-        id: selectedPrayerRequest.id,
-        isPrayed: true,
-        _userId: selectedPrayerRequest.user_id,
-        _dateStr: selectedPrayerRequest.selected_date,
-      });
-      // Invalidate unprayed list to refresh dashboard
-      if (user?.id) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
-      }
-      // Only close modal for prayer requests, not for dashboard prayers
-      setShowPrayerModal(false);
-      setSelectedPrayerRequest(null);
-    } catch (e) {
-      Logger.error('Failed to mark prayer request as prayed', e as Error, { component: 'DashboardHomeScreen' });
-      Alert.alert('Error', 'Failed to update prayer request status.');
-    }
-  };
 
   const handleSaveModalPrayer = async () => {
     if (!modalPrayerRequest.trim()) {

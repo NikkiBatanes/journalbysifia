@@ -591,7 +591,7 @@ export default function ActionStepsCard({
 
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any);
-  }, [navigation, user?.id, queryClient]);
+  }, [navigation, user?.id, queryClient, playbookId, playbookTitle]);
 
   // Long-press Handler - Show tooltip when subtask is long-pressed (iMessage-style)
   const handlePencilIconPress = React.useCallback((subTask: SubTask, stepInfo: { stepNumber: number; stepTitle: string; stepId?: string }) => {
@@ -768,47 +768,6 @@ export default function ActionStepsCard({
     setSelectedActionStep(null);
   }, []);
 
-  const handlePrayerSave = React.useCallback(async (_entry: any) => {
-
-    // Protect against logout during save operation
-    if ((globalThis as any).authMonitor) {
-      (globalThis as any).authMonitor.startOperation();
-    }
-
-    try {
-      // Invalidate the prayer query to refresh data immediately
-      if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['personal_prayers', user.id, toLocalDateString(new Date())],
-        });
-
-      }
-
-      // Auto-check the subtask when prayer is saved (PROTECTED)
-      await autoCompleteSelectedFaithfulAction();
-    } finally {
-      // End operation protection after save completes
-      setTimeout(() => {
-        if ((globalThis as any).authMonitor) {
-          (globalThis as any).authMonitor.endOperation();
-        }
-      }, 2000); // Give time for modal animations
-    }
-
-    // Modal will close automatically after showing success
-  }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
-
-  const handlePrayerCancel = React.useCallback(() => {
-
-    // End operation protection when modal closes
-    if ((globalThis as any).authMonitor) {
-      (globalThis as any).authMonitor.endOperation();
-    }
-
-    setActiveModal(null);
-    setSelectedSubtask(null);
-    setSelectedActionStep(null);
-  }, []);
 
   const handleTimeBlockSave = React.useCallback(async (entry: any) => {
 

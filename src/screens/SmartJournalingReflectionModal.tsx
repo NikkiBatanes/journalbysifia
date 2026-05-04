@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, Alert, Keyboard, DeviceEventEmitter, View, ActivityIndicator } from 'react-native';
+import { Modal, Alert, DeviceEventEmitter, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -41,8 +41,8 @@ interface SmartJournalingReflectionModalProps {
   // When true, this is from journal carousel (freeform) not dashboard smart journaling
   isJournalCarousel?: boolean;
   stepBody?: string;
-  stepExample?: string | null;
-};
+  stepExample?: string | null
+}
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
   visible,
