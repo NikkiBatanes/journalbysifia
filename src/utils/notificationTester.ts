@@ -297,7 +297,7 @@ export class NotificationTester {
    * Mirrors the deep link generation logic in notificationCandidateResolver.ts.
    */
   private static generateDeepLinkForType(
-    type: SmartNotificationType,
+    type: SmartNotificationType | string,
     ctx: Record<string, any>,
   ): string {
     switch (type) {
@@ -446,6 +446,56 @@ export class NotificationTester {
 
       case 'upgrade_room':
         return 'sifia://subscription/upgrade';
+
+      // Faith points notifications
+      case 'faith_points_awarded':
+        return 'sifia://profile/stats';
+
+      // Badge notifications
+      case 'badge_unlocked':
+        return 'sifia://profile/stats';
+
+      // Milestone notifications
+      case 'milestone_faith_points':
+        return 'sifia://profile/stats';
+      case 'milestone_level_up':
+        return 'sifia://profile/stats';
+      case 'milestone_playbook_complete':
+        return 'sifia://profile/stats';
+      case 'milestone_prayer_answered':
+        return 'sifia://journal/prayer';
+
+      // Streak notifications
+      case 'streak_alert_prayer':
+        return 'sifia://journal/prayer';
+      case 'streak_alert_devotional':
+        return 'sifia://devotionals/today';
+      case 'streak_alert_journal':
+        return 'sifia://journal';
+      case 'streak_milestone_prayer':
+        return 'sifia://profile/stats';
+      case 'streak_milestone_devotional':
+        return 'sifia://profile/stats';
+      case 'streak_milestone_journal':
+        return 'sifia://profile/stats';
+
+      // Payment/billing notifications
+      case 'trial_expiring':
+        return 'sifia://subscription/upgrade';
+      case 'payment_failed':
+        return 'sifia://subscription/manage';
+      case 'payment_successful':
+        return 'sifia://dashboard';
+      case 'grace_period':
+        return 'sifia://subscription/manage';
+      case 'subscription_cancelled':
+        return 'sifia://subscription/reactivate';
+      case 'subscription_renewed':
+        return 'sifia://dashboard';
+
+      // Weekly summary
+      case 'weekly_summary':
+        return 'sifia://profile/stats';
 
       default:
         return 'sifia://dashboard';
