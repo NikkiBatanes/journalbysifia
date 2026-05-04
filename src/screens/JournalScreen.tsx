@@ -293,6 +293,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         savedScrollPosition.current = Math.max(0, y - 20);
       }, 1100);
     }
+
+    navigation.setParams({
+      targetSection: undefined,
+      targetPrayerCarouselIndex: undefined,
+      targetPrayerId: undefined,
+    } as any);
   }, [route?.params]);
 
   // Function to collapse all expanded states (show more/less buttons)
