@@ -1027,8 +1027,10 @@ async function getUnansweredPrayers(supabase: SupabaseClient, userId: string): P
       // Check if we've already notified for this check point
       const lastCheckPoint = prayer.metadata?.last_check_point || 0;
       const alreadyNotified = lastCheckPoint >= daysSinceCreation;
+      const tracksAnswered = prayer.metadata?.track_answered === true;
+      const isPrayedForEntry = prayer.is_prayer_request !== true;
 
-      return shouldCheckToday && !alreadyNotified;
+      return isPrayedForEntry && tracksAnswered && shouldCheckToday && !alreadyNotified;
     });
 
     return filtered as UnansweredPrayer[];

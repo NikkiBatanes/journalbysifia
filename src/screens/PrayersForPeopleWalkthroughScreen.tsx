@@ -1386,8 +1386,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
                 ...prayer,
                 status: 'answered' as const,
                 answered_date: answeredDate,
-                is_prayer_request: false,
-                prayed: true,
               }
             : prayer
         );
@@ -1406,8 +1404,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         updates: {
           status: 'answered' as const,
           answered_date: answeredDate,
-          is_prayer_request: false,
-          prayed: true,
         },
         _userId: user?.id || '',
         _dateStr: dateStr,

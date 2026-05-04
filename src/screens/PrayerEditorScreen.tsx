@@ -147,6 +147,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         person_name: prayerRequest.person_name,
         metadata: {
           prayer_type: 'pray-for-someone',
+          original_request_id: prayerRequest.id,
           original_request_content: prayerRequest.content,
           prayer_request_display: prayerRequest.content,
           track_answered: trackAnswered,

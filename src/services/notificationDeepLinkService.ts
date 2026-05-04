@@ -65,40 +65,92 @@ class NotificationDeepLinkService {
         return false;
       }
 
+      let targetPrayer = prayer;
       const isPrayerRequest = prayer.is_prayer_request === true;
+
+      if (options?.forcePeopleWalkthrough && isPrayerRequest) {
+        const { data: linkedPrayer, error: linkedPrayerError } = await supabase
+          .from('prayers')
+          .select('*')
+          .eq('user_id', prayer.user_id)
+          .eq('prayer_type', 'people')
+          .eq('is_prayer_request', false)
+          .eq('metadata->>original_request_id', prayer.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (linkedPrayerError) {
+          Logger.warn('Unable to resolve prayed-for prayer from request id', {
+            component: 'notificationDeepLinkService',
+            prayerId,
+            errorMessage: linkedPrayerError.message,
+          });
+        }
+
+        if (linkedPrayer) {
+          targetPrayer = linkedPrayer;
+        } else {
+          const { data: fallbackPrayer, error: fallbackPrayerError } = await supabase
+            .from('prayers')
+            .select('*')
+            .eq('user_id', prayer.user_id)
+            .eq('prayer_type', 'people')
+            .eq('is_prayer_request', false)
+            .eq('person_name', prayer.person_name)
+            .eq('metadata->>original_request_content', prayer.content)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (fallbackPrayerError) {
+            Logger.warn('Unable to resolve prayed-for prayer from request fallback data', {
+              component: 'notificationDeepLinkService',
+              prayerId,
+              errorMessage: fallbackPrayerError.message,
+            });
+          }
+
+          if (fallbackPrayer) {
+            targetPrayer = fallbackPrayer;
+          }
+        }
+      }
+
+      const isTargetPrayerRequest = targetPrayer.is_prayer_request === true;
 
       // Navigate to PrayerEditor for prayer requests (like "pray for now" button)
       // Navigate to PrayersForPeopleWalkthrough for editing existing prayers
-      if (isPrayerRequest && !options?.forcePeopleWalkthrough) {
+      if (isTargetPrayerRequest && !options?.forcePeopleWalkthrough) {
         this.navigationRef.current.navigate('PrayerEditor', {
           prayerRequest: {
-            person_name: prayer.person_name || '',
-            content: prayer.content || '',
-            id: prayer.id,
-            user_id: prayer.user_id,
-            selected_date: prayer.selected_date || new Date().toLocaleDateString('en-CA'),
+            person_name: targetPrayer.person_name || '',
+            content: targetPrayer.content || '',
+            id: targetPrayer.id,
+            user_id: targetPrayer.user_id,
+            selected_date: targetPrayer.selected_date || new Date().toLocaleDateString('en-CA'),
           },
         });
       } else {
         this.navigationRef.current.navigate('PrayersForPeopleWalkthrough', {
-          initialPersonName: prayer.person_name || '',
-          initialPrayerRequest: isPrayerRequest && !options?.forcePeopleWalkthrough ? prayer.content : undefined,
-          initialPrayerText: !isPrayerRequest || options?.forcePeopleWalkthrough ? prayer.content : undefined,
-          initialPrayerType: isPrayerRequest && !options?.forcePeopleWalkthrough ? 'prayer-request' : 'pray-for-someone',
-          editingPrayerId: prayer.id,
-          initialTrackAnswered: prayer.metadata?.track_answered,
+          initialPersonName: targetPrayer.person_name || '',
+          initialPrayerRequest: isTargetPrayerRequest && !options?.forcePeopleWalkthrough ? targetPrayer.content : undefined,
+          initialPrayerText: !isTargetPrayerRequest || options?.forcePeopleWalkthrough ? targetPrayer.content : undefined,
+          initialPrayerType: isTargetPrayerRequest && !options?.forcePeopleWalkthrough ? 'prayer-request' : 'pray-for-someone',
+          editingPrayerId: targetPrayer.id,
+          initialTrackAnswered: targetPrayer.metadata?.track_answered,
           fromNotificationAnsweredCheck: options?.forcePeopleWalkthrough === true,
-          selectedDate: prayer.selected_date
-            ? new Date(`${prayer.selected_date}T12:00:00`).toISOString()
+          selectedDate: targetPrayer.selected_date
+            ? new Date(`${targetPrayer.selected_date}T12:00:00`).toISOString()
             : undefined,
         });
       }
 
       Logger.info('Navigated directly to prayer editor from deep link', {
         component: 'notificationDeepLinkService',
-        prayerId,
-        selectedDate: prayer.selected_date,
-        isPrayerRequest,
+        prayerId: targetPrayer.id,
+        selectedDate: targetPrayer.selected_date,
+        isPrayerRequest: isTargetPrayerRequest,
       });
       return true;
     } catch (error) {
