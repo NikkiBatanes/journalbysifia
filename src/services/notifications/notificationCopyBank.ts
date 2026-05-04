@@ -239,8 +239,8 @@ export function buildSmartNotificationCopy(
 
     case 'prayer_people_nudge':
       return {
-        title: 'Take a moment to pray',
-        message: compact('Someone on your heart needs prayer today. Pause and lift them up.'),
+        title: 'Lift someone in prayer today',
+        message: compact('Someone on your heart may need prayer today. Take a moment to bring them before God.'),
       };
 
     case 'create_first_devotional':
