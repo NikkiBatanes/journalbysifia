@@ -231,12 +231,12 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   if (primaryDev) {
     const isSingleDay = (primaryDev.totalDays ?? 0) === 1;
     const dayLabel = isSingleDay
-      ? (primaryDev.currentDayTitle || 'Your devotional')
+      ? (primaryDev.title || 'Your devotional')
       : primaryDev.currentDayNumber
         ? (primaryDev.currentDayTitle
-            ? `Day ${primaryDev.currentDayNumber}: ${primaryDev.currentDayTitle}`
-            : `Day ${primaryDev.currentDayNumber}`)
-        : (primaryDev.currentDayTitle || 'Your next day');
+          ? `Day ${primaryDev.currentDayNumber}: ${primaryDev.currentDayTitle}`
+          : `Day ${primaryDev.currentDayNumber}`)
+        : 'Your devotional';
 
     add({
       type: 'devotional_day_ready',
@@ -248,7 +248,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
         devotional_id: primaryDev.id,
         day_number: primaryDev.currentDayNumber,
       },
-      priority: 'high',
+      priority: 'normal',
     });
   }
 
