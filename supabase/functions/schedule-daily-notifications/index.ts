@@ -738,7 +738,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 21:45  playbook_prayer_revisit ───────────────────────────────────────
-  if (hasPlaybookPrayer && playbook) {
+  if (hasPlaybookPrayer && playbook && !playbook.prayerPrayed) {
     add({
       type: 'playbook_prayer_revisit',
       localHour: 21, localMinute: 45,
@@ -875,6 +875,7 @@ interface PlaybookInfo {
   bibleVerseReference?: string;
   bibleVerseText?: string;
   prayer?: string;
+  prayerPrayed?: boolean;
   nextActionText?: string;
   nextActionIndex?: number;
   hasIncompleteAction: boolean;
@@ -952,7 +953,7 @@ async function getActivePlaybook(supabase: SupabaseClient, userId: string): Prom
       .from('playbooks')
       .select(`
         id, title, status, completed_at,
-        word_to_speak, direct_challenge, prayer,
+        word_to_speak, direct_challenge, prayer, prayer_prayed,
         bible_verse, bible_verse_reflection,
         playbook_action_steps ( id, text, completed, order_index )
       `)
@@ -1021,6 +1022,7 @@ async function getActivePlaybook(supabase: SupabaseClient, userId: string): Prom
       bibleVerseReference,
       bibleVerseText,
       prayer: typeof pb.prayer === 'string' && pb.prayer.trim() ? pb.prayer.trim() : undefined,
+      prayerPrayed: !!pb.prayer_prayed,
       nextActionText: incompleteStep?.text ?? undefined,
       nextActionIndex: incompleteStepIndex,
       hasIncompleteAction: !!incompleteStep,
