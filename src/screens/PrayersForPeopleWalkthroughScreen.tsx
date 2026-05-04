@@ -1411,7 +1411,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
         });
-      }).catch(error => {
+      }).catch(_error => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
         });

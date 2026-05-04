@@ -324,7 +324,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         // When screen loses focus, collapse all expanded states
         collapseAllExpanded();
       };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [collapseAllExpanded, route?.params, setShowTabBar])
   );
 

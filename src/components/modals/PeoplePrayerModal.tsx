@@ -236,7 +236,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
           {selectedPrayerType === 'mine' && (
             <View style={styles.inputSection}>
               <ThemedText style={styles.inputSectionTitle} weight="semiBold">
-                {currentRequestedBy ? 'Prayer Request:' : 'Notes (optional)'}
+                {currentRequestedBy ? 'Prayer Request: ' : 'Notes (optional)'}
               </ThemedText>
               <TextInput
                 style={[styles.notesInput, { fontFamily: regularFont }]}

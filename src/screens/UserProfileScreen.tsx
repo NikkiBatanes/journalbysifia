@@ -62,8 +62,6 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 // POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { reportBug } from '../services/bugReportService';
 import { reportFeature } from '../services/featureRequestService';
-import InAppReview from 'react-native-in-app-review';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
@@ -673,35 +671,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // Open App Store / Play Store review page with graceful fallbacks
-  const openStoreReview = async () => {
-    try {
-      if (Platform.OS === 'ios') {
-        if (!APPLE_APP_ID) {
-          Alert.alert(
-            'Coming soon',
-            'Reviews will be available once the app is live on the App Store.'
-          );
-          return;
-        }
-        const iosDeepLink = `itms-apps://itunes.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
-        const iosWeb = `https://apps.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
-        const supported = await Linking.canOpenURL(iosDeepLink);
-        await Linking.openURL(supported ? iosDeepLink : iosWeb);
-        return;
-      }
-
-      const marketUrl = `market://details?id=${ANDROID_PACKAGE}`;
-      const webUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
-      const supported = await Linking.canOpenURL(marketUrl);
-      await Linking.openURL(supported ? marketUrl : webUrl);
-    } catch (e) {
-      Alert.alert(
-        'Not available yet',
-        'The store listing may not be live yet. Please try again after release.'
-      );
-    }
-  };
 
   const openExternalLink = useCallback(async (url: string) => {
     try { triggerLightHaptic(); } catch {}

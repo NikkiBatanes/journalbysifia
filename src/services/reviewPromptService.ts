@@ -4,10 +4,10 @@ import { Logger } from '../utils/ProductionLogger';
 
 /**
  * Review Prompt Service
- * 
+ *
  * Industry-standard automatic review prompting that triggers at positive
  * user experience moments while respecting user preferences and platform guidelines.
- * 
+ *
  * Key principles:
  * - Only prompt after positive user experiences (achievements, completions)
  * - Respect gating (30 days between prompts, max 3 per year)
@@ -43,7 +43,7 @@ async function canPromptReview(): Promise<boolean> {
 
     const lastPromptRaw = await AsyncStorage.getItem(LAST_PROMPT_KEY);
     const countRaw = await AsyncStorage.getItem(countKey);
-    
+
     const lastPromptAt = lastPromptRaw ? parseInt(lastPromptRaw, 10) : 0;
     const promptCount = countRaw ? parseInt(countRaw, 10) : 0;
 
@@ -100,7 +100,7 @@ async function openStoreReview(): Promise<void> {
   try {
     const APPLE_APP_ID = '6751785713';
     const ANDROID_PACKAGE = 'com.sifiaopc.app';
-    
+
     const { Linking, Platform } = await import('react-native');
 
     if (Platform.OS === 'ios') {
@@ -127,7 +127,7 @@ async function openStoreReview(): Promise<void> {
 
 /**
  * Request an in-app review with proper gating and fallback
- * 
+ *
  * This is the main entry point for automatic review prompting.
  * Call this at positive user experience moments:
  * - After completing a playbook
@@ -135,7 +135,7 @@ async function openStoreReview(): Promise<void> {
  * - After leveling up
  * - After completing a devotional
  * - After marking a prayer as answered
- * 
+ *
  * @param options - Optional configuration
  * @returns Promise<boolean> - true if prompt was shown, false if skipped
  */
@@ -147,7 +147,7 @@ export async function requestReview(options?: ReviewPromptOptions): Promise<bool
 
     // Check gating rules (unless forced)
     const canPrompt = force || await canPromptReview();
-    
+
     if (!canPrompt) {
       Logger.info('[ReviewPromptService] Review prompt skipped (gating)');
       return false;
@@ -157,11 +157,11 @@ export async function requestReview(options?: ReviewPromptOptions): Promise<bool
     if (InAppReview.isAvailable()) {
       Logger.info('[ReviewPromptService] Requesting in-app review');
       await InAppReview.RequestInAppReview();
-      
+
       // Record the attempt regardless of whether dialog actually appears
       // (platform may suppress it based on their own rules)
       await recordPrompt();
-      
+
       Logger.info('[ReviewPromptService] In-app review requested');
       return true;
     }
@@ -170,11 +170,11 @@ export async function requestReview(options?: ReviewPromptOptions): Promise<bool
     Logger.info('[ReviewPromptService] In-app review unavailable, using store fallback');
     await openStoreReview();
     await recordPrompt();
-    
+
     return true;
   } catch (error) {
     Logger.error('[ReviewPromptService] Error requesting review', error as Error);
-    
+
     // Try fallback on error
     try {
       await openStoreReview();
@@ -217,7 +217,7 @@ export async function getReviewStats(): Promise<{
 
     const lastPromptRaw = await AsyncStorage.getItem(LAST_PROMPT_KEY);
     const countRaw = await AsyncStorage.getItem(countKey);
-    
+
     const lastPromptAt = lastPromptRaw ? parseInt(lastPromptRaw, 10) : null;
     const promptCount = countRaw ? parseInt(countRaw, 10) : 0;
     const daysSince = lastPromptAt ? (now - lastPromptAt) / (1000 * 60 * 60 * 24) : null;

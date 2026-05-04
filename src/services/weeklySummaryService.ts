@@ -21,6 +21,7 @@ export interface WeeklySummary {
       devotional: number;
       journal: number;
     };
+    topAchievement?: string;
   };
 }
 
@@ -162,15 +163,15 @@ class WeeklySummaryService {
     // Build the "This week: …" list — only non-zero items
     const highlights: string[] = [];
     if (stats.prayersLogged > 0)
-      highlights.push(p(stats.prayersLogged, 'prayer'));
+      {highlights.push(p(stats.prayersLogged, 'prayer'));}
     if (stats.journalEntries > 0)
-      highlights.push(p(stats.journalEntries, 'journal entry', 'journal entries'));
+      {highlights.push(p(stats.journalEntries, 'journal entry', 'journal entries'));}
     if (stats.devotionalsCompleted > 0)
-      highlights.push(p(stats.devotionalsCompleted, 'devotional'));
+      {highlights.push(p(stats.devotionalsCompleted, 'devotional'));}
     if (stats.faithfulActionsCompleted > 0)
-      highlights.push(p(stats.faithfulActionsCompleted, 'faithful action'));
+      {highlights.push(p(stats.faithfulActionsCompleted, 'faithful action'));}
     if (stats.answeredPrayers > 0)
-      highlights.push(p(stats.answeredPrayers, 'answered prayer'));
+      {highlights.push(p(stats.answeredPrayers, 'answered prayer'));}
 
     // Join list with Oxford-style comma
     let listStr = '';
@@ -183,9 +184,9 @@ class WeeklySummaryService {
     }
 
     const parts: string[] = [];
-    if (listStr) parts.push(`This week: ${listStr}.`);
+    if (listStr) {parts.push(`This week: ${listStr}.`);}
     if (stats.faithPointsEarned > 0)
-      parts.push(`You earned ${stats.faithPointsEarned} faith points.`);
+      {parts.push(`You earned ${stats.faithPointsEarned} faith points.`);}
     parts.push('Take a moment to look back on what God carried you through.');
 
     return parts.join(' ');
@@ -331,6 +332,7 @@ class WeeklySummaryService {
         answeredPrayers,
         faithPointsEarned,
         currentStreaks,
+        topAchievement,
       };
     } catch (error) {
       Logger.error('Failed to get weekly stats', error as Error, {
@@ -351,6 +353,7 @@ class WeeklySummaryService {
           devotional: 0,
           journal: 0,
         },
+        topAchievement: undefined,
       };
     }
   }

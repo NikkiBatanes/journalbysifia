@@ -652,7 +652,7 @@ const UserInputScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY, route.params?.initialText, navIconEntranceAnim]);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerScale, headerTranslateY, route.params?.initialText, navIconEntranceAnim]);
   const handleFocus = () => {
     // Animate logo position when keyboard opens
     Animated.parallel([
