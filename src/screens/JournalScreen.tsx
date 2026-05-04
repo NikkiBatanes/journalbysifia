@@ -39,6 +39,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
 
   // Refs for section registration
   const reflectCarouselRef = useRef<View>(null);
+  const prayCarouselRef = useRef<View>(null);
+  const prayCarouselYRef = useRef<number>(0);
 
   // Create dynamic fonts object - match Dashboard approach
   const fonts = useMemo(() => ({
@@ -246,6 +248,17 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       setExistingGratitudeEntry(undefined);
       // Show modal immediately without relying on carousel index
       setShowGratitudeModal(true);
+    } else if (targetSection === 'prayer') {
+      const targetPrayerCarouselIndex = typeof params?.targetPrayerCarouselIndex === 'number'
+        ? params.targetPrayerCarouselIndex
+        : 2;
+      setCarouselIndices(prev => ({ ...prev, pray: targetPrayerCarouselIndex }));
+      setRefreshKey(prev => prev + 1);
+      setTimeout(() => {
+        const y = prayCarouselYRef.current;
+        contentScrollRef.current?.scrollTo?.({ y: Math.max(0, y - 20), animated: true });
+        savedScrollPosition.current = Math.max(0, y - 20);
+      }, 450);
     }
   }, [route?.params]);
 
@@ -762,7 +775,16 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
                       }}
                     />
                   </View>
-                  <View style={styles.carouselContainer}>
+                  <View
+                    style={styles.carouselContainer}
+                    ref={prayCarouselRef}
+                    onLayout={(event) => {
+                      prayCarouselYRef.current = event.nativeEvent.layout.y;
+                      prayCarouselRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                        registerSection('pray-carousel', pageY);
+                      });
+                    }}
+                  >
                     <PrayCarousel
                       selectedDate={currentDate}
                       initialScrollIndex={carouselIndices.pray}

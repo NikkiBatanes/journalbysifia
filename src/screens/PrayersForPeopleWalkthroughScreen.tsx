@@ -30,6 +30,8 @@ import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '..
 import { analytics } from '../utils/analytics';
 import { Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -1180,6 +1182,20 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any>(null);
   const [savedPrayerId, setSavedPrayerId] = useState<string | null>(null);
+  const successModal = useSuccessModal(
+    () => {
+      navigation.navigate('MainTabs' as any, {
+        screen: 'Journal',
+        params: {
+          selectedDate: route.params?.selectedDate,
+          targetSection: 'prayer',
+          targetPrayerCarouselIndex: 2,
+          targetPrayerId: editingPrayerId,
+        },
+      });
+    },
+    undefined
+  );
 
   // Get initial data from route params if provided
   useEffect(() => {
@@ -1350,11 +1366,15 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         _dateStr: dateStr,
       });
       triggerSuccessHaptic();
-      navigation.goBack();
+      successModal.showSuccess({
+        title: 'Prayer Marked Answered',
+        message: `${personName || 'This prayer'} has been marked as answered in your journal.`,
+        showEditButton: false,
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
     }
-  }, [dateStr, editingPrayerId, navigation, updatePrayerMutation, user?.id]);
+  }, [dateStr, editingPrayerId, personName, successModal, updatePrayerMutation, user?.id]);
 
   const handlePrayNow = () => {
     // Navigate to the PrayerEditorScreen for this prayer request
@@ -1462,6 +1482,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   );
 
   return (
+    <>
     <View style={styles.container} {...panResponder.panHandlers}>
       <StatusBar hidden />
 
@@ -1644,6 +1665,13 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         </KeyboardAvoidingView>
       </Modal>
     </View>
+    <NewSuccessModal
+      visible={successModal.isVisible}
+      config={successModal.config}
+      onDone={successModal.handleDone}
+      onEdit={successModal.handleEdit}
+    />
+    </>
   );
 };
 
