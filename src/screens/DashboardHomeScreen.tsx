@@ -2178,11 +2178,111 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                     </View>
                   );
                 })}
+                {/* Faith points notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  FAITH POINTS
+                </ThemedText>
+                {(['faith_points_awarded'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#10b981', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Badge notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  BADGES
+                </ThemedText>
+                {(['badge_unlocked'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#f59e0b', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Milestone notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  MILESTONES
+                </ThemedText>
+                {(['milestone_faith_points', 'milestone_level_up', 'milestone_playbook_complete', 'milestone_prayer_answered'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#8b5cf6', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+                {/* Streak notifications */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  STREAKS
+                </ThemedText>
+                {(['streak_alert_prayer', 'streak_alert_devotional', 'streak_alert_journal', 'streak_milestone_prayer', 'streak_milestone_devotional', 'streak_milestone_journal'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#ef4444', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
                 {/* Billing notifications */}
                 <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
                   BILLING
                 </ThemedText>
-                {(['subscription_renewed', 'payment_failed', 'subscription_cancelled', 'payment_successful'] as const).map(type => {
+                {(['trial_expiring', 'payment_failed', 'payment_successful', 'grace_period', 'subscription_cancelled', 'subscription_renewed'] as const).map(type => {
                   const sending = notifSending === type;
                   return (
                     <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
@@ -2203,12 +2303,37 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                     </View>
                   );
                 })}
+                {/* Weekly summary */}
+                <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 16, marginBottom: 4, letterSpacing: 0.5 }}>
+                  WEEKLY
+                </ThemedText>
+                {(['weekly_summary'] as const).map(type => {
+                  const sending = notifSending === type;
+                  return (
+                    <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }}>
+                      <ThemedText weight="regular" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, flex: 1, marginRight: 12 }}>
+                        {type}
+                      </ThemedText>
+                      <TouchableOpacity
+                        onPress={() => handleSendSingleType(type)}
+                        disabled={sending || notifSending !== null}
+                        style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, backgroundColor: sending ? 'rgba(255,255,255,0.1)' : '#06b6d4', opacity: notifSending !== null && !sending ? 0.4 : 1 }}
+                      >
+                        {sending ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <ThemedText weight="semiBold" style={{ color: '#fff', fontSize: 11 }}>Send</ThemedText>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
               </ScrollView>
             </View>
-          )}
-
-          {/* Queue tab */}
-          {notifTestTab === 'queue' && (
+          </View>
+        </Modal>
+        {/* Queue tab */}
+        {notifTestTab === 'queue' && (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
               {notifDataLoading ? (
                 <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
