@@ -100,6 +100,7 @@ export type RootStackParamList = {
     source?: 'user_input' | 'playbook_list' | 'onboarding';
     initialStep?: number;
     initialActionIndex?: number;
+    fromNotification?: boolean;
   };
   GeneratingPlaybook: {
     userInput: string;

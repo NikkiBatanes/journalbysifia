@@ -1191,7 +1191,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       timeWindow: 'afternoon',
       score: 64,
       dedupeKey: buildDedupeKey('playbook_to_devotional', completedPlaybookWithoutDevotional.id, currentDate),
-      deepLink: `sifia://playbooks/${completedPlaybookWithoutDevotional.id}/devotional`,
+      deepLink: `sifia://playbooks/${completedPlaybookWithoutDevotional.id}/walkthrough/completed`,
       sourceType: 'playbook',
       sourceId: completedPlaybookWithoutDevotional.id,
       metadata: {
@@ -1378,26 +1378,44 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     const refreshDate = formatShortDate(resetDate);
 
     if (devotionals.length === 0 && (subscription.devotionals_used ?? 0) === 0 && remaining.devotionals > 0) {
-      candidates.push(createCandidate({
-        type: 'create_first_devotional',
-        timeWindow: 'afternoon',
-        score: 68,
-        dedupeKey: buildDedupeKey('create_first_devotional', currentDate),
-        deepLink: 'sifia://devotionals/new',
-        sourceType: 'subscription',
-        metadata: {
-          remaining_devotionals: remaining.devotionals,
-        },
-      }));
+      const firstCompletedPlaybookWithoutDevotional = playbooks.find(playbook => (
+        playbook.status === 'completed' || !!playbook.completed_at
+      ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
+
+      if (firstCompletedPlaybookWithoutDevotional) {
+        candidates.push(createCandidate({
+          type: 'create_first_devotional',
+          timeWindow: 'afternoon',
+          score: 85,
+          dedupeKey: buildDedupeKey('create_first_devotional', currentDate),
+          deepLink: `sifia://playbooks/${firstCompletedPlaybookWithoutDevotional.id}/walkthrough/completed`,
+          sourceType: 'playbook',
+          sourceId: firstCompletedPlaybookWithoutDevotional.id,
+          metadata: {
+            playbook_title: firstCompletedPlaybookWithoutDevotional.title,
+            remaining_devotionals: remaining.devotionals,
+          },
+        }));
+      }
     } else if (incompleteDevotionals.length === 0 && remaining.devotionals > 0) {
-      candidates.push(createCandidate({
-        type: 'create_devotional',
-        timeWindow: 'afternoon',
-        score: 52,
-        dedupeKey: buildDedupeKey('create_devotional', currentDate),
-        deepLink: 'sifia://devotionals/new',
-        sourceType: 'subscription',
-      }));
+      const completedPlaybookWithoutDevotional = playbooks.find(playbook => (
+        playbook.status === 'completed' || !!playbook.completed_at
+      ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
+
+      if (completedPlaybookWithoutDevotional) {
+        candidates.push(createCandidate({
+          type: 'create_devotional',
+          timeWindow: 'afternoon',
+          score: 52,
+          dedupeKey: buildDedupeKey('create_devotional', currentDate),
+          deepLink: `sifia://playbooks/${completedPlaybookWithoutDevotional.id}/walkthrough/completed`,
+          sourceType: 'playbook',
+          sourceId: completedPlaybookWithoutDevotional.id,
+          metadata: {
+            playbook_title: completedPlaybookWithoutDevotional.title,
+          },
+        }));
+      }
     }
 
     if (!ongoingPlaybook && remaining.playbooks > 0) {
@@ -1406,7 +1424,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         timeWindow: 'afternoon',
         score: 50,
         dedupeKey: buildDedupeKey('create_playbook', currentDate),
-        deepLink: 'sifia://playbooks/new',
+        deepLink: 'sifia://userinput',
         sourceType: 'subscription',
       }));
     }

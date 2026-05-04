@@ -1711,6 +1711,7 @@ interface CompletionStepProps {
   devotionalGenerated?: boolean;
   isCompleted?: boolean;
   navigation: any;
+  fromNotification?: boolean;
 }
 
 const CompletionStep: React.FC<CompletionStepProps> = ({
@@ -1722,6 +1723,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   devotionalGenerated = false,
   isCompleted = false,
   navigation,
+  fromNotification = false,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1764,10 +1766,12 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
     // Always show context line — inject if not already present
     // Use "Final reflection:" for completed playbooks, "Before you close:" for new ones
+    // Hide context line if coming from notification
     const hasContext = lines.some(l => /^before you/i.test(l) || /^final reflection/i.test(l));
-    if (!hasContext) {lines.unshift(isCompleted ? 'Final reflection:' : 'Before you close:');}
-
-    const contextLine = lines.find(l => /^before you/i.test(l) || /^final reflection/i.test(l));
+    const contextLine = fromNotification ? undefined : (
+      hasContext ? lines.find(l => /^before you/i.test(l) || /^final reflection/i.test(l)) :
+      (isCompleted ? 'Final reflection:' : 'Before you close:')
+    );
     const questionLine = lines.find(l => l.endsWith('?'));
     const actionLines = lines.filter(l =>
       l.length > 0 && !/^before you/i.test(l) && !/^final reflection/i.test(l) && !l.endsWith('?')
@@ -1797,18 +1801,20 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           <View style={styles.completionHeaderContainer}>
             <View style={styles.stepLabelRow}>
               <Ionicons name="flash" size={18} color={Colors.alertCoral} />
-              {Platform.OS === 'ios' ? (
-                <TextInput
-                  value="You've completed"
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
-                  style={[styles.stepLabelWhite, { fontWeight: '600' as any, fontFamily }]}
-                />
-              ) : (
-                <ThemedText weight="semiBold" style={styles.stepLabelWhite} selectable={true}>
-                  You've completed
-                </ThemedText>
+              {!fromNotification && (
+                Platform.OS === 'ios' ? (
+                  <TextInput
+                    value="You've completed"
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    style={[styles.stepLabelWhite, { fontWeight: '600' as any, fontFamily }]}
+                  />
+                ) : (
+                  <ThemedText weight="semiBold" style={styles.stepLabelWhite} selectable={true}>
+                    You've completed
+                  </ThemedText>
+                )
               )}
             </View>
             {Platform.OS === 'ios' ? (
@@ -1936,22 +1942,26 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
 
       <StepFadeIn delay={220}>
         <Animated.View style={{ transform: [{ translateY: buttonsAnim }] }}>
-          <ThemedText style={styles.completionStayNote}>
-            Need to stay with this a little longer?
-          </ThemedText>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, styles.finishButton]}
-            onPress={isCompleted ? () => {
-              triggerLightHaptic();
-              (navigation as any)?.goBack();
-            } : onFinish}
-            activeOpacity={0.85}
-          >
-            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-              {isCompleted ? 'Done' : 'Save & Finish'}
+          {!fromNotification && (
+            <ThemedText style={styles.completionStayNote}>
+              Need to stay with this a little longer?
             </ThemedText>
-          </TouchableOpacity>
+          )}
+
+          {!fromNotification && (
+            <TouchableOpacity
+              style={[styles.primaryButton, styles.finishButton]}
+              onPress={isCompleted ? () => {
+                triggerLightHaptic();
+                (navigation as any)?.goBack();
+              } : onFinish}
+              activeOpacity={0.85}
+            >
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                {isCompleted ? 'Done' : 'Save & Finish'}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
 
           {!devotionalGenerated && (
             <TouchableOpacity
@@ -1980,6 +1990,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const source = route.params?.source;
   const initialStep = route.params?.initialStep;
   const initialActionIndex = route.params?.initialActionIndex;
+  const fromNotification = route.params?.fromNotification;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -2725,6 +2736,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 devotionalGenerated={devotionalGenerated}
                 isCompleted={routePlaybook?.status === 'completed'}
                 navigation={navigation}
+                fromNotification={fromNotification}
               />
             )}
           </Animated.View>

@@ -159,6 +159,9 @@ class NotificationDeepLinkService {
           },
         });
         return;
+      case 'prayer':
+        this.navigationRef.current.navigate('PrayerJournalWalkthrough', { selectedDate });
+        return;
       case 'heart':
         // Navigate to dashboard to open guided reflection modal with the question
         console.log('🔔 Heart deep link navigating to dashboard:', { openGuidedReflection: query.openGuidedReflection, question: query.question });
@@ -382,6 +385,8 @@ class NotificationDeepLinkService {
             const target = parts[2];
             const walkthroughTarget = parts[3];
 
+            console.log('🔔 Playbook deeplink parsed:', { screen, id, target, walkthroughTarget, parts });
+
             if (target === 'walkthrough') {
               const stepMap: Record<string, number> = {
                 verse: 2,
@@ -394,10 +399,13 @@ class NotificationDeepLinkService {
               const initialStep = stepMap[walkthroughTarget] ?? 0;
               const rawActionIndex = walkthroughTarget === 'actions' ? Number(parts[4]) : undefined;
 
+              console.log('🔔 Navigating to PlaybookWalkthrough with:', { id, initialStep, walkthroughTarget });
+
               this.navigationRef.current.navigate('PlaybookWalkthrough', {
                 playbook: { id },
                 source: 'playbook_list',
                 initialStep,
+                fromNotification: true,
                 ...(Number.isFinite(rawActionIndex) ? { initialActionIndex: rawActionIndex } : {}),
               });
             } else if (target === 'prayer') {
@@ -423,6 +431,12 @@ class NotificationDeepLinkService {
                 playbook: { id },
                 source: 'playbook_list',
                 initialStep: 3,
+              });
+            } else if (target === 'devotional') {
+              this.navigationRef.current.navigate('PlaybookWalkthrough', {
+                playbook: { id },
+                source: 'playbook_list',
+                initialStep: 6,
               });
             } else {
               // No specific target — open the walkthrough at step 0 (overview).
@@ -523,6 +537,15 @@ class NotificationDeepLinkService {
             skipNotificationPreference: true,
           });
           Logger.info('Navigated to subscription offer', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
+        case 'userinput':
+          this.navigationRef.current.navigate('UserInput', {
+            autoFocus: true,
+          });
+          Logger.info('Navigated to UserInput screen', {
             component: 'notificationDeepLinkService',
           });
           break;

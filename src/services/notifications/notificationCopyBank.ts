@@ -240,13 +240,13 @@ export function buildSmartNotificationCopy(
     case 'create_first_devotional':
       return {
         title: 'Create your first devotional',
-        message: compact('Choose a playbook to turn into a devotional.'),
+        message: compact('Turn your completed playbook into a devotional to spend time in prayer, reflection, and scripture.'),
       };
 
     case 'create_devotional':
       return {
         title: 'Start a new devotional',
-        message: compact('Turn one of your playbooks into a devotional.'),
+        message: compact('Turn a completed playbook into a devotional to spend time in prayer, reflection, and scripture.'),
       };
 
     case 'create_playbook': {

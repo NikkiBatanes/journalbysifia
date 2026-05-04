@@ -414,13 +414,23 @@ export class NotificationTester {
 
       // Subscription/upgrade deep links
       case 'create_first_devotional':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
+        }
+        return 'sifia://devotionals/new';
+
       case 'create_devotional':
+        if (ctx._playbookId) {
+          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
+        }
+        return 'sifia://devotionals/new';
+
       case 'usage_room_devotional':
         return 'sifia://devotionals/new';
 
       case 'create_playbook':
       case 'usage_room_playbook':
-        return 'sifia://playbooks/new';
+        return 'sifia://userinput';
 
       case 'content_refresh_wait':
         return 'sifia://journal';
