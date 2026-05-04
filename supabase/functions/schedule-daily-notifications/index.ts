@@ -577,7 +577,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 17:15  heart_journal_prompt ─────────────────────────────────────────
-  // Tier-specific deep links: Seeker goes to journal reflections, Paid goes to guided reflection
+  // Tier-specific deep links: Seeker goes to journal reflections, Paid goes to guided reflection with question
   if (isFreeTier) {
     add({
       type: 'heart_journal_prompt',
@@ -588,12 +588,14 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       priority: 'normal',
     });
   } else {
+    const heartJournalQuestion = 'What is one area of your life where you need to trust God more today?';
+    const encodedQuestion = encodeURIComponent(heartJournalQuestion);
     add({
       type: 'heart_journal_prompt',
       localHour: 17, localMinute: 15,
       title: `What's on your heart, ${name}? ❤️`,
       message: 'Take a quiet moment to reflect on a guided question.',
-      data: { deep_link: 'sifia://dashboard?openGuidedReflection=true' },
+      data: { deep_link: `sifia://dashboard?openGuidedReflection=true&question=${encodedQuestion}` },
       priority: 'normal',
     });
   }
