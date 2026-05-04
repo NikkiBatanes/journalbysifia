@@ -961,7 +961,7 @@ async function getDevotionals(supabase: SupabaseClient, userId: string): Promise
 async function hasDevotionalReflection(supabase: SupabaseClient, userId: string, devotionalId: string, dayNumber: number): Promise<boolean> {
   try {
     const { data } = await supabase
-      .from('journal_entries')
+      .from('reflection_entries')
       .select('id')
       .eq('user_id', userId)
       .eq('devotional_id', devotionalId)
