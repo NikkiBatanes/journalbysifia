@@ -493,7 +493,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 16:30  devotional_prayer_prompt ─────────────────────────────────────
-  if (primaryDev?.hasPrayerToComplete) {
+  if (primaryDev?.hasPrayerToComplete && !primaryDev.prayerPrayed) {
     add({
       type: 'devotional_prayer_prompt',
       localHour: 16, localMinute: 30,
@@ -863,6 +863,7 @@ interface DevotionalInfo {
   hasPrayerToComplete: boolean;
   hasReflectionQuestion: boolean;
   reflectionQuestion?: string;
+  prayerPrayed?: boolean;
 }
 
 interface PlaybookInfo {
@@ -909,7 +910,7 @@ async function getDevotionals(supabase: SupabaseClient, userId: string): Promise
   try {
     const { data } = await supabase
       .from('user_devotionals')
-      .select('id, title, completed, total_days, days')
+      .select('id, title, completed, total_days, days, prayer_prayed')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
@@ -926,7 +927,7 @@ async function getDevotionals(supabase: SupabaseClient, userId: string): Promise
       const verseText = currentDay?.scripture?.text       ?? currentDay?.verse_text      ?? undefined;
       const questions: any[] = currentDay?.reflectionQuestions ?? [];
       const firstQ    = questions[0]?.text ?? null;
-      const hasPrayer = typeof currentDay?.prayer === 'string' && currentDay.prayer.trim().length > 0;
+      const hasPrayer = typeof currentDay?.prayer === 'string' && currentDay?.prayer.trim().length > 0;
 
       return {
         id: d.id,
@@ -936,11 +937,12 @@ async function getDevotionals(supabase: SupabaseClient, userId: string): Promise
         currentDayNumber: dayNumber,
         currentDayTitle: currentDay?.title ?? undefined,
         verseReference: verseRef,
-        verseText: verseText,
+        verseText,
         hasPrayerToComplete: hasPrayer,
         hasReflectionQuestion: !!firstQ,
-        reflectionQuestion: firstQ ?? undefined,
-      } as DevotionalInfo;
+        reflectionQuestion: firstQ,
+        prayerPrayed: !!d.prayer_prayed,
+      };
     });
   } catch {
     return [];

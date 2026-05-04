@@ -39,6 +39,7 @@ import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
+import { updateDevotionalPrayerPrayed } from '../services/supabaseApiNormalized';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 
@@ -591,6 +592,13 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     if (isPrayed && currentDay.prayer?.trim() && user) {
       const cleanPrayer = currentDay.prayer.replace(/\*\*/g, '').trim();
       const currentDate = toLocalDateString(new Date());
+
+      // Update prayer_prayed field in user_devotionals table
+      if (devotional.id) {
+        updateDevotionalPrayerPrayed(devotional.id, true).catch(error => {
+          console.warn('Failed to update prayer_prayed in user_devotionals table', error);
+        });
+      }
 
       // Save using React Query mutation with optimistic updates
       createDevotionalPrayerMutation.mutate({
