@@ -126,9 +126,24 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
     const deletedSubscription = DeviceEventEmitter.addListener('reflection_deleted', handleReflectionChanged);
 
+    const prayerAnsweredSubscription = DeviceEventEmitter.addListener('prayer_marked_answered', (data: any) => {
+      const targetDate = data.selectedDate ? new Date(data.selectedDate) : new Date();
+      const safeTargetDate = Number.isNaN(targetDate.getTime()) ? new Date() : targetDate;
+      setCurrentDate(safeTargetDate);
+      lastSelectedDate.current = safeTargetDate;
+      setCarouselIndices(prev => ({ ...prev, pray: 2 }));
+      setRefreshKey(prev => prev + 1);
+      setTimeout(() => {
+        const y = prayCarouselYRef.current;
+        contentScrollRef.current?.scrollTo?.({ y: Math.max(0, y - 20), animated: true });
+        savedScrollPosition.current = Math.max(0, y - 20);
+      }, 450);
+    });
+
     return () => {
       savedSubscription.remove();
       deletedSubscription.remove();
+      prayerAnsweredSubscription.remove();
     };
   }, []);
 

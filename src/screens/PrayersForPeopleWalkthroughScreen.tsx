@@ -1184,15 +1184,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [savedPrayerId, setSavedPrayerId] = useState<string | null>(null);
   const successModal = useSuccessModal(
     () => {
-      navigation.navigate('MainTabs' as any, {
-        screen: 'Journal',
-        params: {
-          selectedDate: route.params?.selectedDate,
-          targetSection: 'prayer',
-          targetPrayerCarouselIndex: 2,
-          targetPrayerId: editingPrayerId,
-        },
+      DeviceEventEmitter.emit('prayer_marked_answered', {
+        prayerId: editingPrayerId,
+        selectedDate: route.params?.selectedDate,
       });
+      navigation.goBack();
     },
     undefined
   );
