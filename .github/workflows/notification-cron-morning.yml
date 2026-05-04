@@ -2,8 +2,8 @@ name: Daily Notifications - Morning Batch
 
 on:
   schedule:
-    # Run at 11:00 PM UTC (7:00 AM Philippines) - for same-day notifications
-    - cron: '0 23 * * *'
+    # Run at 10:00 PM UTC (6:00 AM Philippines) - schedule all-day notifications before first one fires
+    - cron: '0 22 * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -15,32 +15,71 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Generate daily notifications
+      - name: Cancel stale pending notifications
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          echo "🌅 Generating morning notification batch (7 AM Philippines)..."
-          
-          # Call the Supabase edge function for daily batch
+          echo "🧹 Cancelling stale pending notifications older than 24 hours..."
+          curl -s -X POST \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/cancel_stale_notifications" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' || true
+          echo "✅ Stale notification cleanup done"
+
+      - name: Schedule morning notifications
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🌅 Scheduling morning notification batch (7 AM Philippines)..."
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "${{ secrets.SUPABASE_URL }}/functions/v1/generate-daily-notifications" \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/schedule-daily-notifications" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}')
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
-          
+
           echo "Response: $BODY"
           echo "HTTP Code: $HTTP_CODE"
-          
+
           if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "❌ Morning notification generation failed with code $HTTP_CODE"
+            echo "❌ Morning notification scheduling failed with code $HTTP_CODE"
             exit 1
           fi
-          
-          echo "✅ Morning notification batch completed successfully"
+
+          echo "✅ Morning notifications scheduled"
+
+      - name: Process notification queue
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "📤 Processing notification queue (sending to devices)..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/process-notification-queue" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "Response: $BODY"
+          echo "HTTP Code: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ Queue processing failed with code $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✅ Notification queue processed successfully"
           
       - name: Notify on failure
         if: failure()

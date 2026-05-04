@@ -255,11 +255,320 @@ serve(async (req) => {
   }
 });
 
+// ─── Journal notification types that get cancelled at send time ───────────────
+//
+//  journal_todays_focus    → cancel if 'todays_focus'   entry exists + has content
+//  journal_gratitude       → cancel if 'gratitude'       entry exists + has content
+//  journal_todays_win      → cancel if 'today_win'       entry exists + has content
+//  journal_looking_forward → cancel if 'looking_forward' entry exists + has content
+//  journal_todo            → cancel if all todos are marked complete today
+//  journal_inactivity      → cancel if ANY journal entry was created today
+//  heart_journal_prompt    → always send (no check)
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const JOURNAL_TYPE_MAP: Record<string, string> = {
+  journal_todays_focus:    'todays_focus',
+  journal_gratitude:       'gratitude',
+  journal_todays_win:      'today_win',
+  journal_looking_forward: 'looking_forward',
+};
+
 async function getCancellationReason(supabase: any, notification: any): Promise<string | null> {
-  if (notification.type !== 'prayer_answered_check') {
+  const { type, user_id } = notification;
+
+  // ── Prayer answered check ──────────────────────────────────────────────────
+  if (type === 'prayer_answered_check') {
+    return checkPrayerAnsweredCancellation(supabase, notification);
+  }
+
+  // ── Journal entries: cancel if already filled today ────────────────────────
+  if (JOURNAL_TYPE_MAP[type]) {
+    const journalType = JOURNAL_TYPE_MAP[type];
+    const userTz = await getUserTimezone(supabase, user_id);
+    const filled = await hasFilledJournalEntry(supabase, user_id, journalType, userTz);
+    if (filled) {
+      return `journal_already_filled:${journalType}`;
+    }
     return null;
   }
 
+  // ── Inactivity: cancel if ANY journal entry exists today ───────────────────
+  if (type === 'journal_inactivity') {
+    const userTz = await getUserTimezone(supabase, user_id);
+    const hasAny = await hasAnyJournalEntryToday(supabase, user_id, userTz);
+    if (hasAny) {
+      return 'user_active_today';
+    }
+    return null;
+  }
+
+  // ── Todo: cancel if all todos for today are complete ──────────────────────
+  if (type === 'journal_todo') {
+    const userTz = await getUserTimezone(supabase, user_id);
+    const allDone = await allTodosCompleteToday(supabase, user_id, userTz);
+    if (allDone) {
+      return 'todos_all_complete';
+    }
+    return null;
+  }
+
+  // ── Prayer request care: cancel if no more pending requests ───────────────
+  if (type === 'prayer_request_care') {
+    const hasPending = await hasPendingPrayerRequests(supabase, user_id);
+    if (!hasPending) {
+      return 'no_pending_prayer_requests';
+    }
+    return null;
+  }
+
+  // ── Prayer people nudge: cancel if user now has people prayers ────────────
+  if (type === 'prayer_people_nudge') {
+    const hasPeople = await hasPeoplePrayers(supabase, user_id);
+    if (hasPeople) {
+      return 'user_already_has_people_prayers';
+    }
+    return null;
+  }
+
+  // ── Create playbook: cancel if user now has an active playbook ────────────
+  if (type === 'create_playbook') {
+    const hasActive = await hasActivePlaybook(supabase, user_id);
+    if (hasActive) {
+      return 'user_has_active_playbook';
+    }
+    return null;
+  }
+
+  // ── Create devotional: cancel if user now has an active devotional ─────────
+  if (type === 'create_devotional' || type === 'create_first_devotional' || type === 'playbook_to_devotional') {
+    const hasActive = await hasActiveDevotional(supabase, user_id);
+    if (hasActive) {
+      return 'user_has_active_devotional';
+    }
+    return null;
+  }
+
+  return null;
+}
+
+// ─── Helper: get user timezone ─────────────────────────────────────────────
+
+async function getUserTimezone(supabase: any, userId: string): Promise<string> {
+  try {
+    // 1. Check notification_preferences (set by device at opt-in time)
+    const { data: prefs } = await supabase
+      .from('notification_preferences')
+      .select('timezone')
+      .eq('user_id', userId)
+      .single();
+    if (prefs?.timezone) return prefs.timezone;
+
+    // 2. Fallback: user_profiles.timezone (set during onboarding)
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('timezone')
+      .eq('id', userId)
+      .single();
+    if (profile?.timezone) return profile.timezone;
+  } catch {
+    // ignore
+  }
+
+  // 3. Final fallback: UTC. Do NOT assume a country — subscribers are global.
+  return 'UTC';
+}
+
+// ─── Helper: today's date range in user's timezone ─────────────────────────
+
+function todayRangeInTz(timezone: string): { start: string; end: string } {
+  const now = new Date();
+  const utcStr   = now.toLocaleString('en-US', { timeZone: 'UTC' });
+  const localStr = now.toLocaleString('en-US', { timeZone: timezone });
+  const offsetMs = new Date(localStr).getTime() - new Date(utcStr).getTime();
+
+  // "Local now" expressed in UTC coordinates
+  const localNow = new Date(now.getTime() + offsetMs);
+  const y = localNow.getUTCFullYear();
+  const m = localNow.getUTCMonth();
+  const d = localNow.getUTCDate();
+
+  // Midnight in user's timezone → UTC
+  const todayStartLocal = new Date(Date.UTC(y, m, d, 0, 0, 0, 0));
+  const todayEndLocal   = new Date(Date.UTC(y, m, d, 23, 59, 59, 999));
+  const startUtc = new Date(todayStartLocal.getTime() - offsetMs);
+  const endUtc   = new Date(todayEndLocal.getTime() - offsetMs);
+
+  return { start: startUtc.toISOString(), end: endUtc.toISOString() };
+}
+
+// ─── Helper: check if a specific journal type has been filled today ─────────
+
+async function hasFilledJournalEntry(
+  supabase: any,
+  userId: string,
+  journalType: string,
+  timezone: string
+): Promise<boolean> {
+  try {
+    const { start, end } = todayRangeInTz(timezone);
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('id, content')
+      .eq('user_id', userId)
+      .eq('type', journalType)
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .limit(1);
+
+    if (!data || data.length === 0) return false;
+
+    // Only count it as "filled" if it has meaningful content
+    const content = data[0]?.content;
+    if (!content) return false;
+    const text = typeof content === 'string' ? content : JSON.stringify(content);
+    return text.trim().length > 3; // more than a few characters
+  } catch (err) {
+    console.warn(`hasFilledJournalEntry check failed (${journalType}):`, err);
+    return false; // On error, don't cancel — send the notification
+  }
+}
+
+// ─── Helper: check if any journal entry was created today ──────────────────
+
+async function hasAnyJournalEntryToday(
+  supabase: any,
+  userId: string,
+  timezone: string
+): Promise<boolean> {
+  try {
+    const { start, end } = todayRangeInTz(timezone);
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .limit(1);
+
+    return !!(data && data.length > 0);
+  } catch (err) {
+    console.warn('hasAnyJournalEntryToday check failed:', err);
+    return false;
+  }
+}
+
+// ─── Helper: check if all todos are complete today ─────────────────────────
+
+async function allTodosCompleteToday(
+  supabase: any,
+  userId: string,
+  timezone: string
+): Promise<boolean> {
+  try {
+    const { start, end } = todayRangeInTz(timezone);
+    // Check if there are any incomplete todos for today
+    const { data: incomplete } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', 'todo')
+      .eq('completed', false)
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .limit(1);
+
+    if (!incomplete || incomplete.length === 0) {
+      // No incomplete todos — check if there are ANY todos (empty list = don't cancel)
+      const { data: total } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'todo')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .limit(1);
+
+      // Only cancel if there are todos AND they're all done
+      return !!(total && total.length > 0);
+    }
+
+    return false; // Has incomplete todos → send the reminder
+  } catch (err) {
+    console.warn('allTodosCompleteToday check failed:', err);
+    return false;
+  }
+}
+
+// ─── Helper: prayer request care — cancel if no pending requests ──────────
+
+async function hasPendingPrayerRequests(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('prayers')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_prayer_request', true)
+      .or('prayed.is.null,prayed.eq.false')
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return true; // on error, don't cancel — send the notification
+  }
+}
+
+// ─── Helper: people nudge — cancel if user already has people prayers ─────
+
+async function hasPeoplePrayers(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('prayers')
+      .select('id')
+      .eq('user_id', userId)
+      .or('prayer_type.eq.people,is_prayer_request.eq.true')
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return true; // on error, assume they do — don't nudge unnecessarily
+  }
+}
+
+// ─── Helper: create_playbook — cancel if user now has an active playbook ──
+
+async function hasActivePlaybook(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('playbooks')
+      .select('id')
+      .eq('user_id', userId)
+      .is('completed_at', null)
+      .neq('status', 'completed')
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return false;
+  }
+}
+
+// ─── Helper: create_devotional — cancel if user now has an active devotional
+
+async function hasActiveDevotional(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('user_devotionals')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('completed', false)
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return false;
+  }
+}
+
+// ─── Prayer answered check (extracted from original) ──────────────────────
+
+async function checkPrayerAnsweredCancellation(supabase: any, notification: any): Promise<string | null> {
   const prayerId = notification.data?.source_id;
   if (typeof prayerId !== 'string' || prayerId.length === 0) {
     return null;
