@@ -309,13 +309,13 @@ class StreakTrackingService {
           time: '19:00', // 7 PM - earlier to give users more time
         },
         devotional: {
-          title: `Keep Your ${currentStreak}-Day Devotional Streak! 🤲🏼`,
+          title: `Keep Your ${currentStreak}-Day Devotional Streak Going! 📖`,
           message: 'You\'re building a powerful habit. Don\'t stop now!',
           deepLink: 'sifia://devotionals/today',
           time: '19:30', // 7:30 PM - earlier to give users more time
         },
         journal: {
-          title: `Protect Your ${currentStreak}-Day Journaling Streak! ✍🏼`,
+          title: `Continue Your ${currentStreak}-Day Journaling Journey! ✍🏼`,
           message: 'You\'re building consistency. Keep going!',
           deepLink: 'sifia://journal',
           time: '20:00', // 8 PM - earlier to give users more time
