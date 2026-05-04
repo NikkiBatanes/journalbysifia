@@ -578,6 +578,38 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
 
   // ── 17:15  heart_journal_prompt ─────────────────────────────────────────
   // Tier-specific deep links: Seeker goes to journal reflections, Paid goes to guided reflection with question
+  // Dynamic question fetching based on tier
+  const GUIDED_PROMPTS = [
+    "How did I seek God's guidance in my decisions today?",
+    "Did I reflect Christ's love in my interactions?",
+    'What challenged my faith, and how did I respond?',
+    'Am I prioritizing daily prayer and Scripture reading?',
+    "How am I using my talents and resources for God's glory?",
+    "What area of my life needs more trust in God?",
+    "How did I experience God's presence today?",
+    "What did I learn from Scripture that I can apply?",
+    "How am I growing in my relationship with God?",
+    "What blessing can I thank God for today?",
+  ];
+
+  // Deterministic selection for Seeker tier (consistent per user)
+  function getDeterministicPrompt(userId: string, tier: string): string {
+    if (tier !== 'seeker') {
+      // Paid tiers: use date-based rotation
+      const today = new Date();
+      const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+      return GUIDED_PROMPTS[dayOfYear % GUIDED_PROMPTS.length];
+    }
+    
+    // Seeker: use user ID hash for consistent free prompts
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const freePromptIndex = hash % 2; // Seeker gets 2 free prompts
+    return GUIDED_PROMPTS[freePromptIndex];
+  }
+
+  const heartJournalQuestion = getDeterministicPrompt(userId, subscription?.tier || 'seeker');
+  const encodedQuestion = encodeURIComponent(heartJournalQuestion);
+
   if (isFreeTier) {
     add({
       type: 'heart_journal_prompt',
@@ -588,8 +620,6 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       priority: 'normal',
     });
   } else {
-    const heartJournalQuestion = 'What is one area of your life where you need to trust God more today?';
-    const encodedQuestion = encodeURIComponent(heartJournalQuestion);
     add({
       type: 'heart_journal_prompt',
       localHour: 17, localMinute: 15,
