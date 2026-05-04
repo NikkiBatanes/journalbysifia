@@ -179,6 +179,14 @@ const OnboardingNotificationSetupScreen = () => {
       // Request permissions
       const permissionsGranted = await pushNotificationService.requestPermissions();
 
+      // Ensure device token is registered after permissions are granted
+      if (permissionsGranted) {
+        const storedToken = await pushNotificationService.getStoredToken();
+        if (storedToken) {
+          await pushNotificationService.saveDeviceToken(user.id, storedToken);
+        }
+      }
+
       if (permissionsGranted) {
 
         // Save notification preferences to Supabase
@@ -191,6 +199,9 @@ const OnboardingNotificationSetupScreen = () => {
 
         // Save preferences to notification_preferences table
         try {
+          // Detect user's device timezone
+          const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
           const { error: prefsError } = await supabase
             .from('notification_preferences')
             .upsert({
@@ -205,7 +216,7 @@ const OnboardingNotificationSetupScreen = () => {
               streak_alerts: enabledSettings.progress_updates || false,
               prayer_requests: enabledSettings.prayer_request_alerts || false,
               prayer_request_alerts: enabledSettings.prayer_request_alerts || false,
-              timezone: 'UTC',
+              timezone: deviceTimezone,
               updated_at: new Date().toISOString(),
             }, {
               onConflict: 'user_id,notification_type',
