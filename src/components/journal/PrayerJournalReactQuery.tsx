@@ -203,14 +203,14 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Content before supplication (confession, adoration) */}
       {beforeSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
         </View>
       ))}
 
       {/* Supplication content */}
       {supplicationPrayer && (
         <View style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>  {supplicationPrayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>{supplicationPrayer.content}</ThemedText>
         </View>
       )}
 
@@ -241,7 +241,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
       {/* Content after supplication (thanksgiving) */}
       {afterSupplication.map((prayer: any) => (
         <View key={prayer.id} style={styles.combinedContentSection}>
-          <ThemedText style={styles.combinedPrayerText}>  {prayer.content}</ThemedText>
+          <ThemedText style={styles.combinedPrayerText}>{prayer.content}</ThemedText>
         </View>
       ))}
 
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   combinedContentSection: {
-    gap: 12,
+    gap: 4,
   },
   trackingSection: {
     marginTop: 12,
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.hopeWhite,
     fontStyle: 'italic',
-    lineHeight: 22,
+    lineHeight: 18,
   },
   supplicationSection: {
     gap: 8,
@@ -1019,6 +1019,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
+    marginTop: 12,
     marginBottom: 8,
   },
   markAnsweredButtonActive: {
