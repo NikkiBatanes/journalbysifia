@@ -593,8 +593,8 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
     add({
       type: 'heart_journal_prompt',
       localHour: 17, localMinute: 15,
-      title: `What's on your heart, ${name}? ❤️`,
-      message: 'Take a quiet moment to reflect on a guided question.',
+      title: `Guided reflection for you, ${name} 💭`,
+      message: heartJournalQuestion,
       data: { deep_link: `sifia://dashboard?openGuidedReflection=true&question=${encodedQuestion}` },
       priority: 'normal',
     });
