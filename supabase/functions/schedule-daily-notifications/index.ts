@@ -138,6 +138,41 @@ const compact = (str: string, max = 200): string => {
   return str.length > max ? str.substring(0, max - 3) + '...' : str;
 };
 
+const getPrayerSnippet = (content: string, max = 60): string => {
+  if (!content) return '';
+  const commonOpenings = [
+    'heavenly father',
+    'dear god',
+    'dear lord',
+    'lord',
+    'father god',
+    'god',
+    'dear jesus',
+    'jesus',
+    'almighty god',
+    'gracious father',
+  ];
+  
+  let text = content.replace(/\s+/g, ' ').trim();
+  
+  // Skip common opening phrases
+  const lowerText = text.toLowerCase();
+  for (const opening of commonOpenings) {
+    if (lowerText.startsWith(opening)) {
+      // Remove the opening and any following comma/period
+      text = text.substring(opening.length).replace(/^[\s,.\-]+/, '').trim();
+      break;
+    }
+  }
+  
+  // If still empty after removing openings, return the original truncated
+  if (!text) {
+    text = content.replace(/\s+/g, ' ').trim();
+  }
+  
+  return text.length > max ? text.substring(0, max - 3) + '...' : text;
+};
+
 const plural = (n: number, s: string, p = `${s}s`): string => (n === 1 ? s : p);
 
 // ─── Core scheduler ───────────────────────────────────────────────────────────
@@ -321,7 +356,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   if (unansweredPrayers.length > 0) {
     const prayer     = unansweredPrayers[0];
     const personName = (prayer.person_name || '').split(' ')[0].trim(); // first name only
-    const prayerText = compact(prayer.content || '', 60);
+    const prayerSnippet = getPrayerSnippet(prayer.content || '', 60);
     const dateParam  = prayer.selected_date
       ? `&selectedDate=${encodeURIComponent(prayer.selected_date)}`
       : '';
@@ -331,10 +366,12 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
     const createdAt = new Date(prayer.created_at);
     const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Build message with person name
+    // Build message with person name or prayer snippet
     const message = personName
       ? `You've been praying for ${personName}. Would you like to mark this prayer as answered?`
-      : 'Would you like to mark this prayer as answered?';
+      : prayerSnippet
+        ? `You prayed: "${prayerSnippet}". Would you like to mark this prayer as answered?`
+        : 'Would you like to mark this prayer as answered?';
 
     add({
       type: 'prayer_answered_check',
