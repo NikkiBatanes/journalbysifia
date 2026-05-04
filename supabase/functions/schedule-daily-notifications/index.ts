@@ -230,19 +230,23 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   // ── 06:30  devotional_day_ready ──────────────────────────────────────────
   if (primaryDev) {
     const isSingleDay = (primaryDev.totalDays ?? 0) === 1;
-    const dayLabel = isSingleDay
-      ? (primaryDev.title || 'Your devotional')
-      : primaryDev.currentDayNumber
+    let dayLabel: string;
+
+    if (isSingleDay) {
+      dayLabel = `Your devotional "${primaryDev.title || 'Your devotional'}"`;
+    } else {
+      dayLabel = primaryDev.currentDayNumber
         ? (primaryDev.currentDayTitle
           ? `Day ${primaryDev.currentDayNumber}: ${primaryDev.currentDayTitle}`
           : `Day ${primaryDev.currentDayNumber}`)
         : 'Your devotional';
+    }
 
     add({
       type: 'devotional_day_ready',
       localHour: 6, localMinute: 30,
       title: `Good morning, ${name}! 🌅`,
-      message: compact(`Start your day with God's Word. ${dayLabel} is ready when you are.`),
+      message: compact(`${dayLabel} is ready when you are.`),
       data: {
         deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}`,
         devotional_id: primaryDev.id,
