@@ -936,7 +936,7 @@ export async function updateDevotionalPrayerPrayed(
 ): Promise<void> {
   try {
     const { error } = await supabase
-      .from('user_devotionals')
+      .from('devotionals')
       .update({ prayer_prayed: prayerPrayed })
       .eq('id', devotionalId);
 

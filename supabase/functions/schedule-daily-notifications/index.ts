@@ -909,7 +909,7 @@ interface SubscriptionInfo {
 async function getDevotionals(supabase: SupabaseClient, userId: string): Promise<DevotionalInfo[]> {
   try {
     const { data } = await supabase
-      .from('user_devotionals')
+      .from('devotionals')
       .select('id, title, completed, total_days, days, prayer_prayed')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -1005,7 +1005,7 @@ async function getActivePlaybook(supabase: SupabaseClient, userId: string): Prom
     if (isCompleted) {
       try {
         const { data: dvCheck } = await supabase
-          .from('user_devotionals')
+          .from('devotionals')
           .select('id')
           .eq('user_id', userId)
           .eq('playbook_id', pb.id)
