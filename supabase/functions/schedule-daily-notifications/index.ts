@@ -295,15 +295,15 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   // ── 11:00  playbook_faithful_action ─────────────────────────────────────
   if (hasIncompleteAction && playbook) {
     const faithfulTitles = [
-      'Take one faithful step',
-      'Return to your next step',
-      'Come back to the step in front of you',
+      'Take one faithful step 🩵',
+      'Return to your next step 🩵',
+      'Come back to the step in front of you 🩵',
     ];
     add({
       type: 'playbook_faithful_action',
       localHour: 11, localMinute: 0,
       title: faithfulTitles[dow % faithfulTitles.length],
-      message: compact(`${playbook.title}: ${playbook.nextActionText || 'One action from your playbook is ready for today.'}`),
+      message: compact(playbook.nextActionText || 'One action from your playbook is ready for today.'),
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/actions/${playbook.nextActionIndex ?? 0}`,
         playbook_id: playbook.id,
