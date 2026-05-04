@@ -67,6 +67,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
+import { requestReview } from '../services/reviewPromptService';
 
 const { width } = Dimensions.get('window');
 
@@ -576,7 +577,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       pushEnabled: true,
       emailEnabled: true,
       reminderTime: '08:00',
-      timezone: 'UTC',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     theme: 'default',
     font: 'lexend',
@@ -725,36 +726,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Try in-app review first, with gentle app-level gating, then fallback to store page
   const handleLeaveReview = async () => {
     try {
-      const now = Date.now();
-      const year = new Date().getFullYear();
-      const LAST_PROMPT_KEY = 'review:lastPromptAt';
-      const COUNT_KEY = `review:promptCount:${year}`;
-      const MIN_DAYS_BETWEEN = 30; // days
-      const MAX_PER_YEAR = 3;
-
-      const lastPromptRaw = await AsyncStorage.getItem(LAST_PROMPT_KEY);
-      const countRaw = await AsyncStorage.getItem(COUNT_KEY);
-      const lastPromptAt = lastPromptRaw ? parseInt(lastPromptRaw, 10) : 0;
-      const promptCount = countRaw ? parseInt(countRaw, 10) : 0;
-
-      const daysSince = lastPromptAt ? (now - lastPromptAt) / (1000 * 60 * 60 * 24) : Infinity;
-      const withinLimit = promptCount < MAX_PER_YEAR;
-      const spacedEnough = daysSince >= MIN_DAYS_BETWEEN;
-
-      const canPrompt = withinLimit && spacedEnough;
-
-      if (canPrompt && InAppReview.isAvailable()) {
-        await InAppReview.RequestInAppReview();
-        // Regardless of whether the dialog actually appears, record attempt to avoid spamming
-        await AsyncStorage.setItem(LAST_PROMPT_KEY, String(now));
-        await AsyncStorage.setItem(COUNT_KEY, String(promptCount + 1));
-        return; // don't immediately redirect to the store
-      }
-    } catch (e) {
-      // ignore and fallback
+      await requestReview({ triggerSource: 'manual_profile_button' });
+    } catch (error) {
+      Logger.error('[UserProfileScreen] Error in handleLeaveReview', error as Error);
     }
-    // Fallback to store if in-app review isn't available or gating disallows it
-    await openStoreReview();
   };
 
   // Share app with friends using platform-appropriate store link (with fallback)

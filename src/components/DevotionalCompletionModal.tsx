@@ -19,6 +19,7 @@ import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
 import ShareDropdownModal from './ShareDropdownModal';
 import { pdfExportService } from '../utils/pdfExportService';
+import { requestReview } from '../services/reviewPromptService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -601,7 +602,16 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
                 <TouchableOpacity
                   style={styles.continueButton}
-                  onPress={() => { triggerLightHaptic(); onContinue(); }}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    // Request review after completing final day of devotional
+                    if (isLastDay) {
+                      requestReview({ triggerSource: 'devotional_complete' }).catch(() => {
+                        // Silently fail - review prompt is optional
+                      });
+                    }
+                    onContinue();
+                  }}
                 >
                   <ThemedText weight="semiBold" style={styles.continueButtonText}>
                     Continue to Next Day
