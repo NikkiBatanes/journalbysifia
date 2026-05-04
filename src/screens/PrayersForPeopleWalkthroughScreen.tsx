@@ -13,6 +13,9 @@ import {
   PanResponder,
   useWindowDimensions,
   DeviceEventEmitter,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,7 +31,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '../services/hooks/usePrayerData';
 import { analytics } from '../utils/analytics';
-import { Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -1184,17 +1186,25 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [savedPrayerId, setSavedPrayerId] = useState<string | null>(null);
   const successModal = useSuccessModal(
     () => {
-      navigation.navigate('MainTabs' as any, {
-        screen: 'Journal',
-        params: {
-          screen: 'JournalMain',
-          params: {
-            selectedDate: route.params?.selectedDate,
-            targetSection: 'prayer',
-            targetPrayerCarouselIndex: 2,
-            targetPrayerId: editingPrayerId,
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'MainTabs' as any,
+            params: {
+              screen: 'Journal',
+              params: {
+                screen: 'JournalMain',
+                params: {
+                  selectedDate: route.params?.selectedDate,
+                  targetSection: 'prayer',
+                  targetPrayerCarouselIndex: 2,
+                  targetPrayerId: editingPrayerId,
+                },
+              },
+            },
           },
-        },
+        ],
       });
     },
     undefined
@@ -1363,6 +1373,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         id: editingPrayerId,
         updates: {
           status: 'answered' as const,
+          is_answered: true,
           answered_date: new Date().toISOString(),
         },
         _userId: user?.id || '',
