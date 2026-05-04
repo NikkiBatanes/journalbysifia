@@ -1398,21 +1398,21 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         }));
       }
     } else if (incompleteDevotionals.length === 0 && remaining.devotionals > 0) {
-      const completedPlaybookWithoutDevotional = playbooks.find(playbook => (
+      const devotionalPlaybook = playbooks.find(playbook => (
         playbook.status === 'completed' || !!playbook.completed_at
       ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
 
-      if (completedPlaybookWithoutDevotional) {
+      if (devotionalPlaybook) {
         candidates.push(createCandidate({
           type: 'create_devotional',
           timeWindow: 'afternoon',
           score: 52,
           dedupeKey: buildDedupeKey('create_devotional', currentDate),
-          deepLink: `sifia://playbooks/${completedPlaybookWithoutDevotional.id}/walkthrough/completed`,
+          deepLink: `sifia://playbooks/${devotionalPlaybook.id}/walkthrough/completed`,
           sourceType: 'playbook',
-          sourceId: completedPlaybookWithoutDevotional.id,
+          sourceId: devotionalPlaybook.id,
           metadata: {
-            playbook_title: completedPlaybookWithoutDevotional.title,
+            playbook_title: devotionalPlaybook.title,
           },
         }));
       }
