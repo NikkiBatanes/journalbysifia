@@ -319,9 +319,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         };
       }
 
-      // Don't reset currentDate - preserve user's selected date
-      // Reset all carousels to their starting positions
-      setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
+      // Don't reset currentDate or carousel positions when returning from nested screens.
       hasInitializedScroll.current = true;
       // Always expand tab bar when returning to Journal
       setShowTabBar(true);
