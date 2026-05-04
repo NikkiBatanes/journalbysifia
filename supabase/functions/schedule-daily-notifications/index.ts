@@ -268,7 +268,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       type: 'playbook_word_to_speak_morning',
       localHour: 10, localMinute: 0,
       title: `Speak it out loud, ${name} 💬`,
-      message: compact(playbook.word_to_speak || 'One word from your playbook is ready to speak over yourself.'),
+      message: compact((playbook.word_to_speak || '').split('\n')[0] || 'One word from your playbook is ready to speak over yourself.'),
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/speak`,
         playbook_id: playbook.id,
@@ -401,7 +401,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       type: 'playbook_word_to_speak_afternoon',
       localHour: 14, localMinute: 0,
       title: `Declare it again, ${name} 🗣️`,
-      message: compact(playbook.word_to_speak || 'One word from your playbook is ready to speak over yourself.'),
+      message: compact((playbook.word_to_speak || '').split('\n')[0] || 'One word from your playbook is ready to speak over yourself.'),
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/speak`,
         playbook_id: playbook.id,
@@ -702,7 +702,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       type: 'playbook_word_to_speak_evening',
       localHour: 20, localMinute: 45,
       title: `End today with this truth, ${name} 🌙`,
-      message: compact(playbook.word_to_speak ? `One more time before you rest: "${playbook.word_to_speak}"` : 'One more time before you rest.'),
+      message: compact((playbook.word_to_speak || '').split('\n')[0] ? `One more time before you rest: "${(playbook.word_to_speak || '').split('\n')[0]}"` : 'One more time before you rest.'),
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/speak`,
         playbook_id: playbook.id,
@@ -958,13 +958,13 @@ async function getActivePlaybook(supabase: SupabaseClient, userId: string): Prom
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (!data || data.length === 0) return null;
 
-    const ongoing   = data.find((p: any) => !p.completed_at && p.status !== 'completed');
-    const completed = data.find((p: any) => p.completed_at  || p.status === 'completed');
-    const pb        = ongoing ?? completed;
+    // Randomly select a playbook instead of always using the newest
+    const randomIndex = Math.floor(Math.random() * data.length);
+    const pb = data[randomIndex];
     if (!pb) return null;
 
     // word_to_speak: column OR piggybacked in direct_challenge JSONB
