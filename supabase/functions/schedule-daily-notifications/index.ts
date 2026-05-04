@@ -361,10 +361,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       ? `&selectedDate=${encodeURIComponent(prayer.selected_date)}`
       : '';
 
-    // Calculate days since creation for metadata update
-    const now = new Date();
-    const createdAt = new Date(prayer.created_at);
-    const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const dueCheckPoint = prayer.due_check_point || prayer.days_since_creation || 0;
 
     // Build message with person name or prayer snippet
     const message = personName
@@ -381,7 +378,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       data: {
         deep_link: `sifia://prayer/${prayer.id}?mode=people${dateParam ? `&${dateParam.slice(1)}` : ''}`,
         source_id: prayer.id,
-        check_point: daysSinceCreation,
+        check_point: dueCheckPoint,
       },
       priority: 'normal',
     });
@@ -392,7 +389,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       .update({
         metadata: {
           ...(prayer.metadata || {}),
-          last_check_point: daysSinceCreation,
+          last_check_point: dueCheckPoint,
         },
       })
       .eq('id', prayer.id);
@@ -890,6 +887,12 @@ interface UnansweredPrayer {
   content?: string;
   person_name?: string;
   selected_date?: string;
+  prayer_type?: string;
+  journal_category?: string;
+  created_at?: string;
+  metadata?: Record<string, unknown>;
+  due_check_point?: number;
+  days_since_creation?: number;
 }
 
 interface SubscriptionInfo {
@@ -1050,25 +1053,38 @@ async function getUnansweredPrayers(supabase: SupabaseClient, userId: string): P
 
     if (!data) return [];
 
-    // Filter prayers that should trigger a check based on age
     const now = new Date();
     const checkSchedule = [3, 7, 14, 21, 30, 60, 90, 120, 150, 180, 270, 360, 450, 540]; // days to check
 
-    const filtered = (data as any[]).filter((prayer: any) => {
+    const filtered = (data as any[])
+      .map((prayer: any) => {
       const createdAt = new Date(prayer.created_at);
       const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-
-      // Check if today is a scheduled check day
-      const shouldCheckToday = checkSchedule.includes(daysSinceCreation);
-
-      // Check if we've already notified for this check point
+      const dueCheckPoint = [...checkSchedule].reverse().find(checkPoint => checkPoint <= daysSinceCreation) || 0;
       const lastCheckPoint = prayer.metadata?.last_check_point || 0;
-      const alreadyNotified = lastCheckPoint >= daysSinceCreation;
       const tracksAnswered = prayer.metadata?.track_answered === true;
       const isPrayedForEntry = prayer.is_prayer_request !== true;
 
-      return isPrayedForEntry && tracksAnswered && shouldCheckToday && !alreadyNotified;
-    });
+      if (!isPrayedForEntry || !tracksAnswered || dueCheckPoint <= 0 || lastCheckPoint >= dueCheckPoint) {
+        return null;
+      }
+
+      return {
+        ...prayer,
+        due_check_point: dueCheckPoint,
+        days_since_creation: daysSinceCreation,
+      };
+    })
+      .filter(Boolean)
+      .sort((a: any, b: any) => {
+        const aIsJournal = a.prayer_type === 'journal';
+        const bIsJournal = b.prayer_type === 'journal';
+        if (aIsJournal !== bIsJournal) return aIsJournal ? -1 : 1;
+        if ((a.due_check_point || 0) !== (b.due_check_point || 0)) {
+          return (b.due_check_point || 0) - (a.due_check_point || 0);
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
 
     return filtered as UnansweredPrayer[];
   } catch { return []; }
