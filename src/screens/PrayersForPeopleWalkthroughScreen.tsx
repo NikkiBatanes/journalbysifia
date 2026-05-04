@@ -34,6 +34,8 @@ import { analytics } from '../utils/analytics';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../services/queryKeys';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -1164,6 +1166,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const queryClient = useQueryClient();
   const { subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
   const fromNotificationAnsweredCheck = (route.params as any)?.fromNotificationAnsweredCheck === true;
 
@@ -1368,26 +1371,57 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       return;
     }
 
-    try {
-      await updatePrayerMutation.mutateAsync({
+    const answeredDate = new Date().toISOString();
+
+    queryClient.setQueryData(
+      queryKeys.prayers.people(user?.id || '', dateStr),
+      (old: any[] | undefined) => {
+        if (!Array.isArray(old)) {
+          return old;
+        }
+
+        return old.map(prayer =>
+          prayer.id === editingPrayerId
+            ? {
+                ...prayer,
+                status: 'answered' as const,
+                answered_date: answeredDate,
+                is_prayer_request: false,
+                prayed: true,
+              }
+            : prayer
+        );
+      }
+    );
+
+    triggerSuccessHaptic();
+    successModal.showSuccess({
+      title: 'Prayer Marked Answered',
+      message: `${personName || 'This prayer'} has been marked as answered in your journal.`,
+      showEditButton: false,
+    });
+
+    updatePrayerMutation.mutateAsync({
         id: editingPrayerId,
         updates: {
           status: 'answered' as const,
-          answered_date: new Date().toISOString(),
+          answered_date: answeredDate,
+          is_prayer_request: false,
+          prayed: true,
         },
         _userId: user?.id || '',
         _dateStr: dateStr,
+      }).then(() => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+        });
+      }).catch(error => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+        });
+        Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
       });
-      triggerSuccessHaptic();
-      successModal.showSuccess({
-        title: 'Prayer Marked Answered',
-        message: `${personName || 'This prayer'} has been marked as answered in your journal.`,
-        showEditButton: false,
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
-    }
-  }, [dateStr, editingPrayerId, personName, successModal, updatePrayerMutation, user?.id]);
+  }, [editingPrayerId, queryClient, user?.id, dateStr, updatePrayerMutation, successModal, personName]);
 
   const handlePrayNow = () => {
     // Navigate to the PrayerEditorScreen for this prayer request

@@ -251,7 +251,20 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
 
     handledDeepLinkKeyRef.current = deepLinkKey;
 
-    const targetDate = selectedDateParam ? new Date(selectedDateParam) : new Date();
+    const parseJournalDate = (value: string | undefined) => {
+      if (!value) {
+        return new Date();
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      return new Date(value);
+    };
+
+    const targetDate = parseJournalDate(selectedDateParam);
     const safeTargetDate = Number.isNaN(targetDate.getTime()) ? new Date() : targetDate;
 
     setCurrentDate(safeTargetDate);
@@ -274,6 +287,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         contentScrollRef.current?.scrollTo?.({ y: Math.max(0, y - 20), animated: true });
         savedScrollPosition.current = Math.max(0, y - 20);
       }, 450);
+      setTimeout(() => {
+        const y = prayCarouselYRef.current;
+        contentScrollRef.current?.scrollTo?.({ y: Math.max(0, y - 20), animated: true });
+        savedScrollPosition.current = Math.max(0, y - 20);
+      }, 1100);
     }
   }, [route?.params]);
 
@@ -287,6 +305,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   // Reset carousel positions when screen comes into focus, but preserve selected date
   useFocusEffect(
     useCallback(() => {
+      const params = route?.params as any;
+      if (params?.targetSection === 'prayer') {
+        setShowTabBar(true);
+        return () => {
+          collapseAllExpanded();
+        };
+      }
+
       // Don't reset currentDate - preserve user's selected date
       // Reset all carousels to their starting positions
       setCarouselIndices({ plan: 0, reflect: 0, pray: 0 });
@@ -299,7 +325,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         collapseAllExpanded();
       };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [collapseAllExpanded])
+    }, [collapseAllExpanded, route?.params, setShowTabBar])
   );
 
   // Centralized reset: ensure top-of-content and clear transient UI
@@ -770,7 +796,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
                 />
               </View>
               {/* Only show ReflectCarousel for today or past dates */}
-              {currentDate <= new Date() && (
+              {format(currentDate, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd') && (
                 <>
                   <View style={styles.carouselContainer} ref={reflectCarouselRef}
                        onLayout={() => {
