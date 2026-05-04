@@ -58,6 +58,7 @@ interface ReflectionLogEditorProps {
   isLoading?: boolean;
   hideGuidedPromptButton?: boolean;
   hidePencilIcon?: boolean;
+  autoOpenGuidedPrompt?: boolean;
   stepBody?: string;
   stepExample?: string | null;
 }
@@ -465,6 +466,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     isLoading = false,
     hideGuidedPromptButton = false,
     hidePencilIcon = false,
+    autoOpenGuidedPrompt = false,
     stepBody,
     stepExample,
   },
@@ -546,6 +548,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Debug logging removed for production
   }, [initialMode, initialPrompt, source, initialTitle, viewMode]);
 
+  // Check if we're editing an existing entry (has content)
+  const isEditing = !!(initialEntry.content && initialEntry.content.trim() !== '');
+
   // Update view mode when initialMode or source changes
   React.useEffect(() => {
     if (source === 'devotional') {
@@ -617,8 +622,18 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   );
 
-  // Check if we're editing an existing entry (has content)
-  const isEditing = !!(initialEntry.content && initialEntry.content.trim() !== '');
+  React.useEffect(() => {
+    if (autoOpenGuidedPrompt && !isEditing && source !== 'devotional' && source !== 'playbook') {
+      setViewMode('guided');
+      setNewEntry(prev => ({
+        ...prev,
+        content: '',
+        title: prev.title || '',
+      }));
+      Keyboard.dismiss();
+    }
+  }, [autoOpenGuidedPrompt, isEditing, source]);
+
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   // Commenting out add menu for MVP; keep state preserving future functionality
   // const [showAddMenu, setShowAddMenu] = React.useState(false);

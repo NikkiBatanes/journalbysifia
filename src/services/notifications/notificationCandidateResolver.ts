@@ -701,7 +701,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
       candidates.push(createCandidate({
         type: 'devotional_day_ready',
-        timeWindow: 'morning',
+        timeWindow: 'devotional_morning',
         score: 100,
         dedupeKey: buildDedupeKey('devotional_day_ready', activeDevotional.id, dayNumber, currentDate),
         deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}`,
@@ -737,7 +737,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         if (!hasPrayer) {
           candidates.push(createCandidate({
             type: 'devotional_prayer_prompt',
-            timeWindow: 'evening',
+            timeWindow: 'late_afternoon',
             score: 92,
             dedupeKey: buildDedupeKey('devotional_prayer_prompt', activeDevotional.id, dayNumber, currentDate),
             deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}`,
@@ -759,7 +759,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           const questionKey = `${activeDevotional.id}-${dayNumber}-${questionText.substring(0, 20)}`;
           candidates.push(createCandidate({
             type: 'devotional_reflection_prompt',
-            timeWindow: 'evening',
+            timeWindow: 'night',
             score: 88,
             dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, dayNumber, questionKey, currentDate),
             deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}/reflect`,
@@ -792,7 +792,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           const questionKey = `${activeDevotional.id}-${day1Number}-${questionText.substring(0, 20)}`;
           candidates.push(createCandidate({
             type: 'devotional_reflection_prompt',
-            timeWindow: 'evening',
+            timeWindow: 'night',
             score: 90, // Higher priority for day 1
             dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, day1Number, questionKey, currentDate),
             deepLink: `sifia://devotionals/${activeDevotional.id}/day/${day1Number}/reflect`,
@@ -956,7 +956,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       const actionText = notificationText(action.text);
       candidates.push(createCandidate({
         type: 'playbook_faithful_action',
-        timeWindow: 'midday',
+        timeWindow: 'pre_midday',
         score: 84,
         dedupeKey: buildDedupeKey('playbook_faithful_action', ongoingPlaybook.id, currentDate),
         deepLink: `sifia://playbooks/${ongoingPlaybook.id}/walkthrough/actions/${actionIndex}`,
@@ -1068,7 +1068,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       // Pick up to 2 unnotified lines for today
       const availableLines = allLines.filter(l => !effectiveNotified.includes(`${l.playbookId}:${l.lineIndex}`));
       const todayLines = availableLines.slice(0, 2);
-      const timeWindows: SmartNotificationTimeWindow[] = ['morning', 'afternoon'];
+      const timeWindows: SmartNotificationTimeWindow[] = ['late_morning', 'early_afternoon'];
 
       const newlyNotified: string[] = [];
 
@@ -1140,14 +1140,14 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }
   }
 
-  // playbook_word_to_speak: generate multiple notifications throughout the day from both in-progress and completed playbooks
+  // playbook_word_to_speak: generate 3 notifications per day (late_morning, early_afternoon, late_evening) like clockwork
   const allPlaybooksWithWords = playbooks.filter(pb => getWordsToSpeak(pb).length > 0);
 
   if (allPlaybooksWithWords.length > 0) {
-    const timeWindows: SmartNotificationTimeWindow[] = ['morning', 'midday', 'afternoon', 'evening', 'night'];
+    const timeWindows: SmartNotificationTimeWindow[] = ['late_morning', 'early_afternoon', 'late_evening'];
     let wordIndex = 0;
 
-    // Generate up to 5 notifications (one per time window) from different playbooks
+    // Generate exactly 3 notifications (one per time window) from different playbooks
     for (const timeWindow of timeWindows) {
       if (wordIndex >= allPlaybooksWithWords.length) {
         break;
@@ -1165,7 +1165,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       candidates.push(createCandidate({
         type: 'playbook_word_to_speak',
         timeWindow,
-        score: 76 - wordIndex * 3, // Decrease score slightly for later notifications
+        score: 93,
         dedupeKey: buildDedupeKey('playbook_word_to_speak', playbookSource.id, selectedWordIndex, timeWindow, currentDate),
         deepLink: `sifia://playbooks/${playbookSource.id}/walkthrough/words`,
         sourceType: 'playbook',
@@ -1285,8 +1285,8 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   if (!hasEntryForType(journalEntries, 'todays_focus')) {
     candidates.push(createCandidate({
       type: 'journal_todays_focus',
-      timeWindow: 'morning',
-      score: 70,
+      timeWindow: 'mid_morning',
+      score: 95,
       dedupeKey: buildDedupeKey('journal_todays_focus', currentDate),
       deepLink: 'sifia://journal/focus',
       sourceType: 'journal',
@@ -1298,7 +1298,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     candidates.push(createCandidate({
       type: 'journal_todo',
       timeWindow: 'midday',
-      score: 66,
+      score: 85,
       dedupeKey: buildDedupeKey('journal_todo', currentDate),
       deepLink: 'sifia://journal/todos',
       sourceType: 'journal',
@@ -1308,8 +1308,8 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   if (!hasEntryForType(journalEntries, 'gratitude')) {
     candidates.push(createCandidate({
       type: 'journal_gratitude',
-      timeWindow: 'evening',
-      score: 60,
+      timeWindow: 'early_evening',
+      score: 90,
       dedupeKey: buildDedupeKey('journal_gratitude', currentDate),
       deepLink: 'sifia://journal/gratitude',
       sourceType: 'journal',
@@ -1319,8 +1319,8 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   if (!hasEntryForType(journalEntries, 'today_win')) {
     candidates.push(createCandidate({
       type: 'journal_todays_win',
-      timeWindow: 'evening',
-      score: 59,
+      timeWindow: 'late_evening',
+      score: 92,
       dedupeKey: buildDedupeKey('journal_todays_win', currentDate),
       deepLink: 'sifia://journal/win',
       sourceType: 'journal',
@@ -1331,7 +1331,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     candidates.push(createCandidate({
       type: 'journal_looking_forward',
       timeWindow: 'night',
-      score: 72,
+      score: 88,
       dedupeKey: buildDedupeKey('journal_looking_forward', currentDate),
       deepLink: 'sifia://journal/looking-forward',
       sourceType: 'journal',
@@ -1340,6 +1340,19 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
   // Heart journal prompt: only notify if no devotionals or all reflection questions are journaled
   const shouldNotifyHeartJournal = incompleteDevotionals.length === 0;
+
+  // Inactivity detection: notify if no journal activity today
+  const hasJournalActivityToday = journalEntries.length > 0;
+  if (!hasJournalActivityToday) {
+    candidates.push(createCandidate({
+      type: 'journal_todays_focus',
+      timeWindow: 'early_afternoon',
+      score: 89,
+      dedupeKey: buildDedupeKey('journal_inactivity', currentDate),
+      deepLink: 'sifia://journal/focus',
+      sourceType: 'journal',
+    }));
+  }
 
   if (shouldNotifyHeartJournal) {
     // Check if all reflection questions for completed devotionals are already journaled
@@ -1372,8 +1385,8 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       if (heartJournalTitle) {
         candidates.push(createCandidate({
           type: 'heart_journal_prompt',
-          timeWindow: 'night',
-          score: 45,
+          timeWindow: 'late_afternoon',
+          score: 87,
           dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
           deepLink: `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(heartJournalTitle)}`,
           sourceType: 'journal',
@@ -1505,7 +1518,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
 
   candidates.push(createCandidate({
     type: 'prayer_today',
-    timeWindow: 'morning',
+    timeWindow: 'early_morning',
     score: 44,
     dedupeKey: buildDedupeKey('prayer_today', currentDate),
     deepLink: 'sifia://journal/prayer',

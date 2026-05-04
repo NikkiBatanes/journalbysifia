@@ -23,7 +23,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { triggerLightHaptic, triggerMediumHaptic, triggerSelectionHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerMediumHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '../services/hooks/usePrayerData';
@@ -710,7 +710,9 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
   actionStepTitle?: string;
   stepBody?: string;
   stepExample?: string | null;
-}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample }) => {
+  readOnly?: boolean;
+  actionLabel?: string;
+}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, readOnly = false, actionLabel }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -784,11 +786,11 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               multiline
               textAlignVertical="top"
-              autoFocus
+              autoFocus={!readOnly}
               keyboardAppearance="dark"
+              editable={!readOnly}
             />
 
-            {/* Display metadata below input field */}
             {playbookTitle && (
               <PlaybookMetaSection
                 playbookTitle={playbookTitle}
@@ -805,21 +807,38 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, opacity: buttonOpacity }]}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerMediumHaptic();
-            onNext();
-          }}
-          activeOpacity={0.7}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          disabled={!canProceed}
-        >
-          <Ionicons name="chevron-forward" size={24} color={canProceed ? Colors.hopeWhite : 'rgba(255,255,255,0.3)'} />
-        </TouchableOpacity>
-      </Animated.View>
+      {actionLabel ? (
+        <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerMediumHaptic();
+              onNext();
+            }}
+            activeOpacity={0.85}
+            style={styles.completionButton}
+            disabled={!canProceed}
+          >
+            <ThemedText weight="semiBold" style={styles.completionButtonText}>
+              {actionLabel}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, opacity: buttonOpacity }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerMediumHaptic();
+              onNext();
+            }}
+            activeOpacity={0.7}
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            disabled={!canProceed}
+          >
+            <Ionicons name="chevron-forward" size={24} color={canProceed ? Colors.hopeWhite : 'rgba(255,255,255,0.3)'} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
-      {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => {
@@ -1142,9 +1161,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const { subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
+  const fromNotificationAnsweredCheck = (route.params as any)?.fromNotificationAnsweredCheck === true;
 
   // State for walkthrough steps
-  const [currentStep, setCurrentStep] = useState(0);
+  const shouldSkipStep0 = route.params?.initialPrayerType || route.params?.initialPersonName;
+  const [currentStep, setCurrentStep] = useState(fromNotificationAnsweredCheck ? 2 : shouldSkipStep0 ? 1 : 0);
   const [selectedType, setSelectedType] = useState<PrayerType | null>(null);
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
@@ -1177,16 +1198,19 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     if (route.params?.editingPrayerId) {
       setEditingPrayerId(route.params.editingPrayerId);
     }
-    // Pre-select prayer type if provided (editing mode)
+    // Pre-select prayer type if provided (editing mode or notification)
     if (route.params?.initialPrayerType) {
       const type = PRAYER_TYPES.find(t => t.id === route.params?.initialPrayerType);
       if (type) {
         setSelectedType(type);
-        // Skip to step 1 (name input) when editing
-        setCurrentStep(1);
+        setCurrentStep(fromNotificationAnsweredCheck ? 2 : 1);
       }
     }
-  }, [route.params]);
+    // Skip step 0 (prayer type selection) when coming from notification with person name
+    if (route.params?.initialPersonName && !route.params?.initialPrayerType) {
+      setCurrentStep(fromNotificationAnsweredCheck ? 2 : 1);
+    }
+  }, [route.params, fromNotificationAnsweredCheck]);
 
   // Use selectedDate from route params or today's date
   const currentDate = new Date();
@@ -1309,6 +1333,28 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const handleDone = () => {
     navigation.goBack();
   };
+
+  const handleMarkAnsweredFromNotification = useCallback(async () => {
+    if (!editingPrayerId) {
+      return;
+    }
+
+    try {
+      await updatePrayerMutation.mutateAsync({
+        id: editingPrayerId,
+        updates: {
+          status: 'answered' as const,
+          answered_date: new Date().toISOString(),
+        },
+        _userId: user?.id || '',
+        _dateStr: dateStr,
+      });
+      triggerSuccessHaptic();
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
+    }
+  }, [dateStr, editingPrayerId, navigation, updatePrayerMutation, user?.id]);
 
   const handlePrayNow = () => {
     // Navigate to the PrayerEditorScreen for this prayer request
@@ -1483,7 +1529,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           personName={personName}
           prayerText={prayerText}
           onPrayerTextChange={setPrayerText}
-          onNext={handleNext}
+          onNext={fromNotificationAnsweredCheck ? handleMarkAnsweredFromNotification : handleNext}
           onBack={handleBack}
           insets={insets}
           navigation={navigation}
@@ -1492,6 +1538,8 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           actionStepTitle={actionStepTitle}
           stepBody={stepBody}
           stepExample={stepExample}
+          readOnly={fromNotificationAnsweredCheck}
+          actionLabel={fromNotificationAnsweredCheck ? 'Mark Answered' : undefined}
         />
       )}
 

@@ -1206,9 +1206,10 @@ const CompletionStep: React.FC<{
             style={[styles.completionInput, { fontFamily: theme.currentFont }]}
             value={castClosing}
             onChangeText={onCastClosingChange}
-            placeholder="e.g., In Jesus' Name, Amen"
+            placeholder="e.g., In Jesus' Name,\nAmen"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
             keyboardAppearance="dark"
+            multiline
           />
         </View>
       </>
@@ -1323,7 +1324,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(true);
   const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(true);
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
-  const [castClosing, setCastClosing] = useState('In Jesus\' Name, Amen');
+  const [castClosing, setCastClosing] = useState('In Jesus\' Name,\nAmen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
   const hasAppliedInitialPrayerType = useRef(false);
 

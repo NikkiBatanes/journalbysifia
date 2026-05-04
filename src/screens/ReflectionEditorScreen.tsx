@@ -215,6 +215,8 @@ const ReflectionEditorScreen: React.FC = () => {
             return selectedDate.toLocaleDateString('en-US', year === currentYear ? base : withYear);
           })()}
           isLoading={isLoading}
+          hideGuidedPromptButton={!params.openHeart}
+          autoOpenGuidedPrompt={params.openHeart === true}
         />
       </View>
 

@@ -820,14 +820,33 @@ class PushNotificationService {
         });
       });
 
-      // ─── 2. Persist history in the background (fire-and-forget) ───────
+      // ─── 2. Persist history and mark as read in the background (fire-and-forget) ───────
       // Never block navigation on these network calls.
       this.getNotificationUserId(notification)
-        .then((userId) => {
+        .then(async (userId) => {
           if (userId) {
-            return this.saveNotificationToHistory(userId, notification);
+            // Save notification to history first
+            await this.saveNotificationToHistory(userId, notification);
+
+            // Find the notification in the database and mark it as read
+            const queueNotificationId = this.getQueueNotificationId(notification);
+            if (queueNotificationId) {
+              const { data: notificationRecord } = await supabase
+                .from('notifications')
+                .select('id')
+                .eq('user_id', userId)
+                .or(`data->>notification_id.eq.${queueNotificationId},data->>queue_notification_id.eq.${queueNotificationId}`)
+                .limit(1)
+                .maybeSingle();
+
+              if (notificationRecord?.id) {
+                // Use the existing markNotificationAsRead method
+                await this.markNotificationAsRead(userId, notificationRecord.id);
+                // Emit event to update notification screen immediately
+                DeviceEventEmitter.emit('notification_saved', { userId });
+              }
+            }
           }
-          return Promise.resolve();
         })
         .catch((error) => {
           Logger.error('[PushNotification] Background history save failed', error as Error, {

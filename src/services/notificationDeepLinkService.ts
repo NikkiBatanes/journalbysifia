@@ -44,7 +44,7 @@ class NotificationDeepLinkService {
       notification?.deepLink;
   }
 
-  private async navigateToPrayerById(prayerId: string): Promise<boolean> {
+  private async navigateToPrayerById(prayerId: string, options?: { forcePeopleWalkthrough?: boolean }): Promise<boolean> {
     if (!prayerId || !this.navigationRef?.current) {
       return false;
     }
@@ -69,7 +69,7 @@ class NotificationDeepLinkService {
 
       // Navigate to PrayerEditor for prayer requests (like "pray for now" button)
       // Navigate to PrayersForPeopleWalkthrough for editing existing prayers
-      if (isPrayerRequest) {
+      if (isPrayerRequest && !options?.forcePeopleWalkthrough) {
         this.navigationRef.current.navigate('PrayerEditor', {
           prayerRequest: {
             person_name: prayer.person_name || '',
@@ -82,11 +82,12 @@ class NotificationDeepLinkService {
       } else {
         this.navigationRef.current.navigate('PrayersForPeopleWalkthrough', {
           initialPersonName: prayer.person_name || '',
-          initialPrayerRequest: isPrayerRequest ? prayer.content : undefined,
-          initialPrayerText: !isPrayerRequest ? prayer.content : undefined,
-          initialPrayerType: isPrayerRequest ? 'prayer-request' : 'pray-for-someone',
+          initialPrayerRequest: isPrayerRequest && !options?.forcePeopleWalkthrough ? prayer.content : undefined,
+          initialPrayerText: !isPrayerRequest || options?.forcePeopleWalkthrough ? prayer.content : undefined,
+          initialPrayerType: isPrayerRequest && !options?.forcePeopleWalkthrough ? 'prayer-request' : 'pray-for-someone',
           editingPrayerId: prayer.id,
           initialTrackAnswered: prayer.metadata?.track_answered,
+          fromNotificationAnsweredCheck: options?.forcePeopleWalkthrough === true,
           selectedDate: prayer.selected_date
             ? new Date(`${prayer.selected_date}T12:00:00`).toISOString()
             : undefined,
@@ -160,7 +161,22 @@ class NotificationDeepLinkService {
         });
         return;
       case 'prayer':
-        this.navigationRef.current.navigate('PrayerJournalWalkthrough', { selectedDate });
+        // Handle tab parameter for prayer requests
+        if (query.tab === 'requests') {
+          this.navigationRef.current.navigate('MainTabs', {
+            screen: 'Journal',
+            params: {
+              screen: 'JournalMain',
+              params: {
+                targetSection: 'prayer',
+                openPrayerRequestsTab: true,
+                selectedDate,
+              },
+            },
+          });
+        } else {
+          this.navigationRef.current.navigate('PrayerJournalWalkthrough', { selectedDate });
+        }
         return;
       case 'heart':
         // Navigate to dashboard to open guided reflection modal with the question
@@ -172,6 +188,20 @@ class NotificationDeepLinkService {
             params: {
               ...(query.openGuidedReflection === 'true' ? { openGuidedReflection: true } : {}),
               ...(query.question ? { guidedReflectionQuestion: query.question } : {}),
+            },
+          },
+        });
+        return;
+      case 'reflections':
+      case 'reflection':
+        console.log('🔔 Reflection deep link navigating directly to Journal stack ReflectionEditor');
+        this.navigationRef.current.navigate('MainTabs', {
+          screen: 'Journal',
+          params: {
+            screen: 'ReflectionEditor',
+            params: {
+              selectedDate: selectedDate,
+              openHeart: true,
             },
           },
         });
@@ -363,7 +393,9 @@ class NotificationDeepLinkService {
       switch (screen) {
         case 'prayer':
           if (id) {
-            const didNavigate = await this.navigateToPrayerById(id);
+            const didNavigate = await this.navigateToPrayerById(id, {
+              forcePeopleWalkthrough: query.mode === 'people',
+            });
             if (didNavigate) {
               break;
             }
@@ -463,7 +495,10 @@ class NotificationDeepLinkService {
         case 'devotional':
         case 'devotionals':
           // Navigate to specific DevotionalDetail screen
-          if (id && id !== 'today' && id !== 'new') {
+          if (id === 'today') {
+            // Navigate to today's devotional - need to fetch and navigate
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals', params: { openToday: true } });
+          } else if (id && id !== 'new') {
             const dayIndex = parts.indexOf('day');
             const dayNumber = dayIndex >= 0 ? Number(parts[dayIndex + 1]) : undefined;
             this.navigationRef.current.navigate('DevotionalDetail', {
@@ -474,6 +509,9 @@ class NotificationDeepLinkService {
               ...(query.question ? { reflectionQuestion: query.question } : {}),
               ...(query.questionNumber ? { reflectionQuestionNumber: Number(query.questionNumber) } : {}),
             });
+          } else if (id === 'new') {
+            // Navigate to create new devotional
+            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals', params: { createNew: true } });
           } else {
             // Navigate to Devotionals tab if no specific ID
             this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals' });
@@ -534,11 +572,19 @@ class NotificationDeepLinkService {
           break;
 
         case 'subscription':
-          this.navigationRef.current.navigate('OnboardingSalesOffer', {
-            upgradeMode: true,
-            source: 'notification',
-            skipNotificationPreference: true,
-          });
+          if (id === 'upgrade') {
+            this.navigationRef.current.navigate('OnboardingSalesOffer', {
+              upgradeMode: true,
+              source: 'notification',
+              skipNotificationPreference: true,
+            });
+          } else {
+            this.navigationRef.current.navigate('OnboardingSalesOffer', {
+              upgradeMode: true,
+              source: 'notification',
+              skipNotificationPreference: true,
+            });
+          }
           Logger.info('Navigated to subscription offer', {
             component: 'notificationDeepLinkService',
           });

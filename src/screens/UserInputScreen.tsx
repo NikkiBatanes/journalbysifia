@@ -581,9 +581,9 @@ const UserInputScreen: React.FC = () => {
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipTranslateY = useRef(new Animated.Value(20)).current;
   const tooltipScale = useRef(new Animated.Value(0.9)).current;
-  const headerTranslateY = useRef(new Animated.Value(0)).current; // Adjusted iPad landscape position
-  const headerScale = useRef(new Animated.Value(0.45)).current;
-  const headerIntroOpacity = useRef(new Animated.Value(0.8)).current; // Start visible but with subtle fade-in
+  const headerTranslateY = useRef(new Animated.Value(0)).current; // No vertical movement
+  const headerScale = useRef(new Animated.Value(0.35)).current; // Start smaller for spring scale animation
+  const headerIntroOpacity = useRef(new Animated.Value(0)).current; // Start hidden for spring animation
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
   const autoFocusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -632,12 +632,13 @@ const UserInputScreen: React.FC = () => {
     Animated.sequence([
       Animated.delay(220), // small delay to let modal finish sliding
       Animated.parallel([
-        Animated.timing(
-          headerTranslateY,
-          { toValue: 0, duration: 320, useNativeDriver: true }
+        // Spring scale animation for logo
+        Animated.spring(
+          headerScale,
+          { toValue: 0.45, tension: 50, friction: 12, useNativeDriver: true }
         ),
-        // Keep opacity animation for smoothness, but start from 0.8 to 1
-        Animated.timing(headerIntroOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        // Spring fade-in animation
+        Animated.spring(headerIntroOpacity, { toValue: 1, tension: 50, friction: 12, useNativeDriver: true }),
       ]),
       Animated.delay(100),
       Animated.parallel([

@@ -161,6 +161,7 @@ class AuthApiService {
         badges: [],
         preferences: data.preferences,
         spiritual_level: 'beginner',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -280,6 +281,7 @@ class AuthApiService {
           badges: [],
           preferences: this.getDefaultPreferences(),
           spiritual_level: 'beginner',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };

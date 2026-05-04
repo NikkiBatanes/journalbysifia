@@ -47,10 +47,18 @@ export type SmartNotificationCategory =
   | 'recovery';
 
 export type SmartNotificationTimeWindow =
-  | 'morning'
+  | 'early_morning'
+  | 'devotional_morning'
+  | 'mid_morning'
+  | 'late_morning'
+  | 'pre_midday'
   | 'midday'
+  | 'early_afternoon'
   | 'afternoon'
+  | 'late_afternoon'
+  | 'early_evening'
   | 'evening'
+  | 'late_evening'
   | 'night';
 
 export type SmartNotificationPrivacyLevel = 'public' | 'personal' | 'sensitive';

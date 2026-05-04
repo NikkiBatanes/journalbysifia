@@ -2773,35 +2773,69 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Animated share button — top left, completion page only */}
       {stepIndex === 6 && (
-        <Animated.View
-          style={[
-            styles.closeButton,
-            { top: insets.top + 8 },
-            {
-              opacity: shareButtonAnim,
-              transform: [
+        <>
+          {/* Close button for notification deep links — beside share button */}
+          {fromNotification && (
+            <Animated.View
+              style={[
+                styles.closeButton,
+                { top: insets.top + 8, right: 20 },
                 {
-                  scale: shareButtonAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.4, 1],
-                  }),
+                  opacity: shareButtonAnim,
+                  transform: [
+                    {
+                      scale: shareButtonAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.4, 1],
+                      }),
+                    },
+                  ],
                 },
-              ],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              setShowShareDropdown(true);
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  navigation.goBack();
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+          <Animated.View
+            style={[
+              styles.closeButton,
+              { top: insets.top + 8, right: fromNotification ? 70 : 20 },
+              {
+                opacity: shareButtonAnim,
+                transform: [
+                  {
+                    scale: shareButtonAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.4, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            <Ionicons name="share-outline" size={17} color="rgba(255,255,255,0.65)" />
-          </TouchableOpacity>
-        </Animated.View>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                setShowShareDropdown(true);
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="share-outline" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+          </Animated.View>
+        </>
       )}
 
 

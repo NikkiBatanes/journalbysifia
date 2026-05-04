@@ -2327,6 +2327,34 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <View style={styles.settingGroup}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={async () => {
+                try { triggerLightHaptic(); } catch {}
+                await pushNotificationService.initialize(user?.id || '');
+                const permissionsGranted = await pushNotificationService.requestPermissions();
+                if (permissionsGranted) {
+                  const storedToken = await pushNotificationService.getStoredToken();
+                  if (storedToken) {
+                    await pushNotificationService.saveDeviceToken(user?.id || '', storedToken);
+                    Alert.alert('Success', 'Notifications enabled successfully');
+                  }
+                } else {
+                  Alert.alert('Permissions Denied', 'Please enable notifications in your device settings');
+                }
+              }}
+            >
+              <View style={styles.permissionTextContainer}>
+                <Text style={[styles.settingLabel, font]}>Enable Push Notifications</Text>
+                <Text style={[styles.settingHint, font]}>
+                  Re-register device token for push notifications
+                </Text>
+              </View>
+              <Ionicons name="notifications-outline" size={20} color={theme.colors.chevronColor} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.settingGroup}>
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
               <TouchableOpacity

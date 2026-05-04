@@ -247,7 +247,8 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
 
       {/* Closing */}
       <View style={styles.combinedContentSection}>
-        <ThemedText style={styles.combinedOpeningText}>In Jesus' Name, Amen</ThemedText>
+        <ThemedText style={styles.combinedOpeningText}>In Jesus' Name,</ThemedText>
+        <ThemedText style={styles.combinedOpeningText}>Amen</ThemedText>
       </View>
     </TouchableOpacity>
   );

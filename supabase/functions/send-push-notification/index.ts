@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SignJWT } from 'https://esm.sh/jose@5';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,7 +51,10 @@ serve(async (req) => {
       'trial_converted',
     ];
 
-    if (!rateLimitExemptTypes.includes(type)) {
+    // Skip rate limiting for test users
+    const isTestUser = user_id === '9f85144e-f565-4121-811c-32c0df348e9b';
+
+    if (!rateLimitExemptTypes.includes(type) && !isTestUser) {
       // Rate limiting: Check how many notifications sent in last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: recentNotifications, error: rateLimitError } = await supabase
@@ -214,9 +218,19 @@ serve(async (req) => {
       }
     }
 
+    const hasSuccessfulDelivery = results.some(result => result.success === true);
+    const hasFailedDelivery = results.some(result => result.success === false);
+
     return new Response(
-      JSON.stringify({ success: true, results }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: hasSuccessfulDelivery && !hasFailedDelivery,
+        partial_success: hasSuccessfulDelivery && hasFailedDelivery,
+        results,
+      }),
+      {
+        status: hasSuccessfulDelivery && !hasFailedDelivery ? 200 : 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
 
   } catch (error) {
@@ -231,6 +245,56 @@ serve(async (req) => {
     );
   }
 });
+
+async function generateAPNSToken(): Promise<string> {
+  const privateKey = Deno.env.get('APNS_PRIVATE_KEY');
+  const keyId = Deno.env.get('APNS_KEY_ID') || Deno.env.get('APPLE_KEY_ID') || 'B99S3W8K2W';
+  const teamId = Deno.env.get('APNS_TEAM_ID') || Deno.env.get('APPLE_TEAM_ID') || 'L2AT73KSY8';
+
+  if (!privateKey) {
+    throw new Error('APNS_PRIVATE_KEY not set in environment variables');
+  }
+
+  if (!keyId) {
+    throw new Error('APNS_KEY_ID not set in environment variables');
+  }
+
+  if (!teamId) {
+    throw new Error('APNS_TEAM_ID not set in environment variables');
+  }
+
+  // Strip PEM headers and decode base64
+  const pemHeader = '-----BEGIN PRIVATE KEY-----';
+  const pemFooter = '-----END PRIVATE KEY-----';
+  const pemContents = privateKey
+    .replace(pemHeader, '')
+    .replace(pemFooter, '')
+    .replace(/\s/g, '');
+  
+  const binaryString = atob(pemContents);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Import the private key as a CryptoKey
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    bytes,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+
+  const now = Math.floor(Date.now() / 1000);
+  
+  const token = await new SignJWT({ iss: teamId, iat: now })
+    .setProtectedHeader({ alg: 'ES256', kid: keyId })
+    .setIssuedAt(now)
+    .sign(cryptoKey);
+
+  return token;
+}
 
 async function sendPushNotification(message: PushMessage, platform: string) {
   try {
@@ -249,13 +313,19 @@ async function sendAPNS(message: PushMessage) {
   // Apple Push Notification Service
   // Using production host for live notifications
   // Switch to sandbox (api.sandbox.push.apple.com) for development/testing
-  const isProduction = Deno.env.get('APP_ENV') === 'production' || Deno.env.get('APNS_ENVIRONMENT') === 'production';
-  const apnsHost = isProduction 
+  const apnsEnvironment = Deno.env.get('APNS_ENVIRONMENT');
+  const isProduction = apnsEnvironment
+    ? apnsEnvironment === 'production'
+    : Deno.env.get('APP_ENV') === 'production';
+  const apnsHost = isProduction
     ? 'https://api.push.apple.com/3/device/' 
     : 'https://api.sandbox.push.apple.com/3/device/';
   const apnsUrl = apnsHost + message.to;
   
   console.log(`Sending APNs notification to ${isProduction ? 'PRODUCTION' : 'SANDBOX'} environment`);
+
+  // Generate APNS JWT token on-demand
+  const apnsToken = await generateAPNSToken();
 
   const payload = {
     aps: {
@@ -272,7 +342,7 @@ async function sendAPNS(message: PushMessage) {
   const response = await fetch(apnsUrl, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('APNS_JWT_TOKEN')}`,
+      'Authorization': `Bearer ${apnsToken}`,
       'Content-Type': 'application/json',
       'apns-topic': Deno.env.get('APNS_BUNDLE_ID') || 'app.sifia.com',
       'apns-priority': message.priority === 'high' ? '10' : '5',

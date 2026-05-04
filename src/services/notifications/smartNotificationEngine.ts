@@ -28,10 +28,18 @@ const LEGACY_DAILY_NOTIFICATION_TYPES = [
 ];
 
 const WINDOW_HOURS: Record<SmartNotificationTimeWindow, { hour: number; minute: number }> = {
-  morning: { hour: 8, minute: 0 },
+  early_morning: { hour: 6, minute: 0 },
+  devotional_morning: { hour: 6, minute: 30 },
+  mid_morning: { hour: 7, minute: 30 },
+  late_morning: { hour: 10, minute: 0 },
+  pre_midday: { hour: 11, minute: 0 },
   midday: { hour: 12, minute: 15 },
+  early_afternoon: { hour: 14, minute: 0 },
   afternoon: { hour: 15, minute: 30 },
+  late_afternoon: { hour: 16, minute: 30 },
+  early_evening: { hour: 17, minute: 30 },
   evening: { hour: 19, minute: 0 },
+  late_evening: { hour: 20, minute: 0 },
   night: { hour: 21, minute: 0 },
 };
 
