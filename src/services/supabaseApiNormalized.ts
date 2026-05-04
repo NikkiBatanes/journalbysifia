@@ -898,6 +898,35 @@ export async function updatePlaybookStatus(
   }
 }
 
+/**
+ * Update prayer_prayed status for a playbook
+ */
+export async function updatePlaybookPrayerPrayed(
+  playbookId: string,
+  prayerPrayed: boolean
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('playbooks')
+      .update({ prayer_prayed: prayerPrayed, updated_at: new Date().toISOString() })
+      .eq('id', playbookId);
+
+    if (error) {
+      Logger.error('[updatePlaybookPrayerPrayed] Error updating prayer_prayed', error as Error, {
+        component: 'supabaseApiNormalized',
+        action: 'updatePlaybookPrayerPrayed',
+      });
+      throw error;
+    }
+  } catch (error) {
+    Logger.error('[updatePlaybookPrayerPrayed] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'updatePlaybookPrayerPrayed',
+    });
+    throw error;
+  }
+}
+
 // Calculate task statistics for action steps
 export function calculateTaskStats(actionSteps: ActionStep[]): { completed: number; total: number } {
   let completed = 0;

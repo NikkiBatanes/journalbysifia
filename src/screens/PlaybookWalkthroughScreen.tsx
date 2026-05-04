@@ -1,3 +1,4 @@
+
 // src/screens/PlaybookWalkthroughScreen.tsx
 import * as React from 'react';
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -44,7 +45,7 @@ import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
-import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepCompleted } from '../services/supabaseApiNormalized';
+import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepCompleted, updatePlaybookPrayerPrayed } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
@@ -1444,6 +1445,13 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
     });
 
     if (nowPrayed) {
+      // Update prayer_prayed field in playbooks table
+      if (playbookId) {
+        updatePlaybookPrayerPrayed(playbookId, true).catch(error => {
+          console.warn('Failed to update prayer_prayed in playbooks table', error);
+        });
+      }
+
       createPrayerMutation.mutate({
         content: fullPrayer,
         userId,
