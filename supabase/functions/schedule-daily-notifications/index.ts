@@ -727,17 +727,19 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
 
   // ── 21:30  devotional_reflection_prompt ─────────────────────────────────
   if (primaryDev?.hasReflectionQuestion) {
+    const questionText = primaryDev.reflectionQuestion || '';
+    const encodedQuestion = encodeURIComponent(questionText);
     add({
       type: 'devotional_reflection_prompt',
       localHour: 21, localMinute: 30,
       title: `Reflect before you rest, ${name} 🌿`,
       message: compact(primaryDev.reflectionQuestion || "Take a moment to reflect on today's question."),
       data: {
-        deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}/reflect`,
+        deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}?openReflection=true&question=${encodedQuestion}&questionNumber=1`,
         devotional_id: primaryDev.id,
         day_number: primaryDev.currentDayNumber,
       },
-      priority: 'low',
+      priority: 'normal',
     });
   }
 
