@@ -990,7 +990,9 @@ async function getActivePlaybook(supabase: SupabaseClient, userId: string): Prom
     // Action steps
     const steps: any[] = (pb.playbook_action_steps ?? [])
       .sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0));
-    const incompleteStep      = steps.find((s: any) => !s.completed);
+    // Skip the first step (order_index 0) and find the next incomplete step
+    const stepsAfterFirst = steps.filter((s: any) => (s.order_index ?? 0) > 0);
+    const incompleteStep      = stepsAfterFirst.find((s: any) => !s.completed);
     const incompleteStepIndex = incompleteStep ? steps.indexOf(incompleteStep) : undefined;
 
     const isCompleted = !!(pb.completed_at || pb.status === 'completed');
