@@ -779,11 +779,6 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
               {readOnly ? `Prayer for ${personName}` : `Pray for ${personName}`}
             </ThemedText>
-            {readOnly && prayerText && (
-              <ThemedText style={styles.stepSubtitle}>
-                {prayerText}
-              </ThemedText>
-            )}
           </View>
         </StepFadeIn>
 
