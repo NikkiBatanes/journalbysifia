@@ -742,8 +742,8 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
     add({
       type: 'playbook_prayer_revisit',
       localHour: 21, localMinute: 45,
-      title: `Pray over your playbook tonight, ${name} 🙏🏼`,
-      message: 'Your playbook has a prayer for this moment. Bring it before God before you rest.',
+      title: `Pause with this prayer tonight, ${name} 🙏🏼`,
+      message: 'Return to the prayer from your playbook and bring it before God before you rest.',
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/prayer`,
         playbook_id: playbook.id,
