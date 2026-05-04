@@ -577,15 +577,13 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 17:15  heart_journal_prompt ─────────────────────────────────────────
-  // Both Seeker and Paid go to guided reflection - fetch a question dynamically
-  const heartJournalQuestion = 'What is one area of your life where you need to trust God more today?'; // Fallback question
-  const encodedQuestion = encodeURIComponent(heartJournalQuestion);
+  // Both Seeker and Paid go to guided reflection - app will fetch question dynamically based on tier
   add({
     type: 'heart_journal_prompt',
     localHour: 17, localMinute: 15,
     title: `What's on your heart, ${name}? ❤️`,
     message: 'Take a quiet moment to reflect on a guided question.',
-    data: { deep_link: `sifia://dashboard?openGuidedReflection=true&question=${encodedQuestion}` },
+    data: { deep_link: 'sifia://dashboard?openGuidedReflection=true' },
     priority: 'normal',
   });
 
