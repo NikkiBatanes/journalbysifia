@@ -209,7 +209,7 @@ const FaithfulActionCard = React.memo(({ item, index, scrollX, onPress }: Faithf
         </View>
 
         {updatedDateStr && (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
             <MaterialCommunityIcons name="clock" size={12} color="rgba(255,255,255,0.5)" />
             <ThemedText style={[styles.faithfulActionMeta, { marginLeft: 4 }]}>Updated {updatedDateStr}</ThemedText>
           </View>
@@ -315,7 +315,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.inputBackground,
     borderRadius: 26,
     padding: 16,
-    height: 280,
     justifyContent: 'flex-start',
   },
   dateWithBadge: {
