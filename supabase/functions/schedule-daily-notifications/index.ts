@@ -727,20 +727,23 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
 
   // ── 21:30  devotional_reflection_prompt ─────────────────────────────────
   if (primaryDev?.hasReflectionQuestion) {
-    const questionText = primaryDev.reflectionQuestion || '';
-    const encodedQuestion = encodeURIComponent(questionText);
-    add({
-      type: 'devotional_reflection_prompt',
-      localHour: 21, localMinute: 30,
-      title: `Reflect before you rest, ${name} 🌿`,
-      message: compact(primaryDev.reflectionQuestion || "Take a moment to reflect on today's question."),
-      data: {
-        deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}?openReflection=true&question=${encodedQuestion}&questionNumber=1`,
-        devotional_id: primaryDev.id,
-        day_number: primaryDev.currentDayNumber,
-      },
-      priority: 'normal',
-    });
+    const hasReflection = await hasDevotionalReflection(supabase, userId, primaryDev.id, primaryDev.currentDayNumber ?? 1);
+    if (!hasReflection) {
+      const questionText = primaryDev.reflectionQuestion || '';
+      const encodedQuestion = encodeURIComponent(questionText);
+      add({
+        type: 'devotional_reflection_prompt',
+        localHour: 21, localMinute: 30,
+        title: `Reflect before you rest, ${name} 🌿`,
+        message: compact(primaryDev.reflectionQuestion || "Take a moment to reflect on today's question."),
+        data: {
+          deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}?openReflection=true&question=${encodedQuestion}&questionNumber=1`,
+          devotional_id: primaryDev.id,
+          day_number: primaryDev.currentDayNumber,
+        },
+        priority: 'normal',
+      });
+    }
   }
 
   // ── 21:45  playbook_prayer_revisit ───────────────────────────────────────
@@ -952,6 +955,21 @@ async function getDevotionals(supabase: SupabaseClient, userId: string): Promise
     });
   } catch {
     return [];
+  }
+}
+
+async function hasDevotionalReflection(supabase: SupabaseClient, userId: string, devotionalId: string, dayNumber: number): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('devotional_id', devotionalId)
+      .eq('day_number', dayNumber)
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return false;
   }
 }
 
