@@ -615,7 +615,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       type: 'heart_journal_prompt',
       localHour: 17, localMinute: 15,
       title: `Take a moment to reflect, ${name} 🌿`,
-      message: 'The heart journal is a quiet space to tell the truth before God.',
+      message: 'Take a quiet moment to bring it before God in your journal.',
       data: { deep_link: 'sifia://journal/reflections' },
       priority: 'normal',
     });
