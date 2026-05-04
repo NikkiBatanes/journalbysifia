@@ -303,7 +303,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       type: 'playbook_faithful_action',
       localHour: 11, localMinute: 0,
       title: faithfulTitles[dow % faithfulTitles.length],
-      message: compact(playbook.nextActionText || 'One action from your playbook is ready for today.'),
+      message: compact(`${playbook.title}: ${playbook.nextActionText || 'One action from your playbook is ready for today.'}`),
       data: {
         deep_link: `sifia://playbooks/${playbook.id}/walkthrough/actions/${playbook.nextActionIndex ?? 0}`,
         playbook_id: playbook.id,
