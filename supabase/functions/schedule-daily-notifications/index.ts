@@ -577,26 +577,15 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 17:15  heart_journal_prompt ─────────────────────────────────────────
-  // Tier-aware: Seeker goes to journal reflections section, Paid goes to reflection editor with guided prompt
-  if (isFreeTier) {
-    add({
-      type: 'heart_journal_prompt',
-      localHour: 17, localMinute: 15,
-      title: `What's on your heart, ${name}? ❤️`,
-      message: 'The heart journal is a quiet space to tell the truth before God.',
-      data: { deep_link: 'sifia://journal/reflections' },
-      priority: 'normal',
-    });
-  } else {
-    add({
-      type: 'heart_journal_prompt',
-      localHour: 17, localMinute: 15,
-      title: `What's on your heart, ${name}? ❤️`,
-      message: 'Take a quiet moment to reflect on a guided question.',
-      data: { deep_link: 'sifia://dashboard?openGuidedReflection=true' },
-      priority: 'normal',
-    });
-  }
+  // Both Seeker and Paid go to guided reflection - random question will be passed to reflection editor
+  add({
+    type: 'heart_journal_prompt',
+    localHour: 17, localMinute: 15,
+    title: `What's on your heart, ${name}? ❤️`,
+    message: 'Take a quiet moment to reflect on a guided question.',
+    data: { deep_link: 'sifia://dashboard?openGuidedReflection=true' },
+    priority: 'normal',
+  });
 
   // ── 17:45  journal_gratitude ─────────────────────────────────────────────
   add({
