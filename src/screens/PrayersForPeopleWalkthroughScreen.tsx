@@ -1994,7 +1994,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     alignSelf: 'flex-start',
   },
   trackingBadgeText: {
@@ -2040,7 +2040,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.alertCoral,
-    borderRadius: 20,
+    borderRadius: 16,
     paddingVertical: 15,
     paddingHorizontal: 28,
     gap: 8,
