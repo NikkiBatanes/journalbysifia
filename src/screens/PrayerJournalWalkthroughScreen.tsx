@@ -1406,11 +1406,13 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               screen: 'Journal',
               params: {
                 screen: 'JournalMain',
-                params: {
+                params: fromNotificationAnsweredCheck ? {
                   selectedDate: selectedDateStr,
                   targetSection: 'prayer',
                   targetPrayerCarouselIndex: initialPrayerType === 'open' ? 0 : 0,
                   targetPrayerId: editingPrayerId,
+                } : {
+                  selectedDate: selectedDateStr,
                 },
               },
             },

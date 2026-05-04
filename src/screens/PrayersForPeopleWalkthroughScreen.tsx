@@ -1189,6 +1189,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [savedPrayerId, setSavedPrayerId] = useState<string | null>(null);
   const successModal = useSuccessModal(
     () => {
+      const fromNotification = route.params?.fromNotificationAnsweredCheck === true;
       navigation.reset({
         index: 0,
         routes: [
@@ -1198,11 +1199,13 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
               screen: 'Journal',
               params: {
                 screen: 'JournalMain',
-                params: {
+                params: fromNotification ? {
                   selectedDate: route.params?.selectedDate,
                   targetSection: 'prayer',
                   targetPrayerCarouselIndex: 2,
                   targetPrayerId: editingPrayerId,
+                } : {
+                  selectedDate: route.params?.selectedDate,
                 },
               },
             },

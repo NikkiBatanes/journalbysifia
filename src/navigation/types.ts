@@ -180,6 +180,7 @@ export type RootStackParamList = {
     stepBody?: string;
     stepExample?: string | null;
     fromPlaybook?: boolean;
+    fromNotificationAnsweredCheck?: boolean;
   } | undefined;
 
   // Unified Prayer Selection
