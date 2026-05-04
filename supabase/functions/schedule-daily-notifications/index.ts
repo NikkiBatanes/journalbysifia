@@ -472,7 +472,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
         deep_link: `sifia://playbooks/${completedPBNoDevotional.id}/walkthrough/completed`,
         playbook_id: completedPBNoDevotional.id,
       },
-      priority: 'low',
+      priority: isFirst ? 'normal' : 'low',
     });
   }
 
