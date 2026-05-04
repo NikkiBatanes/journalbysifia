@@ -777,8 +777,13 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              Pray for {personName}
+              {readOnly ? `Prayer for ${personName}` : `Pray for ${personName}`}
             </ThemedText>
+            {readOnly && prayerText && (
+              <ThemedText style={styles.stepSubtitle}>
+                {prayerText}
+              </ThemedText>
+            )}
           </View>
         </StepFadeIn>
 
@@ -1775,6 +1780,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: Colors.hopeWhite,
     lineHeight: 30,
+    marginBottom: 16,
+    textAlign: 'left',
+  },
+  stepSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    lineHeight: 22,
+    marginTop: -8,
     marginBottom: 16,
     textAlign: 'left',
   },
