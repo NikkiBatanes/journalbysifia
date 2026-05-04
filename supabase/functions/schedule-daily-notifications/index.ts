@@ -504,7 +504,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       title: `Pause and pray, ${name} 🙏🏼`,
       message: 'Your devotional has a prayer for this moment. Take a few minutes with God.',
       data: {
-        deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}`,
+        deep_link: `sifia://devotionals/${primaryDev.id}/day/${primaryDev.currentDayNumber ?? 1}?scrollToPrayer=true`,
         devotional_id: primaryDev.id,
         day_number: primaryDev.currentDayNumber,
       },
