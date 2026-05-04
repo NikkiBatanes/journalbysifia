@@ -2330,10 +2330,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 })}
               </ScrollView>
             </View>
-          </View>
-        </Modal>
-        {/* Queue tab */}
-        {notifTestTab === 'queue' && (
+          )}
+          {/* Queue tab */}
+          {notifTestTab === 'queue' && (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
               {notifDataLoading ? (
                 <ActivityIndicator color={Colors.anchorBlue} style={{ marginTop: 40 }} />
