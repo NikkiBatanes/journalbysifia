@@ -902,29 +902,42 @@ const ACTSPrayerSlidesStep: React.FC<{
         </Animated.View>
       )}
 
-      <Animated.View style={[
-        styles.primaryButton,
-        { bottom: buttonPosition },
-      ]}>
-        <Animated.View style={[
-          styles.primaryButtonInner,
-          { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
-        ]}>
-          <TouchableOpacity
-            onPress={handleNext}
-            activeOpacity={0.7}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {actionLabel ? (
-              <ThemedText weight="semiBold" style={styles.completionButtonText}>
+      {actionLabel ? (
+        <Animated.View style={[styles.completionButtonContainer, { bottom: buttonPosition }]}>
+          <Animated.View style={[
+            styles.primaryButtonPill,
+            { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
+          ]}>
+            <TouchableOpacity
+              onPress={handleNext}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
                 {actionLabel}
               </ThemedText>
-            ) : (
-              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      ) : (
+        <Animated.View style={[
+          styles.primaryButton,
+          { bottom: buttonPosition },
+        ]}>
+          <Animated.View style={[
+            styles.primaryButtonInner,
+            { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
+          ]}>
+            <TouchableOpacity
+              onPress={handleNext}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      )}
 
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
@@ -1097,30 +1110,47 @@ const OpenPrayerStep: React.FC<{
         </Animated.View>
       )}
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
-        <Animated.View style={[
-          styles.primaryButtonInner,
-          { opacity: prayerText?.trim() ? 1 : 0 },
-        ]}>
-          <TouchableOpacity
-            onPress={() => {
-              triggerMediumHaptic();
-              onNext();
-            }}
-            activeOpacity={0.7}
-            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-            disabled={!prayerText}
-          >
-            {actionLabel ? (
-              <ThemedText weight="semiBold" style={styles.completionButtonText}>
+      {actionLabel ? (
+        <Animated.View style={[styles.completionButtonContainer, { bottom: buttonPosition }]}>
+          <Animated.View style={[
+            styles.primaryButtonPill,
+            { opacity: prayerText?.trim() ? 1 : 0 },
+          ]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerMediumHaptic();
+                onNext();
+              }}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              disabled={!prayerText}
+            >
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
                 {actionLabel}
               </ThemedText>
-            ) : (
-              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      ) : (
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+          <Animated.View style={[
+            styles.primaryButtonInner,
+            { opacity: prayerText?.trim() ? 1 : 0 },
+          ]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerMediumHaptic();
+                onNext();
+              }}
+              activeOpacity={0.7}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              disabled={!prayerText}
+            >
+              <Ionicons name="chevron-forward" size={20} color={Colors.hopeWhite} />
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      )}
 
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
