@@ -264,6 +264,7 @@ class NotificationDeepLinkService {
             params: {
               selectedDate: selectedDate,
               openHeart: true,
+              initialMode: 'guided',
             },
           },
         });
