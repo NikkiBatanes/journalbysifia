@@ -585,11 +585,17 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
     'What challenged my faith, and how did I respond?',
     'Am I prioritizing daily prayer and Scripture reading?',
     "How am I using my talents and resources for God's glory?",
-    "What area of my life needs more trust in God?",
-    "How did I experience God's presence today?",
-    "What did I learn from Scripture that I can apply?",
-    "How am I growing in my relationship with God?",
-    "What blessing can I thank God for today?",
+    'What habit or sin is hindering me, and how can I address it?',
+    'Did I show forgiveness or grace to someone today?',
+    'Am I serving others in my church or community?',
+    "Is my career or business aligned with God's values?",
+    'How am I managing stress to protect my mental health?',
+    "What's one step I can take to improve my physical health?",
+    'Am I trusting God with my work or financial concerns?',
+    'How can I pursue excellence in my work to honor God?',
+    "Am I encouraging others' faith or well-being this week?",
+    "What's one way I can grow in a practical skill to reflect God's excellence?",
+    'Am I allowing comparison to steal my joy and gratitude for what God has given me?',
   ];
 
   // Deterministic selection for Seeker tier (consistent per user)
