@@ -1992,15 +1992,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => {
+            {/* Close button - upper right */}
+            <TouchableOpacity
+              onPress={() => {
                 try { triggerLightHaptic(); } catch {}
                 setDeleteAccountModal(false);
-              }}>
-                <Text style={[styles.cancelText, font]}>Cancel</Text>
-              </TouchableOpacity>
+              }}
+              style={styles.modalCloseButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+
+            <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, font]}>Delete Account</Text>
-              <View style={styles.modalSpacer} />
             </View>
 
             <View style={styles.modalDescriptionContainer}>
@@ -3387,25 +3393,43 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   yearPickerCancelButton: {
-    flex: 1,
-    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 15,
+    borderRadius: 50,
+    minWidth: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   yearPickerDoneButton: {
-    flex: 1,
-    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 15,
+    borderRadius: 50,
+    minWidth: 100,
     backgroundColor: Colors.alertCoral,
-    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   deleteAccountButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     backgroundColor: 'rgba(255, 59, 48, 0.15)',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 59, 48, 0.5)',
   },
@@ -3428,18 +3452,30 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
   modalCard: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
+    borderRadius: 48,
     width: '100%',
     maxWidth: 400,
     paddingVertical: 24,
     paddingHorizontal: 20,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
   },
   modalSpacer: {
     width: 48,
@@ -3453,20 +3489,25 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   deleteButton: {
-    marginTop: 16,
-    borderRadius: 12,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    marginTop: 16,
   },
   deleteButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
+    fontWeight: '600',
   },
   deleteButtonDisabled: {
-    backgroundColor: 'rgba(255,107,107,0.3)',
+    opacity: 0.5,
   },
   deleteButtonEnabled: {
-    backgroundColor: Colors.alertCoral,
+    opacity: 1,
   },
   gracePeriodInfo: {
     flexDirection: 'row',
