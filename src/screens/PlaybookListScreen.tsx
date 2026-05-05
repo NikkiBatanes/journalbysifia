@@ -57,6 +57,7 @@ import { Colors, Fonts } from '../theme';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 import type { Playbook } from '../interfaces/playbook';
 import { deletePlaybook, getPlaybook, getPlaybooks } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -922,6 +923,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const { user, session, isAuthenticated } = useAuth();
   const userId = user?.id || session?.user?.id;
   const theme = useTheme();
+  const { currentFont } = theme;
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -2640,23 +2644,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 onPress={() => {
                   try { triggerLightHaptic(); } catch {}
                   setMenuVisible(null);
-                  handleTagPress(selectedPlaybookForMenu);
-                }}
-              >
-                <View style={styles.dropdownItemContent}>
-                  <ThemedText weight="medium" style={styles.dropdownItemText}>Tag</ThemedText>
-                  {selectedPlaybookForMenu.tag && (
-                    <View style={styles.dropdownBadge}>
-                      <ThemedText style={styles.dropdownBadgeText}>{selectedPlaybookForMenu.tag}</ThemedText>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalDropdownItem}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  setMenuVisible(null);
                   handleExportPdfPress(selectedPlaybookForMenu);
                 }}
               >
@@ -2688,35 +2675,47 @@ const PlaybookListScreen = ({ navigation }: any) => {
         onRequestClose={() => setRenameModalVisible(false)}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={styles.renameModalOverlay}
           activeOpacity={1}
           onPress={() => setRenameModalVisible(false)}
         >
-          <View style={styles.modalContent}>
-            <ThemedText weight="bold" style={styles.modalTitle}>Rename Playbook</ThemedText>
+          <TouchableOpacity
+            style={styles.renameModalCard}
+            activeOpacity={1}
+          >
+            <View style={styles.renameModalHeader}>
+              <ThemedText weight="semiBold" style={styles.renameModalTitle}>Rename</ThemedText>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  setRenameModalVisible(false);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.renameModalCloseButton}
+              >
+                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+            </View>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.renameModalInput, { fontFamily }]}
               value={newTitle}
               onChangeText={setNewTitle}
               placeholder="Enter new title"
               placeholderTextColor="rgba(255, 255, 255, 0.5)"
               autoFocus
+              keyboardAppearance="dark"
             />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setRenameModalVisible(false)}
-              >
-                <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonConfirm]}
-                onPress={handleRenamePlaybook}
-              >
-                <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
+            <TouchableOpacity
+              style={styles.renameModalSaveButton}
+              onPress={() => {
+                triggerLightHaptic();
+                handleRenamePlaybook();
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="semiBold" style={styles.renameModalSaveButtonText}>Save</ThemedText>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -3363,6 +3362,61 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 14,
     fontWeight: '600',
+  },
+  renameModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  renameModalCard: {
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 30,
+    padding: 20,
+    margin: 16,
+    width: '85%',
+    maxWidth: 400,
+  },
+  renameModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  renameModalTitle: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+  },
+  renameModalCloseButton: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+  },
+  renameModalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 16,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+  },
+  renameModalSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+  },
+  renameModalSaveButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   tagList: {
     maxHeight: 200,
