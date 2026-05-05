@@ -254,6 +254,20 @@ class NotificationDeepLinkService {
           },
         });
         return;
+      case 'dashboard':
+        // Navigate to dashboard to open guided reflection modal with the question
+        console.log('🔔 Dashboard deep link navigating to dashboard:', { openGuidedReflection: query.openGuidedReflection, question: query.question });
+        this.navigationRef.current.navigate('MainTabs', {
+          screen: 'Overview',
+          params: {
+            screen: 'DashboardHome',
+            params: {
+              ...(query.openGuidedReflection === 'true' ? { openGuidedReflection: true } : {}),
+              ...(query.question ? { guidedReflectionQuestion: query.question } : {}),
+            },
+          },
+        });
+        return;
       case 'reflections':
       case 'reflection':
         console.log('🔔 Reflection deep link navigating directly to Journal stack ReflectionEditor');
@@ -264,6 +278,7 @@ class NotificationDeepLinkService {
             params: {
               selectedDate: selectedDate,
               openHeart: true,
+              initialMode: 'guided',
             },
           },
         });

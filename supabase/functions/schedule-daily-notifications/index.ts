@@ -631,7 +631,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       localHour: 17, localMinute: 15,
       title: `Guided reflection for you, ${name} 💭`,
       message: heartJournalQuestion,
-      data: { deep_link: `sifia://heart?openGuidedReflection=true&question=${encodedQuestion}` },
+      data: { deep_link: `sifia://dashboard?openGuidedReflection=true&question=${encodedQuestion}` },
       priority: 'normal',
     });
   }
