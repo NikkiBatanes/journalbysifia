@@ -153,6 +153,7 @@ export type RootStackParamList = {
     stepId?: string;
     playbookId?: string;
     playbookTitle?: string;
+    playbookStatus?: string;
     actionStepNumber?: number;
     actionStepTitle?: string;
     stepBody?: string;
@@ -175,6 +176,7 @@ export type RootStackParamList = {
     stepId?: string;
     playbookId?: string;
     playbookTitle?: string;
+    playbookStatus?: string;
     actionStepNumber?: number;
     actionStepTitle?: string;
     stepBody?: string;
@@ -192,6 +194,7 @@ export type RootStackParamList = {
       stepId?: string;
       playbookId?: string;
       playbookTitle?: string;
+      playbookStatus?: string;
       actionStepNumber?: number;
       actionStepTitle?: string;
       stepBody?: string;

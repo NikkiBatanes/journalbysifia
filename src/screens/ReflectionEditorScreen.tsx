@@ -12,6 +12,7 @@ import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useEditModeSafe } from '../systems/journal/context/EditModeContext';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 interface RouteParams {
   selectedDate?: string; // ISO date string
@@ -141,6 +142,23 @@ const ReflectionEditorScreen: React.FC = () => {
           has_prompt: Boolean(entryData.prompt || params.initialPrompt),
           date: dateStr,
         }, user.id);
+      }
+
+      // For new reflections only, check if a streak celebration should show.
+      // If so, the streak screen IS the celebration — skip the success modal.
+      if (!editingId) {
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          if (globalEditMode?.isGlobalEditMode) {
+            globalEditMode.setGlobalEditMode(false);
+          }
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'reflection_saved',
+          });
+          return;
+        }
       }
 
       // Show success modal

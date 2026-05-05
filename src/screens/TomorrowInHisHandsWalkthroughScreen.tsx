@@ -912,12 +912,12 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
       // Check if streak celebration should show for looking forward
-      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_looking_forward');
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_looking_forward_added');
       if (shouldShowStreak) {
         await visibleStreakService.markShownToday(user.id);
         (navigation as any).navigate('StreakPlan', {
           userId: user.id,
-          source: 'journal_looking_forward',
+          source: 'journal_looking_forward_added',
         });
       }
 

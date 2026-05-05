@@ -50,6 +50,7 @@ type ActionStepsCardProps = {
   // Smart Journaling Metadata
   playbookTitle?: string;
   playbookId?: string;
+  playbookStatus?: string;
   // User Context for Personalized Christian Coaching
   userInput?: string; // User's original struggle/context when creating playbook
   // Date for reflection (from journal screen)
@@ -129,6 +130,7 @@ export default function ActionStepsCard({
   stepCircleBackground,
   playbookTitle,
   playbookId,
+  playbookStatus,
   userInput: _userInput,
   selectedDate,
   showExampleSubtasksInline = false,
@@ -308,9 +310,12 @@ export default function ActionStepsCard({
                 source: 'ActionStepsCard.onToggleSubTask',
               });
 
-              // Check if streak celebration should show for action step completion
-              // Only show streak if playbook is completed
-              const isPlaybookCompleted = (steps || []).every(s => s.completed === true);
+              // Check if streak celebration should show for action step completion.
+              // Fires when:
+              //   a) All steps just became complete (playbook just finished), OR
+              //   b) Playbook is already completed and user is completing an individual step.
+              const allStepsComplete = (steps || []).every(s => s.completed === true);
+              const isPlaybookCompleted = allStepsComplete || playbookStatus === 'completed';
               if (isPlaybookCompleted) {
                 const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
                 if (shouldShowStreak) {
@@ -404,7 +409,7 @@ export default function ActionStepsCard({
     DeviceEventEmitter.emit('playbookProgressUpdate', {
       stepId, subTaskId, type: 'playbook_detail_toggle',
     });
-  }, [handleToggleStep, steps, user?.id, playbookId, queryClient, onToggleSubTaskMutation, navigation]);
+  }, [handleToggleStep, steps, user?.id, playbookId, playbookStatus, queryClient, onToggleSubTaskMutation, navigation]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
 

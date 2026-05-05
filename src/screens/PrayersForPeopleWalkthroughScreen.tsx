@@ -38,6 +38,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 
 import type { RootStackParamList } from '../navigation/types';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayersForPeopleWalkthrough'>;
 
@@ -1167,7 +1168,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const queryClient = useQueryClient();
-  const { subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
+  const { subtaskId, stepId, playbookId, playbookTitle, playbookStatus, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook } = route.params || {};
   const fromNotificationAnsweredCheck = (route.params as any)?.fromNotificationAnsweredCheck === true;
 
   // State for walkthrough steps
@@ -1296,6 +1297,34 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         setSavedPrayerId(result.id);
       }
 
+      // Check if streak celebration should show for pray for someone.
+      // When opened from faithful actions (fromPlaybook), only trigger if the
+      // playbook is already completed — not mid-walkthrough.
+      const shouldCheckPeopleStreak = !fromPlaybook || playbookStatus === 'completed';
+      if (shouldCheckPeopleStreak && user?.id) {
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_saved');
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          if (fromPlaybook) {
+            navigation.pop(2);
+            setTimeout(() => {
+              DeviceEventEmitter.emit('playbookPrayerSaved', {
+                playbookId,
+                stepId,
+                subtaskId,
+                actionStepNumber,
+                isEditing: !!editingPrayerId,
+              });
+            }, 300);
+          }
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'prayer_saved',
+          });
+          return;
+        }
+      }
+
       if (fromPlaybook) {
         navigation.pop(2);
         setTimeout(() => {
@@ -1322,7 +1351,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, stepId, subtaskId, actionStepNumber, navigation]);
+  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 0) {

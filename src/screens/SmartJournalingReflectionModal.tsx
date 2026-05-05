@@ -25,6 +25,7 @@ interface SmartJournalingReflectionModalProps {
   stepId?: string;
   playbookId?: string;
   playbookTitle?: string;
+  playbookStatus?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingReflection?: any; // For editing existing reflections
@@ -51,6 +52,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   stepId,
   playbookId,
   playbookTitle,
+  playbookStatus,
   actionStepNumber,
   actionStepTitle,
   existingReflection,
@@ -326,15 +328,20 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           });
         });
 
-        // Check if streak celebration should show for reflection (only for new reflections)
-        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
-        if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user.id);
-          if (navigation) {
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'reflection_saved',
-            });
+        // Check if streak celebration should show for reflection (only for new reflections).
+        // When opened from faithful actions (playbookId present), only trigger if the
+        // playbook is already completed — not mid-walkthrough.
+        const shouldCheckReflectionStreak = !playbookId || playbookStatus === 'completed';
+        if (shouldCheckReflectionStreak) {
+          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
+          if (shouldShowStreak) {
+            await visibleStreakService.markShownToday(user.id);
+            if (navigation) {
+              (navigation as any).navigate('StreakPlan', {
+                userId: user.id,
+                source: 'reflection_saved',
+              });
+            }
           }
         }
       }

@@ -736,6 +736,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const metadata = {
       playbookId,
       playbookTitle,
+      playbookStatus,
       actionStepNumber: actionStepIndex + 1,
       actionStepTitle: currentStep.title,
       subtaskTitle: currentStep.title,
@@ -747,7 +748,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
     setActiveJournalModal(null);
     (navigation as any).navigate('UnifiedPrayerSelection', { metadata, fromPlaybook: true });
-  }, [activeJournalModal, actionStepIndex, currentStep, navigation, playbookId, playbookTitle]);
+  }, [activeJournalModal, actionStepIndex, currentStep, navigation, playbookId, playbookTitle, playbookStatus]);
 
   // Reset journal + choice state when step changes
   useEffect(() => {
@@ -1347,6 +1348,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
+          playbookStatus={playbookStatus}
           actionStepNumber={stepNumber}
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}

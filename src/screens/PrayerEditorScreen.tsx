@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/common/ThemedText';
 import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 type RootStackParamList = {
   PrayerEditor: {
@@ -167,13 +168,27 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
       triggerSuccessHaptic();
       setSavingModalPrayer(false);
+
+      // Check if streak celebration should show for praying for someone (journal screen)
+      if (user?.id) {
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_for_now');
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'prayer_for_now',
+          });
+          return;
+        }
+      }
+
       setCurrentStep(3); // Move to completion step
     } catch (e) {
       console.error('Failed to save prayer', e);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
       setSavingModalPrayer(false);
     }
-  }, [prayerRequest.person_name, prayerRequest.content, prayerRequest.id, prayerRequest.user_id, prayerRequest.selected_date, modalPrayerRequest, trackAnswered, user, createPrayerMutation, markPrayedMutation]);
+  }, [prayerRequest.person_name, prayerRequest.content, prayerRequest.id, prayerRequest.user_id, prayerRequest.selected_date, modalPrayerRequest, trackAnswered, user, createPrayerMutation, markPrayedMutation, navigation]);
 
   const handleCompletionDone = () => {
     triggerMediumHaptic();

@@ -1112,12 +1112,12 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.journal.all });
 
       // Check if streak celebration should show for today's win
-      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_today_win');
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_win_added');
       if (shouldShowStreak) {
         await visibleStreakService.markShownToday(user.id);
         (navigation as any).navigate('StreakPlan', {
           userId: user.id,
-          source: 'journal_today_win',
+          source: 'journal_win_added',
         });
       }
 

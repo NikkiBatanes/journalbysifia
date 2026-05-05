@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { Modal, View, StyleSheet, Keyboard, Alert, DeviceEventEmitter } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -15,6 +16,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
 import { faithPointsService } from '../services/faithPointsService';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
@@ -28,12 +30,16 @@ interface DevotionalDetailReflectionModalProps {
   existingEntry?: any;
   onSave: (entry: any) => void;
   onCancel: () => void;
+  /** True when the user has already prayed/completed today's devotional day.
+   *  Streak only triggers for questions to ponder when the day is completed. */
+  devotionalDayCompleted?: boolean;
 }
 
 const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalProps> = ({
   visible,
   question,
   devotionalId,
+  devotionalDayCompleted,
   dayNumber,
   dayTitle,
   devotionalTitle,
@@ -45,6 +51,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigation = useNavigation();
 
   // New success modal system
   const successModal = useSuccessModal(
@@ -224,6 +231,22 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       // Call the original onSave with the saved entry data
       if (onSave) {
         onSave(savedEntry);
+      }
+
+      // For new ponders, check if a streak celebration should show.
+      // Only trigger when the user has already completed today's devotional day.
+      // If so, close this modal and navigate to StreakPlan instead of showing success modal.
+      if (!existingEntry && user?.id && devotionalDayCompleted) {
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          onCancel(); // close the ponder modal
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'reflection_saved',
+          });
+          return;
+        }
       }
 
       // Show success modal after cache invalidation completes (longer delay to ensure UI updates)

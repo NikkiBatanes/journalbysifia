@@ -1389,6 +1389,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           totalDays={devotional.totalDays}
           questionNumber={selectedQuestionMeta?.questionNumber || 1}
           existingEntry={selectedQuestionMeta?.existingEntry}
+          devotionalDayCompleted={prayedDays[`${devotionalId}-${currentDayIndex}`] === true}
           onSave={(entry) => {
             try {
 

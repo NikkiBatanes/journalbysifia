@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -54,6 +55,7 @@ interface GratitudeListProps {
 }
 
 export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onBegin }) => {
+  const navigation = useNavigation();
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -415,12 +417,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           // Re-set cache after mutation to ensure it persists
           queryClient.setQueryData(currentQueryKey, [updatedEntry]);
 
-          // Check if streak celebration should show for gratitude
+          // Check if streak celebration should show for gratitude (journal screen — always independent)
           const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added');
           if (shouldShowStreak) {
             await visibleStreakService.markShownToday(user.id);
-            // Navigate to streak plan - need to get navigation from context or pass as prop
-            // For now, skip navigation since this component doesn't have direct navigation access
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'journal_gratitude_added',
+            });
           }
         }
 

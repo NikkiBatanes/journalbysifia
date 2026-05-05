@@ -1374,7 +1374,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, playbookStatus, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
@@ -1573,14 +1573,21 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
-      // Check if streak celebration should show for prayer journal
-      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_prayer_completed');
-      if (shouldShowStreak) {
-        await visibleStreakService.markShownToday(user.id);
-        (navigation as any).navigate('StreakPlan', {
-          userId: user.id,
-          source: 'journal_prayer_completed',
-        });
+      // Check if streak celebration should show for prayer journal.
+      // Use the correct activity type: ACTS/CAST → prayer_journal_acts, Open → prayer_journal_open.
+      // When opened from faithful actions (fromPlaybook), only trigger if the
+      // playbook is already completed — not mid-walkthrough.
+      const prayerActivityType = selectedPath?.id === 'acts' ? 'prayer_journal_acts' : 'prayer_journal_open';
+      const shouldCheckPrayerStreak = !fromPlaybook || playbookStatus === 'completed';
+      if (shouldCheckPrayerStreak) {
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, prayerActivityType);
+        if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: prayerActivityType,
+          });
+        }
       }
 
       analytics.trackPrayerEvent(isEditing ? 'prayer_updated' : 'prayer_created', {

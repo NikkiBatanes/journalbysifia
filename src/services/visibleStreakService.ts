@@ -22,6 +22,7 @@ export const VISIBLE_STREAK_ACTIVITY_TYPES = [
   'journal_win_added',
   'journal_looking_forward_added',
   'journal_gratitude_added',
+  'journal_timeblock_added',
   'gratitude_saved',
   'reflection_saved',
 ] as const;
