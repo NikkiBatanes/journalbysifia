@@ -35,6 +35,7 @@ import { isToday, isYesterday, startOfDay } from 'date-fns';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -1571,6 +1572,16 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       // Invalidate cache to ensure UI updates with new data
       await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+
+      // Check if streak celebration should show for prayer journal
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_prayer_completed');
+      if (shouldShowStreak) {
+        await visibleStreakService.markShownToday(user.id);
+        (navigation as any).navigate('StreakPlan', {
+          userId: user.id,
+          source: 'journal_prayer_completed',
+        });
+      }
 
       analytics.trackPrayerEvent(isEditing ? 'prayer_updated' : 'prayer_created', {
         prayer_type: selectedPath?.id === 'acts' ? 'supplication' : 'adoration',

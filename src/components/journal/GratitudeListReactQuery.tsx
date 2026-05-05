@@ -32,6 +32,7 @@ import {
   triggerErrorHaptic,
 } from '../../utils/haptics';
 import { useScroll } from '../../context/ScrollContext';
+import { visibleStreakService } from '../../services/visibleStreakService';
 
 // Pluralization helpers
 const pluralS = (count: number) => (count === 1 ? '' : 's');
@@ -413,6 +414,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
           // Re-set cache after mutation to ensure it persists
           queryClient.setQueryData(currentQueryKey, [updatedEntry]);
+
+          // Check if streak celebration should show for gratitude
+          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added');
+          if (shouldShowStreak) {
+            await visibleStreakService.markShownToday(user.id);
+            // Navigate to streak plan - need to get navigation from context or pass as prop
+            // For now, skip navigation since this component doesn't have direct navigation access
+          }
         }
 
         // Track successful gratitude save

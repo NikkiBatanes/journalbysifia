@@ -309,14 +309,18 @@ export default function ActionStepsCard({
               });
 
               // Check if streak celebration should show for action step completion
-              const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
-              if (shouldShowStreak) {
-                await visibleStreakService.markShownToday(user.id);
-                if (navigation) {
-                  (navigation as any).navigate('StreakPlan', {
-                    userId: user.id,
-                    source: 'action_step_completed',
-                  });
+              // Only show streak if playbook is completed
+              const isPlaybookCompleted = (steps || []).every(s => s.completed === true);
+              if (isPlaybookCompleted) {
+                const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
+                if (shouldShowStreak) {
+                  await visibleStreakService.markShownToday(user.id);
+                  if (navigation) {
+                    (navigation as any).navigate('StreakPlan', {
+                      userId: user.id,
+                      source: 'action_step_completed',
+                    });
+                  }
                 }
               }
 
@@ -1216,6 +1220,7 @@ export default function ActionStepsCard({
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
+          playbookStatus={(steps || []).every(s => s.completed === true) ? 'completed' : 'inProgress'}
           actionStepNumber={selectedActionStep?.stepNumber}
           actionStepTitle={selectedActionStep?.stepTitle}
           existingGratitude={null}
@@ -1236,6 +1241,7 @@ export default function ActionStepsCard({
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
+          playbookStatus={(steps || []).every(s => s.completed === true) ? 'completed' : 'inProgress'}
           actionStepNumber={selectedActionStep?.stepNumber}
           actionStepTitle={selectedActionStep?.stepTitle}
           existingTimeBlock={null}

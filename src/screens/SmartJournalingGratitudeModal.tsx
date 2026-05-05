@@ -27,6 +27,7 @@ interface SmartJournalingGratitudeModalProps {
   stepId?: string;
   playbookId?: string;
   playbookTitle?: string;
+  playbookStatus?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingGratitude?: any;
@@ -46,6 +47,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   stepId,
   playbookId,
   playbookTitle,
+  playbookStatus,
   actionStepNumber,
   actionStepTitle,
   existingGratitude,
@@ -284,17 +286,24 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       const result = await createMutation.mutateAsync(gratitudeEntry);
 
       // Check if streak celebration should show for gratitude
-      const shouldShowStreak = user?.id
-        ? await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added')
-        : false;
+      // Only show streak if not associated with a playbook OR playbook is completed
+      const isPlaybookContext = !!playbookId;
+      const isPlaybookCompleted = playbookStatus === 'completed';
+      const shouldCheckStreak = !isPlaybookContext || isPlaybookCompleted;
 
-      if (shouldShowStreak && user?.id) {
-        await visibleStreakService.markShownToday(user.id);
-        if (navigation) {
-          (navigation as any).navigate('StreakPlan', {
-            userId: user.id,
-            source: 'journal_gratitude_added',
-          });
+      if (shouldCheckStreak) {
+        const shouldShowStreak = user?.id
+          ? await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added')
+          : false;
+
+        if (shouldShowStreak && user?.id) {
+          await visibleStreakService.markShownToday(user.id);
+          if (navigation) {
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'journal_gratitude_added',
+            });
+          }
         }
       }
 

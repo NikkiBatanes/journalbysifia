@@ -634,21 +634,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           day_title: currentDay.title,
           selected_date: currentDate,
         })
-        .then(async () => {
-          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_devotional_prayed');
-          if (shouldShowStreak) {
-            await visibleStreakService.markShownToday(user.id);
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'devotional_prayer',
-            });
-          }
-        })
         .catch(error => {
           Logger.warn('[DevotionalDetailScreen] Failed to award devotional prayer faith points', { component: 'DevotionalDetailScreen', data: error });
         });
     }
-  }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation, navigation]);
+  }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
 
   const isNavigatingRef = useRef(false);
   const navigationTimersRef = useRef<{

@@ -35,6 +35,7 @@ import { toLocalDateString } from '../utils/date';
 import { useCreateLookingForwardEntry, useUpdateLookingForwardEntry } from '../services/hooks/useJournalData';
 import { analytics } from '../utils/analytics';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -909,6 +910,16 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
       // Invalidate cache to ensure UI updates with new data
       await queryClient.invalidateQueries({ queryKey: ['journal', 'lookingForward', user.id, dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+
+      // Check if streak celebration should show for looking forward
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_looking_forward');
+      if (shouldShowStreak) {
+        await visibleStreakService.markShownToday(user.id);
+        (navigation as any).navigate('StreakPlan', {
+          userId: user.id,
+          source: 'journal_looking_forward',
+        });
+      }
 
       // Increment completion message index for next time
       try {

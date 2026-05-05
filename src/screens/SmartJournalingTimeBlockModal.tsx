@@ -24,6 +24,7 @@ import {
   isRecurringPlanningFrequency,
 } from '../utils/tierLockingRules';
 import { navigateFromRoot } from '../utils/navigationHelpers';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -32,6 +33,7 @@ interface SmartJournalingTimeBlockModalProps {
   stepId?: string;
   playbookId?: string;
   playbookTitle?: string;
+  playbookStatus?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingTimeBlock?: any;
@@ -47,6 +49,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   stepId,
   playbookId,
   playbookTitle,
+  playbookStatus,
   actionStepNumber,
   actionStepTitle,
   existingTimeBlock,
@@ -344,6 +347,28 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // Notify parent of successful save
       onSave(result);
+
+      // Check if streak celebration should show for time block
+      // Only show streak if not associated with a playbook OR playbook is completed
+      const isPlaybookContext = !!playbookId;
+      const isPlaybookCompleted = playbookStatus === 'completed';
+      const shouldCheckStreak = !isPlaybookContext || isPlaybookCompleted;
+
+      if (shouldCheckStreak) {
+        const shouldShowStreak = user?.id
+          ? await visibleStreakService.shouldShowCelebration(user.id, 'journal_timeblock_added')
+          : false;
+
+        if (shouldShowStreak && user?.id) {
+          await visibleStreakService.markShownToday(user.id);
+          if (navigation) {
+            (navigation as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'journal_timeblock_added',
+            });
+          }
+        }
+      }
 
       // CRITICAL FIX: Emit timeblock event to refresh Moments screen
       DeviceEventEmitter.emit('timeblock_saved', { timeblock: result });

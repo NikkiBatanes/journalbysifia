@@ -566,14 +566,15 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
 interface FaithfulActionsStepProps {
   steps: ActionStep[];
   intro?: string;
-  playbookId: string;
+  playbookId?: string;
   playbookTitle?: string;
+  playbookStatus?: string;
   userId: string;
   onNext: () => void;
   onGoBack?: () => void;
-  insets: { top: number };
+  insets: { top: number; bottom: number };
   actionStepIndex: number;
-  setActionStepIndex: React.Dispatch<React.SetStateAction<number>>;
+  setActionStepIndex: (index: number) => void;
   onStepCommit?: (stepIndex: number) => void;
   onJournalExpanded?: (expanded: boolean) => void;
   onJournalCollapseComplete?: () => void;
@@ -629,6 +630,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   intro,
   playbookId,
   playbookTitle,
+  playbookStatus,
   userId,
   onNext,
   onGoBack,
@@ -1012,13 +1014,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           });
 
           // Check if streak celebration should show for affirmation read aloud
-          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(userId, 'affirmation_read_aloud');
-          if (shouldShowStreak) {
-            await visibleStreakService.markShownToday(userId);
-            navigation.navigate('StreakPlan' as any, {
-              userId,
-              source: 'affirmation_read_aloud',
-            });
+          // Only show streak if playbook is completed
+          if (playbookStatus === 'completed') {
+            const shouldShowStreak = await visibleStreakService.shouldShowCelebration(userId, 'affirmation_read_aloud');
+            if (shouldShowStreak) {
+              await visibleStreakService.markShownToday(userId);
+              (navigation as any).navigate('StreakPlan', {
+                userId,
+                source: 'affirmation_read_aloud',
+              });
+            }
           }
         } catch (_) {}
       }
@@ -1358,6 +1363,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           stepId={currentStep.id}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
+          playbookStatus={playbookStatus}
           actionStepNumber={stepNumber}
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
@@ -2694,6 +2700,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 intro={playbook.faithfulActionsIntro}
                 playbookId={playbook.id}
                 playbookTitle={playbook.title}
+                playbookStatus={playbook.status}
                 userId={userId}
                 onNext={goNext}
                 onGoBack={goBackActionStep}

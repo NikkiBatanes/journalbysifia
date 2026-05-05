@@ -34,6 +34,7 @@ import { useCreateTodayWinEntry, useUpdateTodayWinEntry, useTodayWinData } from 
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
+import { visibleStreakService } from '../services/visibleStreakService';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -1109,6 +1110,16 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
       await queryClient.refetchQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.journal.all });
+
+      // Check if streak celebration should show for today's win
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_today_win');
+      if (shouldShowStreak) {
+        await visibleStreakService.markShownToday(user.id);
+        (navigation as any).navigate('StreakPlan', {
+          userId: user.id,
+          source: 'journal_today_win',
+        });
+      }
 
       // Increment completion message index for next time
       try {
