@@ -616,7 +616,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       localHour: 17, localMinute: 15,
       title: `Take a moment to reflect, ${name} 🌿`,
       message: 'Take a quiet moment to bring it before God in your journal.',
-      data: { deep_link: 'sifia://journal/reflections' },
+      data: { deep_link: 'sifia://dashboard?openGuidedReflection=true' },
       priority: 'normal',
     });
   } else {
