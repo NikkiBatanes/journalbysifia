@@ -302,16 +302,16 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         } : {}),
       });
 
-      // Award faith points for answering reflection question (only for new reflections)
+      // Award faith points for saving reflection (only for new reflections)
       // PERFORMANCE: Make this non-blocking to improve perceived performance
       if (!existingReflection && user?.id) {
         // Fire and forget - don't await to avoid blocking the save process
         faithPointsService.awardPoints(
           user.id,
-          'reflection_question_answered',
+          'reflection_saved',
           {
             suppressNotification: true,
-            source: finalType === 'guided' ? 'guided_prompt' : finalType === 'playbook' ? 'playbook_reflection' : 'devotional_question',
+            source: finalType === 'guided' ? 'guided_prompt' : finalType === 'playbook' ? 'playbook_reflection' : 'journal_reflection',
             question: preservedSubtaskTitle || entry.title,
           }
         ).catch(error => {

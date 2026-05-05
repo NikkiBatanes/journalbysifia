@@ -299,7 +299,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       targetPrayerCarouselIndex: undefined,
       targetPrayerId: undefined,
     } as any);
-  }, [route?.params]);
+  }, [route?.params, navigation]);
 
   // Function to collapse all expanded states (show more/less buttons)
   const collapseAllExpanded = useCallback(() => {

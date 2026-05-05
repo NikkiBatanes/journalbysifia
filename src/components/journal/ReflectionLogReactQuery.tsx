@@ -381,9 +381,10 @@ interface ReflectionLogProps {
   expanded?: boolean;
   onExpand?: () => void;
   onPencilTap?: () => void; // Handler for pencil icon tap in carousel
+  fromCarousel?: boolean; // Indicate if navigation is from carousel
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap }) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap, fromCarousel = false }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -698,6 +699,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
+
     // For guided and devotional entries, determine the prompt
     const promptToUse = entry.type === 'guided' || entry.type === 'devotional'
       ? (entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : ''))
@@ -725,6 +727,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       dayTitle: entry.day_title,
       totalDays: entry.total_days,
       questionNumber: entry.question_number,
+      fromCarousel: fromCarousel, // Pass carousel flag to editor
     });
   };
 
@@ -838,6 +841,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   selectedDate: selectedDate.toISOString(),
                   initialMode: 'free-form',
                   source: 'freeform',
+                  fromCarousel: fromCarousel, // Pass carousel flag
+                  openHeart: fromCarousel, // Show heart button when coming from carousel
                 });
               }}
               accessibilityRole="button"
@@ -1068,6 +1073,8 @@ return (
           selectedDate: selectedDate.toISOString(),
           initialMode: 'free-form',
           source: 'freeform',
+          fromCarousel: fromCarousel, // Pass carousel flag
+          openHeart: fromCarousel, // Show heart button when coming from carousel
         });
       }}
       headerRight={globalEditMode?.isGlobalEditMode ? (
@@ -1085,6 +1092,8 @@ return (
               selectedDate: selectedDate.toISOString(),
               initialMode: 'free-form',
               source: 'freeform',
+              fromCarousel: fromCarousel, // Pass carousel flag
+              openHeart: fromCarousel, // Show heart button when coming from carousel
             });
           }}
           style={styles.editButton}

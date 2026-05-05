@@ -28,6 +28,7 @@ interface RouteParams {
   totalDays?: number;
   questionNumber?: number;
   openHeart?: boolean;
+  fromCarousel?: boolean; // Indicate if navigation is from carousel
 }
 
 const ReflectionEditorScreen: React.FC = () => {
@@ -216,7 +217,8 @@ const ReflectionEditorScreen: React.FC = () => {
           })()}
           isLoading={isLoading}
           hideGuidedPromptButton={!params.openHeart}
-          autoOpenGuidedPrompt={params.openHeart === true}
+          autoOpenGuidedPrompt={false} // Don't auto-open guided prompt when coming from carousel
+          fromCarousel={params.fromCarousel}
         />
       </View>
 

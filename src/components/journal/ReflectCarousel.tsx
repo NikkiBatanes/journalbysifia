@@ -103,6 +103,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       icon: 'bulb-outline',
       component: <ReflectionLogReactQuery
         selectedDate={selectedDate}
+        fromCarousel={true}
         // Don't provide onPencilTap - let individual entries handle their own editing
       />,
       color: Colors.alertCoral,

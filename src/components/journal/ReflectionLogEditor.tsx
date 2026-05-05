@@ -57,6 +57,7 @@ interface ReflectionLogEditorProps {
   styles?: any;
   isLoading?: boolean;
   hideGuidedPromptButton?: boolean;
+  fromCarousel?: boolean; // Indicate if navigation is from carousel
   hidePencilIcon?: boolean;
   autoOpenGuidedPrompt?: boolean;
   stepBody?: string;
@@ -465,6 +466,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     styles,
     isLoading = false,
     hideGuidedPromptButton = false,
+    fromCarousel = false,
     hidePencilIcon = false,
     autoOpenGuidedPrompt = false,
     stepBody,
@@ -1338,9 +1340,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             </Animated.View>
           </TouchableOpacity>
         )}
-        {/* Show guided prompt icon for new entries only (not when editing) */}
+        {/* Show guided prompt icon for new entries only (not when editing), unless coming from carousel */}
         {(() => {
-          return !isEditing && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton;
+          return (!isEditing || fromCarousel) && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton;
         })() && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}

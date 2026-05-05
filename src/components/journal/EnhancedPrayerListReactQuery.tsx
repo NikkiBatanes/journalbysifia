@@ -895,7 +895,7 @@ const SwipeablePrayerCard: React.FC<{
                   <ThemedText style={styles.notesLabel} weight="medium">
                     Prayer Request:
                   </ThemedText>
-                  {" "}{prayer.metadata?.prayer_request_display || prayer.notes || ''}
+{' '}{prayer.metadata?.prayer_request_display || prayer.notes || ''}
                 </ThemedText>
               </View>
             )}
