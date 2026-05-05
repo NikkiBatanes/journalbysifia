@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Share, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Share, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
@@ -15,6 +15,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
 import { visibleStreakService } from '../services/visibleStreakService';
+import ShareDropdownModal from '../components/ShareDropdownModal';
+
+// Store metadata for app links
+const APPLE_APP_ID = '6751785713';
+const ANDROID_PACKAGE = 'com.sifiaopc.app';
 
 interface RouteParams {
   playbookId?: string;
@@ -35,6 +40,7 @@ const StreakPlanScreen: React.FC = () => {
   const [streakCount, setStreakCount] = useState(1);
   const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Sunday');
   const [dayStates, setDayStates] = useState<DayState[]>([]);
+  const [showShareDropdown, setShowShareDropdown] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -213,22 +219,15 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Navigate to sales offer screen if in onboarding flow, otherwise to dashboard
+    // Navigate to sales offer screen if in onboarding flow, otherwise go back
     if (params.onboarding) {
       (navigation as any).navigate('OnboardingSalesOffer', {
         onboardingFlow: true,
         skipNotificationPreference: false,
       });
     } else {
-      (navigation as any).reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs',
-            state: { routes: [{ name: 'Overview' }], index: 0 },
-          },
-        ],
-      });
+      // Done - returns to where the user last was
+      navigation.goBack();
     }
   };
 
@@ -237,15 +236,14 @@ const StreakPlanScreen: React.FC = () => {
     (navigation as any).navigate('UserInput');
   };
 
-  const handleShare = async () => {
-    try {
-      triggerLightHaptic();
-      await Share.share({
-        message: `I'm on a ${streakCount}-day streak of bringing real moments to God on siFia. 🙏`,
-      });
-    } catch (_error) {
-      // User cancelled share — silent
-    }
+  const handleShare = () => {
+    triggerLightHaptic();
+    setShowShareDropdown(true);
+  };
+
+  const handleExportPDF = () => {
+    // Not applicable for streak screen - no-op
+    setShowShareDropdown(false);
   };
 
   return (
@@ -316,11 +314,11 @@ const StreakPlanScreen: React.FC = () => {
             activeOpacity={0.85}
           >
             <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>
-              {params.onboarding ? 'Continue My Journey' : 'Continue'}
+              {params.onboarding ? 'Continue My Journey' : 'Done'}
             </Text>
           </TouchableOpacity>
 
-          {!params.onboarding && (
+          {params.source === 'playbook' && (
             <TouchableOpacity
               style={[styles.secondaryButton]}
               onPress={handleProcessAnotherMoment}
@@ -331,6 +329,15 @@ const StreakPlanScreen: React.FC = () => {
           )}
         </Animated.View>
       </ScrollView>
+
+      <ShareDropdownModal
+        visible={showShareDropdown}
+        onClose={() => setShowShareDropdown(false)}
+        onExportPDF={handleExportPDF}
+        shareText={`I'm on a ${streakCount}-day streak of bringing real moments before God with siFia.`}
+        shareContext="playbook"
+        hideExportPDF={true}
+      />
     </SafeAreaView>
   );
 };
@@ -348,6 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   scrollContent: {
     flexGrow: 1,

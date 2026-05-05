@@ -22,6 +22,7 @@ import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkth
 import PrayerEditorScreen from '../screens/PrayerEditorScreen';
 import UnifiedPrayerSelectionScreen from '../screens/UnifiedPrayerSelectionScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
+import StreakPlanTestDashboard from '../screens/StreakPlanTestDashboard';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
@@ -513,6 +514,16 @@ export default function RootStackNavigator({
               presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               gestureEnabled: false,
+              contentStyle: { backgroundColor: Colors.anchorBlue },
+            }}
+          />
+
+          {/* Streak Plan Test Dashboard - for testing all variations */}
+          <Stack.Screen
+            name="StreakPlanTestDashboard"
+            component={StreakPlanTestDashboard as React.ComponentType}
+            options={{
+              headerShown: false,
               contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />

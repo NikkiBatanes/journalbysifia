@@ -28,6 +28,7 @@ interface ShareDropdownModalProps {
   };
   isCompletion?: boolean; // Indicates if sharing from completion page
   isFinalDay?: boolean; // Indicates if it's the final day of a multi-day devotional
+  hideExportPDF?: boolean; // Hide PDF export option
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -39,6 +40,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   devotionalShareData,
   isCompletion = false,
   isFinalDay = false,
+  hideExportPDF = false,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -108,6 +110,9 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
       }
     } else if (shareContext === 'devotional') {
       finalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
+    } else if (shareText) {
+      // Use custom share text if provided (e.g., for streak screen)
+      finalShareText = `${shareText} Try it here: ${appUrl}`;
     } else {
       finalShareText = defaultShareText;
     }
@@ -186,24 +191,26 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                 <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.dropdownItem}
-                onPress={handleExportPDF}
-                activeOpacity={0.7}
-              >
-                <View style={styles.dropdownItemIconContainer}>
-                  <Ionicons name="document-outline" size={24} color={Colors.alertCoral} />
-                </View>
-                <View style={styles.dropdownItemTextContainer}>
-                  <ThemedText weight="semiBold" style={styles.dropdownItemTitle}>
-                    Export as PDF
-                  </ThemedText>
-                  <ThemedText style={styles.dropdownItemSubtitle}>
-                    Export this playbook as a PDF file
-                  </ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
-              </TouchableOpacity>
+              {!hideExportPDF && (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={handleExportPDF}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.dropdownItemIconContainer}>
+                    <Ionicons name="document-outline" size={24} color={Colors.alertCoral} />
+                  </View>
+                  <View style={styles.dropdownItemTextContainer}>
+                    <ThemedText weight="semiBold" style={styles.dropdownItemTitle}>
+                      Export as PDF
+                    </ThemedText>
+                    <ThemedText style={styles.dropdownItemSubtitle}>
+                      Export this playbook as a PDF file
+                    </ThemedText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         </Animated.View>
