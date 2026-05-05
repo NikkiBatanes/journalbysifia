@@ -372,41 +372,54 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
 
-  // Save scroll position when screen loses focus, restore when it gains focus
+  // Force the Animated.View's native binding to refresh.
+  //
+  // Problem: when scrollY is already at value X (commonly 0) and we call
+  // scrollY.setValue(X), it is a no-op — the value didn't change so React
+  // Native never sends a fresh style update to the native UIView. After a
+  // background/foreground cycle iOS suspends the view and its `height` binding
+  // falls back to 0, but since scrollY hasn't changed nobody tells it to
+  // restore. Result: calendar strip is invisible until a scroll event fires.
+  //
+  // Fix: momentarily set scrollY to -1 (clamps to same output: opacity=1,
+  // height=44) so the value *does* change, forcing a real native layout
+  // update. Then immediately restore to the target value.
+  const refreshCalendarBinding = useCallback((targetY: number) => {
+    scrollY.setValue(-1);          // guaranteed value change → native fires
+    requestAnimationFrame(() => {
+      scrollY.setValue(targetY);
+      setIsHeaderCollapsed(targetY > 40);
+    });
+  }, [scrollY]);
+
+  // Reset to top whenever this tab gains focus (e.g. switching tabs).
   useFocusEffect(
     useCallback(() => {
-      // Reset header animation to ensure date header is visible
-      scrollY.setValue(0);
-      setIsHeaderCollapsed(false);
+      refreshCalendarBinding(0);
 
-      // Restore scroll position when screen gains focus
+      // Restore vertical scroll position so content is where the user left it.
       if (savedScrollPosition.current > 0) {
         setTimeout(() => {
           try {
             contentScrollRef.current?.scrollTo?.({ y: savedScrollPosition.current, animated: false });
           } catch {}
-        }, 100); // Small delay to ensure content is rendered
+        }, 100);
       }
 
-      // Return cleanup function that saves position when screen loses focus
       return () => {
-        // savedScrollPosition.current is already being updated by handleContentScroll
+        // savedScrollPosition.current is already kept up-to-date by handleContentScroll
       };
-    }, [scrollY])
+    }, [refreshCalendarBinding])
   );
 
-  // When the app comes back from background (e.g. user switched to another app),
-  // iOS may have reset the ScrollView's content offset while scrollY (Animated.Value)
-  // still holds the old value — causing the header to appear stuck in the wrong state.
-  // Re-sync both the Animated.Value and the ScrollView to savedScrollPosition so the
-  // header animation matches where the content actually is.
+  // Re-drive the calendar when the app returns from background.
+  // iOS suspends the native view hierarchy during backgrounding; the Animated
+  // height/opacity bindings are lost and must be explicitly refreshed.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         const y = savedScrollPosition.current;
-        scrollY.setValue(y);
-        setIsHeaderCollapsed(y > 40);
-        // Restore the ScrollView to its saved position in case iOS reset it.
+        refreshCalendarBinding(y);
         setTimeout(() => {
           try {
             contentScrollRef.current?.scrollTo?.({ y, animated: false });
@@ -415,7 +428,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       }
     });
     return () => sub.remove();
-  }, [scrollY]);
+  }, [refreshCalendarBinding]);
 
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const [_screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
