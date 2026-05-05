@@ -281,7 +281,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
       // Navigate using deep link
       if (notification.data?.deep_link) {
-        notificationDeepLinkService.navigate(notification.data.deep_link);
+        // Dismiss the notification screen first
+        navigation.goBack();
+        // Small delay to allow the dismiss to complete before navigation
+        setTimeout(() => {
+          notificationDeepLinkService.navigate(notification.data.deep_link);
+        }, 100);
       } else {
         // Smart fallback navigation based on notification type
         const notificationType = notification.type || notification.notification_type;
