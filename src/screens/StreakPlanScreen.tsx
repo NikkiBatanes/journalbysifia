@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Share, StatusBar, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
@@ -16,10 +16,6 @@ import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
 import { visibleStreakService } from '../services/visibleStreakService';
 import ShareDropdownModal from '../components/ShareDropdownModal';
-
-// Store metadata for app links
-const APPLE_APP_ID = '6751785713';
-const ANDROID_PACKAGE = 'com.sifiaopc.app';
 
 interface RouteParams {
   playbookId?: string;
