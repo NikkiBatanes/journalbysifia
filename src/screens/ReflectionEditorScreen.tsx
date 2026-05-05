@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Alert, Keyboard } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { toLocalDateString } from '../utils/date';
-import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
+import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useReflectionData, useCreateReflection, useUpdateReflection, useDeleteReflection } from '../services/hooks/useReflectionData';
@@ -53,12 +53,16 @@ const ReflectionEditorScreen: React.FC = () => {
 
   const [editingId] = useState<string | null>(params.existingReflection?.id || null);
 
+  const editorRef = useRef<ReflectionLogEditorRef>(null);
+
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
-      // Done callback - close the screen
-      Keyboard.dismiss();
+      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: calling blurInputs()`);
+      editorRef.current?.blurInputs();
+      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: calling navigation.goBack()`);
       navigation.goBack();
+      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: goBack() called`);
     },
     () => {
       // Edit callback - keep screen open and focus input
@@ -177,6 +181,7 @@ const ReflectionEditorScreen: React.FC = () => {
     <>
       <View style={{ flex: 1, backgroundColor: '#1a3c5e' }}>
         <ReflectionLogEditor
+          ref={editorRef}
           onSave={handleSave}
           onCancel={handleCancel}
           onDelete={editingId ? handleDelete : undefined}

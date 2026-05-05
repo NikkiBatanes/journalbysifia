@@ -641,7 +641,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showFormattingModal] = React.useState(false);
   const [_keyboardHeight, setKeyboardHeight] = useState(0);
-  const [isKeyboardVisible] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  // Set to true at the START of handleCancel so any auto-focus timers that
+  // fire during prop-change-driven re-renders (source: guided→thoughts etc.)
+  // know to abort instead of re-opening the keyboard.
+  const isClosingRef = useRef(false);
   const fabAnimatedValue = useRef(new Animated.Value(16)).current; // Start at default position (16px from bottom)
 
   const isSelectedPromptLocked = React.useMemo(() => {
@@ -680,6 +684,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     focusInput: () => {
+      // Reopen — clear the closing guard so auto-focus timers work again
+      isClosingRef.current = false;
 
       // For dashboard smart journaling (thoughts source), always focus content input
       if (source === 'thoughts' && contentInputRef.current) {
@@ -716,6 +722,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       }
     },
     blurInputs: () => {
+      console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor blurInputs() called — title focused=${titleInputRef.current?.isFocused()} content focused=${contentInputRef.current?.isFocused()}`);
       if (titleInputRef.current) {
         titleInputRef.current.blur();
       }
@@ -922,14 +929,16 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     const showSub = Keyboard.addListener('keyboardDidShow', (e: any) => {
       if (isMountedRef.current) {
         setKeyboardHeight(e.endCoordinates.height);
-        // FABs stay at initial position - no animation
+        setIsKeyboardVisible(true);
+        console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor keyboardDidShow h=${e.endCoordinates.height}`);
       }
     });
 
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
       if (isMountedRef.current) {
         setKeyboardHeight(0);
-        // FABs stay at initial position - no animation
+        setIsKeyboardVisible(false);
+        console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor keyboardDidHide`);
       }
     });
 
@@ -964,9 +973,22 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Auto-focus appropriate input for new entries
   useEffect(() => {
+    console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect fired — isEditing=${isEditing} source=${source} isClosing=${isClosingRef.current} title="${newEntry.title.slice(0, 20)}"`);
+    // Never schedule focus while the component is closing — source prop changes
+    // during the cancel/done teardown can re-trigger this effect.
+    if (isClosingRef.current) {
+      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: BLOCKED (isClosingRef=true)`);
+      return;
+    }
     // For dashboard smart journaling (thoughts source), always focus content input
     if (!isEditing && source === 'thoughts' && contentInputRef.current) {
+      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: scheduling content focus in 300ms`);
       createManagedTimeout(() => {
+        if (isClosingRef.current) {
+          console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms ABORTED (isClosingRef=true)`);
+          return;
+        }
+        console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms fired — focusing content`);
         if (contentInputRef.current) {
           logFocus('auto-focus effect', 'content');
           contentInputRef.current.focus();
@@ -975,13 +997,20 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
     // For freeform mode with unlocked title, focus title input only if title is empty
     else if (!isEditing && !lockTitle && titleInputRef.current && !newEntry.title.trim()) {
-      // Add a small delay to ensure the component is fully rendered
+      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: scheduling title focus in 300ms`);
       createManagedTimeout(() => {
+        if (isClosingRef.current) {
+          console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms ABORTED (isClosingRef=true)`);
+          return;
+        }
+        console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms fired — focusing title (empty=${!newEntry.title.trim()})`);
         if (titleInputRef.current && !newEntry.title.trim()) {
           logFocus('auto-focus effect', 'title');
           titleInputRef.current.focus();
         }
       }, 300);
+    } else {
+      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: no branch taken`);
     }
   }, [isEditing, lockTitle, source, newEntry.title]);
 
@@ -1082,6 +1111,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Cancel handler
   const handleCancel = async () => {
+    // Mark as closing IMMEDIATELY — before anything else — so any auto-focus
+    // timers that get scheduled during prop-change re-renders (e.g. source
+    // flipping from guided→thoughts after onCancel resets parent state) will
+    // check this flag and abort instead of re-opening the keyboard.
+    isClosingRef.current = true;
+    console.log(`[KB_DEBUG ${Date.now()}] handleCancel START — isClosingRef=true`);
+
     // Haptic feedback for cancel/close
     triggerLightHaptic();
     try {
@@ -1090,21 +1126,25 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         await saveDraftHelper();
       }
 
-      // Clear all pending timeouts to prevent delayed focus
+      // Clear all pending timeouts FIRST — prevents any delayed focus() calls
+      // from firing mid-close-animation and causing keyboard to reappear
       clearAllTimeouts();
 
-      // Ensure text inputs release focus so keyboard doesn't reappear
-      // Only blur if the input is currently focused to avoid unnecessary focus/blur cycle
-      if (titleInputRef.current && titleInputRef.current.isFocused()) {
+      // Always dismiss unconditionally — safe when keyboard is already hidden.
+      // Must happen before blur() so the keyboard hide animation starts
+      // before the responder is released.
+      Keyboard.dismiss();
+
+      if (titleInputRef.current?.isFocused()) {
         titleInputRef.current.blur();
       }
-      if (contentInputRef.current && contentInputRef.current.isFocused()) {
+      if (contentInputRef.current?.isFocused()) {
         contentInputRef.current.blur();
       }
 
       if (isKeyboardVisible) {
-        Keyboard.dismiss();
-        // Longer delay to ensure keyboard is fully dismissed before closing modal
+        // Give the keyboard hide animation a head start before the modal
+        // starts its own close animation
         setTimeout(() => {
           onCancel();
         }, 200);
@@ -1112,18 +1152,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         onCancel();
       }
     } catch (error) {
-      // Clear all pending timeouts to prevent delayed focus
       clearAllTimeouts();
-
-      if (titleInputRef.current) {
-        titleInputRef.current.blur();
-      }
-      if (contentInputRef.current) {
-        contentInputRef.current.blur();
-      }
-      if (isKeyboardVisible) {
-        Keyboard.dismiss();
-      }
+      Keyboard.dismiss();
+      titleInputRef.current?.blur();
+      contentInputRef.current?.blur();
       onCancel();
     }
   };

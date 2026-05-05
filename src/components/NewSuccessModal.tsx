@@ -120,7 +120,13 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
     };
   }, [visible, config, fadeAnim, iconScale, sparkleAnims, triggerLightHaptic]);
 
+  // Debug: log every render with visibility state
+  React.useEffect(() => {
+    console.log(`[KB_DEBUG ${Date.now()}] NewSuccessModal visible=${visible} config=${!!config}`);
+  });
+
   if (!visible || !config) {
+    console.log(`[KB_DEBUG ${Date.now()}] NewSuccessModal returning null (visible=${visible})`);
     return null;
   }
 

@@ -510,17 +510,26 @@ class NotificationManagementService {
         .eq('user_id', userId);
 
       if (error) {
-        Logger.error('Error marking notification as read', error as Error, {
+        // Properly extract error details from Supabase error object
+        const errorMessage = error?.message || error?.details || JSON.stringify(error);
+        Logger.error('Error marking notification as read', new Error(errorMessage), {
           component: 'notificationManagementService',
           notificationId,
           userId,
+          errorDetails: {
+            code: error?.code,
+            message: error?.message,
+            details: error?.details,
+            hint: error?.hint,
+          },
         });
         return false;
       }
 
       return true;
     } catch (error) {
-      Logger.error('Failed to mark notification as read', error as Error, {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      Logger.error('Failed to mark notification as read', new Error(errorMessage), {
         component: 'notificationManagementService',
         notificationId,
         userId,

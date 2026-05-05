@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, Alert, DeviceEventEmitter, View, ActivityIndicator } from 'react-native';
+import { Modal, Alert, DeviceEventEmitter, Keyboard, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -96,7 +96,11 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
-      // Done callback - use ReflectionLogEditor's handleCancel logic which has proper keyboard dismissal
+      // Dismiss keyboard immediately at the outermost point — before any
+      // downstream callbacks (triggerCancel → blur → onCancel) can cause
+      // React re-renders that might briefly re-focus a TextInput during the
+      // modal's slide-out animation.
+      Keyboard.dismiss();
       if (reflectionEditorRef.current) {
         reflectionEditorRef.current.triggerCancel();
       }
