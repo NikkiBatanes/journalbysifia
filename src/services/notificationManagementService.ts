@@ -28,7 +28,7 @@ export interface NotificationQueueItem {
   data?: Record<string, any>;
   scheduled_for?: string;
   priority: 'low' | 'normal' | 'high' | 'critical';
-  status?: 'pending' | 'sent' | 'failed' | 'cancelled' | 'read' | 'batched' | 'processing';
+  status?: 'pending' | 'sent' | 'failed' | 'cancelled' | 'batched' | 'processing';
   retry_count?: number;
   created_at?: string;
 }
@@ -497,13 +497,14 @@ class NotificationManagementService {
 
   /**
    * Mark notification as read/opened
+   * Note: Uses 'cancelled' status as the database constraint doesn't allow 'read'
    */
   async markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('notification_queue')
         .update({
-          status: 'read',
+          status: 'cancelled',
           updated_at: new Date().toISOString(),
         })
         .eq('id', notificationId)
