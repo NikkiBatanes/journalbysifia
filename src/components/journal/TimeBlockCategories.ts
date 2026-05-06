@@ -28,7 +28,7 @@ export const TIMEBLOCK_CATEGORIES: TimeBlockCategory[] = [
   { name: 'Recreation', icon: 'airplane', color: Colors.gratitudeRed, description: 'Fun and leisure' },
   { name: 'Sleep & Recovery', icon: 'moon', color: '#8B7BA8', description: 'Rest and restoration' },
   { name: 'Work Meetings', icon: 'briefcase', color: Colors.timeblockGreen, description: 'Professional gatherings' },
-  { name: 'Others', icon: 'ellipsis-horizontal', color: '#6B7280', description: 'Everything else' },
+  { name: 'Other', icon: 'ellipsis-horizontal', color: '#6B7280', description: 'Everything else' },
 ];
 
 export const getCategoryColor = (categoryName: string): string => {

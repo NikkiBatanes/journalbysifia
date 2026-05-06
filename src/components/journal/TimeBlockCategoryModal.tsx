@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Modal, View, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
+import { Modal, View, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '../../theme/colors';
@@ -56,12 +56,15 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   onCancel,
 }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
+  const [isOtherSelected, setIsOtherSelected] = React.useState(false);
+  const [customCategory, setCustomCategory] = React.useState('');
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const insets = useSafeAreaInsets();
 
   const buttonScale = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
+  const chooseAgainScale = useRef(new Animated.Value(0)).current;
 
   const displayedCategories = showAllCategories ? TIMEBLOCK_CATEGORIES : TIMEBLOCK_CATEGORIES.slice(0, 12);
 
@@ -78,6 +81,27 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
     }
   }, [selectedCategory, buttonScale]);
 
+  useEffect(() => {
+    if (selectedCategory === 'Other') {
+      setIsOtherSelected(true);
+    } else {
+      setIsOtherSelected(false);
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (isOtherSelected) {
+      Animated.spring(chooseAgainScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      chooseAgainScale.setValue(0);
+    }
+  }, [isOtherSelected, chooseAgainScale]);
+
   const handleToggleShowAll = () => {
     triggerLightHaptic();
     Animated.timing(buttonOpacity, {
@@ -92,6 +116,12 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
         useNativeDriver: true,
       }).start();
     });
+  };
+
+  const handleChooseAgain = () => {
+    triggerLightHaptic();
+    setIsOtherSelected(false);
+    onSelect(null as any);
   };
 
   return (
@@ -118,12 +148,30 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
             <StepFadeIn delay={80}>
               <View style={styles.titleRow}>
                 <ThemedText weight="semiBold" style={styles.stepTitle}>
-                  Choose your category
+                  {isOtherSelected ? 'What is your category?' : 'Choose your category'}
                 </ThemedText>
               </View>
             </StepFadeIn>
 
-            <StepFadeIn delay={160} style={styles.categoriesGrid}>
+            {isOtherSelected && (
+              <StepFadeIn delay={160}>
+                <View style={styles.customInputContainer}>
+                  <TextInput
+                    style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+                    placeholder="Type your category"
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    value={customCategory}
+                    onChangeText={setCustomCategory}
+                    multiline
+                    autoFocus
+                    keyboardAppearance="dark"
+                  />
+                </View>
+              </StepFadeIn>
+            )}
+
+            {!isOtherSelected && (
+              <StepFadeIn delay={160} style={styles.categoriesGrid}>
               {displayedCategories.map((category) => {
                 const isSelected = selectedCategory === category.name;
                 return (
@@ -158,8 +206,9 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                 );
               })}
             </StepFadeIn>
+            )}
 
-            {TIMEBLOCK_CATEGORIES.length > 12 && (
+            {TIMEBLOCK_CATEGORIES.length > 12 && !isOtherSelected && (
               <StepFadeIn delay={240}>
                 <Animated.View style={{ opacity: buttonOpacity }}>
                   <TouchableOpacity
@@ -175,15 +224,41 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
               </StepFadeIn>
             )}
 
+            {isOtherSelected && (
+              <StepFadeIn delay={240}>
+                <Animated.View style={{ opacity: chooseAgainScale }}>
+                  <TouchableOpacity
+                    style={[styles.showMoreButton, { alignSelf: 'flex-end' }]}
+                    onPress={handleChooseAgain}
+                    activeOpacity={0.75}
+                  >
+                    <ThemedText style={styles.showMoreButtonText}>
+                      Choose again
+                    </ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              </StepFadeIn>
+            )}
+
             <View style={{ height: 100 }} />
           </ScrollView>
 
           {/* Bottom button */}
-          {selectedCategory && (
+          {selectedCategory && (!isOtherSelected || customCategory.trim() !== '') && (
             <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
               <TouchableOpacity
                 onPress={() => {
                   triggerLightHaptic();
+                  if (isOtherSelected && customCategory.trim() !== '') {
+                    // Create a custom category object
+                    const customCategoryObj: TimeBlockCategory = {
+                      name: customCategory.trim(),
+                      icon: 'ellipsis-horizontal',
+                      color: '#6B7280',
+                      description: 'Custom category',
+                    };
+                    onSelect(customCategoryObj);
+                  }
                   onCancel();
                 }}
                 activeOpacity={0.7}
@@ -313,6 +388,25 @@ const styles = StyleSheet.create({
   },
   categoryDescriptionSelected: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  customInputContainer: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+  },
+  customInputTitle: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  customInput: {
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 16,
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    minHeight: 120,
+    textAlignVertical: 'top',
   },
   showMoreButton: {
     marginTop: 16,
