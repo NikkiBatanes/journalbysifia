@@ -43,17 +43,17 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
   // Check both at start AND throughout the text for names that look like the old user's name
   const namePatterns = [
     // Pattern: "Name, you" - replace "Name" but preserve ", you"
-    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i,
+    { pattern: /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i, hasComma: true },
     // Pattern: "name, rest" - handle lowercase names like "loaer, rest"
-    /^([a-z]+),\s+(.*)/i,
+    { pattern: /^([a-z]+),\s+(.*)/i, hasComma: true },
     // Pattern: "Name, " at start - replace name but preserve comma and space
-    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+/,
+    { pattern: /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+/, hasComma: true },
     // Pattern: "Name " at start (without comma) - replace first word if it looks like a name
-    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+/,
+    { pattern: /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+/, hasComma: false },
   ];
 
   // First, try patterns at the start (for backward compatibility)
-  for (const pattern of namePatterns) {
+  for (const { pattern, hasComma } of namePatterns) {
     const match = processedText.match(pattern);
     if (match && match[1]) {
       const detectedName = match[1];
@@ -62,9 +62,13 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
       // Replace if it looks like a name and is different from current name
       if (detectedName !== currentFirstName && (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
         if (followingText) {
-          processedText = processedText.replace(pattern, `${currentFirstName}, ${followingText}`);
+          // Preserve the original punctuation structure
+          const separator = hasComma ? ', ' : ' ';
+          processedText = processedText.replace(pattern, `${currentFirstName}${separator}${followingText}`);
         } else {
-          processedText = processedText.replace(pattern, `${currentFirstName} `);
+          // If no following text, preserve original structure
+          const separator = hasComma ? ', ' : ' ';
+          processedText = processedText.replace(pattern, `${currentFirstName}${separator}`);
         }
 
         break; // Only replace the first occurrence
@@ -75,30 +79,21 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
   // If no start pattern matched, try replacing throughout the text
   // This catches names in the middle of paragraphs
   if (processedText === text) {
-    // Split into words and look for capitalized names that could be the user's name
-    const words = processedText.split(/(\s+)/);
+    // Use word boundary regex to preserve exact spacing
+    const wordBoundaryRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
     let replaced = false;
 
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      // Check if this word looks like a name (capitalized, letters only, not common words)
-      // More lenient: just check if it's capitalized and not a common word
-      if (/^[A-Z]/.test(word) && word.length > 2 && word.length < 30 && /^[A-Za-z]+$/.test(word)) {
-        // Check if it's a common word
-        const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy'];
-        if (!commonWords.includes(word) && word !== currentFirstName) {
-          console.log('[NameReplacement] Found likely name to replace:', word, '->', currentFirstName);
-          // Replace it with current first name
-          words[i] = currentFirstName;
-          replaced = true;
-          break; // Only replace the first occurrence to be safe
-        }
+    processedText = processedText.replace(wordBoundaryRegex, (match) => {
+      if (replaced) return match; // Only replace first occurrence
+      // Check if it's a common word
+      const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy'];
+      if (!commonWords.includes(match) && match !== currentFirstName && isLikelyName(match)) {
+        console.log('[NameReplacement] Found likely name to replace:', match, '->', currentFirstName);
+        replaced = true;
+        return currentFirstName;
       }
-    }
-
-    if (replaced) {
-      processedText = words.join('');
-    }
+      return match;
+    });
   }
 
   return processedText;
