@@ -234,15 +234,18 @@ const styles = StyleSheet.create({
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: 8,
+    marginTop: 32,
   },
   labelIcon: {
-    marginRight: 8,
+    marginTop: 1,
   },
   focusLabel: {
-    fontSize: 12,
-    color: Colors.alertCoral,
+    fontSize: 11,
     letterSpacing: 1,
+    color: Colors.hopeWhite,
   },
   titleRow: {
     flexDirection: 'row',
