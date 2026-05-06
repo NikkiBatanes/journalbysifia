@@ -243,7 +243,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Track registration method for analytics only
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
 
-  // Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4)
+  // Always 5 steps: Birthday(1) → Age(2) → Faith(3) → Challenge(4) → Details(5)
   // Name step removed to comply with Apple guidelines
   // Note: Apple Private Relay ONLY hides email, NEVER names
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
@@ -1219,7 +1219,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Long delay to allow iOS save password alert to be dismissed
       setTimeout(() => {
         detailsInputRef.current?.focus();
-        if (!(detailsOnlyFlow || currentStep === 4)) {
+        if (!(detailsOnlyFlow || currentStep === 5)) {
           const y = Math.max(askBoxYRef.current - 140, 0);
           scrollViewRef.current?.scrollTo({ y, animated: true });
         }
@@ -1384,7 +1384,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const hasRunIntroAnim = useRef(false);
   // Re-trigger askBox animation when navigating to step 4 (not on initial mount - intro animation handles that)
   useEffect(() => {
-    if (detailsOnlyFlow || currentStep === 4) {
+    if (detailsOnlyFlow || currentStep === 5) {
       if (!hasRunIntroAnim.current) { hasRunIntroAnim.current = true; return; }
       // Reset animation values
       askBoxOpacity.setValue(0);
@@ -1408,7 +1408,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
-    const isDetailsStep = detailsOnlyFlow ? true : currentStep === 4;
+    const isDetailsStep = detailsOnlyFlow ? true : currentStep === 5;
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
@@ -1456,11 +1456,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     };
   }, [currentStep, containerTranslateY, detailsOnlyFlow, insets?.bottom]);
 
-  // Always 4 steps: Age → Faith → Challenge → Details
-  const totalSteps = detailsOnlyFlow ? 1 : 4;
+  // Always 5 steps: Birthday → Age → Faith → Challenge → Details
+  const totalSteps = detailsOnlyFlow ? 1 : 5;
 
   const handleBack = () => {
-    // On age group step, don't go back
+    // On birthday step, don't go back
     if (currentStep > 1) {
       try { triggerLightHaptic(); } catch {}
       setCurrentStep(currentStep - 1);
@@ -2012,7 +2012,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             dynamicStyles.titleContainer,
             { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] },
             // Condense header further when keyboard is visible on details step to free vertical space
-            ((detailsOnlyFlow || currentStep === 4) && keyboardVisible) && styles.noMarginBottom,
+            ((detailsOnlyFlow || currentStep === 5) && keyboardVisible) && styles.noMarginBottom,
           ]}>
             {detailsOnlyFlow ? (
               <>
@@ -2263,7 +2263,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       </View>{/* end outer flex wrapper */}
 
       {/* ── Footer: outside contentWidth wrapper → full KAV width, matches UserInputScreen ── */}
-      {!isGenerating && (detailsOnlyFlow || currentStep === 4) && renderDetailsInputFooter()}
+      {!isGenerating && (detailsOnlyFlow || currentStep === 5) && renderDetailsInputFooter()}
 
         <Modal
           visible={showTooltip}
@@ -2601,6 +2601,56 @@ const styles = StyleSheet.create({
   selectedAgeOption: {
     borderColor: Colors.alertCoral,
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  birthdayContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  birthdaySelector: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  birthdaySelectorText: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+  },
+  birthdayPickerContainer: {
+    marginTop: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  birthdayPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  birthdayPickerCancelButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  birthdayPickerDoneButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.textGray,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.alertCoral,
+    fontWeight: '600',
   },
   userGreeting: {
     ...OnboardingStyles.subtitle,

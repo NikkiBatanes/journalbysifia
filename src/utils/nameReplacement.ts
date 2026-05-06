@@ -84,7 +84,9 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
     let replaced = false;
 
     processedText = processedText.replace(wordBoundaryRegex, (match) => {
-      if (replaced) return match; // Only replace first occurrence
+      if (replaced) {
+        return match; // Only replace first occurrence
+      }
       // Check if it's a common word
       const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy'];
       if (!commonWords.includes(match) && match !== currentFirstName && isLikelyName(match)) {

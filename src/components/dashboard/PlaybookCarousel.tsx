@@ -244,7 +244,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     fetchPlaybooks();

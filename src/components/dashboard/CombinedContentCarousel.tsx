@@ -977,7 +977,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     fetchContent();

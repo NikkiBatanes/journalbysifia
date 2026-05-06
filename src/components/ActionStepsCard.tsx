@@ -410,7 +410,7 @@ export default function ActionStepsCard({
     DeviceEventEmitter.emit('playbookProgressUpdate', {
       stepId, subTaskId, type: 'playbook_detail_toggle',
     });
-  }, [handleToggleStep, steps, user?.id, playbookId, playbookStatus, queryClient, onToggleSubTaskMutation, navigation]);
+  }, [handleToggleStep, steps, user?.id, playbookId, playbookStatus, queryClient, onToggleSubTaskMutation, nav]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
 
@@ -599,7 +599,7 @@ export default function ActionStepsCard({
 
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any);
-  }, [navigation, user?.id, queryClient, playbookId, playbookTitle]);
+  }, [navigation, nav, user?.id, queryClient, playbookId, playbookTitle]);
 
   // Long-press Handler - Show tooltip when subtask is long-pressed (iMessage-style)
   const handlePencilIconPress = React.useCallback((subTask: SubTask, stepInfo: { stepNumber: number; stepTitle: string; stepId?: string }) => {

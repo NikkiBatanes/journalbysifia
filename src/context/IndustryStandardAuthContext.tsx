@@ -640,7 +640,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   // Coordinated session refresh with retry logic (Facebook/Instagram style)
   // Name collection functions
 
-  const refreshSession = async (retryCount = 0): Promise<any> => {
+  const refreshSession = React.useCallback(async (retryCount = 0): Promise<any> => {
     if (refreshPromise) {
       // If refresh is already in progress, wait for it
       return refreshPromise;
@@ -686,10 +686,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       refreshPromise = null;
       throw error;
     }
-  };
+  }, []);
 
   // Industry-standard auth methods
-  const signIn = async (email: string, password: string) => {
+  const signIn = React.useCallback(async (email: string, password: string) => {
     try {
 
       setAuthState(prev => ({ ...prev, loading: true }));
@@ -795,9 +795,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => {
+  const signUp = React.useCallback(async (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => {
     try {
 
       setAuthState(prev => ({ ...prev, loading: true }));
@@ -865,9 +865,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = React.useCallback(async () => {
     try {
       Logger.debug('[AuthContext] Starting logout...');
 
@@ -938,9 +938,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         action: 'sign_out_catch',
       });
     }
-  };
+  }, []);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = React.useCallback(async (email: string) => {
     try {
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
@@ -968,9 +968,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, []);
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = React.useCallback(async (newPassword: string) => {
     try {
       // Regular password update for authenticated user
       if (!authState.user) {
@@ -1007,9 +1007,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, [authState]);
 
-  const updateProfile = async (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => {
+  const updateProfile = React.useCallback(async (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => {
     try {
       if (!authState.user) {
         return {
@@ -1075,9 +1075,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, [authState]);
 
-  const updatePreferences = async (preferences: any) => {
+  const updatePreferences = React.useCallback(async (preferences: any) => {
     try {
       if (!authState.user) {
         return {
@@ -1138,9 +1138,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, [authState]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = React.useCallback(async () => {
     try {
       // Check if Google Sign-In is configured
       const rawWebClientId = Config.GOOGLE_WEB_CLIENT_ID;
@@ -1448,9 +1448,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, []);
 
-  const signInWithApple = async () => {
+  const signInWithApple = React.useCallback(async () => {
     try {
 
       setAuthState(prev => ({ ...prev, loading: true }));
@@ -1701,7 +1701,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  };
+  }, []);
 
   const value: AuthContextType = useMemo(() => ({
     user: authState.user,

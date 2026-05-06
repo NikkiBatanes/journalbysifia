@@ -323,7 +323,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     fetchDevotionals();

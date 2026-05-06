@@ -397,7 +397,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }
-  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, navigation]);
+  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, nav]);
 
   const toggleEditing = () => {
     // Check if planning is locked for future dates
