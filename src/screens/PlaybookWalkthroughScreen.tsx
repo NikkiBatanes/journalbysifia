@@ -162,7 +162,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
-  const personalized = replaceAllNamePlaceholders(summary, { displayName: userName });
+  const personalized = replaceAllNamePlaceholders(summary, { displayName: userName, firstName: userName }, { replaceHardcodedNames: true });
   // Cap to 2 paragraphs — this is an entry moment, not the full truth section
   const paragraphs = splitParagraphs(personalized).slice(0, 2);
 
@@ -307,7 +307,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
-  const personalized = replaceAllNamePlaceholders(text, { displayName: userName });
+  const personalized = replaceAllNamePlaceholders(text, { displayName: userName, firstName: userName }, { replaceHardcodedNames: true });
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
   const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
@@ -2027,10 +2027,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [, setJournalCollapseComplete] = useState(true);
 
-  const userName: string =
-    (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
-    (user as any)?.email?.split('@')[0] ||
-    '';
+  const userName: string = React.useMemo(
+    () =>
+      (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
+      (user as any)?.email?.split('@')[0] ||
+      '',
+    [user]
+  );
   const userId: string = user?.id || '';
 
   // Detect if the route playbook is a lightweight list object (missing full content).

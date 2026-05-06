@@ -40,6 +40,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
   }
 
   // ENHANCED approach: Replace various name patterns while preserving context
+  // Check both at start AND throughout the text for names that look like the old user's name
   const namePatterns = [
     // Pattern: "Name, you" - replace "Name" but preserve ", you"
     /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i,
@@ -47,8 +48,11 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
     /^([a-z]+),\s+(.*)/i,
     // Pattern: "Name, " at start - replace name but preserve comma and space
     /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+/,
+    // Pattern: "Name " at start (without comma) - replace first word if it looks like a name
+    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+/,
   ];
 
+  // First, try patterns at the start (for backward compatibility)
   for (const pattern of namePatterns) {
     const match = processedText.match(pattern);
     if (match && match[1]) {
@@ -60,11 +64,40 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
         if (followingText) {
           processedText = processedText.replace(pattern, `${currentFirstName}, ${followingText}`);
         } else {
-          processedText = processedText.replace(pattern, `${currentFirstName}, `);
+          processedText = processedText.replace(pattern, `${currentFirstName} `);
         }
 
         break; // Only replace the first occurrence
       }
+    }
+  }
+
+  // If no start pattern matched, try replacing throughout the text
+  // This catches names in the middle of paragraphs
+  if (processedText === text) {
+    // Split into words and look for capitalized names that could be the user's name
+    const words = processedText.split(/(\s+)/);
+    let replaced = false;
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      // Check if this word looks like a name (capitalized, letters only, not common words)
+      // More lenient: just check if it's capitalized and not a common word
+      if (/^[A-Z]/.test(word) && word.length > 2 && word.length < 30 && /^[A-Za-z]+$/.test(word)) {
+        // Check if it's a common word
+        const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy'];
+        if (!commonWords.includes(word) && word !== currentFirstName) {
+          console.log('[NameReplacement] Found likely name to replace:', word, '->', currentFirstName);
+          // Replace it with current first name
+          words[i] = currentFirstName;
+          replaced = true;
+          break; // Only replace the first occurrence to be safe
+        }
+      }
+    }
+
+    if (replaced) {
+      processedText = words.join('');
     }
   }
 
@@ -99,7 +132,7 @@ function isLikelyName(text: string): boolean {
   }
 
   // Should not be common words that might appear at the start of sentences
-  const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without'];
+  const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While'];
   if (commonWords.includes(text)) {
     return false;
   }
