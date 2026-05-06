@@ -1362,7 +1362,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation]);
+  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation, successModal]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 0) {

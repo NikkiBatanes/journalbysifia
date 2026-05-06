@@ -167,6 +167,7 @@ const createCandidate = ({
     usage_room_playbook: 'subscription',
     content_refresh_wait: 'subscription',
     upgrade_room: 'subscription',
+    daily_review: 'journal',
   };
 
   const sensitiveTypes: SmartNotificationType[] = [
