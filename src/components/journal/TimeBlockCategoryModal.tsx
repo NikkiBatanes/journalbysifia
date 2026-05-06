@@ -154,11 +154,6 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                     >
                       {category.name}
                     </ThemedText>
-                    <ThemedText
-                      style={[styles.categoryDescription, isSelected && styles.categoryDescriptionSelected]}
-                    >
-                      {category.description}
-                    </ThemedText>
                   </TouchableOpacity>
                 );
               })}
