@@ -2006,41 +2006,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     <Ionicons name="chevron-down" size={20} color={Colors.white} />
                   </TouchableOpacity>
 
-                  {showInlineYearPicker && (
-                    <View style={styles.birthdayPickerContainer}>
-                      <DateTimePicker
-                        value={tempBirthDate}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'spinner'}
-                        minimumDate={new Date(1900, 0, 1)}
-                        maximumDate={new Date()}
-                        textColor={Colors.white}
-                        themeVariant="dark"
-                        onChange={(_event, selectedDate) => {
-                          if (selectedDate) {
-                            setTempBirthDate(selectedDate);
-                          }
-                        }}
-                      />
-                      <View style={styles.birthdayPickerRow}>
-                        <TouchableOpacity
-                          onPress={() => setShowInlineYearPicker(false)}
-                          style={styles.birthdayPickerCancelButton}
-                        >
-                          <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setBirthDate(tempBirthDate.toISOString().split('T')[0]);
-                            setShowInlineYearPicker(false);
-                          }}
-                          style={styles.birthdayPickerDoneButton}
-                        >
-                          <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
                 </View>
               </>
             ) : (
@@ -2209,6 +2174,43 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </Animated.View>
       )}
       </View>{/* end styles.content — header / generating area */}
+
+      {/* ── Birthday picker overlay: absolute so header layout never shifts ── */}
+      {showInlineYearPicker && currentStep === 1 && (
+        <View style={[styles.birthdayPickerOverlay, { top: screenSize.height * 0.48 }]}>
+          <DateTimePicker
+            value={tempBirthDate}
+            mode="date"
+            display="spinner"
+            minimumDate={new Date(1900, 0, 1)}
+            maximumDate={new Date()}
+            textColor={Colors.white}
+            themeVariant="dark"
+            onChange={(_event, selectedDate) => {
+              if (selectedDate) {
+                setTempBirthDate(selectedDate);
+              }
+            }}
+          />
+          <View style={styles.birthdayPickerRow}>
+            <TouchableOpacity
+              onPress={() => setShowInlineYearPicker(false)}
+              style={styles.birthdayPickerCancelButton}
+            >
+              <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setBirthDate(tempBirthDate.toISOString().split('T')[0]);
+                setShowInlineYearPicker(false);
+              }}
+              style={styles.birthdayPickerDoneButton}
+            >
+              <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* ── Step content: sibling of styles.content ──────────────────────── */}
       {!isGenerating && (
@@ -2637,19 +2639,16 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
   },
-  birthdayPickerContainer: {
+  birthdayPickerOverlay: {
     position: 'absolute',
-    top: 58,
-    left: 0,
-    right: 0,
+    left: 20,
+    right: 20,
     zIndex: 999,
     backgroundColor: 'transparent',
-    paddingTop: 8,
   },
   birthdayPickerRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
     marginTop: 8,
   },
   birthdayPickerCancelButton: {
@@ -2662,6 +2661,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
+    marginRight: 8,
   },
   birthdayPickerDoneButton: {
     flexDirection: 'row',
