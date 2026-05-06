@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Modal, View, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { Modal, View, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
@@ -16,32 +18,61 @@ interface TimeBlockCategoryModalProps {
   onCancel: () => void;
 }
 
+// StepFadeIn component
+const StepFadeIn: React.FC<{ delay?: number; children: React.ReactNode; style?: any }> = ({ delay = 0, children, style }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(16)).current;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 340,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 55,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(t);
+  }, [delay, opacity, translateY]);
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+};
+
 const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   visible,
   selectedCategory,
   onSelect,
   onCancel,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
+  const insets = useSafeAreaInsets();
 
-  // Filter categories based on search query
-  const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return TIMEBLOCK_CATEGORIES;
-    }
-    return TIMEBLOCK_CATEGORIES.filter(category =>
-      category.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
+  const buttonScale = useRef(new Animated.Value(0)).current;
 
-  // Reset search when modal closes
-  React.useEffect(() => {
-    if (!visible) {
-      setSearchQuery('');
+  useEffect(() => {
+    if (selectedCategory) {
+      Animated.spring(buttonScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      buttonScale.setValue(0);
     }
-  }, [visible]);
+  }, [selectedCategory, buttonScale]);
 
   return (
     <Modal
@@ -51,87 +82,96 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
       onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <ThemedText weight="semiBold" style={styles.title}>Select Category</ThemedText>
-            <TouchableOpacity onPress={() => { triggerLightHaptic(); onCancel(); }} style={styles.closeButton}>
-              <ThemedText weight="medium" style={styles.closeButtonText}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Input */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputContainer}>
-              <Ionicons
-                name="search"
-                size={16}
-                color={Colors.hopeWhite}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={[styles.searchInput, { fontFamily: getFontFamily(fontKey, 'medium') }]}
-                placeholder="Search categories..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-                autoCapitalize="none"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => { triggerLightHaptic(); setSearchQuery(''); }}
-                  style={styles.clearButton}
-                >
-                  <Ionicons
-                    name="close-circle"
-                    size={16}
-                    color="rgba(255, 255, 255, 0.6)"
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+        <View style={styles.stepContainer}>
           <ScrollView
-            style={styles.scrollContainer}
+            style={styles.stepScroll}
+            contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
             showsVerticalScrollIndicator={false}
           >
-            {filteredCategories.map((category) => (
-              <TouchableOpacity
-                key={category.name}
-                style={[
-                  styles.categoryRow,
-                  selectedCategory === category.name && styles.selectedCategoryRow,
-                ]}
-                onPress={() => { triggerSelectionHaptic(); onSelect(category); }}
-              >
-                <View style={styles.categoryContent}>
-                  <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
-                    <Ionicons
-                      name={category.icon as any}
-                      size={18}
-                      color={selectedCategory === category.name ? Colors.anchorBlue : Colors.hopeWhite}
-                    />
-                  </View>
-                  <ThemedText
-                    weight={selectedCategory === category.name ? 'semiBold' : 'medium'}
-                    style={[
-                      styles.categoryText,
-                      // Keep selected text Hope White
-                    ]}
+            <StepFadeIn delay={0}>
+              <View style={styles.focusLabelContainer}>
+                <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+                <ThemedText weight="semiBold" style={styles.focusLabel}>SELECT CATEGORY</ThemedText>
+              </View>
+            </StepFadeIn>
+
+            <StepFadeIn delay={80}>
+              <View style={styles.titleRow}>
+                <ThemedText weight="semiBold" style={styles.stepTitle}>
+                  Choose your category
+                </ThemedText>
+              </View>
+            </StepFadeIn>
+
+            <StepFadeIn delay={160} style={styles.categoriesGrid}>
+              {TIMEBLOCK_CATEGORIES.map((category) => {
+                const isSelected = selectedCategory === category.name;
+                return (
+                  <TouchableOpacity
+                    key={category.name}
+                    style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                    onPress={() => {
+                      triggerSelectionHaptic();
+                      onSelect(category);
+                    }}
+                    activeOpacity={0.75}
                   >
-                    {category.name}
-                  </ThemedText>
-                </View>
-                {selectedCategory === category.name && (
-                  <Ionicons
-                    name="checkmark"
-                    size={20}
-                    color={category.color}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
+                    <View style={styles.categoryIconContainer}>
+                      <View style={[
+                        styles.categoryIconCircle,
+                        isSelected && styles.categoryIconCircleSelected,
+                      ]}>
+                        <Ionicons
+                          name={category.icon as any}
+                          size={18}
+                          color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                        />
+                      </View>
+                    </View>
+                    <ThemedText
+                      weight="semiBold"
+                      style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+                    >
+                      {category.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </StepFadeIn>
+
+            <View style={{ height: 100 }} />
           </ScrollView>
+
+          {/* Bottom button */}
+          {selectedCategory && (
+            <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  onCancel();
+                }}
+                activeOpacity={0.7}
+                style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          {/* Close button - top right */}
+          <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                onCancel();
+              }}
+              style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -145,95 +185,92 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContainer: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    minHeight: 400,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  title: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
-  scrollContainer: {
+  stepContainer: {
     flex: 1,
-    padding: 16,
+    backgroundColor: Colors.anchorBlue,
   },
-  categoryRow: {
+  stepScroll: {
+    flex: 1,
+  },
+  stepContent: {
+    paddingHorizontal: 20,
+  },
+  focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
     marginBottom: 8,
   },
-  selectedCategoryRow: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  categoryContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  categoryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  categoryText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    flex: 1,
-  },
-  selectedCategoryText: {
-  },
-  searchContainer: {
-    padding: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchIcon: {
+  labelIcon: {
     marginRight: 8,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    paddingVertical: 4,
+  focusLabel: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+    letterSpacing: 1,
   },
-  clearButton: {
-    padding: 4,
-    marginLeft: 8,
+  titleRow: {
+    marginBottom: 24,
+  },
+  stepTitle: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  categoryCard: {
+    width: '48%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryCardSelected: {
+    backgroundColor: Colors.alertCoral,
+  },
+  categoryIconContainer: {
+    marginBottom: 8,
+  },
+  categoryIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryIconCircleSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  categoryName: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  categoryNameSelected: {
+    color: Colors.hopeWhite,
+  },
+  primaryButton: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.alertCoral,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 16,
+    width: 32,
+    height: 32,
   },
 });
 
