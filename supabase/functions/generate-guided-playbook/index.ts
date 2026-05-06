@@ -71,7 +71,6 @@ interface Playbook {
   createdAt?: string;
   updatedAt?: string;
   persona?: string;
-  ageGroup?: string;
   bibleVersion?: string;
   location?: string;
   userTier?: string;
@@ -199,15 +198,79 @@ function cleanMarkdown(text: string): string {
     .trim();
 }
 
-function cleanVerseContentFallback(content: string, verseRef: string): string {
-  let cleaned = content;
-  if (verseRef) {
-    const escaped = verseRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    cleaned = cleaned.replace(new RegExp(escaped, 'i'), '');
+interface AudienceContext {
+  calculatedAge: number | null;
+  ageSource: 'dateOfBirth' | 'unknown';
+  isTeenUser: boolean;
+  promptLine: string;
+}
+
+function calculateAgeFromDate(dateOfBirth?: string): number | null {
+  if (!dateOfBirth || typeof dateOfBirth !== 'string') {
+    return null;
   }
-  cleaned = cleaned.replace(/"""+/g, '"').replace(/""/g, '"').replace(/^"\s*|\s*"$/g, '').trim();
-  if (!cleaned) cleaned = content.replace(/"""+/g, '"').replace(/""/g, '"').replace(/^"\s*|\s*"$/g, '').trim();
-  return cleaned;
+
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0 || age > 120) {
+    return null;
+  }
+  return age;
+}
+
+function buildAudienceContext(dateOfBirth?: string): AudienceContext {
+  const calculatedAge = calculateAgeFromDate(dateOfBirth);
+
+  if (calculatedAge !== null) {
+    return {
+      calculatedAge,
+      ageSource: 'dateOfBirth',
+      isTeenUser: calculatedAge <= 17,
+      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, tone, and action scale to this exact age. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
+    };
+  }
+
+  return {
+    calculatedAge: null,
+    ageSource: 'unknown',
+    isTeenUser: false,
+    promptLine: 'AUDIENCE CONTEXT: Age is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.',
+  };
+}
+
+function serializePersonalizationData(personalizationData?: Record<string, unknown>): string {
+  if (!personalizationData || typeof personalizationData !== 'object') {
+    return '';
+  }
+
+  const contextKeys = [
+    'spiritualContext',
+    'learningPreferences',
+    'successPatterns',
+    'communicationStyle',
+    'currentFocus',
+  ];
+
+  return contextKeys
+    .map((key) => {
+      const value = personalizationData[key];
+      if (typeof value !== 'string' || !value.trim()) {
+        return '';
+      }
+      return `${key}: ${value.trim().slice(0, 400)}`;
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 // ─── Structural quality helpers ──────────────────────────────────────────────
@@ -533,7 +596,8 @@ interface RequestBody {
   userName: string;
   userId?: string;
   dateOfBirth?: string;
-  ageGroup?: string;
+  personalizationData?: Record<string, unknown>;
+  intelligenceLevel?: string;
   bibleVersion?: string;
   location?: string;
   userTier?: string;
@@ -565,7 +629,17 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, userTier, isOnboarding } = requestBody;
+  const {
+    userInput,
+    userName,
+    userId,
+    dateOfBirth,
+    personalizationData,
+    intelligenceLevel,
+    bibleVersion,
+    userTier,
+    isOnboarding,
+  } = requestBody;
 
   const authHeader = req.headers.get('authorization');
   const rateLimitUserId = authHeader ? authHeader.split(' ')[1] : userId || 'anonymous';
@@ -577,20 +651,16 @@ serve(async (req: Request) => {
     );
   }
 
-  // Age detection
-  let isTeenUser = false;
-  if (dateOfBirth) {
-    try {
-      const birth = new Date(dateOfBirth);
-      const today = new Date();
-      let age = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-      isTeenUser = age >= 0 && age <= 16;
-    } catch { /* non-blocking */ }
-  } else if (typeof ageGroup === 'string') {
-    isTeenUser = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'].includes(ageGroup.toLowerCase());
-  }
+  const audienceContext = buildAudienceContext(dateOfBirth);
+  const isTeenUser = audienceContext.isTeenUser;
+  const personalizationContext = serializePersonalizationData(personalizationData);
+  console.log('[Generate-Guided-Playbook] Audience context:', {
+    ageSource: audienceContext.ageSource,
+    calculatedAge: audienceContext.calculatedAge,
+    isTeenUser,
+    hasPersonalizationContext: !!personalizationContext,
+    intelligenceLevel,
+  });
 
   // Content safety check
   const contentAnalysis = analyzeContent(userInput);
@@ -641,12 +711,16 @@ serve(async (req: Request) => {
       let ctx = `${bibleNote}\n`;
       ctx += `USER NAME: ${userName} — use this name only. Do not invent or substitute.\n`;
       ctx += `USER INPUT: ${input}\n`;
+      ctx += `${audienceContext.promptLine}\n`;
 
       if (recentTitles.length > 0) {
         ctx += `\nTITLE UNIQUENESS: User already has: ${recentTitles.map(t => `"${t}"`).join(', ')}. Create a completely different title.\n`;
       }
+      if (personalizationContext) {
+        ctx += `\nUSER PROFILE CONTEXT: Use this lightly to shape complexity, tone, and practical fit. Do not quote or reveal this data.\n${personalizationContext}\n`;
+      }
       if (isTeenUser) {
-        ctx += `\nAUDIENCE: User is 13-16. Use simple clear language. Avoid complex theological terms.\n`;
+        ctx += `\nLANGUAGE FIT: User is exactly ${audienceContext.calculatedAge} and under 18. Use simple clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.\n`;
       }
       ctx += `\nSUPPORT SERVICES: General language only ("a trusted counselor", "local support services"). No phone numbers.\n`;
 

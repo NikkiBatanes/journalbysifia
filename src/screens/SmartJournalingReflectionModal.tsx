@@ -70,6 +70,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 }) => {
   const internalNavigation = useNavigation<NavigationProp<any>>();
   const nav = navigation ?? internalNavigation;
+  // Pending streak navigation — executed after the RN Modal closes so StreakPlan isn't hidden behind it
+  const pendingStreakRef = useRef<{ userId: string; source: string } | null>(null);
 
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
@@ -119,6 +121,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       Keyboard.dismiss();
       if (reflectionEditorRef.current) {
         reflectionEditorRef.current.triggerCancel();
+      }
+      // Navigate to StreakPlan after the modal animation finishes (350ms)
+      const streakParams = pendingStreakRef.current;
+      pendingStreakRef.current = null;
+      if (streakParams) {
+        setTimeout(() => {
+          (nav as any).navigate('StreakPlan', streakParams);
+        }, 350);
       }
     },
     () => {
@@ -350,11 +360,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         if (shouldCheckReflectionStreak) {
           const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
           if (shouldShowStreak) {
-            await visibleStreakService.markShownToday(user.id);
-            (nav as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'reflection_saved',
-            });
+            // Store params — navigation happens after the RN Modal closes (in onDone callback)
+            pendingStreakRef.current = { userId: user.id, source: 'reflection_saved' };
           }
         }
       }

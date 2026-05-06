@@ -146,7 +146,6 @@ const ReflectionEditorScreen: React.FC = () => {
       if (!editingId) {
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
         if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user.id);
           if (globalEditMode?.isGlobalEditMode) {
             globalEditMode.setGlobalEditMode(false);
           }

@@ -70,6 +70,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // Store saved result to call onSave when user clicks Done in success modal
   const [savedGratitudeResult, setSavedGratitudeResult] = useState<any>(null);
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+  // Pending streak navigation — executed after the RN Modal closes so StreakPlan isn't hidden behind it
+  const pendingStreakRef = useRef<{ userId: string; source: string } | null>(null);
 
   // New success modal system
   const successModal = useSuccessModal(
@@ -81,6 +83,14 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       }
       setIsSuccessModalShown(false);
       onClose?.();
+      // Navigate to StreakPlan after the modal animation finishes (350ms)
+      const streakParams = pendingStreakRef.current;
+      pendingStreakRef.current = null;
+      if (streakParams) {
+        setTimeout(() => {
+          (nav as any).navigate('StreakPlan', streakParams);
+        }, 350);
+      }
     },
     () => {
       setIsSuccessModalShown(false);
@@ -318,11 +328,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           : false;
 
         if (shouldShowStreak && user?.id) {
-          await visibleStreakService.markShownToday(user.id);
-          (nav as any).navigate('StreakPlan', {
-            userId: user.id,
-            source: 'journal_gratitude_added',
-          });
+          // Store params — navigation happens after the RN Modal closes (in onDone callback)
+          pendingStreakRef.current = { userId: user.id, source: 'journal_gratitude_added' };
         }
       }
 

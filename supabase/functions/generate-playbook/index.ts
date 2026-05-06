@@ -5,8 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
-import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
-import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
+import { bibleVerseService } from '../_shared/bibleVerseService.ts';
 import { analyzeContent, paraphraseVictimExperience } from '../_shared/contentSafety.ts';
 import { keyPoolManager } from '../_shared/keyPoolManager.ts';
 
@@ -746,7 +745,6 @@ interface RequestBody {
   userName: string;
   userId?: string;
   dateOfBirth?: string;  // ISO date string from user profile
-  ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
   bibleVersion?: string; // User's preferred Bible translation (default: NASB)
   location?: string;     // User's location for regional resources (e.g., "Philippines", "USA", "UK")
   userTier?: string;     // User's subscription tier for key pool selection
@@ -777,7 +775,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const { userInput, userName, userId, dateOfBirth, ageGroup, bibleVersion, location, userTier, isOnboarding } = requestBody;
+  const { userInput, userName, userId, dateOfBirth, bibleVersion, userTier, isOnboarding } = requestBody;
 
   // Log received Bible version for debugging
   console.log('[Generate-Playbook] Received Bible version from request:', bibleVersion || 'NOT PROVIDED - will default to NASB');
@@ -800,16 +798,15 @@ serve(async (req: Request) => {
 
   console.log('[Generate-Playbook] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
-  // Simplified age check: only adjust language for teens (13-16)
+  // Exact age check: calculate from birthday only. If no birthday is available, keep age unknown.
   console.log('[Generate-Playbook] ========== AGE DETECTION START ==========');
   console.log('[Generate-Playbook] Received dateOfBirth:', dateOfBirth);
-  console.log('[Generate-Playbook] Received ageGroup:', ageGroup);
 
   let isTeenUser = false;
   let calculatedAge: number | null = null;
-  let ageSource = '';
+  let ageSource: 'dateOfBirth' | 'unknown' = 'unknown';
 
-  // PRIORITY 1: Calculate age from dateOfBirth (takes precedence over ageGroup)
+  // Calculate age from dateOfBirth only. Without a birthday, age remains unknown.
   if (dateOfBirth) {
     try {
       const birthDate = new Date(dateOfBirth);
@@ -824,24 +821,11 @@ serve(async (req: Request) => {
       ageSource = 'dateOfBirth';
       console.log('[Generate-Playbook] Calculated age from dateOfBirth:', userAge);
 
-      // Flag ALL youth (age <= 16) for simplified language
-      isTeenUser = userAge >= 0 && userAge <= 16;
+      // Flag minors for simpler language and age-appropriate action steps.
+      isTeenUser = userAge >= 0 && userAge <= 17;
       console.log('[Generate-Playbook] Is youth (<=16) based on dateOfBirth:', isTeenUser);
     } catch (error) {
       console.log('[Generate-Playbook] ❌ Error calculating age from dateOfBirth:', error);
-      ageSource = 'error';
-    }
-  }
-
-  // PRIORITY 2: Only use ageGroup if dateOfBirth is not available or failed
-  if (ageSource !== 'dateOfBirth' && typeof ageGroup === 'string') {
-    const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
-    if (simplifiedGroups.includes(ageGroup.toLowerCase())) {
-      console.log('[Generate-Playbook] Using ageGroup fallback (no dateOfBirth):', ageGroup);
-      isTeenUser = true;
-      ageSource = 'ageGroup';
-    } else {
-      ageSource = 'ageGroup-not-teen';
     }
   }
 
@@ -870,7 +854,7 @@ serve(async (req: Request) => {
           const supabase = createClient(supabaseUrl, supabaseKey);
 
           // Fetch recent playbooks for title uniqueness (reduced from 5 to 3 to shorten prompt)
-          const { data: recentPlaybooks, error: recentError } = await supabase
+          const { data: recentPlaybooks } = await supabase
             .from('playbooks')
             .select('title')
             .eq('user_id', userId)
@@ -981,18 +965,22 @@ serve(async (req: Request) => {
     contextualPrompt = applyPersonaContext(strategicAdvisorPersona, effectiveUserInput, bibleVersion);
 
     // ENTERPRISE FEATURE: Enrich prompt with timestamp and context for uniqueness
-    // Build contextual prompt with title uniqueness check and age personalization
+    // Build contextual prompt with title uniqueness check and exact-age personalization
     // Add unique timestamp to ensure no caching and fresh generation every time
     const generationTimestamp = new Date().toISOString();
+    const audienceContext = calculatedAge !== null
+      ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, tone, and action scale to this exact age. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+      : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
     contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
 
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
+${audienceContext}
+
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. Do NOT reuse or slightly modify any of these titles.` : ''}`;
 
-    // Add simplified language instruction for teens only
     if (isTeenUser) {
-      contextualPrompt += '\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.';
+      contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is exactly ${calculatedAge} and under 18. Use simple, clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.`;
     }
 
     // Add Bible version preference with exact retrieval instruction
@@ -1155,10 +1143,12 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 
 IMPORTANT: Only use "${userName}" as the user's name. Do NOT use any other names or full names even if you know them. The user's name is exactly "${userName}" - use this exact spelling and nothing else.
 
+${audienceContext}
+
 ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user already has these playbook titles:\n${recentTitles.map(t => `- "${t}"`).join('\n')}\n\nYou MUST create a completely different title. DO NOT reuse or slightly modify any of these titles.` : ''}`;
 
         if (isTeenUser) {
-          contextualPrompt += '\n\n## LANGUAGE INSTRUCTION\nThis user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep action steps straightforward.';
+          contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is exactly ${calculatedAge} and under 18. Use simple, clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.`;
         }
 
         contextualPrompt += `\n\n## BIBLE VERSION\nUse ${preferredBibleVersion} for all scripture references. When citing verses, retrieve the EXACT text from ${preferredBibleVersion}.`;

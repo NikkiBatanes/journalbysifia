@@ -24,7 +24,7 @@ interface RouteParams {
   userInput: string;
   userName: string;
   onboardingData?: {
-    ageGroup: string;
+    birthDate?: string;
     faithJourney: string;
     challenge: string;
     challengeDetails: string;
@@ -287,6 +287,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         userInput: params.userInput || 'Help me grow in my faith journey',
         userName,
         isOnboarding: true, // Mark as onboarding playbook (free)
+        dateOfBirth: params.onboardingData?.birthDate,
       });
 
       if (response.success) {
@@ -503,9 +504,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       // Navigate back to personalization screen (step 4) to rewrite the input
                       // Pass all previous onboarding data to preserve user choices
                       (navigation as any).navigate('OnboardingPersonalization', {
-                        step: 4,
+                        step: 2,
                         rewriteData: {
-                          ageGroup: params.onboardingData?.ageGroup,
+                          birthDate: params.onboardingData?.birthDate,
                           faithJourney: params.onboardingData?.faithJourney,
                           challenge: params.onboardingData?.challenge,
                           challengeDetails: params.userInput,
@@ -682,9 +683,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 // Navigate back to personalization screen (step 4) to rewrite the input
                 // Pass all previous onboarding data to preserve user choices
                 (navigation as any).navigate('OnboardingPersonalization', {
-                  step: 4,
+                  step: 2,
                   rewriteData: {
-                    ageGroup: params.onboardingData?.ageGroup,
+                    birthDate: params.onboardingData?.birthDate,
                     faithJourney: params.onboardingData?.faithJourney,
                     challenge: params.onboardingData?.challenge,
                     challengeDetails: params.userInput,

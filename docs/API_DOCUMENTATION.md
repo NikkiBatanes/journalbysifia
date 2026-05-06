@@ -51,8 +51,7 @@ generatePlaybook({
   userName: string,
   bibleVersion?: string,
   userId?: string,
-  dateOfBirth?: string,
-  ageGroup?: string
+  dateOfBirth?: string
 }): Promise<Playbook>
 ```
 

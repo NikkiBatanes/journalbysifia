@@ -369,7 +369,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           : false;
 
         if (shouldShowStreak && user?.id) {
-          await visibleStreakService.markShownToday(user.id);
           (nav as any).navigate('StreakPlan', {
             userId: user.id,
             source: 'journal_focus_set',

@@ -3,10 +3,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
-import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError, createRateLimitHeaders as _createRateLimitHeaders } from '../_shared/simpleRateLimiter.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
 import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
-import { ResponseCache, CACHE_CONFIGS, generateCacheKey } from '../_shared/responseCache.ts';
-import { bibleVerseService, BibleVerseService } from '../_shared/bibleVerseService.ts';
+import { bibleVerseService } from '../_shared/bibleVerseService.ts';
 import { keyPoolManager } from '../_shared/keyPoolManager.ts';
 
 interface Scripture {
@@ -56,7 +55,8 @@ interface DevotionalRequestBody {
   userName?: string;
   bibleVersion?: string;
   dateOfBirth?: string;  // ISO date string from user profile
-  ageGroup?: string;     // From onboarding: 'teen', 'young-adult', 'adult', 'middle-aged', 'senior'
+  personalizationData?: Record<string, unknown>;
+  intelligenceLevel?: string;
   userTier?: string;     // User's subscription tier for key pool selection
   isOnboarding?: boolean; // Whether this is an onboarding generation
 }
@@ -1125,6 +1125,81 @@ function getUserIdentifierFromAuthHeader(authHeader: string | null): string {
   }
 }
 
+interface AudienceContext {
+  calculatedAge: number | null;
+  ageSource: 'dateOfBirth' | 'unknown';
+  isTeenUser: boolean;
+  promptLine: string;
+}
+
+function calculateAgeFromDate(dateOfBirth?: string): number | null {
+  if (!dateOfBirth || typeof dateOfBirth !== 'string') {
+    return null;
+  }
+
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0 || age > 120) {
+    return null;
+  }
+  return age;
+}
+
+function buildAudienceContext(dateOfBirth?: string): AudienceContext {
+  const calculatedAge = calculateAgeFromDate(dateOfBirth);
+
+  if (calculatedAge !== null) {
+    return {
+      calculatedAge,
+      ageSource: 'dateOfBirth',
+      isTeenUser: calculatedAge <= 17,
+      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, devotional depth, and application to this exact age. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
+    };
+  }
+
+  return {
+    calculatedAge: null,
+    ageSource: 'unknown',
+    isTeenUser: false,
+    promptLine: 'AUDIENCE CONTEXT: Age is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user or playbook context clearly says it.',
+  };
+}
+
+function serializePersonalizationData(personalizationData?: Record<string, unknown>): string {
+  if (!personalizationData || typeof personalizationData !== 'object') {
+    return '';
+  }
+
+  const contextKeys = [
+    'spiritualContext',
+    'learningPreferences',
+    'successPatterns',
+    'communicationStyle',
+    'currentFocus',
+  ];
+
+  return contextKeys
+    .map((key) => {
+      const value = personalizationData[key];
+      if (typeof value !== 'string' || !value.trim()) {
+        return '';
+      }
+      return `${key}: ${value.trim().slice(0, 400)}`;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 /**
  * Main server handler
  */
@@ -1164,7 +1239,18 @@ serve(async (req: Request): Promise<Response> => {
     return createErrorResponse(400, 'We couldn\'t process your request. Please try again.');
   }
 
-  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB', dateOfBirth, ageGroup, userTier, isOnboarding } = requestBody;
+  const {
+    duration = 1,
+    playbookId,
+    userInput = '',
+    userName = 'User',
+    bibleVersion = 'NASB',
+    dateOfBirth,
+    personalizationData,
+    intelligenceLevel,
+    userTier,
+    isOnboarding,
+  } = requestBody;
   console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('[Generate-Devotional] Bible version received:', bibleVersion);
   console.log('[Generate-Devotional] User input received:', userInput);
@@ -1188,67 +1274,25 @@ serve(async (req: Request): Promise<Response> => {
   
   console.log('[Generate-Devotional] Rate limit check passed. Remaining:', rateLimitResult.remaining);
 
-  // Simplified age check: only adjust language for teens (13-16)
+  // Audience context: prefer birthday-derived exact age, otherwise keep age unknown.
   console.log('[Generate-Devotional] ========== AGE DETECTION START ==========');
   console.log('[Generate-Devotional] Received dateOfBirth:', dateOfBirth);
-  console.log('[Generate-Devotional] Received ageGroup:', ageGroup);
-  
-  let isTeenUser = false;
-  let calculatedAge: number | null = null;
-  let ageSource = '';
-  
-  // PRIORITY 1: Calculate age from dateOfBirth (takes precedence over ageGroup)
-  if (dateOfBirth) {
-    try {
-      const birthDate = new Date(dateOfBirth);
-      const today = new Date();
-      let userAge = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        userAge--;
-      }
-      
-      calculatedAge = userAge;
-      ageSource = 'dateOfBirth';
-      console.log('[Generate-Devotional] Calculated age from dateOfBirth:', userAge);
-      
-      // Flag ALL youth (age <= 16) for simplified language
-      isTeenUser = userAge >= 0 && userAge <= 16;
-      console.log('[Generate-Devotional] Is youth (<=16) based on dateOfBirth:', isTeenUser);
-    } catch (error) {
-      console.log('[Generate-Devotional] ❌ Error calculating age from dateOfBirth:', error);
-      ageSource = 'error';
-    }
-  }
-  
-  // PRIORITY 2: Only use ageGroup if dateOfBirth is not available or failed
-  if (ageSource !== 'dateOfBirth' && typeof ageGroup === 'string') {
-    const simplifiedGroups = ['teen', 'teens', 'child', 'children', 'kid', 'youth', 'preteen'];
-    if (simplifiedGroups.includes(ageGroup.toLowerCase())) {
-      console.log('[Generate-Devotional] Using ageGroup fallback (no valid dateOfBirth):', ageGroup);
-      isTeenUser = true;
-      ageSource = 'ageGroup';
-    } else {
-      ageSource = 'ageGroup-not-teen';
-    }
-  }
-  
-  console.log('[Generate-Devotional] FINAL: Age source:', ageSource);
-  console.log('[Generate-Devotional] FINAL: Calculated age:', calculatedAge);
+  const audienceContext = buildAudienceContext(dateOfBirth);
+  const isTeenUser = audienceContext.isTeenUser;
+  const personalizationContext = serializePersonalizationData(personalizationData);
+  console.log('[Generate-Devotional] FINAL: Age source:', audienceContext.ageSource);
+  console.log('[Generate-Devotional] FINAL: Calculated age:', audienceContext.calculatedAge);
   if (isTeenUser) {
     console.log('[Generate-Devotional] Teen user detected - simplifying language');
   }
   console.log('[Generate-Devotional] FINAL: Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Devotional] FINAL: Has personalization context:', !!personalizationContext, 'intelligenceLevel:', intelligenceLevel);
   console.log('[Generate-Devotional] ========== AGE DETECTION END ==========');
 
   // DISABLE CACHING for personalized content
   // Each user should get unique, personalized devotionals
   console.log('[Generate-Devotional] Caching disabled for personalized content');
   console.log('[Generate-Devotional] Generating new devotional for user:', userName);
-
-  // Add anti-repetition context to user input
-  // Phase 5: Remove anti-repetition logic for faster generation
-  const enhancedUserInput = userInput;
 
   if (typeof duration !== 'number' || duration < 1 || duration > 7) {
     return createErrorResponse(400, 'Please choose a devotional length between 1 and 7 days.');
@@ -1338,6 +1382,10 @@ serve(async (req: Request): Promise<Response> => {
       const personaContext = applyPersonaContext(devotionalAdvisorPersona.systemPrompt, input, bibleVersion);
       return `${personaContext}
 
+## USER CONTEXT
+${audienceContext.promptLine}
+${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape complexity, tone, and practical fit. Do not quote or reveal this data.\n${personalizationContext}` : ''}
+
 🚨 ORIGINAL USER INPUT (DO NOT IGNORE):
 - Verbatim Request: ${original}
 - Working Copy (only if different): ${input}` + playbookContext;
@@ -1353,11 +1401,11 @@ serve(async (req: Request): Promise<Response> => {
 
       // If this devotional is linked to a playbook, emphasize using the playbook's original context
       if (playbookId && playbookUserInput) {
-        lines.push(`\n🔗 LINKED TO PLAYBOOK - Use the playbook's original struggle as primary context (see PLAYBOOK CONTEXT section above)`);
+        lines.push('\nLINKED TO PLAYBOOK - Use the playbook\'s original struggle as primary context (see PLAYBOOK CONTEXT section above)');
       }
 
       if (isTeenUser) {
-        lines.push('IMPORTANT: This user is a teenager (13-16 years old). Use simple, clear language - avoid complex theological terms and keep sentences straightforward.');
+        lines.push(`IMPORTANT: This user is exactly ${audienceContext.calculatedAge} and under 18. Use simple, clear language, shorter sentences, and age-appropriate application. Briefly explain any theological terms.`);
       }
 
       return lines.filter(Boolean).join('\n');

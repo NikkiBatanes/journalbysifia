@@ -70,6 +70,11 @@ const StreakPlanScreen: React.FC = () => {
       }),
     ]).start();
 
+    // Mark streak as shown today (called here so it only fires when the screen actually renders)
+    if (user?.id) {
+      visibleStreakService.markShownToday(user.id).catch(() => {});
+    }
+
     // Fetch data first, then animate content in — prevents snapping/popping
     const initialize = async () => {
       if (!user?.id) {return;}

@@ -22,7 +22,6 @@ interface DevotionalGenerationParams {
   isOnboarding?: boolean;
   bibleVersion?: string;
   dateOfBirth?: string;
-  ageGroup?: string;
 }
 
 // Use the standard Devotional interface
@@ -97,8 +96,7 @@ async function generateDevotionalInternal(
     try {
 
       // Get user profile for age data
-      let dateOfBirth: string | undefined;
-      let ageGroup: string | undefined;
+      let dateOfBirth: string | undefined = params.dateOfBirth;
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -128,11 +126,8 @@ async function generateDevotionalInternal(
           // Fallback to user_metadata (onboarding data)
           if (!dateOfBirth) {
             const metadata = (user as any)?.user_metadata;
-            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date;
+            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date || metadata?.birthDate;
           }
-
-          // Get age group from user metadata (onboarding)
-          ageGroup = (user as any)?.user_metadata?.ageGroup;
         }
       } catch {}
 
@@ -157,7 +152,6 @@ async function generateDevotionalInternal(
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
                 dateOfBirth,
-                ageGroup,
                 userTier: subscription.tier, // Pass tier for key pool selection
                 isOnboarding: isOnboarding || false, // Pass onboarding flag
               },
@@ -244,7 +238,6 @@ async function generateDevotionalInternal(
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
                 dateOfBirth,
-                ageGroup,
                 userTier: subscription.tier, // Pass tier for key pool selection
                 isOnboarding: isOnboarding || false, // Pass onboarding flag
               }),
@@ -296,7 +289,6 @@ async function generateDevotionalInternal(
                 userInput: userInput || 'General spiritual growth',
                 bibleVersion: bibleVersion || 'NASB',
                 dateOfBirth,
-                ageGroup,
               }),
             }),
             {
@@ -518,11 +510,9 @@ export async function generateDevotional(
     }
 
     // Get age data from user metadata (onboarding)
-    if (!params.dateOfBirth && user?.user_metadata?.dateOfBirth) {
-      params.dateOfBirth = user.user_metadata.dateOfBirth;
-    }
-    if (!params.ageGroup && user?.user_metadata?.ageGroup) {
-      params.ageGroup = user.user_metadata.ageGroup;
+    const metadata = (user as any)?.user_metadata;
+    if (!params.dateOfBirth) {
+      params.dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date || metadata?.birthDate;
     }
   } catch (error) {
     Logger.error('Failed to get user for devotional generation', error as Error, {

@@ -25,6 +25,7 @@ export interface PlaybookGenerationRequest {
   userInput: string;
   userName: string;
   isOnboarding?: boolean;
+  dateOfBirth?: string;
 }
 
 export interface GenerationResponse {
@@ -56,21 +57,21 @@ export class UnifiedGenerationService {
   /**
    * Get user metadata for personalization
    */
-  private async getUserMetadata(_userId: string) {
+  private async getUserMetadata(userId: string) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
       let dateOfBirth: string | undefined;
-      let ageGroup: string | undefined;
       let location: string | undefined;
 
-      if (user?.id) {
+      const profileUserId = userId || user?.id;
+      if (profileUserId) {
         // Try user_profiles table first
         try {
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('date_of_birth')
-            .eq('id', user.id)
+            .eq('id', profileUserId)
             .single();
 
           if (profile?.date_of_birth) {
@@ -81,15 +82,13 @@ export class UnifiedGenerationService {
         // Fallback to user_metadata
         if (!dateOfBirth) {
           const metadata = (user as any)?.user_metadata;
-          dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date;
+          dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date || metadata?.birthDate;
         }
 
-        // Get age group and location
-        ageGroup = (user as any)?.user_metadata?.ageGroup;
         location = (user as any)?.user_metadata?.preferences?.location;
       }
 
-      return { dateOfBirth, ageGroup, location };
+      return { dateOfBirth, location };
     } catch {
       return {};
     }
@@ -146,6 +145,11 @@ export class UnifiedGenerationService {
 
       // 4. Get Bible version preference
       const bibleVersion = await this.getPreferredBibleVersion();
+      const userMetadata = await this.getUserMetadata(request.userId);
+      const generationContext = {
+        ...userMetadata,
+        dateOfBirth: request.dateOfBirth || userMetadata.dateOfBirth,
+      };
 
       // 5. Add to queue
       const queueId = await queueService.addToQueue({
@@ -154,7 +158,7 @@ export class UnifiedGenerationService {
         userInput: request.userInput,
         userName: request.userName,
         isOnboarding: request.isOnboarding,
-        additionalParams: { bibleVersion },
+        additionalParams: { bibleVersion, ...generationContext },
       });
 
       // 6. Get queue status for user feedback
@@ -254,6 +258,10 @@ export class UnifiedGenerationService {
       const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook`;
       const bibleVersion = await this.getPreferredBibleVersion();
       const userMetadata = await this.getUserMetadata(request.userId);
+      const generationContext = {
+        ...userMetadata,
+        dateOfBirth: request.dateOfBirth || userMetadata.dateOfBirth,
+      };
 
       Logger.info('[UnifiedGenerationService] Direct generation - subscription retrieved', {
         component: 'unifiedGenerationService',
@@ -276,7 +284,7 @@ export class UnifiedGenerationService {
           userId: request.userId,
           userTier: subscription.tier, // Add tier for key pool selection
           isOnboarding: request.isOnboarding || false, // Add onboarding flag
-          ...userMetadata,
+          ...generationContext,
         }),
       });
 

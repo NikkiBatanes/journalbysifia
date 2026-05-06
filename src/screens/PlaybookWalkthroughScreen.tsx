@@ -1006,7 +1006,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           if (playbookStatus === 'completed') {
             const shouldShowStreak = await visibleStreakService.shouldShowCelebration(userId, 'affirmation_read_aloud');
             if (shouldShowStreak) {
-              await visibleStreakService.markShownToday(userId);
               (navigation as any).navigate('StreakPlan', {
                 userId,
                 source: 'affirmation_read_aloud',
@@ -2444,7 +2443,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       : true;
 
     if (shouldShowStreakPlan && userId) {
-      await visibleStreakService.markShownToday(userId);
     }
 
     if (!shouldShowStreakPlan) {

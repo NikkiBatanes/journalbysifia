@@ -19,6 +19,7 @@ import { faithPointsService } from '../../services/faithPointsService';
 import type { Playbook } from '../../interfaces/playbook';
 import { Alert } from 'react-native';
 import { triggerSuccessHaptic, triggerErrorHaptic } from '../../utils/haptics';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   View,
   StyleSheet,
@@ -49,13 +50,6 @@ import { validatePlaybookInputQuality } from '../../utils/playbookInputValidatio
 
 // const { width } = Dimensions.get('window'); // unused
 
-interface FaithJourney {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-}
-
 interface Challenge {
   id: string;
   title: string;
@@ -63,60 +57,6 @@ interface Challenge {
   icon: string;
   examples?: Array<{ label: string; template: string }>;
 }
-
-interface AgeGroup {
-  value: string;
-  label: string;
-}
-
-const ageGroups: AgeGroup[] = [
-  { value: 'teen', label: '13-17' },
-  { value: 'young-adult', label: '18-25' },
-  { value: 'adult', label: '26-35' },
-  { value: 'mid-adult', label: '36-45' },
-  { value: 'mature-adult', label: '46-55' },
-  { value: 'senior', label: '56-65' },
-  { value: 'elder', label: '65+' },
-];
-
-const faithJourneyOptions: FaithJourney[] = [
-  {
-    id: 'exploring',
-    title: 'Exploring Faith',
-    description: 'Curious and seeking answers',
-    icon: 'search-outline',
-  },
-  {
-    id: 'new-believer',
-    title: 'New Believer',
-    description: 'Recently committed, eager to learn',
-    icon: 'leaf-outline',
-  },
-  {
-    id: 'growing',
-    title: 'Growing in Faith',
-    description: 'Hungry for deeper understanding',
-    icon: 'trending-up-outline',
-  },
-  {
-    id: 'mature',
-    title: 'Mature Believer',
-    description: 'Living out your calling',
-    icon: 'library-outline',
-  },
-  {
-    id: 'struggling',
-    title: 'Going Through Struggles',
-    description: 'Needing strength and encouragement',
-    icon: 'heart-outline',
-  },
-  {
-    id: 'returning',
-    title: 'Returning to Faith',
-    description: 'Coming back after time away',
-    icon: 'return-up-back-outline',
-  },
-];
 
 const challengeOptions: Challenge[] = [
   {
@@ -229,7 +169,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
-  const detailsOnlyFlow = true;
+  const detailsOnlyFlow = false;
 
   // Responsive dimensions for landscape/tablet support
   const win = Dimensions.get('window');
@@ -243,12 +183,81 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Track registration method for analytics only
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
 
-  // Always 5 steps: Birthday(1) → Age(2) → Faith(3) → Challenge(4) → Details(5)
+  // Always 2 full-screen steps: Age/Birthday → Details
   // Name step removed to comply with Apple guidelines
   // Note: Apple Private Relay ONLY hides email, NEVER names
   // "Friend" fallback only used when user explicitly chose "Hide My Name"
   const [currentStep, setCurrentStep] = useState(detailsOnlyFlow ? 1 : (routeParams?.step || 1));
   const [name, setName] = React.useState(routeParams?.name || '');
+
+  // Birthday state
+  const initialBirthDate = React.useMemo(() => {
+    const metadata = (user as any)?.user_metadata;
+    const candidate = metadata?.birth_date || metadata?.dateOfBirth || metadata?.birthDate;
+    if (typeof candidate !== 'string') {
+      return '';
+    }
+    const date = new Date(candidate);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    return candidate.split('T')[0];
+  }, [user]);
+  const [birthDate, setBirthDate] = useState(initialBirthDate);
+  const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
+    if (initialBirthDate) {
+      const date = new Date(initialBirthDate);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    // Default to 25 years ago
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+    return defaultDate;
+  });
+  const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
+  const nextButtonAnim = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (!birthDate && initialBirthDate) {
+      setBirthDate(initialBirthDate);
+      const date = new Date(initialBirthDate);
+      if (!isNaN(date.getTime())) {
+        setTempBirthDate(date);
+      }
+    }
+  }, [birthDate, initialBirthDate]);
+
+  React.useEffect(() => {
+    if (birthDate) {
+      Animated.spring(nextButtonAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(nextButtonAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [birthDate, nextButtonAnim]);
+
+  const formatBirthDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Select your birthday';
+    }
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -465,8 +474,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       const rewriteData = routeParams.rewriteData;
 
       // Restore all previous selections with correct mapping
-      if (rewriteData.ageGroup) {
-        setSelectedAgeGroup(rewriteData.ageGroup);
+      if (rewriteData.birthDate) {
+        setBirthDate(rewriteData.birthDate);
+        const restoredDate = new Date(rewriteData.birthDate);
+        if (!isNaN(restoredDate.getTime())) {
+          setTempBirthDate(restoredDate);
+        }
       }
       if (rewriteData.faithJourney) {
         setSelectedFaithJourney(rewriteData.faithJourney);
@@ -520,7 +533,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     return emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
   };
 
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>(detailsOnlyFlow ? 'adult' : '');
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>(detailsOnlyFlow ? 'growing' : '');
   const [selectedChallenge, setSelectedChallenge] = useState<string>(detailsOnlyFlow ? 'relationships' : '');
   const [challengeDetails, setChallengeDetails] = useState('');
@@ -576,6 +588,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Stable offset for detailsOnly header position (must not be inline — recreating
   // Animated.Value every render gives the native driver a new node graph each time)
   const headerDetailsOffset = useRef(new Animated.Value(0)).current;
+
+  // Lock header position when birthday picker is open on step 1.
+  React.useEffect(() => {
+    if (currentStep === 1 && showInlineYearPicker) {
+      headerTranslateY.setValue(0);
+    }
+  }, [currentStep, showInlineYearPicker, headerTranslateY]);
 
   // Stable animated Y for detailsOnly: headerTranslateY + 0 offset.
   // MUST be memoized — calling Animated.add() inline recreates the derived node
@@ -965,6 +984,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         userInput: challengeDetails,
         userName: name || 'Friend',
         isOnboarding: true,
+        dateOfBirth: birthDate || undefined,
       });
 
       if (!response.success) {
@@ -1219,7 +1239,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Long delay to allow iOS save password alert to be dismissed
       setTimeout(() => {
         detailsInputRef.current?.focus();
-        if (!(detailsOnlyFlow || currentStep === 5)) {
+        if (!(detailsOnlyFlow || currentStep === 2)) {
           const y = Math.max(askBoxYRef.current - 140, 0);
           scrollViewRef.current?.scrollTo({ y, animated: true });
         }
@@ -1229,7 +1249,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const handleFocus = () => {
     // For detailsOnlyFlow, keyboardWillShow handles header movement with exact keyboard height
-    if (!detailsOnlyFlow) {
+    // Don't move header on Age/Birthday step (step 1)
+    if (!detailsOnlyFlow && currentStep !== 1) {
       Animated.parallel([
         Animated.spring(headerTranslateY, {
           toValue: -25,
@@ -1238,19 +1259,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           damping: 18,
           mass: 0.9,
         }),
-        Animated.timing(headerScale, {
-          toValue: 0.45,
-          duration: 200,
+        Animated.spring(contentEntryAnim, {
+          toValue: 1,
           useNativeDriver: true,
+          stiffness: 180,
+          damping: 18,
+          mass: 0.9,
         }),
-      ]).start();
-    }
-    if (showTooltip) {
-      setShowTooltip(false);
-      Animated.parallel([
-        Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
       ]).start();
     }
   };
@@ -1258,7 +1273,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const handleBlur = () => {
     // Return logo to original position when keyboard closes
     // For detailsOnlyFlow, keyboardWillHide handles the header reset
-    if (!detailsOnlyFlow) {
+    // Don't move header on Age/Birthday step (step 1)
+    if (!detailsOnlyFlow && currentStep !== 1) {
       Animated.parallel([
         Animated.spring(headerTranslateY, {
           toValue: 0,
@@ -1384,7 +1400,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const hasRunIntroAnim = useRef(false);
   // Re-trigger askBox animation when navigating to step 4 (not on initial mount - intro animation handles that)
   useEffect(() => {
-    if (detailsOnlyFlow || currentStep === 5) {
+    if (detailsOnlyFlow || currentStep === 2) {
       if (!hasRunIntroAnim.current) { hasRunIntroAnim.current = true; return; }
       // Reset animation values
       askBoxOpacity.setValue(0);
@@ -1408,7 +1424,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Track keyboard visibility and (legacy) slide container up only on details step
   React.useEffect(() => {
-    const isDetailsStep = detailsOnlyFlow ? true : currentStep === 5;
+    const isDetailsStep = detailsOnlyFlow ? true : currentStep === 2;
+    // Don't set up keyboard listeners on Age/Birthday step (step 1)
+    if (currentStep === 1) {return;}
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
@@ -1436,6 +1454,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     };
     const onHide = () => {
       setKeyboardVisible(false);
+      if (!isDetailsStep) {return;}
       Animated.timing(containerTranslateY, {
         toValue: 0,
         duration: 160,
@@ -1456,16 +1475,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     };
   }, [currentStep, containerTranslateY, detailsOnlyFlow, insets?.bottom]);
 
-  // Always 5 steps: Birthday → Age → Faith → Challenge → Details
-  const totalSteps = detailsOnlyFlow ? 1 : 5;
-
-  const handleBack = () => {
-    // On birthday step, don't go back
-    if (currentStep > 1) {
-      try { triggerLightHaptic(); } catch {}
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  const totalSteps = detailsOnlyFlow ? 1 : 2;
+  const isWhatHappenedStep = detailsOnlyFlow || currentStep === 2;
 
   const handleContinue = async () => {
     try { triggerLightHaptic(); } catch {}
@@ -1500,6 +1511,42 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // This now handles BOTH onboarding_progress AND user_profiles tables
             await onboardingService.completeOnboarding(user.id);
             logger.onboarding.stepCompleted('Onboarding marked as completed in both tables');
+
+            // Save birthday to user metadata if provided
+            if (birthDate && birthDate.trim().length > 0) {
+              try {
+                const { error: birthdayError } = await supabase.auth.updateUser({
+                  data: { birth_date: birthDate },
+                });
+                if (birthdayError) {
+                  Logger.error('❌ Error saving birthday to user metadata', birthdayError as Error, {
+                    component: 'OnboardingPersonalizationScreen',
+                  });
+                } else {
+                  logger.debug('✅ Birthday saved successfully to user metadata');
+                }
+
+                const { error: profileBirthdayError } = await supabase
+                  .from('user_profiles')
+                  .update({
+                    date_of_birth: birthDate,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', user.id);
+
+                if (profileBirthdayError) {
+                  Logger.warn('Failed to save birthday to user profile', {
+                    component: 'OnboardingPersonalizationScreen',
+                    data: { birthDate, message: profileBirthdayError.message },
+                  });
+                }
+              } catch (birthdaySaveError) {
+                Logger.warn('Failed to save birthday to user metadata', {
+                  component: 'OnboardingPersonalizationScreen',
+                  data: { birthDate, error: birthdaySaveError },
+                });
+              }
+            }
 
             // IMPORTANT: Save name to user metadata ONLY for non-OAuth users (email/password)
             // Apple/Google OAuth: Name already saved during sign-in - DO NOT re-save per Apple guidelines
@@ -1645,7 +1692,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           userName: name || 'Friend',
           userInput: challengeDetails,
           onboardingData: {
-            ageGroup: selectedAgeGroup || 'adult',
+            birthDate: birthDate || undefined,
             faithJourney: selectedFaithJourney || 'growing',
             challenge: selectedChallenge || 'relationships',
             challengeDetails,
@@ -1656,166 +1703,70 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   };
 
   const renderAgeStep = () => (
-    <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Which stage of life are you in right now?</ThemedText>
-      <ThemedText style={dynamicStyles.stepSubtitle}>
-        {'There are no right or wrong answers\nThis simply helps us guide the reflection.'}
-      </ThemedText>
-      <View style={styles.ageOptionsContainer}>
-        {ageGroups.map((ageGroup) => (
-          <TouchableOpacity
-            key={ageGroup.value}
-            style={[
-              styles.ageOption,
-              selectedAgeGroup === ageGroup.value && styles.selectedAgeOption,
-            ]}
-            onPress={async () => {
-              try { triggerLightHaptic(); } catch {}
-              setSelectedAgeGroup(ageGroup.value);
-              // Persist ageGroup to Supabase auth metadata
-              try {
-                await supabase.auth.updateUser({
-                  data: { ageGroup: ageGroup.value },
-                });
-                Logger.info('Age group saved to auth metadata', {
-                  component: 'OnboardingPersonalizationScreen',
-                  data: { ageGroup: ageGroup.value },
-                });
-              } catch (err) {
-                Logger.warn('Failed to save ageGroup to auth metadata', {
-                  component: 'OnboardingPersonalizationScreen',
-                  data: { ageGroup: ageGroup.value },
-                  error: err as Error,
-                });
-              }
-            }}
-          >
-            <ThemedText weight="semiBold" style={styles.ageOptionTitle}>{ageGroup.label}</ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+    <View style={styles.stepContainer} />
   );
 
-  const renderFaithJourneyStep = () => (
-    <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Where are you in your{`
-`}walk with God?</ThemedText>
-      <ThemedText
-        style={dynamicStyles.stepSubtitle}>
-        You are welcome here exactly as you are.
-      </ThemedText>
-      <View style={styles.optionsContainer}>
-        {faithJourneyOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.faithOption,
-              selectedFaithJourney === option.id && styles.selectedFaithOption,
-            ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedFaithJourney(option.id); }}
-          >
-            <View style={styles.faithOptionIcon}>
-              <Ionicons name={option.icon} size={24} color={Colors.alertCoral} />
-            </View>
-            <View style={styles.faithOptionText}>
-              <ThemedText weight="semiBold" style={styles.faithOptionTitle}>{option.title}</ThemedText>
-              <ThemedText style={styles.faithOptionDescription}>{option.description}</ThemedText>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
+  const renderChallengeDetailsStep = () => {
+    const isDetailsOnlyExperience = detailsOnlyFlow || currentStep === 2;
 
-  const renderChallengeStep = () => (
-    <View style={styles.stepContainer}>
-      <ThemedText weight="bold" style={dynamicStyles.stepTitle}>What feels hardest right now?</ThemedText>
-      <ThemedText style={dynamicStyles.stepSubtitle}>
-        {'Choose one area where you need clarity or support.\nWe\'ll start there.'}
-      </ThemedText>
-
-      <View style={styles.challengeOptionsContainer}>
-        {challengeOptions.map((challenge) => (
-          <TouchableOpacity
-            key={challenge.id}
-            style={[
-              styles.challengeOption,
-              selectedChallenge === challenge.id && styles.selectedChallengeOption,
-            ]}
-            onPress={() => { try { triggerLightHaptic(); } catch {} setSelectedChallenge(challenge.id); }}
-          >
-            <View style={styles.challengeOptionIcon}>
-              <Ionicons name={challenge.icon} size={24} color={Colors.alertCoral} />
-            </View>
-            <View style={styles.challengeOptionText}>
-              <ThemedText weight="semiBold" style={styles.challengeOptionTitle}>{challenge.title}</ThemedText>
-              <ThemedText style={styles.challengeOptionDescription}>{challenge.description}</ThemedText>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderChallengeDetailsStep = () => (
-    <View style={styles.challengeDetailsStepContainer}>
-      {!detailsOnlyFlow ? (
-        <>
-          <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
-          <ThemedText style={dynamicStyles.stepSubtitle}>
-            {'You can be as honest or brief as you want.\nThis helps shape your first playbook.'}
-          </ThemedText>
-        </>
-      ) : null}
-
-      {!detailsOnlyFlow && selectedChallenge && (
-        <View style={styles.challengeCard}>
-          <View style={styles.challengeCardIcon}>
-            <Ionicons
-              name={challengeOptions.find(c => c.id === selectedChallenge)?.icon || 'help-outline'}
-              size={24}
-              color={Colors.alertCoral}
-            />
-          </View>
-          <View style={styles.challengeCardText}>
-            <ThemedText weight="semiBold" style={styles.challengeCardTitle}>
-              {challengeOptions.find(c => c.id === selectedChallenge)?.title}
+    return (
+      <View style={styles.challengeDetailsStepContainer}>
+        {!isDetailsOnlyExperience ? (
+          <>
+            <ThemedText weight="bold" style={dynamicStyles.stepTitle}>Tell us more, if you'd like.</ThemedText>
+            <ThemedText style={dynamicStyles.stepSubtitle}>
+              {'You can be as honest or brief as you want.\nThis helps shape your first playbook.'}
             </ThemedText>
-            <ThemedText style={styles.challengeCardDescription}>
-              {challengeOptions.find(c => c.id === selectedChallenge)?.description}
-            </ThemedText>
+          </>
+        ) : null}
+
+        {!isDetailsOnlyExperience && selectedChallenge && (
+          <View style={styles.challengeCard}>
+            <View style={styles.challengeCardIcon}>
+              <Ionicons
+                name={challengeOptions.find(c => c.id === selectedChallenge)?.icon || 'help-outline'}
+                size={24}
+                color={Colors.alertCoral}
+              />
+            </View>
+            <View style={styles.challengeCardText}>
+              <ThemedText weight="semiBold" style={styles.challengeCardTitle}>
+                {challengeOptions.find(c => c.id === selectedChallenge)?.title}
+              </ThemedText>
+              <ThemedText style={styles.challengeCardDescription}>
+                {challengeOptions.find(c => c.id === selectedChallenge)?.description}
+              </ThemedText>
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Examples label */}
-      {!detailsOnlyFlow && challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
-        <View style={styles.examplesLabelRow}>
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={styles.iconWithMarginAndOpacity} />
-          <ThemedText style={styles.examplesLabelText}>Suggested Prompts</ThemedText>
-        </View>
-      )}
+        {!isDetailsOnlyExperience && challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
+          <View style={styles.examplesLabelRow}>
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={styles.iconWithMarginAndOpacity} />
+            <ThemedText style={styles.examplesLabelText}>Suggested Prompts</ThemedText>
+          </View>
+        )}
 
-      {!detailsOnlyFlow ? (
-        <View style={styles.exampleTags}>
-          {challengeOptions.find(c => c.id === selectedChallenge)?.examples?.map((example, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.exampleTag}
-              onPress={() => {
-                try { triggerLightHaptic(); } catch {}
-                setChallengeDetails(example.template);
-                focusDetailsInput();
-              }}
-            >
-              <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
+        {!isDetailsOnlyExperience ? (
+          <View style={styles.exampleTags}>
+            {challengeOptions.find(c => c.id === selectedChallenge)?.examples?.map((example, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.exampleTag}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setChallengeDetails(example.template);
+                  focusDetailsInput();
+                }}
+              >
+                <ThemedText style={styles.exampleTagText}>{example.label}</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   const renderDetailsInputFooter = () => (
     <TouchableOpacity
@@ -1996,7 +1947,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* Header with logo and title - animated and centered */}
       {!isGenerating && (
         <TouchableOpacity activeOpacity={1} onPress={() => Keyboard.dismiss()} style={{ alignSelf: 'center', width: '100%' }}>
-        <Animated.View style={[styles.header, { transform: [{ translateY: detailsOnlyFlow ? detailsOnlyHeaderY : combinedHeaderY }] }]}>
+        <Animated.View style={[styles.header, { transform: [{ translateY: isWhatHappenedStep ? detailsOnlyHeaderY : combinedHeaderY }] }]}>
           <Animated.Image
             source={require('../../../assets/icons/siFia-logo-white.png')}
             style={[
@@ -2012,7 +1963,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             dynamicStyles.titleContainer,
             { opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] },
             // Condense header further when keyboard is visible on details step to free vertical space
-            ((detailsOnlyFlow || currentStep === 5) && keyboardVisible) && styles.noMarginBottom,
+            ((detailsOnlyFlow || currentStep === 2) && keyboardVisible) && styles.noMarginBottom,
           ]}>
             {detailsOnlyFlow ? (
               <>
@@ -2021,11 +1972,82 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
                 </ThemedText>
               </>
+            ) : currentStep === 1 ? (
+              <>
+                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>How old are you?</ThemedText>
+                <ThemedText style={OnboardingStyles.subtitle}>
+                  {'This helps siFia shape guidance that feels more appropriate to your stage of life.'}
+                </ThemedText>
+                <View style={styles.birthdayContainer}>
+                  <TouchableOpacity
+                    style={styles.birthdaySelector}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      if (birthDate) {
+                        const date = new Date(birthDate);
+                        if (!isNaN(date.getTime())) {
+                          setTempBirthDate(date);
+                        } else {
+                          const defaultDate = new Date();
+                          defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+                          setTempBirthDate(defaultDate);
+                        }
+                      } else {
+                        const defaultDate = new Date();
+                        defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+                        setTempBirthDate(defaultDate);
+                      }
+                      setShowInlineYearPicker((prev) => !prev);
+                    }}
+                  >
+                    <Text style={[styles.birthdaySelectorText, { fontFamily: theme.fontFamily }]}>
+                      {birthDate ? formatBirthDate(birthDate) : 'Select your birthday'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={Colors.white} />
+                  </TouchableOpacity>
+
+                  {showInlineYearPicker && (
+                    <View style={styles.birthdayPickerContainer}>
+                      <DateTimePicker
+                        value={tempBirthDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'spinner'}
+                        minimumDate={new Date(1900, 0, 1)}
+                        maximumDate={new Date()}
+                        textColor={Colors.white}
+                        themeVariant="dark"
+                        onChange={(_event, selectedDate) => {
+                          if (selectedDate) {
+                            setTempBirthDate(selectedDate);
+                          }
+                        }}
+                      />
+                      <View style={styles.birthdayPickerRow}>
+                        <TouchableOpacity
+                          onPress={() => setShowInlineYearPicker(false)}
+                          style={styles.birthdayPickerCancelButton}
+                        >
+                          <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setBirthDate(tempBirthDate.toISOString().split('T')[0]);
+                            setShowInlineYearPicker(false);
+                          }}
+                          style={styles.birthdayPickerDoneButton}
+                        >
+                          <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </>
             ) : (
               <>
-                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
+                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
                 <ThemedText style={OnboardingStyles.subtitle}>
-                  {'Tell us a little about your season of life\nSo we can create a playbook that speaks to what you\'re walking through.'}
+                  {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
                 </ThemedText>
               </>
             )}
@@ -2194,7 +2216,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           styles.contentContainer,
           // For detailsOnly, collapse to zero so styles.content (flex:1) fills the full
           // screen and the header group centers at 50% of the screen height.
-          detailsOnlyFlow && { flex: 0 },
+          isWhatHappenedStep && { flex: 0 },
           {
             opacity: contentEntryAnim,
             transform: [{
@@ -2204,39 +2226,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               }),
             }],
           },
-        ]} pointerEvents={detailsOnlyFlow ? 'none' : 'auto'}>
-          {!detailsOnlyFlow ? (
-            <View style={styles.modalHeader} pointerEvents="box-none">
-              <TouchableOpacity
-                style={styles.modalBackButton}
-                onPress={handleBack}
-                disabled={currentStep === 1} // Age group is now step 1
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={24}
-                  color={currentStep === 1 ? 'transparent' : Colors.white}
-                />
-              </TouchableOpacity>
-              <View style={styles.progressContainer}>
-                {/* Welcome-style dot pagination */}
-                <View style={styles.dotsContainer}>
-                  {Array.from({ length: totalSteps }, (_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.dot,
-                        (index + 1) === currentStep && styles.activeDotGreen,
-                      ]}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.spacer} />
-            </View>
-          ) : null}
-
+        ]} pointerEvents={isWhatHappenedStep ? 'none' : 'auto'}>
           <View style={styles.scrollArea}>
             <ScrollView
               ref={scrollViewRef}
@@ -2245,15 +2235,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {detailsOnlyFlow ? (
+              {detailsOnlyFlow || currentStep === 2 ? (
                 renderChallengeDetailsStep()
               ) : (
                 <>
-                  {/* Always 4 steps: Age(1) → Faith(2) → Challenge(3) → Details(4) */}
                   {currentStep === 1 && renderAgeStep()}
-                  {currentStep === 2 && renderFaithJourneyStep()}
-                  {currentStep === 3 && renderChallengeStep()}
-                  {currentStep === 4 && renderChallengeDetailsStep()}
                 </>
               )}
             </ScrollView>
@@ -2263,7 +2249,35 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       </View>{/* end outer flex wrapper */}
 
       {/* ── Footer: outside contentWidth wrapper → full KAV width, matches UserInputScreen ── */}
-      {!isGenerating && (detailsOnlyFlow || currentStep === 5) && renderDetailsInputFooter()}
+      {!isGenerating && (detailsOnlyFlow || currentStep === 2) && renderDetailsInputFooter()}
+
+      {!isGenerating && !detailsOnlyFlow && currentStep === 1 && birthDate && (
+        <Animated.View
+          style={[
+            styles.onboardingNextButton,
+            { bottom: insets.bottom + 20 },
+            {
+              opacity: nextButtonAnim,
+              transform: [
+                {
+                  scale: nextButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleContinue}
+            style={styles.onboardingNextButtonInner}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
         <Modal
           visible={showTooltip}
@@ -2610,47 +2624,87 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.inputBackground,
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 12,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   birthdaySelectorText: {
+    flex: 1,
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
   },
   birthdayPickerContainer: {
-    marginTop: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 16,
+    position: 'absolute',
+    top: 58,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    backgroundColor: 'transparent',
+    paddingTop: 8,
   },
   birthdayPickerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
   },
   birthdayPickerCancelButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   birthdayPickerDoneButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    borderRadius: 50,
+    backgroundColor: Colors.alertCoral,
   },
   cancelButtonText: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
+    fontWeight: '500',
   },
   doneButtonText: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: Colors.alertCoral,
+    color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  onboardingNextButton: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
+  onboardingNextButtonInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   userGreeting: {
     ...OnboardingStyles.subtitle,

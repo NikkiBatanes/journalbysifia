@@ -1593,14 +1593,15 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       // playbook is already completed — not mid-walkthrough.
       const prayerActivityType = selectedPath?.id === 'acts' ? 'prayer_journal_acts' : 'prayer_journal_open';
       const shouldCheckPrayerStreak = !fromPlaybook || playbookStatus === 'completed';
+      let navigatedToStreak = false;
       if (shouldCheckPrayerStreak) {
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, prayerActivityType);
         if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user.id);
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: prayerActivityType,
           });
+          navigatedToStreak = true;
         }
       }
 
@@ -1620,7 +1621,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           message: isEditing ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
           showEditButton: false,
         });
-      } else {
+      } else if (!navigatedToStreak) {
+        // Only go back if we did NOT navigate to StreakPlan (streak screen handles its own dismiss)
         navigation.goBack();
       }
     } catch (error) {

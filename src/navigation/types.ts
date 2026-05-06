@@ -25,7 +25,7 @@ export type RootStackParamList = {
     playbook: Playbook;
     onboardingData: {
       name: string;
-      ageGroup: string;
+      birthDate?: string;
       faithJourney: string;
       challengeDetails: string;
     };
@@ -89,7 +89,7 @@ export type RootStackParamList = {
     isFromOnboarding?: boolean;
     onboardingData?: {
       name: string;
-      ageGroup: string;
+      birthDate?: string;
       faithJourney: string;
       challenge: string;
       challengeDetails: string;
@@ -107,7 +107,7 @@ export type RootStackParamList = {
     userName: string;
     isFromOnboarding?: boolean;
     onboardingData?: {
-      ageGroup: string;
+      birthDate?: string;
       faithJourney: string;
       challenge: string;
       challengeDetails: string;

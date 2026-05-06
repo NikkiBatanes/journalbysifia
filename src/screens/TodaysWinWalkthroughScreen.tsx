@@ -1114,7 +1114,6 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       // Check if streak celebration should show for today's win
       const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_win_added');
       if (shouldShowStreak) {
-        await visibleStreakService.markShownToday(user.id);
         (navigation as any).navigate('StreakPlan', {
           userId: user.id,
           source: 'journal_win_added',
@@ -1140,7 +1139,10 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       triggerMediumHaptic();
-      navigation.goBack();
+      // Only go back if we did NOT navigate to StreakPlan (streak screen handles its own dismiss)
+      if (!shouldShowStreak) {
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to save your win. Please try again.');
     }

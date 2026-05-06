@@ -262,7 +262,6 @@ async function generatePlaybookInternal(
       let bibleVersion = 'NASB';
       let userIdForGeneration: string | undefined;
       let dateOfBirth: string | undefined;
-      let ageGroup: string | undefined;
       let location: string | undefined;
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -303,12 +302,9 @@ async function generatePlaybookInternal(
           // Fallback to user_metadata (onboarding data)
           if (!dateOfBirth) {
             const metadata = (user as any)?.user_metadata;
-            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date;
+            dateOfBirth = metadata?.dateOfBirth || metadata?.birth_date || metadata?.birthDate;
           }
         }
-
-        // Get age group from user metadata (onboarding)
-        ageGroup = (user as any)?.user_metadata?.ageGroup;
 
         // Get location from user preferences
         location = (user as any)?.user_metadata?.preferences?.location;
@@ -334,7 +330,6 @@ async function generatePlaybookInternal(
               bibleVersion, // Sending Bible version to Supabase function
               userId: userIdForGeneration,
               dateOfBirth,
-              ageGroup,
               location, // Send location for regional hotlines
             },
           }),
@@ -386,7 +381,6 @@ async function generatePlaybookInternal(
                 bibleVersion,
                 userId: userIdForGeneration,
                 dateOfBirth,
-                ageGroup,
                 location,
               }),
             }),
