@@ -1974,11 +1974,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               </>
             ) : currentStep === 1 ? (
               <>
-                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>How old are you?</ThemedText>
+                <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>When were you born?</ThemedText>
                 <ThemedText style={OnboardingStyles.subtitle}>
                   {'This helps siFia shape guidance that feels more appropriate to your stage of life.'}
                 </ThemedText>
-                <View style={styles.birthdayContainer}>
+                <View style={[styles.birthdayContainer, { width: screenSize.width - 40 }]}>
                   <TouchableOpacity
                     style={styles.birthdaySelector}
                     onPress={() => {
@@ -2177,7 +2177,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       {/* ── Birthday picker overlay: absolute so header layout never shifts ── */}
       {showInlineYearPicker && currentStep === 1 && (
-        <View style={[styles.birthdayPickerOverlay, { top: screenSize.height * 0.48 }]}>
+        <View style={[styles.birthdayPickerOverlay, { top: screenSize.height * 0.44 }]}>
           <DateTimePicker
             value={tempBirthDate}
             mode="date"
@@ -2624,20 +2624,22 @@ const styles = StyleSheet.create({
   },
   birthdaySelector: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 12,
+    borderRadius: 50,
     paddingVertical: 16,
     paddingLeft: 20,
-    paddingRight: 12,
+    paddingRight: 16,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
   },
   birthdaySelectorText: {
-    flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
     color: Colors.hopeWhite,
+    marginRight: 8,
   },
   birthdayPickerOverlay: {
     position: 'absolute',
@@ -2648,7 +2650,7 @@ const styles = StyleSheet.create({
   },
   birthdayPickerRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     marginTop: 8,
   },
   birthdayPickerCancelButton: {
