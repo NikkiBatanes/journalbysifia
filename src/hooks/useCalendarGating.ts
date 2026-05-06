@@ -11,6 +11,7 @@ import { analytics } from '../utils/analytics';
 import { useQuery } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
+import { triggerLightHaptic } from '../utils/haptics';
 
 export interface CalendarGatingState {
   // Calendar sync permissions
@@ -113,6 +114,7 @@ export const useCalendarGating = (): CalendarGatingState => {
   }, [currentTier, user?.id, user, updatePreferences]);
 
   const handleCalendarLockTap = () => {
+    triggerLightHaptic();
     analytics.trackTimeBlockEvent('calendar_lock_tapped' as any, {
       current_tier: currentTier,
       feature: 'calendar_sync',

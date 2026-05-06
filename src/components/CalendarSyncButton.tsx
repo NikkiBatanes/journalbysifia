@@ -368,6 +368,7 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   };
 
   const handlePress = () => {
+    triggerLightHaptic();
     if (syncStatus === 'synced') {
       handleUnsync();
     } else {

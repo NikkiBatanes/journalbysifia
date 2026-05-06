@@ -562,7 +562,7 @@ const createDefaultStyles = (_fonts: any) => ({
   },
   timePickerContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 30,
+    borderRadius: 36,
     padding: 20,
     margin: 20,
     alignItems: 'center',
@@ -579,14 +579,16 @@ const createDefaultStyles = (_fonts: any) => ({
     gap: 10,
   },
   timePickerButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    minWidth: 80,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minWidth: 100,
     alignItems: 'center',
   },
   timePickerCancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   timePickerConfirmButton: {
     backgroundColor: Colors.alertCoral,
