@@ -55,11 +55,15 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   onSelect,
   onCancel,
 }) => {
+  const [showAllCategories, setShowAllCategories] = React.useState(false);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const insets = useSafeAreaInsets();
 
   const buttonScale = useRef(new Animated.Value(0)).current;
+  const buttonOpacity = useRef(new Animated.Value(1)).current;
+
+  const displayedCategories = showAllCategories ? TIMEBLOCK_CATEGORIES : TIMEBLOCK_CATEGORIES.slice(0, 12);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -73,6 +77,22 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
       buttonScale.setValue(0);
     }
   }, [selectedCategory, buttonScale]);
+
+  const handleToggleShowAll = () => {
+    triggerLightHaptic();
+    Animated.timing(buttonOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAllCategories(!showAllCategories);
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   return (
     <Modal
@@ -104,7 +124,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
             </StepFadeIn>
 
             <StepFadeIn delay={160} style={styles.categoriesGrid}>
-              {TIMEBLOCK_CATEGORIES.map((category) => {
+              {displayedCategories.map((category) => {
                 const isSelected = selectedCategory === category.name;
                 return (
                   <TouchableOpacity
@@ -138,6 +158,22 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                 );
               })}
             </StepFadeIn>
+
+            {TIMEBLOCK_CATEGORIES.length > 12 && (
+              <StepFadeIn delay={240}>
+                <Animated.View style={{ opacity: buttonOpacity }}>
+                  <TouchableOpacity
+                    style={styles.showMoreButton}
+                    onPress={handleToggleShowAll}
+                    activeOpacity={0.75}
+                  >
+                    <ThemedText style={styles.showMoreButtonText}>
+                      {showAllCategories ? 'Show Less' : 'Show More'}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              </StepFadeIn>
+            )}
 
             <View style={{ height: 100 }} />
           </ScrollView>
@@ -219,9 +255,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
   },
   categoryCard: {
-    width: '48%',
+    width: '31%',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 16,
@@ -253,24 +290,47 @@ const styles = StyleSheet.create({
   categoryNameSelected: {
     color: Colors.hopeWhite,
   },
+  showMoreButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignSelf: 'center',
+  },
+  showMoreButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
   primaryButton: {
     position: 'absolute',
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: Colors.alertCoral,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 100,
   },
   closeButton: {
     position: 'absolute',
-    right: 16,
-    width: 32,
-    height: 32,
+    right: 20,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+    zIndex: 100,
   },
 });
 
