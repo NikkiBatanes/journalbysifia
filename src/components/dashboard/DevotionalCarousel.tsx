@@ -80,6 +80,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedRef = useRef(false);
+  const channelRef = useRef<any>(null);
   const [hasPlaybooks, setHasPlaybooks] = useState(false);
 
   // Notify parent when carousel is empty
@@ -322,7 +323,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchDevotionals();
@@ -373,17 +374,22 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         refreshTimeout.current = null;
       }
     };
-  }, [user, fetchDevotionals]);
+  }, [user?.id, fetchDevotionals]);
 
   // Debounced refetch to avoid rapid consecutive updates
   // scheduleRefetch removed - was defined but never called
 
   // Realtime updates: refresh when devotionals or related user_progress change
   useEffect(() => {
-    if (!user) { return; }
+    if (!user?.id) { return; }
 
     // Clean up any existing channel first
-    const channelName = `devotionals_dashboard_${user.id}_${Date.now()}`;
+    if (channelRef.current) {
+      try { channelRef.current.unsubscribe(); supabase.removeChannel(channelRef.current); } catch {}
+      channelRef.current = null;
+    }
+
+    const channelName = `devotionals_dashboard_${user.id}`;
     const channel = supabase.channel(channelName);
 
     channel.on(
@@ -408,14 +414,15 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     );
 
     channel.subscribe();
+    channelRef.current = channel;
 
     return () => {
-      try {
-        channel.unsubscribe();
-        supabase.removeChannel(channel);
-      } catch {}
+      if (channelRef.current) {
+        try { channelRef.current.unsubscribe(); supabase.removeChannel(channelRef.current); } catch {}
+        channelRef.current = null;
+      }
     };
-  }, [user, fetchDevotionals]);
+  }, [user?.id, fetchDevotionals]);
 
   const getStatusColor = (isCompleted: boolean) => {
     return isCompleted ? Colors.growthGreen : Colors.faithGold;

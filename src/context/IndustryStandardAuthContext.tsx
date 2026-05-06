@@ -1,5 +1,5 @@
 import { safeJsonParse } from '../utils/safeJsonParse';
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react';
 import { User, Session, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1703,7 +1703,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     }
   };
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user: authState.user,
     session: authState.session,
     loading: authState.loading,
@@ -1720,7 +1720,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     signInWithApple,
     refreshSession,
     isLoggingOut,
-  };
+  }), [authState, signIn, signOut, signUp, resetPassword, updatePassword, updateProfile, updatePreferences, signInWithGoogle, signInWithApple, refreshSession, isLoggingOut]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -94,20 +94,26 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
     ]).start();
 
     // Continuous sparkle rotation
-    Animated.loop(
+    const sparkleLoop = Animated.loop(
       Animated.timing(sparkleRotation, {
         toValue: 1,
         duration: 2000,
         useNativeDriver: true,
       })
-    ).start();
+    );
+    sparkleLoop.start();
 
     // Auto-hide after 3.5 seconds
-    setTimeout(() => {
+    const hideTimer = setTimeout(() => {
       if (activeAnimations.has(animationKey)) {
         hideNotification();
       }
     }, 3500);
+
+    return () => {
+      sparkleLoop.stop();
+      clearTimeout(hideTimer);
+    };
   }, [badge.id, translateY, opacity, scale, sparkleRotation, hideNotification]);
 
   useEffect(() => {

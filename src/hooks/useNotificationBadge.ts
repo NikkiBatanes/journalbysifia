@@ -132,7 +132,7 @@ export function useNotificationBadge() {
       setLoading(false);
     }
       }, 300); // 300ms debounce delay
-    }, [user]);
+    }, [user?.id]);
 
   /**
    * Clear badge count
@@ -188,7 +188,7 @@ export function useNotificationBadge() {
         fetchBadgeCount();
       }, 1000); // Increased from 500ms to 1000ms
     }
-  }, [user, fetchBadgeCount]);
+  }, [user?.id, fetchBadgeCount]);
 
   /**
    * Increment badge count
@@ -307,7 +307,7 @@ export function useNotificationBadge() {
         familyInvitesSubscription.unsubscribe();
       }
     };
-  }, [user?.id, user, fetchBadgeCount]);
+  }, [user?.id, fetchBadgeCount]);
 
   // Refresh badge count every 5 minutes
   useEffect(() => {

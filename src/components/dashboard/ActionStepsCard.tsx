@@ -299,13 +299,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   useEffect(() => {
     fetchActionSteps();
-  }, [fetchActionSteps, user]);
+  }, [fetchActionSteps]);
 
   // Set up real-time subscription for changes from other screens
   useEffect(() => {
-    if (!user) {return;}
+    if (!user?.id) {return;}
 
-    const channelName = `action_steps_realtime_${user.id}_${Date.now()}`;
+    const channelName = `action_steps_realtime_${user.id}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -336,7 +336,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         supabase.removeChannel(channel);
       } catch {}
     };
-  }, [user, fetchActionSteps]);
+  }, [user?.id, fetchActionSteps]);
 
   // Keep visibleCount within bounds when list size changes
   useEffect(() => {
