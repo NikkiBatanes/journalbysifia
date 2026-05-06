@@ -932,7 +932,7 @@ const UserInputScreen: React.FC = () => {
           {
             name: 'MainTabs',
             state: {
-              routes: [{ name: 'Home' }, { name: 'PlaybookList' }],
+              routes: [{ name: 'Overview' }, { name: 'Playbooks' }],
               index: 1,
             },
           },
@@ -986,6 +986,12 @@ const UserInputScreen: React.FC = () => {
   const handleGeneratePlaybook = async () => {
     try { triggerLightHaptic(); } catch {}
     animateButton();
+    // Clear any pending auto-focus timer to prevent keyboard from reappearing
+    if (autoFocusTimer.current) {
+      clearTimeout(autoFocusTimer.current);
+      autoFocusTimer.current = null;
+    }
+    Keyboard.dismiss();
 
     if (!userInput.trim()) {
       // Show error animation
