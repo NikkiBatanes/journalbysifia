@@ -311,13 +311,10 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
   },
   stepContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
   },
   stepScroll: {
     flex: 1,
@@ -386,7 +383,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   categoryIconCircleSelected: {
     backgroundColor: Colors.alertCoral,
