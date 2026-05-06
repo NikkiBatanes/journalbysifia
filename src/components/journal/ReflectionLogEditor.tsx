@@ -1069,6 +1069,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // Clear any existing draft since we're saving the entry
     try {
       await AsyncStorage.removeItem(getDraftKey());
+      setShowDraftNotification(false); // Hide "Draft Restored" banner immediately
+      setHasUserMadeChanges(false);    // Prevent handleCancel from re-saving the draft
     } catch (error) {
       // Error silently handled - draft clearing is not critical
     }

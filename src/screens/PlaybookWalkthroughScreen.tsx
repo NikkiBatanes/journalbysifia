@@ -49,8 +49,6 @@ import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepComple
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
-import NewSuccessModal from '../components/NewSuccessModal';
-import { useSuccessModal } from '../hooks/useSuccessModal';
 import ShareDropdownModal from '../components/ShareDropdownModal';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -653,17 +651,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [, setJournalExpanded] = useState(false);
   const createPrayerMutation = useCreateDevotionalPrayer();
 
-  // Success modal for journal saves
-  const successModal = useSuccessModal(
-    () => {
-      // Done callback - advance to next step
-      advanceStep(true);
-    },
-    () => {
-      // Edit callback - reopen the modal
-      setActiveJournalModal(activeJournalModal);
-    }
-  );
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
   const triggerScale = useRef(new Animated.Value(1)).current;
@@ -883,17 +870,15 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       }
 
       setActiveJournalModal(null);
-      successModal.showSuccess({
-        title: payload.isEditing ? 'Prayer Updated' : 'Prayer Saved',
-        message: payload.isEditing ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
-        showEditButton: true,
-      });
+      // Advance directly — no extra success modal needed (prayer screen already
+      // showed its own confirmation before dismissing back here).
+      setTimeout(() => advanceStep(true), 420);
     });
 
     return () => {
       subscription.remove();
     };
-  }, [actionStepIndex, commitCurrentStep, onStepCommit, playbookId, successModal]);
+  }, [actionStepIndex, commitCurrentStep, onStepCommit, playbookId, advanceStep]);
 
   const handleSaveJournal = useCallback(() => {
     const trimmed = journalText.trim();
@@ -1353,7 +1338,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Reflection Saved', message: 'Your reflection has been saved to your journal.', showEditButton: true }); }}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
@@ -1370,7 +1355,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           actionStepTitle={currentStep.title ?? ''}
           stepBody={mainBodyText || undefined}
           stepExample={exampleText || undefined}
-          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Gratitude Saved', message: 'Your gratitude has been saved.', showEditButton: true }); }}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
           onClose={() => setActiveJournalModal(null)}
         />
       )}
@@ -1379,18 +1364,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           visible={true}
           subtaskTitle={currentStep.title ?? ''}
           playbookId={playbookId}
-          onSave={() => { commitCurrentStep(); setActiveJournalModal(null); successModal.showSuccess({ title: 'Scheduled', message: 'Your time block has been scheduled.', showEditButton: false }); }}
+          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
 
-      {/* Success modal for journal saves */}
-      <NewSuccessModal
-        visible={successModal.isVisible}
-        config={successModal.config}
-        onDone={successModal.handleDone}
-        onEdit={successModal.handleEdit}
-      />
     </>
   );
 };

@@ -96,10 +96,24 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     }
   }, [playbookTitle]);
 
+  // Store saved result to call onSave when user clicks Done in success modal
+  const [savedTimeBlockResult, setSavedTimeBlockResult] = useState<any>(null);
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+
   // New success modal system
   const successModal = useSuccessModal(
-    () => onCancel(), // onDone: close the modal
-    () => {} // onEdit: keep modal open for editing
+    () => {
+      // onDone: call onSave with saved result, then close modal
+      if (savedTimeBlockResult) {
+        onSave(savedTimeBlockResult);
+        setSavedTimeBlockResult(null);
+      }
+      setIsSuccessModalShown(false);
+      onCancel();
+    },
+    () => {
+      setIsSuccessModalShown(false);
+    } // onEdit: keep modal open for editing
   );
   const [_completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false);
@@ -345,8 +359,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         handleAutoCheckStep(stepId, subtaskId);
       }
 
-      // Notify parent of successful save
-      onSave(result);
+      // Store result to call onSave when user clicks Done in success modal
+      setSavedTimeBlockResult(result);
 
       // Check if streak celebration should show for time block
       // Only show streak if not associated with a playbook OR playbook is completed
@@ -373,15 +387,16 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       // CRITICAL FIX: Emit timeblock event to refresh Moments screen
       DeviceEventEmitter.emit('timeblock_saved', { timeblock: result });
 
-      // Show success modal after cache invalidation completes
-      setTimeout(() => {
+      // Show success modal immediately (data is saved, just waiting for user confirmation)
+      setHasSaved(true);
+      if (!isSuccessModalShown) {
+        setIsSuccessModalShown(true);
         successModal.showSuccess({
           title: isEditSession ? 'Time Block Updated' : 'Time Block Saved',
           message: isEditSession ? 'Your time block has been updated.' : 'Your time block has been saved to your journal.',
           showEditButton: true,
         });
-        setHasSaved(true);
-      }, 100);
+      }
 
     } catch (error: any) {
       Logger.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED', error as Error, { component: 'SmartJournalingTimeBlockModal' });

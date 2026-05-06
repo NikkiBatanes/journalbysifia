@@ -720,7 +720,10 @@ export default function ActionStepsCard({
       }, 2000); // Give time for modal animations
     }
 
-    // Modal will close automatically after showing success
+    // Close the modal now that the step is committed
+    setActiveModal(null);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
   }, [queryClient, user?.id, selectedSubtask, autoCompleteSelectedFaithfulAction]);
 
   const handleReflectionCancel = React.useCallback(() => {
@@ -762,7 +765,10 @@ export default function ActionStepsCard({
       }, 2000); // Give time for modal animations
     }
 
-    // Modal will close automatically after showing success
+    // Close the modal now that the step is committed
+    setActiveModal(null);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
   }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
 
   const handleGratitudeCancel = React.useCallback(() => {
@@ -817,7 +823,10 @@ export default function ActionStepsCard({
       }, 2000); // Give time for modal animations
     }
 
-    // Modal will close automatically after showing success
+    // Close the modal now that the step is committed
+    setActiveModal(null);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
   }, [queryClient, user?.id, autoCompleteSelectedFaithfulAction]);
 
   const handleTimeBlockCancel = React.useCallback(() => {

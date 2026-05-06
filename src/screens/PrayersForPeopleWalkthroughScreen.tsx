@@ -1190,29 +1190,43 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [savedPrayerId, setSavedPrayerId] = useState<string | null>(null);
   const successModal = useSuccessModal(
     () => {
-      const fromNotification = route.params?.fromNotificationAnsweredCheck === true;
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs' as any,
-            params: {
-              screen: 'Journal',
+      if (fromPlaybook) {
+        // Return to PlaybookWalkthroughScreen and signal step completion
+        navigation.pop(2);
+        setTimeout(() => {
+          DeviceEventEmitter.emit('playbookPrayerSaved', {
+            playbookId,
+            stepId,
+            subtaskId,
+            actionStepNumber,
+            isEditing: !!editingPrayerId,
+          });
+        }, 300);
+      } else {
+        const fromNotification = route.params?.fromNotificationAnsweredCheck === true;
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'MainTabs' as any,
               params: {
-                screen: 'JournalMain',
-                params: fromNotification ? {
-                  selectedDate: route.params?.selectedDate,
-                  targetSection: 'prayer',
-                  targetPrayerCarouselIndex: 2,
-                  targetPrayerId: editingPrayerId,
-                } : {
-                  selectedDate: route.params?.selectedDate,
+                screen: 'Journal',
+                params: {
+                  screen: 'JournalMain',
+                  params: fromNotification ? {
+                    selectedDate: route.params?.selectedDate,
+                    targetSection: 'prayer',
+                    targetPrayerCarouselIndex: 2,
+                    targetPrayerId: editingPrayerId,
+                  } : {
+                    selectedDate: route.params?.selectedDate,
+                  },
                 },
               },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
     },
     undefined
   );
@@ -1326,16 +1340,13 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       }
 
       if (fromPlaybook) {
-        navigation.pop(2);
-        setTimeout(() => {
-          DeviceEventEmitter.emit('playbookPrayerSaved', {
-            playbookId,
-            stepId,
-            subtaskId,
-            actionStepNumber,
-            isEditing: !!editingPrayerId,
-          });
-        }, 300);
+        // Show success modal inside this screen; Done handler will pop + emit
+        triggerSuccessHaptic();
+        successModal.showSuccess({
+          title: editingPrayerId ? 'Prayer Updated' : 'Prayer Saved',
+          message: editingPrayerId ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
+          showEditButton: false,
+        });
         return;
       }
 

@@ -26,7 +26,7 @@ import { Fonts } from '../theme/fonts';
 import { useTheme } from '../hooks/useTheme';
 import ThemedText from '../components/common/ThemedText';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
-import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import { useCreatePrayer, useUpdatePrayer, useACTSPrayerData, useDeletePrayer, useMarkSupplicationAnswered } from '../services/hooks/usePrayerData';
@@ -1398,28 +1398,42 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
   const successModal = useSuccessModal(
     () => {
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'MainTabs' as any,
-            params: {
-              screen: 'Journal',
+      if (fromPlaybook) {
+        // Return to PlaybookWalkthroughScreen and signal step completion
+        navigation.pop(2);
+        setTimeout(() => {
+          DeviceEventEmitter.emit('playbookPrayerSaved', {
+            playbookId,
+            stepId,
+            subtaskId,
+            actionStepNumber,
+            isEditing: !!editingPrayerId,
+          });
+        }, 300);
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'MainTabs' as any,
               params: {
-                screen: 'JournalMain',
-                params: fromNotificationAnsweredCheck ? {
-                  selectedDate: selectedDateStr,
-                  targetSection: 'prayer',
-                  targetPrayerCarouselIndex: initialPrayerType === 'open' ? 0 : 0,
-                  targetPrayerId: editingPrayerId,
-                } : {
-                  selectedDate: selectedDateStr,
+                screen: 'Journal',
+                params: {
+                  screen: 'JournalMain',
+                  params: fromNotificationAnsweredCheck ? {
+                    selectedDate: selectedDateStr,
+                    targetSection: 'prayer',
+                    targetPrayerCarouselIndex: initialPrayerType === 'open' ? 0 : 0,
+                    targetPrayerId: editingPrayerId,
+                  } : {
+                    selectedDate: selectedDateStr,
+                  },
                 },
               },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
     },
     undefined
   );
@@ -1599,16 +1613,13 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       }, user.id);
 
       if (fromPlaybook) {
-        navigation.pop(2);
-        setTimeout(() => {
-          DeviceEventEmitter.emit('playbookPrayerSaved', {
-            playbookId,
-            stepId,
-            subtaskId,
-            actionStepNumber,
-            isEditing,
-          });
-        }, 300);
+        // Show success modal inside this screen; Done handler will pop + emit
+        triggerSuccessHaptic();
+        successModal.showSuccess({
+          title: isEditing ? 'Prayer Updated' : 'Prayer Saved',
+          message: isEditing ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
+          showEditButton: false,
+        });
       } else {
         navigation.goBack();
       }

@@ -63,10 +63,24 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const { user } = useAuth();
   const { handleAutoCheckStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
+  // Store saved result to call onSave when user clicks Done in success modal
+  const [savedGratitudeResult, setSavedGratitudeResult] = useState<any>(null);
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+
   // New success modal system
   const successModal = useSuccessModal(
-    () => onClose?.(), // onDone: close the modal
-    () => {} // onEdit: keep modal open for editing
+    () => {
+      // onDone: call onSave with saved result, then close modal
+      if (savedGratitudeResult) {
+        onSave?.(savedGratitudeResult);
+        setSavedGratitudeResult(null);
+      }
+      setIsSuccessModalShown(false);
+      onClose?.();
+    },
+    () => {
+      setIsSuccessModalShown(false);
+    } // onEdit: keep modal open for editing
   );
   const gratitudeEditorRef = useRef<GratitudeLogEditorRef>(null);
 
@@ -285,6 +299,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Always create a new entry after deleting all existing ones
       const result = await createMutation.mutateAsync(gratitudeEntry);
 
+      // Store result to call onSave when user clicks Done in success modal
+      setSavedGratitudeResult(result);
+
       // Check if streak celebration should show for gratitude
       // Only show streak if not associated with a playbook OR playbook is completed
       const isPlaybookContext = !!playbookId;
@@ -307,17 +324,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         }
       }
 
-      // Call parent onSave callback immediately
-      onSave?.(result);
-
-      // Show success modal after a delay so user can see their saved content
-      setTimeout(() => {
+      // Show success modal immediately (data is saved, just waiting for user confirmation)
+      if (!isSuccessModalShown) {
+        setIsSuccessModalShown(true);
         successModal.showSuccess({
           title: 'Gratitude Saved',
           message: 'Your gratitude has been saved to your journal.',
           showEditButton: true,
         });
-      }, 500);
+      }
 
       // PERFORMANCE: All cache invalidation is non-blocking - happens after UI updates
       if (user?.id) {

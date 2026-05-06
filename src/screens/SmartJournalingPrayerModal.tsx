@@ -86,10 +86,24 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }
   }, [subtaskTitle, actionStepNumber, actionStepTitle, playbookTitle]);
 
+  // Store saved result to call onSave when user clicks Done
+  const [savedPrayerResult, setSavedPrayerResult] = useState<any>(null);
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+
   // New success modal system
   const successModal = useSuccessModal(
-    () => onCancel(), // onDone: close the modal
-    () => {} // onEdit: keep modal open for editing
+    () => {
+      // onDone: call onSave with saved result, then close modal
+      if (savedPrayerResult) {
+        onSave(savedPrayerResult);
+        setSavedPrayerResult(null);
+      }
+      setIsSuccessModalShown(false);
+      onCancel();
+    },
+    () => {
+      setIsSuccessModalShown(false);
+    } // onEdit: keep modal open for editing
   );
   const [_completionInfo, _setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
@@ -353,8 +367,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         result = await createPrayerMutation.mutateAsync(prayerData);
       }
 
-      // Call parent onSave callback
-      onSave(result);
+      // Store result to call onSave when user clicks Done in success modal
+      setSavedPrayerResult(result);
 
       // Send prayer request notification if praying for someone specific (only for new prayers)
       if (!currentPrayerEntry?.id && prayerData.prayerForPerson && prayerData.prayerForPerson.trim().length > 0 && user?.id) {
@@ -378,15 +392,16 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
       }
 
-      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
-      setTimeout(() => {
-        setHasSaved(true);
+      // Show success modal immediately (data is saved, just waiting for user confirmation)
+      setHasSaved(true);
+      if (!isSuccessModalShown) {
+        setIsSuccessModalShown(true);
         successModal.showSuccess({
           title: isEditSession ? 'Prayer Updated' : 'Prayer Saved',
           message: isEditSession ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
           showEditButton: true,
         });
-      }, 500);
+      }
 
     } catch (error: any) {
       Logger.error('❌ SmartJournalingPrayerModal: SAVE FAILED', error as Error, { component: 'SmartJournalingPrayerModal' });

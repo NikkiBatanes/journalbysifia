@@ -95,9 +95,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const queryClient = useQueryClient();
 
+  // Store saved result to call onSave when user clicks Done in success modal
+  const [savedReflectionResult, setSavedReflectionResult] = useState<any>(null);
+  const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
+
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
+      // onDone: call onSave with saved result, dismiss keyboard, then close modal
+      if (savedReflectionResult) {
+        onSave(savedReflectionResult);
+        setSavedReflectionResult(null);
+      }
+      setIsSuccessModalShown(false);
       // Dismiss keyboard immediately at the outermost point — before any
       // downstream callbacks (triggerCancel → blur → onCancel) can cause
       // React re-renders that might briefly re-focus a TextInput during the
@@ -108,6 +118,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
     },
     () => {
+      setIsSuccessModalShown(false);
       // Edit callback - keep modal open and focus input
       handleEditFocus();
     }
@@ -346,20 +357,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         }
       }
 
-      // Call parent onSave callback
-      // PERFORMANCE: Subtask toggle logic moved to ActionStepsCard for better separation of concerns
-      onSave(savedReflection);
+      // Store result to call onSave when user clicks Done in success modal
+      setSavedReflectionResult(savedReflection);
 
-      // Show success modal in next render cycle to avoid React state batching issues
+      // Show success modal immediately (data is saved, just waiting for user confirmation)
       const isEditing = !!existingReflection;
-      setTimeout(() => {
+      if (!isSuccessModalShown) {
+        setIsSuccessModalShown(true);
         successModal.showSuccess({
           title: isEditing ? 'Reflection Updated' : 'Reflection Saved',
           message: isEditing ? 'Your reflection has been updated.' : 'Your reflection has been saved to your journal.',
           showEditButton: true,
         });
-
-      }, 0);
+      }
 
     } catch (error: any) {
       Logger.error('❌ SmartJournalingReflectionModal: SAVE FAILED', error as Error, { component: 'SmartJournalingReflectionModal' });
