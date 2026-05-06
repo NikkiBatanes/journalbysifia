@@ -20,7 +20,7 @@ const corsHeaders = {
 //  10:00  playbook_word_to_speak_morning    skip-if: no word_to_speak
 //  10:30  playbook_verse_reflection_morning skip-if: no reflection lines
 //  11:00  playbook_faithful_action          skip-if: no incomplete action
-//  12:00  journal_todo                      cancel-at-send: todos done
+//  12:00  [REMOVED] journal_todo
 //  12:30  prayer_request_care              skip-if: no pending requests
 //  12:45  prayer_answered_check            skip-if: no trackable unanswered prayers
 //  14:00  playbook_word_to_speak_afternoon  skip-if: no word_to_speak
@@ -342,14 +342,15 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
   }
 
   // ── 12:00  journal_todo ──────────────────────────────────────────────────
-  add({
-    type: 'journal_todo',
-    localHour: 12, localMinute: 0,
-    title: `Midday check-in, ${name} 📋`,
-    message: 'Take a moment to review what needs your attention today.',
-    data: { deep_link: 'sifia://journal/todos', check_before_send: true },
-    priority: 'low',
-  });
+  // REMOVED per user request
+  // add({
+  //   type: 'journal_todo',
+  //   localHour: 12, localMinute: 0,
+  //   title: `Midday check-in, ${name} 📋`,
+  //   message: 'Take a moment to review what needs your attention today.',
+  //   data: { deep_link: 'sifia://journal/todos', check_before_send: true },
+  //   priority: 'low',
+  // });
 
   // ── 12:30  prayer_request_care ───────────────────────────────────────────
   if (prayerRequests.length > 0) {

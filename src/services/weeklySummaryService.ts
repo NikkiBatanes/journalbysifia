@@ -99,9 +99,9 @@ class WeeklySummaryService {
       const title = `Your week in faith, ${summary.firstName} 🌱`;
       const message = this.generateSummaryMessage(summary);
 
-      // Schedule for Sunday evening at 7 PM
+      // Schedule for Sunday midday at 12 PM
       const scheduledFor = this.getNextSunday();
-      scheduledFor.setHours(19, 0, 0, 0);
+      scheduledFor.setHours(12, 0, 0, 0);
 
       const notification: NotificationQueueItem = {
         user_id: userId,

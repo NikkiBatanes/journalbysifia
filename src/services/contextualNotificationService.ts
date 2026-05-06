@@ -30,7 +30,7 @@ class ContextualNotificationService {
         return false;
       }
 
-      const [hour, min] = ['09', '00'].map(Number);
+      const [hour, min] = ['08', '00'].map(Number);
       const scheduledFor = new Date();
       scheduledFor.setHours(hour, min, 0, 0);
 
@@ -110,7 +110,7 @@ class ContextualNotificationService {
         return false;
       }
 
-      const [hour, min] = ['19', '00'].map(Number);
+      const [hour, min] = ['18', '30'].map(Number);
       const scheduledFor = new Date();
       scheduledFor.setHours(hour, min, 0, 0);
 

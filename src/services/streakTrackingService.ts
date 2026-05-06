@@ -306,19 +306,19 @@ class StreakTrackingService {
           title: `Don't Break Your ${currentStreak}-Day Prayer Streak! 🔥`,
           message: 'You\'re on fire! Keep your spiritual momentum going.',
           deepLink: 'sifia://journal/prayer',
-          time: '19:00', // 7 PM - earlier to give users more time
+          time: '11:30', // 11:30 AM - to avoid overlap with weekly summary on Sunday
         },
         devotional: {
           title: `Keep Your ${currentStreak}-Day Devotional Streak Going! 📖`,
           message: 'You\'re building a powerful habit. Don\'t stop now!',
           deepLink: 'sifia://devotionals/today',
-          time: '19:30', // 7:30 PM - earlier to give users more time
+          time: '12:15', // 12:15 PM - between prayer_request_care
         },
         journal: {
           title: `Continue Your ${currentStreak}-Day Journaling Journey! ✍🏼`,
           message: 'You\'re building consistency. Keep going!',
           deepLink: 'sifia://journal',
-          time: '20:00', // 8 PM - earlier to give users more time
+          time: '13:00', // 1:00 PM - after prayer_answered_check
         },
       };
 
