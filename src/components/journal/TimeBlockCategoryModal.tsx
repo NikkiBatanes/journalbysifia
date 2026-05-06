@@ -154,6 +154,11 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                     >
                       {category.name}
                     </ThemedText>
+                    <ThemedText
+                      style={[styles.categoryDescription, isSelected && styles.categoryDescriptionSelected]}
+                    >
+                      {category.description}
+                    </ThemedText>
                   </TouchableOpacity>
                 );
               })}
@@ -245,11 +250,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginBottom: 24,
   },
   stepTitle: {
     fontSize: 24,
     color: Colors.hopeWhite,
+    lineHeight: 30,
+    textAlign: 'center',
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -295,6 +306,15 @@ const styles = StyleSheet.create({
   },
   categoryNameSelected: {
     color: Colors.hopeWhite,
+  },
+  categoryDescription: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  categoryDescriptionSelected: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   showMoreButton: {
     marginTop: 16,
