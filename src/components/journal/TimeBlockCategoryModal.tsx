@@ -386,6 +386,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   categoryIconCircleSelected: {
     backgroundColor: Colors.alertCoral,
