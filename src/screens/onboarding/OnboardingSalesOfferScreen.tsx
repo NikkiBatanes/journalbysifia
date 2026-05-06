@@ -861,6 +861,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     try {
       triggerLightHaptic();
       const purchaseTier = selectedPlanTier;
+      setIsPurchasing(true);
+      setShowSuccessModal(false);
+      setPurchaseValidated(false);
+      setLoadingStep('processing');
 
       logger.debug('handleUnlockPlan called', {
         isUpgradeMode,
@@ -904,7 +908,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
-        products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts();
+        products = cachedProducts.length > 0 ? cachedProducts : await paymentService.getAvailableProducts(true);
 
         logger.info('📦 STEP B: Products retrieved successfully', {
           count: products.length,
@@ -933,11 +937,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // CRITICAL: Always use .freetrial products (only product type in App Store Connect)
       // App Store enforces trial eligibility - users already on trial will be charged
       // validate-receipt will detect upgrade vs new trial based on user's current tier
-      const trialProduct = products.find(p =>
+      let trialProduct = products.find(p =>
         p.tier === selectedPlanTier &&
         p.productId.includes(billing) &&
         p.productId.includes('.freetrial')
       );
+
+      if (!trialProduct) {
+        logger.warn('⚠️ Selected product missing from cached list; forcing fresh App Store product fetch', {
+          selectedTier: selectedPlanTier,
+          billing,
+          productCount: products.length,
+        });
+
+        const refreshedProducts = await paymentService.getAvailableProducts(true);
+        if (refreshedProducts.length > 0) {
+          products = refreshedProducts;
+          trialProduct = products.find(p =>
+            p.tier === selectedPlanTier &&
+            p.productId.includes(billing) &&
+            p.productId.includes('.freetrial')
+          );
+        }
+      }
 
       if (trialProduct) {
         productId = trialProduct.productId;
@@ -948,19 +970,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           isUpgrade: subscription?.tier === 'free_trial' && !shouldUseTrialProduct,
         });
       } else {
-        // Construct trial product ID
-        productId = `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
-        logger.warn('⚠️ No .freetrial product found, using constructed ID', { productId });
+        const expectedProductId = `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
+        logger.error('❌ App Store product unavailable; aborting before native purchase request', new Error('Product unavailable'), {
+          component: 'OnboardingSalesOfferScreen',
+          expectedProductId,
+          selectedTier: selectedPlanTier,
+          billing,
+          availableProductIds: products.map(p => p.productId),
+        });
+        throw new Error('This subscription is not available from Apple yet. Please try again in a moment.');
       }
-
-      // NOW show loading modal right before Apple sheet
-      setIsPurchasing(true);
-      setShowSuccessModal(false);
-      setPurchaseValidated(false);
-      setLoadingStep('processing');
-
-      // CRITICAL: Wait for modal to render before starting purchase
-      await new Promise(resolve => setTimeout(resolve, 100));
 
       if (isUpgradeMode) {
         // In upgrade mode, purchase and show success modal before going back
@@ -1158,9 +1177,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return;
           }
 
-          // For other errors, log silently instead of showing alert
+          // For other errors, show a clear reason instead of making the tap look dead.
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          Alert.alert(
+            'Purchase Unavailable',
+            purchaseError?.message || 'Apple could not start the purchase. Please try again in a moment.'
+          );
           setIsPurchasing(false);
+          setLoadingStep('processing');
         }
       } else {
         // In onboarding mode, use StoreKit to purchase subscription
@@ -1368,9 +1392,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return;
           }
 
-          // For other errors, log silently instead of showing alert
+          // For other errors, show a clear reason instead of making the tap look dead.
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
+          Alert.alert(
+            'Purchase Unavailable',
+            purchaseError?.message || 'Apple could not start the purchase. Please try again in a moment.'
+          );
           setIsPurchasing(false);
+          setLoadingStep('processing');
         }
       }
     } finally {

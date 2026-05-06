@@ -358,14 +358,25 @@ const OnboardingTrialOfferScreen = () => {
       let availableProducts: any[] = [];
       let trialProduct: any = null;
 
-      try {
+      if (Platform.OS === 'ios') {
+        setTrialProductAvailable(true);
+        logger.info('Skipping blocking iOS trial product preflight; StoreKit will validate product on purchase request', {
+          productId,
+          selectedTierId,
+          billing,
+        });
+      } else {
+        try {
         // Initialize payment service first
-        await paymentService.initialize();
+        const initialized = await paymentService.initialize();
+        if (!initialized) {
+          throw new Error('Apple purchases are not available right now.');
+        }
 
         // Get available products with retry logic
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            availableProducts = await paymentService.getAvailableProducts();
+            availableProducts = await paymentService.getAvailableProducts(attempt > 1);
             if (availableProducts.length > 0) {break;}
 
             logger.warn(`Trial product check attempt ${attempt} failed - no products available`, {
@@ -393,6 +404,18 @@ const OnboardingTrialOfferScreen = () => {
 
         // Find the specific trial product
         trialProduct = availableProducts.find(p => p.productId === productId);
+
+        if (!trialProduct) {
+          logger.warn('Trial product missing from product list; forcing fresh App Store product fetch', {
+            expectedProductId: productId,
+            selectedTierId,
+            billing,
+            productCount: availableProducts.length,
+          });
+
+          availableProducts = await paymentService.getAvailableProducts(true);
+          trialProduct = availableProducts.find(p => p.productId === productId);
+        }
 
         // Log all available products for debugging
         logger.debug('Trial product availability check', {
@@ -465,13 +488,17 @@ const OnboardingTrialOfferScreen = () => {
 • Wait a few minutes for product sync to complete`;
 
         throw new Error(enhancedError);
+        }
       }
 
       // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
       let result;
       try {
         // Initialize payment service first
-        await paymentService.initialize();
+        const initialized = await paymentService.initialize();
+        if (!initialized) {
+          throw new Error('Apple purchases are not available right now.');
+        }
 
         // Set trial eligibility before purchase
         if (Platform.OS === 'ios') {
@@ -675,7 +702,15 @@ const OnboardingTrialOfferScreen = () => {
         return;
       }
 
-      // For other errors, just log them silently instead of showing error modal
+      logger.error('Trial purchase failed before completion', error, {
+        component: 'OnboardingTrialOfferScreen',
+        selectedTierId,
+        isAnnual,
+      });
+      Alert.alert(
+        'Purchase Unavailable',
+        error?.message || 'Apple could not start the free trial. Please try again in a moment.'
+      );
       setIsStartingTrial(false);
     } finally {
       // FINAL SAFETY: Ensure loading state is always cleared

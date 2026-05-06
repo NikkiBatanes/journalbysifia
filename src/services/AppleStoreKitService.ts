@@ -454,16 +454,17 @@ export class AppleStoreKitService {
       }
     }
 
-    // All attempts failed - return mock products for development only
+    // All attempts failed. Do not return mock iOS products here: native
+    // StoreKit can only purchase products fetched from App Store Connect.
     if (ENV.APP_ENV === 'development') {
-      Logger.warn('[StoreKit] 🧪 All product fetch attempts failed, returning mock products for development', {
+      Logger.warn('[StoreKit] 🧪 All product fetch attempts failed; returning no products for iOS purchase safety', {
         component: 'AppleStoreKitService',
         totalAttempts: 3,
         finalError: lastError?.message,
         errorDetails: lastError?.message,
       });
 
-      return this.getMockProducts();
+      return [];
     }
 
     // In production, return empty array
@@ -474,47 +475,6 @@ export class AppleStoreKitService {
     });
 
     return [];
-  }
-
-  /**
-   * Get mock products for development testing
-   */
-  private getMockProducts(): StoreProduct[] {
-    const mockProducts: StoreProduct[] = [];
-
-    Object.entries(AppleStoreKitService.PRODUCT_IDS).forEach(([_key, productId]) => {
-      const tier = this.getSubscriptionTierFromProductId(productId);
-      const isAnnual = productId.includes('annual');
-      const isTrial = productId.includes('freetrial');
-
-      if (tier) {
-        const pricing: Record<string, { monthly: number; annual: number }> = {
-          spark: { monthly: 199, annual: 1990 },
-          growth: { monthly: 499, annual: 4990 },
-          transformation: { monthly: 999, annual: 9990 },
-          family: { monthly: 1499, annual: 14990 },
-        };
-
-        const amount = pricing[tier]?.[isAnnual ? 'annual' : 'monthly'] || 0;
-
-        mockProducts.push({
-          productId,
-          price: amount.toString(),
-          currency: 'PHP',
-          localizedPrice: `₱${amount.toLocaleString()}`,
-          title: `${tier.charAt(0).toUpperCase() + tier.slice(1)} ${isAnnual ? 'Annual' : 'Monthly'} ${isTrial ? '(Free Trial)' : ''}`,
-          description: `Mock ${tier} subscription for development`,
-          discounts: [],
-        });
-      }
-    });
-
-    Logger.info(`[StoreKit] 🧪 Generated ${mockProducts.length} mock products`, {
-      component: 'AppleStoreKitService',
-      productIds: mockProducts.map(p => p.productId),
-    });
-
-    return mockProducts;
   }
 
   /**
@@ -644,10 +604,7 @@ export class AppleStoreKitService {
           throw error;
         }
 
-        const purchaseParams: any = {
-          sku: productId,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-        };
+        const purchaseParams: any = { sku: productId };
 
         // Add promotional offer if provided
         if (offerIdentifier) {

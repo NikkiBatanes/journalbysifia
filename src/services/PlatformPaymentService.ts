@@ -140,17 +140,29 @@ export class PlatformPaymentService {
   /**
    * Get available subscription products for the current platform
    */
-  async getAvailableProducts(): Promise<UnifiedProduct[]> {
+  async getAvailableProducts(forceRefresh = false): Promise<UnifiedProduct[]> {
     try {
       // Check if we have valid cached products
       const now = Date.now();
-      if (this.cachedProducts && (now - this.lastCacheTime) < this.CACHE_DURATION) {
+      const previousProducts = this.cachedProducts && this.cachedProducts.length > 0
+        ? this.cachedProducts
+        : null;
+      const previousCacheTime = this.lastCacheTime;
 
-        return this.cachedProducts;
+      if (!forceRefresh && previousProducts && (now - this.lastCacheTime) < this.CACHE_DURATION) {
+
+        return previousProducts;
+      }
+
+      if (forceRefresh) {
+        this.clearProductCache();
       }
 
       // Initialize services first (only if not already initialized)
-      await this.initialize();
+      const initialized = await this.initialize();
+      if (!initialized) {
+        throw new Error(`Payment service unavailable for ${Platform.OS}`);
+      }
 
       let products: (StoreProduct | GooglePlayProduct)[] = [];
 
@@ -166,9 +178,26 @@ export class PlatformPaymentService {
         tier: this.getTierFromProductId(product.productId),
       })).filter(product => product.tier !== null) as UnifiedProduct[];
 
-      // Cache the results
-      this.cachedProducts = unifiedProducts;
-      this.lastCacheTime = now;
+      // Cache only real product lists. Empty results often mean App Store
+      // products have not synced yet or the first request raced the store.
+      if (unifiedProducts.length > 0) {
+        this.cachedProducts = unifiedProducts;
+        this.lastCacheTime = now;
+      } else {
+        Logger.warn('[PlatformPayment] Store returned no products; not caching empty product list', {
+          component: 'PlatformPaymentService',
+          platform: Platform.OS,
+        });
+
+        if (previousProducts) {
+          this.cachedProducts = previousProducts;
+          this.lastCacheTime = previousCacheTime;
+          return previousProducts;
+        }
+
+        this.cachedProducts = null;
+        this.lastCacheTime = 0;
+      }
 
       return unifiedProducts;
     } catch (error) {
@@ -177,7 +206,7 @@ export class PlatformPaymentService {
     });
 
       // If we have cached products, return them as fallback
-      if (this.cachedProducts) {
+      if (this.cachedProducts && this.cachedProducts.length > 0) {
         Logger.warn('[PlatformPayment] Using stale cached products due to error', {
       component: 'PlatformPaymentService',
     });
