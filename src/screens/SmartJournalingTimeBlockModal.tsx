@@ -375,12 +375,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
         if (shouldShowStreak && user?.id) {
           await visibleStreakService.markShownToday(user.id);
-          if (navigation) {
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'journal_timeblock_added',
-            });
-          }
+          (navigation as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'journal_timeblock_added',
+          });
         }
       }
 

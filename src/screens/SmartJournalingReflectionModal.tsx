@@ -17,6 +17,7 @@ import { analytics } from '../utils/analytics';
 import { Colors } from '../theme';
 import ThemedText from '../components/common/ThemedText';
 import type { NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 interface SmartJournalingReflectionModalProps {
   visible: boolean;
@@ -67,6 +68,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   stepBody,
   stepExample,
 }) => {
+  const internalNavigation = useNavigation<NavigationProp<any>>();
+  const nav = navigation ?? internalNavigation;
+
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
   const [_preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
@@ -347,12 +351,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
           if (shouldShowStreak) {
             await visibleStreakService.markShownToday(user.id);
-            if (navigation) {
-              (navigation as any).navigate('StreakPlan', {
-                userId: user.id,
-                source: 'reflection_saved',
-              });
-            }
+            (nav as any).navigate('StreakPlan', {
+              userId: user.id,
+              source: 'reflection_saved',
+            });
           }
         }
       }

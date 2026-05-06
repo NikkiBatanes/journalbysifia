@@ -18,6 +18,7 @@ import { JournalApi } from '../services/api/journalApi';
 import { toLocalDateString } from '../utils/date';
 import { visibleStreakService } from '../services/visibleStreakService';
 import type { NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 interface SmartJournalingGratitudeModalProps {
   visible: boolean;
@@ -59,6 +60,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   selectedDate = new Date(),
 }) => {
 
+
+  const internalNavigation = useNavigation<NavigationProp<any>>();
+  const nav = navigation ?? internalNavigation;
 
   const { user } = useAuth();
   const { handleAutoCheckStep, actionSteps } = useActionSteps();
@@ -315,12 +319,10 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
         if (shouldShowStreak && user?.id) {
           await visibleStreakService.markShownToday(user.id);
-          if (navigation) {
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'journal_gratitude_added',
-            });
-          }
+          (nav as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'journal_gratitude_added',
+          });
         }
       }
 

@@ -7,7 +7,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Pencil } from 'lucide-react-native';
 import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated, Easing, DeviceEventEmitter } from 'react-native';
 
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
@@ -142,6 +142,9 @@ export default function ActionStepsCard({
   onCollapse,
   onToggleSubTaskMutation,
 }: ActionStepsCardProps) {
+  const internalNavigation = useNavigation<NavigationProp<any>>();
+  const nav = navigation ?? internalNavigation;
+
   const { user } = useAuth();
   const { actionSteps: contextSteps, handleToggleStep, handleAutoCompleteStep } = useActionSteps();
   const queryClient = useQueryClient();
@@ -320,12 +323,10 @@ export default function ActionStepsCard({
                 const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
                 if (shouldShowStreak) {
                   await visibleStreakService.markShownToday(user.id);
-                  if (navigation) {
-                    (navigation as any).navigate('StreakPlan', {
-                      userId: user.id,
-                      source: 'action_step_completed',
-                    });
-                  }
+                  (nav as any).navigate('StreakPlan', {
+                    userId: user.id,
+                    source: 'action_step_completed',
+                  });
                 }
               }
 
@@ -526,22 +527,20 @@ export default function ActionStepsCard({
 
       // Prefetch prayer data and wait for it to complete before opening modal
       // Navigate to Unified Prayer Selection Screen with metadata
-      if (navigation) {
-        const metadata = {
-          playbookId,
-          playbookTitle,
-          actionStepNumber: stepInfo?.stepNumber,
-          actionStepTitle: stepInfo?.stepTitle,
-          subtaskTitle: subTask.text,
-          subtaskId: subTask.id,
-          selectedDate: toLocalDateString(new Date()),
-        };
+      const metadata = {
+        playbookId,
+        playbookTitle,
+        actionStepNumber: stepInfo?.stepNumber,
+        actionStepTitle: stepInfo?.stepTitle,
+        subtaskTitle: subTask.text,
+        subtaskId: subTask.id,
+        selectedDate: toLocalDateString(new Date()),
+      };
 
-        (navigation as any).navigate('UnifiedPrayerSelection', {
-          metadata,
-        });
-        return;
-      }
+      (nav as any).navigate('UnifiedPrayerSelection', {
+        metadata,
+      });
+      return;
     }
 
     // Handle timeblock type with modal

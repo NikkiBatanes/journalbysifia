@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, DeviceEventEmitter } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
@@ -66,6 +66,9 @@ interface FocusCardState {
 }
 
 export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation }) => {
+  const internalNavigation = useNavigation<NavigationProp<any>>();
+  const nav = navigation ?? internalNavigation;
+
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -367,12 +370,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
         if (shouldShowStreak && user?.id) {
           await visibleStreakService.markShownToday(user.id);
-          if (navigation) {
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'journal_focus_set',
-            });
-          }
+          (nav as any).navigate('StreakPlan', {
+            userId: user.id,
+            source: 'journal_focus_set',
+          });
         }
       }
 
@@ -427,13 +428,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       }
     } else {
       // Navigate to walkthrough screen instead of inline editor
-      if (navigation) {
-        triggerLightHaptic();
-        navigation.navigate('TodaysFocusWalkthrough' as any, {
-          selectedDate: selectedDate.toISOString(),
-          existingEntry,
-        });
-      }
+      triggerLightHaptic();
+      nav.navigate('TodaysFocusWalkthrough' as any, {
+        selectedDate: selectedDate.toISOString(),
+        existingEntry,
+      });
     }
   };
 
