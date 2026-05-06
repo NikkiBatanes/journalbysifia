@@ -58,6 +58,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [customCategory, setCustomCategory] = React.useState('');
+  const [localSelectedCategory, setLocalSelectedCategory] = React.useState<string | null>(null);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const insets = useSafeAreaInsets();
@@ -68,8 +69,20 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
 
   const displayedCategories = showAllCategories ? TIMEBLOCK_CATEGORIES : TIMEBLOCK_CATEGORIES.slice(0, 12);
 
+  // Reset local state when modal opens/closes
   useEffect(() => {
-    if (selectedCategory) {
+    if (visible) {
+      setLocalSelectedCategory(selectedCategory);
+      setIsOtherSelected(selectedCategory === 'Other');
+    } else {
+      setLocalSelectedCategory(null);
+      setIsOtherSelected(false);
+      setCustomCategory('');
+    }
+  }, [visible, selectedCategory]);
+
+  useEffect(() => {
+    if (localSelectedCategory) {
       Animated.spring(buttonScale, {
         toValue: 1,
         tension: 50,
@@ -79,7 +92,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
     } else {
       buttonScale.setValue(0);
     }
-  }, [selectedCategory, buttonScale]);
+  }, [localSelectedCategory, buttonScale]);
 
   useEffect(() => {
     if (selectedCategory === 'Other') {
@@ -173,14 +186,20 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
             {!isOtherSelected && (
               <StepFadeIn delay={160} style={styles.categoriesGrid}>
               {displayedCategories.map((category) => {
-                const isSelected = selectedCategory === category.name;
+                const isSelected = localSelectedCategory === category.name;
                 return (
                   <TouchableOpacity
                     key={category.name}
                     style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
                     onPress={() => {
                       triggerSelectionHaptic();
-                      onSelect(category);
+                      if (category.name === 'Other') {
+                        setLocalSelectedCategory('Other');
+                        setIsOtherSelected(true);
+                      } else {
+                        setLocalSelectedCategory(category.name);
+                        onSelect(category);
+                      }
                     }}
                     activeOpacity={0.75}
                   >
@@ -244,7 +263,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
           </ScrollView>
 
           {/* Bottom button */}
-          {selectedCategory && (!isOtherSelected || customCategory.trim() !== '') && (
+          {localSelectedCategory && (!isOtherSelected || customCategory.trim() !== '') && (
             <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
               <TouchableOpacity
                 onPress={() => {
