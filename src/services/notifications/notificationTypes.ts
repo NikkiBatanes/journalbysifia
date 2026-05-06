@@ -33,6 +33,7 @@ export const SMART_NOTIFICATION_TYPES = [
   'usage_room_playbook',
   'content_refresh_wait',
   'upgrade_room',
+  'daily_review',
 ] as const;
 
 export type SmartNotificationType = typeof SMART_NOTIFICATION_TYPES[number];
@@ -140,6 +141,7 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
   usage_room_playbook: 'playbook_steps',
   content_refresh_wait: 'trial_notifications',
   upgrade_room: 'trial_notifications',
+  daily_review: 'journal_prompts',
 };
 
 export const SMART_NOTIFICATION_IMPORTANT_TYPES: SmartNotificationType[] = [

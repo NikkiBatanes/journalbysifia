@@ -17,6 +17,7 @@ import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
 import { navigateFromRoot } from '../utils/navigationHelpers';
+import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
 
 type PaidPlanTier = 'spark' | 'growth' | 'transformation';
 
@@ -609,7 +610,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
       onClose();
       setTimeout(() => {
-        const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
+        const didNavigate = notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params)
+          || navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
         if (!didNavigate) {
           Logger.warn('[SubscriptionPlanModal] Unable to navigate to sales offer', {
             component: 'SubscriptionPlanModal',

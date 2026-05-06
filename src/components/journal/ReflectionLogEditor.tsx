@@ -722,7 +722,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       }
     },
     blurInputs: () => {
-      console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor blurInputs() called — title focused=${titleInputRef.current?.isFocused()} content focused=${contentInputRef.current?.isFocused()}`);
       if (titleInputRef.current) {
         titleInputRef.current.blur();
       }
@@ -930,7 +929,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       if (isMountedRef.current) {
         setKeyboardHeight(e.endCoordinates.height);
         setIsKeyboardVisible(true);
-        console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor keyboardDidShow h=${e.endCoordinates.height}`);
       }
     });
 
@@ -938,7 +936,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       if (isMountedRef.current) {
         setKeyboardHeight(0);
         setIsKeyboardVisible(false);
-        console.log(`[KB_DEBUG ${Date.now()}] ReflectionLogEditor keyboardDidHide`);
       }
     });
 

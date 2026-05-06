@@ -29,19 +29,13 @@ export const useSuccessModal = (
   }, []);
 
   const handleDone = useCallback(() => {
-    const t = Date.now();
-    console.log(`[KB_DEBUG ${t}] handleDone START`);
     // Dismiss keyboard BEFORE closing the modal. NewSuccessModal is a
     // transparent overlay — when it closes iOS restores focus to whatever
     // TextInput was active beneath it, briefly re-showing the keyboard.
     // Dismissing first prevents that focus-restoration from firing.
-    console.log(`[KB_DEBUG ${t}] calling Keyboard.dismiss()`);
     Keyboard.dismiss();
-    console.log(`[KB_DEBUG ${t}] calling hideSuccess()`);
     hideSuccess();
-    console.log(`[KB_DEBUG ${t}] calling onDone()`);
     onDone?.();
-    console.log(`[KB_DEBUG ${t}] handleDone END`);
   }, [hideSuccess, onDone]);
 
   const handleEdit = useCallback(() => {

@@ -59,11 +59,8 @@ const ReflectionEditorScreen: React.FC = () => {
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
-      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: calling blurInputs()`);
       editorRef.current?.blurInputs();
-      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: calling navigation.goBack()`);
       navigation.goBack();
-      console.log(`[KB_DEBUG ${Date.now()}] ReflectionEditorScreen onDone: goBack() called`);
     },
     () => {
       // Edit callback - keep screen open and focus input

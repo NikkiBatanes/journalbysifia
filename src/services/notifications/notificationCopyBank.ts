@@ -301,6 +301,12 @@ export function buildSmartNotificationCopy(
         message: compact('Upgrade for more room to keep going with new playbooks and devotionals.'),
       };
 
+    case 'daily_review':
+      return {
+        title: compact('Look back on your day, {name} 🌿'),
+        message: compact('Take a moment to revisit your focus, reflection, or prayer from today.'),
+      };
+
     default:
       return {
         title: 'Open siFia',

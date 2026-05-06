@@ -133,7 +133,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-      console.log('[TodayWin] Raw content:', content);
       // Handle new structure with winType and quietWin (check for winType or winTypeName presence)
       if (content.winType || content.winTypeName) {
         const normalizedWinType = (content.winType || '').toString().toLowerCase();
@@ -142,7 +141,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           text: content.quietWin || '',
           winType: normalizedWinType === 'other' ? (content.winTypeName || '') : (content.winTypeName || content.winType),
         };
-        console.log('[TodayWin] Parsed win (new structure):', result);
         return result;
       }
       // Handle old structure with just win
@@ -150,7 +148,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         id: entry.id,
         text: content.win || '',
       };
-      console.log('[TodayWin] Old structure win:', result);
 
       return result;
     } catch (parseError) {

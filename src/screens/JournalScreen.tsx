@@ -276,6 +276,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       setExistingGratitudeEntry(undefined);
       // Show modal immediately without relying on carousel index
       setShowGratitudeModal(true);
+    } else if (targetSection === 'moments') {
+      setTimeout(() => {
+        navigation.navigate('JournalMoments');
+      }, 350);
     } else if (targetSection === 'prayer') {
       const targetPrayerCarouselIndex = typeof params?.targetPrayerCarouselIndex === 'number'
         ? params.targetPrayerCarouselIndex

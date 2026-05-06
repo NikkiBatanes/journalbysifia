@@ -644,7 +644,10 @@ export class AppleStoreKitService {
           throw error;
         }
 
-        const purchaseParams: any = { sku: productId };
+        const purchaseParams: any = {
+          sku: productId,
+          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        };
 
         // Add promotional offer if provided
         if (offerIdentifier) {

@@ -599,6 +599,22 @@ class NotificationDeepLinkService {
           });
           break;
 
+        case 'moments':
+          this.navigationRef.current.navigate('MainTabs', {
+            screen: 'Journal',
+            params: {
+              screen: 'JournalMain',
+              params: {
+                targetSection: 'moments',
+                ...query,
+              },
+            },
+          });
+          Logger.info('Navigated to Moments', {
+            component: 'notificationDeepLinkService',
+          });
+          break;
+
         case 'journal':
           if (id === 'heart' && query.title) {
             this.navigateToJournalTarget(id, query);

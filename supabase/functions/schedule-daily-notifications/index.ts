@@ -31,6 +31,7 @@ const corsHeaders = {
 //  15:45  create_first_devotional /        skip-if: conditions not met
 //         create_devotional
 //  16:00  playbook_to_devotional           skip-if: conditions not met
+//  16:25  daily_review                    skip-if: no journal entries today
 //  16:30  devotional_prayer_prompt         skip-if: no active devotional w/ prayer
 //  16:45  usage_room_devotional            skip-if: quota not low
 //  17:00  usage_room_playbook              skip-if: quota not low
@@ -53,11 +54,11 @@ const corsHeaders = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
   try {
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -66,15 +67,38 @@ serve(async (req) => {
 
     console.log('🔔 Starting daily notification scheduling...');
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // Allow passing a specific user_id for testing
+    const { data: { test_user_id } = {} } = await req.json();
+    
+    let activeUsers;
+    
+    if (test_user_id) {
+      console.log(`  → Testing for specific user: ${test_user_id}`);
+      const { data: testUser, error: testError } = await supabase
+        .from('user_profiles')
+        .select('id, first_name')
+        .eq('id', test_user_id)
+        .single();
+      
+      if (testError || !testUser) {
+        return new Response(
+          JSON.stringify({ error: 'Test user not found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      activeUsers = [testUser];
+    } else {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: activeUsers, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id, first_name')
-      .gte('last_seen_at', thirtyDaysAgo)
-      .eq('onboarding_completed', true);
+      const { data: fetchedUsers, error: userError } = await supabase
+        .from('user_profiles')
+        .select('id, first_name')
+        .gte('created_at', thirtyDaysAgo)
+        .eq('onboarding_completed', true);
 
-    if (userError) throw new Error(`Failed to fetch active users: ${userError.message}`);
+      if (userError) throw new Error(`Failed to fetch active users: ${userError.message}`);
+      activeUsers = fetchedUsers;
+    }
 
     if (!activeUsers || activeUsers.length === 0) {
       return new Response(
@@ -83,7 +107,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${activeUsers.length} active users`);
+    console.log(`  → Found ${activeUsers.length} active users to schedule for`);
 
     const results = [];
     for (const user of activeUsers) {
@@ -179,7 +203,7 @@ const plural = (n: number, s: string, p = `${s}s`): string => (n === 1 ? s : p);
 
 async function scheduleForUser(supabase: SupabaseClient, userId: string, name: string): Promise<number> {
   // Single round-trip: fetch all context in parallel
-  const [timezone, devotionals, playbook, prayerRequests, unansweredPrayers, hasPeoplePrayers, subscription] =
+  const [timezone, devotionals, playbook, prayerRequests, unansweredPrayers, hasPeoplePrayers, subscription, hasJournalEntriesToday] =
     await Promise.all([
       getUserTimezone(supabase, userId),
       getDevotionals(supabase, userId),
@@ -188,6 +212,7 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
       getUnansweredPrayers(supabase, userId),
       checkHasPeoplePrayers(supabase, userId),
       getUserSubscription(supabase, userId),
+      hasAnyJournalEntriesToday(supabase, userId),
     ]);
 
   const activeDevotionals    = devotionals.filter(d => !d.completed);
@@ -493,6 +518,20 @@ async function scheduleForUser(supabase: SupabaseClient, userId: string, name: s
         playbook_id: completedPBNoDevotional.id,
       },
       priority: 'low',
+    });
+  }
+
+  // ── 16:25  daily_review ───────────────────────────────────────────────────
+  // Only notify if user has at least one journal entry today
+  if (hasJournalEntriesToday) {
+    const copy = getNotificationCopy('daily_review');
+    add({
+      type: 'daily_review',
+      localHour: 16, localMinute: 25,
+      title: copy.title.replace('{name}', name),
+      message: copy.message.replace('{name}', name),
+      data: { deep_link: 'sifia://moments' },
+      priority: 'normal',
     });
   }
 
@@ -1206,6 +1245,58 @@ async function getUserSubscription(supabase: SupabaseClient, userId: string): Pr
       nextResetDate,
     };
   } catch { return null; }
+}
+
+async function hasAnyJournalEntriesToday(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
+
+    // Check journal_entries (Today's Focus, Todos, Gratitude, Today's Win, Looking Forward, Heart Journal)
+    const { data: journalEntries } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', todayIso)
+      .limit(1);
+    
+    if (journalEntries && journalEntries.length > 0) return true;
+
+    // Check prayers (Prayer Journal, Guided Prayers, Prayer List)
+    const { data: prayers } = await supabase
+      .from('prayers')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', todayIso)
+      .limit(1);
+    
+    if (prayers && prayers.length > 0) return true;
+
+    // Check time_blocks (Timeblock)
+    const { data: timeBlocks } = await supabase
+      .from('time_blocks')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', todayIso)
+      .limit(1);
+    
+    if (timeBlocks && timeBlocks.length > 0) return true;
+
+    // Check reflection_entries (Heart Journal)
+    const { data: reflections } = await supabase
+      .from('reflection_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', todayIso)
+      .limit(1);
+    
+    if (reflections && reflections.length > 0) return true;
+
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
