@@ -84,7 +84,7 @@ class NotificationDeliveryService {
         .limit(50);
 
       if (error) {
-        Logger.error('Error fetching pending notifications', error as Error, {
+        Logger.error('Error fetching pending notifications', new Error(error.message || JSON.stringify(error)), {
           component: 'NotificationDeliveryService',
         });
         return;
@@ -104,7 +104,7 @@ class NotificationDeliveryService {
       // Process each notification
       const processingPromises = pendingNotifications.map(notification =>
         this.deliverNotification(notification).catch(deliveryError => {
-          Logger.error(`Failed to deliver notification ${notification.id}`, deliveryError as Error, {
+          Logger.error(`Failed to deliver notification ${notification.id}`, new Error(deliveryError instanceof Error ? deliveryError.message : JSON.stringify(deliveryError)), {
             component: 'NotificationDeliveryService',
             notificationId: notification.id,
           });
@@ -119,7 +119,7 @@ class NotificationDeliveryService {
       });
 
     } catch (error) {
-      Logger.error('Error in processPendingNotifications', error as Error, {
+      Logger.error('Error in processPendingNotifications', new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
         component: 'NotificationDeliveryService',
       });
     } finally {
@@ -200,7 +200,7 @@ class NotificationDeliveryService {
       });
 
     } catch (error) {
-      Logger.error(`Failed to deliver notification ${notification.id}`, error as Error, {
+      Logger.error(`Failed to deliver notification ${notification.id}`, new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
         component: 'NotificationDeliveryService',
         notificationId: notification.id,
       });
@@ -239,7 +239,10 @@ class NotificationDeliveryService {
         component: 'NotificationDeliveryService',
         notificationId: notification.id,
         prayerId,
-        error,
+        error: {
+          message: error.message || JSON.stringify(error),
+          name: 'SupabaseError',
+        },
       });
       return null;
     }
@@ -329,7 +332,7 @@ class NotificationDeliveryService {
       });
 
     } catch (error) {
-      Logger.error('Failed to send push notification', error as Error, {
+      Logger.error('Failed to send push notification', new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
         component: 'NotificationDeliveryService',
         userId: notification.user_id,
         notificationId: notification.id,
@@ -373,7 +376,7 @@ class NotificationDeliveryService {
         total,
       };
     } catch (error) {
-      Logger.error('Error getting delivery stats', error as Error, {
+      Logger.error('Error getting delivery stats', new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
         component: 'NotificationDeliveryService',
       });
       return {
