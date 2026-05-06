@@ -217,6 +217,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     return defaultDate;
   });
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
+  const pickerEntryAnim = useRef(new Animated.Value(0)).current;
   const nextButtonAnim = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -595,6 +596,21 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       headerTranslateY.setValue(0);
     }
   }, [currentStep, showInlineYearPicker, headerTranslateY]);
+
+  // Spring-animate picker in.
+  React.useEffect(() => {
+    if (showInlineYearPicker) {
+      pickerEntryAnim.setValue(0);
+      Animated.spring(pickerEntryAnim, {
+        toValue: 1,
+        tension: 60,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      pickerEntryAnim.setValue(0);
+    }
+  }, [showInlineYearPicker, pickerEntryAnim]);
 
   // Stable animated Y for detailsOnly: headerTranslateY + 0 offset.
   // MUST be memoized — calling Animated.add() inline recreates the derived node
@@ -2177,7 +2193,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       {/* ── Birthday picker overlay: absolute so header layout never shifts ── */}
       {showInlineYearPicker && currentStep === 1 && (
-        <View style={[styles.birthdayPickerOverlay, { top: screenSize.height * 0.44 }]}>
+        <Animated.View style={[
+          styles.birthdayPickerOverlay,
+          { top: screenSize.height * 0.44 },
+          {
+            opacity: pickerEntryAnim,
+            transform: [{
+              translateY: pickerEntryAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [40, 0],
+              }),
+            }],
+          },
+        ]}>
           <DateTimePicker
             value={tempBirthDate}
             mode="date"
@@ -2194,13 +2222,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           />
           <View style={styles.birthdayPickerRow}>
             <TouchableOpacity
-              onPress={() => setShowInlineYearPicker(false)}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setShowInlineYearPicker(false);
+              }}
               style={styles.birthdayPickerCancelButton}
             >
               <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                try { triggerSuccessHaptic(); } catch {}
                 setBirthDate(tempBirthDate.toISOString().split('T')[0]);
                 setShowInlineYearPicker(false);
               }}
@@ -2209,7 +2241,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       )}
 
       {/* ── Step content: sibling of styles.content ──────────────────────── */}
