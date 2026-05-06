@@ -93,7 +93,7 @@ class EnhancedNotificationScheduler {
     const notification: NotificationQueueItem = {
       user_id: userId,
       type: 'devotional_reminder',
-      title: `Good Morning, ${userName}! 🌅`,
+      title: `Good Morning, ${userName}! 🔆`,
       message: 'Start your day with God\'s Word. Your devotional is ready.',
       data: {
         deep_link: 'sifia://devotionals/today',

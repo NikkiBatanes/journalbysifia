@@ -230,6 +230,8 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
                 multiline={true}
                 scrollEnabled={false}
                 contextMenuHidden={true}
+                selectTextOnFocus={false}
+                pointerEvents="none"
                 textAlignVertical="top"
                 style={[styles.userInputText, { fontFamily, padding: 0, margin: 0 }]}
               />
@@ -1704,6 +1706,7 @@ interface CompletionStepProps {
   onTurnIntoDevotional?: () => void;
   devotionalGenerated?: boolean;
   isCompleted?: boolean;
+  isOnboarding?: boolean;
   navigation: any;
   fromNotification?: boolean;
 }
@@ -1716,6 +1719,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   onTurnIntoDevotional,
   devotionalGenerated = false,
   isCompleted = false,
+  isOnboarding = false,
   navigation,
   fromNotification = false,
 }) => {
@@ -1952,7 +1956,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
               activeOpacity={0.85}
             >
               <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-                {isCompleted ? 'Done' : 'Save & Finish'}
+                {isCompleted ? 'Done' : isOnboarding ? 'Continue' : 'Save & Finish'}
               </ThemedText>
             </TouchableOpacity>
           )}
@@ -2451,10 +2455,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           onboardingFlow: true,
         });
       } else {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+        navigation.goBack();
       }
       return;
     }
@@ -2468,7 +2469,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         onboarding: true,
       });
     } else {
-      // Normal flow: navigate to StreakPlanScreen
+      // Normal flow: navigate to StreakPlanScreen, which will goBack() on Done
       (navigation as any).navigate('StreakPlan', {
         playbookId,
         userId,
@@ -2733,6 +2734,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onTurnIntoDevotional={() => setShowDevotionalModal(true)}
                 devotionalGenerated={devotionalGenerated}
                 isCompleted={routePlaybook?.status === 'completed'}
+                isOnboarding={source === 'onboarding'}
                 navigation={navigation}
                 fromNotification={fromNotification}
               />

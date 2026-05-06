@@ -77,7 +77,7 @@ class MilestoneCelebrationService {
       const notification: NotificationQueueItem = {
         user_id: userId,
         type: 'milestone_celebration',
-        title: `You reached ${points} faith points`,
+        title: `You reached ${points} faith points ✨`,
         message: 'Keep going. Quiet faithfulness adds up over time.',
         data: {
           deep_link: 'sifia://profile/stats',
