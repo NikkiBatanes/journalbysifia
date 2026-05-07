@@ -13,6 +13,8 @@ class NotificationDeliveryService {
   private processingInterval: NodeJS.Timeout | null = null;
   private isProcessing = false;
   private readonly PROCESSING_INTERVAL = 30000; // 30 seconds
+  private consecutiveNetworkErrors = 0;
+  private readonly MAX_NETWORK_ERRORS = 5; // Back off after 5 consecutive network errors
 
   static getInstance(): NotificationDeliveryService {
     if (!NotificationDeliveryService.instance) {
@@ -31,6 +33,9 @@ class NotificationDeliveryService {
       });
       return;
     }
+
+    // Reset network error counter on service start
+    this.consecutiveNetworkErrors = 0;
 
     Logger.info('Starting notification delivery service', {
       component: 'NotificationDeliveryService',
@@ -59,10 +64,31 @@ class NotificationDeliveryService {
   }
 
   /**
+   * Check if error is a network error
+   */
+  private isNetworkError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || '';
+    return errorMessage.includes('Network request failed') ||
+           errorMessage.includes('timeout') ||
+           errorMessage.includes('ECONNREFUSED') ||
+           errorMessage.includes('ETIMEDOUT') ||
+           error?.code === 'NETWORK_ERROR';
+  }
+
+  /**
    * Process all pending notifications (public for testing)
    */
   async processPendingNotifications(): Promise<void> {
     if (this.isProcessing) {
+      return;
+    }
+
+    // Skip processing if we've had too many consecutive network errors
+    if (this.consecutiveNetworkErrors >= this.MAX_NETWORK_ERRORS) {
+      Logger.warn(`Skipping notification processing due to ${this.consecutiveNetworkErrors} consecutive network errors`, {
+        component: 'NotificationDeliveryService',
+        consecutiveErrors: this.consecutiveNetworkErrors,
+      });
       return;
     }
 
@@ -84,11 +110,27 @@ class NotificationDeliveryService {
         .limit(50);
 
       if (error) {
-        Logger.error('Error fetching pending notifications', new Error(error.message || JSON.stringify(error)), {
-          component: 'NotificationDeliveryService',
-        });
-        return;
+        // Check if this is a network error
+        if (this.isNetworkError(error)) {
+          this.consecutiveNetworkErrors++;
+          Logger.warn('Network error fetching pending notifications (will retry)', {
+            component: 'NotificationDeliveryService',
+            consecutiveErrors: this.consecutiveNetworkErrors,
+            errorMessage: error.message,
+          });
+          return;
+        } else {
+          // Reset counter on non-network errors
+          this.consecutiveNetworkErrors = 0;
+          Logger.error('Error fetching pending notifications', new Error(error.message || JSON.stringify(error)), {
+            component: 'NotificationDeliveryService',
+          });
+          return;
+        }
       }
+
+      // Reset counter on successful fetch
+      this.consecutiveNetworkErrors = 0;
 
       if (!pendingNotifications || pendingNotifications.length === 0) {
         Logger.info('No pending notifications to process', {
@@ -119,9 +161,21 @@ class NotificationDeliveryService {
       });
 
     } catch (error) {
-      Logger.error('Error in processPendingNotifications', new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
-        component: 'NotificationDeliveryService',
-      });
+      // Check if this is a network error in the catch block
+      if (this.isNetworkError(error)) {
+        this.consecutiveNetworkErrors++;
+        Logger.warn('Network error in processPendingNotifications (will retry)', {
+          component: 'NotificationDeliveryService',
+          consecutiveErrors: this.consecutiveNetworkErrors,
+          errorMessage: error instanceof Error ? error.message : JSON.stringify(error),
+        });
+      } else {
+        // Reset counter on non-network errors
+        this.consecutiveNetworkErrors = 0;
+        Logger.error('Error in processPendingNotifications', new Error(error instanceof Error ? error.message : JSON.stringify(error)), {
+          component: 'NotificationDeliveryService',
+        });
+      }
     } finally {
       this.isProcessing = false;
     }

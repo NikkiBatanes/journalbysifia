@@ -19,6 +19,7 @@ import {
   Modal,
   // Switch removed - using custom toggle
   Image,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
@@ -1874,6 +1875,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
                 placeholderTextColor={Colors.textGray}
+                keyboardAppearance="dark"
               />
               <View style={styles.nameDivider} />
               <TextInput
@@ -1882,6 +1884,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
                 placeholderTextColor={Colors.textGray}
+                keyboardAppearance="dark"
               />
             </View>
           </View>
@@ -1891,6 +1894,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               style={styles.yearSelector}
               onPress={() => {
+                Keyboard.dismiss();
                 try { triggerLightHaptic(); } catch {}
                 const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
                 if (birthDateStr) {
@@ -1935,13 +1939,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 />
                 <View style={styles.yearPickerRow}>
                   <TouchableOpacity
-                    onPress={() => setShowInlineYearPicker(false)}
+                    onPress={() => {
+                      try { triggerLightHaptic(); } catch {}
+                      setShowInlineYearPicker(false);
+                    }}
                     style={styles.yearPickerCancelButton}
                   >
                     <Text style={[styles.cancelButtonText, font]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
+                      try { triggerSuccessHaptic(); } catch {}
                       setProfileForm({ ...profileForm, birthDate: tempBirthDate.toISOString().split('T')[0] });
                       setShowInlineYearPicker(false);
                     }}

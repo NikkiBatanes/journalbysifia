@@ -41,6 +41,37 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
 
   // ENHANCED approach: Replace various name patterns while preserving context
   // Check both at start AND throughout the text for names that look like the old user's name
+  
+  // Common words that should NEVER be replaced at the start of text
+  const startCommonWords = [
+    'Your', 'You', 'Yours', 'Yourself',
+    'He', 'Him', 'His', 'Himself',
+    'She', 'Her', 'Hers', 'Herself',
+    'It', 'Its', 'Itself',
+    'They', 'Them', 'Their', 'Theirs', 'Themselves',
+    'We', 'Us', 'Our', 'Ours', 'Ourselves',
+    'I', 'Me', 'My', 'Mine', 'Myself',
+    'The', 'This', 'That', 'These', 'Those', 'A', 'An',
+    'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'From', 'To', 'Of',
+    'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore',
+    'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly',
+    'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until',
+    'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy',
+    'What', 'Which', 'Who', 'Where', 'When', 'Why', 'How',
+    'Something', 'Nothing', 'Everything', 'Anything',
+    'Someone', 'Anyone', 'Everyone', 'Noone',
+    'Some', 'Any', 'Every', 'All', 'None',
+    'Each', 'Both', 'Either', 'Neither',
+    'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'First', 'Second', 'Third', 'Next', 'Last',
+    'Now', 'Then', 'Today', 'Tomorrow', 'Yesterday',
+    'Here', 'There', 'Everywhere', 'Nowhere',
+    'Always', 'Never', 'Sometimes', 'Often',
+    'Just', 'Only', 'Still', 'Already', 'Yet',
+    'Very', 'Too', 'Quite', 'Rather', 'Really',
+    'Well', 'So', 'Then', 'Now',
+  ];
+  
   const namePatterns = [
     // Pattern: "Name, you" - replace "Name" but preserve ", you"
     { pattern: /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i, hasComma: true },
@@ -59,8 +90,13 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
       const detectedName = match[1];
       const followingText = match[2] || ''; // Preserve following text if exists
 
-      // Replace if it looks like a name and is different from current name
-      if (detectedName !== currentFirstName && (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
+      console.log('[NameReplacement] Start pattern match:', detectedName, 'isCommonWord:', startCommonWords.includes(detectedName), 'isLikelyName:', isLikelyName(detectedName));
+
+      // Replace if it looks like a name, is different from current name, AND is not a common word
+      if (detectedName !== currentFirstName && 
+          !startCommonWords.includes(detectedName) &&
+          (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
+        console.log('[NameReplacement] REPLACING via start pattern:', detectedName, '->', currentFirstName);
         if (followingText) {
           // Preserve the original punctuation structure
           const separator = hasComma ? ', ' : ' ';
@@ -80,6 +116,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
   // This catches names in the middle of paragraphs
   if (processedText === text) {
     // Use word boundary regex to preserve exact spacing
+    // Exclude common pronouns and words that start sentences but aren't names
     const wordBoundaryRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
     let replaced = false;
 
@@ -87,8 +124,45 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
       if (replaced) {
         return match; // Only replace first occurrence
       }
-      // Check if it's a common word
-      const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy'];
+
+      // Comprehensive list of common words and pronouns that should NEVER be replaced
+      const commonWords = [
+        // Articles and determiners
+        'The', 'This', 'That', 'These', 'Those', 'A', 'An',
+        // Prepositions
+        'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'From', 'To', 'Of', 'About', 'Between', 'Among',
+        // Conjunctions
+        'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly',
+        // Subordinating conjunctions
+        'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until',
+        // Religious terms
+        'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy',
+        // Pronouns - capitalized at sentence starts
+        'Your', 'You', 'Yours', 'Yourself',
+        'He', 'Him', 'His', 'Himself',
+        'She', 'Her', 'Hers', 'Herself',
+        'It', 'Its', 'Itself',
+        'They', 'Them', 'Their', 'Theirs', 'Themselves',
+        'We', 'Us', 'Our', 'Ours', 'Ourselves',
+        'I', 'Me', 'My', 'Mine', 'Myself',
+        // Common sentence starters
+        'What', 'Which', 'Who', 'Where', 'When', 'Why', 'How',
+        'Something', 'Nothing', 'Everything', 'Anything',
+        'Someone', 'Anyone', 'Everyone', 'Noone',
+        'Some', 'Any', 'Every', 'All', 'None',
+        'Each', 'Both', 'Either', 'Neither',
+        'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+        'First', 'Second', 'Third', 'Next', 'Last',
+        'Now', 'Then', 'Today', 'Tomorrow', 'Yesterday',
+        'Here', 'There', 'Everywhere', 'Nowhere',
+        'Always', 'Never', 'Sometimes', 'Often',
+        'Just', 'Only', 'Still', 'Already', 'Yet',
+        'Very', 'Too', 'Quite', 'Rather', 'Really',
+        'Well', 'So', 'Then', 'Now',
+        // Words that commonly start sentences but aren't names
+        'But', 'And', 'Or', 'So', 'Yet', 'However',
+      ];
+
       if (!commonWords.includes(match) && match !== currentFirstName && isLikelyName(match)) {
         console.log('[NameReplacement] Found likely name to replace:', match, '->', currentFirstName);
         replaced = true;
@@ -129,7 +203,7 @@ function isLikelyName(text: string): boolean {
   }
 
   // Should not be common words that might appear at the start of sentences
-  const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While'];
+  const commonWords = ['The', 'This', 'That', 'These', 'Those', 'A', 'An', 'In', 'On', 'At', 'By', 'For', 'With', 'Without', 'But', 'And', 'Or', 'So', 'However', 'Therefore', 'Moreover', 'Furthermore', 'Nevertheless', 'Nonetheless', 'Thus', 'Hence', 'Consequently', 'Accordingly', 'As', 'When', 'While', 'Since', 'Because', 'Although', 'Though', 'Even', 'If', 'Unless', 'Until', 'While', 'God', 'Lord', 'Jesus', 'Christ', 'Spirit', 'Father', 'Son', 'Holy', 'Your', 'You', 'Youre', 'Yours', 'Yourself', 'He', 'Him', 'His', 'Himself', 'She', 'Her', 'Hers', 'Herself', 'It', 'Its', 'Itself', 'They', 'Them', 'Their', 'Theirs', 'Themselves', 'We', 'Us', 'Our', 'Ours', 'Ourselves'];
   if (commonWords.includes(text)) {
     return false;
   }

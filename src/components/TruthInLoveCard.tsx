@@ -52,14 +52,14 @@ export default function TruthInLoveCard({
   } : currentUser, [user, currentUser]);
 
   // Force re-computation when user data changes
-  // Replace both placeholders and hardcoded names for dynamic name updates
+  // Replace only placeholders, not hardcoded names (to avoid replacing "you"/"your" with name)
   const processedTruth = React.useMemo(() => {
-    const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: true }) : truth;
+    const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: false }) : truth;
     return result;
   }, [truth, freshUserData]);
 
   const { summaryText, cueText } = React.useMemo(() => {
-    const substituted = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
+    const substituted = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: false }) : summary;
     if (!substituted) {
       return { summaryText: '', cueText: '' };
     }
