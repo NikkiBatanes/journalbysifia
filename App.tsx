@@ -24,7 +24,17 @@ import {
 import {
   NavigationContainer,
   NavigationContainerRef,
+  DarkTheme,
 } from '@react-navigation/native';
+
+const AppNavigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: Colors.anchorBlue,
+    card: Colors.anchorBlue,
+  },
+};
 
 import {Colors} from './src/theme/colors';
 import {ThemeProvider} from './src/theme/ThemeContext';
@@ -363,6 +373,7 @@ function AppWithAuth({
 
   return (
     <NavigationContainer
+      theme={AppNavigationTheme}
       ref={ref => {
         navigationRef.current = ref;
       }}
@@ -450,6 +461,7 @@ function AppWithAuth({
 const styles = StyleSheet.create({
   gestureHandler: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   loadingContainer: {
     flex: 1,

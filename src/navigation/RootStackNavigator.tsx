@@ -369,6 +369,7 @@ export default function RootStackNavigator({
               headerShown: false,
               animation: 'fade',
               gestureEnabled: false,
+              backgroundColor: Colors.anchorBlue,
               contentStyle: { backgroundColor: Colors.anchorBlue },
             }}
           />

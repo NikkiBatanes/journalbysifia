@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
 
 interface SkeletonBoxProps {
@@ -73,7 +73,7 @@ const PlaybookSkeletonLoader = () => {
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={[styles.contentContainer, { paddingTop: insets.top + 8 }]}>
         {/* PLAYBOOK Label with Chevron - matches PlaybookWalkthroughScreen */}
         <View style={styles.playbookLabelContainer}>
@@ -109,7 +109,7 @@ const PlaybookSkeletonLoader = () => {
           <SkeletonBox width="60%" height={16} backgroundColor={'rgba(255,255,255,0.12)'} />
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

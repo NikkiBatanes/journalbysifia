@@ -2579,7 +2579,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Show loading state while fetching the full playbook from DB or awaiting session load
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
-    return <PlaybookSkeletonLoader />;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
+        <PlaybookSkeletonLoader />
+      </View>
+    );
   }
 
   if (!playbook) {
