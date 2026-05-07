@@ -1913,7 +1913,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               }}
             >
               <Text style={[styles.yearSelectorText, font]}>
-                {(profileForm as any).birthDate ? new Date((profileForm as any).birthDate).toLocaleDateString() : 'Select date'}
+                {(profileForm as any).birthDate ? new Date((profileForm as any).birthDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select date'}
               </Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textGray} />
             </TouchableOpacity>

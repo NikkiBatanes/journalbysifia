@@ -195,7 +195,21 @@ function cleanMarkdown(text: string): string {
   return text
     .replace(/\*\*|__|\*/g, '')
     .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/ +([,\.;:!?])/g, '$1')
     .trim();
+}
+
+// After the first sentence, replace any repeated use of the user's name with "you" / "your".
+function stripRepeatedName(text: string, name: string): string {
+  if (!text || !name || name.trim().length < 2) return text;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Keep first occurrence, replace all subsequent with context-aware pronoun
+  let firstFound = false;
+  return text.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), (match) => {
+    if (!firstFound) { firstFound = true; return match; }
+    // Replace "Name's" → "your", bare "Name" → "you"
+    return match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
+  });
 }
 
 interface AudienceContext {
@@ -475,8 +489,8 @@ function parseJsonPlaybook(
     subtitle: '',
     category: json.category || 'Growth',
     truthInLove: {
-      summary: json.truth_summary || '',
-      text: json.truth_in_love || '',
+      summary: stripRepeatedName(cleanMarkdown(json.truth_summary || ''), userName),
+      text: stripRepeatedName(cleanMarkdown(json.truth_in_love || ''), userName),
     },
     actionSteps: [],
     wordsToSpeak: [],
@@ -505,7 +519,7 @@ function parseJsonPlaybook(
       // fallback for unexpected string (schema change race condition)
       return String(c || '');
     })(),
-    prayer: json.prayer || '',
+    prayer: stripRepeatedName(cleanMarkdown(json.prayer || ''), userName),
     transitionLine: json.transition_line || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -654,13 +668,12 @@ serve(async (req: Request) => {
   const audienceContext = buildAudienceContext(dateOfBirth);
   const isTeenUser = audienceContext.isTeenUser;
   const personalizationContext = serializePersonalizationData(personalizationData);
-  console.log('[Generate-Guided-Playbook] Audience context:', {
-    ageSource: audienceContext.ageSource,
-    calculatedAge: audienceContext.calculatedAge,
-    isTeenUser,
-    hasPersonalizationContext: !!personalizationContext,
-    intelligenceLevel,
-  });
+  console.log('[Generate-Guided-Playbook] ===== AGE CONTEXT =====');
+  console.log('[Generate-Guided-Playbook] dateOfBirth received:', dateOfBirth ?? 'MISSING — age will be unknown');
+  console.log('[Generate-Guided-Playbook] calculatedAge:', audienceContext.calculatedAge ?? 'null (could not calculate)');
+  console.log('[Generate-Guided-Playbook] isTeenUser:', isTeenUser);
+  console.log('[Generate-Guided-Playbook] promptLine injected:', audienceContext.promptLine);
+  console.log('[Generate-Guided-Playbook] ===== END AGE CONTEXT =====');
 
   // Content safety check
   const contentAnalysis = analyzeContent(userInput);

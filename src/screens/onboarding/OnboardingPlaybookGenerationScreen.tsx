@@ -282,6 +282,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       const userName = params.userName || 'Friend';
 
       // Use unified generation service
+      console.log('[OnboardingPlaybookGeneration] Passing dateOfBirth:', params.onboardingData?.birthDate);
       const response = await unifiedGenerationService.generatePlaybook({
         userId,
         userInput: params.userInput || 'Help me grow in my faith journey',

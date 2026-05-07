@@ -1281,11 +1281,9 @@ serve(async (req: Request): Promise<Response> => {
   const isTeenUser = audienceContext.isTeenUser;
   const personalizationContext = serializePersonalizationData(personalizationData);
   console.log('[Generate-Devotional] FINAL: Age source:', audienceContext.ageSource);
-  console.log('[Generate-Devotional] FINAL: Calculated age:', audienceContext.calculatedAge);
-  if (isTeenUser) {
-    console.log('[Generate-Devotional] Teen user detected - simplifying language');
-  }
+  console.log('[Generate-Devotional] FINAL: Calculated age:', audienceContext.calculatedAge ?? 'null (could not calculate — dateOfBirth missing or invalid)');
   console.log('[Generate-Devotional] FINAL: Teen user (simplified language):', isTeenUser);
+  console.log('[Generate-Devotional] FINAL: promptLine injected:', audienceContext.promptLine);
   console.log('[Generate-Devotional] FINAL: Has personalization context:', !!personalizationContext, 'intelligenceLevel:', intelligenceLevel);
   console.log('[Generate-Devotional] ========== AGE DETECTION END ==========');
 
