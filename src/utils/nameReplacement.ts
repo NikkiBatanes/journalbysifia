@@ -41,7 +41,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
 
   // ENHANCED approach: Replace various name patterns while preserving context
   // Check both at start AND throughout the text for names that look like the old user's name
-  
+
   // Common words that should NEVER be replaced at the start of text
   const startCommonWords = [
     'Your', 'You', 'Yours', 'Yourself',
@@ -71,7 +71,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
     'Very', 'Too', 'Quite', 'Rather', 'Really',
     'Well', 'So', 'Then', 'Now',
   ];
-  
+
   const namePatterns = [
     // Pattern: "Name, you" - replace "Name" but preserve ", you"
     { pattern: /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i, hasComma: true },
@@ -93,7 +93,7 @@ export function replaceHardcodedNames(text: string, currentFirstName: string, ol
       console.log('[NameReplacement] Start pattern match:', detectedName, 'isCommonWord:', startCommonWords.includes(detectedName), 'isLikelyName:', isLikelyName(detectedName));
 
       // Replace if it looks like a name, is different from current name, AND is not a common word
-      if (detectedName !== currentFirstName && 
+      if (detectedName !== currentFirstName &&
           !startCommonWords.includes(detectedName) &&
           (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
         console.log('[NameReplacement] REPLACING via start pattern:', detectedName, '->', currentFirstName);
