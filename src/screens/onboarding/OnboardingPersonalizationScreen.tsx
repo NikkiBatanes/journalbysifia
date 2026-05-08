@@ -539,6 +539,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [challengeDetails, setChallengeDetails] = useState('');
   const [inputFeedback, setInputFeedback] = useState<string | null>(null);
   const detailsInputRef = useRef<TextInput>(null);
+  const totalSteps = detailsOnlyFlow ? 1 : 2;
+  const isWhatHappenedStep = detailsOnlyFlow || currentStep === 2;
 
   // Dynamic input height
   const MIN_INPUT_HEIGHT = 44;
@@ -577,6 +579,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const containerTranslateY = useRef(new Animated.Value(0)).current;
+  const activeInputMaxHeight = keyboardVisible && isWhatHappenedStep
+    ? (isVerySmallPhone ? 96 : (isSmallPhone ? 120 : MAX_INPUT_HEIGHT))
+    : MAX_INPUT_HEIGHT;
 
   const headerIntroOpacity = useRef(new Animated.Value(1)).current;
   const askBoxOpacity = useRef(new Animated.Value(1)).current;
@@ -1345,11 +1350,15 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           useNativeDriver: true,
         }),
       ];
-      if (detailsOnlyFlow) {
+      if (isWhatHappenedStep) {
+        const headerLift = Math.max(0, Math.min(
+          Math.max(kbHeight * (isVerySmallPhone ? 0.42 : (isSmallPhone ? 0.36 : 0.32)), 96),
+          isVerySmallPhone ? 150 : 136
+        ) - 16);
         // Move header up proportionally so it stays comfortably above the rising footer
         animations.push(
           Animated.spring(headerTranslateY, {
-            toValue: -(kbHeight * 0.3),
+            toValue: -headerLift,
             tension: 50,
             friction: 12,
             useNativeDriver: true,
@@ -1368,7 +1377,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           useNativeDriver: true,
         }),
       ];
-      if (detailsOnlyFlow) {
+      if (isWhatHappenedStep) {
         animations.push(
           Animated.spring(headerTranslateY, {
             toValue: 0,
@@ -1385,7 +1394,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [keyboardTranslateY, headerTranslateY, detailsOnlyFlow]);
+  }, [keyboardTranslateY, headerTranslateY, isWhatHappenedStep, isSmallPhone, isVerySmallPhone]);
 
   // Intro animation when screen first opens
   useEffect(() => {
@@ -1490,9 +1499,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       subHide.remove();
     };
   }, [currentStep, containerTranslateY, detailsOnlyFlow, insets?.bottom]);
-
-  const totalSteps = detailsOnlyFlow ? 1 : 2;
-  const isWhatHappenedStep = detailsOnlyFlow || currentStep === 2;
 
   const handleContinue = async () => {
     try { triggerLightHaptic(); } catch {}
@@ -1821,8 +1827,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 ref={detailsInputRef}
                 style={[
                   styles.askInput,
-                  inputHeight >= MAX_INPUT_HEIGHT
-                    ? { height: MAX_INPUT_HEIGHT }
+                  inputHeight >= activeInputMaxHeight
+                    ? { height: activeInputMaxHeight }
                     : { minHeight: MIN_INPUT_HEIGHT },
                 ]}
                 value={challengeDetails}
@@ -1844,7 +1850,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                   return placeholders[selectedChallenge] ?? 'What situation are you facing?';
                 })()}
                 autoFocus={true}
-                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                scrollEnabled={inputHeight >= activeInputMaxHeight}
                 keyboardAppearance="dark"
                 onContentSizeChange={handleContentSizeChange}
                 textAlignVertical="top"
