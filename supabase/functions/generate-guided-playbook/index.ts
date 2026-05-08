@@ -735,7 +735,7 @@ serve(async (req: Request) => {
       if (isTeenUser) {
         ctx += `\nLANGUAGE FIT: User is exactly ${audienceContext.calculatedAge} and under 18. Use simple clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.\n`;
       }
-      ctx += `\nSUPPORT SERVICES: General language only ("a trusted counselor", "local support services"). No phone numbers.\n`;
+      ctx += `\nSUPPORT GUIDANCE: Use Christ-centered language only ("a pastor", "a biblical counselor", "a Christian counselor", "biblical community"). No phone numbers.\n`;
 
       return ctx;
     };

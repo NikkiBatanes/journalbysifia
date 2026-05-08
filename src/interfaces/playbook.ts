@@ -58,6 +58,11 @@ export interface Playbook {
   bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
   faithfulActionsIntro?: string; // One-line framing sentence before action steps (Screen 3)
   transitionLine?: string; // Calm bridge line shown between Step 0 (Enter the Moment) and Step 1 (Truth in Love)
+  refinementCount?: number; // Number of refinements used for this playbook
+  refinementLimit?: number; // Refinements allowed for this playbook based on tier
+  lastRefinedAt?: string | null; // ISO timestamp of latest refinement
+  activeVersion?: number; // Active version number, backed by playbook_versions
+  latestRefinementNote?: string | null; // Last user clarification, not shown prominently
   profileImage?: string;
   progress: number;
   totalTasks: number;
@@ -67,4 +72,3 @@ export interface Playbook {
   status?: string; // 'inProgress' | 'completed' or undefined for compatibility
   tag?: string; // User-defined tag for categorization
 }
-

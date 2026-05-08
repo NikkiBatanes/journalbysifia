@@ -1139,6 +1139,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       updatedAt: item.updated_at,
       completedAt: item.completed_at,
       walkthroughProgress: item.walkthrough_progress ?? -1,
+      refinementCount: item.refinement_count ?? 0,
+      lastRefinedAt: item.last_refined_at ?? null,
+      activeVersion: item.active_version ?? 1,
+      latestRefinementNote: item.latest_refinement_note ?? null,
       status: item.status,
     };
   });
@@ -1388,6 +1392,10 @@ export async function getPlaybook(
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       completedAt: null, // Not stored in current schema
+      refinementCount: data.refinement_count ?? 0,
+      lastRefinedAt: data.last_refined_at ?? null,
+      activeVersion: data.active_version ?? 1,
+      latestRefinementNote: data.latest_refinement_note ?? null,
       status: data.status,
     };
 

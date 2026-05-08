@@ -29,6 +29,10 @@ interface PlaybookRow {
   updated_at: string;
   completed_at: string | null;
   walkthrough_progress: number | null;
+  refinement_count?: number | null;
+  last_refined_at?: string | null;
+  active_version?: number | null;
+  latest_refinement_note?: string | null;
   tag: string | null;
 }
 
@@ -159,6 +163,10 @@ function transformPlaybookRow(
     updatedAt: playbookRow.updated_at,
     completedAt: playbookRow.completed_at ?? null,
     walkthroughProgress: playbookRow.walkthrough_progress ?? -1,
+    refinementCount: playbookRow.refinement_count ?? 0,
+    lastRefinedAt: playbookRow.last_refined_at ?? null,
+    activeVersion: playbookRow.active_version ?? 1,
+    latestRefinementNote: playbookRow.latest_refinement_note ?? null,
     tag: playbookRow.tag || undefined,
     progress: 0,
     totalTasks: transformedActionSteps.length,
@@ -188,6 +196,10 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         updated_at,
         walkthrough_progress,
         completed_at,
+        refinement_count,
+        last_refined_at,
+        active_version,
+        latest_refinement_note,
         playbook_action_steps (
           id,
           text,
@@ -220,6 +232,10 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         updated_at,
         walkthrough_progress,
         completed_at,
+        refinement_count,
+        last_refined_at,
+        active_version,
+        latest_refinement_note,
         playbook_action_steps (
           id,
           text,
@@ -320,6 +336,10 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         updatedAt: playbookRow.updated_at,
         completedAt: playbookRow.completed_at ?? null,
         walkthroughProgress: playbookRow.walkthrough_progress ?? -1,
+        refinementCount: playbookRow.refinement_count ?? 0,
+        lastRefinedAt: playbookRow.last_refined_at ?? null,
+        activeVersion: playbookRow.active_version ?? 1,
+        latestRefinementNote: playbookRow.latest_refinement_note ?? null,
       } as Playbook;
     });
 

@@ -358,6 +358,7 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
   }, [item.completedAt]);
 
   const isCardCompleted = item.status === 'completed';
+  const isRefined = (item.refinementCount || 0) > 0 || Boolean(item.lastRefinedAt);
   const wp = item.walkthroughProgress ?? -1;
 
   return (
@@ -372,6 +373,11 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
         <View style={st.dateWithBadge}>
           {!isCardCompleted && updatedDateStr ? (
             <ThemedText style={st.carouselDate}>{updatedDateStr}</ThemedText>
+          ) : null}
+          {isRefined ? (
+            <View style={st.refinedBadge}>
+              <ThemedText weight="semiBold" style={st.refinedBadgeText}>Refined</ThemedText>
+            </View>
           ) : null}
         </View>
         <ThemedText weight="semiBold" style={st.carouselCardTitle}>{item.title}</ThemedText>
@@ -1034,9 +1040,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
         refetch();
       }, 100);
     });
+    const refinementSubscription = DeviceEventEmitter.addListener('playbook_refined', () => {
+      setTimeout(() => {
+        refetch();
+      }, 100);
+    });
 
     return () => {
       subscription.remove();
+      refinementSubscription.remove();
     };
   }, [refetch]);
 
@@ -1376,7 +1388,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
         const title = (playbook.title || '').toLowerCase();
         const cat = ((playbook as any).category || '').toLowerCase();
         const tag = (playbook.tag || '').toLowerCase();
-        if (!title.includes(q) && !cat.includes(q) && !tag.includes(q)) {
+        const input = (playbook.userInput || '').toLowerCase();
+        if (!title.includes(q) && !cat.includes(q) && !tag.includes(q) && !input.includes(q)) {
           return false;
         }
       }
@@ -2855,6 +2868,19 @@ const createStyles = (_theme: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  refinedBadge: {
+    marginLeft: 8,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(230, 90, 70, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 90, 70, 0.32)',
+  },
+  refinedBadgeText: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
   },
   devotionalsBadge: {
     flexDirection: 'row',
