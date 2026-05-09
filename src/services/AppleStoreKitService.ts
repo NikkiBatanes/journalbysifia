@@ -2013,22 +2013,8 @@ export class AppleStoreKitService {
           platform_subscription_id: purchase.transactionId,
         });
 
-        // Send payment success notification for trial conversion
-        try {
-          const subscription = await NewSubscriptionService.getUserSubscription(userId);
-          const tierDisplayName = subscription.subscription_display_name || status.tier;
-          // Call scheduler directly to avoid argument count issues
-          await notificationSchedulerService.schedulePaymentSuccessNotification(
-            userId,
-            tierDisplayName,
-            0
-          ); // Trial conversion = no additional cost
-        } catch (notifError) {
-          Logger.warn('[StoreKit] Failed to send trial conversion notification', {
-            component: 'AppleStoreKitService',
-            errorMessage: String(notifError),
-          });
-        }
+        // Note: Payment success notification is already sent by updateUserSubscription
+        // We don't send it here to avoid duplicates during sync operations
       }
 
     } catch (error) {
