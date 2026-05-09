@@ -349,6 +349,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                     <TouchableOpacity
                       style={styles.doneButton}
                       onPress={() => {
+                        triggerLightHaptic();
                         preserveDraftOnCloseRef.current = false;
                         onDismiss();
                       }}

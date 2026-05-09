@@ -2128,6 +2128,20 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                           </View>
                         );
                       })}
+                      <TouchableOpacity
+                        style={styles.actionWisdomCollapseButton}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                          setWisdomExpanded(false);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <ThemedText weight="semiBold" style={styles.actionWisdomCollapseButtonText}>
+                          Collapse
+                        </ThemedText>
+                        <Ionicons name="chevron-up" size={14} color="rgba(255,255,255,0.6)" />
+                      </TouchableOpacity>
                     </View>
                   ) : null}
                 </View>
@@ -4573,6 +4587,19 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 14,
+  },
+  actionWisdomCollapseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  actionWisdomCollapseButtonText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
   },
   actionWisdomOutroWrapper: {
     alignSelf: 'stretch',
