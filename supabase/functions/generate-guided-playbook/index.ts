@@ -191,31 +191,64 @@ function sanitizeText(text: string): string {
 }
 
 function cleanMarkdown(text: string): string {
-  if (!text) return '';
+  if (!text) {
+    return '';
+  }
   return text
     .replace(/\*\*|__|\*/g, '')
     .replace(/^["'`]+|["'`]+$/g, '')
-    .replace(/ +([,\.;:!?])/g, '$1')
+    .replace(/ +([,.;:!?])/g, '$1')
     .trim();
+}
+
+function capitalizeFirstLetter(text: string): string {
+  return text.replace(/^(\s*)([a-z])/, (_match, space, letter) => `${space}${letter.toUpperCase()}`);
 }
 
 // Replace ALL occurrences of the user's name with "you" / "your".
 // Used for fields where the name must never appear (truth_in_love, prayer, etc.)
 function stripAllName(text: string, name: string): string {
-  if (!text || !name || name.trim().length < 2) return text;
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(`\\b${escaped}('s|’s)?\\b`, 'gi'), (match) => {
+  if (!text) {
+    return '';
+  }
+  let processed = text.replace(/\[(?:User's Name|First Name|Last Name)\](?:'s|’s)?/gi, (match) => {
     return match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
   });
+  const cleanName = (name || '').trim();
+  if (!cleanName || cleanName.length < 2) {
+    return capitalizeFirstLetter(processed.replace(/^you,\s+/i, '').replace(/^you\b/i, 'you'));
+  }
+  const escaped = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  processed = processed.replace(new RegExp(`\\b${escaped},\\s+you\\b`, 'gi'), 'you');
+  processed = processed.replace(new RegExp(`\\b${escaped}('s|’s)?\\b`, 'gi'), (match) => {
+    return match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
+  });
+  return capitalizeFirstLetter(processed.replace(/^you,\s+/i, '').replace(/^you\b/i, 'you'));
 }
 
-// Keep first occurrence in truth_summary, replace all subsequent with "you"/"your".
+// Keep the opening name in truth_summary only, replace all subsequent names with "you"/"your".
 function stripRepeatedName(text: string, name: string): string {
-  if (!text || !name || name.trim().length < 2) return text;
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!text) {
+    return '';
+  }
+  let processed = text;
+  const cleanName = (name || '').trim();
+  processed = processed.replace(/\[(?:User's Name|First Name|Last Name)\](?:'s|’s)?/gi, (match, offset) => {
+    if (cleanName.length >= 2 && offset <= 2) {
+      return match.endsWith("'s") || match.endsWith('’s') ? `${cleanName}'s` : cleanName;
+    }
+    return match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
+  });
+  if (!cleanName || cleanName.length < 2) {
+    return processed;
+  }
+  const escaped = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   let firstFound = false;
-  return text.replace(new RegExp(`\\b${escaped}('s|’s)?\\b`, 'gi'), (match) => {
-    if (!firstFound) { firstFound = true; return match; }
+  return processed.replace(new RegExp(`\\b${escaped}('s|’s)?\\b`, 'gi'), (match, _possessive, offset) => {
+    if (!firstFound && offset <= 2) {
+      firstFound = true;
+      return match;
+    }
     return match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
   });
 }
@@ -730,6 +763,7 @@ serve(async (req: Request) => {
 
       let ctx = `${bibleNote}\n`;
       ctx += `USER NAME: ${userName} — use this name only. Do not invent or substitute.\n`;
+      ctx += 'NAME PLACEMENT: truth_summary may begin with [User\'s Name] once. Do not write the user name or [User\'s Name] anywhere in truth_in_love or any later field.\n';
       ctx += `USER INPUT: ${input}\n`;
       ctx += `${audienceContext.promptLine}\n`;
 

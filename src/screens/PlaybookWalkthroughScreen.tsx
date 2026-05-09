@@ -17,7 +17,6 @@ import {
   Platform,
   Clipboard,
   PanResponder,
-  ActivityIndicator,
   Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,6 +87,67 @@ const splitParagraphs = (text: string): string[] =>
     .split(/\n+/)
     .map(p => p.trim())
     .filter(Boolean);
+
+const USER_NAME_PLACEHOLDER_REGEX = /\[(?:User's Name|First Name|Last Name)\](?:'s|’s)?/gi;
+
+const nameReplacementFor = (match: string): string =>
+  match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
+
+const capitalizeFirstLetter = (text: string): string =>
+  text.replace(/^(\s*)([a-z])/, (_match, space, letter) => `${space}${letter.toUpperCase()}`);
+
+const userNameRegex = (userName: string): RegExp | null => {
+  const cleanName = userName.trim();
+  if (cleanName.length < 2) {
+    return null;
+  }
+
+  const escaped = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}('s|’s)?\\b`, 'gi');
+};
+
+const removeUserNameReferences = (text: string, userName: string): string => {
+  let processed = text.replace(USER_NAME_PLACEHOLDER_REGEX, nameReplacementFor);
+  const regex = userNameRegex(userName);
+  if (!regex) {
+    return capitalizeFirstLetter(processed.replace(/^you,\s+/i, '').replace(/^you\b/i, 'you'));
+  }
+
+  processed = processed.replace(new RegExp(`\\b${userName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')},\\s+you\\b`, 'gi'), 'you');
+  processed = processed.replace(regex, nameReplacementFor);
+  return capitalizeFirstLetter(processed.replace(/^you,\s+/i, '').replace(/^you\b/i, 'you'));
+};
+
+const keepOnlyOpeningUserName = (text: string, userName: string): string => {
+  const cleanName = userName.trim();
+  let processed = replaceAllNamePlaceholders(
+    text,
+    { displayName: cleanName, firstName: cleanName },
+    { replaceHardcodedNames: true }
+  );
+
+  if (cleanName.length < 2) {
+    return processed.replace(USER_NAME_PLACEHOLDER_REGEX, nameReplacementFor);
+  }
+
+  processed = processed.replace(USER_NAME_PLACEHOLDER_REGEX, (match, offset) =>
+    offset <= 2 ? cleanName : nameReplacementFor(match)
+  );
+
+  const regex = userNameRegex(cleanName);
+  if (!regex) {
+    return processed;
+  }
+
+  let keptOpeningName = false;
+  return processed.replace(regex, (match, _possessive, offset) => {
+    if (!keptOpeningName && offset <= 2) {
+      keptOpeningName = true;
+      return match;
+    }
+    return nameReplacementFor(match);
+  });
+};
 
 // ─── StepFadeIn — fades + slides content up on mount ────────────────────────
 
@@ -172,7 +232,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
-  const personalized = replaceAllNamePlaceholders(summary, { displayName: userName, firstName: userName }, { replaceHardcodedNames: true });
+  const personalized = keepOnlyOpeningUserName(summary, userName);
   // Cap to 2 paragraphs — this is an entry moment, not the full truth section
   const paragraphs = splitParagraphs(personalized).slice(0, 2);
 
@@ -314,7 +374,7 @@ interface TruthStepProps {
   insets: { top: number; bottom: number };
 }
 
-const TRUTH_PREVIEW_COUNT = 1; // paragraphs visible before "Read more"
+const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 
 const TruthInLoveStep: React.FC<TruthStepProps> = ({
   text,
@@ -325,7 +385,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
-  const personalized = replaceAllNamePlaceholders(text, { displayName: userName, firstName: userName }, { replaceHardcodedNames: true });
+  const personalized = removeUserNameReferences(text, userName);
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
   const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
@@ -440,6 +500,8 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const [refinementText, setRefinementText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const revealAnim = useRef(new Animated.Value(0)).current;
+  const refiningAnim = useRef(new Animated.Value(1)).current;
+  const [dotIndex, setDotIndex] = useState(0);
   const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
   const canRefine = active && refinementsRemaining > 0;
   const bottomOffset = insets.bottom + 20;
@@ -479,6 +541,52 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
       }
     };
   }, [canRefine, revealAnim]);
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(refiningAnim, {
+          toValue: 0.5,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(refiningAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    if (isRefining) {
+      animation.start();
+    } else {
+      animation.stop();
+      refiningAnim.setValue(1);
+    }
+
+    return () => {
+      animation.stop();
+    };
+  }, [isRefining, refiningAnim]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    if (isRefining) {
+      interval = setInterval(() => {
+        setDotIndex(prev => (prev + 1) % 3);
+      }, 500);
+    } else {
+      setDotIndex(0);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isRefining]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -635,7 +743,18 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
                   disabled={!refinementText.trim() || isRefining}
                 >
                   {isRefining ? (
-                    <ActivityIndicator size="small" color={Colors.hopeWhite} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Animated.Text
+                        style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, fontWeight: '500' }]}
+                      >
+                        Refining
+                      </Animated.Text>
+                      <Animated.Text
+                        style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, width: 20, textAlign: 'left', fontWeight: '500' }]}
+                      >
+                        {'.'.repeat(dotIndex + 1)}
+                      </Animated.Text>
+                    </View>
                   ) : (
                     <>
                       <Ionicons name="refresh-outline" size={16} color={Colors.hopeWhite} />
@@ -941,6 +1060,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
+  const triggerRotation = useRef(new Animated.Value(0)).current;
   const triggerScale = useRef(new Animated.Value(1)).current;
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
   const rowHeight = useRef(new Animated.Value(0)).current;
@@ -952,6 +1072,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
 
+  const rotateInterpolate = triggerRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
+
   const toggleJournalIcons = () => {
     // Use ref so we always read the real current value, not a stale closure
     const expanding = !journalExpandedRef.current;
@@ -960,12 +1085,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     onJournalExpanded?.(expanding);
     triggerLightHaptic();
 
-    Animated.spring(triggerScale, {
-      toValue: expanding ? 1.15 : 1,
-      useNativeDriver: true,
-      tension: 200,
-      friction: 7,
-    }).start();
+    Animated.parallel([
+      Animated.timing(triggerRotation, {
+        toValue: expanding ? 1 : 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(triggerScale, {
+        toValue: expanding ? 1.15 : 1,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 7,
+      }),
+    ]).start();
 
     if (expanding) {
       Animated.parallel([
@@ -1030,7 +1162,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setJournalText('');
     setJournalSaved(false);
     setSelectedChoice(null);
-  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerScale]);
+  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerRotation, triggerScale]);
 
   // Auto-nudge: expand journal icons on first step, then collapse — one time only per session.
   // ALL inner timers are tracked in nudgeTimerRefs so they can be cancelled on unmount or
@@ -1046,6 +1178,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+        Animated.timing(triggerRotation, { toValue: 1, duration: 220, useNativeDriver: true }),
         Animated.spring(triggerScale, { toValue: 1.15, useNativeDriver: true, tension: 200, friction: 7 }),
       ]).start(() => {
         Animated.stagger(50, iconAnims.map(anim =>
@@ -1058,7 +1191,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             if (!journalExpandedRef.current) { return; } // user already closed it
             journalExpandedRef.current = false;
             setJournalExpanded(false);
-            Animated.spring(triggerScale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 7 }).start();
+            Animated.parallel([
+              Animated.timing(triggerRotation, { toValue: 0, duration: 220, useNativeDriver: true }),
+              Animated.spring(triggerScale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 7 }),
+            ]).start();
             Animated.stagger(35, [...iconAnims].reverse().map(anim =>
               Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
             )).start(() => {
@@ -1078,7 +1214,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       nudgeTimerRefs.current.forEach(id => clearTimeout(id));
       nudgeTimerRefs.current = [];
     };
-  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerScale]);
+  }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerRotation, triggerScale]);
 
   const animateToNext = useCallback(
     (callback: () => void) => {
@@ -1560,7 +1696,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               onPress={toggleJournalIcons}
               activeOpacity={0.8}
             >
-              <Animated.View style={{ transform: [{ scale: triggerScale }] }}>
+              <Animated.View style={{ transform: [{ rotate: rotateInterpolate }, { scale: triggerScale }] }}>
                 <MaterialCommunityIcons
                   name="pencil-plus-outline"
                   size={20}
@@ -2727,6 +2863,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       });
 
       setRefinedPlaybookOverride(result.playbook as any);
+      setStepIndex(0);
       setActionStepIndex(0);
 
       persistedCommittedSteps = {};
