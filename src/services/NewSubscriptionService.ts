@@ -28,6 +28,7 @@ export class NewSubscriptionService {
   static getTrialLimits(trialChosenTier?: SubscriptionTier): {
     playbooks_limit: number;
     devotionals_limit: number;
+    wisdom_limit: number;
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
@@ -37,6 +38,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 5,
           devotionals_limit: 5,
+          wisdom_limit: 2,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -44,6 +46,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 15,
           devotionals_limit: 15,
+          wisdom_limit: 6,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -51,6 +54,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 25,
           devotionals_limit: 25,
+          wisdom_limit: 10,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -58,6 +62,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 15,
           devotionals_limit: 15,
+          wisdom_limit: 6,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -72,6 +77,7 @@ export class NewSubscriptionService {
   static getTierLimits(tier: SubscriptionTier, subscription?: Subscription | null): {
     playbooks_limit: number;
     devotionals_limit: number;
+    wisdom_limit: number;
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
@@ -83,6 +89,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 2,
           devotionals_limit: 1,
+          wisdom_limit: 2,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -96,6 +103,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 10,
           devotionals_limit: 10,
+          wisdom_limit: 5,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -103,6 +111,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 25,
           devotionals_limit: 25,
+          wisdom_limit: 12,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -110,6 +119,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 60,
           devotionals_limit: 60,
+          wisdom_limit: 25,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -118,6 +128,7 @@ export class NewSubscriptionService {
       //   return {
       //     playbooks_limit: -1,
       //     devotionals_limit: -1,
+      //     wisdom_limit: -1,
       //     smart_journaling_enabled: true,
       //     show_dashboard_counts: false, // Hide counts for unlimited
       //   };
@@ -126,6 +137,7 @@ export class NewSubscriptionService {
         return {
           playbooks_limit: 2,
           devotionals_limit: 1,
+          wisdom_limit: 2,
           smart_journaling_enabled: false,
           show_dashboard_counts: true,
         };
@@ -178,6 +190,29 @@ export class NewSubscriptionService {
   }
 
   /**
+   * Reset all usage counters for a newly activated entitlement period.
+   */
+  static async resetUsageCounters(userId: string): Promise<Subscription> {
+    const resetAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        playbooks_used: 0,
+        devotionals_used: 0,
+        wisdom_count: 0,
+        last_usage_reset: resetAt,
+        updated_at: resetAt,
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new SubscriptionError(`Failed to reset usage counters: ${error.message}`, 'USAGE_RESET_ERROR', error);
+    }
+
+    return await this.getUserSubscription(userId, true);
+  }
+
+  /**
    * Check and perform monthly usage reset for annual subscriptions
    * MONTHLY: Reset handled by DID_RENEW webhook (Apple charges every 30 days)
    * ANNUAL: Reset handled here (Apple charges yearly, but usage resets monthly)
@@ -216,6 +251,7 @@ export class NewSubscriptionService {
             .update({
               playbooks_used: 0,
               devotionals_used: 0,
+              wisdom_count: 0,
               last_usage_reset: now.toISOString(),
               updated_at: now.toISOString(),
             })
@@ -270,6 +306,7 @@ export class NewSubscriptionService {
             .update({
               playbooks_used: 0,
               devotionals_used: 0,
+              wisdom_count: 0,
               last_usage_reset: now.toISOString(),
               updated_at: now.toISOString(),
             })
@@ -329,6 +366,7 @@ export class NewSubscriptionService {
           .update({
             playbooks_used: 0,
             devotionals_used: 0,
+            wisdom_count: 0,
             last_usage_reset: now.toISOString(),
             updated_at: now.toISOString(),
           })
@@ -399,6 +437,7 @@ export class NewSubscriptionService {
           show_dashboard_counts: seekerLimits.show_dashboard_counts,
           playbooks_used: 0,
           devotionals_used: 0,
+          wisdom_count: 0,
           last_usage_reset: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -463,6 +502,7 @@ export class NewSubscriptionService {
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
+        wisdom_count: 0,
         last_usage_reset: trialNow, // Issue 7: initialize so first foreground check has a valid anchor
         updated_at: trialNow,
         // CRITICAL: Store transaction IDs for webhook lookup
@@ -555,6 +595,7 @@ export class NewSubscriptionService {
             smart_journaling_enabled: trialLimits.smart_journaling_enabled,
             playbooks_used: 0,
             devotionals_used: 0,
+            wisdom_count: 0,
             last_usage_reset: trialNow,
             platform_transaction_id,
             original_transaction_id,
@@ -601,6 +642,7 @@ export class NewSubscriptionService {
           smart_journaling_enabled: limits.smart_journaling_enabled,
           playbooks_used: 0, // Reset usage when converting from trial to paid
           devotionals_used: 0,
+          wisdom_count: 0,
           subscription_start_date: new Date().toISOString(),
           last_usage_reset: new Date().toISOString(), // Initialize reset anchor for paid billing cycle
           updated_at: new Date().toISOString(),
@@ -660,6 +702,7 @@ export class NewSubscriptionService {
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0, // ALWAYS reset usage for trial
         devotionals_used: 0, // ALWAYS reset usage for trial
+        wisdom_count: 0, // ALWAYS reset wisdom usage for trial
         updated_at: new Date().toISOString(),
       };
 
@@ -719,6 +762,7 @@ export class NewSubscriptionService {
     // This applies to: seeker→paid, trial→paid, spark→growth, growth→transformation, etc.
     updateData.playbooks_used = 0;
     updateData.devotionals_used = 0;
+    updateData.wisdom_count = 0;
     updateData.last_usage_reset = new Date().toISOString(); // Track when usage was reset
     updateData.subscription_start_date = new Date().toISOString(); // Set billing anchor for monthly resets
     updateData.billing_cycle = to_tier.includes('_annual') ? 'annual' : 'monthly'; // Track billing frequency
@@ -855,7 +899,7 @@ export class NewSubscriptionService {
   /**
    * Check if user can perform an action
    */
-  static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+  static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
 
@@ -899,6 +943,8 @@ export class NewSubscriptionService {
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
         return this.checkExportLimit(subscription, limits);
+      case 'wisdom':
+        return this.checkWisdomLimit(subscription, limits);
       default:
         throw new SubscriptionError(`Unknown action: ${action}`, 'INVALID_ACTION');
     }
@@ -907,7 +953,7 @@ export class NewSubscriptionService {
   /**
    * Increment usage counter
    */
-  static async incrementUsage(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding: boolean = false): Promise<void> {
+  static async incrementUsage(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<void> {
     // First check if action is allowed
     const check = await this.checkUsageLimit(userId, action, isOnboarding);
     const subscription = await this.getUserSubscription(userId);
@@ -920,7 +966,8 @@ export class NewSubscriptionService {
 
     // Increment the appropriate counter
     const updateField = action === 'playbook' ? 'playbooks_used' :
-                       action === 'devotional' ? 'devotionals_used' : null;
+                       action === 'devotional' ? 'devotionals_used' :
+                       action === 'wisdom' ? 'wisdom_count' : null;
 
     if (updateField) {
       // Optimistic-lock increment with a fresh limit check on every retry.
@@ -930,7 +977,9 @@ export class NewSubscriptionService {
           const currentSubscription = await this.getUserSubscription(userId, true);
           const currentValue = (currentSubscription as any)?.[updateField] || 0;
           const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
-          const limit = action === 'playbook' ? limits.playbooks_limit : limits.devotionals_limit;
+          const limit = action === 'playbook' ? limits.playbooks_limit :
+                        action === 'devotional' ? limits.devotionals_limit :
+                        action === 'wisdom' ? limits.wisdom_limit : -1;
 
           if (limit !== -1 && currentValue >= limit) {
             throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
@@ -994,6 +1043,7 @@ export class NewSubscriptionService {
         devotionals_limit: seekerLimits.devotionals_limit,
         playbooks_used: 0,
         devotionals_used: 0,
+        wisdom_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         billing_cycle: null,
         status: 'expired',
@@ -1029,6 +1079,7 @@ export class NewSubscriptionService {
         devotionals_limit: seekerLimits.devotionals_limit,
         playbooks_used: 0,
         devotionals_used: 0,
+        wisdom_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         status: 'expired',
         updated_at: new Date().toISOString(),
@@ -1057,6 +1108,7 @@ export class NewSubscriptionService {
         devotionals_limit: seekerLimits.devotionals_limit,
         playbooks_used: 0,
         devotionals_used: 0,
+        wisdom_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         billing_cycle: null,
         status: 'expired',
@@ -1197,6 +1249,7 @@ export class NewSubscriptionService {
       // Use calculated limits so stale stored rows cannot bypass or hide quotas.
       playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
       devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+      wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
       smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
@@ -1204,10 +1257,12 @@ export class NewSubscriptionService {
       limits: {
         playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+        wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
         smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
         // Add backward compatibility aliases
         playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
+        wisdom: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
       },
       // UI fields - use actual limits (not stored values that might be outdated)
       playbooks_ui: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
@@ -1316,9 +1371,36 @@ export class NewSubscriptionService {
       can_export: true, // Will be checked separately
       playbooks_remaining: -1, // Will be calculated separately
       devotionals_remaining: remaining,
-      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation', // POST-LAUNCH: && subscription.tier !== 'family'
+      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation',
       upgrade_message: !canGenerate
         ? this.getDevotionalLimitMessage(subscription, limits)
+        : undefined,
+    };
+  }
+
+  /**
+   * Check wisdom usage limit
+   */
+  private static checkWisdomLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+    const wisdomUsed = (subscription as any).wisdom_count || 0;
+    const wisdomLimit = limits.wisdom_limit || 0;
+    const isUnlimited = wisdomLimit === -1;
+    const canUse = isUnlimited || wisdomUsed < wisdomLimit;
+    const remaining = isUnlimited ? -1 : Math.max(0, wisdomLimit - wisdomUsed);
+    const normalizedTier = subscription.tier.replace('_annual', '');
+
+    return {
+      can_generate_playbook: true,
+      can_generate_devotional: true,
+      can_use_smart_journaling: limits.smart_journaling_enabled,
+      can_export: true,
+      playbooks_remaining: -1,
+      devotionals_remaining: -1,
+      show_upgrade_prompt: !canUse,
+      upgrade_message: !canUse
+        ? normalizedTier === 'transformation'
+          ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
+          : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`
         : undefined,
     };
   }

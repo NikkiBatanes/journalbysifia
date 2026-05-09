@@ -9,7 +9,7 @@ import { SubscriptionTier } from '../types/subscription';
 import { Logger } from './ProductionLogger';
 
 export interface SalesCopyParams {
-  featureType: 'playbooks' | 'devotionals';
+  featureType: 'playbooks' | 'devotionals' | 'wisdom';
   currentTier: SubscriptionTier;
   remaining: number;
   limit: number;
@@ -51,15 +51,18 @@ function getTierDisplayName(tier: SubscriptionTier): string {
 /**
  * Get tier limits
  */
-function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals'): number {
+function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals' | 'wisdom'): number {
   const limits = {
-    'seeker': { playbooks: 2, devotionals: 1 },
-    'free_trial': { playbooks: 15, devotionals: 15 }, // Default, actual limits depend on trial_chosen_tier
-    'spark': { playbooks: 10, devotionals: 10 },
-    'growth': { playbooks: 25, devotionals: 25 },
-    'transformation': { playbooks: 60, devotionals: 60 },
+    'seeker': { playbooks: 2, devotionals: 1, wisdom: 2 },
+    'free_trial': { playbooks: 15, devotionals: 15, wisdom: 6 }, // Default, actual limits depend on trial_chosen_tier
+    'spark': { playbooks: 10, devotionals: 10, wisdom: 5 },
+    'spark_annual': { playbooks: 10, devotionals: 10, wisdom: 5 },
+    'growth': { playbooks: 25, devotionals: 25, wisdom: 12 },
+    'growth_annual': { playbooks: 25, devotionals: 25, wisdom: 12 },
+    'transformation': { playbooks: 60, devotionals: 60, wisdom: 25 },
+    'transformation_annual': { playbooks: 60, devotionals: 60, wisdom: 25 },
     // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1 },
-  } as Record<SubscriptionTier, { playbooks: number; devotionals: number }>;
+  } as Record<SubscriptionTier, { playbooks: number; devotionals: number; wisdom: number }>;
   return limits[tier][featureType];
 }
 
@@ -135,20 +138,32 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     hasEverStartedTrial = false,
   } = params;
 
-  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : 'Devotionals';
+  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : 'Devotionals';
   const hasNoRemaining = remaining === 0;
   const effectiveTier = currentTier === 'free_trial' && trialChosenTier
     ? trialChosenTier
     : currentTier === 'transformation_annual'
       ? 'transformation'
+      : currentTier === 'growth_annual'
+        ? 'growth'
+        : currentTier === 'spark_annual'
+          ? 'spark'
       : currentTier;
 
   // CASE 1: Seeker tier - monthly free access used up (2 PB / 1 DEV per month)
   if (currentTier === 'seeker' && hasNoRemaining) {
-    const title = featureType === 'playbooks' ? 'Upgrade to Keep Going' : 'Upgrade to Keep Going';
+    const title = hasEverStartedTrial ? 'Upgrade to Keep Going' : 'Start Your Free Trial';
     const message = featureType === 'playbooks'
-      ? 'Your free playbooks for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to bring new moments before God, with up to 25 playbooks each month.'
-      : 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.';
+      ? hasEverStartedTrial
+        ? 'Your free playbooks for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to bring new moments before God, with up to 25 playbooks each month.'
+        : 'Your free playbooks for this month have been used. More will open again next month.\n\nStart your 3-day free trial to keep bringing new moments before God with more room this month.'
+      : featureType === 'wisdom'
+        ? hasEverStartedTrial
+          ? 'Your free wisdom requests for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to ask for guidance on your next faithful action, with up to 12 wisdom requests each month.'
+          : 'Your free wisdom requests for this month have been used. More will open again next month.\n\nStart your 3-day free trial to keep asking for guidance on your next faithful action.'
+        : hasEverStartedTrial
+          ? 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.'
+          : 'Your free devotional for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep returning to Scripture, reflection, and prayer this month.';
 
     // Dynamic CTA based on trial usage
     const primaryCta = hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial';
@@ -169,7 +184,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     const fullLimit = getTierLimits(trialTier, featureType);
     const fullLimitText = fullLimit === 1
       ? `1 ${featureNamePlural.slice(0, -1)}`
-      : `${fullLimit} ${featureNamePlural}`;
+      : `${fullLimit} ${featureNamePlural.toLowerCase()}`;
 
     // Trial limits based on chosen tier
     const trialLimits = {
@@ -177,8 +192,17 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       'growth': 15,
       'transformation': 25,
     };
-    const trialLimit = trialLimits[trialTier as keyof typeof trialLimits] || 5;
-    const trialLimitText = trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
+    const trialWisdomLimits = {
+      'spark': 2,
+      'growth': 6,
+      'transformation': 10,
+    };
+    const trialLimit = featureType === 'wisdom'
+      ? trialWisdomLimits[trialTier as keyof typeof trialWisdomLimits] || 6
+      : trialLimits[trialTier as keyof typeof trialLimits] || 5;
+    const trialLimitText = featureType === 'wisdom'
+      ? trialLimit === 1 ? '1 wisdom request' : `${trialLimit} wisdom requests`
+      : trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
 
     // Calculate when subscription starts
     const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
@@ -203,7 +227,14 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
   }
 
   // CASE 3: Paid user - no remaining (Spark, Growth, or Transformation)
-  if (hasNoRemaining && (currentTier === 'spark' || currentTier === 'growth' || currentTier === 'transformation' || currentTier === 'transformation_annual')) {
+  if (hasNoRemaining && (
+    currentTier === 'spark' ||
+    currentTier === 'spark_annual' ||
+    currentTier === 'growth' ||
+    currentTier === 'growth_annual' ||
+    currentTier === 'transformation' ||
+    currentTier === 'transformation_annual'
+  )) {
     const resetDate = getNextMonthlyResetDate(subscriptionStartDate);
     const daysUntilReset = getDaysUntilReset(resetDate);
     const dayText = daysUntilReset === 1 ? 'day' : 'days';
@@ -213,12 +244,15 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       year: 'numeric',
     });
 
-    const limitText = limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
+    const limitText = featureType === 'wisdom'
+      ? limit === 1 ? '1 wisdom request' : `${limit} wisdom requests`
+      : limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
+    const refreshName = featureType === 'wisdom' ? 'wisdom requests' : featureNamePlural.toLowerCase();
 
-    if (currentTier === 'spark') {
+    if (currentTier === 'spark' || currentTier === 'spark_annual') {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
-        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
+        message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
         primaryCta: `Upgrade to ${getTierDisplayName('growth')}`,
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'growth',
@@ -228,7 +262,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
-        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
+        message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
         primaryCta: 'Got it',
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'transformation',
@@ -239,7 +273,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     } else {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
-        message: `You've used all your ${limitText} for this month.\n\nYour ${featureNamePlural.toLowerCase()} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
+        message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
         primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
         secondaryCta: 'Wait for Refresh',
         recommendedTier: 'transformation',

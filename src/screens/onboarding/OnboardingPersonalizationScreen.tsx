@@ -1447,11 +1447,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   }, [detailsOnlyFlow, currentStep, askBoxOpacity, askBoxTranslateY, headerTranslateY, headerScale, headerIntroOpacity]);
 
-  // Track keyboard visibility and (legacy) slide container up only on details step
+  // Track keyboard visibility for details step
   React.useEffect(() => {
     const isDetailsStep = detailsOnlyFlow ? true : currentStep === 2;
-    // Don't set up keyboard listeners on Age/Birthday step (step 1)
-    if (currentStep === 1) {return;}
 
     const onShow = (e: any) => {
       setKeyboardVisible(true);
@@ -1463,28 +1461,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         } catch {}
       }, 300);
-
-      const kbHeight = e?.endCoordinates?.height ?? 0;
-      const safeBottom = insets?.bottom ?? 0;
-      // Translate only by the portion that overlaps the safe area, leaving a margin
-      // Extra margin of 56 helps keep the sheet from overshooting above the keyboard
-      let shift = Math.max(kbHeight - safeBottom - 56, 0);
-      // Cap shift to avoid moving too far on small content screens
-      shift = Math.min(shift, 240);
-      Animated.timing(containerTranslateY, {
-        toValue: -shift,
-        duration: 180,
-        useNativeDriver: true,
-      }).start();
     };
     const onHide = () => {
       setKeyboardVisible(false);
-      if (!isDetailsStep) {return;}
-      Animated.timing(containerTranslateY, {
-        toValue: 0,
-        duration: 160,
-        useNativeDriver: true,
-      }).start();
     };
 
     const subShow = Platform.OS === 'ios'
@@ -1498,7 +1477,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       subShow.remove();
       subHide.remove();
     };
-  }, [currentStep, containerTranslateY, detailsOnlyFlow, insets?.bottom]);
+  }, [currentStep, detailsOnlyFlow]);
 
   const handleContinue = async () => {
     try { triggerLightHaptic(); } catch {}

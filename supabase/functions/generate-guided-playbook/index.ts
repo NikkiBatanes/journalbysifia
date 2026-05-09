@@ -772,6 +772,8 @@ serve(async (req: Request) => {
 
     let effectiveUserInput = userInput;
     const preferredBibleVersion = bibleVersion || 'NASB';
+    const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectiveUserInput)
+      || (/\b(jesus|christ)\b/i.test(effectiveUserInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectiveUserInput));
 
     // Build a clean structured context payload for the user turn.
     // Keep this slim: name, Bible version, user moment, and per-request overrides only.
@@ -796,6 +798,9 @@ serve(async (req: Request) => {
       }
       if (isTeenUser) {
         ctx += `\nLANGUAGE FIT: User is exactly ${audienceContext.calculatedAge} and under 18. Use simple clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.\n`;
+      }
+      if (doctrinalVerdictRequired) {
+        ctx += `\nDOCTRINAL VERDICT OVERRIDE: This request involves core Christian doctrine. Do not write a generic doubt, opinions, or personal-journey response. In truth_summary, state plainly that denying Jesus is God contradicts Scripture and is not biblical Christianity. In the first paragraph of truth_in_love, directly answer the user's question before any comfort. If Iglesia ni Cristo is mentioned, specifically say Iglesia ni Cristo denies the biblical doctrine of Jesus' divinity. Use Scripture as the authority, not external voices or personal conviction. Do not tell the user they can remain in or hold to a belief system that denies Jesus is God. Do not say faith is mainly about relationship if the user's understanding of Jesus is not the biblical Jesus. faithful_actions must include comparing Iglesia ni Cristo's teaching with John 1:1, John 20:28, Colossians 2:9, Hebrews 1:8, and asking a biblically grounded pastor for help leaving false teaching if needed. The correct theological direction is: Jesus is God according to Scripture, and any teaching that denies this must be rejected.\n`;
       }
       ctx += `\nSUPPORT GUIDANCE: Use Christ-centered language only ("a pastor", "a biblical counselor", "a Christian counselor", "biblical community"). No phone numbers.\n`;
 
@@ -844,7 +849,7 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.5,
+                temperature: 0.3,
                 max_tokens: 6000,
                 frequency_penalty: 0.1,
                 presence_penalty: 0.1,

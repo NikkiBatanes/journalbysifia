@@ -18,6 +18,7 @@ export interface ActionStep {
   title: string;
   description?: string; // For steps without sub-tasks
   examples?: string; // Examples from database
+  wisdom_text?: string; // AI-generated wisdom for this action step
   example_interactive?: boolean; // Whether examples can be interacted with
   subTasks?: SubTask[]; // Only present if there are sub-tasks
   completed: boolean; // Always boolean for strict typing

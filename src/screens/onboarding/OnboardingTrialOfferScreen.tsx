@@ -12,6 +12,7 @@ import {
   Linking,
   Platform,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -601,6 +602,13 @@ const OnboardingTrialOfferScreen = () => {
             platform_subscription_id: result.transactionId,
           });
 
+          const refreshedSubscription = await NewSubscriptionService.resetUsageCounters(user.id);
+          DeviceEventEmitter.emit('wisdomUsageReset', {
+            wisdomCount: 0,
+            wisdomLimit: refreshedSubscription.wisdom_limit,
+            tier: refreshedSubscription.tier,
+          });
+
           const trialSetupDuration = Date.now() - trialSetupStartTime;
           logger.info(`✅ TRIAL STEP 4: Trial setup completed successfully (${trialSetupDuration}ms)`, {
             userId: user.id,
@@ -988,6 +996,11 @@ const OnboardingTrialOfferScreen = () => {
             userType: 'paid',
             onboardingFlow: true,
           });
+        } else if (routeParams?.dismissBehavior === 'goBack' || routeParams?.source === 'wisdom_limit') {
+          const didPop = safelyPopScreens(2);
+          if (!didPop) {
+            (navigation as any).navigate('MainTabs');
+          }
         } else {
           navigation.reset({
             index: 0,
@@ -1003,7 +1016,7 @@ const OnboardingTrialOfferScreen = () => {
         }
       }
     }, 100);
-  }, [navigation, routeParams?.onboardingFlow]);
+  }, [navigation, routeParams?.dismissBehavior, routeParams?.onboardingFlow, routeParams?.source]);
 
   const handleSuccessModalDismiss = useCallback(() => {
     handleSuccessModalContinue();

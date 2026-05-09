@@ -128,6 +128,7 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         devotionals_limit: trialLimits.devotionals_limit,
         playbooks_used: 0,
         devotionals_used: 0,
+        wisdom_count: 0,
         smart_journaling_enabled: true,
         updated_at: new Date().toISOString(),
       }, {
@@ -681,7 +682,7 @@ async function updateUserSubscription(
 
       // Reset usage counters when upgrading from trial to paid OR when upgrading tiers
       const updateData = (isTrialConversion || isTierUpgrade)
-        ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0 }
+        ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0, wisdom_count: 0 }
         : subscriptionData;
 
       const { error: updateError } = await supabaseClient
@@ -701,6 +702,7 @@ async function updateUserSubscription(
           created_at: new Date().toISOString(),
           playbooks_used: 0,
           devotionals_used: 0,
+          wisdom_count: 0,
         });
 
       if (insertError) {

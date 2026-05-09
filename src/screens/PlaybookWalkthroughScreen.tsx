@@ -33,6 +33,9 @@ import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
+import HowToModal from '../components/HowToModal';
+import { getActionWisdom } from '../services/actionWisdomService';
+import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
@@ -44,6 +47,7 @@ import { visibleStreakService } from '../services/visibleStreakService';
 import { toLocalDateString } from '../utils/date';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
+import { supabase } from '../services/supabaseClient';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -988,6 +992,82 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   });
 }
 
+function cleanWisdomDisplayText(value: string): string {
+  return value
+    .replace(/\*\*/g, '')
+    .replace(/__([^_]+)__/g, '$1')
+    .trim();
+}
+
+function isWisdomLeadInLine(value: string): boolean {
+  return /^(?:here\s+(?:are|is)|these\s+are|some\s+(?:examples|actionable\s+steps)|actionable\s+steps|examples)(?:\s+are|\s+is)?[\w\s,'-]*:?$/i.test(value.trim());
+}
+
+function parseWisdomText(text?: string): { intro: string; items: string[]; blocks: Array<{ intro: string; items: string[] }> } {
+  if (!text?.trim()) {
+    return { intro: '', items: [], blocks: [] };
+  }
+
+  const lines = text
+    .split(/\n+/)
+    .map(line => cleanWisdomDisplayText(line))
+    .filter(Boolean);
+  const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line));
+
+  if (listStartIndex === -1) {
+    const intro = cleanWisdomDisplayText(text);
+    return { intro, items: [], blocks: intro ? [{ intro, items: [] }] : [] };
+  }
+
+  const blocks: Array<{ intro: string; items: string[] }> = [];
+  let currentIntroLines = lines.slice(0, listStartIndex);
+  let currentItems: string[] = [];
+  const items: string[] = [];
+
+  const pushCurrentBlock = () => {
+    const intro = currentIntroLines.join('\n\n');
+    if (intro || currentItems.length > 0) {
+      blocks.push({ intro, items: currentItems });
+    }
+    currentIntroLines = [];
+    currentItems = [];
+  };
+
+  lines.slice(listStartIndex).forEach(line => {
+    const isListLine = /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line);
+
+    if (!isListLine) {
+      if (currentItems.length > 0) {
+        pushCurrentBlock();
+      }
+      currentIntroLines.push(line);
+      return;
+    }
+
+    const item = cleanWisdomDisplayText(line.replace(/^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/, ''));
+    if (!item) {
+      return;
+    }
+
+    if (isWisdomLeadInLine(item)) {
+      if (currentItems.length > 0) {
+        pushCurrentBlock();
+      }
+      currentIntroLines.push(item);
+      return;
+    }
+    currentItems.push(item);
+    items.push(item);
+  });
+  pushCurrentBlock();
+
+  return {
+    intro: blocks.map(block => block.intro).filter(Boolean).join('\n\n'),
+    items,
+    blocks,
+  };
+}
+
 interface FaithfulActionsStepProps {
   steps: ActionStep[];
   intro?: string;
@@ -1076,6 +1156,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
   const [, setJournalExpanded] = useState(false);
+  const [howToModalVisible, setHowToModalVisible] = useState(false);
+  const [wisdomCount, setWisdomCount] = useState(0);
+  const [wisdomLimit, setWisdomLimit] = useState(0);
+  const [currentActionWisdom, setCurrentActionWisdom] = useState('');
+  const [wisdomExpanded, setWisdomExpanded] = useState(true);
   const createPrayerMutation = useCreateDevotionalPrayer();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -1091,6 +1176,37 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
+
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const loadWisdomUsage = React.useCallback(() => {
+    if (user?.id) {
+      NewSubscriptionService.getUserSubscription(user.id).then(subscription => {
+        const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
+        setWisdomCount((subscription as any).wisdom_count || 0);
+        setWisdomLimit(limits.wisdom_limit ?? 0);
+      });
+    }
+  }, [user?.id]);
+
+  // Load wisdom counts
+  React.useEffect(() => {
+    loadWisdomUsage();
+  }, [loadWisdomUsage]);
+
+  React.useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('wisdomUsageReset', (payload?: { wisdomCount?: number; wisdomLimit?: number }) => {
+      setWisdomCount(payload?.wisdomCount ?? 0);
+      if (typeof payload?.wisdomLimit === 'number') {
+        setWisdomLimit(payload.wisdomLimit);
+      } else {
+        loadWisdomUsage();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [loadWisdomUsage]);
 
   const rotateInterpolate = triggerRotation.interpolate({
     inputRange: [0, 1],
@@ -1146,6 +1262,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const createJournalEntry = useCreateJournalEntry();
 
   const currentStep = steps[actionStepIndex];
+
+  React.useEffect(() => {
+    setCurrentActionWisdom(currentStep?.wisdom_text || '');
+    setWisdomExpanded(true);
+  }, [currentStep?.id, currentStep?.wisdom_text]);
   const isLastStep = actionStepIndex >= steps.length - 1;
 
   useEffect(() => {
@@ -1381,6 +1502,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     .split('\n').map(l => stripMd(l)).filter(Boolean);
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
+  const parsedActionWisdom = parseWisdomText(currentActionWisdom);
 
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
@@ -1464,8 +1586,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   return (
     <>
-    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
-        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+    {currentActionWisdom ? (
+      <ScrollView
+        style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={{ paddingBottom: 32 }}>
+          <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             {steps.length} Faithful Actions
@@ -1517,6 +1644,20 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.actionStepCard}>
+            <TouchableOpacity
+              style={styles.actionHowToButton}
+              onPress={() => {
+                triggerLightHaptic();
+                setHowToModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.actionHowToButtonContent}>
+                <Ionicons name="help-circle-outline" size={14} color={Colors.hopeWhite} />
+                <ThemedText style={styles.actionHowToButtonText}>How to</ThemedText>
+              </View>
+            </TouchableOpacity>
+
             {/* Step number circle — matches ActionStepsCard design */}
             <View style={styles.stepNumberContainer}>
               <View style={styles.stepCircle}>
@@ -1527,19 +1668,21 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </View>
 
             {/* Step title */}
-            {Platform.OS === 'ios' ? (
-              <TextInput
-                value={stripMd(currentStep.title)}
-                editable={false}
-                multiline={true}
-                scrollEnabled={false}
-                style={[styles.actionTitle, { fontWeight: '600' as any, fontFamily }]}
-              />
-            ) : (
-              <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
-                {stripMd(currentStep.title)}
-              </ThemedText>
-            )}
+            <View style={styles.actionTitleContainer}>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={stripMd(currentStep.title)}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.actionTitle, { fontWeight: '600' as any, fontFamily }]}
+                />
+              ) : (
+                <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
+                  {stripMd(currentStep.title)}
+                </ThemedText>
+              )}
+            </View>
 
             {/* Smart body lines */}
             {smartBodyLines.map((item, idx) => {
@@ -1657,6 +1800,73 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 </View>
               </StepFadeIn>
             )}
+
+            {currentActionWisdom ? (
+              <StepFadeIn key={`wisdom-${currentStep.id}-${currentActionWisdom}`} delay={160}>
+                <View style={styles.actionWisdomContainer}>
+                  <TouchableOpacity
+                    style={styles.actionWisdomHeader}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setWisdomExpanded(prev => !prev);
+                    }}
+                  >
+                    <View style={styles.actionWisdomHeaderTitle}>
+                      <Ionicons name="bulb-outline" size={15} color={Colors.alertCoral} />
+                      <ThemedText weight="semiBold" style={styles.actionWisdomLabel}>
+                        Wisdom for this action
+                      </ThemedText>
+                    </View>
+                    <Ionicons
+                      name={wisdomExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color="rgba(255,255,255,0.6)"
+                    />
+                  </TouchableOpacity>
+
+                  {wisdomExpanded ? (
+                    <ScrollView
+                      style={styles.actionWisdomScroll}
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {(() => {
+                        let wisdomItemOffset = 0;
+
+                        return parsedActionWisdom.blocks.map((block, blockIndex) => {
+                          const blockStart = wisdomItemOffset;
+                          wisdomItemOffset += block.items.length;
+
+                          return (
+                            <View key={`wisdom-block-${blockIndex}`} style={blockIndex > 0 ? styles.actionWisdomBlock : undefined}>
+                              {block.intro ? (
+                                <ThemedText style={styles.actionWisdomIntro} selectable={true}>
+                                  {block.intro}
+                                </ThemedText>
+                              ) : null}
+
+                              {block.items.map((item, idx) => (
+                                <View key={`${blockIndex}-${idx}-${item}`} style={styles.actionWisdomStepRow}>
+                                  <View style={styles.actionWisdomStepCircle}>
+                                    <ThemedText weight="bold" style={styles.actionWisdomStepNumber}>
+                                      {stepNumber}.{blockStart + idx + 1}
+                                    </ThemedText>
+                                  </View>
+                                  <ThemedText style={styles.actionWisdomStepText} selectable={true}>
+                                    {item}
+                                  </ThemedText>
+                                </View>
+                              ))}
+                            </View>
+                          );
+                        });
+                      })()}
+                    </ScrollView>
+                  ) : null}
+                </View>
+              </StepFadeIn>
+            ) : null}
 
             {/* TextInput for text_input type */}
             {actionType === 'text_input' && (
@@ -1811,6 +2021,83 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
+
+      <HowToModal
+        visible={howToModalVisible}
+        actionTitle={currentStep.title || ''}
+        actionNumber={stepNumber}
+        onDismiss={() => setHowToModalVisible(false)}
+        onSubmit={async (question) => {
+          try {
+            const response = await getActionWisdom({
+              playbookId: playbookId || '',
+              userId: userId,
+              userName: (user as any)?.user_metadata?.full_name?.split(' ')[0] || (user as any)?.email?.split('@')[0] || '',
+              actionId: currentStep.id || '',
+              actionTitle: currentStep.title || '',
+              actionBody: mainBodyText || '',
+              userQuestion: question,
+              truthSummary: '',
+              truthInLove: '',
+            });
+
+            if (response.success && response.wisdom) {
+              const existingWisdom = currentActionWisdom.trim();
+              const returnedWisdom = response.wisdom.trim();
+              const wisdomToDisplay = existingWisdom && returnedWisdom && !returnedWisdom.includes(existingWisdom)
+                ? `${existingWisdom}\n\n${returnedWisdom}`
+                : returnedWisdom;
+
+              setCurrentActionWisdom(wisdomToDisplay);
+              setWisdomExpanded(true);
+              setWisdomCount(response.wisdomCount || wisdomCount + 1);
+              if (playbookId && currentStep.id && wisdomToDisplay !== returnedWisdom) {
+                supabase
+                  .from('playbook_action_steps')
+                  .update({
+                    wisdom_text: wisdomToDisplay,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', currentStep.id)
+                  .eq('playbook_id', playbookId)
+                  .then(({ error }) => {
+                    if (error) {
+                      console.warn('[PlaybookWalkthrough] Failed to persist appended wisdom text', error);
+                    }
+                  });
+              }
+              if (playbookId && user?.id) {
+                queryClient.setQueryData(['playbook', playbookId, user.id], (cachedPlaybook: any) => {
+                  if (!cachedPlaybook?.actionSteps) {
+                    return cachedPlaybook;
+                  }
+
+                  return {
+                    ...cachedPlaybook,
+                    actionSteps: cachedPlaybook.actionSteps.map((step: any) =>
+                      step.id === currentStep.id
+                        ? { ...step, wisdom_text: wisdomToDisplay }
+                        : step
+                    ),
+                  };
+                });
+                queryClient.invalidateQueries({ queryKey: ['playbook', playbookId, user.id] });
+              }
+              triggerSuccessHaptic();
+            }
+
+            return response;
+          } catch (error) {
+            return {
+              success: false,
+              error: 'ERROR',
+              message: 'Something went wrong. Please try again.',
+            };
+          }
+        }}
+        wisdomCount={wisdomCount}
+        wisdomLimit={wisdomLimit}
+      />
 
     </>
   );
@@ -3876,6 +4163,72 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     lineHeight: 18,
   },
+  actionWisdomContainer: {
+    marginTop: 12,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+    gap: 10,
+  },
+  actionWisdomHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  actionWisdomHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  actionWisdomScroll: {
+    maxHeight: 260,
+  },
+  actionWisdomLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  actionWisdomIntro: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 22,
+  },
+  actionWisdomBlock: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  actionWisdomStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  actionWisdomStepCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  actionWisdomStepNumber: {
+    fontSize: 11,
+    color: Colors.alertCoral,
+    lineHeight: 15,
+  },
+  actionWisdomStepText: {
+    flex: 1,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 22,
+    paddingTop: 7,
+  },
   // Choice pills — for 'choose' type steps
   choicePill: {
     paddingVertical: 10,
@@ -3946,8 +4299,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 24,
     padding: 22,
+    paddingTop: 30,
     marginBottom: 32,
     gap: 12,
+    position: 'relative',
+    overflow: 'visible',
   },
   actionBadge: {
     width: 32,
@@ -3965,6 +4321,33 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 24,
+    flex: 1,
+  },
+  actionTitleContainer: {
+    marginBottom: 12,
+  },
+  actionHowToButton: {
+    position: 'absolute',
+    top: -15,
+    right: 18,
+    backgroundColor: '#2c4b78',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    zIndex: 10,
+    elevation: 10,
+  },
+  actionHowToButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionHowToButtonText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
   },
   actionBody: {
     fontSize: 15,
@@ -4034,6 +4417,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 22,
+    paddingHorizontal: 16,
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -4158,6 +4542,25 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     alignItems: 'center',
     marginTop: 20,
+  },
+  completionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  howToButton: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  howToButtonText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
   },
   completionPlaybookLabel: {
     fontSize: 12,

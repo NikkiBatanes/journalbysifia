@@ -10,6 +10,7 @@ import {
   Linking,
   Platform,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,7 +78,7 @@ interface RouteParams {
   currentTrialBillingCycle?: BillingCycle;
   selectedBillingCycle?: BillingCycle;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
-  featureType?: 'playbooks' | 'devotionals'; // explicitly mark which feature triggered the upgrade
+  featureType?: 'playbooks' | 'devotionals' | 'wisdom' | 'export_pdf' | 'export_docx'; // explicitly mark which feature triggered the upgrade
   // Navigation context flags
   source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock', 'calendar_auto_sync'
   feature?: string; // e.g., 'future_planning', 'copy_todos', 'guided_prompts'
@@ -347,7 +348,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     if (!isUpgradeMode || isProfileTrialViewPlans) {return null;}
 
     // Use explicit featureType from route params if provided, otherwise infer from requestedDuration
-    const featureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
+    const rawFeatureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
+    const featureType = rawFeatureType === 'wisdom' ? 'wisdom' : rawFeatureType === 'devotionals' ? 'devotionals' : 'playbooks';
 
     // Test mode: use override values from route params if provided
     const testModeRemaining = routeParams?.testModeRemaining;
@@ -357,21 +359,26 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
     const playbooksUsed = subscription?.playbooks_used || 0;
     const devotionalsUsed = subscription?.devotionals_used || 0;
+    const wisdomUsed = (subscription as any)?.wisdom_count || 0;
     const playbooksLimit = subscription?.playbooks_limit || 0;
     const devotionalsLimit = subscription?.devotionals_limit || 0;
+    const wisdomLimit = (subscription as any)?.wisdom_limit || 0;
 
     const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
     const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
+    const remainingWisdom = wisdomLimit === -1 ? -1 : Math.max(0, wisdomLimit - wisdomUsed);
 
     const remaining = testModeRemaining !== undefined
       ? testModeRemaining
-      : (featureType === 'playbooks'
+      : (featureType === 'wisdom'
+        ? (remainingWisdom === -1 ? wisdomLimit : remainingWisdom)
+        : featureType === 'playbooks'
           ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
           : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals));
 
     const limit = testModeLimit !== undefined
       ? testModeLimit
-      : (featureType === 'playbooks' ? playbooksLimit : devotionalsLimit);
+      : (featureType === 'wisdom' ? wisdomLimit : featureType === 'playbooks' ? playbooksLimit : devotionalsLimit);
 
     return generateSalesCopy({
       featureType,
@@ -441,16 +448,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     notificationService.suppressPointsNotifications(false);
 
     setTimeout(() => {
-      if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
-        // In onboarding flow or when skipNotificationPreference is false, navigate to notification setup
+      if (routeParams?.onboardingFlow) {
         logger.debug('Navigating to notification setup for onboarding flow');
         navigateToNotificationSetup('paid');
+      } else if (routeParams?.dismissBehavior === 'goBack' || routeParams?.source === 'wisdom_limit') {
+        goBackOrFallback('userInput');
       } else {
         // The purchase success modal CTA is the intentional "Process another moment" path.
         resetToUserInput();
       }
     }, 100);
-  }, [navigateToNotificationSetup, resetToUserInput, routeParams]);
+  }, [goBackOrFallback, navigateToNotificationSetup, resetToUserInput, routeParams]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
@@ -758,7 +766,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         return;
       }
 
-      if (routeParams?.onboardingFlow || !routeParams?.skipNotificationPreference) {
+      if (routeParams?.onboardingFlow) {
         // During onboarding flow, go to notification setup
         logger.debug('Onboarding flow - navigating to notification setup');
         navigateToNotificationSetup('freemium', { fromCancelledSales: true });
@@ -1111,6 +1119,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             logger.info('✅ Database upgrade completed, starting cache refresh');
 
+            updatedSubscription = await NewSubscriptionService.resetUsageCounters(user?.id || '');
+            DeviceEventEmitter.emit('wisdomUsageReset', {
+              wisdomCount: 0,
+              wisdomLimit: updatedSubscription.wisdom_limit,
+              tier: updatedSubscription.tier,
+            });
+
             // CRITICAL: Force immediate cache refresh for subscription queries
             queryClient.invalidateQueries({
               queryKey: ['subscription'],
@@ -1328,6 +1343,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // OPTIMIZED: Single cache invalidation with parallel refresh
             logger.debug('Refreshing subscription cache...');
             try {
+              updatedSubscription = await NewSubscriptionService.resetUsageCounters(user?.id || '');
+              DeviceEventEmitter.emit('wisdomUsageReset', {
+                wisdomCount: 0,
+                wisdomLimit: updatedSubscription.wisdom_limit,
+                tier: updatedSubscription.tier,
+              });
+
               await Promise.all([
                 queryClient.invalidateQueries({
                   queryKey: ['subscription', user?.id],

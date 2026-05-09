@@ -39,6 +39,7 @@ export type RootStackParamList = {
     selectedBillingCycle?: 'monthly' | 'annual';
     source?: string;
     feature?: string;
+    featureType?: 'playbooks' | 'devotionals' | 'wisdom' | 'export_pdf' | 'export_docx';
     tier?: string;
     skipNotificationPreference?: boolean;
     dismissBehavior?: OfferDismissBehavior;

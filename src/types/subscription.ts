@@ -32,6 +32,7 @@ export type PaymentPlatform =
 export interface SubscriptionLimits {
   playbooks_limit: number;        // -1 for unlimited
   devotionals_limit: number;      // -1 for unlimited
+  wisdom_limit: number;           // -1 for unlimited
   smart_journaling_enabled: boolean;
   show_dashboard_counts: boolean;
 }
@@ -65,8 +66,10 @@ export interface Subscription {
   // Usage limits and tracking
   playbooks_limit: number;
   devotionals_limit: number;
+  wisdom_limit: number;
   playbooks_used: number;
   devotionals_used: number;
+  wisdom_count: number;
   smart_journaling_enabled: boolean;
 
   // Discount codes

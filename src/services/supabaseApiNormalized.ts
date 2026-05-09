@@ -45,6 +45,7 @@ interface ActionStepRow {
   primary_button?: string | null;
   secondary_button?: string | null;
   description?: string | null;
+  wisdom_text?: string | null;
   completed: boolean;
   order_index: number;
   created_at: string;
@@ -124,6 +125,7 @@ function transformPlaybookRow(
         actionType: step.action_type || parsedExamples?.actionType || undefined,
         primaryButton: step.primary_button || parsedExamples?.primaryButton || undefined,
         secondaryButton: step.secondary_button || parsedExamples?.secondaryButton || undefined,
+        wisdom_text: step.wisdom_text || undefined,
         completed: step.completed,
         subTasks: subTasksByStepId[step.id] || [],
       };

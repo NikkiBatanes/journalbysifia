@@ -29,6 +29,7 @@ type SubTask = {
   is_example?: boolean;
   example_interactive?: boolean;
   _protected?: boolean; // Protected flag for auto-checked subtasks
+  wisdom_text?: string; // AI-generated wisdom for this action
 };
 
 type ActionStep = {
@@ -76,6 +77,9 @@ import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
 import { ReflectionApi } from '../services/api/reflectionApi';
 import { faithPointsService } from '../services/faithPointsService';
 import { visibleStreakService } from '../services/visibleStreakService';
+import HowToModal from './HowToModal';
+import { getActionWisdom } from '../services/actionWisdomService';
+import { NewSubscriptionService } from '../services/NewSubscriptionService';
 
 // Smart Journaling - Unified Icon System
 // All subtasks now show a single pencil icon that opens a tooltip selector
@@ -152,6 +156,11 @@ export default function ActionStepsCard({
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [_isGuidedPromptActive, _setIsGuidedPromptActive] = useState(false);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
+  const [howToModalVisible, setHowToModalVisible] = useState(false);
+  const [selectedActionForWisdom, setSelectedActionForWisdom] = useState<{ stepId: string; stepTitle: string } | null>(null);
+  const [wisdomCount, setWisdomCount] = useState(0);
+  const [wisdomLimit, setWisdomLimit] = useState(0);
+  const [showHowToButtons, setShowHowToButtons] = useState(true);
 
   // Unified Journal Type Selector Tooltip State
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -224,6 +233,34 @@ export default function ActionStepsCard({
       }
     });
   }, [steps]);
+
+  const loadWisdomUsage = React.useCallback(() => {
+    if (user?.id) {
+      NewSubscriptionService.getUserSubscription(user.id).then(subscription => {
+        const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
+        setWisdomCount((subscription as any).wisdom_count || 0);
+        setWisdomLimit(limits.wisdom_limit || 0);
+      });
+    }
+  }, [user?.id]);
+
+  // Load wisdom counts
+  React.useEffect(() => {
+    loadWisdomUsage();
+  }, [loadWisdomUsage]);
+
+  React.useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('wisdomUsageReset', (payload?: { wisdomCount?: number; wisdomLimit?: number }) => {
+      setWisdomCount(payload?.wisdomCount ?? 0);
+      if (typeof payload?.wisdomLimit === 'number') {
+        setWisdomLimit(payload.wisdomLimit);
+      } else {
+        loadWisdomUsage();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [loadWisdomUsage]);
 
   // Debug: Track when ActionStepsCard re-renders
   React.useEffect(() => {
@@ -1090,6 +1127,19 @@ export default function ActionStepsCard({
                         {step.title}
                       </ThemedText>
                     </View>
+                    {showHowToButtons && (
+                      <TouchableOpacity
+                        style={styles.actionHowToButton}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setSelectedActionForWisdom({ stepId: step.id, stepTitle: step.title });
+                          setHowToModalVisible(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <ThemedText style={styles.actionHowToButtonText}>How to</ThemedText>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {subtasks.length > 0 && (
@@ -1141,6 +1191,20 @@ export default function ActionStepsCard({
                                   {subTask.text}
                                 </ThemedText>
                               </TouchableOpacity>
+
+                              {subTask.wisdom_text && (
+                                <View style={styles.wisdomContainer}>
+                                  <Ionicons
+                                    name="bulb"
+                                    size={14}
+                                    color={Colors.growthGreen}
+                                    style={styles.wisdomIcon}
+                                  />
+                                  <ThemedText style={styles.wisdomText}>
+                                    {subTask.wisdom_text}
+                                  </ThemedText>
+                                </View>
+                              )}
                             </View>
                           </View>
                         );
@@ -1326,6 +1390,42 @@ export default function ActionStepsCard({
           </Animated.View>
         </TouchableOpacity>
       )}
+
+      <HowToModal
+        visible={howToModalVisible}
+        actionTitle={selectedActionForWisdom?.stepTitle || ''}
+        onDismiss={() => setHowToModalVisible(false)}
+        onSubmit={async (question) => {
+          try {
+            const response = await getActionWisdom({
+              playbookId: playbookId || '',
+              userId: user?.id || '',
+              userName: (user as any)?.user_metadata?.full_name?.split(' ')[0] || (user as any)?.email?.split('@')[0] || '',
+              actionId: selectedActionForWisdom?.stepId || '',
+              actionTitle: selectedActionForWisdom?.stepTitle || '',
+              actionBody: '',
+              userQuestion: question,
+              truthSummary: '',
+              truthInLove: '',
+            });
+
+            if (response.success && response.wisdom) {
+              setWisdomCount(response.wisdomCount || wisdomCount + 1);
+              triggerSuccessHaptic();
+            }
+
+            return response;
+          } catch (error) {
+            return {
+              success: false,
+              error: 'ERROR',
+              message: 'Something went wrong. Please try again.',
+            };
+          }
+        }}
+        wisdomCount={wisdomCount}
+        wisdomLimit={wisdomLimit}
+      />
     </>
   );
 }
@@ -1429,6 +1529,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     width: '100%',
+    justifyContent: 'space-between',
   },
   stepNumberContainer: {
     width: 28,
@@ -1581,22 +1682,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   insightPlaceholderText: {
-    ...Typography.interRegular,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-  },
-  stepDescription: {
-    ...Typography.interRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 8,
-    paddingHorizontal: 4,
-    width: '100%',
-  },
-  noStepsText: {
-    textAlign: 'center',
     opacity: 0.7,
   },
   insightsContainer: {
@@ -1865,5 +1950,49 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     transform: [{ rotate: '45deg' }],
     borderRadius: 3,
+  },
+  wisdomContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(46, 204, 113, 0.2)',
+  },
+  wisdomIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  wisdomText: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.85)',
+    flex: 1,
+  },
+  stepDescription: {
+    ...Typography.interRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 8,
+  },
+  noStepsText: {
+    opacity: 0.6,
+  },
+  actionHowToButton: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  actionHowToButtonText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
   },
 });

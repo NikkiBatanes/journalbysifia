@@ -1292,6 +1292,7 @@ export async function getPlaybook(
         description: description || '', // Extracted from __meta or empty
         subTasks: stepSubTasks,
         examples: examplesValue, // Read from dedicated examples field
+        wisdom_text: step.wisdom_text || undefined,
         completed: step.completed,
         actionType,
         primaryButton,

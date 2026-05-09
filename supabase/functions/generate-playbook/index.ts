@@ -983,6 +983,25 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
       contextualPrompt += `\n\n## LANGUAGE INSTRUCTION\nThis user is exactly ${calculatedAge} and under 18. Use simple, clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.`;
     }
 
+    const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectiveUserInput)
+      || (/\b(jesus|christ)\b/i.test(effectiveUserInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectiveUserInput));
+
+    if (doctrinalVerdictRequired) {
+      contextualPrompt += `\n\n## DOCTRINAL VERDICT OVERRIDE - REQUIRED
+This request involves a core doctrine issue. You MUST NOT write a generic doubt, opinion, or personal-journey response.
+
+Required output behavior:
+- In TRUTH SUMMARY, state plainly that denying Jesus is God contradicts Scripture and is not biblical Christianity.
+- In the FIRST paragraph of TRUTH IN LOVE, directly answer the user's question. Do not delay the verdict.
+- Specifically say Iglesia ni Cristo denies the biblical doctrine of Jesus' divinity if Iglesia ni Cristo is mentioned.
+- Use Scripture as the authority, not "others say," "external voices," "perceptions," or "personal conviction."
+- Do not tell the user they can remain in or hold to a belief system that denies Jesus is God.
+- Do not say faith is mainly about relationship if the user's understanding of Jesus is not the biblical Jesus.
+- The action steps must include comparing the group's teaching with John 1:1, John 20:28, Colossians 2:9, Hebrews 1:8, and asking a biblically grounded pastor for help leaving false teaching if needed.
+
+The correct theological direction is: Jesus is God according to Scripture, and any teaching that denies this must be rejected.`;
+    }
+
     // Add Bible version preference with exact retrieval instruction
     const preferredBibleVersion = bibleVersion || 'NASB';
     console.log('[Generate-Playbook] Using Bible version for AI prompt:', preferredBibleVersion);
@@ -1050,7 +1069,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
                   content: contextualPrompt,
                 },
               ],
-              temperature: 0.7,
+              temperature: 0.3,
               max_tokens: 6000,
               frequency_penalty: 0.1,
               presence_penalty: 0.1,
