@@ -1172,6 +1172,54 @@ const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; colo
   { type: 'timeblock', icon: 'clock', color: Colors.growthGreen, label: 'Schedule' },
 ];
 
+type WisdomThreadEntry = {
+  question: string;
+  wisdom: string;
+};
+
+let persistedWisdomThreads: Record<string, WisdomThreadEntry[]> = {};
+
+const serializeWisdomThread = (thread: WisdomThreadEntry[]): string =>
+  thread
+    .filter(entry => entry.question.trim() && entry.wisdom.trim())
+    .map(entry => `User: ${entry.question.trim()}\nsiFia: ${entry.wisdom.trim()}`)
+    .join('\n\n');
+
+const parseWisdomThread = (value: string): WisdomThreadEntry[] => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const matches = [...trimmed.matchAll(/User:\s*([\s\S]*?)\nsiFia:\s*([\s\S]*?)(?=\n\nUser:|$)/g)];
+  if (!matches.length) {
+    return [];
+  }
+
+  return matches
+    .map(match => ({
+      question: match[1].trim(),
+      wisdom: match[2].trim(),
+    }))
+    .filter(entry => entry.question && entry.wisdom);
+};
+
+const getDisplayWisdomThread = (currentWisdom: string, restoredThread: WisdomThreadEntry[]): WisdomThreadEntry[] => {
+  const parsedThread = parseWisdomThread(currentWisdom);
+  if (parsedThread.length > 0) {
+    return parsedThread;
+  }
+
+  if (restoredThread.length > 0) {
+    return restoredThread;
+  }
+
+  const legacyWisdom = currentWisdom.trim();
+  return legacyWisdom
+    ? [{ question: 'Earlier wisdom', wisdom: legacyWisdom }]
+    : [];
+};
+
 const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   steps,
   intro,
@@ -1202,6 +1250,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [wisdomCount, setWisdomCount] = useState(0);
   const [wisdomLimit, setWisdomLimit] = useState(0);
   const [currentActionWisdom, setCurrentActionWisdom] = useState('');
+  const [wisdomThread, setWisdomThread] = useState<WisdomThreadEntry[]>([]);
   const [wisdomExpanded, setWisdomExpanded] = useState(true);
   const createPrayerMutation = useCreateDevotionalPrayer();
 
@@ -1321,9 +1370,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const currentStep = steps[actionStepIndex];
 
   React.useEffect(() => {
-    setCurrentActionWisdom(currentStep?.wisdom_text || '');
-    setWisdomExpanded(true);
-  }, [currentStep?.id, currentStep?.wisdom_text]);
+    const storedWisdom = currentStep?.wisdom_text || '';
+    const parsedThread = parseWisdomThread(storedWisdom);
+    const restoredThread = currentStep?.id
+      ? persistedWisdomThreads[currentStep.id] || parsedThread
+      : parsedThread;
+
+    setCurrentActionWisdom(storedWisdom);
+    setWisdomThread(restoredThread);
+    setWisdomExpanded(false);
+  }, [currentStep?.id]);
   const isLastStep = actionStepIndex >= steps.length - 1;
 
   useEffect(() => {
@@ -1559,8 +1615,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     .split('\n').map(l => stripMd(l)).filter(Boolean);
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
-  const parsedActionWisdom = parseWisdomText(currentActionWisdom);
-  const hasActionWisdom = Boolean(currentActionWisdom);
+  const hasActionWisdom = Boolean(currentActionWisdom || wisdomThread.length > 0);
+  const displayWisdomThread = getDisplayWisdomThread(currentActionWisdom, wisdomThread);
+  const wisdomContext = wisdomThread.length > 0
+    ? wisdomThread.map(entry => `User: ${entry.question}\nsiFia: ${entry.wisdom}`).join('\n\n')
+    : currentActionWisdom;
 
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
@@ -1868,8 +1927,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               </StepFadeIn>
             )}
 
-            {currentActionWisdom ? (
-              <StepFadeIn key={`wisdom-${currentStep.id}-${currentActionWisdom}`} delay={160}>
+            {hasActionWisdom ? (
+              <StepFadeIn key={`wisdom-${currentStep.id}`} delay={160}>
                 <View style={styles.actionWisdomContainer}>
                   <TouchableOpacity
                     style={styles.actionWisdomHeader}
@@ -1882,8 +1941,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     <View style={styles.actionWisdomHeaderTitle}>
                       <MaterialCommunityIcons name="head-heart-outline" size={15} color={Colors.alertCoral} />
                       <ThemedText weight="semiBold" style={styles.actionWisdomLabel}>
-                        Wisdom for this action
+                        Wisdom thread
                       </ThemedText>
+                      {displayWisdomThread.length > 0 ? (
+                        <ThemedText style={styles.actionWisdomCount}>
+                          {displayWisdomThread.length}
+                        </ThemedText>
+                      ) : null}
                     </View>
                     <Ionicons
                       name={wisdomExpanded ? 'chevron-up' : 'chevron-down'}
@@ -1893,15 +1957,47 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   </TouchableOpacity>
 
                   {wisdomExpanded ? (
-                    <View>
-                      {(() => {
+                    <View style={styles.actionWisdomThreadList}>
+                      {(displayWisdomThread.length > 0 ? displayWisdomThread : [{ question: '', wisdom: currentActionWisdom }]).map((entry, threadIndex) => {
+                        const entryWisdom = parseWisdomText(entry.wisdom);
                         let wisdomItemOffset = 0;
 
-                        return parsedActionWisdom.blocks.map((block, blockIndex) => {
-                          const blockStart = wisdomItemOffset;
-                          wisdomItemOffset += block.items.length;
+                        return (
+                          <View key={`wisdom-thread-${threadIndex}-${entry.question}-${entry.wisdom}`} style={styles.actionWisdomThreadItem}>
+                            <View style={styles.actionWisdomThreadRail}>
+                              <View style={styles.actionWisdomThreadDot} />
+                              {threadIndex < (displayWisdomThread.length > 0 ? displayWisdomThread.length : 1) - 1 ? (
+                                <View style={styles.actionWisdomThreadLine} />
+                              ) : null}
+                            </View>
 
-                          return (
+                            <View style={styles.actionWisdomThreadContent}>
+                              <View style={styles.actionWisdomThreadMetaRow}>
+                                <ThemedText weight="semiBold" style={styles.actionWisdomThreadMeta}>
+                                  {threadIndex === 0 ? 'Latest wisdom' : 'Earlier wisdom'}
+                                </ThemedText>
+                              </View>
+
+                              {entry.question ? (
+                                <View style={styles.actionWisdomQuestionBlock}>
+                                  <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Your question</ThemedText>
+                                  <ThemedText style={styles.actionWisdomUserText} selectable={true}>
+                                    {entry.question}
+                                  </ThemedText>
+                                </View>
+                              ) : null}
+
+                              <View style={styles.actionWisdomResponseBlock}>
+                                <View style={styles.actionWisdomAssistantLabelRow}>
+                                  <MaterialCommunityIcons name="head-heart-outline" size={14} color={Colors.alertCoral} />
+                                  <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Wisdom</ThemedText>
+                                </View>
+
+                                {entryWisdom.blocks.map((block, blockIndex) => {
+                                  const blockStart = wisdomItemOffset;
+                                  wisdomItemOffset += block.items.length;
+
+                                  return (
                             <View key={`wisdom-block-${blockIndex}`}>
                               {block.intro ? (
                                 <ThemedText style={styles.actionWisdomIntro} selectable={true}>
@@ -1918,9 +2014,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
                                 return (
                                   <React.Fragment key={`wisdom-item-${blockIndex}-${idx}-${item}`}>
-                                    {blockIndex === 0 && idx === 0 && (
-                                      <View style={{ height: 8 }} />
-                                    )}
                                     <View style={styles.actionWisdomStepRow}>
                                       <View style={styles.actionWisdomStepCircle}>
                                         <ThemedText weight="bold" style={styles.actionWisdomStepNumber}>
@@ -1969,13 +2062,17 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 </View>
                               ) : null}
 
-                              {blockIndex < parsedActionWisdom.blocks.length - 1 && (
+                              {blockIndex < entryWisdom.blocks.length - 1 && (
                                 <View style={styles.actionWisdomBlockDivider} />
                               )}
                             </View>
-                          );
-                        });
-                      })()}
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
                   ) : null}
                 </View>
@@ -2153,13 +2250,28 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               userQuestion: question,
               truthSummary: '',
               truthInLove: '',
-              previousWisdom: currentActionWisdom,
+              previousWisdom: wisdomContext,
             });
 
             if (response.success && response.wisdom) {
               const returnedWisdom = response.wisdom.trim();
+              const threadEntry = { question: question.trim(), wisdom: returnedWisdom };
+              const existingThread = currentStep.id
+                ? persistedWisdomThreads[currentStep.id] || wisdomThread || parseWisdomThread(currentActionWisdom)
+                : wisdomThread || parseWisdomThread(currentActionWisdom);
+              const nextThread = response.wisdomThread?.length
+                ? response.wisdomThread
+                : [threadEntry, ...existingThread];
+              const serializedThread = response.storedWisdom || serializeWisdomThread(nextThread);
 
-              setCurrentActionWisdom(returnedWisdom);
+              if (currentStep.id) {
+                persistedWisdomThreads = {
+                  ...persistedWisdomThreads,
+                  [currentStep.id]: nextThread,
+                };
+              }
+              setWisdomThread(nextThread);
+              setCurrentActionWisdom(serializedThread);
               setWisdomExpanded(true);
               setWisdomCount(response.wisdomCount || wisdomCount + 1);
               if (playbookId && user?.id) {
@@ -2172,7 +2284,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     ...cachedPlaybook,
                     actionSteps: cachedPlaybook.actionSteps.map((step: any) =>
                       step.id === currentStep.id
-                        ? { ...step, wisdom_text: returnedWisdom }
+                        ? { ...step, wisdom_text: serializedThread }
                         : step
                     ),
                   };
@@ -4301,10 +4413,126 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
+  actionWisdomCount: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+    textAlign: 'center',
+    textAlignVertical: 'center' as const,
+    fontSize: 11,
+    color: Colors.alertCoral,
+    backgroundColor: 'rgba(255,107,107,0.16)',
+    paddingHorizontal: 6,
+    lineHeight: 20,
+  },
   actionWisdomIntro: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 22,
+  },
+  actionWisdomThreadList: {
+    gap: 14,
+  },
+  actionWisdomThreadItem: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+  actionWisdomThreadRail: {
+    width: 18,
+    alignItems: 'center',
+  },
+  actionWisdomThreadDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: Colors.alertCoral,
+    marginTop: 6,
+  },
+  actionWisdomThreadLine: {
+    flex: 1,
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    marginTop: 6,
+  },
+  actionWisdomThreadContent: {
+    flex: 1,
+    paddingBottom: 2,
+  },
+  actionWisdomThreadMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionWisdomThreadMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.54)',
+    letterSpacing: 0.35,
+    textTransform: 'uppercase',
+  },
+  actionWisdomQuestionBlock: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,107,107,0.11)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.2)',
+    marginBottom: 10,
+  },
+  actionWisdomResponseBlock: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  actionWisdomUserRow: {
+    alignItems: 'flex-end',
+    marginBottom: 12,
+  },
+  actionWisdomAssistantRow: {
+    alignItems: 'flex-start',
+  },
+  actionWisdomUserBubble: {
+    maxWidth: '88%',
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    borderRadius: 18,
+    borderTopRightRadius: 6,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.28)',
+  },
+  actionWisdomAssistantBubble: {
+    maxWidth: '96%',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 18,
+    borderTopLeftRadius: 6,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  actionWisdomAssistantLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  actionWisdomThreadLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.58)',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 5,
+  },
+  actionWisdomUserText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    lineHeight: 21,
+  },
+  actionWisdomThreadDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginVertical: 14,
   },
   actionWisdomOutroWrapper: {
     width: '100%',

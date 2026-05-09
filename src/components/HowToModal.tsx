@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
@@ -25,6 +26,7 @@ interface HowToModalProps {
   actionNumber?: number;
   onDismiss: () => void;
   onSubmit: (question: string) => Promise<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean }>;
+  onThreadUpdate?: (entry: { question: string; wisdom: string }) => void;
   wisdomCount: number;
   wisdomLimit: number;
 }
@@ -51,6 +53,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   actionNumber,
   onDismiss,
   onSubmit,
+  onThreadUpdate,
   wisdomCount,
   wisdomLimit,
 }) => {
@@ -59,6 +62,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [question, setQuestion] = useState('');
+  const [submittedQuestion, setSubmittedQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean } | null>(null);
   const preserveDraftOnCloseRef = React.useRef(false);
@@ -167,11 +171,13 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
   const handleSubmit = async () => {
     if (question.trim().length < 5) {return;}
+    const currentQuestion = question.trim();
     triggerLightHaptic();
     setLoading(true);
+    setSubmittedQuestion(currentQuestion);
     setResult(null);
     try {
-      const response = await onSubmit(question);
+      const response = await onSubmit(currentQuestion);
       if (response.error === 'WISDOM_LIMIT_REACHED') {
         if (response.canUpgrade === false) {
           setResult(response);
@@ -183,6 +189,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
       setResult(response);
       if (response.success) {
+        if (response.wisdom) {
+          onThreadUpdate?.({ question: currentQuestion, wisdom: response.wisdom.trim() });
+        }
         triggerSuccessHaptic();
       }
     } catch (error) {
@@ -306,42 +315,54 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         },
                       ]}
                     >
-                      {wisdomItems.intro ? (
-                        <ThemedText style={styles.wisdomText}>
-                          {wisdomItems.intro}
-                        </ThemedText>
+                      {submittedQuestion ? (
+                        <View style={styles.threadUserRow}>
+                          <View style={styles.threadUserBubble}>
+                            <ThemedText weight="semiBold" style={styles.threadLabel}>You</ThemedText>
+                            <ThemedText style={styles.threadUserText}>{submittedQuestion}</ThemedText>
+                          </View>
+                        </View>
                       ) : null}
 
-                      {wisdomItems.items.map((item, index) => {
-                        const label = actionNumber !== undefined ? `${actionNumber}.${index + 1}` : `${index + 1}`;
-                        const titledItem = splitWisdomItemTitle(item);
-
-                        return (
-                          <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
-                            <View style={styles.wisdomStepCircle}>
-                              <ThemedText weight="bold" style={styles.wisdomStepNumber}>
-                                {label}
-                              </ThemedText>
-                            </View>
-                            <View style={styles.wisdomStepTextWrapper}>
-                              {titledItem ? (
-                                <>
-                                  <ThemedText weight="bold" style={styles.wisdomStepTitle}>
-                                    {titledItem.title}
-                                  </ThemedText>
-                                  <ThemedText style={styles.wisdomStepText}>
-                                    {titledItem.body}
-                                  </ThemedText>
-                                </>
-                              ) : (
-                                <ThemedText style={styles.wisdomStepText}>
-                                  {item}
-                                </ThemedText>
-                              )}
-                            </View>
+                      <View style={styles.threadAssistantRow}>
+                        <View style={styles.threadAssistantBubble}>
+                          <View style={styles.threadAssistantLabelRow}>
+                            <MaterialCommunityIcons name="head-heart-outline" size={14} color={Colors.alertCoral} />
+                            <ThemedText weight="semiBold" style={styles.threadLabel}>siFia</ThemedText>
                           </View>
-                        );
-                      })}
+
+                          {wisdomItems.intro ? (
+                            <ThemedText style={styles.wisdomText}>
+                              {wisdomItems.intro}
+                            </ThemedText>
+                          ) : null}
+
+                          {wisdomItems.items.map((item, index) => {
+                            const titledItem = splitWisdomItemTitle(item);
+
+                            return (
+                              <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
+                                <View style={styles.wisdomStepTextWrapper}>
+                                  {titledItem ? (
+                                    <>
+                                      <ThemedText weight="bold" style={styles.wisdomStepTitle}>
+                                        {titledItem.title}
+                                      </ThemedText>
+                                      <ThemedText style={styles.wisdomStepText}>
+                                        {titledItem.body}
+                                      </ThemedText>
+                                    </>
+                                  ) : (
+                                    <ThemedText style={styles.wisdomStepText}>
+                                      {item}
+                                    </ThemedText>
+                                  )}
+                                </View>
+                              </View>
+                            );
+                          })}
+                            </View>
+                      </View>
                     </Animated.View>
                     <TouchableOpacity
                       style={styles.doneButton}
@@ -595,10 +616,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   wisdomOutput: {
     marginBottom: 24,
+  },
+  threadUserRow: {
+    alignItems: 'flex-end',
+    marginBottom: 14,
+  },
+  threadAssistantRow: {
+    alignItems: 'flex-start',
+  },
+  threadUserBubble: {
+    maxWidth: '88%',
+    backgroundColor: 'rgba(255,107,107,0.18)',
+    borderRadius: 20,
+    borderTopRightRadius: 6,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.28)',
+  },
+  threadAssistantBubble: {
+    maxWidth: '94%',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20,
+    borderTopLeftRadius: 6,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  threadAssistantLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  threadLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.58)',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  threadUserText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 22,
   },
   wisdomStepRow: {
     flexDirection: 'row',

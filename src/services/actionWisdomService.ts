@@ -14,9 +14,16 @@ export interface WisdomRequest {
   previousWisdom?: string;
 }
 
+export interface WisdomThreadEntry {
+  question: string;
+  wisdom: string;
+}
+
 export interface WisdomResponse {
   success: boolean;
   wisdom?: string;
+  storedWisdom?: string;
+  wisdomThread?: WisdomThreadEntry[];
   actionId?: string;
   error?: string;
   message?: string;
@@ -112,6 +119,8 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
     return {
       success: true,
       wisdom: data.wisdom,
+      storedWisdom: data.storedWisdom,
+      wisdomThread: data.wisdomThread,
       actionId: data.actionId,
       wisdomCount: (subscription as any).wisdom_count || 0,
       wisdomLimit: subscription.wisdom_limit || 0,

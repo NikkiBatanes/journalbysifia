@@ -20,6 +20,11 @@ interface WisdomRequest {
   previousWisdom?: string;
 }
 
+interface WisdomThreadEntry {
+  question: string;
+  wisdom: string;
+}
+
 function cleanText(value: unknown, max = 800): string {
   if (typeof value !== 'string') return '';
   return value.replace(/\s+/g, ' ').trim().slice(0, max);
@@ -90,6 +95,45 @@ function formatWisdomText(wisdom: { intro: string; steps: string[] }): string {
     wisdom.intro,
     ...wisdom.steps.map((step, index) => `${index + 1}. ${step}`),
   ].filter(Boolean).join('\n\n');
+}
+
+function parseWisdomThread(value = ''): WisdomThreadEntry[] {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const matches = [...trimmed.matchAll(/User:\s*([\s\S]*?)\nsiFia:\s*([\s\S]*?)(?=\n\nUser:|$)/g)];
+
+  return matches
+    .map(match => ({
+      question: cleanOutputText(match[1], 1000),
+      wisdom: match[2].trim(),
+    }))
+    .filter(entry => entry.question && entry.wisdom);
+}
+
+function getExistingWisdomThread(persistedWisdom = '', requestWisdom = ''): WisdomThreadEntry[] {
+  const persistedThread = parseWisdomThread(persistedWisdom);
+  if (persistedThread.length > 0) {
+    return persistedThread;
+  }
+
+  const requestThread = parseWisdomThread(requestWisdom);
+  if (requestThread.length > 0) {
+    return requestThread;
+  }
+
+  const legacyWisdom = cleanOutputText(persistedWisdom || requestWisdom, 2400);
+  return legacyWisdom
+    ? [{ question: 'Earlier wisdom', wisdom: legacyWisdom }]
+    : [];
+}
+
+function serializeWisdomThread(thread: WisdomThreadEntry[]): string {
+  return thread
+    .map(entry => `User: ${entry.question}\nsiFia: ${entry.wisdom.trim()}`)
+    .join('\n\n');
 }
 
 function isWeakWisdomAnswer(wisdom: { intro: string; steps: string[] }, userQuestion: string, actionContext = ''): boolean {
@@ -346,6 +390,25 @@ serve(async (req: Request) => {
       });
     }
 
+    const { data: actionStep, error: actionStepError } = await supabase
+      .from('playbook_action_steps')
+      .select('wisdom_text')
+      .eq('id', actionId)
+      .eq('playbook_id', playbookId)
+      .single();
+
+    if (actionStepError) {
+      console.error('[Get-Action-Guidance] Action step lookup error:', actionStepError);
+    }
+
+    const persistedWisdom = typeof actionStep?.wisdom_text === 'string'
+      ? actionStep.wisdom_text
+      : '';
+    const existingThread = getExistingWisdomThread(persistedWisdom, previousWisdom || '');
+    const wisdomHistory = existingThread.length > 0
+      ? serializeWisdomThread(existingThread)
+      : (previousWisdom || persistedWisdom);
+
     // Build the prompt
     const prompt = buildWisdomPrompt({
       playbookTitle: playbook.title || '',
@@ -355,7 +418,7 @@ serve(async (req: Request) => {
       actionBody,
       userQuestion,
       userName,
-      previousWisdom,
+      previousWisdom: wisdomHistory,
     });
     const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove}`;
 
@@ -470,11 +533,17 @@ serve(async (req: Request) => {
       throw new Error('No wisdom generated from OpenAI');
     }
 
-    // Update action step with wisdom
+    const threadEntry = {
+      question: cleanOutputText(userQuestion, 1000),
+      wisdom,
+    };
+    const storedWisdom = serializeWisdomThread([threadEntry, ...existingThread]);
+
+    // Update action step with the full latest-first wisdom thread.
     const { error: updateError } = await supabase
       .from('playbook_action_steps')
       .update({
-        wisdom_text: wisdom,
+        wisdom_text: storedWisdom,
         updated_at: new Date().toISOString(),
       })
       .eq('id', actionId)
@@ -487,8 +556,10 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      wisdom: wisdom,
+      wisdom,
       actionId,
+      storedWisdom,
+      wisdomThread: [threadEntry, ...existingThread],
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
