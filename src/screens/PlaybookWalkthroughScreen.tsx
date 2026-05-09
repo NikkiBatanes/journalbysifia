@@ -15,6 +15,8 @@ import {
   Alert,
   DeviceEventEmitter,
   Platform,
+  LayoutAnimation,
+  UIManager,
   Clipboard,
   PanResponder,
   Keyboard,
@@ -26,6 +28,7 @@ import { BlurView } from '@react-native-community/blur';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
@@ -68,6 +71,10 @@ const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
 const TOTAL_STEPS = 7;
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const REFINEMENT_OPTIONS: Array<{ type: PlaybookCorrectionType; label: string }> = [
   { type: 'missing_detail', label: 'Missing important detail' },
@@ -1216,7 +1223,7 @@ const getDisplayWisdomThread = (currentWisdom: string, restoredThread: WisdomThr
 
   const legacyWisdom = currentWisdom.trim();
   return legacyWisdom
-    ? [{ question: 'Earlier wisdom', wisdom: legacyWisdom }]
+    ? [{ question: '', wisdom: legacyWisdom }]
     : [];
 };
 
@@ -1705,9 +1712,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     <>
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 40 }]}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 80 }]}
       scrollEnabled={hasActionWisdom}
       showsVerticalScrollIndicator={hasActionWisdom}
+      removeClippedSubviews={false}
     >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
@@ -1935,6 +1943,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     activeOpacity={0.75}
                     onPress={() => {
                       triggerLightHaptic();
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                       setWisdomExpanded(prev => !prev);
                     }}
                   >
@@ -1957,13 +1966,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   </TouchableOpacity>
 
                   {wisdomExpanded ? (
-                    <View style={styles.actionWisdomThreadList}>
+                    <View style={styles.actionWisdomThreadList} collapsable={false}>
                       {(displayWisdomThread.length > 0 ? displayWisdomThread : [{ question: '', wisdom: currentActionWisdom }]).map((entry, threadIndex) => {
                         const entryWisdom = parseWisdomText(entry.wisdom);
-                        let wisdomItemOffset = 0;
-
                         return (
-                          <View key={`wisdom-thread-${threadIndex}-${entry.question}-${entry.wisdom}`} style={styles.actionWisdomThreadItem}>
+                          <View key={`wisdom-thread-${threadIndex}-${entry.question}-${entry.wisdom}`} style={styles.actionWisdomThreadItem} collapsable={false}>
                             <View style={styles.actionWisdomThreadRail}>
                               <View style={styles.actionWisdomThreadDot} />
                               {threadIndex < (displayWisdomThread.length > 0 ? displayWisdomThread.length : 1) - 1 ? (
@@ -1972,37 +1979,45 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                             </View>
 
                             <View style={styles.actionWisdomThreadContent}>
-                              <View style={styles.actionWisdomThreadMetaRow}>
-                                <ThemedText weight="semiBold" style={styles.actionWisdomThreadMeta}>
-                                  {threadIndex === 0 ? 'Latest wisdom' : 'Earlier wisdom'}
-                                </ThemedText>
-                              </View>
-
                               {entry.question ? (
-                                <View style={styles.actionWisdomQuestionBlock}>
-                                  <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Your question</ThemedText>
-                                  <ThemedText style={styles.actionWisdomUserText} selectable={true}>
-                                    {entry.question}
-                                  </ThemedText>
+                                <View style={styles.actionWisdomUserRow}>
+                                  <View style={styles.actionWisdomUserBubble} collapsable={false}>
+                                    <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Your question</ThemedText>
+                                    <ThemedText style={styles.actionWisdomUserText} selectable={true}>
+                                      {entry.question}
+                                    </ThemedText>
+                                  </View>
                                 </View>
                               ) : null}
 
-                              <View style={styles.actionWisdomResponseBlock}>
+                              <View style={styles.actionWisdomAssistantRow}>
+                                <View style={styles.actionWisdomAssistantBubble} collapsable={false}>
                                 <View style={styles.actionWisdomAssistantLabelRow}>
                                   <MaterialCommunityIcons name="head-heart-outline" size={14} color={Colors.alertCoral} />
-                                  <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Wisdom</ThemedText>
                                 </View>
 
-                                {entryWisdom.blocks.map((block, blockIndex) => {
-                                  const blockStart = wisdomItemOffset;
-                                  wisdomItemOffset += block.items.length;
-
-                                  return (
-                            <View key={`wisdom-block-${blockIndex}`}>
+                                {entryWisdom.blocks.map((block, blockIndex) => (
+                            <View key={`wisdom-block-${blockIndex}`} collapsable={false}>
                               {block.intro ? (
-                                <ThemedText style={styles.actionWisdomIntro} selectable={true}>
-                                  {block.intro}
-                                </ThemedText>
+                                <View style={styles.actionWisdomTextWrapper}>
+                                  {Platform.OS === 'ios' ? (
+                                    <ThemedTextInput
+                                      value={block.intro}
+                                      editable={false}
+                                      multiline={true}
+                                      scrollEnabled={false}
+                                      underlineColorAndroid="transparent"
+                                      pointerEvents="none"
+                                      contextMenuHidden={true}
+                                      caretHidden={true}
+                                      style={styles.actionWisdomIntroTextInput}
+                                    />
+                                  ) : (
+                                    <ThemedText style={styles.actionWisdomIntro} selectable={true}>
+                                      {block.intro}
+                                    </ThemedText>
+                                  )}
+                                </View>
                               ) : null}
 
                               {blockIndex > 0 && block.intro && (
@@ -2015,25 +2030,64 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 return (
                                   <React.Fragment key={`wisdom-item-${blockIndex}-${idx}-${item}`}>
                                     <View style={styles.actionWisdomStepRow}>
-                                      <View style={styles.actionWisdomStepCircle}>
-                                        <ThemedText weight="bold" style={styles.actionWisdomStepNumber}>
-                                          {stepNumber}.{blockStart + idx + 1}
-                                        </ThemedText>
-                                      </View>
                                       <View style={styles.actionWisdomStepTextWrapper}>
                                         {titledItem ? (
                                           <>
-                                            <ThemedText weight="bold" style={styles.actionWisdomStepTitle} selectable={true}>
-                                              {titledItem.title}
-                                            </ThemedText>
-                                            <ThemedText style={styles.actionWisdomStepText} selectable={true}>
-                                              {titledItem.body}
-                                            </ThemedText>
+                                            {Platform.OS === 'ios' ? (
+                                              <>
+                                                <ThemedTextInput
+                                                  value={titledItem.title}
+                                                  weight="bold"
+                                                  editable={false}
+                                                  multiline={true}
+                                                  scrollEnabled={false}
+                                                  underlineColorAndroid="transparent"
+                                                  pointerEvents="none"
+                                                  contextMenuHidden={true}
+                                                  caretHidden={true}
+                                                  style={styles.actionWisdomStepTitleTextInput}
+                                                />
+                                                <ThemedTextInput
+                                                  value={titledItem.body}
+                                                  editable={false}
+                                                  multiline={true}
+                                                  scrollEnabled={false}
+                                                  underlineColorAndroid="transparent"
+                                                  pointerEvents="none"
+                                                  contextMenuHidden={true}
+                                                  caretHidden={true}
+                                                  style={styles.actionWisdomStepTextInput}
+                                                />
+                                              </>
+                                            ) : (
+                                              <>
+                                                <ThemedText weight="bold" style={styles.actionWisdomStepTitle} selectable={true}>
+                                                  {titledItem.title}
+                                                </ThemedText>
+                                                <ThemedText style={styles.actionWisdomStepText} selectable={true}>
+                                                  {titledItem.body}
+                                                </ThemedText>
+                                              </>
+                                            )}
                                           </>
                                         ) : (
-                                          <ThemedText style={styles.actionWisdomStepText} selectable={true}>
-                                            {item}
-                                          </ThemedText>
+                                          Platform.OS === 'ios' ? (
+                                            <ThemedTextInput
+                                              value={item}
+                                              editable={false}
+                                              multiline={true}
+                                              scrollEnabled={false}
+                                              underlineColorAndroid="transparent"
+                                              pointerEvents="none"
+                                              contextMenuHidden={true}
+                                              caretHidden={true}
+                                              style={styles.actionWisdomStepTextInput}
+                                            />
+                                          ) : (
+                                            <ThemedText style={styles.actionWisdomStepText} selectable={true}>
+                                              {item}
+                                            </ThemedText>
+                                          )
                                         )}
                                       </View>
                                     </View>
@@ -2044,15 +2098,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                               {block.outro ? (
                                 <View style={styles.actionWisdomOutroWrapper}>
                                   {Platform.OS === 'ios' ? (
-                                    <TextInput
+                                    <ThemedTextInput
                                       value={block.outro}
                                       editable={false}
                                       multiline={true}
                                       scrollEnabled={false}
+                                      underlineColorAndroid="transparent"
                                       pointerEvents="none"
                                       contextMenuHidden={true}
                                       caretHidden={true}
-                                      style={styles.actionWisdomOutroTextInput}
+                                      style={styles.actionWisdomIntroTextInput}
                                     />
                                   ) : (
                                     <ThemedText style={styles.actionWisdomIntro} selectable={true}>
@@ -2066,8 +2121,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 <View style={styles.actionWisdomBlockDivider} />
                               )}
                             </View>
-                                  );
-                                })}
+                                ))}
+                                </View>
                               </View>
                             </View>
                           </View>
@@ -2272,7 +2327,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               }
               setWisdomThread(nextThread);
               setCurrentActionWisdom(serializedThread);
-              setWisdomExpanded(true);
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setWisdomExpanded(false);
               setWisdomCount(response.wisdomCount || wisdomCount + 1);
               if (playbookId && user?.id) {
                 queryClient.setQueryData(['playbook', playbookId, user.id], (cachedPlaybook: any) => {
@@ -4432,7 +4488,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actionWisdomThreadList: {
-    gap: 14,
+    gap: 16,
   },
   actionWisdomThreadItem: {
     flexDirection: 'row',
@@ -4472,44 +4528,28 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   actionWisdomQuestionBlock: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,107,107,0.11)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.2)',
+    paddingBottom: 10,
     marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   actionWisdomResponseBlock: {
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.055)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 0,
   },
   actionWisdomUserRow: {
-    alignItems: 'flex-end',
-    marginBottom: 12,
+    alignItems: 'stretch',
+    marginBottom: 14,
   },
   actionWisdomAssistantRow: {
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
   },
   actionWisdomUserBubble: {
-    maxWidth: '88%',
-    backgroundColor: 'rgba(255,107,107,0.18)',
-    borderRadius: 18,
-    borderTopRightRadius: 6,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.28)',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   actionWisdomAssistantBubble: {
-    maxWidth: '96%',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 18,
-    borderTopLeftRadius: 6,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    paddingTop: 0,
   },
   actionWisdomAssistantLabelRow: {
     flexDirection: 'row',
@@ -4535,21 +4575,21 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
   actionWisdomOutroWrapper: {
-    width: '100%',
-    minWidth: '100%',
+    alignSelf: 'stretch',
     overflow: 'visible',
   },
-  actionWisdomOutroTextInput: {
+  actionWisdomTextWrapper: {
+    minHeight: 22,
+    overflow: 'visible',
+  },
+  actionWisdomIntroTextInput: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 22,
     padding: 0,
     margin: 0,
-    width: '100%',
-    minWidth: '100%',
-    flexShrink: 1,
-    flexGrow: 1,
-    fontFamily: getFontFamily('regular'),
+    backgroundColor: 'transparent',
+    minHeight: 22,
   },
   actionWisdomBlockDivider: {
     height: 1,
@@ -4586,10 +4626,29 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: 2,
   },
+  actionWisdomStepTitleTextInput: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 21,
+    padding: 0,
+    margin: 0,
+    marginBottom: 2,
+    backgroundColor: 'transparent',
+    minHeight: 21,
+  },
   actionWisdomStepText: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.84)',
     lineHeight: 22,
+  },
+  actionWisdomStepTextInput: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 22,
+    padding: 0,
+    margin: 0,
+    backgroundColor: 'transparent',
+    minHeight: 22,
   },
   // Choice pills — for 'choose' type steps
   choicePill: {

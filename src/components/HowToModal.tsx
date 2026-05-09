@@ -315,54 +315,36 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         },
                       ]}
                     >
-                      {submittedQuestion ? (
-                        <View style={styles.threadUserRow}>
-                          <View style={styles.threadUserBubble}>
-                            <ThemedText weight="semiBold" style={styles.threadLabel}>You</ThemedText>
-                            <ThemedText style={styles.threadUserText}>{submittedQuestion}</ThemedText>
-                          </View>
-                        </View>
+                      {wisdomItems.intro ? (
+                        <ThemedText style={styles.wisdomText}>
+                          {wisdomItems.intro}
+                        </ThemedText>
                       ) : null}
 
-                      <View style={styles.threadAssistantRow}>
-                        <View style={styles.threadAssistantBubble}>
-                          <View style={styles.threadAssistantLabelRow}>
-                            <MaterialCommunityIcons name="head-heart-outline" size={14} color={Colors.alertCoral} />
-                            <ThemedText weight="semiBold" style={styles.threadLabel}>siFia</ThemedText>
-                          </View>
+                      {wisdomItems.items.map((item, index) => {
+                        const titledItem = splitWisdomItemTitle(item);
 
-                          {wisdomItems.intro ? (
-                            <ThemedText style={styles.wisdomText}>
-                              {wisdomItems.intro}
-                            </ThemedText>
-                          ) : null}
-
-                          {wisdomItems.items.map((item, index) => {
-                            const titledItem = splitWisdomItemTitle(item);
-
-                            return (
-                              <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
-                                <View style={styles.wisdomStepTextWrapper}>
-                                  {titledItem ? (
-                                    <>
-                                      <ThemedText weight="bold" style={styles.wisdomStepTitle}>
-                                        {titledItem.title}
-                                      </ThemedText>
-                                      <ThemedText style={styles.wisdomStepText}>
-                                        {titledItem.body}
-                                      </ThemedText>
-                                    </>
-                                  ) : (
-                                    <ThemedText style={styles.wisdomStepText}>
-                                      {item}
-                                    </ThemedText>
-                                  )}
-                                </View>
-                              </View>
-                            );
-                          })}
+                        return (
+                          <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
+                            <View style={styles.wisdomStepTextWrapper}>
+                              {titledItem ? (
+                                <>
+                                  <ThemedText weight="bold" style={styles.wisdomStepTitle}>
+                                    {titledItem.title}
+                                  </ThemedText>
+                                  <ThemedText style={styles.wisdomStepText}>
+                                    {titledItem.body}
+                                  </ThemedText>
+                                </>
+                              ) : (
+                                <ThemedText style={styles.wisdomStepText}>
+                                  {item}
+                                </ThemedText>
+                              )}
                             </View>
-                      </View>
+                          </View>
+                        );
+                      })}
                     </Animated.View>
                     <TouchableOpacity
                       style={styles.doneButton}
