@@ -845,7 +845,12 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
                 nextDayNumber = currentDay;
                 const rawDayTitle = typeof dayEntry?.title === 'string' ? dayEntry.title : undefined;
-                const cleanedTitle = normalizeDayTitle(rawDayTitle, { dayNumber: currentDay, category: derivedCategory });
+                // Don't use normalizeDayTitle - it's too aggressive and strips valid titles
+                // Just use the raw title directly, only filter out pure "Day X" patterns
+                let cleanedTitle = rawDayTitle;
+                if (rawDayTitle && rawDayTitle.toLowerCase().match(/^day\s*\d+$/)) {
+                  cleanedTitle = undefined; // Title is just "Day 2" with no actual content
+                }
                 nextDayTitle = cleanedTitle || '';
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
@@ -1323,9 +1328,13 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         const totalWords = scriptureWords + reflectionWords + questionsWords + prayerWords;
         const readTime = totalWords > 0 ? Math.max(1, Math.round(totalWords / 100)) : 0;
         const isOneDay = totalDays === 1;
+        // Use day title if it's not just "Day X", otherwise use devotional title
+        const dayTitle = nextDay.title;
+        const isDayTitleJustNumber = dayTitle && dayTitle.toLowerCase().match(/^day\s*\d+$/);
+        const displayTitle = isDayTitleJustNumber ? cleanTitle : dayTitle;
         nextDayInfo = {
           dayNumber: nextDay.dayNumber || nextIdx + 1,
-          title: nextDay.title,
+          title: displayTitle,
           readTime,
           isOneDay,
         };

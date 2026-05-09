@@ -227,8 +227,10 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
                 nextDayNumber = currentDay;
                 const rawTitle = (dayEntry?.title && typeof dayEntry.title === 'string') ? dayEntry.title : '';
-                // Don't use title if it's just "Day X" pattern
-                nextDayTitle = rawTitle.toLowerCase().match(/^day\s*\d+$/) ? '' : rawTitle;
+                // Don't use title if it's just "Day X" pattern (e.g., "Day 2" with no actual content)
+                // Instead, use the devotional title as fallback
+                const isDayTitleJustNumber = rawTitle.toLowerCase().match(/^day\s*\d+$/);
+                nextDayTitle = isDayTitleJustNumber ? devotional.title : rawTitle;
                 if (typeof dayText === 'string' && dayText.length > 0) {
                   const textLength = dayText.length;
                   estimatedDuration = Math.max(3, Math.ceil(textLength / 200));

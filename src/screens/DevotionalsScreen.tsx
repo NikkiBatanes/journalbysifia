@@ -622,11 +622,15 @@ const DevotionalsScreen = () => {
                       const readTime = totalWords > 0 ? Math.max(1, Math.round(totalWords / 100)) : 0;
                       // For 1-day devotionals, don't show title, just "Day 1"
                       const isOneDay = item.totalDays === 1;
+                      // Use day title if it's not just "Day X", otherwise use devotional title
+                      const dayTitle = nextDay.title;
+                      const isDayTitleJustNumber = dayTitle && dayTitle.toLowerCase().match(/^day\s*\d+$/);
+                      const displayTitle = isDayTitleJustNumber ? cleanTitle : dayTitle;
                       return (
                         <View style={styles.nextDayContentContainer}>
                           <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
                           <ThemedText weight="medium" style={styles.nextDayTitle}>
-                            Day {nextDay.dayNumber}{!isOneDay && `: ${nextDay.title}`}
+                            Day {nextDay.dayNumber}{!isOneDay && `: ${displayTitle}`}
                           </ThemedText>
                           <View style={styles.nextDayReadTimeContainer}>
                             <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
