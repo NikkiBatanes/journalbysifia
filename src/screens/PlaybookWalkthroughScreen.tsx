@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BlurView } from '@react-native-community/blur';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -69,8 +70,6 @@ const TOTAL_STEPS = 7;
 const REFINEMENT_OPTIONS: Array<{ type: PlaybookCorrectionType; label: string }> = [
   { type: 'missing_detail', label: 'Missing important detail' },
   { type: 'wrong_assumption', label: 'Wrong assumption' },
-  { type: 'too_generic', label: 'Too generic' },
-  { type: 'wrong_tone', label: 'Wrong tone' },
   { type: 'explain_more', label: 'I need to explain more' },
 ];
 
@@ -514,6 +513,18 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
     });
   };
 
+  const handleCloseRefinement = () => {
+    if (isRefining) {
+      return;
+    }
+
+    triggerLightHaptic();
+    Keyboard.dismiss();
+    setRefinementOpen(false);
+    setSelectedRefinementType(null);
+    setRefinementText('');
+  };
+
   const handleReasonPress = (type: PlaybookCorrectionType) => {
     triggerLightHaptic();
     setSelectedRefinementType(type);
@@ -538,6 +549,23 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
 
   return (
     <>
+      {refinementOpen ? (
+        <TouchableOpacity
+          style={styles.refinementBackdrop}
+          activeOpacity={1}
+          onPress={handleCloseRefinement}
+          disabled={isRefining}
+        >
+          <BlurView
+            style={styles.refinementBackdropBlur}
+            blurType="dark"
+            blurAmount={9}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.58)"
+          />
+          <View style={styles.refinementBackdropTint} />
+        </TouchableOpacity>
+      ) : null}
+
       {refinementOpen ? (
         <Animated.View
           style={[
@@ -3433,6 +3461,17 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 26,
     opacity: 0.9,
+  },
+  refinementBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 120,
+  },
+  refinementBackdropBlur: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  refinementBackdropTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.22)',
   },
   floatingRefinementButtonWrap: {
     position: 'absolute',
