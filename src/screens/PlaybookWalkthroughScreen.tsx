@@ -1212,6 +1212,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
   const rowHeight = useRef(new Animated.Value(0)).current;
   const rowOpacity = useRef(new Animated.Value(0)).current;
+  const howToButtonAnim = useRef(new Animated.Value(0)).current;
   // Ref tracks real expanded state to avoid stale closure in toggle
   const journalExpandedRef = useRef(false);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
@@ -1249,6 +1250,20 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
     return () => subscription.remove();
   }, [loadWisdomUsage]);
+
+  // Animate How to button appearance with 1 second delay
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.spring(howToButtonAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [howToButtonAnim]);
 
   const rotateInterpolate = triggerRotation.interpolate({
     inputRange: [0, 1],
@@ -1687,19 +1702,28 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.actionStepCard}>
-            <TouchableOpacity
-              style={styles.actionHowToButton}
-              onPress={() => {
-                triggerLightHaptic();
-                setHowToModalVisible(true);
-              }}
-              activeOpacity={0.8}
+            <Animated.View
+              style={[
+                styles.actionHowToButton,
+                {
+                  opacity: howToButtonAnim,
+                  transform: [{ scale: howToButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
+                },
+              ]}
             >
-              <View style={styles.actionHowToButtonContent}>
-                <Ionicons name="help-circle-outline" size={14} color={Colors.hopeWhite} />
-                <ThemedText style={styles.actionHowToButtonText}>How to</ThemedText>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  setHowToModalVisible(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={styles.actionHowToButtonContent}>
+                  <Ionicons name="help-circle-outline" size={14} color={Colors.hopeWhite} />
+                  <ThemedText style={styles.actionHowToButtonText}>How to</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
 
             {/* Step number circle — matches ActionStepsCard design */}
             <View style={styles.stepNumberContainer}>

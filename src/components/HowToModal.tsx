@@ -84,15 +84,6 @@ const HowToModal: React.FC<HowToModalProps> = ({
     });
   }, [navigation, onDismiss, wisdomCount, wisdomLimit]);
 
-  // Hide status bar when modal is visible
-  React.useEffect(() => {
-    if (visible) {
-      StatusBar.setHidden(true);
-    } else {
-      StatusBar.setHidden(false);
-    }
-    return () => StatusBar.setHidden(false);
-  }, [visible]);
 
   // Loading animation - pulsing effect like refine modal
   React.useEffect(() => {
@@ -264,6 +255,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       onRequestClose={onDismiss}
       statusBarTranslucent
     >
+      <StatusBar hidden />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1, backgroundColor: Colors.anchorBlue }}
