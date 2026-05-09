@@ -206,6 +206,7 @@ Cite the passage explicitly (e.g., "In 1 Samuel 17, David stood in the Valley of
 - Vary sentence length and structure to create natural rhythm
 - Make it feel like deep biblical teaching delivered pastorally with Christ at the center
 - NEVER use em dashes (—) - use commas, periods, or regular hyphens (-) instead
+- NEVER use the word family "navigate", "navigates", "navigating", or "navigation" anywhere in titles, descriptions, reflections, questions, or prayers. Use concrete verbs instead: face, trust, obey, discern, endure, rebuild, confront, wait, or walk faithfully.
 - CREATE 3-5 DISTINCT PARAGRAPHS with clear breaks between them (not one massive block)
 
 ⚠️ THEOLOGICAL LANGUAGE BAN: NEVER use the phrase "you deserve" or "you deserved" in any context. In reality, we do not deserve anything - it is only by the grace and love of Jesus that we receive anything good. Instead use: "God offers you", "God's grace provides", "through Christ you receive", "God freely gives you".
@@ -258,9 +259,9 @@ Example: CATEGORY: Family
 SERIES TITLE:
 [Series title - max 32 characters]
 
-SERIES DESCRIPTION: [EXACTLY 80 CHARACTERS MAX - Start with "A X-day journey" or "This X-day series"]
+SERIES DESCRIPTION: [EXACTLY 80 CHARACTERS MAX - Start with "This X-day series"]
 [Write one complete, meaningful sentence that fits within 80 characters total. Count carefully and ensure it's not truncated.]
-Example: "A 5-day journey discovering how to trust God's plan when life feels uncertain." (78 characters)
+Example: "This 5-day series teaches trust when life feels uncertain." (58 characters)
 
 # IMPORTANT: Day titles must be unique and different from the series title
 # Each day should have a distinct focus that relates to but isn't identical to the series theme
@@ -371,6 +372,7 @@ In Jesus' Name, Amen
 
 ## TITLE ANTI-PATTERNS - NEVER USE THESE OVERUSED PHRASES:
 ❌ "Walking in [X]" (Faith, Grace, Hope, Love, etc.)
+❌ "Navigating [X]" (Change, Waiting, Conflict, Uncertainty, etc.)
 ❌ "Finding [X] in God" (Peace, Purpose, Strength, Joy, etc.)
 ❌ "Trusting God in [X]" (Trials, Uncertainty, Waiting, etc.)
 ❌ "A Journey of [X]" (Faith, Hope, Healing, etc.)
@@ -382,6 +384,10 @@ In Jesus' Name, Amen
 ❌ "The Power of [X]" (Prayer, Faith, Forgiveness, etc.)
 ❌ "Learning to [X]" (Trust, Wait, Surrender, etc.)
 ❌ "When God [X]" (Calls, Speaks, Provides, etc.)
+
+## GLOBAL WORD FATIGUE BAN:
+❌ NEVER use "navigate", "navigates", "navigating", or "navigation"
+✅ Use the exact action required by the passage or user's context: face, trust, obey, discern, endure, rebuild, confront, wait, confess, or walk faithfully
 
 ## INSTEAD, CREATE SPECIFIC, CONCRETE TITLES THAT:
 ✅ Reflect real human struggles and emotions

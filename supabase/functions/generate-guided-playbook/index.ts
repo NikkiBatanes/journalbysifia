@@ -186,8 +186,24 @@ const PLAYBOOK_JSON_SCHEMA = {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
+function removeOverusedNavigationLanguage(text: string): string {
+  return text
+    .replace(/\b[Nn]avigating\s+through\b/g, (match) => match[0] === 'N' ? 'Walking through' : 'walking through')
+    .replace(/\b[Nn]avigate\s+through\b/g, (match) => match[0] === 'N' ? 'Walk through' : 'walk through')
+    .replace(/\b[Nn]avigates\s+through\b/g, (match) => match[0] === 'N' ? 'Walks through' : 'walks through')
+    .replace(/\b[Nn]avigated\s+through\b/g, (match) => match[0] === 'N' ? 'Walked through' : 'walked through')
+    .replace(/\b[Nn]avigating\b/g, (match) => match[0] === 'N' ? 'Facing' : 'facing')
+    .replace(/\b[Nn]avigate\b/g, (match) => match[0] === 'N' ? 'Face' : 'face')
+    .replace(/\b[Nn]avigates\b/g, (match) => match[0] === 'N' ? 'Faces' : 'faces')
+    .replace(/\b[Nn]avigated\b/g, (match) => match[0] === 'N' ? 'Faced' : 'faced')
+    .replace(/\b[Nn]avigation\b/g, (match) => match[0] === 'N' ? 'Discernment' : 'discernment')
+    .replace(/\b[Nn]avigational\b/g, (match) => match[0] === 'N' ? 'Directional' : 'directional')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 function sanitizeText(text: string): string {
-  return text.replace(/\byoga\b/gi, 'gentle stretching');
+  return removeOverusedNavigationLanguage(text.replace(/\byoga\b/gi, 'gentle stretching'));
 }
 
 function cleanMarkdown(text: string): string {
@@ -364,6 +380,8 @@ const DRIFT_PHRASES = [
   'god is writing your story',
 ];
 
+const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
+
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
@@ -458,6 +476,9 @@ function validatePlaybook(json: Record<string, any>): ValidationResult {
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
   if (driftFound.length > 0) {
     softIssues.push(`Abstraction drift detected — forbidden phrases: ${driftFound.join(', ')}`);
+  }
+  if (OVERUSED_NAVIGATION_REGEX.test(allText)) {
+    softIssues.push('Overused navigation language detected — replace every form of "navigate" with a more specific verb');
   }
 
   // Action sequence quality — check verb sharpness across first 3 actions
@@ -988,7 +1009,8 @@ serve(async (req: Request) => {
       i.includes('sentences') ||
       i.includes('paragraphs') ||
       i.includes('Action sequence drift') ||
-      i.includes('Abstraction drift')
+      i.includes('Abstraction drift') ||
+      i.includes('Overused navigation language')
     );
 
     if (architecturalIssues.length > 0) {
@@ -1002,6 +1024,7 @@ serve(async (req: Request) => {
         '  truth_in_love must be exactly 4 paragraphs (P1 diagnosis, P2 distinction, P3 correction, P4 direction).',
         '  faithful_actions must follow the A1→A2→A3→A4+→Final sequence — not a list of tips.',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
+        '  Do not use any form of "navigate" or "navigation"; choose a concrete verb like face, discern, obey, endure, confront, or rebuild.',
       ].join('\n');
 
       const correctedMessage = userMessage + correctionNote;

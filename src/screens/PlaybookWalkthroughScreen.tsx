@@ -139,14 +139,31 @@ const keepOnlyOpeningUserName = (text: string, userName: string): string => {
     return processed;
   }
 
-  let keptOpeningName = false;
-  return processed.replace(regex, (match, _possessive, offset) => {
-    if (!keptOpeningName && offset <= 2) {
-      keptOpeningName = true;
-      return match;
+  // Split text into sentences to preserve name at sentence starts
+  const sentences = processed.split(/(?<=[.!?])\s+/);
+  let firstSentenceProcessed = false;
+
+  const processedSentences = sentences.map((sentence, index) => {
+    // Always keep name in first sentence
+    if (index === 0) {
+      firstSentenceProcessed = true;
+      return sentence;
     }
-    return nameReplacementFor(match);
+
+    // Check if sentence starts with the user's name or "you"
+    const startsWithName = regex.test(sentence.split(/[,.!?]/)[0]?.trim() || '');
+    const startsWithYou = /^\s*you\b/i.test(sentence);
+
+    // If sentence starts with name or "you", keep the name
+    if (startsWithName || startsWithYou) {
+      return sentence.replace(/^\s*you\b/i, cleanName);
+    }
+
+    // Otherwise replace name occurrences with "you"
+    return sentence.replace(regex, nameReplacementFor);
   });
+
+  return processedSentences.join(' ');
 };
 
 // ─── StepFadeIn — fades + slides content up on mount ────────────────────────
@@ -500,6 +517,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const [refinementText, setRefinementText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const revealAnim = useRef(new Animated.Value(0)).current;
+  const inputRef = useRef<TextInput>(null);
   const refiningAnim = useRef(new Animated.Value(1)).current;
   const [dotIndex, setDotIndex] = useState(0);
   const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
@@ -604,6 +622,15 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
       hideSubscription.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedRefinementType && inputRef.current) {
+      const timeout = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [selectedRefinementType]);
 
   const handleToggle = () => {
     triggerLightHaptic();
@@ -725,6 +752,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
             {selectedRefinementType ? (
               <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
                 <TextInput
+                  ref={inputRef}
                   value={refinementText}
                   onChangeText={setRefinementText}
                   editable={!isRefining}
@@ -733,6 +761,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
                   placeholderTextColor="rgba(255,255,255,0.45)"
                   keyboardAppearance="dark"
                   textAlignVertical="top"
+                  autoFocus
                   style={[styles.refinementInput, { fontFamily }]}
                 />
 

@@ -115,6 +115,7 @@ BAD EXAMPLES (general):
 LANGUAGE RESTRICTIONS:
 - NEVER use the phrase "hard truth" or "the hard truth." Use natural language: "The truth is...", "God's Word reveals...", "What you need to understand...", "It's hard, but you need to hear this."
 - NEVER use em dashes (—). Use commas or periods instead.
+- NEVER use the word family "navigate", "navigates", "navigating", or "navigation" in any field. This has become an overused AI habit. Use specific verbs instead: face, obey, discern, endure, confront, repent, rebuild, wait, ask, name, or walk faithfully.
 - NEVER use "Here's what's really happening" as an opener.
 - Do NOT repeat the same sentence starter across multiple paragraphs. Each paragraph must feel fresh and human.
 - Do NOT use phrases like "pointing back to" or "pointing to hope."
@@ -233,6 +234,7 @@ FORBIDDEN — voice and tone:
 - "Hard truth" or "the hard truth" in any form
 - "Here's what's really happening" as an opener
 - "Pointing back to" or "pointing to hope"
+- Any form of "navigate" or "navigation"
 - "You deserve" in any context
 - "God sees your heart" used as comfort filler
 - "You are not alone" unless it is earned by the specific content

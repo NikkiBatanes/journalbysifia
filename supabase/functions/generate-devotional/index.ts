@@ -178,6 +178,37 @@ function cleanMarkdown(text: unknown): string {
   }
 }
 
+function removeOverusedNavigationLanguage(text: string): string {
+  return text
+    .replace(/\b[Nn]avigating\s+through\b/g, (match) => match[0] === 'N' ? 'Walking through' : 'walking through')
+    .replace(/\b[Nn]avigate\s+through\b/g, (match) => match[0] === 'N' ? 'Walk through' : 'walk through')
+    .replace(/\b[Nn]avigates\s+through\b/g, (match) => match[0] === 'N' ? 'Walks through' : 'walks through')
+    .replace(/\b[Nn]avigated\s+through\b/g, (match) => match[0] === 'N' ? 'Walked through' : 'walked through')
+    .replace(/\b[Nn]avigating\b/g, (match) => match[0] === 'N' ? 'Facing' : 'facing')
+    .replace(/\b[Nn]avigate\b/g, (match) => match[0] === 'N' ? 'Face' : 'face')
+    .replace(/\b[Nn]avigates\b/g, (match) => match[0] === 'N' ? 'Faces' : 'faces')
+    .replace(/\b[Nn]avigated\b/g, (match) => match[0] === 'N' ? 'Faced' : 'faced')
+    .replace(/\b[Nn]avigation\b/g, (match) => match[0] === 'N' ? 'Discernment' : 'discernment')
+    .replace(/\b[Nn]avigational\b/g, (match) => match[0] === 'N' ? 'Directional' : 'directional')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function sanitizeDevotionalLanguage(devotional: Devotional): void {
+  devotional.title = removeOverusedNavigationLanguage(devotional.title);
+  devotional.description = removeOverusedNavigationLanguage(devotional.description);
+  devotional.days = devotional.days.map(day => ({
+    ...day,
+    title: removeOverusedNavigationLanguage(day.title),
+    reflection: removeOverusedNavigationLanguage(day.reflection),
+    reflectionQuestions: day.reflectionQuestions.map(question => ({
+      ...question,
+      text: removeOverusedNavigationLanguage(question.text),
+    })),
+    prayer: removeOverusedNavigationLanguage(day.prayer),
+  }));
+}
+
 /**
  * Safely cleans scripture text while preserving ALL authentic translation elements
  * @param text - Scripture text that might contain markdown
@@ -1057,6 +1088,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       firstDayTitle: devotional.days[0]?.title,
       lastDayTitle: devotional.days[devotional.days.length - 1]?.title,
     });
+
+    sanitizeDevotionalLanguage(devotional);
 
     return devotional;
   } catch (error) {
