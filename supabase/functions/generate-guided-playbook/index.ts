@@ -385,6 +385,9 @@ const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
+const RELATIONAL_WOUND_REGEX = /\b(sister|sisters|sibling|family|mother'?s day|birthday|overlooked|ignored|left out|not speaking|not in speaking terms|reaches out|hurt by|feel.*hurt|felt.*hurt)\b/i;
+const HEART_DIAGNOSIS_REGEX = /\b(worth|value|valued|seen|noticed|chosen|belong|approval|idol|idolatry|demand|prove|punish|punishment|retaliat|bitterness|bitter|scorekeeping|score[- ]keeping|self-protection|self protection|pride|envy|motherhood|children|overlooked)\b/i;
+const UNIVERSAL_HEART_DIAGNOSIS_REGEX = /\b(heart|worth|value|identity|fear|afraid|control|approval|idol|idolatry|worship|trust|unbelief|self-protection|self protection|pride|envy|bitterness|bitter|shame|despair|avoidance|avoid|withdraw|demand|prove|protect|retaliat|repent|repentance|forgiveness|stewardship|misplaced|false conclusion|lie|distortion|desire|too weighty|verdict|security|belong|approval|fear of man|people-pleasing|self-reliance)\b/i;
 
 // ─── Validate JSON playbook response ─────────────────────────────────────────
 // Returns two categories: hardIssues (must retry/fail) and softIssues (warn only).
@@ -394,7 +397,7 @@ interface ValidationResult {
   softIssues: string[];   // Structural drift — log, trigger architectural retry
 }
 
-function validatePlaybook(json: Record<string, any>): ValidationResult {
+function validatePlaybook(json: Record<string, any>, originalInput = ''): ValidationResult {
   const hardIssues: string[] = [];
   const softIssues: string[] = [];
 
@@ -463,11 +466,21 @@ function validatePlaybook(json: Record<string, any>): ValidationResult {
 
   // truth_in_love must be exactly 4 paragraphs (5 allowed with hard landing)
   if (json.truth_in_love) {
+    const truthText = String(json.truth_in_love);
     const paraCount = countParagraphs(String(json.truth_in_love));
     if (paraCount < 3) {
       softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 4: diagnosis, distinction, correction, direction)`);
     } else if (paraCount > 5) {
       softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 5 — model may have drifted into essay mode)`);
+    }
+    if (truthText.length < 650) {
+      softIssues.push(`truth_in_love lacks depth (${truthText.length} chars, expected at least 650 for pastoral diagnosis)`);
+    }
+    if (!UNIVERSAL_HEART_DIAGNOSIS_REGEX.test(truthText)) {
+      softIssues.push('truth_in_love lacks explicit heart-condition diagnosis — name what is being loved, feared, protected, demanded, trusted, avoided, or used for worth');
+    }
+    if (RELATIONAL_WOUND_REGEX.test(originalInput) && !HEART_DIAGNOSIS_REGEX.test(truthText)) {
+      softIssues.push('Relational wound lacks heart-level diagnosis — name worth, being seen, approval, bitterness, retaliation, idolatry, or self-protection where appropriate');
     }
   }
 
@@ -990,7 +1003,7 @@ serve(async (req: Request) => {
     }
 
     // Validate the JSON output — two-tier: hard failures + structural soft issues
-    const { hardIssues, softIssues } = validatePlaybook(parsedJson!);
+    const { hardIssues, softIssues } = validatePlaybook(parsedJson!, effectiveUserInput);
 
     if (hardIssues.length > 0) {
       console.error('[Generate-Playbook] Hard validation failures:', hardIssues);
@@ -1013,6 +1026,9 @@ serve(async (req: Request) => {
     const architecturalIssues = softIssues.filter(i =>
       i.includes('sentences') ||
       i.includes('paragraphs') ||
+      i.includes('lacks depth') ||
+      i.includes('heart-condition diagnosis') ||
+      i.includes('heart-level diagnosis') ||
       i.includes('Action sequence drift') ||
       i.includes('Abstraction drift') ||
       i.includes('Overused navigation language')
@@ -1027,6 +1043,8 @@ serve(async (req: Request) => {
         'Follow the DISCERNMENT PATTERN structure exactly:',
         '  truth_summary must be exactly 4 sentences (S1 ache, S2 burden, S3 correction, S4 stabilizing truth).',
         '  truth_in_love must be exactly 4 paragraphs (P1 diagnosis, P2 distinction, P3 correction, P4 direction).',
+        '  Every truth_in_love must include a heart-condition diagnosis: what is being loved, feared, protected, demanded, avoided, trusted, or used for worth? Use biblical categories such as idolatry, fear of man, control, unbelief, misplaced identity, bitterness, pride, shame, repentance, trust, endurance, stewardship, forgiveness, or love.',
+        '  If this is a family or relational wound, truth_in_love must diagnose the heart-level issue beneath the conflict, such as worth anchored in being noticed, family approval, retaliation, bitterness, self-protection, or idolatry of being seen. Do not stop at "reach out with grace."',
         '  faithful_actions must follow the A1→A2→A3→A4+→Final sequence — not a list of tips.',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
         '  Do not use any form of "navigate" or "navigation"; choose a concrete verb like face, discern, obey, endure, confront, or rebuild.',
@@ -1041,7 +1059,7 @@ serve(async (req: Request) => {
         try {
           const retryJson = JSON.parse(retryContent);
           if (!isRefusal(retryJson)) {
-            const { hardIssues: retryHard } = validatePlaybook(retryJson);
+            const { hardIssues: retryHard } = validatePlaybook(retryJson, effectiveUserInput);
             if (retryHard.filter(i => i.includes('generation failure')).length === 0) {
               console.log('[Generate-Playbook] Architectural retry succeeded');
               parsedJson = retryJson;

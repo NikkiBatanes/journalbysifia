@@ -24,7 +24,7 @@ interface HowToModalProps {
   actionTitle: string;
   actionNumber?: number;
   onDismiss: () => void;
-  onSubmit: (question: string) => Promise<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number }>;
+  onSubmit: (question: string) => Promise<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean }>;
   wisdomCount: number;
   wisdomLimit: number;
 }
@@ -60,19 +60,23 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean } | null>(null);
+  const preserveDraftOnCloseRef = React.useRef(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const resultAnim = React.useRef(new Animated.Value(0)).current;
   const loadingAnim = React.useRef(new Animated.Value(1)).current;
   const [dotIndex, setDotIndex] = useState(0);
 
-  const navigateToSalesOffer = React.useCallback((count = wisdomCount, limit = wisdomLimit) => {
+  const navigateToSalesOffer = React.useCallback((count = wisdomCount, limit = wisdomLimit, currentTier?: string) => {
+    preserveDraftOnCloseRef.current = true;
     onDismiss();
     (navigation as any).navigate('OnboardingSalesOffer', {
       upgradeMode: true,
       source: 'wisdom_limit',
       feature: 'wisdom',
       featureType: 'wisdom',
+      currentTier,
+      tier: currentTier,
       dismissBehavior: 'goBack',
       skipNotificationPreference: true,
       testModeRemaining: limit === -1 ? -1 : Math.max(0, limit - count),
@@ -148,8 +152,12 @@ const HowToModal: React.FC<HowToModalProps> = ({
         useNativeDriver: true,
       }).start();
     } else {
-      setQuestion('');
-      setResult(null);
+      if (preserveDraftOnCloseRef.current) {
+        preserveDraftOnCloseRef.current = false;
+      } else {
+        setQuestion('');
+        setResult(null);
+      }
       setLoading(false);
     }
   }, [visible, fadeAnim, resultAnim]);
@@ -174,7 +182,11 @@ const HowToModal: React.FC<HowToModalProps> = ({
     try {
       const response = await onSubmit(question);
       if (response.error === 'WISDOM_LIMIT_REACHED') {
-        navigateToSalesOffer(response.wisdomCount ?? wisdomCount, response.wisdomLimit ?? wisdomLimit);
+        if (response.canUpgrade === false) {
+          setResult(response);
+        } else {
+          navigateToSalesOffer(response.wisdomCount ?? wisdomCount, response.wisdomLimit ?? wisdomLimit, response.currentTier);
+        }
         return;
       }
 
@@ -260,6 +272,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
+              preserveDraftOnCloseRef.current = false;
               onDismiss();
             }}
             style={[styles.closeButton, { top: insets.top + 8 }]}
@@ -338,7 +351,13 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         );
                       })}
                     </Animated.View>
-                    <TouchableOpacity style={styles.doneButton} onPress={onDismiss}>
+                    <TouchableOpacity
+                      style={styles.doneButton}
+                      onPress={() => {
+                        preserveDraftOnCloseRef.current = false;
+                        onDismiss();
+                      }}
+                    >
                       <ThemedText weight="semiBold" style={styles.doneButtonText}>Done</ThemedText>
                     </TouchableOpacity>
                   </>
@@ -540,6 +559,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     paddingVertical: 13,
     paddingHorizontal: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,

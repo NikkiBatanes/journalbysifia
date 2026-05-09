@@ -516,6 +516,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.debug('All tiers loaded', { count: tiers.length });
         }
 
+        if (tiers.length === 0 && routeParams?.source === 'wisdom_limit') {
+          const allTiers = await pricingService.getLocationAdjustedPricing();
+          const fallbackTier = dynamicSalesCopy?.recommendedTier || 'growth';
+          tiers = allTiers.filter(t => t.id === fallbackTier);
+          if (tiers.length === 0) {
+            tiers = allTiers.filter(t => t.id === 'growth' || t.id === 'transformation');
+          }
+          logger.debug('Wisdom limit fallback tiers loaded', {
+            fallbackTier,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
         // Filter to only show selected tier in onboarding flow when collapsed (unless showAllPlans is true)
         if (routeParams?.onboardingFlow && !showAllPlans) {
           tiers = tiers.filter(t => t.id === selectedPlanTier);
@@ -588,6 +601,20 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
+        if (tiers.length === 0 && routeParams?.source === 'wisdom_limit') {
+          const allTiers = await pricingService.getLocationAdjustedPricing();
+          const fallbackTier = dynamicSalesCopy?.recommendedTier || selectedPlanTier || 'growth';
+          tiers = allTiers.filter(t => t.id === fallbackTier);
+          if (tiers.length === 0) {
+            tiers = allTiers.filter(t => t.id === 'growth');
+          }
+          logger.debug('Wisdom limit post-filter fallback tiers loaded', {
+            fallbackTier,
+            selectedPlanTier,
+            remainingTiers: tiers.map(t => t.id),
+          });
+        }
+
         const currency = await pricingService.getCurrencyInfo();
         logger.debug('Currency info loaded', { currency });
         logger.debug('Sample tier prices', tiers[0] ? {
@@ -653,7 +680,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, dynamicSalesCopy?.recommendedTier, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {

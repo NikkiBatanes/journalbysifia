@@ -82,7 +82,33 @@ function buildRefinementInput(args: {
     '- Do not apologize for the previous playbook.',
     '- Generate a complete replacement playbook for the same moment.',
     '- Preserve the app format exactly.',
+    '',
+    '=== TRUTH_IN_LOVE DEPTH REQUIREMENTS ===',
+    '- truth_in_love must NOT become a short summary. It is the main pastoral diagnosis.',
+    '- Write truth_in_love as 4 to 6 substantial paragraphs.',
+    '- Minimum depth: at least 650 characters total, and normally 900+ characters when the original moment is complex.',
+    '- Include these movements: name the pattern, expose the root, reveal the cost, offer hope and direction.',
+    '- Each paragraph must be specific to the original moment and the clarification. Do not write generic encouragement.',
+    '- Do not replace truth_in_love with a one-line takeaway, slogan, or devotional caption.',
   ].filter(Boolean).join('\n');
+}
+
+function truthInLoveText(result: any): string {
+  const raw = result?.truthInLove;
+  if (typeof raw === 'string') return raw.trim();
+  if (raw && typeof raw === 'object') return String(raw.text || '').trim();
+  return '';
+}
+
+function paragraphCount(text: string): number {
+  return text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).length;
+}
+
+function truthInLoveIsTooShort(result: any): boolean {
+  const text = truthInLoveText(result);
+  if (text.length < 650) return true;
+  if (paragraphCount(text) < 3) return true;
+  return false;
 }
 
 function detectMemoryTopic(text: string): { topic: string; memoryText: string } | null {
@@ -313,24 +339,29 @@ serve(async (req: Request) => {
     });
 
     const authHeader = req.headers.get('authorization') || `Bearer ${anonKey}`;
-    const generationResponse = await fetch(`${supabaseUrl}/functions/v1/generate-guided-playbook`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        userInput: refinementInput,
-        userName,
-        userId,
-        bibleVersion: body.bibleVersion || 'NASB',
-        userTier: tier,
-        isOnboarding: false,
-        dateOfBirth: body.dateOfBirth,
-      }),
-    });
+    const generateReplacement = async (extraInstruction = '') => {
+      const generationResponse = await fetch(`${supabaseUrl}/functions/v1/generate-guided-playbook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          userInput: extraInstruction ? `${refinementInput}\n\n${extraInstruction}` : refinementInput,
+          userName,
+          userId,
+          bibleVersion: body.bibleVersion || 'NASB',
+          userTier: tier,
+          isOnboarding: false,
+          dateOfBirth: body.dateOfBirth,
+        }),
+      });
 
-    const generationText = await generationResponse.text();
+      const generationText = await generationResponse.text();
+      return { generationResponse, generationText };
+    };
+
+    let { generationResponse, generationText } = await generateReplacement();
     if (!generationResponse.ok) {
       return new Response(generationText, {
         status: generationResponse.status,
@@ -338,7 +369,39 @@ serve(async (req: Request) => {
       });
     }
 
-    const generated = JSON.parse(generationText);
+    let generated = JSON.parse(generationText);
+
+    if (truthInLoveIsTooShort(generated)) {
+      console.warn('[refine-guided-playbook] truth_in_love too short; retrying once', {
+        length: truthInLoveText(generated).length,
+        paragraphs: paragraphCount(truthInLoveText(generated)),
+      });
+
+      const retry = await generateReplacement([
+        'RETRY QUALITY FIX:',
+        'The previous refinement made truth_in_love too short.',
+        'Regenerate the full playbook, but make truth_in_love a complete 4 to 6 paragraph pastoral diagnosis.',
+        'Do not summarize. Do not write a short devotional thought. Keep it specific, direct, and grounded in the original moment.',
+        'Minimum truth_in_love length: 650 characters.',
+      ].join('\n'));
+
+      generationResponse = retry.generationResponse;
+      generationText = retry.generationText;
+
+      if (!generationResponse.ok) {
+        return new Response(generationText, {
+          status: generationResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      generated = JSON.parse(generationText);
+    }
+
+    if (truthInLoveIsTooShort(generated)) {
+      throw new Error('Generated refinement truth_in_love was too short after retry');
+    }
+
     const newActionRows = actionRows(generated, playbookId);
     if (newActionRows.length === 0) {
       throw new Error('Generated playbook did not include action steps');

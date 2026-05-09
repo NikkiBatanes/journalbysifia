@@ -22,6 +22,8 @@ export interface WisdomResponse {
   message?: string;
   wisdomCount?: number;
   wisdomLimit?: number;
+  currentTier?: string;
+  canUpgrade?: boolean;
 }
 
 export async function getActionWisdom(request: WisdomRequest): Promise<WisdomResponse> {
@@ -44,12 +46,15 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
   if (limitCheck.show_upgrade_prompt && limitCheck.upgrade_message) {
     // Limit reached, return upgrade prompt
     const subscription = await NewSubscriptionService.getUserSubscription(userId);
+    const normalizedTier = subscription.tier.replace('_annual', '');
     return {
       success: false,
       error: 'WISDOM_LIMIT_REACHED',
       message: limitCheck.upgrade_message,
       wisdomCount: (subscription as any).wisdom_count || 0,
       wisdomLimit: subscription.wisdom_limit || 0,
+      currentTier: subscription.tier,
+      canUpgrade: normalizedTier !== 'transformation',
     };
   }
 
