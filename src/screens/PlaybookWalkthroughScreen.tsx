@@ -2998,16 +2998,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Prayer (step 4) next button animates in
   const prayerNextAnim = useRef(new Animated.Value(0)).current;
 
-  useFocusEffect(
-    useCallback(() => {
-      StatusBar.setHidden(true, 'slide');
-      StatusBar.setBarStyle('light-content');
-      return () => {
-        StatusBar.setHidden(false, 'slide');
-        StatusBar.setBarStyle('light-content');
-      };
-    }, [])
-  );
 
   // Animate share button in when we hit step 6
   useEffect(() => {
@@ -3535,6 +3525,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <>
+    <StatusBar hidden />
     <View style={styles.container} {...panResponder.panHandlers}>
       {/* Step content */}
       {/* Animated slide container */}
