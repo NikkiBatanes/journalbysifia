@@ -39,6 +39,7 @@ export async function getPreferredBibleVersion(): Promise<string> {
 
 export async function refinePlaybook(request: RefinePlaybookRequest): Promise<RefinePlaybookResponse> {
   const bibleVersion = request.bibleVersion || await getPreferredBibleVersion();
+  const defaultMessage = 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.';
 
   const { data, error } = await supabase.functions.invoke('refine-guided-playbook', {
     body: {
@@ -48,24 +49,31 @@ export async function refinePlaybook(request: RefinePlaybookRequest): Promise<Re
   });
 
   if (error) {
-    const rawMessage = error.message || 'Unable to refine this playbook right now.';
+    let parsed: any = null;
+
     try {
-      const parsed = JSON.parse(rawMessage);
-      const e: any = new Error(parsed.message || rawMessage);
-      e.code = parsed.error;
-      e.refinementCount = parsed.refinementCount;
-      e.refinementLimit = parsed.refinementLimit;
-      throw e;
-    } catch (parseError: any) {
-      if (parseError?.code) {
-        throw parseError;
+      if (error.context && typeof error.context.json === 'function') {
+        parsed = await error.context.json();
       }
-      throw new Error(rawMessage);
+    } catch {}
+
+    if (!parsed && error.message) {
+      try {
+        parsed = JSON.parse(error.message);
+      } catch {}
     }
+
+    const e: any = new Error(parsed?.message || defaultMessage);
+    e.code = parsed?.error || error.name || 'REFINEMENT_FAILED';
+    e.refinementCount = parsed?.refinementCount;
+    e.refinementLimit = parsed?.refinementLimit;
+    throw e;
   }
 
   if (!data?.success || !data?.playbook) {
-    throw new Error(data?.message || 'Unable to refine this playbook right now.');
+    const e: any = new Error(data?.message || defaultMessage);
+    e.code = data?.error || 'REFINEMENT_FAILED';
+    throw e;
   }
 
   return data as RefinePlaybookResponse;

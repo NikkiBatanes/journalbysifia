@@ -323,28 +323,40 @@ serve(async (req: Request) => {
 
     const generated = JSON.parse(generationText);
     const newActionRows = actionRows(generated, playbookId);
-
-    if (newActionRows.length > 0) {
-      const { error: insertActionsError } = await supabase
-        .from('playbook_action_steps')
-        .insert(newActionRows);
-
-      if (insertActionsError) {
-        throw insertActionsError;
-      }
+    if (newActionRows.length === 0) {
+      throw new Error('Generated playbook did not include action steps');
     }
 
     const oldActionIds = (oldActions || []).map((action: any) => action.id).filter(Boolean);
+
+    // Delete old actions first to avoid duplicate key conflicts
     if (oldActionIds.length > 0) {
-      await supabase
+      const { error: deleteSubTasksError } = await supabase
         .from('playbook_sub_tasks')
         .delete()
         .in('action_step_id', oldActionIds);
 
-      await supabase
+      if (deleteSubTasksError) {
+        throw deleteSubTasksError;
+      }
+
+      const { error: deleteActionsError } = await supabase
         .from('playbook_action_steps')
         .delete()
         .in('id', oldActionIds);
+
+      if (deleteActionsError) {
+        throw deleteActionsError;
+      }
+    }
+
+    // Now insert new actions with no conflict
+    const { error: insertActionsError } = await supabase
+      .from('playbook_action_steps')
+      .insert(newActionRows);
+
+    if (insertActionsError) {
+      throw insertActionsError;
     }
 
     // Clean up stale affirmations so refined content doesn't accumulate orphaned rows
@@ -430,7 +442,7 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: false,
         error: 'REFINEMENT_FAILED',
-        message: 'We could not refine this playbook right now. Please try again.',
+        message: 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.',
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

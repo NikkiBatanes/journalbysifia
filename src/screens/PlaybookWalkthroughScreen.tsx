@@ -535,6 +535,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
       return;
     }
 
+    triggerMediumHaptic();
     const refined = await onRefineSubmit(selectedRefinementType, refinementText);
     if (refined) {
       setRefinementOpen(false);
@@ -2747,8 +2748,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (error: any) {
       const message = error?.code === 'REFINEMENT_LIMIT_REACHED'
         ? error.message || 'You have used your refinements for this playbook.'
-        : error?.message || 'Unable to refine this playbook right now. Please try again.';
-      Alert.alert('Refinement unavailable', message);
+        : error?.message || 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.';
+      Alert.alert('Could not refine playbook', message);
       return false;
     } finally {
       setIsRefining(false);
