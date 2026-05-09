@@ -478,14 +478,7 @@ const DevotionalsScreen = () => {
     const formattedDate = formatDate(item.createdAt);
 
     // Calculate completed date string
-    const completedDateStr = useMemo(() => {
-      if (!item.completedAt) {return null;}
-      const d = new Date(item.completedAt);
-      const currentYear = new Date().getFullYear();
-      const year = d.getFullYear();
-      const formatString = year === currentYear ? 'EEE, MMM d' : 'EEE, MMM d, yyyy';
-      return format(d, formatString);
-    }, [item.completedAt]);
+    const completedDateStr = !item.completedAt ? null : new Date(item.completedAt).toLocaleDateString();
 
     // Log the entire item for debugging
 

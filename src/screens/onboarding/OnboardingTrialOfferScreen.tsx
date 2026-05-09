@@ -135,7 +135,7 @@ const OnboardingTrialOfferScreen = () => {
       message.includes('already has an active subscription');
   };
 
-  const getCurrentStackBackCount = () => {
+  const getCurrentStackBackCount = useCallback(() => {
     try {
       const state = navigation.getState?.();
       if (state && typeof state.index === 'number') {
@@ -144,9 +144,9 @@ const OnboardingTrialOfferScreen = () => {
     } catch {}
 
     return 0;
-  };
+  }, [navigation]);
 
-  const safelyPopScreens = (requestedCount: number) => {
+  const safelyPopScreens = useCallback((requestedCount: number) => {
     const availableBackCount = getCurrentStackBackCount();
 
     if (availableBackCount > 0) {
@@ -164,7 +164,7 @@ const OnboardingTrialOfferScreen = () => {
       routeParams,
     });
     return false;
-  };
+  }, [getCurrentStackBackCount, navigation, route.name, routeParams]);
 
   const handleClose = async () => {
     if (isClosing || isStartingTrial || navigationInProgressRef.current) {
@@ -1016,7 +1016,7 @@ const OnboardingTrialOfferScreen = () => {
         }
       }
     }, 100);
-  }, [navigation, routeParams?.dismissBehavior, routeParams?.onboardingFlow, routeParams?.source]);
+  }, [navigation, routeParams?.dismissBehavior, routeParams?.onboardingFlow, routeParams?.source, safelyPopScreens]);
 
   const handleSuccessModalDismiss = useCallback(() => {
     handleSuccessModalContinue();

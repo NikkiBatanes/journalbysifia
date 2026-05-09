@@ -137,7 +137,7 @@ const keepOnlyOpeningUserName = (text: string, userName: string): string => {
   // First, find the first occurrence and keep it
   const nameRegex = new RegExp(`\\b${cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
   let firstMatchFound = false;
-  
+
   processed = processed.replace(nameRegex, (match, _offset) => {
     if (!firstMatchFound) {
       firstMatchFound = true;
@@ -394,7 +394,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
   const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
-  
+
   // Truncate paragraphs when collapsed to prevent overlap with buttons
   const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT).map((para, index) => {
     if (index === TRUTH_PREVIEW_COUNT - 1 && para.length > MAX_PARAGRAPH_LENGTH) {
@@ -402,7 +402,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
     }
     return para;
   });
-  
+
   const readMoreAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -1041,7 +1041,7 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
     .split(/\n+/)
     .map(line => cleanWisdomDisplayText(line))
     .filter(Boolean);
-  const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line));
+  const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/.test(line));
 
   if (listStartIndex === -1) {
     const intro = cleanWisdomDisplayText(text);
@@ -1066,7 +1066,7 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
   };
 
   lines.slice(listStartIndex).forEach(line => {
-    const isListLine = /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line);
+    const isListLine = /^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/.test(line);
 
     if (!isListLine) {
       if (currentItems.length > 0) {
@@ -1077,7 +1077,7 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
       return;
     }
 
-    const item = cleanWisdomDisplayText(line.replace(/^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/, ''));
+    const item = cleanWisdomDisplayText(line.replace(/^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/, ''));
     if (!item) {
       return;
     }

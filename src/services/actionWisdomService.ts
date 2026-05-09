@@ -40,7 +40,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
 
   // Check wisdom limits before making the API call
   const limitCheck = await NewSubscriptionService.checkUsageLimit(userId, 'wisdom');
-  
+
   if (limitCheck.show_upgrade_prompt && limitCheck.upgrade_message) {
     // Limit reached, return upgrade prompt
     const subscription = await NewSubscriptionService.getUserSubscription(userId);
@@ -76,7 +76,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
           parsed = await error.context.json();
         }
       } catch {}
-      
+
       if (!parsed && error.message) {
         try {
           parsed = JSON.parse(error.message);

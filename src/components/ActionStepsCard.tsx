@@ -160,7 +160,7 @@ export default function ActionStepsCard({
   const [selectedActionForWisdom, setSelectedActionForWisdom] = useState<{ stepId: string; stepTitle: string } | null>(null);
   const [wisdomCount, setWisdomCount] = useState(0);
   const [wisdomLimit, setWisdomLimit] = useState(0);
-  const [showHowToButtons, setShowHowToButtons] = useState(true);
+  const [showHowToButtons] = useState(true);
 
   // Unified Journal Type Selector Tooltip State
   const [tooltipVisible, setTooltipVisible] = useState(false);

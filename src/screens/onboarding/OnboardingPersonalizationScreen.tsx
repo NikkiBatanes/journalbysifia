@@ -578,7 +578,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const containerTranslateY = useRef(new Animated.Value(0)).current;
   const activeInputMaxHeight = keyboardVisible && isWhatHappenedStep
     ? (isVerySmallPhone ? 96 : (isSmallPhone ? 120 : MAX_INPUT_HEIGHT))
     : MAX_INPUT_HEIGHT;
@@ -1451,7 +1450,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   React.useEffect(() => {
     const isDetailsStep = detailsOnlyFlow ? true : currentStep === 2;
 
-    const onShow = (e: any) => {
+    const onShow = () => {
       setKeyboardVisible(true);
       if (!isDetailsStep) {return;}
 

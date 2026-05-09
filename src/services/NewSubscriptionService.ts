@@ -1421,7 +1421,6 @@ export class NewSubscriptionService {
     const wisdomLimit = limits.wisdom_limit || 0;
     const isUnlimited = wisdomLimit === -1;
     const canUse = isUnlimited || wisdomUsed < wisdomLimit;
-    const remaining = isUnlimited ? -1 : Math.max(0, wisdomLimit - wisdomUsed);
     const normalizedTier = subscription.tier.replace('_annual', '');
 
     return {

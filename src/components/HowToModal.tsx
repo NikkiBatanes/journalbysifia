@@ -152,7 +152,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       setResult(null);
       setLoading(false);
     }
-  }, [visible, fadeAnim]);
+  }, [visible, fadeAnim, resultAnim]);
 
   React.useEffect(() => {
     if (result?.success && result.wisdom) {
@@ -164,10 +164,10 @@ const HowToModal: React.FC<HowToModalProps> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [result, resultAnim]);
+  }, [result, resultAnim, visible, fadeAnim]);
 
   const handleSubmit = async () => {
-    if (question.trim().length < 5) return;
+    if (question.trim().length < 5) {return;}
     triggerLightHaptic();
     setLoading(true);
     setResult(null);
@@ -204,7 +204,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       .map(line => line.replace(/\*\*/g, '').replace(/__([^_]+)__/g, '$1').trim())
       .filter(Boolean);
 
-    const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line));
+    const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/.test(line));
     const hasList = listStartIndex !== -1;
 
     if (hasList) {
@@ -213,7 +213,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       const items: string[] = [];
 
       lines.slice(listStartIndex).forEach(line => {
-        const item = line.replace(/^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/, '').trim();
+        const item = line.replace(/^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/, '').trim();
         if (!item) {
           return;
         }
@@ -243,7 +243,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
     outputRange: [18, 0],
   });
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <Modal
@@ -276,7 +276,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
             </View>
             <View style={styles.titleRow}>
               <ThemedText weight="semiBold" style={styles.prompt}>
-                {hasWisdom ? "Here's some wisdom" : "What do you need help with for this action?"}
+                {hasWisdom ? "Here's some wisdom" : 'What do you need help with for this action?'}
               </ThemedText>
             </View>
             <View style={styles.subtextRow}>
