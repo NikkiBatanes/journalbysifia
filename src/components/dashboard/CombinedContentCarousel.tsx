@@ -39,6 +39,8 @@ import { pdfExportService } from '../../utils/pdfExportService';
 import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../../services/tierRestrictionService';
 import { replaceAllNamePlaceholders } from '../../utils/nameReplacement';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 const { width } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = 16;
@@ -223,6 +225,10 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   onEmpty,
 }) => {
   const { user } = useAuth();
+  const theme = useTheme();
+  const { currentFont } = theme;
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const navigation = useNavigation<any>();
   const scrollX = useRef(new Animated.Value(0)).current;
   const [content, setContent] = useState<CombinedContent[]>([]);
@@ -236,12 +242,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
-  const [tagModalVisible, setTagModalVisible] = useState(false);
   const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<PlaybookContent | null>(null);
-  const [selectedPlaybookForTag, setSelectedPlaybookForTag] = useState<PlaybookContent | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
-  const [customTag, setCustomTag] = useState('');
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
 
   // Devotional operations for delete functionality
@@ -319,15 +321,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const handleRenamePress = (playbook: PlaybookContent) => {
     setMenuVisible(null);
     setSelectedPlaybookForRename(playbook);
-    setNewTitle(playbook.title);
+    setNewTitle('');
     setRenameModalVisible(true);
-  };
-
-  const handleTagPress = (playbook: PlaybookContent) => {
-    setMenuVisible(null);
-    setSelectedPlaybookForTag(playbook);
-    setSelectedTag(playbook.tag || '');
-    setTagModalVisible(true);
   };
 
   const handleRenamePlaybook = async () => {
@@ -350,33 +345,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     } catch (err) {
       console.error('Error renaming playbook', err);
       Alert.alert('Error', 'Failed to rename playbook. Please try again.');
-    }
-  };
-
-  const handleTagPlaybook = async () => {
-    if (!selectedPlaybookForTag) { return; }
-
-    const finalTag = selectedTag === 'Custom' ? customTag.trim() : selectedTag;
-    if (!finalTag) { return; }
-
-    try {
-      triggerLightHaptic();
-      const { supabase: supabaseClient } = await import('../../services/supabaseClient');
-      const { error: tagError } = await supabaseClient
-        .from('playbooks')
-        .update({ tag: finalTag, updated_at: new Date().toISOString() })
-        .eq('id', selectedPlaybookForTag.id);
-
-      if (tagError) { throw tagError; }
-
-      setTagModalVisible(false);
-      setSelectedTag('');
-      setCustomTag('');
-      setSelectedPlaybookForTag(null);
-      fetchContent();
-    } catch (err) {
-      console.error('Error tagging playbook', err);
-      Alert.alert('Error', 'Failed to tag playbook. Please try again.');
     }
   };
 
@@ -1224,23 +1192,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                   onPress={(e) => {
                     e.stopPropagation();
                     try { triggerLightHaptic(); } catch {}
-                    handleTagPress(playbook);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <ThemedText weight="medium" style={styles.dropdownItemText}>Tag</ThemedText>
-                    {playbook.tag && (
-                      <View style={styles.dropdownBadge}>
-                        <ThemedText style={styles.dropdownBadgeText}>{playbook.tag}</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    try { triggerLightHaptic(); } catch {}
                     handleExportPdfPress(playbook);
                   }}
                 >
@@ -1544,90 +1495,55 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
   // Rename Modal
   const renderRenameModal = () => (
-    <Modal visible={renameModalVisible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ThemedText weight="bold" style={styles.modalTitle}>Rename Playbook</ThemedText>
+    <Modal
+      visible={renameModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setRenameModalVisible(false)}
+    >
+      <TouchableOpacity
+        style={styles.renameModalOverlay}
+        activeOpacity={1}
+        onPress={() => setRenameModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.renameModalCard}
+          activeOpacity={1}
+        >
+          <View style={styles.renameModalHeader}>
+            <ThemedText weight="semiBold" style={styles.renameModalTitle}>Rename</ThemedText>
+            <TouchableOpacity
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setRenameModalVisible(false);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.renameModalCloseButton}
+            >
+              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+            </TouchableOpacity>
+          </View>
           <TextInput
-            style={styles.modalInput}
+            style={[styles.renameModalInput, { fontFamily }]}
             value={newTitle}
             onChangeText={setNewTitle}
-            placeholder="Enter new name"
+            placeholder="Enter new title"
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            autoFocus
+            keyboardAppearance="dark"
           />
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonCancel]}
-              onPress={() => {
-                setRenameModalVisible(false);
-                setNewTitle('');
-                setSelectedPlaybookForRename(null);
-              }}
-            >
-              <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonConfirm]}
-              onPress={handleRenamePlaybook}
-            >
-              <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  // Tag Modal
-  const renderTagModal = () => (
-    <Modal visible={tagModalVisible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ThemedText weight="bold" style={styles.modalTitle}>Tag Playbook</ThemedText>
-          <View style={styles.tagList}>
-            {['Work', 'Personal', 'Growth', 'Faith', 'Custom'].map((tag) => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagItem,
-                  selectedTag === tag && styles.tagItemSelected,
-                ]}
-                onPress={() => setSelectedTag(tag)}
-              >
-                <ThemedText style={styles.tagItemText}>{tag}</ThemedText>
-              </TouchableOpacity>
-            ))}
-            {selectedTag === 'Custom' && (
-              <TextInput
-                style={styles.modalInput}
-                value={customTag}
-                onChangeText={setCustomTag}
-                placeholder="Enter custom tag"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              />
-            )}
-          </View>
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonCancel]}
-              onPress={() => {
-                setTagModalVisible(false);
-                setSelectedTag('');
-                setCustomTag('');
-                setSelectedPlaybookForTag(null);
-              }}
-            >
-              <ThemedText style={styles.modalButtonTextCancel}>Cancel</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonConfirm]}
-              onPress={handleTagPlaybook}
-            >
-              <ThemedText style={styles.modalButtonTextConfirm}>Save</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+          <TouchableOpacity
+            style={styles.renameModalSaveButton}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              handleRenamePlaybook();
+            }}
+            activeOpacity={0.7}
+          >
+            <ThemedText weight="semiBold" style={styles.renameModalSaveButtonText}>Save</ThemedText>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 
@@ -1723,7 +1639,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         }}
       />
       {renderRenameModal()}
-      {renderTagModal()}
     </View>
   );
 };
@@ -2199,22 +2114,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  tagList: {
-    maxHeight: 200,
+  renameModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  renameModalCard: {
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 30,
+    padding: 20,
+    margin: 16,
+    width: '85%',
+    maxWidth: 400,
+  },
+  renameModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  tagItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  tagItemSelected: {
-    backgroundColor: Colors.anchorBlue,
-  },
-  tagItemText: {
+  renameModalTitle: {
+    fontSize: 18,
     color: Colors.hopeWhite,
-    fontSize: 14,
+  },
+  renameModalCloseButton: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
+  },
+  renameModalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 16,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+  },
+  renameModalSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 50,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+  },
+  renameModalSaveButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
     fontWeight: '600',
   },
   date: {
