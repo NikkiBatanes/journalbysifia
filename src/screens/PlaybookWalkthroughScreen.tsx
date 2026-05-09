@@ -645,19 +645,11 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
             disabled={isRefining}
           >
             <Ionicons name="refresh-outline" size={15} color="rgba(255,255,255,0.9)" />
-            <ThemedText weight="medium" style={styles.floatingRefinementButtonText}>
-              Refine
-            </ThemedText>
             <View style={styles.refinementCountBadge}>
               <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
                 {refinementsRemaining} left
               </ThemedText>
             </View>
-            <Ionicons
-              name={refinementOpen ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="rgba(255,255,255,0.74)"
-            />
           </TouchableOpacity>
         </Animated.View>
       ) : null}
