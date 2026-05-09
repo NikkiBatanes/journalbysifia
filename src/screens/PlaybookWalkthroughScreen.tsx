@@ -392,6 +392,7 @@ interface TruthStepProps {
 }
 
 const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
+const MAX_PARAGRAPH_LENGTH = 300; // Maximum characters for paragraphs when collapsed
 
 const TruthInLoveStep: React.FC<TruthStepProps> = ({
   text,
@@ -406,7 +407,15 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
   const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
-  const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT);
+  
+  // Truncate paragraphs when collapsed to prevent overlap with buttons
+  const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT).map((para, index) => {
+    if (index === TRUTH_PREVIEW_COUNT - 1 && para.length > MAX_PARAGRAPH_LENGTH) {
+      return para.substring(0, MAX_PARAGRAPH_LENGTH).trim() + '...';
+    }
+    return para;
+  });
+  
   const readMoreAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -427,7 +436,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
     <>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 80 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -454,8 +463,6 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
             </StepFadeIn>
           ))}
         </View>
-
-        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Floating "Read more" pill — only visible when collapsed */}
