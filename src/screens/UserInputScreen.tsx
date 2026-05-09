@@ -785,10 +785,11 @@ const UserInputScreen: React.FC = () => {
     // ── Time-based step timers — fully independent of API polling speed ───────
     // Steps advance at fixed wall-clock intervals so the UI always feels alive
     // regardless of whether the AI responds in 8s or 30s.
+    // Timing adjusted to better match actual generation: early phases faster, later phases slower
     const phaseTimers = [
-      setTimeout(() => advanceToPhase(1), 4000),   // naming   at  4s
-      setTimeout(() => advanceToPhase(2), 8500),   // shaping  at  8.5s
-      setTimeout(() => advanceToPhase(3), 13500),  // preparing at 13.5s
+      setTimeout(() => advanceToPhase(1), 3500),   // naming   at  3.5s (faster early phase)
+      setTimeout(() => advanceToPhase(2), 9000),   // shaping  at  9s  (medium)
+      setTimeout(() => advanceToPhase(3), 18000), // preparing at 18s (slower - matches actual AI time)
     ];
     const clearPhaseTimers = () => phaseTimers.forEach(clearTimeout);
 

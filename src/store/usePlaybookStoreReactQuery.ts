@@ -112,8 +112,8 @@ function updateActionStepInPlaybook(playbook: Playbook, stepId: string, complete
     progress: percentage,
     totalTasks: total,
     status,
-    completedAt: status === 'completed' && playbook.status !== 'completed'
-      ? new Date().toISOString()
+    completedAt: status === 'completed'
+      ? (playbook.completedAt || new Date().toISOString())
       : playbook.completedAt,
     updatedAt: new Date().toISOString(),
   };
