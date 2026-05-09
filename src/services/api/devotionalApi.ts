@@ -199,6 +199,7 @@ export class DevotionalApi {
       current_day: allCompleted ? devotional.total_days : Math.min(dayNumber + 1, devotional.total_days),
       progress,
       completed: allCompleted,
+      completed_at: allCompleted ? new Date().toISOString() : devotional.completed_at,
     });
   }
 

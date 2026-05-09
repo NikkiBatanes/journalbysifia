@@ -477,6 +477,16 @@ const DevotionalsScreen = () => {
     const isComplete = progress >= 100;
     const formattedDate = formatDate(item.createdAt);
 
+    // Calculate completed date string
+    const completedDateStr = useMemo(() => {
+      if (!item.completedAt) {return null;}
+      const d = new Date(item.completedAt);
+      const currentYear = new Date().getFullYear();
+      const year = d.getFullYear();
+      const formatString = year === currentYear ? 'EEE, MMM d' : 'EEE, MMM d, yyyy';
+      return format(d, formatString);
+    }, [item.completedAt]);
+
     // Log the entire item for debugging
 
     // Format category - handle different possible formats
@@ -664,6 +674,14 @@ const DevotionalsScreen = () => {
                       {Math.round(item.rating || 0)}/5
                     </ThemedText>
                   </View>
+                </View>
+              )}
+
+              {/* Completed date (Completed tab only) */}
+              {filter === 'completed' && completedDateStr && (
+                <View style={styles.completedDateContainer}>
+                  <Ionicons name="calendar-outline" size={12} color={Colors.growthGreen} />
+                  <ThemedText style={styles.completedDateText}>Completed {completedDateStr}</ThemedText>
                 </View>
               )}
             </View>
@@ -2009,6 +2027,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+  },
+  completedDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  completedDateText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: Fonts.medium,
   },
   ratingIcon: {
     marginRight: 4,
