@@ -318,12 +318,17 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     );
   };
 
-  const handleRenamePress = (playbook: PlaybookContent) => {
+  const handleRenamePress = useCallback((playbook: PlaybookContent) => {
     setMenuVisible(null);
     setSelectedPlaybookForRename(playbook);
-    setNewTitle('');
     setRenameModalVisible(true);
-  };
+  }, []);
+
+  const handleCardLongPress = useCallback((playbook: PlaybookContent) => {
+    try { triggerLightHaptic(); } catch {}
+    setSelectedPlaybookForDevotional(playbook);
+    setDevotionalModalVisible(true);
+  }, []);
 
   const handleRenamePlaybook = async () => {
     if (!selectedPlaybookForRename || !newTitle.trim()) { return; }
@@ -1129,6 +1134,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           triggerLightHaptic();
           onPlaybookPress?.(playbook);
         }}
+        onLongPress={() => handleCardLongPress(playbook)}
         activeOpacity={0.85}
       >
         <Animated.View
