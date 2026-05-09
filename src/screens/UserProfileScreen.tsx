@@ -2556,6 +2556,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SubscriptionPlanModal
         visible={subscriptionPlanModal}
         onClose={() => setSubscriptionPlanModal(false)}
+        onOpenSalesOffer={navigateToSalesOffer}
         onContinueWithSiFia={() => {
           setSubscriptionPlanModal(false);
           navigation.goBack();

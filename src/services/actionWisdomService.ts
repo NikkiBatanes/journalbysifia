@@ -11,6 +11,7 @@ export interface WisdomRequest {
   userQuestion: string;
   truthSummary: string;
   truthInLove: string;
+  previousWisdom?: string;
 }
 
 export interface WisdomResponse {
@@ -34,6 +35,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
     userQuestion,
     truthSummary,
     truthInLove,
+    previousWisdom,
   } = request;
 
   // Check wisdom limits before making the API call
@@ -63,6 +65,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         userQuestion,
         truthSummary,
         truthInLove,
+        previousWisdom,
       },
     });
 

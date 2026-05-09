@@ -29,6 +29,7 @@ export class NewSubscriptionService {
     playbooks_limit: number;
     devotionals_limit: number;
     wisdom_limit: number;
+    refinement_limit: number;
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
@@ -39,6 +40,7 @@ export class NewSubscriptionService {
           playbooks_limit: 5,
           devotionals_limit: 5,
           wisdom_limit: 2,
+          refinement_limit: 2,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -47,6 +49,7 @@ export class NewSubscriptionService {
           playbooks_limit: 15,
           devotionals_limit: 15,
           wisdom_limit: 6,
+          refinement_limit: 4,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -55,6 +58,7 @@ export class NewSubscriptionService {
           playbooks_limit: 25,
           devotionals_limit: 25,
           wisdom_limit: 10,
+          refinement_limit: 6,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -63,6 +67,7 @@ export class NewSubscriptionService {
           playbooks_limit: 15,
           devotionals_limit: 15,
           wisdom_limit: 6,
+          refinement_limit: 4,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -78,6 +83,7 @@ export class NewSubscriptionService {
     playbooks_limit: number;
     devotionals_limit: number;
     wisdom_limit: number;
+    refinement_limit: number;
     smart_journaling_enabled: boolean;
     show_dashboard_counts: boolean;
   } {
@@ -90,6 +96,7 @@ export class NewSubscriptionService {
           playbooks_limit: 2,
           devotionals_limit: 1,
           wisdom_limit: 2,
+          refinement_limit: 1,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -104,6 +111,7 @@ export class NewSubscriptionService {
           playbooks_limit: 10,
           devotionals_limit: 10,
           wisdom_limit: 5,
+          refinement_limit: 3,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -112,6 +120,7 @@ export class NewSubscriptionService {
           playbooks_limit: 25,
           devotionals_limit: 25,
           wisdom_limit: 12,
+          refinement_limit: 6,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -120,6 +129,7 @@ export class NewSubscriptionService {
           playbooks_limit: 60,
           devotionals_limit: 60,
           wisdom_limit: 25,
+          refinement_limit: 15,
           smart_journaling_enabled: true,
           show_dashboard_counts: true,
         };
@@ -129,6 +139,7 @@ export class NewSubscriptionService {
       //     playbooks_limit: -1,
       //     devotionals_limit: -1,
       //     wisdom_limit: -1,
+      //     refinement_limit: -1,
       //     smart_journaling_enabled: true,
       //     show_dashboard_counts: false, // Hide counts for unlimited
       //   };
@@ -138,6 +149,7 @@ export class NewSubscriptionService {
           playbooks_limit: 2,
           devotionals_limit: 1,
           wisdom_limit: 2,
+          refinement_limit: 1,
           smart_journaling_enabled: false,
           show_dashboard_counts: true,
         };
@@ -200,6 +212,7 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         last_usage_reset: resetAt,
         updated_at: resetAt,
       })
@@ -252,6 +265,7 @@ export class NewSubscriptionService {
               playbooks_used: 0,
               devotionals_used: 0,
               wisdom_count: 0,
+              refinement_count: 0,
               last_usage_reset: now.toISOString(),
               updated_at: now.toISOString(),
             })
@@ -307,6 +321,7 @@ export class NewSubscriptionService {
               playbooks_used: 0,
               devotionals_used: 0,
               wisdom_count: 0,
+              refinement_count: 0,
               last_usage_reset: now.toISOString(),
               updated_at: now.toISOString(),
             })
@@ -367,6 +382,7 @@ export class NewSubscriptionService {
             playbooks_used: 0,
             devotionals_used: 0,
             wisdom_count: 0,
+            refinement_count: 0,
             last_usage_reset: now.toISOString(),
             updated_at: now.toISOString(),
           })
@@ -438,6 +454,7 @@ export class NewSubscriptionService {
           playbooks_used: 0,
           devotionals_used: 0,
           wisdom_count: 0,
+          refinement_count: 0,
           last_usage_reset: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -503,6 +520,7 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         last_usage_reset: trialNow, // Issue 7: initialize so first foreground check has a valid anchor
         updated_at: trialNow,
         // CRITICAL: Store transaction IDs for webhook lookup
@@ -596,6 +614,7 @@ export class NewSubscriptionService {
             playbooks_used: 0,
             devotionals_used: 0,
             wisdom_count: 0,
+            refinement_count: 0,
             last_usage_reset: trialNow,
             platform_transaction_id,
             original_transaction_id,
@@ -643,6 +662,7 @@ export class NewSubscriptionService {
           playbooks_used: 0, // Reset usage when converting from trial to paid
           devotionals_used: 0,
           wisdom_count: 0,
+          refinement_count: 0,
           subscription_start_date: new Date().toISOString(),
           last_usage_reset: new Date().toISOString(), // Initialize reset anchor for paid billing cycle
           updated_at: new Date().toISOString(),
@@ -703,6 +723,7 @@ export class NewSubscriptionService {
         playbooks_used: 0, // ALWAYS reset usage for trial
         devotionals_used: 0, // ALWAYS reset usage for trial
         wisdom_count: 0, // ALWAYS reset wisdom usage for trial
+        refinement_count: 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -899,7 +920,7 @@ export class NewSubscriptionService {
   /**
    * Check if user can perform an action
    */
-  static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+  static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
 
@@ -945,6 +966,8 @@ export class NewSubscriptionService {
         return this.checkExportLimit(subscription, limits);
       case 'wisdom':
         return this.checkWisdomLimit(subscription, limits);
+      case 'refinement':
+        return this.checkRefinementLimit(subscription, limits);
       default:
         throw new SubscriptionError(`Unknown action: ${action}`, 'INVALID_ACTION');
     }
@@ -953,7 +976,7 @@ export class NewSubscriptionService {
   /**
    * Increment usage counter
    */
-  static async incrementUsage(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<void> {
+  static async incrementUsage(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<void> {
     // First check if action is allowed
     const check = await this.checkUsageLimit(userId, action, isOnboarding);
     const subscription = await this.getUserSubscription(userId);
@@ -963,11 +986,15 @@ export class NewSubscriptionService {
     if (!check.can_generate_devotional && action === 'devotional') {
       throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
+    if (check.show_upgrade_prompt && action === 'refinement') {
+      throw new UsageLimitError(subscription.tier, 'refinement', subscription.refinement_limit, subscription.refinement_count);
+    }
 
     // Increment the appropriate counter
     const updateField = action === 'playbook' ? 'playbooks_used' :
                        action === 'devotional' ? 'devotionals_used' :
-                       action === 'wisdom' ? 'wisdom_count' : null;
+                       action === 'wisdom' ? 'wisdom_count' :
+                       action === 'refinement' ? 'refinement_count' : null;
 
     if (updateField) {
       // Optimistic-lock increment with a fresh limit check on every retry.
@@ -979,7 +1006,8 @@ export class NewSubscriptionService {
           const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
           const limit = action === 'playbook' ? limits.playbooks_limit :
                         action === 'devotional' ? limits.devotionals_limit :
-                        action === 'wisdom' ? limits.wisdom_limit : -1;
+                        action === 'wisdom' ? limits.wisdom_limit :
+                        action === 'refinement' ? limits.refinement_limit : -1;
 
           if (limit !== -1 && currentValue >= limit) {
             throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
@@ -1044,6 +1072,7 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         billing_cycle: null,
         status: 'expired',
@@ -1080,6 +1109,7 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         status: 'expired',
         updated_at: new Date().toISOString(),
@@ -1109,6 +1139,7 @@ export class NewSubscriptionService {
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
         billing_cycle: null,
         status: 'expired',
@@ -1250,6 +1281,8 @@ export class NewSubscriptionService {
       playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
       devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
+      refinement_limit: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
+      refinement_count: data.refinement_count || 0,
       smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
       // Only override display name if it's missing or doesn't match tier
       subscription_display_name: data.subscription_display_name && data.subscription_display_name.includes(displayName) ? data.subscription_display_name : displayName,
@@ -1258,11 +1291,13 @@ export class NewSubscriptionService {
         playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
         wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
+        refinement_limit: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
         smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
         // Add backward compatibility aliases
         playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
         devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
         wisdom: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
+        refinements: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
       },
       // UI fields - use actual limits (not stored values that might be outdated)
       playbooks_ui: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
@@ -1401,6 +1436,29 @@ export class NewSubscriptionService {
         ? normalizedTier === 'transformation'
           ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
           : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`
+        : undefined,
+    };
+  }
+
+  private static checkRefinementLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+    const refinementUsed = (subscription as any).refinement_count || 0;
+    const refinementLimit = limits.refinement_limit || 0;
+    const isUnlimited = refinementLimit === -1;
+    const canUse = isUnlimited || refinementUsed < refinementLimit;
+    const normalizedTier = subscription.tier.replace('_annual', '');
+
+    return {
+      can_generate_playbook: true,
+      can_generate_devotional: true,
+      can_use_smart_journaling: limits.smart_journaling_enabled,
+      can_export: true,
+      playbooks_remaining: -1,
+      devotionals_remaining: -1,
+      show_upgrade_prompt: !canUse,
+      upgrade_message: !canUse
+        ? normalizedTier === 'transformation'
+          ? `You've used all ${refinementLimit} playbook refinements this month. Your refinements will refresh next month.`
+          : `You've used all ${refinementLimit} playbook refinements this month. Upgrade for more!`
         : undefined,
     };
   }

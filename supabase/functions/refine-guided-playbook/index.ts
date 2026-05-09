@@ -17,9 +17,20 @@ interface RefineRequest {
   dateOfBirth?: string;
 }
 
-function refinementLimitForTier(tier?: string | null): number {
+function refinementLimitForTier(tier?: string | null, trialChosenTier?: string | null): number {
   const base = String(tier || 'seeker').replace('_annual', '');
-  return base === 'seeker' || base === 'free_trial' ? 1 : 2;
+  const trialBase = String(trialChosenTier || 'growth').replace('_annual', '');
+
+  if (base === 'free_trial') {
+    if (trialBase === 'spark') return 2;
+    if (trialBase === 'transformation') return 6;
+    return 4;
+  }
+
+  if (base === 'spark') return 3;
+  if (base === 'growth') return 6;
+  if (base === 'transformation') return 15;
+  return 1;
 }
 
 function cleanText(value: unknown, max = 800): string {
@@ -218,11 +229,12 @@ serve(async (req: Request) => {
 
     const { data: subscription } = await supabase
       .from('user_subscriptions_new')
-      .select('tier')
+      .select('tier, trial_chosen_tier, refinement_count')
       .eq('user_id', userId)
       .maybeSingle();
     const tier = subscription?.tier || 'seeker';
-    const refinementLimit = refinementLimitForTier(tier);
+    const refinementLimit = refinementLimitForTier(tier, subscription?.trial_chosen_tier);
+    const usedGlobalRefinements = Number(subscription?.refinement_count || 0);
 
     const { data: playbook, error: playbookError } = await supabase
       .from('playbooks')
@@ -238,15 +250,12 @@ serve(async (req: Request) => {
       });
     }
 
-    const used = Number(playbook.refinement_count || 0);
-    if (used >= refinementLimit) {
+    if (usedGlobalRefinements >= refinementLimit) {
       return new Response(
         JSON.stringify({
           error: 'REFINEMENT_LIMIT_REACHED',
-          message: refinementLimit === 1
-            ? 'You have used the refinement for this playbook.'
-            : 'You have used both refinements for this playbook.',
-          refinementCount: used,
+          message: `You have used all ${refinementLimit} playbook refinements this month.`,
+          refinementCount: usedGlobalRefinements,
           refinementLimit,
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -335,6 +344,35 @@ serve(async (req: Request) => {
       throw new Error('Generated playbook did not include action steps');
     }
 
+    const { data: incrementedSubscription, error: incrementError } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        refinement_count: usedGlobalRefinements + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('refinement_count', usedGlobalRefinements)
+      .select('refinement_count')
+      .maybeSingle();
+
+    if (incrementError) {
+      throw incrementError;
+    }
+
+    if (!incrementedSubscription) {
+      return new Response(
+        JSON.stringify({
+          error: 'REFINEMENT_LIMIT_REACHED',
+          message: 'Your refinement usage changed while siFia was preparing this request. Please try again.',
+          refinementCount: usedGlobalRefinements,
+          refinementLimit,
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const playbookRefinementCount = Number(playbook.refinement_count || 0);
+
     const oldActionIds = (oldActions || []).map((action: any) => action.id).filter(Boolean);
 
     // Delete old actions first to avoid duplicate key conflicts
@@ -390,7 +428,7 @@ serve(async (req: Request) => {
         direct_challenge: directChallengeToSave(generated),
         challenge_cta: generated.challengeCTA || '',
         transition_line: generated.transitionLine || '',
-        refinement_count: used + 1,
+        refinement_count: playbookRefinementCount + 1,
         last_refined_at: refinedAt,
         active_version: nextVersion,
         latest_refinement_note: clarification,
@@ -433,14 +471,14 @@ serve(async (req: Request) => {
         createdAt: playbook.created_at,
         updatedAt: updatedPlaybook?.updated_at || refinedAt,
         status: updatedPlaybook?.status || playbook.status,
-        refinementCount: used + 1,
+        refinementCount: playbookRefinementCount + 1,
         refinementLimit,
         lastRefinedAt: refinedAt,
         activeVersion: nextVersion,
       },
-      refinementCount: used + 1,
+      refinementCount: Number(incrementedSubscription.refinement_count || usedGlobalRefinements + 1),
       refinementLimit,
-      remainingRefinements: Math.max(0, refinementLimit - (used + 1)),
+      remainingRefinements: Math.max(0, refinementLimit - Number(incrementedSubscription.refinement_count || usedGlobalRefinements + 1)),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

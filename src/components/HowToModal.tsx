@@ -29,6 +29,22 @@ interface HowToModalProps {
   wisdomLimit: number;
 }
 
+function splitWisdomItemTitle(value: string): { title: string; body: string } | null {
+  const match = value.match(/^([^:]{3,64}):\s+(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    title: match[1].trim(),
+    body: match[2].trim(),
+  };
+}
+
+function isWisdomOutroLine(value: string): boolean {
+  return /^(?:remember|as you|this simple|these steps|by doing|through this|over time|with each|even small|start small|you can|may this|let this|trust that)\b/i.test(value.trim());
+}
+
 const HowToModal: React.FC<HowToModalProps> = ({
   visible,
   actionTitle,
@@ -205,6 +221,14 @@ const HowToModal: React.FC<HowToModalProps> = ({
           introLines.push(item);
           return;
         }
+        if (items.length > 0 && isWisdomOutroLine(item)) {
+          introLines.push(item);
+          return;
+        }
+        if (items.length >= 3 && !splitWisdomItemTitle(item)) {
+          introLines.push(item);
+          return;
+        }
         items.push(item);
       });
 
@@ -285,6 +309,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
                       {wisdomItems.items.map((item, index) => {
                         const label = actionNumber !== undefined ? `${actionNumber}.${index + 1}` : `${index + 1}`;
+                        const titledItem = splitWisdomItemTitle(item);
 
                         return (
                           <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
@@ -293,9 +318,22 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                 {label}
                               </ThemedText>
                             </View>
-                            <ThemedText style={styles.wisdomStepText}>
-                              {item}
-                            </ThemedText>
+                            <View style={styles.wisdomStepTextWrapper}>
+                              {titledItem ? (
+                                <>
+                                  <ThemedText weight="bold" style={styles.wisdomStepTitle}>
+                                    {titledItem.title}
+                                  </ThemedText>
+                                  <ThemedText style={styles.wisdomStepText}>
+                                    {titledItem.body}
+                                  </ThemedText>
+                                </>
+                              ) : (
+                                <ThemedText style={styles.wisdomStepText}>
+                                  {item}
+                                </ThemedText>
+                              )}
+                            </View>
                           </View>
                         );
                       })}
@@ -570,12 +608,20 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
     lineHeight: 16,
   },
-  wisdomStepText: {
+  wisdomStepTextWrapper: {
     flex: 1,
+    paddingTop: 4,
+  },
+  wisdomStepTitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    lineHeight: 22,
+    marginBottom: 2,
+  },
+  wisdomStepText: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 24,
-    paddingTop: 8,
   },
   doneButton: {
     backgroundColor: 'rgba(255,255,255,0.08)',

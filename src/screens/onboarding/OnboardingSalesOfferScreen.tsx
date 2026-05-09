@@ -451,6 +451,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       if (routeParams?.onboardingFlow) {
         logger.debug('Navigating to notification setup for onboarding flow');
         navigateToNotificationSetup('paid');
+      } else if (routeParams?.source === 'profile_upgrade') {
+        resetToUserInput();
       } else if (routeParams?.dismissBehavior === 'goBack' || routeParams?.source === 'wisdom_limit') {
         goBackOrFallback('userInput');
       } else {

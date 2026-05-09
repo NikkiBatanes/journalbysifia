@@ -148,6 +148,7 @@ interface SubscriptionPlanModalProps {
   onClose: () => void;
   navigation?: any;
   onContinueWithSiFia?: () => void; // Optional callback to close parent modal
+  onOpenSalesOffer?: (params: Record<string, unknown>) => void;
   // Test mode props for simulating subscription states
   testModeTier?: string;
   testModeStatus?: string;
@@ -183,6 +184,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   onClose,
   navigation,
   onContinueWithSiFia,
+  onOpenSalesOffer,
   testModeTier,
   testModeStatus,
   testModeBillingCycle,
@@ -610,6 +612,11 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
       onClose();
       setTimeout(() => {
+        if (onOpenSalesOffer) {
+          onOpenSalesOffer(params);
+          return;
+        }
+
         const didNavigate = notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params)
           || navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
         if (!didNavigate) {
@@ -617,7 +624,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             component: 'SubscriptionPlanModal',
           });
         }
-      }, 300);
+      }, 500);
     } else {
       onClose();
     }

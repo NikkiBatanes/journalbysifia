@@ -47,7 +47,6 @@ import { visibleStreakService } from '../services/visibleStreakService';
 import { toLocalDateString } from '../utils/date';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
-import { supabase } from '../services/supabaseClient';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -139,7 +138,7 @@ const keepOnlyOpeningUserName = (text: string, userName: string): string => {
   const nameRegex = new RegExp(`\\b${cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
   let firstMatchFound = false;
   
-  processed = processed.replace(nameRegex, (match, offset) => {
+  processed = processed.replace(nameRegex, (match, _offset) => {
     if (!firstMatchFound) {
       firstMatchFound = true;
       return match; // Keep the first occurrence
@@ -819,7 +818,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
             <Ionicons name="refresh-outline" size={15} color="rgba(255,255,255,0.9)" />
             <View style={styles.refinementCountBadge}>
               <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
-                {refinementsRemaining} left
+                {refinementsRemaining === Number.MAX_SAFE_INTEGER ? '∞' : refinementsRemaining} left
               </ThemedText>
             </View>
           </TouchableOpacity>
@@ -1003,9 +1002,39 @@ function isWisdomLeadInLine(value: string): boolean {
   return /^(?:here\s+(?:are|is)|these\s+are|some\s+(?:examples|actionable\s+steps)|actionable\s+steps|examples)(?:\s+are|\s+is)?[\w\s,'-]*:?$/i.test(value.trim());
 }
 
-function parseWisdomText(text?: string): { intro: string; items: string[]; blocks: Array<{ intro: string; items: string[] }> } {
+
+function isWisdomOutroLine(value: string): boolean {
+  return /^(?:remember|as you|this simple|these steps|by doing|through this|over time|with each|even small|start small|you can|may this|let this|trust that)\b/i.test(value.trim());
+}
+
+function splitWisdomItemTitle(value: string): { title: string; body: string } | null {
+  const match = value.match(/^([^:]{3,64}):\s+(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    title: match[1].trim(),
+    body: match[2].trim(),
+  };
+}
+
+function parseWisdomText(text?: string): { intro: string; items: string[]; blocks: Array<{ intro: string; items: string[]; outro: string }> } {
   if (!text?.trim()) {
     return { intro: '', items: [], blocks: [] };
+  }
+
+  if (text.includes('--- siFia wisdom response ---')) {
+    const parsedBlocks = text
+      .split(/--- siFia wisdom response ---/g)
+      .map(block => parseWisdomText(block.trim()).blocks)
+      .flat()
+      .filter(block => block.intro || block.items.length > 0 || block.outro);
+    return {
+      intro: parsedBlocks.map(block => block.intro).filter(Boolean).join('\n\n'),
+      items: parsedBlocks.flatMap(block => block.items),
+      blocks: parsedBlocks,
+    };
   }
 
   const lines = text
@@ -1016,21 +1045,24 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
 
   if (listStartIndex === -1) {
     const intro = cleanWisdomDisplayText(text);
-    return { intro, items: [], blocks: intro ? [{ intro, items: [] }] : [] };
+    return { intro, items: [], blocks: intro ? [{ intro, items: [], outro: '' }] : [] };
   }
 
-  const blocks: Array<{ intro: string; items: string[] }> = [];
+  const blocks: Array<{ intro: string; items: string[]; outro: string }> = [];
   let currentIntroLines = lines.slice(0, listStartIndex);
   let currentItems: string[] = [];
+  let currentOutroLines: string[] = [];
   const items: string[] = [];
 
   const pushCurrentBlock = () => {
     const intro = currentIntroLines.join('\n\n');
-    if (intro || currentItems.length > 0) {
-      blocks.push({ intro, items: currentItems });
+    const outro = currentOutroLines.join('\n\n');
+    if (intro || currentItems.length > 0 || outro) {
+      blocks.push({ intro, items: currentItems, outro });
     }
     currentIntroLines = [];
     currentItems = [];
+    currentOutroLines = [];
   };
 
   lines.slice(listStartIndex).forEach(line => {
@@ -1038,9 +1070,10 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
 
     if (!isListLine) {
       if (currentItems.length > 0) {
-        pushCurrentBlock();
+        currentOutroLines.push(line);
+      } else {
+        currentIntroLines.push(line);
       }
-      currentIntroLines.push(line);
       return;
     }
 
@@ -1051,9 +1084,18 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
 
     if (isWisdomLeadInLine(item)) {
       if (currentItems.length > 0) {
-        pushCurrentBlock();
+        currentOutroLines.push(item);
+        return;
       }
       currentIntroLines.push(item);
+      return;
+    }
+    if (currentItems.length > 0 && isWisdomOutroLine(item)) {
+      currentOutroLines.push(item);
+      return;
+    }
+    if (currentItems.length >= 3 && !splitWisdomItemTitle(item)) {
+      currentOutroLines.push(item);
       return;
     }
     currentItems.push(item);
@@ -1503,6 +1545,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const parsedActionWisdom = parseWisdomText(currentActionWisdom);
+  const hasActionWisdom = Boolean(currentActionWisdom);
 
   const primaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
@@ -1586,13 +1629,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   return (
     <>
-    {currentActionWisdom ? (
-      <ScrollView
-        style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}
-        showsVerticalScrollIndicator={true}
-      >
-        <View style={{ paddingBottom: 32 }}>
-          <StepFadeIn delay={0} style={styles.stepLabelRow}>
+    <ScrollView
+      style={styles.stepScroll}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 40 }]}
+      scrollEnabled={hasActionWisdom}
+      showsVerticalScrollIndicator={hasActionWisdom}
+    >
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <FontAwesome6 name="list-check" size={16} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             {steps.length} Faithful Actions
@@ -1813,7 +1856,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     }}
                   >
                     <View style={styles.actionWisdomHeaderTitle}>
-                      <Ionicons name="bulb-outline" size={15} color={Colors.alertCoral} />
+                      <MaterialCommunityIcons name="head-heart-outline" size={15} color={Colors.alertCoral} />
                       <ThemedText weight="semiBold" style={styles.actionWisdomLabel}>
                         Wisdom for this action
                       </ThemedText>
@@ -1826,11 +1869,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   </TouchableOpacity>
 
                   {wisdomExpanded ? (
-                    <ScrollView
-                      style={styles.actionWisdomScroll}
-                      nestedScrollEnabled
-                      showsVerticalScrollIndicator={true}
-                    >
+                    <View>
                       {(() => {
                         let wisdomItemOffset = 0;
 
@@ -1839,30 +1878,81 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                           wisdomItemOffset += block.items.length;
 
                           return (
-                            <View key={`wisdom-block-${blockIndex}`} style={blockIndex > 0 ? styles.actionWisdomBlock : undefined}>
+                            <View key={`wisdom-block-${blockIndex}`}>
                               {block.intro ? (
                                 <ThemedText style={styles.actionWisdomIntro} selectable={true}>
                                   {block.intro}
                                 </ThemedText>
                               ) : null}
 
-                              {block.items.map((item, idx) => (
-                                <View key={`${blockIndex}-${idx}-${item}`} style={styles.actionWisdomStepRow}>
-                                  <View style={styles.actionWisdomStepCircle}>
-                                    <ThemedText weight="bold" style={styles.actionWisdomStepNumber}>
-                                      {stepNumber}.{blockStart + idx + 1}
+                              {blockIndex > 0 && block.intro && (
+                                <View style={styles.actionWisdomBlockDivider} />
+                              )}
+
+                              {block.items.map((item, idx) => {
+                                const titledItem = splitWisdomItemTitle(item);
+
+                                return (
+                                  <React.Fragment key={`wisdom-item-${blockIndex}-${idx}-${item}`}>
+                                    {blockIndex === 0 && idx === 0 && (
+                                      <View style={{ height: 8 }} />
+                                    )}
+                                    <View style={styles.actionWisdomStepRow}>
+                                      <View style={styles.actionWisdomStepCircle}>
+                                        <ThemedText weight="bold" style={styles.actionWisdomStepNumber}>
+                                          {stepNumber}.{blockStart + idx + 1}
+                                        </ThemedText>
+                                      </View>
+                                      <View style={styles.actionWisdomStepTextWrapper}>
+                                        {titledItem ? (
+                                          <>
+                                            <ThemedText weight="bold" style={styles.actionWisdomStepTitle} selectable={true}>
+                                              {titledItem.title}
+                                            </ThemedText>
+                                            <ThemedText style={styles.actionWisdomStepText} selectable={true}>
+                                              {titledItem.body}
+                                            </ThemedText>
+                                          </>
+                                        ) : (
+                                          <ThemedText style={styles.actionWisdomStepText} selectable={true}>
+                                            {item}
+                                          </ThemedText>
+                                        )}
+                                      </View>
+                                    </View>
+                                  </React.Fragment>
+                                );
+                              })}
+
+                              {block.outro ? (
+                                <View style={styles.actionWisdomOutroWrapper}>
+                                  {Platform.OS === 'ios' ? (
+                                    <TextInput
+                                      value={block.outro}
+                                      editable={false}
+                                      multiline={true}
+                                      scrollEnabled={false}
+                                      pointerEvents="none"
+                                      contextMenuHidden={true}
+                                      caretHidden={true}
+                                      style={styles.actionWisdomOutroTextInput}
+                                    />
+                                  ) : (
+                                    <ThemedText style={styles.actionWisdomIntro} selectable={true}>
+                                      {block.outro}
                                     </ThemedText>
-                                  </View>
-                                  <ThemedText style={styles.actionWisdomStepText} selectable={true}>
-                                    {item}
-                                  </ThemedText>
+                                  )}
                                 </View>
-                              ))}
+                              ) : null}
+
+                              {blockIndex < parsedActionWisdom.blocks.length - 1 && (
+                                <View style={styles.actionWisdomBlockDivider} />
+                              )}
                             </View>
                           );
                         });
                       })()}
-                    </ScrollView>
+                    </View>
                   ) : null}
                 </View>
               </StepFadeIn>
@@ -1978,7 +2068,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             </TouchableOpacity>
           </View>
         )}
-    </View>
+    </ScrollView>
 
       {activeJournalModal === 'reflection' && (
         <SmartJournalingReflectionModal
@@ -2039,33 +2129,15 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               userQuestion: question,
               truthSummary: '',
               truthInLove: '',
+              previousWisdom: currentActionWisdom,
             });
 
             if (response.success && response.wisdom) {
-              const existingWisdom = currentActionWisdom.trim();
               const returnedWisdom = response.wisdom.trim();
-              const wisdomToDisplay = existingWisdom && returnedWisdom && !returnedWisdom.includes(existingWisdom)
-                ? `${existingWisdom}\n\n${returnedWisdom}`
-                : returnedWisdom;
 
-              setCurrentActionWisdom(wisdomToDisplay);
+              setCurrentActionWisdom(returnedWisdom);
               setWisdomExpanded(true);
               setWisdomCount(response.wisdomCount || wisdomCount + 1);
-              if (playbookId && currentStep.id && wisdomToDisplay !== returnedWisdom) {
-                supabase
-                  .from('playbook_action_steps')
-                  .update({
-                    wisdom_text: wisdomToDisplay,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', currentStep.id)
-                  .eq('playbook_id', playbookId)
-                  .then(({ error }) => {
-                    if (error) {
-                      console.warn('[PlaybookWalkthrough] Failed to persist appended wisdom text', error);
-                    }
-                  });
-              }
               if (playbookId && user?.id) {
                 queryClient.setQueryData(['playbook', playbookId, user.id], (cachedPlaybook: any) => {
                   if (!cachedPlaybook?.actionSteps) {
@@ -2076,7 +2148,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     ...cachedPlaybook,
                     actionSteps: cachedPlaybook.actionSteps.map((step: any) =>
                       step.id === currentStep.id
-                        ? { ...step, wisdom_text: wisdomToDisplay }
+                        ? { ...step, wisdom_text: returnedWisdom }
                         : step
                     ),
                   };
@@ -2743,6 +2815,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [refinedPlaybookOverride, setRefinedPlaybookOverride] = useState<typeof routePlaybook | null>(null);
   const [isRefining, setIsRefining] = useState(false);
+  const [refinementCount, setRefinementCount] = useState(0);
+  const [refinementLimit, setRefinementLimit] = useState(0);
 
 
   // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
@@ -2806,12 +2880,33 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (refinedPlaybookOverride || (isFullPlaybook ? routePlaybook : fetchedPlaybook)) as typeof routePlaybook;
 
-  // Refinement quota — seeker/free/trial = 1, paid = 2
-  const userTierMeta = (user as any)?.user_metadata?.subscription_tier || (user as any)?.user_metadata?.tier || 'seeker';
-  const refinementLimit = ['spark', 'spark_annual', 'growth', 'growth_annual', 'transformation', 'transformation_annual'].includes(userTierMeta) ? 2 : 1;
-  const refinementUsed = (playbook as any)?.refinementCount ?? 0;
-  const refinementsRemaining = Math.max(0, refinementLimit - refinementUsed);
+  const refinementsRemaining = refinementLimit === -1
+    ? Number.MAX_SAFE_INTEGER
+    : Math.max(0, refinementLimit - refinementCount);
   const canRefine = refinementsRemaining > 0;
+
+  const loadRefinementUsage = useCallback(() => {
+    if (!userId) {
+      setRefinementCount(0);
+      setRefinementLimit(0);
+      return;
+    }
+
+    NewSubscriptionService.getUserSubscription(userId)
+      .then(subscription => {
+        const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
+        setRefinementCount((subscription as any).refinement_count || 0);
+        setRefinementLimit(limits.refinement_limit ?? 0);
+      })
+      .catch(() => {
+        setRefinementCount(0);
+        setRefinementLimit(0);
+      });
+  }, [userId]);
+
+  useEffect(() => {
+    loadRefinementUsage();
+  }, [loadRefinementUsage]);
 
   useEffect(() => {
     if (!userId || !playbookId || !playbook) {
@@ -3170,6 +3265,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       });
 
       setRefinedPlaybookOverride(result.playbook as any);
+      setRefinementCount(result.refinementCount);
+      setRefinementLimit(result.refinementLimit);
       setStepIndex(0);
       setActionStepIndex(0);
 
@@ -3184,6 +3281,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
       queryClient.invalidateQueries({ queryKey: ['playbook', playbook.id, userId] });
       queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
       DeviceEventEmitter.emit('playbook_refined', { playbookId: playbook.id });
       DeviceEventEmitter.emit('playbookProgressUpdate', { playbookId: playbook.id });
       triggerSuccessHaptic();
@@ -3191,7 +3289,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       return true;
     } catch (error: any) {
       const message = error?.code === 'REFINEMENT_LIMIT_REACHED'
-        ? error.message || 'You have used your refinements for this playbook.'
+        ? error.message || 'You have used your playbook refinements this month.'
         : error?.message || 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.';
       Alert.alert('Could not refine playbook', message);
       return false;
@@ -4182,9 +4280,6 @@ const styles = StyleSheet.create({
     gap: 6,
     flex: 1,
   },
-  actionWisdomScroll: {
-    maxHeight: 260,
-  },
   actionWisdomLabel: {
     fontSize: 12,
     color: Colors.hopeWhite,
@@ -4196,11 +4291,27 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 22,
   },
-  actionWisdomBlock: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+  actionWisdomOutroWrapper: {
+    width: '100%',
+    minWidth: '100%',
+    overflow: 'visible',
+  },
+  actionWisdomOutroTextInput: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 22,
+    padding: 0,
+    margin: 0,
+    width: '100%',
+    minWidth: '100%',
+    flexShrink: 1,
+    flexGrow: 1,
+    fontFamily: getFontFamily('regular'),
+  },
+  actionWisdomBlockDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginVertical: 10,
   },
   actionWisdomStepRow: {
     flexDirection: 'row',
@@ -4209,25 +4320,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   actionWisdomStepCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,107,107,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
   },
   actionWisdomStepNumber: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.alertCoral,
-    lineHeight: 15,
+    lineHeight: 14,
+  },
+  actionWisdomStepTextWrapper: {
+    flex: 1,
+    paddingTop: 3,
+  },
+  actionWisdomStepTitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    lineHeight: 21,
+    marginBottom: 2,
   },
   actionWisdomStepText: {
-    flex: 1,
     fontSize: 15,
     color: 'rgba(255,255,255,0.84)',
     lineHeight: 22,
-    paddingTop: 7,
   },
   // Choice pills — for 'choose' type steps
   choicePill: {

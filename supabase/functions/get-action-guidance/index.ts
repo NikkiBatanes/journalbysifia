@@ -17,11 +17,26 @@ interface WisdomRequest {
   userQuestion: string;
   truthSummary: string;
   truthInLove: string;
+  previousWisdom?: string;
 }
 
 function cleanText(value: unknown, max = 800): string {
   if (typeof value !== 'string') return '';
   return value.replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function cleanActionBody(value: unknown, max = 1500): string {
+  if (typeof value !== 'string') return '';
+  return value
+    // Remove sub-step labels like "2.1", "2.2", "1.1", "3.4" etc.
+    .replace(/\b\d+\.\d+\s*/g, '')
+    // Remove standalone step numbers like "1." "2." "3." at start of a word boundary
+    .replace(/\b(\d+)\.\s+/g, '')
+    // Remove "WISDOM FOR THIS ACTION" header that sometimes appears inside the body
+    .replace(/WISDOM FOR THIS ACTION\s*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
 }
 
 function cleanOutputText(value: unknown, max = 800): string {
@@ -77,6 +92,128 @@ function formatWisdomText(wisdom: { intro: string; steps: string[] }): string {
   ].filter(Boolean).join('\n\n');
 }
 
+function isWeakWisdomAnswer(wisdom: { intro: string; steps: string[] }, userQuestion: string, actionContext = ''): boolean {
+  const combined = `${wisdom.intro} ${wisdom.steps.join(' ')}`.toLowerCase();
+  const question = userQuestion.toLowerCase();
+  const context = actionContext.toLowerCase();
+
+  if (wisdom.intro.length < 35 || wisdom.steps.length < 2) {
+    return true;
+  }
+
+  // Check for acknowledgment phrases that don't answer the question
+  const acknowledgmentPhrases = [
+    'i understand that you',
+    'i understand you',
+    'i hear that you',
+    'i see that you',
+    'i recognize that you',
+    'i appreciate that you',
+  ];
+
+  const hasAcknowledgmentWithoutAnswer = acknowledgmentPhrases.some(phrase => combined.includes(phrase))
+    && !/\b(is|are|means|refers to|involves|focuses on|centers on|relies on|depends on|based on|differs from|distinguishes|separates|contrasts with)\b/.test(combined);
+
+  if (hasAcknowledgmentWithoutAnswer) {
+    return true;
+  }
+
+  // Check for "differentiate" or "difference" questions that aren't answered
+  if (/\b(differentiate|difference|differences|what's the difference|what is the difference|how are they different)\b/.test(question)
+    && !/\b(different|differs|distinguishes|separates|distinct|contrast|unlike|versus|while|whereas)\b/.test(combined)) {
+    return true;
+  }
+
+  // Check for "explain" questions that aren't answered
+  if (/\b(explain|what is|what does|how does|why is)\b/.test(question)
+    && !/\b(is|means|refers to|involves|because|reason|causes|leads to|results in)\b/.test(combined)) {
+    return true;
+  }
+
+  const vaguePhrases = [
+    'pray about it',
+    'reflect on',
+    'seek guidance',
+    'trust god',
+    'lean into',
+    'embrace',
+  ];
+
+  const hasOnlyVagueGuidance = vaguePhrases.some(phrase => combined.includes(phrase))
+    && !/\b(say|tell|ask|write|call|text|apologize|confess|choose|stop|start|set|schedule|read)\b/.test(combined);
+
+  if (hasOnlyVagueGuidance) {
+    return true;
+  }
+
+  if (/\b(what should i say|what do i say|how do i say)\b/.test(question) && !/\b(say|tell|ask)\b/.test(combined)) {
+    return true;
+  }
+
+  if (/\b(greeting|greet|opening|open with|start.*conversation|start.*talking)\b/.test(question)
+    && /\b(christian|jesus|god|faith|pray|prayer|church|gospel|evangel|witness|share)\b/.test(`${question} ${context}`)
+    && !/\b(jesus|god|faith|prayer|church|bless|christ)\b/.test(combined)) {
+    return true;
+  }
+
+  if (/\b(what should i do|what do i do|how should i handle)\b/.test(question) && !/\b(do|choose|start|stop|ask|tell|write|call|text|set)\b/.test(combined)) {
+    return true;
+  }
+
+  if (/\b(example|examples)\b/.test(question) && !/\b(for example|example|you could say|try this)\b/.test(combined)) {
+    return true;
+  }
+
+  if (/\b(scripture|bible|verse|verses)\b/.test(question) && !/\b(?:[1-3]\s*)?[a-z]+\s+\d+:\d+\b/i.test(combined)) {
+    return true;
+  }
+
+  if (/\b(gospel|jesus|faith|share.*faith|share.*jesus|evangel|sin|salvation)\b/.test(question)
+    && !/\b(sin|separation|separated|forgive|forgiveness|cross|died|rose|resurrection|repent|trust in jesus|believe in jesus)\b/.test(combined)) {
+    return true;
+  }
+
+  return false;
+}
+
+function textTokens(value: string): Set<string> {
+  const stopWords = new Set([
+    'the', 'and', 'for', 'that', 'this', 'with', 'you', 'your', 'are', 'can', 'say', 'then', 'they',
+    'them', 'what', 'when', 'from', 'into', 'have', 'will', 'about', 'would', 'could', 'should',
+    'here', 'there', 'their', 'faith', 'action', 'step',
+  ]);
+
+  return new Set(
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s']/g, ' ')
+      .split(/\s+/)
+      .filter(token => token.length > 3 && !stopWords.has(token))
+  );
+}
+
+function isTooSimilarToPrevious(wisdom: { intro: string; steps: string[] }, previousWisdom: string): boolean {
+  if (!previousWisdom.trim()) {
+    return false;
+  }
+
+  const currentTokens = textTokens(`${wisdom.intro} ${wisdom.steps.join(' ')}`);
+  const previousTokens = textTokens(previousWisdom);
+
+  if (currentTokens.size < 8 || previousTokens.size < 8) {
+    return false;
+  }
+
+  let overlap = 0;
+  currentTokens.forEach(token => {
+    if (previousTokens.has(token)) {
+      overlap += 1;
+    }
+  });
+
+  return overlap / Math.min(currentTokens.size, previousTokens.size) > 0.55;
+}
+
 function buildWisdomPrompt(args: {
   playbookTitle: string;
   truthSummary: string;
@@ -85,39 +222,70 @@ function buildWisdomPrompt(args: {
   actionBody: string;
   userQuestion: string;
   userName: string;
+  previousWisdom?: string;
 }): string {
   return [
-    'WISDOM REQUEST: Provide specific, actionable wisdom for a faithful action based on the user\'s question.',
+    'ACTION EXECUTION HELPER: Help the user carry out ONE specific faithful action. This is not general coaching.',
     '',
-    '=== PLAYBOOK CONTEXT ===',
-    `Title: ${cleanText(args.playbookTitle, 180)}`,
-    `Truth summary: ${cleanText(args.truthSummary, 700)}`,
-    `Truth in love excerpt: ${cleanText(args.truthInLove, 200)}`,
+    '=== CONTEXT ===',
+    `Playbook: ${cleanText(args.playbookTitle, 180)}`,
+    `Truth: ${cleanText(args.truthSummary, 500)}`,
     '',
-    '=== TARGET FAITHFUL ACTION ===',
+    '=== THE ONE ACTION THE USER NEEDS TO DO ===',
     `Action: ${cleanText(args.actionTitle, 180)}`,
-    `Description: ${cleanText(args.actionBody, 500)}`,
+    `Description: ${cleanActionBody(args.actionBody, 1500)}`,
     '',
-    '=== USER\'S QUESTION ===',
+    '=== USER\'S QUESTION ABOUT THIS ACTION ===',
     `User asks: ${cleanText(args.userQuestion, 500)}`,
     '',
-    '=== TASK ===',
-    'Provide specific, actionable wisdom for this faithful action based on:',
-    '1. The overall playbook context and truth diagnosis',
-    '2. The specific action the user is asking about',
-    '3. The user\'s specific question or concern',
+    args.previousWisdom?.trim() ? '=== ALREADY TOLD THE USER ===' : '',
+    args.previousWisdom?.trim() ? cleanText(args.previousWisdom, 800) : '',
+    args.previousWisdom?.trim() ? 'Do not repeat this. Build on it or go deeper into the same action.' : '',
+    '=== YOUR ROLE ===',
+    'You are an execution helper, not a general spiritual coach.',
+    'Your only job is to help the user actually DO this one specific action.',
+    'The user is stuck or unclear about HOW to do this action. Help them do it.',
     '',
-    'Guidelines:',
-    '- Give 2-3 concrete examples if applicable',
-    '- Keep the response under 200 words',
-    '- Be encouraging and practical',
-    '- Address the user\'s specific concern',
-    '- Use the user\'s name if natural in the response',
-    '- Do not use markdown formatting, bold markers, headings, or asterisks',
-    '- Put any lead-in sentence in intro, not inside steps',
+    '=== STRICT RULES ===',
+    'DO NOT suggest other actions outside of this one (no "also pray", "also journal", "also talk to a mentor" unless the action IS about praying, journaling, or talking to a mentor).',
+    'DO NOT repeat what the action already says — the user already read the action description.',
+    'DO NOT give general spiritual encouragement or platitudes.',
+    'DO NOT say "I understand you are asking about X" — just answer.',
+    '',
+    'If the action involves talking or texting someone: give the exact words or a script they can use.',
+    'If the user asks for a greeting, opener, or first line, do not give a generic greeting. Make it match the Christian purpose of the action.',
+    'For Christian witness or faith-sharing greetings, give warm natural openers that can gently lead to God/Jesus/faith, not generic lines like "Hi, how are you?"',
+    'If the action involves a decision: give the clear choice and why.',
+    'If the action involves a behavior change: give the precise first micro-step to start.',
+    'If the user is confused about meaning: explain it clearly and concisely.',
+    'If the user asks about differences: explain the actual differences with specifics.',
+    'If the user asks for Scripture: provide the actual verse or reference, not a suggestion to "read" a chapter.',
+    '',
+    'Before writing the response, ask yourself: what is the user ACTUALLY trying to accomplish with this action? What is the end goal?',
+    'If the action is part of a larger goal (e.g. sharing the gospel, reconciling a relationship, making an apology), the user may need help with the FULL ARC — not just the first sub-step.',
+    'Example: if the action is "start a conversation about joy to lead into faith", and the user asks for a script, help them go all the way: opener → natural bridge → sharing Jesus/the gospel. Do not stop at the opener.',
+    'If the user\'s question implies they do not know how to get from step A to the real goal, help them bridge that gap with concrete words and transitions.',
+    'If the action is evangelism, sharing faith, sharing Jesus, or leading toward the gospel, do not stop at "faith gives me joy." Include a clear gospel bridge in simple words: sin separates us from God, Jesus died and rose to reconcile/forgive us, and we respond by trusting/turning to Him.',
+    'For evangelism scripts, include a gentle response question such as: "Has anyone ever explained that to you before?" or "Would you want to hear more about what it means to trust Jesus?"',
+    'Each step must be something the user physically does as part of executing THIS action — not a new action.',
+    'Steps should feel like: "Here is exactly how to do this thing you are already trying to do."',
+    'IMPORTANT: If the action description already contains sub-steps, exact words, or a script, extract and present those — do not invent a new one.',
+    'When presenting a script from the action description, each distinct line or instruction becomes one clean step in the JSON steps array.',
+    'If previous wisdom already gave the opener or first line of the script, do NOT repeat the opener. Continue from where the user left off: give the bridge, deeper explanation, gospel content, response question, or next thing to say.',
+    'If the user asks a follow-up like "what next", "how do I segue", "how do I say Jesus", "can you give another example", or asks the same thing again, assume they need the NEXT layer of help — not the same opening line.',
+    'The intro should briefly explain how to use the script or what to expect — not repeat the script itself.',
+    'Each step should be one clean, ready-to-say or ready-to-do line — no labels, no numbers, no "Step X" prefixes.',
+    'If any step in the script is still vague or general (e.g. "share a personal story", "explain how your faith helps you"), replace it with a CONCRETE EXAMPLE of what that could actually sound like. Write the actual words the user could say.',
+    'Example: instead of "share a story about your faith", write: "You could say: I went through a really hard season last year, and what kept me grounded was knowing God was with me — that gave me a peace I couldn\'t explain."',
+    '',
+    '- Do not suggest integrating, blending, or aligning non-Christian spiritual practices with Christian faith',
+    '- If the user mentions feng shui, astrology, manifestation, divination, spirit guides, crystals, energy work, or similar: gently redirect toward prayer, Scripture, and biblical community',
+    '- Be faithful to historic Christian doctrine',
+    '- Do not use markdown formatting, bold, headings, or asterisks',
+    '- Keep the total response under 220 words',
     '',
     'Return ONLY valid JSON in this exact shape:',
-    '{"intro":"one short encouraging lead-in sentence","steps":["actionable step one","actionable step two","actionable step three"]}',
+    '{"intro":"one or two sentences that directly answer the user\'s question or confusion about this action","steps":["exact first thing to do or say to execute this action","exact second thing — words, script, or specific sub-step","follow-through or how to handle what comes next"]}',
     'Do not include any text before or after the JSON.',
   ].filter(Boolean).join('\n');
 }
@@ -141,10 +309,11 @@ serve(async (req: Request) => {
     const userName = cleanText(body.userName, 120) || 'Friend';
     const actionId = cleanText(body.actionId, 80);
     const actionTitle = cleanText(body.actionTitle, 180);
-    const actionBody = cleanText(body.actionBody, 500);
+    const actionBody = cleanActionBody(body.actionBody, 1500);
     const userQuestion = cleanText(body.userQuestion, 500);
     const truthSummary = cleanText(body.truthSummary, 700);
     const truthInLove = cleanText(body.truthInLove, 200);
+    const previousWisdom = cleanText(body.previousWisdom, 1200);
 
     if (!playbookId || !userId || !actionId || userQuestion.length < 5) {
       return new Response(
@@ -186,7 +355,11 @@ serve(async (req: Request) => {
       actionBody,
       userQuestion,
       userName,
+      previousWisdom,
     });
+    const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove}`;
+
+    console.log('[Get-Action-Guidance] Prompt:', prompt.substring(0, 500) + '...');
 
     // Call OpenAI
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
@@ -194,7 +367,7 @@ serve(async (req: Request) => {
       throw new Error('Missing OpenAI API key');
     }
 
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const createWisdomCompletion = (userPrompt: string) => fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -205,18 +378,20 @@ serve(async (req: Request) => {
         messages: [
           {
             role: 'system',
-            content: 'You are siFia, a compassionate Christian AI assistant providing practical wisdom for faithful actions. Return only valid JSON. Do not use markdown.',
+            content: 'You are siFia, a Christian action coach. You help users execute one specific faithful action at a time. You give exact words, scripts, and concrete sub-steps — not general encouragement or new actions. Scripture is the final authority. Do not encourage syncretism. Return only valid JSON. Do not use markdown.',
           },
           {
             role: 'user',
-            content: prompt,
+            content: userPrompt,
           },
         ],
-        max_tokens: 300,
-        temperature: 0.7,
+        max_tokens: 550,
+        temperature: 0.65,
         response_format: { type: 'json_object' },
       }),
     });
+
+    const openAIResponse = await createWisdomCompletion(prompt);
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
@@ -229,32 +404,77 @@ serve(async (req: Request) => {
 
     const openAIdata = await openAIResponse.json();
     const rawWisdom = openAIdata.choices?.[0]?.message?.content || '';
-    const parsedWisdom = parseWisdomJson(rawWisdom);
+    console.log('[Get-Action-Guidance] AI Raw Response:', rawWisdom);
+
+    let parsedWisdom = parseWisdomJson(rawWisdom);
+
+    if (isWeakWisdomAnswer(parsedWisdom, userQuestion, actionContext)) {
+      console.log('[Get-Action-Guidance] Weak answer detected, requesting repair.');
+      const repairPrompt = [
+        prompt,
+        '',
+        '=== REPAIR INSTRUCTION ===',
+        'The previous answer was too general or did not help the user execute the action.',
+        'Rewrite it now. Focus entirely on HOW to do this specific action.',
+        'If they need words to say: give the exact words or script.',
+        'If they need a first step: give the precise thing to do right now.',
+        'If they asked for Scripture: give the actual verse reference.',
+        'If this is about sharing faith or Jesus, include the actual gospel clearly: sin separates us from God, Jesus died and rose to forgive/reconcile us, and the person can respond by trusting/turning to Him.',
+        'Do NOT add new actions, prayer suggestions, journaling, or general encouragement.',
+        'Return ONLY the same valid JSON shape.',
+      ].join('\n');
+
+      const repairResponse = await createWisdomCompletion(repairPrompt);
+      if (repairResponse.ok) {
+        const repairData = await repairResponse.json();
+        const repairedRawWisdom = repairData.choices?.[0]?.message?.content || '';
+        const repairedWisdom = parseWisdomJson(repairedRawWisdom);
+        if (!isWeakWisdomAnswer(repairedWisdom, userQuestion, actionContext)) {
+          parsedWisdom = repairedWisdom;
+        }
+      }
+    }
+
+    if (isTooSimilarToPrevious(parsedWisdom, previousWisdom)) {
+      console.log('[Get-Action-Guidance] Repetitive answer detected, requesting variation.');
+      const variationPrompt = [
+        prompt,
+        '',
+        '=== VARIATION INSTRUCTION ===',
+        'The previous answer repeated too much of what was already given.',
+        'Rewrite it from a DIFFERENT angle while still answering the same user question.',
+        'Do not reuse the same opening sentence, same example, or same sequence of words.',
+        'If the previous answer used the line "What brings you joy?" or another opener, do NOT include that opener again.',
+        'If the last answer gave the opener, now give the bridge and gospel explanation.',
+        'If the last answer gave a general example, now give a more specific real-life script.',
+        'Use fresh concrete words the user can say next.',
+        'Return ONLY the same valid JSON shape.',
+      ].join('\n');
+
+      const variationResponse = await createWisdomCompletion(variationPrompt);
+      if (variationResponse.ok) {
+        const variationData = await variationResponse.json();
+        const variationRawWisdom = variationData.choices?.[0]?.message?.content || '';
+        const variationWisdom = parseWisdomJson(variationRawWisdom);
+        if (!isWeakWisdomAnswer(variationWisdom, userQuestion, actionContext)
+          && !isTooSimilarToPrevious(variationWisdom, previousWisdom)) {
+          parsedWisdom = variationWisdom;
+        }
+      }
+    }
+
     const wisdom = formatWisdomText(parsedWisdom);
+    console.log('[Get-Action-Guidance] Formatted Wisdom:', wisdom);
 
     if (!wisdom) {
       throw new Error('No wisdom generated from OpenAI');
     }
 
-    const { data: existingStep, error: fetchStepError } = await supabase
-      .from('playbook_action_steps')
-      .select('wisdom_text')
-      .eq('id', actionId)
-      .eq('playbook_id', playbookId)
-      .maybeSingle();
-
-    if (fetchStepError) {
-      console.error('[Get-Action-Guidance] Fetch existing wisdom error:', fetchStepError);
-    }
-
-    const existingWisdom = typeof existingStep?.wisdom_text === 'string' ? existingStep.wisdom_text.trim() : '';
-    const updatedWisdom = existingWisdom ? `${existingWisdom}\n\n${wisdom}` : wisdom;
-
     // Update action step with wisdom
     const { error: updateError } = await supabase
       .from('playbook_action_steps')
       .update({
-        wisdom_text: updatedWisdom,
+        wisdom_text: wisdom,
         updated_at: new Date().toISOString(),
       })
       .eq('id', actionId)
@@ -267,7 +487,7 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      wisdom: updatedWisdom,
+      wisdom: wisdom,
       actionId,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
