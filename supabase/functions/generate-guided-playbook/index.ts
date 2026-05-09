@@ -527,7 +527,7 @@ function parseJsonPlaybook(
       // fallback for unexpected string (schema change race condition)
       return String(c || '');
     })(),
-    prayer: stripRepeatedName(cleanMarkdown(json.prayer || ''), userName),
+    prayer: stripAllName(cleanMarkdown(json.prayer || ''), userName),
     transitionLine: json.transition_line || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

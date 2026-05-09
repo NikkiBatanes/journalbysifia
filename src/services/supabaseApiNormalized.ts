@@ -265,6 +265,7 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         )
       `;
 
+    // @ts-ignore - Complex union type from nested Supabase query
     const { data: playbooksData, error: playbooksError } = await supabase
       .from('playbooks')
       .select(selectFields)
