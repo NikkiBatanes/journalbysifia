@@ -314,7 +314,7 @@ interface TruthStepProps {
   insets: { top: number; bottom: number };
 }
 
-const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
+const TRUTH_PREVIEW_COUNT = 1; // paragraphs visible before "Read more"
 
 const TruthInLoveStep: React.FC<TruthStepProps> = ({
   text,
