@@ -48,11 +48,10 @@ export async function refinePlaybook(request: RefinePlaybookRequest): Promise<Re
   });
 
   if (error) {
-    let message = error.message || 'Unable to refine this playbook right now.';
+    const rawMessage = error.message || 'Unable to refine this playbook right now.';
     try {
-      const parsed = JSON.parse(error.message || '{}');
-      message = parsed.message || message;
-      const e: any = new Error(message);
+      const parsed = JSON.parse(rawMessage);
+      const e: any = new Error(parsed.message || rawMessage);
       e.code = parsed.error;
       e.refinementCount = parsed.refinementCount;
       e.refinementLimit = parsed.refinementLimit;
@@ -61,8 +60,8 @@ export async function refinePlaybook(request: RefinePlaybookRequest): Promise<Re
       if (parseError?.code) {
         throw parseError;
       }
+      throw new Error(rawMessage);
     }
-    throw new Error(message);
   }
 
   if (!data?.success || !data?.playbook) {

@@ -347,6 +347,12 @@ serve(async (req: Request) => {
         .in('id', oldActionIds);
     }
 
+    // Clean up stale affirmations so refined content doesn't accumulate orphaned rows
+    await supabase
+      .from('playbook_affirmations')
+      .delete()
+      .eq('playbook_id', playbookId);
+
     const bibleVerseToSave = {
       ...(generated.bibleVerse || {}),
       ...(generated.bibleVerseReflection ? { reflection: generated.bibleVerseReflection } : {}),

@@ -17,8 +17,8 @@ import {
   Platform,
   Clipboard,
   PanResponder,
-  Modal,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -139,7 +139,6 @@ interface EnterMomentProps {
   transitionLine?: string;
   onContinue: () => void;
   onEditUserInput?: () => void;
-  onRefinePress?: () => void;
   insets: { top: number };
 }
 
@@ -151,7 +150,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   transitionLine,
   onContinue: _onContinue,
   onEditUserInput: _onEditUserInput,
-  onRefinePress,
   insets,
 }) => {
   const { currentFont } = useTheme();
@@ -304,20 +302,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         </StepFadeIn>
       ) : null}
 
-      {onRefinePress ? (
-        <StepFadeIn delay={620}>
-          <TouchableOpacity
-            style={styles.refineInlineButton}
-            onPress={onRefinePress}
-            activeOpacity={0.82}
-          >
-            <Ionicons name="create-outline" size={15} color="rgba(255,255,255,0.78)" />
-            <ThemedText weight="medium" style={styles.refineInlineButtonText}>
-              siFia missed something?
-            </ThemedText>
-          </TouchableOpacity>
-        </StepFadeIn>
-      ) : null}
     </ScrollView>
   );
 };
@@ -328,13 +312,17 @@ interface TruthStepProps {
   text: string;
   userName: string;
   onNext: () => void;
-  onRefinePress?: () => void;
   insets: { top: number; bottom: number };
 }
 
 const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 
-const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _onNext, onRefinePress, insets }) => {
+const TruthInLoveStep: React.FC<TruthStepProps> = ({
+  text,
+  userName,
+  onNext: _onNext,
+  insets,
+}) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
@@ -391,21 +379,6 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
           ))}
         </View>
 
-        {onRefinePress ? (
-          <StepFadeIn delay={320}>
-            <TouchableOpacity
-              style={styles.refineInlineButton}
-              onPress={onRefinePress}
-              activeOpacity={0.82}
-            >
-              <Ionicons name="create-outline" size={15} color="rgba(255,255,255,0.78)" />
-              <ThemedText weight="medium" style={styles.refineInlineButtonText}>
-                Refine this playbook
-              </ThemedText>
-            </TouchableOpacity>
-          </StepFadeIn>
-        ) : null}
-
         <View style={{ height: 80 }} />
       </ScrollView>
 
@@ -440,6 +413,254 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({ text, userName, onNext: _on
           </TouchableOpacity>
         </Animated.View>
       )}
+    </>
+  );
+};
+
+interface FloatingRefinementControlProps {
+  active: boolean;
+  refinementsRemaining: number;
+  isRefining: boolean;
+  insets: { bottom: number };
+  onRefineSubmit: (correctionType: PlaybookCorrectionType, clarification: string) => Promise<boolean>;
+}
+
+const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
+  active,
+  refinementsRemaining,
+  isRefining,
+  insets,
+  onRefineSubmit,
+}) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
+  const [visible, setVisible] = useState(false);
+  const [refinementOpen, setRefinementOpen] = useState(false);
+  const [selectedRefinementType, setSelectedRefinementType] = useState<PlaybookCorrectionType | null>(null);
+  const [refinementText, setRefinementText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const revealAnim = useRef(new Animated.Value(0)).current;
+  const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
+  const canRefine = active && refinementsRemaining > 0;
+  const bottomOffset = insets.bottom + 20;
+  const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom - 12) : 0;
+  const panelGap = keyboardHeight > 0 ? 10 : 56;
+  const panelWidth = Math.min(SCREEN_WIDTH - 40, 360);
+  const panelMaxHeight = keyboardHeight > 0
+    ? Math.max(260, SCREEN_HEIGHT - keyboardHeight - 72)
+    : SCREEN_HEIGHT - bottomOffset - 100;
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    if (canRefine) {
+      revealAnim.setValue(0);
+      setVisible(false);
+      timeout = setTimeout(() => {
+        setVisible(true);
+        Animated.spring(revealAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 9,
+          useNativeDriver: true,
+        }).start();
+      }, 3000);
+    } else {
+      setVisible(false);
+      setRefinementOpen(false);
+      setSelectedRefinementType(null);
+      setRefinementText('');
+      revealAnim.setValue(0);
+    }
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [canRefine, revealAnim]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, event => {
+      setKeyboardHeight(event.endCoordinates?.height || 0);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  const handleToggle = () => {
+    triggerLightHaptic();
+    if (!canRefine || isRefining) {
+      return;
+    }
+
+    setRefinementOpen(prev => {
+      const next = !prev;
+      if (!next) {
+        setSelectedRefinementType(null);
+        setRefinementText('');
+      }
+      return next;
+    });
+  };
+
+  const handleReasonPress = (type: PlaybookCorrectionType) => {
+    triggerLightHaptic();
+    setSelectedRefinementType(type);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedRefinementType || isRefining) {
+      return;
+    }
+
+    const refined = await onRefineSubmit(selectedRefinementType, refinementText);
+    if (refined) {
+      setRefinementOpen(false);
+      setSelectedRefinementType(null);
+      setRefinementText('');
+    }
+  };
+
+  if (!visible || !canRefine) {
+    return null;
+  }
+
+  return (
+    <>
+      {refinementOpen ? (
+        <Animated.View
+          style={[
+            styles.floatingRefinementPanel,
+            {
+              bottom: bottomOffset + panelGap + keyboardLift,
+              width: panelWidth,
+              maxHeight: panelMaxHeight,
+              opacity: revealAnim,
+              transform: [
+                {
+                  translateY: revealAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.floatingRefinementReasons}>
+              {REFINEMENT_OPTIONS.map((option, index) => {
+                const selected = selectedRefinementType === option.type;
+                return (
+                  <StepFadeIn key={option.type} delay={index * 45}>
+                    <TouchableOpacity
+                      style={[styles.refinementReasonButton, selected && styles.refinementReasonButtonSelected]}
+                      onPress={() => handleReasonPress(option.type)}
+                      activeOpacity={0.82}
+                      disabled={isRefining}
+                    >
+                      <ThemedText weight={selected ? 'semiBold' : 'regular'} style={[styles.refinementReasonText, selected && styles.refinementReasonTextSelected]}>
+                        {option.label}
+                      </ThemedText>
+                      {selected ? (
+                        <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                      ) : null}
+                    </TouchableOpacity>
+                  </StepFadeIn>
+                );
+              })}
+            </View>
+
+            {selectedRefinementType ? (
+              <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
+                <TextInput
+                  value={refinementText}
+                  onChangeText={setRefinementText}
+                  editable={!isRefining}
+                  multiline
+                  placeholder={`What should siFia understand about "${selectedOption?.label || 'this'}"?`}
+                  placeholderTextColor="rgba(255,255,255,0.45)"
+                  keyboardAppearance="dark"
+                  textAlignVertical="top"
+                  style={[styles.refinementInput, { fontFamily }]}
+                />
+
+                <TouchableOpacity
+                  style={[styles.refinementSubmitButton, (!refinementText.trim() || isRefining) && styles.refinementSubmitButtonDisabled]}
+                  onPress={handleSubmit}
+                  activeOpacity={0.82}
+                  disabled={!refinementText.trim() || isRefining}
+                >
+                  {isRefining ? (
+                    <ActivityIndicator size="small" color={Colors.hopeWhite} />
+                  ) : (
+                    <>
+                      <Ionicons name="refresh-outline" size={16} color={Colors.hopeWhite} />
+                      <ThemedText weight="semiBold" style={styles.refinementSubmitButtonText}>Refine Playbook</ThemedText>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </StepFadeIn>
+            ) : null}
+          </ScrollView>
+        </Animated.View>
+      ) : null}
+
+      {keyboardHeight === 0 ? (
+        <Animated.View
+          style={[
+            styles.floatingRefinementButtonWrap,
+            {
+              bottom: bottomOffset,
+              opacity: revealAnim,
+              transform: [
+                {
+                  scale: revealAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.7, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.floatingRefinementButton, refinementOpen && styles.floatingRefinementButtonOpen]}
+            onPress={handleToggle}
+            activeOpacity={0.82}
+            disabled={isRefining}
+          >
+            <Ionicons name="refresh-outline" size={15} color="rgba(255,255,255,0.9)" />
+            <ThemedText weight="medium" style={styles.floatingRefinementButtonText}>
+              Refine
+            </ThemedText>
+            <View style={styles.refinementCountBadge}>
+              <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
+                {refinementsRemaining} left
+              </ThemedText>
+            </View>
+            <Ionicons
+              name={refinementOpen ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color="rgba(255,255,255,0.74)"
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      ) : null}
     </>
   );
 };
@@ -2057,10 +2278,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [devotionalGenerated, setDevotionalGenerated] = useState(false);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [refinedPlaybookOverride, setRefinedPlaybookOverride] = useState<typeof routePlaybook | null>(null);
-  const [refinementModalVisible, setRefinementModalVisible] = useState(false);
-  const [refinementType, setRefinementType] = useState<PlaybookCorrectionType>('missing_detail');
-  const [refinementText, setRefinementText] = useState('');
   const [isRefining, setIsRefining] = useState(false);
+
 
   // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
   const [showReadyOverlay, setShowReadyOverlay] = useState(false);
@@ -2122,6 +2341,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const playbook = (refinedPlaybookOverride || (isFullPlaybook ? routePlaybook : fetchedPlaybook)) as typeof routePlaybook;
+
+  // Refinement quota — seeker/free/trial = 1, paid = 2
+  const userTierMeta = (user as any)?.user_metadata?.subscription_tier || (user as any)?.user_metadata?.tier || 'seeker';
+  const refinementLimit = ['spark', 'spark_annual', 'growth', 'growth_annual', 'transformation', 'transformation_annual'].includes(userTierMeta) ? 2 : 1;
+  const refinementUsed = (playbook as any)?.refinementCount ?? 0;
+  const refinementsRemaining = Math.max(0, refinementLimit - refinementUsed);
+  const canRefine = refinementsRemaining > 0;
 
   useEffect(() => {
     if (!userId || !playbookId || !playbook) {
@@ -2451,21 +2677,19 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   }, [playbook, user, pdfExportAccess, navigation]);
 
-  const handleOpenRefinement = useCallback(() => {
-    triggerLightHaptic();
-    setRefinementModalVisible(true);
-  }, []);
-
-  const handleRefinePlaybook = useCallback(async () => {
+  const handleRefinePlaybook = useCallback(async (
+    correctionType: PlaybookCorrectionType,
+    clarificationInput: string
+  ): Promise<boolean> => {
     if (!playbook?.id || !userId) {
       Alert.alert('Unable to refine', 'This playbook is still loading.');
-      return;
+      return false;
     }
 
-    const clarification = refinementText.trim();
+    const clarification = clarificationInput.trim();
     if (clarification.length < 8) {
       Alert.alert('Add a little more', 'Share what siFia missed before refining this playbook.');
-      return;
+      return false;
     }
 
     setIsRefining(true);
@@ -2476,15 +2700,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         playbookId: playbook.id,
         userId,
         userName: userName || 'Friend',
-        correctionType: refinementType,
+        correctionType,
         clarification,
         dateOfBirth,
       });
 
       setRefinedPlaybookOverride(result.playbook as any);
-      setRefinementModalVisible(false);
-      setRefinementText('');
-      setRefinementType('missing_detail');
       setActionStepIndex(0);
 
       persistedCommittedSteps = {};
@@ -2502,15 +2723,17 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       DeviceEventEmitter.emit('playbookProgressUpdate', { playbookId: playbook.id });
       triggerSuccessHaptic();
       Alert.alert('Playbook refined', 'siFia revised this playbook with your clarification.');
+      return true;
     } catch (error: any) {
       const message = error?.code === 'REFINEMENT_LIMIT_REACHED'
         ? error.message || 'You have used your refinements for this playbook.'
         : error?.message || 'Unable to refine this playbook right now. Please try again.';
       Alert.alert('Refinement unavailable', message);
+      return false;
     } finally {
       setIsRefining(false);
     }
-  }, [playbook, userId, refinementText, user, userName, refinementType, queryClient]);
+  }, [playbook, userId, user, userName, queryClient]);
 
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
@@ -2766,7 +2989,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onEditUserInput={() => {
                   navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
                 }}
-                onRefinePress={handleOpenRefinement}
                 insets={insets}
               />
             )}
@@ -2776,7 +2998,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 text={playbook.truthInLove?.text || ''}
                 userName={userName}
                 onNext={goNext}
-                onRefinePress={handleOpenRefinement}
                 insets={insets}
               />
             )}
@@ -2953,6 +3174,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
 
+      <FloatingRefinementControl
+        active={stepIndex === 1 && canRefine}
+        refinementsRemaining={refinementsRemaining}
+        isRefining={isRefining}
+        insets={insets}
+        onRefineSubmit={handleRefinePlaybook}
+      />
+
 
       {/* Floating coral next button — bottom right */}
       {hasFloatingNext && (
@@ -2989,103 +3218,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       )}
     </View>
-
-    <Modal
-      visible={refinementModalVisible}
-      transparent
-      animationType="fade"
-      onRequestClose={() => {
-        if (!isRefining) {
-          setRefinementModalVisible(false);
-        }
-      }}
-    >
-      <TouchableOpacity
-        style={styles.refinementModalOverlay}
-        activeOpacity={1}
-        onPress={() => {
-          if (!isRefining) {
-            setRefinementModalVisible(false);
-          }
-        }}
-      >
-        <TouchableOpacity
-          style={styles.refinementModalCard}
-          activeOpacity={1}
-          onPress={() => {}}
-        >
-          <View style={styles.refinementModalHeader}>
-            <View>
-              <ThemedText weight="semiBold" style={styles.refinementModalTitle}>Refine this playbook</ThemedText>
-              <ThemedText style={styles.refinementModalSubtitle}>
-                This revises the current playbook, not a new one.
-              </ThemedText>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                if (!isRefining) {
-                  setRefinementModalVisible(false);
-                }
-              }}
-              style={styles.refinementCloseButton}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={18} color="rgba(255,255,255,0.65)" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.refinementOptionsWrap}>
-            {REFINEMENT_OPTIONS.map(option => {
-              const selected = refinementType === option.type;
-              return (
-                <TouchableOpacity
-                  key={option.type}
-                  style={[styles.refinementOptionPill, selected && styles.refinementOptionPillSelected]}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    setRefinementType(option.type);
-                  }}
-                  activeOpacity={0.82}
-                  disabled={isRefining}
-                >
-                  <ThemedText weight={selected ? 'semiBold' : 'regular'} style={[styles.refinementOptionText, selected && styles.refinementOptionTextSelected]}>
-                    {option.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <TextInput
-            value={refinementText}
-            onChangeText={setRefinementText}
-            editable={!isRefining}
-            multiline
-            placeholder="What should siFia understand before revising this playbook?"
-            placeholderTextColor="rgba(255,255,255,0.45)"
-            keyboardAppearance="dark"
-            textAlignVertical="top"
-            style={styles.refinementInput}
-          />
-
-          <TouchableOpacity
-            style={[styles.refinementSubmitButton, (!refinementText.trim() || isRefining) && styles.refinementSubmitButtonDisabled]}
-            onPress={handleRefinePlaybook}
-            activeOpacity={0.82}
-            disabled={!refinementText.trim() || isRefining}
-          >
-            {isRefining ? (
-              <ActivityIndicator size="small" color={Colors.hopeWhite} />
-            ) : (
-              <>
-                <Ionicons name="sparkles-outline" size={16} color={Colors.hopeWhite} />
-                <ThemedText weight="semiBold" style={styles.refinementSubmitButtonText}>Refine Playbook</ThemedText>
-              </>
-            )}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
 
     <DevotionalModal
       visible={showDevotionalModal}
@@ -3310,93 +3442,94 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     opacity: 0.9,
   },
-  refineInlineButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
+  floatingRefinementButtonWrap: {
+    position: 'absolute',
+    right: 72,
+    zIndex: 130,
+  },
+  floatingRefinementButton: {
+    minHeight: 40,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 999,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    marginTop: 6,
-  },
-  refineInlineButtonText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.82)',
-  },
-  refinementModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.46)',
-    justifyContent: 'flex-end',
-  },
-  refinementModalCard: {
-    backgroundColor: '#1f3555',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  refinementModalHeader: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 14,
-    marginBottom: 16,
-  },
-  refinementModalTitle: {
-    color: Colors.hopeWhite,
-    fontSize: 18,
-    lineHeight: 24,
-  },
-  refinementModalSubtitle: {
-    color: 'rgba(255,255,255,0.62)',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  refinementCloseButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    elevation: 7,
   },
-  refinementOptionsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
+  floatingRefinementButtonOpen: {
+    backgroundColor: 'rgba(230, 90, 70, 0.28)',
+    borderColor: 'rgba(230, 90, 70, 0.48)',
   },
-  refinementOptionPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-  },
-  refinementOptionPillSelected: {
-    backgroundColor: 'rgba(230, 90, 70, 0.22)',
-    borderColor: 'rgba(230, 90, 70, 0.55)',
-  },
-  refinementOptionText: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 12,
-  },
-  refinementOptionTextSelected: {
+  floatingRefinementButtonText: {
     color: Colors.hopeWhite,
+    fontSize: 13,
+  },
+  floatingRefinementPanel: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 125,
+    borderRadius: 28,
+    backgroundColor: 'rgb(30, 41, 59)',
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  floatingRefinementReasons: {
+    gap: 8,
+  },
+  refinementCountBadge: {
+    borderRadius: 999,
+    backgroundColor: 'rgba(230, 90, 70, 0.34)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  refinementCountBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+  },
+  refinementReasonButton: {
+    minHeight: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  refinementReasonButtonSelected: {
+    backgroundColor: 'rgba(230, 90, 70, 0.22)',
+    borderColor: 'rgba(230, 90, 70, 0.58)',
+  },
+  refinementReasonText: {
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  refinementReasonTextSelected: {
+    color: Colors.hopeWhite,
+  },
+  refinementFloatingInputBlock: {
+    marginTop: 10,
   },
   refinementInput: {
     minHeight: 112,
     maxHeight: 170,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.13)',
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -3409,7 +3542,7 @@ const styles = StyleSheet.create({
   },
   refinementSubmitButton: {
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 24,
     backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
