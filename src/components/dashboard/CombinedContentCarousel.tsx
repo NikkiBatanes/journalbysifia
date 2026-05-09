@@ -428,12 +428,12 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         truthInLove: replaceAllNamePlaceholders(
           typeof fullPlaybook.truthInLove === 'string' ? fullPlaybook.truthInLove : fullPlaybook.truthInLove?.text || '',
           { firstName: metaFirstName, displayName: metaDisplayName },
-          { replaceHardcodedNames: true }
+          { replaceHardcodedNames: false }
         ),
         truthInLoveSummary: replaceAllNamePlaceholders(
           typeof fullPlaybook.truthInLove === 'string' ? '' : fullPlaybook.truthInLove?.summary || '',
           { firstName: metaFirstName, displayName: metaDisplayName },
-          { replaceHardcodedNames: true }
+          { replaceHardcodedNames: false }
         ),
         bibleVerse: {
           ...fullPlaybook.bibleVerse,

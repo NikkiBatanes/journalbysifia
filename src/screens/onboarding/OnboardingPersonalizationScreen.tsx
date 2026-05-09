@@ -1814,7 +1814,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         ]}
       >
-        <View style={styles.inputContainer}>
+        <Animated.View style={[styles.inputContainer, { transform: [{ translateY: keyboardTranslateY }] }]}>
         <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
           <View style={styles.askWrapper}>
             <Animated.View
@@ -1934,7 +1934,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             )}
           </View>
         </Animated.View>
-      </View>
+      </Animated.View>
       </Animated.View>
     </TouchableOpacity>
   );

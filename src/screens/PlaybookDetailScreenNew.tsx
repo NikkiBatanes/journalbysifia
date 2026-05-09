@@ -599,12 +599,12 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       truth: replaceAllNamePlaceholders(
         playbook.truthInLove?.text ?? '',
         { firstName: metaFirstName, displayName: metaDisplayName },
-        { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
+        { replaceHardcodedNames: false } // Only replace placeholders, not hardcoded names
       ),
       summary: replaceAllNamePlaceholders(
         playbook.truthInLove?.summary ?? '',
         { firstName: metaFirstName, displayName: metaDisplayName },
-        { replaceHardcodedNames: true } // Enable replacement of old hardcoded names
+        { replaceHardcodedNames: false } // Only replace placeholders, not hardcoded names
       ),
       tappable: false,
     },

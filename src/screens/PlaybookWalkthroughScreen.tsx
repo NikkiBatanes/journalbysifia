@@ -123,47 +123,31 @@ const keepOnlyOpeningUserName = (text: string, userName: string): string => {
   let processed = replaceAllNamePlaceholders(
     text,
     { displayName: cleanName, firstName: cleanName },
-    { replaceHardcodedNames: true }
+    { replaceHardcodedNames: false }
   );
 
   if (cleanName.length < 2) {
     return processed.replace(USER_NAME_PLACEHOLDER_REGEX, nameReplacementFor);
   }
 
+  // Simple approach: replace all occurrences of the name after the first one with "you"
+  // First, find the first occurrence and keep it
+  const nameRegex = new RegExp(`\\b${cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+  let firstMatchFound = false;
+  
+  processed = processed.replace(nameRegex, (match, offset) => {
+    if (!firstMatchFound) {
+      firstMatchFound = true;
+      return match; // Keep the first occurrence
+    }
+    return 'you'; // Replace all subsequent occurrences with "you"
+  });
+
   processed = processed.replace(USER_NAME_PLACEHOLDER_REGEX, (match, offset) =>
     offset <= 2 ? cleanName : nameReplacementFor(match)
   );
 
-  const regex = userNameRegex(cleanName);
-  if (!regex) {
-    return processed;
-  }
-
-  // Split text into sentences to preserve name at sentence starts
-  const sentences = processed.split(/(?<=[.!?])\s+/);
-  let firstSentenceProcessed = false;
-
-  const processedSentences = sentences.map((sentence, index) => {
-    // Always keep name in first sentence
-    if (index === 0) {
-      firstSentenceProcessed = true;
-      return sentence;
-    }
-
-    // Check if sentence starts with the user's name or "you"
-    const startsWithName = regex.test(sentence.split(/[,.!?]/)[0]?.trim() || '');
-    const startsWithYou = /^\s*you\b/i.test(sentence);
-
-    // If sentence starts with name or "you", keep the name
-    if (startsWithName || startsWithYou) {
-      return sentence.replace(/^\s*you\b/i, cleanName);
-    }
-
-    // Otherwise replace name occurrences with "you"
-    return sentence.replace(regex, nameReplacementFor);
-  });
-
-  return processedSentences.join(' ');
+  return processed;
 };
 
 // ─── StepFadeIn — fades + slides content up on mount ────────────────────────
@@ -2800,12 +2784,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       truthInLove: replaceAllNamePlaceholders(
         typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove?.text || '',
         { firstName: metaFirstName, displayName: metaDisplayName },
-        { replaceHardcodedNames: true }
+        { replaceHardcodedNames: false }
       ),
       truthInLoveSummary: replaceAllNamePlaceholders(
         typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove?.summary || '',
         { firstName: metaFirstName, displayName: metaDisplayName },
-        { replaceHardcodedNames: true }
+        { replaceHardcodedNames: false }
       ),
       bibleVerse: {
         ...playbook.bibleVerse,

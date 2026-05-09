@@ -234,8 +234,8 @@ export function replaceAllNamePlaceholders(
   const firstName = user.firstName || (user.displayName ? user.displayName.split(' ')[0] : '');
 
   if (firstName) {
-    // First, replace [User's Name] placeholder with first name only
-    processedText = processedText.replace(/\[User's Name\]/g, firstName);
+    // First, replace [User's Name] placeholder with first name only (only first occurrence)
+    processedText = processedText.replace(/\[User's Name\]/, firstName);
 
     // Then, try to replace hardcoded names from old playbooks (disabled by default to prevent text cutting)
     if (options?.replaceHardcodedNames === true) {
@@ -245,14 +245,14 @@ export function replaceAllNamePlaceholders(
     }
   }
 
-  // Replace [First Name] if it exists
+  // Replace [First Name] if it exists (only first occurrence)
   if (user.firstName) {
-    processedText = processedText.replace(/\[First Name\]/g, user.firstName);
+    processedText = processedText.replace(/\[First Name\]/, user.firstName);
   }
 
-  // Replace [Last Name] if it exists
+  // Replace [Last Name] if it exists (only first occurrence)
   if (user.lastName) {
-    processedText = processedText.replace(/\[Last Name\]/g, user.lastName);
+    processedText = processedText.replace(/\[Last Name\]/, user.lastName);
   }
 
   return processedText;
