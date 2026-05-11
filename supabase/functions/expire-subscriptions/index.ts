@@ -7,18 +7,37 @@ serve(async () => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
-  const seekerLimits = {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const paidSeekerLimits = {
     tier: 'seeker',
     subscription_display_name: 'siFia Seeker',
-    playbooks_limit: 0,
-    devotionals_limit: 0,
-    smart_journaling_enabled: false,
+    playbooks_limit: 2,
+    devotionals_limit: 1,
+    wisdom_limit: 2,
+    refinement_limit: 1,
+    playbooks_used: 0,
+    devotionals_used: 0,
+    wisdom_count: 0,
+    refinement_count: 0,
+    smart_journaling_enabled: true,
+    show_dashboard_counts: true,
     billing_cycle: null,
+    billing_issue: false,
+    grace_period_end_date: null,
+    auto_renew_enabled: false,
     status: 'expired',
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
   };
 
-  const now = new Date();
+  const trialSeekerCooldown = {
+    ...paidSeekerLimits,
+    playbooks_used: 2,
+    devotionals_used: 1,
+    wisdom_count: 2,
+    refinement_count: 1,
+  };
 
   // For trials: downgrade immediately after trial_end_date
   const trialThreshold = now.toISOString();
@@ -29,23 +48,42 @@ serve(async () => {
   paidThreshold.setDate(paidThreshold.getDate() - gracePeriodDays);
   const paidThresholdIso = paidThreshold.toISOString();
 
-  // 1. Downgrade expired free trials (no grace period — trial is already the grace period)
-  const { data: expiredTrials, error: trialsError } = await supabase
+  // 1. Downgrade expired free trials unless Apple has an active billing grace period.
+  const { data: trialsToExpire, error: trialsError } = await supabase
     .from('user_subscriptions_new')
-    .update(seekerLimits)
+    .select('user_id, trial_end_date')
     .eq('tier', 'free_trial')
     .lt('trial_end_date', trialThreshold)
-    .select('user_id');
+    .or(`grace_period_end_date.is.null,grace_period_end_date.lte.${trialThreshold}`);
 
   if (trialsError) {
     console.error('[ExpireSubscriptions] Failed to expire trials:', trialsError);
+  }
+
+  const expiredTrials = [];
+  for (const trial of trialsToExpire || []) {
+    const usageAnchor = trial.trial_end_date || nowIso;
+    const { error: trialUpdateError } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        ...trialSeekerCooldown,
+        last_usage_reset: usageAnchor,
+        subscription_end_date: usageAnchor,
+      })
+      .eq('user_id', trial.user_id);
+
+    if (trialUpdateError) {
+      console.error(`[ExpireSubscriptions] Failed to expire trial ${trial.user_id}:`, trialUpdateError);
+    } else {
+      expiredTrials.push(trial);
+    }
   }
 
   // 2. Downgrade expired paid subscriptions AFTER 3-day grace period
   // This covers GCash and any payment method where Apple went silent
   const { data: expiredPaid, error: paidError } = await supabase
     .from('user_subscriptions_new')
-    .update(seekerLimits)
+    .update(paidSeekerLimits)
     .not('tier', 'in', '("seeker","free_trial")')
     .not('subscription_end_date', 'is', null)
     .lt('subscription_end_date', paidThresholdIso) // must be 3+ days ago

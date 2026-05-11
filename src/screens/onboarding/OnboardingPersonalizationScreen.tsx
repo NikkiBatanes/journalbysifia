@@ -206,9 +206,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     if (initialBirthDate) {
-      const date = new Date(initialBirthDate);
-      if (!isNaN(date.getTime())) {
-        return date;
+      const parts = initialBirthDate.split('-').map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) return d;
       }
     }
     // Default to 25 years ago
@@ -223,9 +224,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   React.useEffect(() => {
     if (!birthDate && initialBirthDate) {
       setBirthDate(initialBirthDate);
-      const date = new Date(initialBirthDate);
-      if (!isNaN(date.getTime())) {
-        setTempBirthDate(date);
+      const parts = initialBirthDate.split('-').map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) setTempBirthDate(d);
       }
     }
   }, [birthDate, initialBirthDate]);
@@ -249,10 +251,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [birthDate, nextButtonAnim]);
 
   const formatBirthDate = (dateString: string) => {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return 'Select your birthday';
-    }
+    const parts = dateString.split('-').map(Number);
+    if (parts.length !== 3) return 'Select your birthday';
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (isNaN(date.getTime())) return 'Select your birthday';
     return date.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
@@ -477,9 +479,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Restore all previous selections with correct mapping
       if (rewriteData.birthDate) {
         setBirthDate(rewriteData.birthDate);
-        const restoredDate = new Date(rewriteData.birthDate);
-        if (!isNaN(restoredDate.getTime())) {
-          setTempBirthDate(restoredDate);
+        const rparts = rewriteData.birthDate.split('-').map(Number);
+        if (rparts.length === 3) {
+          const rd = new Date(rparts[0], rparts[1] - 1, rparts[2]);
+          if (!isNaN(rd.getTime())) setTempBirthDate(rd);
         }
       }
       if (rewriteData.faithJourney) {
@@ -1419,10 +1422,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Do NOT auto-focus - wait for iOS save password alert to be dismissed
       // User can manually tap the input field to focus when ready
     });
-  }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow, currentStep]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow]);
 
   const hasRunIntroAnim = useRef(false);
-  // Re-trigger askBox animation when navigating to step 4 (not on initial mount - intro animation handles that)
+  // Re-trigger askBox animation when navigating to step 2 (not on initial mount - intro animation handles that)
   useEffect(() => {
     if (detailsOnlyFlow || currentStep === 2) {
       if (!hasRunIntroAnim.current) { hasRunIntroAnim.current = true; return; }
@@ -1792,7 +1796,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         ]}
       >
-        <Animated.View style={[styles.inputContainer, { transform: [{ translateY: keyboardTranslateY }] }]}>
+        <Animated.View style={[styles.inputContainer]}>
         <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
           <View style={styles.askWrapper}>
             <Animated.View
@@ -1969,7 +1973,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <>
                 <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
                 <ThemedText style={OnboardingStyles.subtitle}>
-                  {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
+                  {'Describe the moment that stayed with you.\nJust enough to get it out of your head.'}
                 </ThemedText>
               </>
             ) : currentStep === 1 ? (
@@ -1984,9 +1988,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     onPress={() => {
                       try { triggerLightHaptic(); } catch {}
                       if (birthDate) {
-                        const date = new Date(birthDate);
-                        if (!isNaN(date.getTime())) {
-                          setTempBirthDate(date);
+                        const bparts = birthDate.split('-').map(Number);
+                        const bdate = bparts.length === 3 ? new Date(bparts[0], bparts[1] - 1, bparts[2]) : null;
+                        if (bdate && !isNaN(bdate.getTime())) {
+                          setTempBirthDate(bdate);
                         } else {
                           const defaultDate = new Date();
                           defaultDate.setFullYear(defaultDate.getFullYear() - 25);
@@ -2012,7 +2017,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <>
                 <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>What just happened?</ThemedText>
                 <ThemedText style={OnboardingStyles.subtitle}>
-                  {'Describe the moment that stayed with you.\nNot the whole story. Just enough to get it out of your head.'}
+                  {'Describe the moment that stayed with you.\nJust enough to get it out of your head.'}
                 </ThemedText>
               </>
             )}
@@ -2217,7 +2222,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => {
                 try { triggerSuccessHaptic(); } catch {}
-                setBirthDate(tempBirthDate.toISOString().split('T')[0]);
+                const dy = tempBirthDate.getFullYear();
+                const dm = String(tempBirthDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(tempBirthDate.getDate()).padStart(2, '0');
+                setBirthDate(`${dy}-${dm}-${dd}`);
                 setShowInlineYearPicker(false);
               }}
               style={styles.birthdayPickerDoneButton}

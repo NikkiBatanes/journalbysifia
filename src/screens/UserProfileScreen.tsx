@@ -1791,6 +1791,31 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // POST-LAUNCH: Family Management Section - Removed for MVP launch
   // Function preserved in feature/family-subscription branch
 
+  const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
+  const isAdmin = ADMIN_EMAILS.includes((user as any)?.email ?? '');
+
+  const renderAdminSection = () => {
+    if (!isAdmin) { return null; }
+    return (
+      <View>
+        <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>ADMIN</Text>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('AdminDashboard'); }}
+            accessibilityLabel="Open Admin Dashboard"
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="stats-chart" size={18} color={Colors.anchorBlue} />
+            </View>
+            <Text style={[styles.menuText, font]}>Subscription Dashboard</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const renderLogoutSection = () => (
     <View>
       <View style={styles.menuContainer}>
@@ -2538,6 +2563,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {renderCommunitySection()}
           {renderHelpSupportSection()}
           {renderLegalPrivacySection()}
+          {renderAdminSection()}
           {renderLogoutSection()}
         </ScrollView>
       </View>

@@ -27,6 +27,7 @@ import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 // NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
@@ -356,6 +357,18 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
+
+          {/* Admin Dashboard */}
+          <Stack.Screen
+            name="AdminDashboard"
+            component={AdminDashboardScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               gestureEnabled: true,
             }}

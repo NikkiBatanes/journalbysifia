@@ -28,10 +28,22 @@ interface DecodedTransaction {
   offerType?: number;
 }
 
+interface ValidatedReceiptRow {
+  user_id: string;
+  transaction_id: string | null;
+  product_id: string | null;
+  validated_at: string;
+  validation_response?: {
+    originalTransactionId?: string;
+    transactionId?: string;
+    productId?: string;
+  } | null;
+}
+
 function decodeJWT(token: string): DecodedTransaction | null {
   try {
     const parts = token.split('.');
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {return null;}
     const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(payload);
   } catch (error) {
@@ -42,9 +54,9 @@ function decodeJWT(token: string): DecodedTransaction | null {
 
 function getTierFromProductId(productId: string): string {
   const isAnnual = productId.includes('annual');
-  if (productId.includes('spark')) return isAnnual ? 'spark_annual' : 'spark';
-  if (productId.includes('growth')) return isAnnual ? 'growth_annual' : 'growth';
-  if (productId.includes('transformation')) return isAnnual ? 'transformation_annual' : 'transformation';
+  if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+  if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+  if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
   return 'spark';
 }
 
@@ -95,7 +107,7 @@ serve(async (req) => {
     // This is the source of truth for what Apple sent us
     const { data: receipts, error: findError } = await supabaseClient
       .from('validated_receipts')
-      .select('user_id, transaction_id, product_id, validated_at')
+      .select('user_id, transaction_id, product_id, validated_at, validation_response')
       .eq('is_valid', true)
       .order('validated_at', { ascending: false });
 
@@ -117,12 +129,22 @@ serve(async (req) => {
 
     // Group receipts by user and get their original transaction IDs
     const userTransactions = new Map();
-    for (const receipt of receipts) {
+    for (const receipt of receipts as ValidatedReceiptRow[]) {
+      const originalTransactionId =
+        receipt.validation_response?.originalTransactionId ||
+        receipt.validation_response?.transactionId ||
+        receipt.transaction_id;
+
+      if (!originalTransactionId) {
+        console.log(`[SyncApple] Skipping receipt without transaction ID for user ${receipt.user_id}`);
+        continue;
+      }
+
       if (!userTransactions.has(receipt.user_id)) {
         userTransactions.set(receipt.user_id, {
           user_id: receipt.user_id,
-          original_transaction_id: receipt.transaction_id,
-          receipts: []
+          original_transaction_id: originalTransactionId,
+          receipts: [],
         });
       }
       userTransactions.get(receipt.user_id).receipts.push(receipt);
@@ -133,11 +155,11 @@ serve(async (req) => {
     if (!suspiciousUsers || suspiciousUsers.length === 0) {
       console.log('[SyncApple] No suspicious users found - all synced');
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          checked: 0, 
+        JSON.stringify({
+          success: true,
+          checked: 0,
           upgraded: 0,
-          message: 'No users need syncing'
+          message: 'No users need syncing',
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -150,45 +172,45 @@ serve(async (req) => {
     // Check each user with Apple's Transaction History API
     for (const user of suspiciousUsers) {
       const originalTxnId = user.original_transaction_id;
-      
+
       console.log(`[SyncApple] Checking user ${user.user_id}, originalTxnId: ${originalTxnId}`);
 
       try {
         // Generate JWT token for Apple API using ES256
         // Convert PEM private key to CryptoKey
-        const pemHeader = "-----BEGIN PRIVATE KEY-----";
-        const pemFooter = "-----END PRIVATE KEY-----";
+        const pemHeader = '-----BEGIN PRIVATE KEY-----';
+        const pemFooter = '-----END PRIVATE KEY-----';
         const pemContents = applePrivateKey
-          .replace(pemHeader, "")
-          .replace(pemFooter, "")
-          .replace(/\s/g, "");
-        
+          .replace(pemHeader, '')
+          .replace(pemFooter, '')
+          .replace(/\s/g, '');
+
         const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-        
+
         const cryptoKey = await crypto.subtle.importKey(
-          "pkcs8",
+          'pkcs8',
           binaryKey,
-          { name: "ECDSA", namedCurve: "P-256" },
+          { name: 'ECDSA', namedCurve: 'P-256' },
           false,
-          ["sign"]
+          ['sign']
         );
 
         // Create JWT token for Apple App Store Connect API
         const jwtToken = await create(
-          { alg: "ES256", kid: appleKeyId, typ: "JWT" },
+          { alg: 'ES256', kid: appleKeyId, typ: 'JWT' },
           {
             iss: appleIssuerId,
             iat: getNumericDate(0),
             exp: getNumericDate(60 * 60), // 1 hour
-            aud: "appstoreconnect-v1",
-            bid: "app.sifia.com", // Bundle ID
+            aud: 'appstoreconnect-v1',
+            bid: 'app.sifia.com', // Bundle ID
           },
           cryptoKey
         );
-        
+
         // Determine environment (sandbox vs production)
         const isSandbox = originalTxnId.startsWith('2') || originalTxnId.startsWith('3');
-        const apiEndpoint = isSandbox 
+        const apiEndpoint = isSandbox
           ? 'https://api.storekit-sandbox.itunes.apple.com'
           : 'https://api.storekit.itunes.apple.com';
 
@@ -217,7 +239,7 @@ serve(async (req) => {
         }
 
         const data: AppleTransactionHistoryResponse = await response.json();
-        
+
         if (!data.signedTransactions || data.signedTransactions.length === 0) {
           console.log(`[SyncApple] No transactions found for user ${user.user_id}`);
           results.push({
@@ -234,9 +256,16 @@ serve(async (req) => {
           .map(token => decodeJWT(token))
           .filter(t => t !== null) as DecodedTransaction[];
 
-        // Find paid (non-trial) transactions
-        const paidTransactions = transactions.filter(t => 
-          t.productId && !t.productId.includes('freetrial')
+        const nowMs = Date.now();
+
+        // All live StoreKit products may carry the ".freetrial" suffix. Do not use the
+        // product ID to decide whether money was collected. Apple's offerType=1 marks
+        // the introductory/free-trial transaction; later renewals or direct paid buys
+        // generally have no trial offerType.
+        const paidTransactions = transactions.filter(t =>
+          t.productId &&
+          t.offerType !== 1 &&
+          (!t.expiresDate || t.expiresDate > nowMs)
         );
 
         if (paidTransactions.length === 0) {
@@ -252,7 +281,7 @@ serve(async (req) => {
 
         // User HAS paid! Get latest paid transaction
         const latestPaid = paidTransactions.sort((a, b) => b.purchaseDate - a.purchaseDate)[0];
-        
+
         console.log(`[SyncApple] 🎉 User ${user.user_id} HAS PAID! Product: ${latestPaid.productId}`);
 
         // Extract tier and billing cycle
@@ -292,6 +321,7 @@ serve(async (req) => {
             subscription_end_date: subscriptionEndDate.toISOString(),
             trial_converted_date: new Date(latestPaid.purchaseDate).toISOString(),
             platform_transaction_id: latestPaid.transactionId,
+            original_transaction_id: latestPaid.originalTransactionId,
             billing_issue: false,
             grace_period_end_date: null,
             auto_renew_enabled: true,

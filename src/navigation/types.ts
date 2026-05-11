@@ -215,6 +215,9 @@ export type RootStackParamList = {
     };
   };
 
+  // Admin Dashboard
+  AdminDashboard: undefined;
+
   // Test screens
   QueryTest: undefined;
 };

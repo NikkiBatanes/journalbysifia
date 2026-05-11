@@ -15,13 +15,25 @@ interface TransactionInfo {
   originalTransactionId: string;
   productId: string;
   offerType?: number;
+  purchaseDate?: number;
+  expiresDate?: number;
+  transactionReason?: string;
+}
+
+interface RenewalInfo {
+  originalTransactionId?: string;
+  autoRenewStatus?: number;
+  gracePeriodExpiresDate?: number;
+  expirationIntent?: number;
+  isInBillingRetryPeriod?: boolean;
 }
 
 interface WebhookPayload {
   notificationType: string;
   subtype?: string;
   data?: {
-    signedTransactionInfo: string;
+    signedTransactionInfo?: string;
+    signedRenewalInfo?: string;
   };
 }
 
@@ -31,6 +43,11 @@ const APPLE_ROOT_CA_G3_FINGERPRINT = '63343abfb89a6a03ebbef98a32692d7514fd6e7b5d
 async function sha256Hex(data: Uint8Array): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function base64UrlToBase64(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  return base64 + '='.repeat((4 - base64.length % 4) % 4);
 }
 
 // Find the P-256 SubjectPublicKeyInfo (SPKI) bytes inside a DER-encoded X.509 certificate.
@@ -46,7 +63,7 @@ function extractP256SpkiFromCert(certDer: Uint8Array): Uint8Array | null {
   ]);
   outer: for (let i = 0; i <= certDer.length - marker.length; i++) {
     for (let j = 0; j < marker.length; j++) {
-      if (certDer[i + j] !== marker[j]) continue outer;
+      if (certDer[i + j] !== marker[j]) {continue outer;}
     }
     return certDer.slice(i, i + 91); // 2-byte SEQUENCE header + 89 bytes = 91 total
   }
@@ -55,13 +72,12 @@ function extractP256SpkiFromCert(certDer: Uint8Array): Uint8Array | null {
 
 // Verify an Apple-signed JWT (ES256 + x5c chain) and return its decoded payload.
 // Returns null if the signature or certificate chain is invalid.
-async function verifyAppleJWT(token: string): Promise<WebhookPayload | TransactionInfo | null> {
+async function verifyAppleJWT(token: string): Promise<WebhookPayload | TransactionInfo | RenewalInfo | null> {
   try {
     const parts = token.split('.');
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {return null;}
 
-    const b64url = (s: string) => s.replace(/-/g, '+').replace(/_/g, '/');
-    const header = JSON.parse(atob(b64url(parts[0])));
+    const header = JSON.parse(atob(base64UrlToBase64(parts[0])));
 
     if (header.alg !== 'ES256') {
       console.error('[AppleWebhook] Unexpected JWT alg:', header.alg);
@@ -95,7 +111,7 @@ async function verifyAppleJWT(token: string): Promise<WebhookPayload | Transacti
     );
 
     const signingInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
-    const signature = Uint8Array.from(atob(b64url(parts[2])), c => c.charCodeAt(0));
+    const signature = Uint8Array.from(atob(base64UrlToBase64(parts[2])), c => c.charCodeAt(0));
 
     const valid = await crypto.subtle.verify(
       { name: 'ECDSA', hash: 'SHA-256' },
@@ -107,21 +123,117 @@ async function verifyAppleJWT(token: string): Promise<WebhookPayload | Transacti
       return null;
     }
 
-    return JSON.parse(atob(b64url(parts[1])));
+    return JSON.parse(atob(base64UrlToBase64(parts[1])));
   } catch (error) {
     console.error('[AppleWebhook] JWT verification error:', error);
     return null;
   }
 }
 
+function appleMillisToIso(value?: number | string | null): string | null {
+  if (value === undefined || value === null) {return null;}
+  const millis = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(millis)) {return null;}
+  return new Date(millis).toISOString();
+}
+
+function calculateFallbackEndDate(productId: string, fromDate = new Date()): string {
+  const endDate = new Date(fromDate);
+  if ((productId || '').includes('annual')) {
+    endDate.setFullYear(endDate.getFullYear() + 1);
+  } else {
+    endDate.setDate(endDate.getDate() + 30);
+  }
+  return endDate.toISOString();
+}
+
+function getSubscriptionEndDate(productId: string, transaction: TransactionInfo, fromDate = new Date()): string {
+  return appleMillisToIso(transaction.expiresDate) || calculateFallbackEndDate(productId, fromDate);
+}
+
+function getSeekerDowngradeData(subscription: any, options: { trialExpired?: boolean; nowIso?: string } = {}) {
+  const nowIso = options.nowIso || new Date().toISOString();
+  const trialExpired = options.trialExpired || subscription?.tier === 'free_trial';
+  const trialEndDate = subscription?.trial_end_date || nowIso;
+  const usageAnchor = trialExpired ? trialEndDate : nowIso;
+
+  return {
+    tier: 'seeker',
+    subscription_display_name: 'siFia Seeker',
+    playbooks_limit: 2,
+    devotionals_limit: 1,
+    wisdom_limit: 2,
+    refinement_limit: 1,
+    playbooks_used: trialExpired ? 2 : 0,
+    devotionals_used: trialExpired ? 1 : 0,
+    wisdom_count: trialExpired ? 2 : 0,
+    refinement_count: trialExpired ? 1 : 0,
+    smart_journaling_enabled: true,
+    show_dashboard_counts: true,
+    billing_cycle: null,
+    billing_issue: false,
+    grace_period_end_date: null,
+    subscription_end_date: usageAnchor,
+    last_usage_reset: usageAnchor,
+    auto_renew_enabled: false,
+    status: 'expired',
+    updated_at: nowIso,
+  };
+}
+
+async function logAppleWebhookEvent(
+  supabaseClient: any,
+  params: {
+    notificationType?: string;
+    subtype?: string;
+    signedPayload?: string | null;
+    body: any;
+    transaction?: TransactionInfo | null;
+  }
+) {
+  const transaction = params.transaction || null;
+
+  const fullPayload = {
+    received_at: new Date().toISOString(),
+    notification_type: params.notificationType ?? null,
+    subtype: params.subtype ?? null,
+    notification_subtype: params.subtype ?? null,
+    signed_payload: params.signedPayload ?? null,
+    transaction_info: transaction,
+    transaction_id: transaction?.transactionId ?? null,
+    original_transaction_id: transaction?.originalTransactionId ?? null,
+    product_id: transaction?.productId ?? null,
+    payload: params.body,
+    created_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabaseClient.from('apple_webhook_events').insert(fullPayload);
+  if (!error) {return;}
+
+  console.error('[AppleWebhook] Failed to log full event, trying legacy schema', error);
+
+  const legacyPayload = {
+    received_at: fullPayload.received_at,
+    notification_type: fullPayload.notification_type,
+    subtype: fullPayload.subtype,
+    signed_payload: fullPayload.signed_payload,
+    transaction_info: fullPayload.transaction_info,
+  };
+
+  const { error: legacyError } = await supabaseClient.from('apple_webhook_events').insert(legacyPayload);
+  if (legacyError) {
+    console.error('[AppleWebhook] Failed to log legacy event', legacyError);
+  }
+}
+
 // Extract tier from product ID (handles annual detection)
 function getTierFromProductId(productId: string): string {
   const isAnnual = productId.includes('annual');
-  
-  if (productId.includes('spark')) return isAnnual ? 'spark_annual' : 'spark';
-  if (productId.includes('growth')) return isAnnual ? 'growth_annual' : 'growth';
-  if (productId.includes('transformation')) return isAnnual ? 'transformation_annual' : 'transformation';
-  
+
+  if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
+  if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
+  if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
+
   return 'spark'; // fallback
 }
 
@@ -129,10 +241,10 @@ function getTierFromProductId(productId: string): string {
 function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
   // Map annual variants to base tier for limits
   const baseTier = tier.replace('_annual', '');
-  
+
   switch (baseTier) {
     case 'seeker':
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
     case 'spark':
       return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
     case 'growth':
@@ -140,7 +252,7 @@ function getTierLimits(tier: string): { playbooks_limit: number; devotionals_lim
     case 'transformation':
       return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
     default:
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: false };
+      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
   }
 }
 
@@ -148,7 +260,7 @@ function getTierLimits(tier: string): { playbooks_limit: number; devotionals_lim
 function getTierDisplayName(tier: string): string {
   const baseTier = tier.replace('_annual', '');
   const isAnnual = tier.includes('_annual');
-  
+
   switch (baseTier) {
     case 'seeker': return 'siFia Seeker';
     case 'spark': return isAnnual ? 'siFia Spark Annual' : 'siFia Spark';
@@ -188,11 +300,14 @@ serve(async (req) => {
     let notificationType: string | undefined;
     let subtype: string | undefined;
     let signedTransactionInfo: string | undefined;
+    let signedRenewalInfo: string | undefined;
+    let signedPayload: string | null = null;
 
     // Check for v2 format (signedPayload)
     if (body.signedPayload) {
       console.log('[AppleWebhook] v2 format detected (signedPayload)');
-      
+      signedPayload = body.signedPayload;
+
       // Verify and decode outer signedPayload
       const decodedPayload = await verifyAppleJWT(body.signedPayload) as WebhookPayload | null;
       if (!decodedPayload) {
@@ -203,20 +318,23 @@ serve(async (req) => {
       notificationType = decodedPayload.notificationType;
       subtype = decodedPayload.subtype;
       signedTransactionInfo = decodedPayload.data?.signedTransactionInfo;
+      signedRenewalInfo = decodedPayload.data?.signedRenewalInfo;
 
       console.log('[AppleWebhook] v2 decoded:', {
         notificationType,
         subtype,
         hasTransactionInfo: !!signedTransactionInfo,
+        hasRenewalInfo: !!signedRenewalInfo,
       });
-    } 
+    }
     // Check for v1 format (body.notificationType)
     else if (body.notificationType) {
       console.log('[AppleWebhook] v1 format detected');
       notificationType = body.notificationType;
       subtype = body.subtype;
       signedTransactionInfo = body.data?.signedTransactionInfo;
-    } 
+      signedRenewalInfo = body.data?.signedRenewalInfo;
+    }
     else {
       console.error('[AppleWebhook] Unknown payload format');
       return new Response('Bad Request', { status: 400, headers: corsHeaders });
@@ -229,15 +347,37 @@ serve(async (req) => {
     });
 
     if (!signedTransactionInfo) {
-      console.log('[AppleWebhook] No transaction info, skipping');
+      await logAppleWebhookEvent(supabaseClient, {
+        notificationType,
+        subtype,
+        signedPayload,
+        body,
+        transaction: null,
+      });
+      console.log('[AppleWebhook] No transaction info, logged notification only');
       return new Response('OK', { headers: corsHeaders });
     }
 
     // Verify and decode transaction
     const transaction = await verifyAppleJWT(signedTransactionInfo) as TransactionInfo | null;
     if (!transaction) {
+      await logAppleWebhookEvent(supabaseClient, {
+        notificationType,
+        subtype,
+        signedPayload,
+        body,
+        transaction: null,
+      });
       console.error('[AppleWebhook] Failed to verify transaction JWT — rejected');
       return new Response('Bad Request', { status: 400, headers: corsHeaders });
+    }
+
+    let renewalInfo: RenewalInfo | null = null;
+    if (signedRenewalInfo) {
+      renewalInfo = await verifyAppleJWT(signedRenewalInfo) as RenewalInfo | null;
+      if (!renewalInfo) {
+        console.error('[AppleWebhook] Failed to verify renewal JWT — continuing with transaction only');
+      }
     }
 
     const transactionId = transaction.transactionId;
@@ -253,43 +393,47 @@ serve(async (req) => {
     });
 
     // Persist webhook metadata for auditing/debugging
-    try {
-      await supabaseClient.from('apple_webhook_events').insert([
-        {
-          notification_type: notificationType,
-          notification_subtype: subtype ?? null,
-          transaction_id: transactionId,
-          original_transaction_id: originalTransactionId,
-          product_id: productId,
-          payload: body,
-        },
-      ]);
-    } catch (logError) {
-      console.error('[AppleWebhook] Failed to log event', logError);
-    }
+    await logAppleWebhookEvent(supabaseClient, {
+      notificationType,
+      subtype,
+      signedPayload,
+      body,
+      transaction,
+    });
 
     // Find user by original transaction ID (never changes across renewals)
-    let { data: subscription, error: findError } = await supabaseClient
-      .from('user_subscriptions_new')
-      .select('*')
-      .eq('original_transaction_id', originalTransactionId)
-      .single();
+    let subscription: any = null;
+    let findError: any = null;
+
+    if (originalTransactionId) {
+      const lookup = await supabaseClient
+        .from('user_subscriptions_new')
+        .select('*')
+        .eq('original_transaction_id', originalTransactionId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      subscription = lookup.data;
+      findError = lookup.error;
+    }
 
     if (findError || !subscription) {
       console.error('[AppleWebhook] User not found for original transaction:', originalTransactionId);
-      
+
       // FALLBACK: Try both platform_subscription_id and platform_transaction_id for backwards compatibility
       const { data: fallbackSub } = await supabaseClient
         .from('user_subscriptions_new')
         .select('*')
         .or(`platform_subscription_id.eq.${transactionId},platform_transaction_id.eq.${transactionId}`)
-        .single();
-      
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (!fallbackSub) {
         console.error('[AppleWebhook] User not found in fallback lookup either');
         return new Response('OK', { headers: corsHeaders }); // Return OK to prevent retries
       }
-      
+
       // Use fallback subscription
       subscription = fallbackSub;
       console.log('[AppleWebhook] Found user via fallback platform_transaction_id lookup');
@@ -305,10 +449,10 @@ serve(async (req) => {
         // NEW TRIAL START: User on 'seeker' purchasing .freetrial product → Skip (app handles with createTrial)
         // TRIAL CONVERSION: User on 'free_trial' charged after trial ends → Convert to paid
         // REGULAR RENEWAL: User on paid tier renewing → Reset usage
-        
+
         const isTrialProduct = (productId || '').includes('freetrial');
         const isNewTrialStart = subscription.tier === 'seeker' && isTrialProduct;
-        
+
         // FIX: Trial conversion detection - check tier first, offerType is optional
         // Apple may not always send offerType, so we rely on tier + trial_end_date
         const isTrialConversion = subscription.tier === 'free_trial';
@@ -318,7 +462,7 @@ serve(async (req) => {
           console.log('[AppleWebhook] 🎯 NEW TRIAL START detected - skipping webhook (app will handle)', {
             currentTier: subscription.tier,
             productId,
-            reason: 'User on seeker purchasing .freetrial product - createTrial() will handle setup'
+            reason: 'User on seeker purchasing .freetrial product - createTrial() will handle setup',
           });
           // Don't process - let the app's TrialManagementService.createTrial() handle it
           break;
@@ -335,20 +479,14 @@ serve(async (req) => {
           // Extract actual tier from product ID (handles annual detection)
           const actualTier = getTierFromProductId(productId);
           const paidLimits = getTierLimits(actualTier);
-          
+
           // Extract billing cycle from product ID
           const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
-          
+
           console.log('[AppleWebhook] Converting to tier:', actualTier, 'billing:', billingCycle, 'from productId:', productId);
 
-          // Calculate subscription_end_date based on billing cycle
           const now = new Date();
-          const subscriptionEndDate = new Date(now);
-          if (billingCycle === 'annual') {
-            subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
-          } else {
-            subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
-          }
+          const subscriptionEndDate = getSubscriptionEndDate(productId, transaction, now);
 
           await supabaseClient
             .from('user_subscriptions_new')
@@ -365,7 +503,7 @@ serve(async (req) => {
               show_dashboard_counts: true,
               platform_transaction_id: transactionId,
               subscription_start_date: now.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(), // Set expiration
+              subscription_end_date: subscriptionEndDate, // Set expiration
               trial_converted_date: now.toISOString(),
               billing_issue: false,
               grace_period_end_date: null,
@@ -384,14 +522,8 @@ serve(async (req) => {
           const paidLimits = getTierLimits(actualTier);
           const billingCycle = productId.includes('annual') ? 'annual' : 'monthly';
 
-          // Calculate subscription_end_date based on billing cycle
           const now = new Date();
-          const subscriptionEndDate = new Date(now);
-          if (billingCycle === 'annual') {
-            subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
-          } else {
-            subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
-          }
+          const subscriptionEndDate = getSubscriptionEndDate(productId, transaction, now);
 
           await supabaseClient
             .from('user_subscriptions_new')
@@ -410,7 +542,7 @@ serve(async (req) => {
               devotionals_used: 0,
               last_usage_reset: now.toISOString(), // Track when usage was reset
               subscription_start_date: now.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(), // Set expiration
+              subscription_end_date: subscriptionEndDate, // Set expiration
               updated_at: now.toISOString(),
             })
             .eq('user_id', userId);
@@ -467,19 +599,22 @@ serve(async (req) => {
         // Payment failure - enter grace period (3 days)
         console.log('[AppleWebhook] Payment failed - entering grace period');
 
-        const gracePeriodEnd = new Date();
-        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
+        const fallbackGracePeriodEnd = new Date();
+        fallbackGracePeriodEnd.setDate(fallbackGracePeriodEnd.getDate() + 3);
+        const gracePeriodEndIso =
+          appleMillisToIso(renewalInfo?.gracePeriodExpiresDate) ||
+          fallbackGracePeriodEnd.toISOString();
 
         await supabaseClient
           .from('user_subscriptions_new')
           .update({
             billing_issue: true,
-            grace_period_end_date: gracePeriodEnd.toISOString(),
+            grace_period_end_date: gracePeriodEndIso,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
 
-        console.log('[AppleWebhook] ✅ Grace period activated until', gracePeriodEnd.toISOString());
+        console.log('[AppleWebhook] ✅ Grace period activated until', gracePeriodEndIso);
         break;
       }
 
@@ -488,27 +623,12 @@ serve(async (req) => {
         // Subscription expired or grace period expired - revert to seeker
         console.log('[AppleWebhook] Subscription expired - reverting to seeker');
 
-        const seekerLimits = getTierLimits('seeker');
+        const nowIso = new Date().toISOString();
+        const trialExpired = subscription.tier === 'free_trial' && !subscription.trial_converted_date;
 
         await supabaseClient
           .from('user_subscriptions_new')
-          .update({
-            tier: 'seeker',
-            subscription_display_name: 'siFia Seeker',
-            playbooks_limit: seekerLimits.playbooks_limit,
-            devotionals_limit: seekerLimits.devotionals_limit,
-            playbooks_used: 0,
-            devotionals_used: 0,
-            smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
-            show_dashboard_counts: true,
-            billing_cycle: null, // Clear billing cycle
-            billing_issue: false,
-            grace_period_end_date: null,
-            subscription_end_date: new Date().toISOString(),
-            auto_renew_enabled: false, // Disable auto-renewal on expiration
-            status: 'expired',
-            updated_at: new Date().toISOString(),
-          })
+          .update(getSeekerDowngradeData(subscription, { trialExpired, nowIso }))
           .eq('user_id', userId);
 
         console.log('[AppleWebhook] ✅ Reverted to seeker');
@@ -519,24 +639,12 @@ serve(async (req) => {
         // Refund processed - immediate revert to seeker
         console.log('[AppleWebhook] Refund processed - immediate revert');
 
-        const seekerLimits = getTierLimits('seeker');
-
         await supabaseClient
           .from('user_subscriptions_new')
           .update({
-            tier: 'seeker',
-            subscription_display_name: 'siFia Seeker',
-            playbooks_limit: seekerLimits.playbooks_limit,
-            devotionals_limit: seekerLimits.devotionals_limit,
-            playbooks_used: 0,
-            devotionals_used: 0,
-            smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
-            show_dashboard_counts: true,
-            billing_cycle: null, // Clear billing cycle
-            subscription_end_date: new Date().toISOString(), // Set to now (expired)
+            ...getSeekerDowngradeData(subscription, { trialExpired: false }),
             refund_date: new Date().toISOString(),
-            status: 'refunded',
-            updated_at: new Date().toISOString(),
+            status: 'expired',
           })
           .eq('user_id', userId);
 

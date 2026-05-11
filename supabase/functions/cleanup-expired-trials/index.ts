@@ -49,14 +49,30 @@ serve(async (req) => {
     console.log(`[CleanupExpiredTrials] Found ${expiredTrials.length} expired trials to process`);
 
     const results = [];
+    const now = new Date();
 
     for (const trial of expiredTrials) {
       console.log(`[CleanupExpiredTrials] Processing user ${trial.user_id}, trial ended: ${trial.trial_end_date}`);
 
+      const gracePeriodEnd = trial.grace_period_end_date ? new Date(trial.grace_period_end_date) : null;
+      const isInGracePeriod = Boolean(trial.billing_issue && gracePeriodEnd && gracePeriodEnd > now);
+
+      if (isInGracePeriod) {
+        console.log(`[CleanupExpiredTrials] Skipping user ${trial.user_id}; active grace period until ${trial.grace_period_end_date}`);
+        results.push({
+          user_id: trial.user_id,
+          success: true,
+          skipped: true,
+          reason: 'active_grace_period',
+          grace_period_end_date: trial.grace_period_end_date,
+        });
+        continue;
+      }
+
       // Revert to seeker with cooldown: set used = limit so 0 are available.
       // last_usage_reset = trial_end_date starts the 30-day replenish clock.
       // trial_start_date is kept (prevents a second free trial).
-      // trial_end_date is kept (used to detect "had trial, no conversion" state in UI).
+      // trial_end_date and trial_chosen_tier are kept for lifecycle reporting.
       const { error: updateError } = await supabaseClient
         .from('user_subscriptions_new')
         .update({
@@ -66,13 +82,16 @@ serve(async (req) => {
           devotionals_limit: 1,
           playbooks_used: 2,
           devotionals_used: 1,
+          wisdom_limit: 2,
+          refinement_limit: 1,
+          wisdom_count: 2,
+          refinement_count: 1,
           smart_journaling_enabled: true,
           last_usage_reset: trial.trial_end_date,
           billing_cycle: null,
           billing_issue: false,
           grace_period_end_date: null,
           subscription_end_date: trial.trial_end_date,
-          trial_chosen_tier: null,
           auto_renew_enabled: false,
           status: 'expired',
           updated_at: new Date().toISOString(),
@@ -90,8 +109,9 @@ serve(async (req) => {
 
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
+    const skippedCount = results.filter(r => r.skipped).length;
 
-    console.log(`[CleanupExpiredTrials] Cleanup complete: ${successCount} succeeded, ${failureCount} failed`);
+    console.log(`[CleanupExpiredTrials] Cleanup complete: ${successCount} succeeded, ${failureCount} failed, ${skippedCount} skipped`);
 
     return new Response(
       JSON.stringify({
@@ -99,6 +119,7 @@ serve(async (req) => {
         processed: expiredTrials.length,
         succeeded: successCount,
         failed: failureCount,
+        skipped: skippedCount,
         results,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
