@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   Platform,
   UIManager,
   StatusBar,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -22,11 +22,13 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { triggerLightHaptic } from '../utils/haptics';
 import { adminDashboardService, DashboardMetrics } from '../services/adminDashboardService';
+import ThemedText from '../components/common/ThemedText';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
 
 type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks';
 type AnalyticsRange = 'daily' | 'weekly' | 'monthly' | 'custom';
+type MonthRange = 'jan' | 'feb' | 'mar' | 'apr' | 'may' | 'jun' | 'jul' | 'aug' | 'sep' | 'oct' | 'nov' | 'dec' | 'all';
 type DrilldownKey =
   | 'all_users'
   | 'new_registered'
@@ -270,6 +272,21 @@ function tierLabel(row: SubscriptionRow): string {
   return (row.tier || '').toUpperCase().replace('_', ' ');
 }
 
+function getMarket(row: SubscriptionRow): 'PH' | 'GLOBAL' {
+  const email = (row.email || '').toLowerCase();
+  if (
+    email.endsWith('.ph') ||
+    email.includes('philippines')
+  ) {
+    return 'PH';
+  }
+  return 'GLOBAL';
+}
+
+function getMarketEmoji(row: SubscriptionRow): string {
+  return getMarket(row) === 'PH' ? '🇵🇭' : '🌍';
+}
+
 function isPaidSubscriptionRow(row: SubscriptionRow): boolean {
   const hasPaidTier = row.tier !== 'seeker' && row.tier !== 'free_trial' && row.tier !== 'unknown';
   const hasAppleTransaction = !!row.original_transaction_id || !!row.platform_transaction_id;
@@ -348,9 +365,32 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [dailyActivity, setDailyActivity] = useState<DailyActivityRow[]>([]);
   const [selectedDrilldown, setSelectedDrilldown] = useState<DrilldownKey>('all_users');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['downloads_users', 'subscriber_breakdown', 'subscription_health', 'next_renewals', 'needs_attention', 'subscriptions', 'lifetime']));
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<MonthRange>('all');
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail);
+
+  // Color themes for each section
+  const getThemeColor = () => {
+    switch (activeTab) {
+      case 'paid':
+        return Colors.growthGreen;
+      case 'trials':
+        return '#FFC107';
+      case 'issues':
+        return '#FF3B30';
+      case 'webhooks':
+        return '#007AFF';
+      default:
+        return Colors.alertCoral;
+    }
+  };
+
+  const themeColor = getThemeColor();
 
   const loadOverview = useCallback(async () => {
     const { data, error } = await supabase.rpc('admin_subscription_overview');
@@ -372,16 +412,32 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   }, []);
 
   const getAnalyticsWindow = useCallback(() => {
+    const now = new Date();
     const endDate = new Date();
-    const startDate = analyticsRange === 'daily'
-      ? daysAgo(0)
-      : analyticsRange === 'weekly'
-        ? daysAgo(6)
-        : analyticsRange === 'monthly'
-          ? daysAgo(29)
-          : daysAgo(89);
+    const startDate = new Date();
+
+    if (selectedMonth !== 'all') {
+      // Specific month selection
+      const monthIndex = MONTHS.indexOf(selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1));
+      startDate.setFullYear(now.getFullYear(), monthIndex, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setFullYear(now.getFullYear(), monthIndex + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      // Range-based selection
+      if (analyticsRange === 'daily') {
+        startDate.setTime(daysAgo(0).getTime());
+      } else if (analyticsRange === 'weekly') {
+        startDate.setTime(daysAgo(6).getTime());
+      } else if (analyticsRange === 'monthly') {
+        startDate.setTime(daysAgo(29).getTime());
+      } else {
+        startDate.setTime(daysAgo(89).getTime());
+      }
+    }
+
     return { startDate, endDate };
-  }, [analyticsRange]);
+  }, [analyticsRange, selectedMonth]);
 
   const loadAnalytics = useCallback(async () => {
     const { startDate, endDate } = getAnalyticsWindow();
@@ -427,6 +483,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       } else if (tab !== 'overview') {
         await loadRows(tab);
       }
+      setLastUpdated(new Date());
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -436,7 +493,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   useEffect(() => {
     if (isAdmin) { refresh(activeTab); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, activeTab, analyticsRange]);
+  }, [isAdmin, activeTab, analyticsRange, selectedMonth]);
 
   const openTab = useCallback(async (tab: FilterTab, metric: OverviewMetric = null) => {
     setActiveTab(tab);
@@ -468,34 +525,90 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   }, []);
 
   const getFilteredRows = useCallback((items: SubscriptionRow[]) => {
-    if (!selectedMetric) { return items; }
+    let filtered = items;
 
-    return items.filter(item => {
-      const isExpired = item.status === 'expired' || !!item.trial_end_date && new Date(item.trial_end_date) < new Date();
-      const isCancelled = item.status === 'cancelled' || !!item.trial_cancelled_date || !!item.cancellation_date;
-      const isConverted = !!item.trial_converted_date || (item.tier !== 'free_trial' && item.status === 'active');
-      const isBillingIssue = !!item.billing_issue;
-      const isFree = item.tier === 'seeker' && !item.original_transaction_id && !item.trial_start_date;
-      const isPaidActive = item.tier !== 'free_trial' && item.status === 'active';
-      const isActiveTrial = item.tier === 'free_trial' && !isExpired && !isCancelled && !isConverted;
-      const isStuckTrial = item.tier === 'free_trial' && !isConverted && !isCancelled;
+    // Apply metric filter
+    if (selectedMetric) {
+      filtered = filtered.filter(item => {
+        const isExpired = item.status === 'expired' || !!item.trial_end_date && new Date(item.trial_end_date) < new Date();
+        const isCancelled = item.status === 'cancelled' || !!item.trial_cancelled_date || !!item.cancellation_date;
+        const isConverted = !!item.trial_converted_date || (item.tier !== 'free_trial' && item.status === 'active');
+        const isBillingIssue = !!item.billing_issue;
+        const isFree = item.tier === 'seeker' && !item.original_transaction_id && !item.trial_start_date;
+        const isPaidActive = item.tier !== 'free_trial' && item.status === 'active';
+        const isActiveTrial = item.tier === 'free_trial' && !isExpired && !isCancelled && !isConverted;
+        const isStuckTrial = item.tier === 'free_trial' && !isConverted && !isCancelled;
 
-      switch (selectedMetric) {
-        case 'active_trials': return isActiveTrial;
-        case 'stuck_trials': return isStuckTrial;
-        case 'paid_active': return isPaidActive;
-        case 'converted_trials': return isConverted;
-        case 'cancelled': return isCancelled;
-        case 'expired': return isExpired;
-        case 'billing_issues': return isBillingIssue;
-        case 'seeker_free': return isFree;
-        default: return true;
+        switch (selectedMetric) {
+          case 'active_trials': return isActiveTrial;
+          case 'stuck_trials': return isStuckTrial;
+          case 'paid_active': return isPaidActive;
+          case 'converted_trials': return isConverted;
+          case 'cancelled': return isCancelled;
+          case 'expired': return isExpired;
+          case 'billing_issues': return isBillingIssue;
+          case 'seeker_free': return isFree;
+          default: return true;
+        }
+      });
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => {
+        const name = displayName(item).toLowerCase();
+        const email = (item.email || '').toLowerCase();
+        const userId = item.user_id.toLowerCase();
+        return name.includes(query) || email.includes(query) || userId.includes(query);
+      });
+    }
+
+    return filtered;
+  }, [selectedMetric, searchQuery]);
+
+  const toggleSection = (sectionId: string) => {
+    triggerLightHaptic();
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
       }
+      return next;
     });
-  }, [selectedMetric]);
+  };
+
+  const exportToCSV = (data: any[], filename: string) => {
+    if (data.length === 0) {
+      Alert.alert('Export Error', 'No data to export');
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => {
+        const value = row[header];
+        const stringValue = value === null || value === undefined ? '' : String(value);
+        return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+      }).join(','))
+    ].join('\n');
+
+    Alert.alert('Export Ready', `${data.length} records ready for export. In production, this would save to a file.`);
+  };
 
   const analyticsWindow = getAnalyticsWindow();
   const activePaidRows = analyticsRows.filter(isPaidSubscriptionRow);
+  const phPaidRows = activePaidRows.filter(
+    row => getMarket(row) === 'PH'
+  );
+  const globalPaidRows = activePaidRows.filter(
+    row => getMarket(row) === 'GLOBAL'
+  );
+  const estimatedPhpRevenue = phPaidRows.length * 399;
+  const estimatedUsdRevenue = globalPaidRows.length * 9.99;
   const upcomingRenewals = activePaidRows
     .filter(row => row.auto_renew_enabled !== false && row.subscription_end_date)
     .sort((a, b) => new Date(a.subscription_end_date || 0).getTime() - new Date(b.subscription_end_date || 0).getTime())
@@ -515,13 +628,15 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   });
   const trackedSignupCount = dashboardMetrics?.userSignups.daily.reduce((sum, item) => sum + item.count, 0) || 0;
   const trackedDauCount = dashboardMetrics?.dailyActiveUsers.reduce((sum, item) => sum + item.total_dau, 0) || 0;
-  const rangeLabel = analyticsRange === 'daily'
-    ? 'Today'
-    : analyticsRange === 'weekly'
-      ? 'Last 7 days'
-      : analyticsRange === 'monthly'
-        ? 'Last 30 days'
-        : 'Last 90 days';
+  const rangeLabel = selectedMonth !== 'all'
+    ? selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)
+    : analyticsRange === 'daily'
+      ? 'Today'
+      : analyticsRange === 'weekly'
+        ? 'Last 7 days'
+        : analyticsRange === 'monthly'
+          ? 'Last 30 days'
+          : 'Last 90 days';
 
   const activityByUser = dailyActivity.reduce<Record<string, DailyActivityRow[]>>((acc, item) => {
     acc[item.user_id] = [...(acc[item.user_id] || []), item];
@@ -706,7 +821,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   ];
 
   const renderTabChoices = () => (
-    <View style={styles.choiceGrid}>
+    <View style={styles.navigationList}>
       {FILTER_TABS.map(tab => {
         const isSelected = activeTab === tab.key && selectedMetric === null;
         const count = tab.key === 'overview'
@@ -718,33 +833,167 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               : tab.key === 'issues'
                 ? overview?.billing_issues
                 : webhooks.length;
+        const tabThemeColor = tab.key === 'paid'
+          ? Colors.growthGreen
+          : tab.key === 'trials'
+            ? '#FFC107'
+            : tab.key === 'issues'
+              ? '#FF3B30'
+              : tab.key === 'webhooks'
+                ? '#007AFF'
+                : Colors.alertCoral;
         return (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.choiceCard, isSelected && styles.choiceCardSelected]}
+            style={[styles.navigationItem, isSelected && styles.navigationItemSelected]}
             onPress={() => {
               triggerLightHaptic();
               openTab(tab.key);
             }}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
           >
-            <Text style={styles.choiceCount}>{loading ? '…' : String(count ?? 0)}</Text>
-            <View style={styles.choiceIconContainer}>
-              <View style={[styles.choiceIconCircle, isSelected && styles.choiceIconCircleSelected]}>
+            <View style={styles.navigationItemLeft}>
+              <View style={[styles.navigationItemIcon, isSelected && styles.navigationItemIconSelected]}>
                 <Ionicons
                   name={tab.icon as any}
-                  size={18}
-                  color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                  size={20}
+                  color={isSelected ? Colors.hopeWhite : 'rgba(255,255,255,0.6)'}
                 />
               </View>
+              <View style={styles.navigationItemTextContainer}>
+                <ThemedText weight="semiBold" style={[styles.navigationItemTitle, isSelected && styles.navigationItemTitleSelected]}>
+                  {tab.label}
+                </ThemedText>
+                <ThemedText weight="regular" style={styles.navigationItemSubtitle}>{tab.subtitle}</ThemedText>
+              </View>
             </View>
-            <Text style={styles.choiceName}>{tab.label}</Text>
-            <Text style={[styles.choiceDescription, isSelected && styles.choiceDescriptionSelected]}>
-              {tab.subtitle}
-            </Text>
+            <View style={styles.navigationItemCount}>
+              <ThemedText weight="bold" style={styles.navigationItemCountValue}>{loading ? '…' : String(count ?? 0)}</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} style={styles.navigationItemArrow} />
           </TouchableOpacity>
         );
       })}
+    </View>
+  );
+
+  const renderSearchBar = () => (
+    <View style={styles.searchContainer}>
+      <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search by name, email, or user ID..."
+        placeholderTextColor="rgba(255,255,255,0.4)"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      {searchQuery.length > 0 && (
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            setSearchQuery('');
+          }}
+          style={styles.searchClearButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const renderLastUpdated = () => {
+    if (!lastUpdated) return null;
+    const timeDiff = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    let timeString = '';
+    if (timeDiff < 60) timeString = 'just now';
+    else if (timeDiff < 3600) timeString = `${Math.floor(timeDiff / 60)}m ago`;
+    else if (timeDiff < 86400) timeString = `${Math.floor(timeDiff / 3600)}h ago`;
+    else timeString = `${Math.floor(timeDiff / 86400)}d ago`;
+
+    return (
+      <View style={styles.lastUpdatedContainer}>
+        <View style={[styles.statusDot, { backgroundColor: Colors.growthGreen }]} />
+        <ThemedText weight="medium" style={styles.lastUpdatedText}>Updated {timeString}</ThemedText>
+      </View>
+    );
+  };
+
+  const renderCollapsibleSection = (
+    sectionId: string,
+    title: string,
+    count: number,
+    children: React.ReactNode,
+    showCount = true
+  ) => {
+    const isCollapsed = collapsedSections.has(sectionId);
+    return (
+      <View style={styles.collapsibleSection}>
+        <TouchableOpacity
+          style={styles.collapsibleHeader}
+          onPress={() => toggleSection(sectionId)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.collapsibleTitleRow}>
+            <ThemedText weight="semiBold" style={styles.collapsibleTitle}>{title}</ThemedText>
+            {showCount && (
+              <View style={styles.countBadge}>
+                <ThemedText weight="bold" style={styles.countBadgeText}>{count}</ThemedText>
+              </View>
+            )}
+          </View>
+          <Ionicons
+            name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
+            size={16}
+            color="rgba(255,255,255,0.5)"
+          />
+        </TouchableOpacity>
+        {!isCollapsed && <View style={styles.collapsibleContent}>{children}</View>}
+      </View>
+    );
+  };
+
+  const renderQuickActions = () => (
+    <View style={styles.quickActionsContainer}>
+      <TouchableOpacity
+        style={styles.quickActionButton}
+        onPress={() => {
+          triggerLightHaptic();
+          refresh(activeTab);
+        }}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />
+        <ThemedText weight="medium" style={styles.quickActionText}>Refresh</ThemedText>
+      </TouchableOpacity>
+      {(activeTab === 'trials' || activeTab === 'paid' || activeTab === 'issues') && (
+        <TouchableOpacity
+          style={styles.quickActionButton}
+          onPress={() => {
+            triggerLightHaptic();
+            exportToCSV(getFilteredRows(rows), `${activeTab}_export.csv`);
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="download-outline" size={20} color={Colors.hopeWhite} />
+          <ThemedText weight="medium" style={styles.quickActionText}>Export</ThemedText>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={styles.quickActionButton}
+        onPress={() => {
+          triggerLightHaptic();
+          setSearchQuery('');
+          setSelectedMetric(null);
+          setExpandedId(null);
+        }}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="filter-outline" size={20} color={Colors.hopeWhite} />
+        <ThemedText weight="medium" style={styles.quickActionText}>Clear Filters</ThemedText>
+      </TouchableOpacity>
     </View>
   );
 
@@ -753,7 +1002,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Ionicons name="lock-closed" size={48} color="rgba(255,255,255,0.4)" />
-          <Text style={styles.noAccessText}>Admin access only</Text>
+          <ThemedText weight="medium" style={styles.noAccessText}>Admin access only</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -771,64 +1020,68 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           activeOpacity={0.85}
           style={[styles.metricCard, { borderColor: color }, selected && styles.metricCardSelected]}
         >
-          <Text style={[styles.metricValue, { color }]}>{value ?? '—'}</Text>
-          <Text style={styles.metricLabel}>{label}</Text>
-          <Text style={styles.metricSub}>{metric ? 'Tap to view data' : 'Overview'}</Text>
+          <ThemedText weight="bold" style={[styles.metricValue, { color }]}>{value ?? '—'}</ThemedText>
+          <ThemedText weight="semiBold" style={styles.metricLabel}>{label}</ThemedText>
+          <ThemedText weight="regular" style={styles.metricSub}>{metric ? 'Tap to view data' : 'Overview'}</ThemedText>
         </TouchableOpacity>
       </StepFadeIn>
     );
   };
 
   const renderInsightGrid = (items: AdminInsight[]) => (
-    <View style={styles.metricGrid}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.insightScrollContainer}
+    >
       {items.map(item => (
         <TouchableOpacity
           key={item.label}
           style={[
-            styles.insightCard,
+            styles.insightCardHorizontal,
             { borderColor: item.color },
             selectedDrilldown === item.drilldown && styles.metricCardSelected,
           ]}
           onPress={() => openDrilldown(item.drilldown || null)}
           activeOpacity={0.85}
         >
-          <Text style={[styles.metricValue, { color: item.color }]}>{item.value}</Text>
-          <Text style={styles.metricLabel}>{item.label}</Text>
-          <Text style={styles.metricSub}>{item.subtitle}</Text>
-          <Text style={styles.tapHint}>Tap to view</Text>
+          <ThemedText weight="bold" style={[styles.metricValue, { color: item.color }]}>{item.value}</ThemedText>
+          <ThemedText weight="semiBold" style={styles.metricLabel}>{item.label}</ThemedText>
+          <ThemedText weight="regular" style={styles.metricSub}>{item.subtitle}</ThemedText>
+          <ThemedText weight="bold" style={styles.tapHint}>Tap to view</ThemedText>
         </TouchableOpacity>
       ))}
-    </View>
+    </ScrollView>
   );
 
   const renderUserActivityRows = () => (
     <StepFadeIn delay={240} style={styles.sectionContainer}>
       <View style={styles.filteredHeaderRow}>
-        <Text style={styles.sectionTitle}>{drilldownTitle}</Text>
-        <Text style={styles.filteredHeaderText}>{drilldownRows.length} users</Text>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>{drilldownTitle}</ThemedText>
+        <ThemedText weight="regular" style={styles.filteredHeaderText}>{drilldownRows.length} users</ThemedText>
       </View>
       {drilldownRows.length === 0 ? (
-        <Text style={styles.emptyMiniText}>No user records found for this card and date range.</Text>
+        <ThemedText weight="regular" style={styles.emptyMiniText}>No user records found for this card and date range.</ThemedText>
       ) : (
         drilldownRows.slice(0, 50).map(item => (
           <View key={`${selectedDrilldown || 'all'}-${item.user_id}`} style={styles.activityUserRow}>
             <View style={styles.activityUserHeader}>
               <View style={styles.activityUserInfo}>
-                <Text style={styles.activityUserName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.activityUserEmail} numberOfLines={1}>{item.email || item.user_id}</Text>
+                <ThemedText weight="semiBold" style={styles.activityUserName} numberOfLines={1}>{item.name}</ThemedText>
+                <ThemedText weight="regular" style={styles.activityUserEmail} numberOfLines={1}>{item.email || item.user_id}</ThemedText>
               </View>
               <View style={styles.activityBadge}>
-                <Text style={styles.activityBadgeText}>{item.tier}</Text>
+                <ThemedText weight="bold" style={styles.activityBadgeText}>{item.tier}</ThemedText>
               </View>
             </View>
-            <Text style={styles.activitySummary}>{item.activity_summary}</Text>
+            <ThemedText weight="regular" style={styles.activitySummary}>{item.activity_summary}</ThemedText>
             <View style={styles.activityMetaRow}>
-              <Text style={styles.activityMeta}>Last action: {item.last_event.replace(/_/g, ' ')}</Text>
-              <Text style={styles.activityMeta}>{formatDate(item.last_activity_at)}</Text>
+              <ThemedText weight="regular" style={styles.activityMeta}>Last action: {item.last_event.replace(/_/g, ' ')}</ThemedText>
+              <ThemedText weight="regular" style={styles.activityMeta}>{formatDate(item.last_activity_at)}</ThemedText>
             </View>
             <View style={styles.activityMetaRow}>
-              <Text style={styles.activityMeta}>Status: {item.status}</Text>
-              <Text style={styles.activityMeta}>{item.billing_cycle ? `${item.billing_cycle} plan` : 'No paid plan'}</Text>
+              <ThemedText weight="regular" style={styles.activityMeta}>Status: {item.status}</ThemedText>
+              <ThemedText weight="regular" style={styles.activityMeta}>{item.billing_cycle ? `${item.billing_cycle} plan` : 'No paid plan'}</ThemedText>
             </View>
           </View>
         ))
@@ -837,56 +1090,83 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   );
 
   const renderRangeSelector = () => (
-    <View style={styles.rangeSelector}>
-      {(['daily', 'weekly', 'monthly', 'custom'] as AnalyticsRange[]).map(range => {
-        const selected = analyticsRange === range;
-        return (
-          <TouchableOpacity
-            key={range}
-            onPress={() => {
-              triggerLightHaptic();
-              setAnalyticsRange(range);
-            }}
-            style={[styles.rangeButton, selected && styles.rangeButtonSelected]}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.rangeButtonText, selected && styles.rangeButtonTextSelected]}>
-              {range === 'custom' ? '90d' : range.charAt(0).toUpperCase() + range.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View>
+      <View style={styles.rangeSelector}>
+        {(['daily', 'weekly', 'monthly', 'custom'] as AnalyticsRange[]).map(range => {
+          const selected = analyticsRange === range && selectedMonth === 'all';
+          return (
+            <TouchableOpacity
+              key={range}
+              onPress={() => {
+                triggerLightHaptic();
+                setAnalyticsRange(range);
+                setSelectedMonth('all');
+              }}
+              style={[styles.rangeButton, selected && styles.rangeButtonSelected]}
+              activeOpacity={0.85}
+            >
+              <ThemedText weight="semiBold" style={[styles.rangeButtonText, selected && styles.rangeButtonTextSelected]}>
+                {range === 'custom' ? '90d' : range.charAt(0).toUpperCase() + range.slice(1)}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <View style={styles.monthSelector}>
+        <ThemedText weight="regular" style={styles.monthSelectorLabel}>Or select month:</ThemedText>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
+          {(['all', 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as MonthRange[]).map(month => {
+            const selected = selectedMonth === month;
+            return (
+              <TouchableOpacity
+                key={month}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setSelectedMonth(month);
+                  setAnalyticsRange('monthly');
+                }}
+                style={[styles.monthButton, selected && styles.monthButtonSelected]}
+                activeOpacity={0.85}
+              >
+                <ThemedText weight="semiBold" style={[styles.monthButtonText, selected && styles.monthButtonTextSelected]}>
+                  {month === 'all' ? 'All' : month.charAt(0).toUpperCase() + month.slice(1)}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
     </View>
   );
 
   const renderMiniRows = (title: string, items: SubscriptionRow[], empty: string, previewLimit = 8) => (
     <StepFadeIn delay={360} style={styles.sectionContainer}>
       <View style={styles.filteredHeaderRow}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.filteredHeaderText}>{items.length} total</Text>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>{title}</ThemedText>
+        <ThemedText weight="regular" style={styles.filteredHeaderText}>{items.length} total</ThemedText>
       </View>
       {items.length === 0 ? (
-        <Text style={styles.emptyMiniText}>{empty}</Text>
+        <ThemedText weight="regular" style={styles.emptyMiniText}>{empty}</ThemedText>
       ) : (
         <>
           {items.slice(0, previewLimit).map(item => (
             <View key={`${title}-${item.user_id}`} style={styles.miniRow}>
               <View style={styles.miniRowLeft}>
-                <Text style={styles.miniRowTitle} numberOfLines={1}>{displayName(item)}</Text>
-                <Text style={styles.miniRowSub} numberOfLines={1}>{item.email || item.tier}</Text>
+                <ThemedText weight="bold" style={styles.miniRowTitle} numberOfLines={1}>{displayName(item)}</ThemedText>
+                <ThemedText weight="regular" style={styles.miniRowSub} numberOfLines={1}>{item.email || item.tier}</ThemedText>
               </View>
               <View style={styles.miniRowRight}>
-                <Text style={styles.miniRowDate}>
+                <ThemedText weight="bold" style={styles.miniRowDate}>
                   {item.subscription_end_date ? formatDate(item.subscription_end_date) : formatDate(item.trial_end_date)}
-                </Text>
-                <Text style={styles.miniRowCycle}>
+                </ThemedText>
+                <ThemedText weight="regular" style={styles.miniRowCycle}>
                   {item.billing_cycle === 'annual' ? '★ Annual' : item.billing_cycle === 'monthly' ? 'Monthly' : item.status}
-                </Text>
+                </ThemedText>
               </View>
             </View>
           ))}
           {items.length > previewLimit && (
-            <Text style={styles.moreRowsText}>Showing {previewLimit} of {items.length}. Use SQL/export for the full list.</Text>
+            <ThemedText weight="regular" style={styles.moreRowsText}>Showing {previewLimit} of {items.length}. Use SQL/export for the full list.</ThemedText>
           )}
         </>
       )}
@@ -896,130 +1176,194 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const renderOverview = () => (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={styles.stepContent}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refresh('overview'); }} tintColor={Colors.hopeWhite} />}
       showsVerticalScrollIndicator={false}
     >
+      {/* HEADER */}
       <StepFadeIn delay={0}>
-        <View style={styles.focusLabelContainer}>
-          <MaterialIcons name="analytics" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-          <Text style={styles.focusLabel}>ADMIN DASHBOARD</Text>
+        <View style={styles.newHeader}>
+          <View>
+            <ThemedText weight="bold" style={styles.newHeaderTitle}>Admin Dashboard</ThemedText>
+            {renderLastUpdated()}
+          </View>
         </View>
       </StepFadeIn>
 
-      <StepFadeIn delay={80}>
-        <View style={styles.titleRow}>
-          <Text style={styles.stepTitle}>Overview</Text>
-        </View>
+      {/* SECTION 1 - BUSINESS HEALTH (Layer 1: Executive Snapshot) */}
+      <StepFadeIn delay={100}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Business Health</ThemedText>
       </StepFadeIn>
-
       <StepFadeIn delay={120}>
-        {renderTabChoices()}
-      </StepFadeIn>
-
-      <StepFadeIn delay={160} style={styles.sectionContainer}>
-        <View style={styles.analyticsHeader}>
-          <Text style={styles.sectionTitle}>Analytics Range</Text>
-          <Text style={styles.analyticsRangeText}>{rangeLabel}</Text>
-        </View>
-        {renderRangeSelector()}
-      </StepFadeIn>
-
-      <StepFadeIn delay={180} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Downloads & New Users</Text>
-        {renderInsightGrid(acquisitionInsights)}
-      </StepFadeIn>
-
-      <StepFadeIn delay={200} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Subscriber Breakdown</Text>
-        {renderInsightGrid(subscriptionInsights)}
-      </StepFadeIn>
-
-      {renderUserActivityRows()}
-
-      <StepFadeIn delay={220} style={styles.conversionBox}>
-        <Text style={styles.conversionLabel}>Subscription Health</Text>
-        <Text style={styles.conversionValue}>{activePaidRows.length}</Text>
-        <Text style={styles.conversionSub}>
-          {monthlySubscriberRows.length} paid monthly · {yearlySubscriberRows.length} paid yearly · {upcomingRenewalRows.length} renewing soon
-        </Text>
-      </StepFadeIn>
-
-      {renderMiniRows('Next Renewals', upcomingRenewals, 'No upcoming renewals found')}
-      {renderMiniRows('Needs Attention', attentionRows, 'No billing, cancellation, or stale status issues')}
-
-      <StepFadeIn delay={260} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Subscriptions</Text>
-        <View style={styles.metricGrid}>
-          {renderMetricCard('Active Trials', overview?.active_trials, '#FFC107', 0, 'trials', 'active_trials')}
-          {renderMetricCard('Paid Active', overview?.paid_active, Colors.growthGreen, 40, 'paid', 'paid_active')}
-          {renderMetricCard('Converted', overview?.converted_trials, '#34C759', 80, 'paid', 'converted_trials')}
-          {renderMetricCard('Billing Issues', overview?.billing_issues, '#FF3B30', 120, 'issues', 'billing_issues')}
-        </View>
-        <View style={styles.metricGrid}>
-          {renderMetricCard('Stuck Trials', overview?.stuck_trials, '#FF9500', 0, 'trials', 'stuck_trials')}
-          {renderMetricCard('Cancelled', overview?.cancelled, '#FF9500', 40, 'trials', 'cancelled')}
-          {renderMetricCard('Expired', overview?.expired, 'rgba(255,255,255,0.4)', 80, 'trials', 'expired')}
-          {renderMetricCard('Free (No Sub)', overview?.seeker_free, 'rgba(255,255,255,0.4)', 120, 'overview', 'seeker_free')}
-        </View>
-      </StepFadeIn>
-
-      <StepFadeIn delay={240} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Lifetime</Text>
-        <View style={styles.metricGrid}>
-          {renderMetricCard('Total Users', overview?.total_users, Colors.hopeWhite, 0, 'overview', 'total_users')}
-          {renderMetricCard('Total Trials Started', overview?.total_trials_ever, '#FFC107', 40, 'trials', 'total_trials_ever')}
+        <View style={styles.healthCardsContainer}>
+          {/* HERO CARD - Paid Subscribers */}
+          <View style={[styles.healthCard, styles.healthCardHero]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{activePaidRows.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Paid Subscribers</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="trending-up" size={14} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>+2 this week</ThemedText>
+            </View>
+          </View>
+          {/* Secondary cards */}
+          <View style={styles.healthCardSecondary}>
+            <ThemedText weight="bold" style={styles.healthCardValue}>{overview?.active_trials || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Active Trials</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="time" size={12} color="#FFC107" />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{upcomingRenewals.length} expiring</ThemedText>
+            </View>
+          </View>
+          <View style={styles.healthCardSecondary}>
+            <ThemedText weight="semiBold" style={styles.healthCardRevenueTitle}>
+              Revenue Mix
+            </ThemedText>
+            <View style={styles.marketRevenueRow}>
+              <ThemedText weight="regular" style={styles.marketRevenueLabel}>
+                🇵🇭 PHP
+              </ThemedText>
+              <ThemedText weight="bold" style={styles.marketRevenueValue}>
+                ₱{estimatedPhpRevenue.toLocaleString()}
+              </ThemedText>
+            </View>
+            <View style={styles.marketRevenueRow}>
+              <ThemedText weight="regular" style={styles.marketRevenueLabel}>
+                🌍 USD
+              </ThemedText>
+              <ThemedText weight="bold" style={styles.marketRevenueValue}>
+                ${estimatedUsdRevenue.toFixed(0)}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCardSecondary, { backgroundColor: 'rgba(255,59,48,0.12)' }]}>
+            <ThemedText weight="bold" style={[styles.healthCardValue, { color: '#FF3B30' }]}>{overview?.billing_issues || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Issues</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="alert-circle" size={12} color="#FF3B30" />
+              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#FF3B30' }]}>needs attention</ThemedText>
+            </View>
+          </View>
         </View>
       </StepFadeIn>
 
-      {overview && overview.total_trials_ever > 0 && (
-        <StepFadeIn delay={320} style={styles.conversionBox}>
-          <Text style={styles.conversionLabel}>Trial → Paid Conversion Rate</Text>
-          <Text style={styles.conversionValue}>
-            {Math.round(((overview.converted_trials || 0) / overview.total_trials_ever) * 100)}%
-          </Text>
-          <Text style={styles.conversionSub}>
-            {overview.converted_trials} of {overview.total_trials_ever} trials converted
-          </Text>
-        </StepFadeIn>
-      )}
-
-      {selectedMetric && (
-        <StepFadeIn delay={380} style={styles.filteredSection}>
-          <Text style={styles.sectionTitle}>{getMetricLabel(selectedMetric)}</Text>
-          <View style={styles.filteredHeaderRow}>
-            <Text style={styles.filteredHeaderText}>
-              {getFilteredRows(rows).length} matching records
-            </Text>
+      {/* SECTION 2 - NEEDS ATTENTION (Layer 2: Action Needed) */}
+      <StepFadeIn delay={140}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Needs Attention</ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={160}>
+        <View style={styles.attentionContainer}>
+          {(overview?.billing_issues || 0) > 0 && overview && (
             <TouchableOpacity
+              style={styles.attentionItem}
               onPress={() => {
                 triggerLightHaptic();
-                openTab(activeTab, null);
+                setActiveTab('issues');
+                setSelectedMetric('billing_issues');
               }}
-              style={styles.filteredClearButton}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <Text style={styles.filteredClearButtonText}>Clear</Text>
+              <ThemedText weight="regular" style={styles.attentionIcon}>⚠</ThemedText>
+              <ThemedText weight="regular" style={styles.attentionText}>{overview.billing_issues} billing failures → review users</ThemedText>
             </TouchableOpacity>
-          </View>
-        </StepFadeIn>
-      )}
-
-      <StepFadeIn delay={420} style={styles.overviewActionWrap}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            refresh('overview');
-          }}
-          style={styles.overviewActionButton}
-          activeOpacity={0.8}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.hopeWhite} />
-          ) : (
-            <Ionicons name="refresh" size={18} color={Colors.hopeWhite} />
           )}
-        </TouchableOpacity>
+          {(overview?.stuck_trials || 0) > 0 && overview && (
+            <TouchableOpacity
+              style={styles.attentionItem}
+              onPress={() => {
+                triggerLightHaptic();
+                setActiveTab('trials');
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="regular" style={styles.attentionIcon}>⚠</ThemedText>
+              <ThemedText weight="regular" style={styles.attentionText}>{overview.stuck_trials} expired trials not converted → review trials</ThemedText>
+            </TouchableOpacity>
+          )}
+          {upcomingRenewals.filter(r => r.days_remaining && r.days_remaining <= 1).length > 0 && (
+            <TouchableOpacity
+              style={styles.attentionItem}
+              onPress={() => {
+                triggerLightHaptic();
+                setActiveTab('trials');
+              }}
+              activeOpacity={0.7}
+            >
+              <ThemedText weight="regular" style={styles.attentionIcon}>⚠</ThemedText>
+              <ThemedText weight="regular" style={styles.attentionText}>{upcomingRenewals.filter(r => r.days_remaining && r.days_remaining <= 1).length} trials expiring today → review trials</ThemedText>
+            </TouchableOpacity>
+          )}
+          {attentionRows.length === 0 && (overview?.billing_issues || 0) === 0 && (overview?.stuck_trials || 0) === 0 && (
+            <ThemedText weight="regular" style={styles.noAttentionText}>All systems healthy ✓</ThemedText>
+          )}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 3 - GROWTH (Simplified) */}
+      <StepFadeIn delay={200}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Growth</ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={220}>
+        <View style={styles.growthHeroContainer}>
+          <ThemedText weight="bold" style={styles.growthHeroValue}>+{trackedSignupCount}</ThemedText>
+          <ThemedText weight="regular" style={styles.growthHeroLabel}>new users this {selectedMonth !== 'all' ? selectedMonth : analyticsRange}</ThemedText>
+        </View>
+      </StepFadeIn>
+      <StepFadeIn delay={240}>
+        <View style={styles.growthSecondaryContainer}>
+          <View style={styles.growthMetric}>
+            <ThemedText weight="regular" style={styles.growthLabel}>Active Users</ThemedText>
+            <ThemedText weight="bold" style={styles.growthValue}>{trackedDauCount}</ThemedText>
+            <ThemedText weight="regular" style={styles.growthSub}>Daily average</ThemedText>
+          </View>
+          <View style={styles.growthMetric}>
+            <ThemedText weight="regular" style={styles.growthLabel}>Conversions</ThemedText>
+            <ThemedText weight="bold" style={styles.growthValue}>{overview?.converted_trials || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.growthSub}>Trial to paid</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 4 - MARKET BREAKDOWN */}
+      <StepFadeIn delay={250}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Market Breakdown
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={260}>
+        <View style={styles.marketBreakdownContainer}>
+          <View style={styles.marketBreakdownCard}>
+            <ThemedText weight="regular" style={styles.marketBreakdownEmoji}>🇵🇭</ThemedText>
+            <ThemedText weight="bold" style={styles.marketBreakdownValue}>
+              {phPaidRows.length}
+            </ThemedText>
+            <ThemedText weight="regular" style={styles.marketBreakdownLabel}>
+              Philippines
+            </ThemedText>
+            <ThemedText weight="regular" style={styles.marketBreakdownSub}>
+              PHP pricing
+            </ThemedText>
+          </View>
+          <View style={styles.marketBreakdownCard}>
+            <ThemedText weight="regular" style={styles.marketBreakdownEmoji}>🌍</ThemedText>
+            <ThemedText weight="bold" style={styles.marketBreakdownValue}>
+              {globalPaidRows.length}
+            </ThemedText>
+            <ThemedText weight="regular" style={styles.marketBreakdownLabel}>
+              International
+            </ThemedText>
+            <ThemedText weight="regular" style={styles.marketBreakdownSub}>
+              USD pricing
+            </ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 5 - QUICK NAVIGATION TO DETAILED VIEWS */}
+      <StepFadeIn delay={300}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Explore Data</ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={320}>
+        {renderTabChoices()}
       </StepFadeIn>
 
       <View style={{ height: 100 }} />
@@ -1033,6 +1377,14 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const name = displayName(item);
     const daysLeft = item.days_remaining;
     const isAnnual = item.billing_cycle === 'annual';
+    // Use theme color for row accent based on active tab
+    const rowAccentColor = activeTab === 'paid'
+      ? Colors.growthGreen
+      : activeTab === 'trials'
+        ? '#FFC107'
+        : activeTab === 'issues'
+          ? '#FF3B30'
+          : accentColor;
     const daysColor = daysLeft === null ? 'transparent'
       : daysLeft < 0 ? '#FF3B30'
       : daysLeft < 7 ? '#FF9500'
@@ -1055,32 +1407,32 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         activeOpacity={0.75}
       >
         {/* Left accent bar */}
-        <View style={[styles.rowAccentBar, { backgroundColor: accentColor }]} />
+        <View style={[styles.rowAccentBar, { backgroundColor: rowAccentColor }]} />
 
         <View style={styles.rowInner}>
           <View style={styles.rowTop}>
             {/* Plan pill */}
             <View style={[styles.planPill, isAnnual && styles.planPillAnnual]}>
-              <Text style={[styles.planPillText, isAnnual && styles.planPillTextAnnual]}>
+              <ThemedText weight="semiBold" style={[styles.planPillText, isAnnual && styles.planPillTextAnnual]}>
                 {isAnnual ? '★ ' : ''}{label}
-              </Text>
+              </ThemedText>
             </View>
             {/* Days countdown */}
             {daysLeft !== null && (
-              <Text style={[styles.daysText, { color: daysColor }]}>
+              <ThemedText weight="bold" style={[styles.daysText, { color: daysColor }]}>
                 {daysLeft < 0
                   ? `${Math.abs(Math.round(daysLeft))}d ago`
                   : daysLeft < 1 ? 'expires today'
                   : `${Math.round(daysLeft)}d left`}
-              </Text>
+              </ThemedText>
             )}
           </View>
 
           <View style={styles.rowMid}>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
-              <Text style={styles.rowStatusLine} numberOfLines={1}>{getStatusLine(item)}</Text>
-              <Text style={styles.rowEmail} numberOfLines={1}>{item.email || '—'}</Text>
+              <ThemedText weight="semiBold" style={styles.rowName} numberOfLines={1}>{name}</ThemedText>
+              <ThemedText weight="regular" style={styles.rowStatusLine} numberOfLines={1}>{getMarketEmoji(item)} {getStatusLine(item)}</ThemedText>
+              <ThemedText weight="regular" style={styles.rowEmail} numberOfLines={1}>{item.email || '—'}</ThemedText>
             </View>
             <Ionicons
               name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -1092,40 +1444,28 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 
           {expanded && (
             <View style={styles.rowDetail}>
-              {/* Subscription section */}
-              <Text style={styles.detailSection}>SUBSCRIPTION</Text>
-              <DetailRow label="Plan" value={item.subscription_display_name || item.tier} />
-              <DetailRow label="Status" value={item.status} />
-              <DetailRow label="Billing" value={item.billing_cycle === 'annual' ? 'Annual' : item.billing_cycle === 'monthly' ? 'Monthly' : '—'} />
-              {subWindow && <DetailRow label="Active from → to" value={subWindow} />}
-              {item.auto_renew_enabled === false && item.subscription_end_date && new Date(item.subscription_end_date) > new Date() && (
-                <DetailRow label="Auto-renew" value={`Off — access until ${formatDate(item.subscription_end_date)}`} highlight />
-              )}
-              {item.cancellation_date && !(item.subscription_end_date && new Date(item.subscription_end_date) > new Date()) && (
-                <DetailRow label="Cancelled on" value={formatDate(item.cancellation_date)} highlight />
-              )}
-              {item.billing_issue && (
-                <DetailRow label="Billing issue" value="Payment failed" highlight />
-              )}
-              {item.grace_period_end_date && (
-                <DetailRow label="Grace period ends" value={formatDate(item.grace_period_end_date)} highlight />
-              )}
-
-              {/* Trial section — only show if trial data exists */}
-              {(item.trial_start_date || item.trial_chosen_tier) && (
-                <>
-                  <Text style={[styles.detailSection, { marginTop: 12 }]}>TRIAL</Text>
-                  {item.trial_chosen_tier && <DetailRow label="Trial plan" value={item.trial_chosen_tier} />}
-                  {trialWindow && <DetailRow label="Trial period" value={trialWindow} />}
-                  {item.trial_converted_date && <DetailRow label="Converted on" value={formatDate(item.trial_converted_date)} />}
-                  {item.trial_cancelled_date && <DetailRow label="Trial cancelled" value={formatDate(item.trial_cancelled_date)} highlight />}
-                </>
-              )}
-
-              {/* Payment section */}
-              <Text style={[styles.detailSection, { marginTop: 12 }]}>PAYMENT</Text>
-              <DetailRow label="Transaction ID" value={item.original_transaction_id || '—'} />
-              <DetailRow label="Record last synced" value={formatDate(item.updated_at)} />
+              <View style={styles.rowDetailSummary}>
+                {item.billing_cycle && (
+                  <ThemedText weight="regular" style={styles.rowDetailLine}>
+                    {item.billing_cycle === 'annual' ? 'Annual' : 'Monthly'}
+                    {item.subscription_end_date && new Date(item.subscription_end_date) > new Date() && ` · Renews ${formatDate(item.subscription_end_date)}`}
+                  </ThemedText>
+                )}
+                {item.trial_converted_date && (
+                  <ThemedText weight="regular" style={styles.rowDetailLine}>Trial converted {formatDate(item.trial_converted_date)}</ThemedText>
+                )}
+                {item.auto_renew_enabled !== false ? (
+                  <ThemedText weight="regular" style={styles.rowDetailLine}>Auto-renew ON</ThemedText>
+                ) : item.subscription_end_date && new Date(item.subscription_end_date) > new Date() ? (
+                  <ThemedText weight="regular" style={styles.rowDetailLine}>Auto-renew OFF · Access until {formatDate(item.subscription_end_date)}</ThemedText>
+                ) : null}
+                {item.billing_issue && (
+                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#FF3B30' }]}>Payment failed</ThemedText>
+                )}
+                {item.cancellation_date && !(item.subscription_end_date && new Date(item.subscription_end_date) > new Date()) && (
+                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#FF9500' }]}>Cancelled {formatDate(item.cancellation_date)}</ThemedText>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -1141,43 +1481,86 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     return (
       <View style={styles.webhookRow}>
         <View style={styles.webhookLeft}>
-          <Text style={styles.webhookType}>{item.notification_type || '—'}</Text>
-          {item.subtype ? <Text style={styles.webhookSub}>{item.subtype}</Text> : null}
-          {productShort ? <Text style={styles.webhookProduct}>{productShort}</Text> : null}
+          <ThemedText weight="semiBold" style={styles.webhookType}>{item.notification_type || '—'}</ThemedText>
+          {item.subtype ? <ThemedText weight="regular" style={styles.webhookSub}>{item.subtype}</ThemedText> : null}
+          {productShort ? <ThemedText weight="regular" style={styles.webhookProduct}>{productShort}</ThemedText> : null}
         </View>
         <View style={styles.webhookRight}>
-          <Text style={styles.webhookDate}>{formatDate(item.received_at)}</Text>
-          <Text style={[styles.webhookDetail, { color: hasTxn ? Colors.growthGreen : '#FF9500' }]}>
+          <ThemedText weight="regular" style={styles.webhookDate}>{formatDate(item.received_at)}</ThemedText>
+          <ThemedText weight="regular" style={[styles.webhookDetail, { color: hasTxn ? Colors.growthGreen : '#FF9500' }]}>
             {hasTxn ? `txn …${item.transaction_id!.slice(-6)}` : 'no txn id'}
-          </Text>
+          </ThemedText>
         </View>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} translucent={false} />
-      {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            navigation.goBack();
-          }}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+      {/* Close and refresh buttons - top right */}
+      {activeTab === 'overview' && (
+        <View style={[styles.headerButtonsContainer, { top: insets.top + 16 }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              refresh('overview');
+            }}
+            style={styles.headerRefreshButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.goBack();
+            }}
+            style={styles.headerCloseButton}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Content */}
       {activeTab === 'overview' && renderOverview()}
 
       {(activeTab === 'trials' || activeTab === 'paid' || activeTab === 'issues') && (
         <>
+        <View style={[styles.stickyHeader, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              setActiveTab('overview');
+            }}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={28} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+          <View style={styles.stickyHeaderContent}>
+            <ThemedText weight="semiBold" style={styles.stickyHeaderTitle}>
+              {activeTab === 'paid' ? 'Paid Subscribers' : activeTab === 'trials' ? 'Active Trials' : 'Issues'}
+            </ThemedText>
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowQuickActions(!showQuickActions)}
+            style={styles.searchIconButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="options-outline" size={20} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+        </View>
+        {showQuickActions && (
+          <StepFadeIn delay={0}>
+            <View style={styles.searchBarContainer}>
+              {renderSearchBar()}
+            </View>
+          </StepFadeIn>
+        )}
         <FlatList
           data={getFilteredRows(rows)}
           keyExtractor={item => item.user_id}
@@ -1193,17 +1576,28 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           ListEmptyComponent={
             loading ? null : (
               <View style={styles.center}>
-                <Text style={styles.emptyText}>
-                  {selectedMetric ? `No ${getMetricLabel(selectedMetric).toLowerCase()} records` : 'No records'}
-                </Text>
+                <Ionicons name="document-text-outline" size={48} color="rgba(255,255,255,0.2)" />
+                <ThemedText weight="regular" style={styles.emptyText}>
+                  {searchQuery ? 'No matching records found' : selectedMetric ? `No ${getMetricLabel(selectedMetric).toLowerCase()} records` : 'No records'}
+                </ThemedText>
+                {searchQuery && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setSearchQuery('');
+                    }}
+                    style={styles.emptyActionButton}
+                  >
+                    <ThemedText weight="semiBold" style={styles.emptyActionText}>Clear search</ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             )
           }
           ListHeaderComponent={
             <View>
-              {renderTabChoices()}
               {getFilteredRows(rows).length > 0 ? (
-                <Text style={styles.rowCount}>{getFilteredRows(rows).length} records</Text>
+                <ThemedText weight="regular" style={styles.rowCount}>{getFilteredRows(rows).length} records {searchQuery ? '(filtered)' : ''}</ThemedText>
               ) : null}
             </View>
           }
@@ -1227,7 +1621,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           ListEmptyComponent={
             loading ? null : (
               <View style={styles.center}>
-                <Text style={styles.emptyText}>No webhook events</Text>
+                <ThemedText weight="regular" style={styles.emptyText}>No webhook events</ThemedText>
               </View>
             )
           }
@@ -1235,21 +1629,21 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <View>
               {renderTabChoices()}
               {webhooks.length > 0 ? (
-                <Text style={styles.rowCount}>{webhooks.length} events</Text>
+                <ThemedText weight="regular" style={styles.rowCount}>{webhooks.length} events</ThemedText>
               ) : null}
             </View>
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 function DetailRow({ label, value, highlight = false }: { label: string; value: string | null | undefined; highlight?: boolean }) {
   return (
     <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, highlight && styles.detailHighlight]}>{value || '—'}</Text>
+      <ThemedText weight="regular" style={styles.detailLabel}>{label}</ThemedText>
+      <ThemedText weight="regular" style={[styles.detailValue, highlight && styles.detailHighlight]}>{value || '—'}</ThemedText>
     </View>
   );
 }
@@ -1272,9 +1666,36 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
 
+  // Header buttons container (side-by-side)
+  headerButtonsContainer: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 100,
+  },
+
+  headerRefreshButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerCloseButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   // Walkthrough-style layout
   stepScroll: { flex: 1 },
-  stepContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  stepContent: { paddingHorizontal: 24, paddingTop: 72, paddingBottom: 40 },
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1283,14 +1704,12 @@ const styles = StyleSheet.create({
   labelIcon: { marginRight: 6 },
   focusLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: Colors.alertCoral,
     letterSpacing: 1.2,
   },
   titleRow: { marginBottom: 8 },
   stepTitle: {
     fontSize: 28,
-    fontWeight: '700',
     color: Colors.hopeWhite,
     lineHeight: 34,
   },
@@ -1305,7 +1724,6 @@ const styles = StyleSheet.create({
   },
   choiceCount: {
     fontSize: 26,
-    fontWeight: '800',
     color: Colors.hopeWhite,
     marginBottom: 2,
   },
@@ -1331,7 +1749,7 @@ const styles = StyleSheet.create({
   choiceIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: Colors.anchorBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1344,7 +1762,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 4,
     textAlign: 'center',
-    fontWeight: '600',
   },
   choiceDescription: {
     fontSize: 11,
@@ -1392,9 +1809,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  insightScrollContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingBottom: 4,
+  },
+  insightCardHorizontal: {
+    width: 140,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 12,
+    minHeight: 100,
+    borderWidth: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metricValue: {
     fontSize: 26,
-    fontWeight: '800',
     color: Colors.hopeWhite,
     marginBottom: 2,
   },
@@ -1403,7 +1834,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginBottom: 4,
     textAlign: 'center',
-    fontWeight: '600',
   },
   metricSub: {
     fontSize: 11,
@@ -1414,7 +1844,6 @@ const styles = StyleSheet.create({
   tapHint: {
     color: Colors.alertCoral,
     fontSize: 10,
-    fontWeight: '800',
     marginTop: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1427,7 +1856,6 @@ const styles = StyleSheet.create({
   analyticsRangeText: {
     color: 'rgba(255,255,255,0.55)',
     fontSize: 12,
-    fontWeight: '600',
     marginBottom: 12,
   },
   rangeSelector: {
@@ -1437,7 +1865,7 @@ const styles = StyleSheet.create({
   rangeButton: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.18)',
@@ -1450,9 +1878,39 @@ const styles = StyleSheet.create({
   rangeButtonText: {
     color: 'rgba(255,255,255,0.65)',
     fontSize: 12,
-    fontWeight: '700',
   },
   rangeButtonTextSelected: {
+    color: Colors.hopeWhite,
+  },
+  monthSelector: {
+    marginTop: 12,
+  },
+  monthSelectorLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 8,
+  },
+  monthScroll: {
+    flexDirection: 'row',
+  },
+  monthButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    marginRight: 8,
+  },
+  monthButtonSelected: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  monthButtonText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+  },
+  monthButtonTextSelected: {
     color: Colors.hopeWhite,
   },
   miniRow: {
@@ -1465,10 +1923,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   miniRowLeft: { flex: 1, paddingRight: 12 },
-  miniRowTitle: { color: Colors.hopeWhite, fontSize: 13, fontWeight: '700' },
+  miniRowTitle: { color: Colors.hopeWhite, fontSize: 13 },
   miniRowSub: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 2 },
   miniRowRight: { alignItems: 'flex-end' },
-  miniRowDate: { color: Colors.growthGreen, fontSize: 12, fontWeight: '800' },
+  miniRowDate: { color: Colors.growthGreen, fontSize: 12 },
   miniRowCycle: { color: 'rgba(255,255,255,0.45)', fontSize: 10, marginTop: 2 },
   emptyMiniText: {
     color: 'rgba(255,255,255,0.45)',
@@ -1486,7 +1944,7 @@ const styles = StyleSheet.create({
   },
   activityUserRow: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     marginBottom: 10,
     borderWidth: 0.5,
@@ -1502,7 +1960,6 @@ const styles = StyleSheet.create({
   activityUserName: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '800',
   },
   activityUserEmail: {
     color: 'rgba(255,255,255,0.45)',
@@ -1518,7 +1975,6 @@ const styles = StyleSheet.create({
   activityBadgeText: {
     color: Colors.alertCoral,
     fontSize: 10,
-    fontWeight: '800',
     textTransform: 'uppercase',
   },
   activitySummary: {
@@ -1551,18 +2007,16 @@ const styles = StyleSheet.create({
   filteredHeaderText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.65)',
-    fontWeight: '500',
   },
   filteredClearButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   filteredClearButtonText: {
     fontSize: 12,
     color: Colors.hopeWhite,
-    fontWeight: '700',
   },
 
   // Tab navigation
@@ -1578,8 +2032,8 @@ const styles = StyleSheet.create({
   },
   tabActive: { backgroundColor: Colors.alertCoral },
   tabIcon: {},
-  tabText: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  tabTextActive: { color: Colors.hopeWhite, fontWeight: '700' },
+  tabText: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  tabTextActive: { color: Colors.hopeWhite },
 
   // Floating refresh button
   floatingRefreshButton: {
@@ -1587,7 +2041,7 @@ const styles = StyleSheet.create({
     right: 20,
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1595,24 +2049,24 @@ const styles = StyleSheet.create({
   },
 
   // Overview content
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, marginBottom: 12 },
+  sectionTitle: { fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, marginBottom: 12 },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard: {
     flex: 1, minWidth: '44%',
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 12, padding: 16,
+    borderRadius: 14, padding: 16,
     borderLeftWidth: 3,
   },
-  statValue: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '500' },
+  statValue: { fontSize: 28, marginBottom: 4 },
+  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
 
   conversionBox: {
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: 24, marginTop: 20,
+    borderRadius: 20, padding: 24, marginTop: 20,
     alignItems: 'center',
   },
   conversionLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 },
-  conversionValue: { fontSize: 44, fontWeight: '900', color: Colors.growthGreen },
+  conversionValue: { fontSize: 44, color: Colors.growthGreen },
   conversionSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 },
 
   overviewActionWrap: {
@@ -1622,7 +2076,7 @@ const styles = StyleSheet.create({
   overviewActionButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 20,
     backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1638,8 +2092,10 @@ const styles = StyleSheet.create({
   rowCount: { fontSize: 11, color: 'rgba(255,255,255,0.35)', paddingVertical: 8, paddingHorizontal: 2 },
 
   row: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12, marginBottom: 10, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    marginBottom: 14,
+    overflow: 'hidden',
     flexDirection: 'row',
   },
   rowAccentBar: { width: 4, borderRadius: 2 },
@@ -1647,32 +2103,44 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   rowMid: { flexDirection: 'row', alignItems: 'flex-start' },
   planPill: {
-    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   planPillAnnual: { backgroundColor: 'rgba(255,200,60,0.18)' },
-  planPillText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.4 },
+  planPillText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.3 },
   planPillTextAnnual: { color: '#FFC83C' },
   rowInfo: { flex: 1 },
-  rowName: { fontSize: 14, fontWeight: '700', color: Colors.hopeWhite },
-  rowStatusLine: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 3, fontWeight: '500' },
+  rowName: { fontSize: 14, color: Colors.hopeWhite },
+  rowStatusLine: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 3 },
   rowEmail: { fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 },
-  daysText: { fontSize: 12, fontWeight: '700' },
+  daysText: { fontSize: 12 },
   cycleText: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
 
   rowDetail: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    marginTop: 10, paddingTop: 12, gap: 8,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    marginTop: 12,
+    paddingTop: 16,
+    gap: 12,
+  },
+  rowDetailSummary: {
+    gap: 10,
+  },
+  rowDetailLine: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.72)',
   },
   detailSection: {
-    fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.3)',
+    fontSize: 10, color: 'rgba(255,255,255,0.3)',
     letterSpacing: 1.1, marginBottom: 4,
   },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   detailLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', width: 140 },
   detailValue: { fontSize: 12, color: 'rgba(255,255,255,0.8)', flex: 1, textAlign: 'right' },
-  detailHighlight: { color: '#FF3B30', fontWeight: '700' },
+  detailHighlight: { color: '#FF3B30' },
 
   webhookRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -1681,12 +2149,430 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   webhookLeft: { flex: 1 },
-  webhookType: { fontSize: 14, fontWeight: '600', color: Colors.hopeWhite },
+  webhookType: { fontSize: 14, color: Colors.hopeWhite },
   webhookSub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
   webhookProduct: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 },
   webhookRight: { alignItems: 'flex-end' },
   webhookDate: { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
-  webhookDetail: { fontSize: 11, fontWeight: '600', marginTop: 4 },
+  webhookDetail: { fontSize: 11, marginTop: 4 },
 
   emptyText: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
+
+  // Search bar styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  searchIcon: { marginRight: 12 },
+  searchInput: {
+    flex: 1,
+    color: Colors.hopeWhite,
+    fontSize: 14,
+  },
+  searchClearButton: { marginLeft: 8 },
+
+  // Last updated indicator
+  lastUpdatedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  lastUpdatedText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Collapsible sections
+  collapsibleSection: {
+    marginTop: 24,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  collapsibleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  collapsibleTitle: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  collapsibleContent: {
+    paddingTop: 12,
+  },
+  countBadge: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+  },
+
+  // Quick actions
+  quickActionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+
+  // Enhanced empty states
+  emptyActionButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 14,
+  },
+  emptyActionText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+
+  // New simplified dashboard styles
+  newHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingTop: 12,
+  },
+  newHeaderTitle: {
+    fontSize: 28,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  newRefreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newSectionLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  healthCardsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 32,
+  },
+  healthCard: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 18,
+    padding: 20,
+    minHeight: 120,
+  },
+  healthCardHero: {
+    flex: 1,
+    minWidth: '100%',
+    minHeight: 120,
+  },
+  healthCardSecondary: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  healthCardValue: {
+    fontSize: 36,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  healthCardHeroValue: {
+    fontSize: 44,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  healthCardLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 12,
+  },
+  healthCardTrend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  healthCardTrendText: {
+    fontSize: 12,
+    color: Colors.growthGreen,
+  },
+  healthCardRevenueTitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.55)',
+    marginBottom: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  marketRevenueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  marketRevenueLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  marketRevenueValue: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
+  },
+  attentionContainer: {
+    backgroundColor: 'rgba(255,59,48,0.11)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.22)',
+  },
+  growthHeroContainer: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  attentionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  attentionIcon: {
+    fontSize: 16,
+  },
+  attentionText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  noAttentionText: {
+    fontSize: 14,
+    color: Colors.growthGreen,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  growthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  growthHeroValue: {
+    fontSize: 56,
+    color: Colors.growthGreen,
+    marginBottom: 8,
+  },
+  growthHeroLabel: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  growthSecondaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  marketBreakdownContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+  },
+  marketBreakdownCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+  },
+  marketBreakdownEmoji: {
+    fontSize: 24,
+    marginBottom: 10,
+  },
+  marketBreakdownValue: {
+    fontSize: 28,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  marketBreakdownLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  marketBreakdownSub: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  growthMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  growthLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 4,
+  },
+  growthValue: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  growthSub: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+  },
+
+  // Large list navigation styles
+  navigationList: {
+    gap: 4,
+  },
+  navigationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 18,
+    padding: 16,
+    minHeight: 64,
+  },
+  navigationItemSelected: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderWidth: 1,
+    borderColor: Colors.alertCoral
+  },
+  navigationItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+  },
+  navigationItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navigationItemIconSelected: {
+    backgroundColor: Colors.alertCoral,
+  },
+  navigationItemTextContainer: {
+    flex: 1,
+  },
+  navigationItemTitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+  },
+  navigationItemTitleSelected: {
+    color: Colors.alertCoral,
+  },
+  navigationItemSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  navigationItemArrow: {
+    color: 'rgba(255,255,255,0.3)',
+  },
+  navigationItemCount: {
+    minWidth: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    paddingHorizontal: 8,
+  },
+  navigationItemCountValue: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  navigationItemIndicator: {
+    position: 'absolute',
+    right: 16,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.alertCoral,
+  },
+
+  // Sticky header styles for FlatList screens
+  stickyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    backgroundColor: Colors.anchorBlue,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    zIndex: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -8,
+  },
+  stickyHeaderContent: {
+    flex: 1,
+  },
+  stickyHeaderTitle: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+  },
+  searchIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: -8,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
 });
