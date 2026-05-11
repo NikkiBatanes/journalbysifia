@@ -1085,7 +1085,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         })}
       </View>
       {/* Month picker */}
-      <ThemedText weight="regular" style={styles.monthSelectorLabel}>Jump to month:</ThemedText>
+      <View style={{ marginBottom: 8 }} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
         {(['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as MonthRange[]).map(month => {
           const selected = selectedMonth === month;
@@ -1134,6 +1134,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       </StepFadeIn>
 
       {/* SECTION 1 - BUSINESS HEALTH (Layer 1: Executive Snapshot) */}
+      <View style={{ marginBottom: 8 }} />
       <StepFadeIn delay={100}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>Business Health</ThemedText>
       </StepFadeIn>
