@@ -12,6 +12,7 @@ import {
   Animated,
   Platform,
   UIManager,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,6 +25,18 @@ import { triggerLightHaptic } from '../utils/haptics';
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
 
 type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks';
+type OverviewMetric =
+  | 'active_trials'
+  | 'stuck_trials'
+  | 'paid_active'
+  | 'converted_trials'
+  | 'cancelled'
+  | 'expired'
+  | 'billing_issues'
+  | 'seeker_free'
+  | 'total_users'
+  | 'total_trials_ever'
+  | null;
 
 interface Overview {
   total_users: number;
@@ -109,12 +122,12 @@ function tierLabel(row: SubscriptionRow): string {
   return (row.tier || '').toUpperCase().replace('_', ' ');
 }
 
-const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Overview', icon: 'analytics' },
-  { key: 'trials', label: 'Trials', icon: 'timer' },
-  { key: 'paid', label: 'Paid', icon: 'card' },
-  { key: 'issues', label: 'Issues', icon: 'warning' },
-  { key: 'webhooks', label: 'Webhooks', icon: 'webhook' },
+const FILTER_TABS: { key: FilterTab; label: string; icon: string; subtitle: string }[] = [
+  { key: 'overview', label: 'Overview', icon: 'analytics', subtitle: 'Dashboard snapshot' },
+  { key: 'trials', label: 'Trials', icon: 'timer', subtitle: 'Active trial users' },
+  { key: 'paid', label: 'Paid', icon: 'card', subtitle: 'Subscribed members' },
+  { key: 'issues', label: 'Issues', icon: 'warning', subtitle: 'Needs attention' },
+  { key: 'webhooks', label: 'Webhooks', icon: 'webhook', subtitle: 'Incoming events' },
 ];
 
 // Enable LayoutAnimation for Android
@@ -173,6 +186,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<OverviewMetric>(null);
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail);
@@ -216,10 +230,99 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, activeTab]);
 
-  const onTabPress = (tab: FilterTab) => {
+  const openTab = useCallback(async (tab: FilterTab, metric: OverviewMetric = null) => {
     setActiveTab(tab);
     setExpandedId(null);
-  };
+    setSelectedMetric(metric);
+    setRefreshing(true);
+    await refresh(tab);
+  }, [refresh]);
+
+  const getMetricLabel = useCallback((metric: OverviewMetric): string => {
+    switch (metric) {
+      case 'active_trials': return 'Active Trials';
+      case 'stuck_trials': return 'Stuck Trials';
+      case 'paid_active': return 'Paid Active';
+      case 'converted_trials': return 'Converted';
+      case 'cancelled': return 'Cancelled';
+      case 'expired': return 'Expired';
+      case 'billing_issues': return 'Billing Issues';
+      case 'seeker_free': return 'Free (No Sub)';
+      case 'total_users': return 'Total Users';
+      case 'total_trials_ever': return 'Total Trials Started';
+      default: return '';
+    }
+  }, []);
+
+  const getFilteredRows = useCallback((items: SubscriptionRow[]) => {
+    if (!selectedMetric) { return items; }
+
+    return items.filter(item => {
+      const isExpired = item.status === 'expired' || !!item.trial_end_date && new Date(item.trial_end_date) < new Date();
+      const isCancelled = item.status === 'cancelled' || !!item.trial_cancelled_date || !!item.cancellation_date;
+      const isConverted = !!item.trial_converted_date || (item.tier !== 'free_trial' && item.status === 'active');
+      const isBillingIssue = !!item.billing_issue;
+      const isFree = item.tier === 'seeker' && !item.original_transaction_id && !item.trial_start_date;
+      const isPaidActive = item.tier !== 'free_trial' && item.status === 'active';
+      const isActiveTrial = item.tier === 'free_trial' && !isExpired && !isCancelled && !isConverted;
+      const isStuckTrial = item.tier === 'free_trial' && !isConverted && !isCancelled;
+
+      switch (selectedMetric) {
+        case 'active_trials': return isActiveTrial;
+        case 'stuck_trials': return isStuckTrial;
+        case 'paid_active': return isPaidActive;
+        case 'converted_trials': return isConverted;
+        case 'cancelled': return isCancelled;
+        case 'expired': return isExpired;
+        case 'billing_issues': return isBillingIssue;
+        case 'seeker_free': return isFree;
+        default: return true;
+      }
+    });
+  }, [selectedMetric]);
+
+  const renderTabChoices = () => (
+    <View style={styles.choiceGrid}>
+      {FILTER_TABS.map(tab => {
+        const isSelected = activeTab === tab.key && selectedMetric === null;
+        const count = tab.key === 'overview'
+          ? overview?.total_users
+          : tab.key === 'trials'
+            ? overview?.active_trials
+            : tab.key === 'paid'
+              ? overview?.paid_active
+              : tab.key === 'issues'
+                ? overview?.billing_issues
+                : webhooks.length;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.choiceCard, isSelected && styles.choiceCardSelected]}
+            onPress={() => {
+              triggerLightHaptic();
+              openTab(tab.key);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.choiceCount}>{loading ? '…' : String(count ?? 0)}</Text>
+            <View style={styles.choiceIconContainer}>
+              <View style={[styles.choiceIconCircle, isSelected && styles.choiceIconCircleSelected]}>
+                <Ionicons
+                  name={tab.icon as any}
+                  size={18}
+                  color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                />
+              </View>
+            </View>
+            <Text style={styles.choiceName}>{tab.label}</Text>
+            <Text style={[styles.choiceDescription, isSelected && styles.choiceDescriptionSelected]}>
+              {tab.subtitle}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   if (!isAdmin) {
     return (
@@ -232,12 +335,25 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     );
   }
 
-  const renderStatCard = (label: string, value: number | undefined, color: string, delay: number = 0) => (
-    <StepFadeIn delay={delay} style={[styles.statCard, { borderLeftColor: color }]}>
-      <Text style={[styles.statValue, { color }]}>{value ?? '—'}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </StepFadeIn>
-  );
+  const renderMetricCard = (label: string, value: number | undefined, color: string, delay: number = 0, tab: FilterTab = 'overview', metric: OverviewMetric = null) => {
+    const selected = activeTab === tab && selectedMetric === metric;
+    return (
+      <StepFadeIn delay={delay} style={styles.metricCardWrap}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            openTab(tab, metric);
+          }}
+          activeOpacity={0.85}
+          style={[styles.metricCard, { borderColor: color }, selected && styles.metricCardSelected]}
+        >
+          <Text style={[styles.metricValue, { color }]}>{value ?? '—'}</Text>
+          <Text style={styles.metricLabel}>{label}</Text>
+          <Text style={styles.metricSub}>{metric ? 'Tap to view data' : 'Overview'}</Text>
+        </TouchableOpacity>
+      </StepFadeIn>
+    );
+  };
 
   const renderOverview = () => (
     <ScrollView
@@ -259,27 +375,31 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
+      <StepFadeIn delay={120}>
+        {renderTabChoices()}
+      </StepFadeIn>
+
       <StepFadeIn delay={160} style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Subscriptions</Text>
-        <View style={styles.statGrid}>
-          {renderStatCard('Active Trials', overview?.active_trials, '#FFC107', 0)}
-          {renderStatCard('Paid Active', overview?.paid_active, Colors.growthGreen, 40)}
-          {renderStatCard('Converted', overview?.converted_trials, '#34C759', 80)}
-          {renderStatCard('Billing Issues', overview?.billing_issues, '#FF3B30', 120)}
+        <View style={styles.metricGrid}>
+          {renderMetricCard('Active Trials', overview?.active_trials, '#FFC107', 0, 'trials', 'active_trials')}
+          {renderMetricCard('Paid Active', overview?.paid_active, Colors.growthGreen, 40, 'paid', 'paid_active')}
+          {renderMetricCard('Converted', overview?.converted_trials, '#34C759', 80, 'paid', 'converted_trials')}
+          {renderMetricCard('Billing Issues', overview?.billing_issues, '#FF3B30', 120, 'issues', 'billing_issues')}
         </View>
-        <View style={styles.statGrid}>
-          {renderStatCard('Stuck Trials', overview?.stuck_trials, '#FF9500', 0)}
-          {renderStatCard('Cancelled', overview?.cancelled, '#FF9500', 40)}
-          {renderStatCard('Expired', overview?.expired, 'rgba(255,255,255,0.4)', 80)}
-          {renderStatCard('Free (No Sub)', overview?.seeker_free, 'rgba(255,255,255,0.4)', 120)}
+        <View style={styles.metricGrid}>
+          {renderMetricCard('Stuck Trials', overview?.stuck_trials, '#FF9500', 0, 'trials', 'stuck_trials')}
+          {renderMetricCard('Cancelled', overview?.cancelled, '#FF9500', 40, 'trials', 'cancelled')}
+          {renderMetricCard('Expired', overview?.expired, 'rgba(255,255,255,0.4)', 80, 'trials', 'expired')}
+          {renderMetricCard('Free (No Sub)', overview?.seeker_free, 'rgba(255,255,255,0.4)', 120, 'overview', 'seeker_free')}
         </View>
       </StepFadeIn>
 
       <StepFadeIn delay={240} style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Lifetime</Text>
-        <View style={styles.statGrid}>
-          {renderStatCard('Total Users', overview?.total_users, Colors.hopeWhite, 0)}
-          {renderStatCard('Total Trials Started', overview?.total_trials_ever, '#FFC107', 40)}
+        <View style={styles.metricGrid}>
+          {renderMetricCard('Total Users', overview?.total_users, Colors.hopeWhite, 0, 'overview', 'total_users')}
+          {renderMetricCard('Total Trials Started', overview?.total_trials_ever, '#FFC107', 40, 'trials', 'total_trials_ever')}
         </View>
       </StepFadeIn>
 
@@ -294,6 +414,44 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </Text>
         </StepFadeIn>
       )}
+
+      {selectedMetric && (
+        <StepFadeIn delay={380} style={styles.filteredSection}>
+          <Text style={styles.sectionTitle}>{getMetricLabel(selectedMetric)}</Text>
+          <View style={styles.filteredHeaderRow}>
+            <Text style={styles.filteredHeaderText}>
+              {getFilteredRows(rows).length} matching records
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                openTab(activeTab, null);
+              }}
+              style={styles.filteredClearButton}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.filteredClearButtonText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+        </StepFadeIn>
+      )}
+
+      <StepFadeIn delay={420} style={styles.overviewActionWrap}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            refresh('overview');
+          }}
+          style={styles.overviewActionButton}
+          activeOpacity={0.8}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.hopeWhite} />
+          ) : (
+            <Ionicons name="refresh" size={18} color={Colors.hopeWhite} />
+          )}
+        </TouchableOpacity>
+      </StepFadeIn>
 
       <View style={{ height: 100 }} />
     </ScrollView>
@@ -373,6 +531,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} translucent={false} />
       {/* Close button - top right */}
       <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
@@ -388,43 +547,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* Filter tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsContent}>
-        {FILTER_TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => {
-              triggerLightHaptic();
-              onTabPress(tab.key);
-            }}
-          >
-            <Ionicons name={tab.icon as any} size={16} color={activeTab === tab.key ? Colors.hopeWhite : 'rgba(255,255,255,0.6)'} style={styles.tabIcon} />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Refresh button - floating */}
-      <TouchableOpacity
-        onPress={() => {
-          triggerLightHaptic();
-          refresh();
-        }}
-        style={[styles.floatingRefreshButton, { bottom: insets.bottom + 20 }]}
-        activeOpacity={0.7}
-      >
-        {loading
-          ? <ActivityIndicator size="small" color={Colors.hopeWhite} />
-          : <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />}
-      </TouchableOpacity>
-
       {/* Content */}
       {activeTab === 'overview' && renderOverview()}
 
       {(activeTab === 'trials' || activeTab === 'paid' || activeTab === 'issues') && (
+        <>
         <FlatList
-          data={rows}
+          data={getFilteredRows(rows)}
           keyExtractor={item => item.user_id}
           renderItem={renderRow}
           contentContainerStyle={styles.listContent}
@@ -438,16 +567,22 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           ListEmptyComponent={
             loading ? null : (
               <View style={styles.center}>
-                <Text style={styles.emptyText}>No records</Text>
+                <Text style={styles.emptyText}>
+                  {selectedMetric ? `No ${getMetricLabel(selectedMetric).toLowerCase()} records` : 'No records'}
+                </Text>
               </View>
             )
           }
           ListHeaderComponent={
-            rows.length > 0 ? (
-              <Text style={styles.rowCount}>{rows.length} records</Text>
-            ) : null
+            <View>
+              {renderTabChoices()}
+              {getFilteredRows(rows).length > 0 ? (
+                <Text style={styles.rowCount}>{getFilteredRows(rows).length} records</Text>
+              ) : null}
+            </View>
           }
         />
+        </>
       )}
 
       {activeTab === 'webhooks' && (
@@ -471,9 +606,12 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             )
           }
           ListHeaderComponent={
-            webhooks.length > 0 ? (
-              <Text style={styles.rowCount}>{webhooks.length} events</Text>
-            ) : null
+            <View>
+              {renderTabChoices()}
+              {webhooks.length > 0 ? (
+                <Text style={styles.rowCount}>{webhooks.length} events</Text>
+              ) : null}
+            </View>
           }
         />
       )}
@@ -498,15 +636,19 @@ const styles = StyleSheet.create({
   // Walkthrough-style close button
   closeButton: {
     position: 'absolute',
-    right: 16,
-    width: 32,
-    height: 32,
+    right: 20,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 999,
     zIndex: 100,
   },
 
   // Walkthrough-style layout
   stepScroll: { flex: 1 },
-  stepContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  stepContent: { paddingHorizontal: 24, paddingBottom: 40 },
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -527,6 +669,137 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   sectionContainer: { marginTop: 32 },
+
+  choiceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  choiceCount: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  choiceCard: {
+    width: '31%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 12,
+    minHeight: 100,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceCardSelected: {
+    backgroundColor: 'rgba(255, 107, 107, 0.18)',
+    borderColor: Colors.alertCoral,
+  },
+  choiceIconContainer: {
+    marginBottom: 8,
+  },
+  choiceIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceIconCircleSelected: {
+    backgroundColor: Colors.alertCoral,
+  },
+  choiceName: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  choiceDescription: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  choiceDescriptionSelected: {
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  metricCardWrap: {
+    width: '48%',
+    marginBottom: 12,
+  },
+  metricCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 12,
+    minHeight: 100,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricCardSelected: {
+    backgroundColor: 'rgba(255, 107, 107, 0.18)',
+    borderColor: Colors.alertCoral,
+  },
+  metricValue: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  metricSub: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+
+  filteredSection: {
+    marginTop: 24,
+  },
+  filteredHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  filteredHeaderText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
+  },
+  filteredClearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  filteredClearButtonText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+  },
 
   // Tab navigation
   tabsScroll: { flexGrow: 0, marginTop: 16 },
@@ -577,6 +850,24 @@ const styles = StyleSheet.create({
   conversionLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 },
   conversionValue: { fontSize: 44, fontWeight: '900', color: Colors.growthGreen },
   conversionSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 },
+
+  overviewActionWrap: {
+    marginTop: 24,
+    alignItems: 'flex-end',
+  },
+  overviewActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.alertCoral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
 
   // List content
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },

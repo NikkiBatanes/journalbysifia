@@ -48,8 +48,8 @@ export class AppleWebhookHandler {
         return { success: false, message: 'Failed to decode transaction' };
       }
 
-      // Find user by original transaction ID
-      const userId = await this.findUserByTransactionId(transaction.originalTransactionId);
+      // Find user by original transaction ID, with current transaction fallback
+      const userId = await this.findUserByTransactionIds(transaction.originalTransactionId, transaction.transactionId);
       if (!userId) {
         Logger.warn('[AppleWebhook] User not found for transaction', {
           transactionId: transaction.transactionId,
@@ -397,22 +397,39 @@ export class AppleWebhookHandler {
   }
 
   /**
-   * Helper: Find user by original transaction ID
+   * Helper: Find user by Apple transaction IDs
    */
-  private static async findUserByTransactionId(transactionId: string): Promise<string | null> {
-    try {
-      const { data, error } = await supabase
-        .from('user_subscriptions_new')
-        .select('user_id')
-        .eq('platform_transaction_id', transactionId)
-        .single();
+  private static async findUserByTransactionIds(
+    originalTransactionId?: string,
+    transactionId?: string,
+  ): Promise<string | null> {
+    const ids = [originalTransactionId, transactionId].filter((id): id is string => Boolean(id));
 
-      if (error || !data) {
+    if (ids.length === 0) {
       return null;
     }
-      return data.user_id;
+
+    try {
+      for (const id of ids) {
+        const { data, error } = await supabase
+          .from('user_subscriptions_new')
+          .select('user_id')
+          .or(`original_transaction_id.eq.${id},platform_transaction_id.eq.${id},platform_subscription_id.eq.${id}`)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data?.user_id) {
+          return data.user_id;
+        }
+      }
+
+      return null;
     } catch (error) {
-      Logger.error('[AppleWebhook] Failed to find user', error as Error);
+      Logger.error('[AppleWebhook] Failed to find user', error as Error, {
+        originalTransactionId,
+        transactionId,
+      });
       return null;
     }
   }
