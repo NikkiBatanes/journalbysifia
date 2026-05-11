@@ -9,7 +9,7 @@ import { SubscriptionTier } from '../types/subscription';
 import { Logger } from './ProductionLogger';
 
 export interface SalesCopyParams {
-  featureType: 'playbooks' | 'devotionals' | 'wisdom';
+  featureType: 'playbooks' | 'devotionals' | 'wisdom' | 'refinement';
   currentTier: SubscriptionTier;
   remaining: number;
   limit: number;
@@ -51,18 +51,18 @@ function getTierDisplayName(tier: SubscriptionTier): string {
 /**
  * Get tier limits
  */
-function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals' | 'wisdom'): number {
+function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals' | 'wisdom' | 'refinement'): number {
   const limits = {
-    'seeker': { playbooks: 2, devotionals: 1, wisdom: 2 },
-    'free_trial': { playbooks: 15, devotionals: 15, wisdom: 6 }, // Default, actual limits depend on trial_chosen_tier
-    'spark': { playbooks: 10, devotionals: 10, wisdom: 5 },
-    'spark_annual': { playbooks: 10, devotionals: 10, wisdom: 5 },
-    'growth': { playbooks: 25, devotionals: 25, wisdom: 12 },
-    'growth_annual': { playbooks: 25, devotionals: 25, wisdom: 12 },
-    'transformation': { playbooks: 60, devotionals: 60, wisdom: 25 },
-    'transformation_annual': { playbooks: 60, devotionals: 60, wisdom: 25 },
-    // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1 },
-  } as Record<SubscriptionTier, { playbooks: number; devotionals: number; wisdom: number }>;
+    'seeker': { playbooks: 2, devotionals: 1, wisdom: 2, refinement: 1 },
+    'free_trial': { playbooks: 15, devotionals: 15, wisdom: 6, refinement: 4 }, // Default, actual limits depend on trial_chosen_tier
+    'spark': { playbooks: 10, devotionals: 10, wisdom: 5, refinement: 3 },
+    'spark_annual': { playbooks: 10, devotionals: 10, wisdom: 5, refinement: 3 },
+    'growth': { playbooks: 25, devotionals: 25, wisdom: 12, refinement: 6 },
+    'growth_annual': { playbooks: 25, devotionals: 25, wisdom: 12, refinement: 6 },
+    'transformation': { playbooks: 60, devotionals: 60, wisdom: 25, refinement: 15 },
+    'transformation_annual': { playbooks: 60, devotionals: 60, wisdom: 25, refinement: 15 },
+    // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1, refinement: -1 },
+  } as Record<SubscriptionTier, { playbooks: number; devotionals: number; wisdom: number; refinement: number }>;
   return limits[tier][featureType];
 }
 
@@ -138,7 +138,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     hasEverStartedTrial = false,
   } = params;
 
-  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : 'Devotionals';
+  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : featureType === 'refinement' ? 'Refinements' : 'Devotionals';
   const hasNoRemaining = remaining === 0;
   const effectiveTier = currentTier === 'free_trial' && trialChosenTier
     ? trialChosenTier
@@ -161,9 +161,13 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         ? hasEverStartedTrial
           ? 'Your free wisdom requests for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to ask for guidance on your next faithful action, with up to 12 wisdom requests each month.'
           : 'Your free wisdom requests for this month have been used. More will open again next month.\n\nStart your 3-day free trial to keep asking for guidance on your next faithful action.'
-        : hasEverStartedTrial
-          ? 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.'
-          : 'Your free devotional for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep returning to Scripture, reflection, and prayer this month.';
+        : featureType === 'refinement'
+          ? hasEverStartedTrial
+            ? 'Your free playbook refinement for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to refine your playbook, with up to 6 refinements each month.'
+            : 'Your free playbook refinement for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep refining your playbook this month.'
+          : hasEverStartedTrial
+            ? 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.'
+            : 'Your free devotional for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep returning to Scripture, reflection, and prayer this month.';
 
     // Dynamic CTA based on trial usage
     const primaryCta = hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial';
@@ -197,12 +201,21 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
       'growth': 6,
       'transformation': 10,
     };
+    const trialRefinementLimits = {
+      'spark': 2,
+      'growth': 6,
+      'transformation': 10,
+    };
     const trialLimit = featureType === 'wisdom'
       ? trialWisdomLimits[trialTier as keyof typeof trialWisdomLimits] || 6
-      : trialLimits[trialTier as keyof typeof trialLimits] || 5;
+      : featureType === 'refinement'
+        ? trialRefinementLimits[trialTier as keyof typeof trialRefinementLimits] || 4
+        : trialLimits[trialTier as keyof typeof trialLimits] || 5;
     const trialLimitText = featureType === 'wisdom'
       ? trialLimit === 1 ? '1 wisdom request' : `${trialLimit} wisdom requests`
-      : trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
+      : featureType === 'refinement'
+        ? trialLimit === 1 ? '1 refinement' : `${trialLimit} refinements`
+        : trialLimit === 1 ? `1 ${featureType.slice(0, -1)}` : `${trialLimit} ${featureType}`;
 
     // Calculate when subscription starts
     const trialEnd = trialEndDate ? new Date(trialEndDate) : new Date();
@@ -246,8 +259,10 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
     const limitText = featureType === 'wisdom'
       ? limit === 1 ? '1 wisdom request' : `${limit} wisdom requests`
-      : limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
-    const refreshName = featureType === 'wisdom' ? 'wisdom requests' : featureNamePlural.toLowerCase();
+      : featureType === 'refinement'
+        ? limit === 1 ? '1 refinement' : `${limit} refinements`
+        : limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
+    const refreshName = featureType === 'wisdom' ? 'wisdom requests' : featureType === 'refinement' ? 'refinements' : featureNamePlural.toLowerCase();
 
     if (currentTier === 'spark' || currentTier === 'spark_annual') {
       return {

@@ -499,6 +499,7 @@ interface FloatingRefinementControlProps {
   isRefining: boolean;
   insets: { bottom: number };
   onRefineSubmit: (correctionType: PlaybookCorrectionType, clarification: string) => Promise<boolean>;
+  onUpgradeNeeded: () => void;
 }
 
 const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
@@ -507,6 +508,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   isRefining,
   insets,
   onRefineSubmit,
+  onUpgradeNeeded,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -522,6 +524,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const [dotIndex, setDotIndex] = useState(0);
   const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
   const canRefine = active && refinementsRemaining > 0;
+  const canShowButton = active;
   const bottomOffset = insets.bottom + 20;
   const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom - 12) : 0;
   const panelGap = keyboardHeight > 0 ? 10 : 56;
@@ -533,7 +536,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    if (canRefine) {
+    if (canShowButton) {
       revealAnim.setValue(0);
       setVisible(false);
       timeout = setTimeout(() => {
@@ -558,7 +561,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
         clearTimeout(timeout);
       }
     };
-  }, [canRefine, revealAnim]);
+  }, [canShowButton, revealAnim]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -634,7 +637,12 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
 
   const handleToggle = () => {
     triggerLightHaptic();
-    if (!canRefine || isRefining) {
+    if (isRefining) {
+      return;
+    }
+
+    if (refinementsRemaining === 0) {
+      onUpgradeNeeded();
       return;
     }
 
@@ -679,7 +687,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
     }
   };
 
-  if (!visible || !canRefine) {
+  if (!visible || !canShowButton) {
     return null;
   }
 
@@ -822,11 +830,13 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
             disabled={isRefining}
           >
             <Ionicons name="refresh-outline" size={15} color="rgba(255,255,255,0.9)" />
-            <View style={styles.refinementCountBadge}>
-              <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
-                {refinementsRemaining === Number.MAX_SAFE_INTEGER ? '∞' : refinementsRemaining} left
-              </ThemedText>
-            </View>
+            {refinementsRemaining > 0 && (
+              <View style={styles.refinementCountBadge}>
+                <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
+                  {refinementsRemaining === Number.MAX_SAFE_INTEGER ? '∞' : refinementsRemaining}
+                </ThemedText>
+              </View>
+            )}
           </TouchableOpacity>
         </Animated.View>
       ) : null}
@@ -3949,11 +3959,21 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
 
       <FloatingRefinementControl
-        active={stepIndex === 1 && canRefine}
+        active={stepIndex === 1}
         refinementsRemaining={refinementsRemaining}
         isRefining={isRefining}
         insets={insets}
         onRefineSubmit={handleRefinePlaybook}
+        onUpgradeNeeded={() => {
+          navigation.navigate('OnboardingSalesOffer' as any, {
+            upgradeMode: true,
+            source: 'refinement_limit',
+            feature: 'refinement',
+            featureType: 'refinement',
+            skipNotificationPreference: true,
+            dismissBehavior: 'goBack',
+          });
+        }}
       />
 
 
@@ -4262,7 +4282,7 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 125,
     borderRadius: 28,
-    backgroundColor: 'rgb(30, 41, 59)',
+    backgroundColor: Colors.anchorBlue,
     padding: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
