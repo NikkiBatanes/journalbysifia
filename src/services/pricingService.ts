@@ -40,6 +40,8 @@ class PricingService {
       features: [
         '10 playbooks',
         '10 devotionals',
+        '5 how-to\'s for faithful actions',
+        '3 playbook refinements',
         '1 & 3-day devotionals',
         'Guided prompts',
         'Smart Journaling',
@@ -58,6 +60,8 @@ class PricingService {
       features: [
         '25 playbooks',
         '25 devotionals',
+        '12 how-to\'s for faithful actions',
+        '6 playbook refinements',
         '1, 3 & 5-day devotionals',
         'Guided prompts',
         'Smart Journaling',
@@ -79,6 +83,8 @@ class PricingService {
       features: [
         '60 playbooks',
         '60 devotionals',
+        '25 how-to\'s for faithful actions',
+        '15 playbook refinements',
         '1, 3, 5 & 7-day devotionals',
         'Guided prompts',
         'Smart Journaling',
@@ -115,6 +121,8 @@ class PricingService {
       features: [
         '10 playbooks',
         '10 devotionals',
+        '5 how-to\'s for faithful actions',
+        '3 playbook refinements',
         '1 & 3-day devotionals',
         'Guided prompts',
         'Smart Journaling',
@@ -134,6 +142,8 @@ class PricingService {
       features: [
         '25 playbooks',
         '25 devotionals',
+        '12 how-to\'s for faithful actions',
+        '6 playbook refinements',
         '1, 3 & 5-day devotionals',
         'Guided prompts',
         'Smart Journaling',
@@ -155,6 +165,8 @@ class PricingService {
       features: [
         '60 playbooks',
         '60 devotionals',
+        '25 how-to\'s for faithful actions',
+        '15 playbook refinements',
         '1, 3, 5 & 7-day devotionals',
         'Guided prompts',
         'Smart Journaling',

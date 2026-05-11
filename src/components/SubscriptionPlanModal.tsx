@@ -166,9 +166,13 @@ interface Subscription {
   limits?: {
     playbooks: number;
     devotionals: number;
+    wisdom_limit: number;
+    refinement_limit: number;
   };
   playbooks_used?: number;
   devotionals_used?: number;
+  wisdom_count?: number;
+  refinement_count?: number;
   subscription_display_name?: string;
   trial_chosen_tier?: string;
   billing_cycle?: 'monthly' | 'annual';
@@ -211,14 +215,14 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           id: 'test-id',
           tier: testModeTier || 'seeker',
           status: testModeStatus || (testModeTier === 'seeker' ? 'active' : 'active'),
-          limits: testModeTier === 'seeker' ? { playbooks: 2, devotionals: 1 } :
-                   testModeTier === 'spark' ? { playbooks: 10, devotionals: 10 } :
-                   testModeTier === 'growth' ? { playbooks: 25, devotionals: 25 } :
-                   testModeTier === 'transformation' ? { playbooks: 60, devotionals: 60 } :
-                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
-                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
-                   testModeTier === 'free_trial' ? { playbooks: 15, devotionals: 15 } :
-                   { playbooks: 2, devotionals: 1 },
+          limits: testModeTier === 'seeker' ? { playbooks: 2, devotionals: 1, wisdom_limit: 2, refinement_limit: 1 } :
+                   testModeTier === 'spark' ? { playbooks: 10, devotionals: 10, wisdom_limit: 5, refinement_limit: 3 } :
+                   testModeTier === 'growth' ? { playbooks: 25, devotionals: 25, wisdom_limit: 12, refinement_limit: 6 } :
+                   testModeTier === 'transformation' ? { playbooks: 60, devotionals: 60, wisdom_limit: 25, refinement_limit: 15 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5, wisdom_limit: 2, refinement_limit: 2 } :
+                   testModeTier === 'free_trial' && testModeTrialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25, wisdom_limit: 10, refinement_limit: 6 } :
+                   testModeTier === 'free_trial' ? { playbooks: 15, devotionals: 15, wisdom_limit: 6, refinement_limit: 4 } :
+                   { playbooks: 2, devotionals: 1, wisdom_limit: 2, refinement_limit: 1 },
           playbooks_used: 0,
           devotionals_used: 0,
           subscription_display_name: testModeTier === 'free_trial' ? `siFia ${testModeTrialChosenTier || 'Growth'} Trial` : undefined,
@@ -289,6 +293,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     limits: {
       playbooks: number;
       devotionals: number;
+      wisdom: number;
+      refinement: number;
     };
     color: string;
   } => {
@@ -302,6 +308,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '2 playbooks each month',
             '1 devotional each month',
+            '2 how-to\'s for faithful actions each month',
+            '1 playbook refinement each month',
             'Basic journaling for personal reflection',
             'A quiet space to write and process what\'s on your heart',
             'Begin exploring siFia\'s approach to reflection and discernment',
@@ -309,6 +317,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           limits: {
             playbooks: 2,
             devotionals: 1,
+            wisdom: 2,
+            refinement: 1,
           },
           color: Colors.textGray,
         };
@@ -319,6 +329,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '10 playbooks each month',
             '10 devotionals each month',
+            '5 how-to\'s for faithful actions each month',
+            '3 playbook refinements each month',
             'Access 1-day and 3-day devotionals',
             'Gentle reminders',
             'Track your progress week by week',
@@ -330,6 +342,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           limits: {
             playbooks: 10,
             devotionals: 10,
+            wisdom: 5,
+            refinement: 3,
           },
           color: Colors.alertCoral,
         };
@@ -340,6 +354,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '25 playbooks each month',
             '25 devotionals each month',
+            '12 how-to\'s for faithful actions each month',
+            '6 playbook refinements each month',
             'Access 1-day, 3-day, and 5-day devotionals',
             'Gentle reminders',
             'Track your progress week by week',
@@ -353,6 +369,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           limits: {
             playbooks: 25,
             devotionals: 25,
+            wisdom: 12,
+            refinement: 6,
           },
           color: Colors.growthGreen,
         };
@@ -363,6 +381,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           features: [
             '60 playbooks each month',
             '60 devotionals each month',
+            '25 how-to\'s for faithful actions each month',
+            '15 playbook refinements each month',
             'Access 1-day, 3-day, 5-day, and 7-day devotionals',
             'Gentle reminders',
             'Track your progress week by week',
@@ -377,6 +397,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           limits: {
             playbooks: 60,
             devotionals: 60,
+            wisdom: 25,
+            refinement: 15,
           },
           color: Colors.faithGold,
         };
@@ -387,15 +409,17 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         const billingCycle = subscription?.billing_cycle === 'annual' ? ' Annual' : '';
 
         // Get tier-specific trial limits
-        const trialLimits = chosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
-                            chosenTier === 'growth' ? { playbooks: 15, devotionals: 15 } :
-                            chosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
-                            { playbooks: 15, devotionals: 15 }; // default to growth
+        const trialLimits = chosenTier === 'spark' ? { playbooks: 5, devotionals: 5, wisdom: 2, refinement: 2 } :
+                            chosenTier === 'growth' ? { playbooks: 15, devotionals: 15, wisdom: 6, refinement: 4 } :
+                            chosenTier === 'transformation' ? { playbooks: 25, devotionals: 25, wisdom: 10, refinement: 6 } :
+                            { playbooks: 15, devotionals: 15, wisdom: 6, refinement: 4 }; // default to growth
 
         // Get tier-specific features based on chosen tier
         const tierFeatures = chosenTier === 'spark' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
+          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day and 3-day devotionals',
           'Gentle reminders',
           'Track your progress week by week',
@@ -406,6 +430,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : chosenTier === 'growth' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
+          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day, 3-day, and 5-day devotionals',
           'Gentle reminders',
           'Track your progress week by week',
@@ -418,6 +444,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : chosenTier === 'transformation' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
+          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day, 3-day, 5-day, and 7-day devotionals',
           'Gentle reminders',
           'Track your progress week by week',
@@ -431,6 +459,8 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
+          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day and 3-day devotionals',
           'Gentle reminders',
           'Track your progress week by week',
