@@ -26,6 +26,48 @@ interface DecodedTransaction {
   expiresDate?: number;
   transactionReason?: string;
   offerType?: number;
+  storefront?: string; // ISO 3166-1 alpha-3 country code e.g. "PHL", "USA"
+}
+
+function storefrontToLocale(storefront: string | undefined): string | null {
+  if (!storefront) { return null; }
+  const map: Record<string, string> = {
+    PHL: 'en-PH',
+    USA: 'en-US',
+    GBR: 'en-GB',
+    AUS: 'en-AU',
+    CAN: 'en-CA',
+    SGP: 'en-SG',
+    MYS: 'ms-MY',
+    IDN: 'id-ID',
+    JPN: 'ja-JP',
+    KOR: 'ko-KR',
+    HKG: 'zh-HK',
+    TWN: 'zh-TW',
+    CHN: 'zh-CN',
+    IND: 'en-IN',
+    ARE: 'ar-AE',
+    SAU: 'ar-SA',
+    DEU: 'de-DE',
+    FRA: 'fr-FR',
+    ESP: 'es-ES',
+    ITA: 'it-IT',
+    BRA: 'pt-BR',
+    MEX: 'es-MX',
+    NLD: 'nl-NL',
+    SWE: 'sv-SE',
+    NOR: 'nb-NO',
+    DNK: 'da-DK',
+    FIN: 'fi-FI',
+    POL: 'pl-PL',
+    RUS: 'ru-RU',
+    TUR: 'tr-TR',
+    ZAF: 'en-ZA',
+    NGA: 'en-NG',
+    GHA: 'en-GH',
+    KEN: 'en-KE',
+  };
+  return map[storefront.toUpperCase()] ?? `en-${storefront.toUpperCase().slice(0, 2)}`;
 }
 
 interface ValidatedReceiptRow {
@@ -359,6 +401,17 @@ serve(async (req) => {
           });
         } else {
           console.log(`[SyncApple] ✅ Successfully upgraded user ${user.user_id} to ${tier}`);
+
+          // Save locale from Apple storefront so market detection works in admin dashboard
+          const locale = storefrontToLocale(latestPaid.storefront);
+          if (locale) {
+            await supabaseClient
+              .from('user_profiles')
+              .update({ locale })
+              .eq('id', user.user_id);
+            console.log(`[SyncApple] 🌍 Set locale ${locale} for user ${user.user_id} (storefront: ${latestPaid.storefront})`);
+          }
+
           results.push({
             user_id: user.user_id,
             success: true,
@@ -367,6 +420,8 @@ serve(async (req) => {
             to_tier: tier,
             product_id: latestPaid.productId,
             billing_cycle: billingCycle,
+            storefront: latestPaid.storefront ?? null,
+            locale: locale ?? null,
           });
         }
 

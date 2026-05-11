@@ -65,6 +65,10 @@ export class TrialManagementService {
       const billingCycleName = billingCycle === 'annual' ? ' Annual' : '';
       const displayName = `siFia ${tierName}${billingCycleName} Trial`;
 
+      // Capture device locale for location detection
+      const { getDeviceLocale } = await import('../utils/localeHelper');
+      const deviceLocale = getDeviceLocale();
+
       // Update subscription to free_trial tier
       const { error } = await supabase
         .from('user_subscriptions_new')
@@ -84,6 +88,7 @@ export class TrialManagementService {
           platform_transaction_id: transactionId,
           original_transaction_id: transactionId, // CRITICAL: Store for webhook lookups
           subscription_start_date: trialStartDate.toISOString(),
+          locale: deviceLocale, // Capture device locale for market detection
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)

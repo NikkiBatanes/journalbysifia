@@ -90,6 +90,7 @@ interface SubscriptionRow {
   platform_transaction_id: string | null;
   updated_at: string | null;
   days_remaining: number | null;
+  locale: string | null;
 }
 
 interface WebhookRow {
@@ -273,6 +274,20 @@ function tierLabel(row: SubscriptionRow): string {
 }
 
 function getMarket(row: SubscriptionRow): 'PH' | 'GLOBAL' {
+  // Check locale field if available (primary method)
+  if (row.locale) {
+    const localeLower = row.locale.toLowerCase();
+    if (
+      localeLower.includes('ph') ||
+      localeLower.includes('philippines') ||
+      localeLower.includes('en-ph') ||
+      localeLower.includes('fil-ph')
+    ) {
+      return 'PH';
+    }
+  }
+  
+  // Fallback to email domain check
   const email = (row.email || '').toLowerCase();
   if (
     email.endsWith('.ph') ||
@@ -292,6 +307,33 @@ function isPaidSubscriptionRow(row: SubscriptionRow): boolean {
   const hasAppleTransaction = !!row.original_transaction_id || !!row.platform_transaction_id;
   const hasValidEndDate = !row.subscription_end_date || new Date(row.subscription_end_date) >= new Date();
   return hasPaidTier && hasAppleTransaction && row.status === 'active' && hasValidEndDate;
+}
+
+// Tier-based pricing (PHP and USD)
+// Monthly prices per tier. Annual MRR = annual_price / 12.
+const PHP_PRICES: Record<string, { monthly: number; annual: number }> = {
+  spark:          { monthly: 199,  annual: 1990  },
+  growth:         { monthly: 299,  annual: 2990  },
+  transformation: { monthly: 399,  annual: 3990  },
+};
+const USD_PRICES: Record<string, { monthly: number; annual: number }> = {
+  spark:          { monthly: 4.99,  annual: 49.99  },
+  growth:         { monthly: 7.99,  annual: 79.99  },
+  transformation: { monthly: 9.99,  annual: 99.99  },
+};
+
+function getBaseTier(tier: string): string {
+  return tier.replace('_annual', '').toLowerCase();
+}
+
+// Returns MRR contribution for one subscriber in their currency
+function getMRRContribution(row: SubscriptionRow, market: 'PH' | 'GLOBAL'): number {
+  const baseTier = getBaseTier(row.tier);
+  const isAnnual = row.billing_cycle === 'annual' || row.tier.includes('annual');
+  const prices = market === 'PH' ? PHP_PRICES : USD_PRICES;
+  const tierPrices = prices[baseTier];
+  if (!tierPrices) { return market === 'PH' ? 299 : 7.99; } // fallback Growth price
+  return isAnnual ? tierPrices.annual / 12 : tierPrices.monthly;
 }
 
 const FILTER_TABS: { key: FilterTab; label: string; icon: string; subtitle: string }[] = [
@@ -601,18 +643,42 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 
   const analyticsWindow = getAnalyticsWindow();
   const activePaidRows = analyticsRows.filter(isPaidSubscriptionRow);
-  const phPaidRows = activePaidRows.filter(
-    row => getMarket(row) === 'PH'
-  );
-  const globalPaidRows = activePaidRows.filter(
-    row => getMarket(row) === 'GLOBAL'
-  );
-  const estimatedPhpRevenue = phPaidRows.length * 399;
-  const estimatedUsdRevenue = globalPaidRows.length * 9.99;
-  const upcomingRenewals = activePaidRows
+  const phPaidRows = activePaidRows.filter(row => getMarket(row) === 'PH');
+  const globalPaidRows = activePaidRows.filter(row => getMarket(row) === 'GLOBAL');
+
+  // MRR: sum of per-tier monthly contribution, annual divided by 12
+  const phpMRR = phPaidRows.reduce((sum, row) => sum + getMRRContribution(row, 'PH'), 0);
+  const usdMRR = globalPaidRows.reduce((sum, row) => sum + getMRRContribution(row, 'GLOBAL'), 0);
+
+  // Monthly-only revenue (not annualized)
+  const phpMonthlyOnlyRows = phPaidRows.filter(r => r.billing_cycle === 'monthly' && !r.tier.includes('annual'));
+  const phpAnnualRows = phPaidRows.filter(r => r.billing_cycle === 'annual' || r.tier.includes('annual'));
+  const usdMonthlyOnlyRows = globalPaidRows.filter(r => r.billing_cycle === 'monthly' && !r.tier.includes('annual'));
+  const usdAnnualRows = globalPaidRows.filter(r => r.billing_cycle === 'annual' || r.tier.includes('annual'));
+
+  // All upcoming renewals (not sliced) for accurate count
+  const allUpcomingRenewals = activePaidRows
     .filter(row => row.auto_renew_enabled !== false && row.subscription_end_date)
-    .sort((a, b) => new Date(a.subscription_end_date || 0).getTime() - new Date(b.subscription_end_date || 0).getTime())
-    .slice(0, 8);
+    .sort((a, b) => new Date(a.subscription_end_date || 0).getTime() - new Date(b.subscription_end_date || 0).getTime());
+  const upcomingRenewals = allUpcomingRenewals.slice(0, 8);
+
+  // Trials expiring in next 7 days (for the Active Trials card)
+  const now7 = new Date();
+  now7.setDate(now7.getDate() + 7);
+  const trialsExpiringSoon = analyticsRows.filter(row =>
+    row.tier === 'free_trial' &&
+    row.trial_end_date &&
+    new Date(row.trial_end_date) > new Date() &&
+    new Date(row.trial_end_date) <= now7
+  );
+
+  // New paid subscribers this week (for hero card trend)
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const newPaidThisWeek = activePaidRows.filter(row =>
+    row.subscription_start_date &&
+    new Date(row.subscription_start_date) >= oneWeekAgo
+  ).length;
   const attentionRows = analyticsRows.filter(row => {
     const now = new Date();
     const isBillingIssue = !!row.billing_issue;
@@ -729,6 +795,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           platform_transaction_id: null,
           updated_at: null,
           days_remaining: null,
+          locale: null,
         });
       }
     });
@@ -1202,7 +1269,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <ThemedText weight="regular" style={styles.healthCardLabel}>Paid Subscribers</ThemedText>
             <View style={styles.healthCardTrend}>
               <Ionicons name="trending-up" size={14} color={Colors.growthGreen} />
-              <ThemedText weight="regular" style={styles.healthCardTrendText}>+2 this week</ThemedText>
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>
+                {newPaidThisWeek > 0 ? `+${newPaidThisWeek} this week` : 'No new this week'}
+              </ThemedText>
             </View>
           </View>
           {/* Secondary cards */}
@@ -1211,29 +1280,36 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <ThemedText weight="regular" style={styles.healthCardLabel}>Active Trials</ThemedText>
             <View style={styles.healthCardTrend}>
               <Ionicons name="time" size={12} color="#FFC107" />
-              <ThemedText weight="regular" style={styles.healthCardTrendText}>{upcomingRenewals.length} expiring</ThemedText>
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>
+                {trialsExpiringSoon.length > 0
+                  ? `${trialsExpiringSoon.length} expiring in 7d`
+                  : 'none expiring soon'}
+              </ThemedText>
             </View>
           </View>
           <View style={styles.healthCardSecondary}>
             <ThemedText weight="semiBold" style={styles.healthCardRevenueTitle}>
-              Revenue Mix
+              Est. MRR
             </ThemedText>
-            <View style={styles.marketRevenueRow}>
-              <ThemedText weight="regular" style={styles.marketRevenueLabel}>
-                🇵🇭 PHP
-              </ThemedText>
-              <ThemedText weight="bold" style={styles.marketRevenueValue}>
-                ₱{estimatedPhpRevenue.toLocaleString()}
-              </ThemedText>
-            </View>
-            <View style={styles.marketRevenueRow}>
-              <ThemedText weight="regular" style={styles.marketRevenueLabel}>
-                🌍 USD
-              </ThemedText>
-              <ThemedText weight="bold" style={styles.marketRevenueValue}>
-                ${estimatedUsdRevenue.toFixed(0)}
-              </ThemedText>
-            </View>
+            {phpMRR > 0 && (
+              <View style={styles.marketRevenueRow}>
+                <ThemedText weight="regular" style={styles.marketRevenueLabel}>🇵🇭 PHP</ThemedText>
+                <ThemedText weight="bold" style={styles.marketRevenueValue}>
+                  ₱{Math.round(phpMRR).toLocaleString()}
+                </ThemedText>
+              </View>
+            )}
+            {usdMRR > 0 && (
+              <View style={styles.marketRevenueRow}>
+                <ThemedText weight="regular" style={styles.marketRevenueLabel}>🌍 USD</ThemedText>
+                <ThemedText weight="bold" style={styles.marketRevenueValue}>
+                  ${usdMRR.toFixed(2)}
+                </ThemedText>
+              </View>
+            )}
+            {phpMRR === 0 && usdMRR === 0 && (
+              <ThemedText weight="regular" style={styles.marketRevenueLabel}>No locale data</ThemedText>
+            )}
           </View>
           <View style={[styles.healthCardSecondary, { backgroundColor: 'rgba(255,59,48,0.12)' }]}>
             <ThemedText weight="bold" style={[styles.healthCardValue, { color: '#FF3B30' }]}>{overview?.billing_issues || 0}</ThemedText>
@@ -1358,11 +1434,274 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
-      {/* SECTION 5 - QUICK NAVIGATION TO DETAILED VIEWS */}
+      {/* SECTION 5 - LIFECYCLE FUNNEL */}
+      <StepFadeIn delay={270}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          User Journey Funnel
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={280}>
+        <View style={styles.funnelContainer}>
+          <View style={styles.funnelStage}>
+            <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.signups || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.funnelLabel}>Signups</ThemedText>
+            <View style={styles.funnelArrow}>↓</View>
+          </View>
+          <View style={styles.funnelStage}>
+            <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.onboarding_completed ?? '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.funnelLabel}>Onboarding Completed</ThemedText>
+            <View style={styles.funnelArrow}>↓</View>
+          </View>
+          <View style={styles.funnelStage}>
+            <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.first_playbook_generated ?? '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.funnelLabel}>First Playbook</ThemedText>
+            <View style={styles.funnelArrow}>↓</View>
+          </View>
+          <View style={styles.funnelStage}>
+            <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.trial_started || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.funnelLabel}>Trial Started</ThemedText>
+            <View style={styles.funnelArrow}>↓</View>
+          </View>
+          <View style={styles.funnelStage}>
+            <ThemedText weight="bold" style={[styles.funnelValue, { color: Colors.growthGreen }]}>{dashboardMetrics?.lifecycleFunnel?.subscription_purchased || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.funnelLabel}>Paid</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 6 - TIME-BASED METRICS */}
+      <StepFadeIn delay={290}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          This Week
+        </ThemedText>
+      </StepFadeIn>
       <StepFadeIn delay={300}>
-        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Explore Data</ThemedText>
+        <View style={styles.timeMetricsContainer}>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.new_signups || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>New Signups</ThemedText>
+          </View>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.onboarding_completed ?? '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>Onboarding</ThemedText>
+          </View>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.first_playbooks ?? '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>Playbooks</ThemedText>
+          </View>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.trials_started || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>Trials</ThemedText>
+          </View>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={[styles.timeMetricValue, { color: Colors.growthGreen }]}>{dashboardMetrics?.timeBasedMetrics?.week?.subscriptions || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>Subscribed</ThemedText>
+          </View>
+          <View style={styles.timeMetricCard}>
+            <ThemedText weight="bold" style={[styles.timeMetricValue, { color: '#FF3B30' }]}>{dashboardMetrics?.timeBasedMetrics?.week?.cancellations || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.timeMetricLabel}>Cancelled</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 7 - CONVERSION RATES */}
+      <StepFadeIn delay={310}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Conversion Rates
+        </ThemedText>
       </StepFadeIn>
       <StepFadeIn delay={320}>
+        <View style={styles.conversionRatesContainer}>
+          <View style={styles.conversionRateCard}>
+            <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.signup_to_onboarding !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.signup_to_onboarding}%` : '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.conversionRateLabel}>Signup → Onboarding</ThemedText>
+          </View>
+          <View style={styles.conversionRateCard}>
+            <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.onboarding_to_playbook !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.onboarding_to_playbook}%` : '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.conversionRateLabel}>Onboarding → Playbook</ThemedText>
+          </View>
+          <View style={styles.conversionRateCard}>
+            <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.playbook_to_trial !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.playbook_to_trial}%` : '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.conversionRateLabel}>Playbook → Trial</ThemedText>
+          </View>
+          <View style={styles.conversionRateCard}>
+            <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.trial_to_paid !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.trial_to_paid}%` : '—'}</ThemedText>
+            <ThemedText weight="regular" style={styles.conversionRateLabel}>Trial → Paid</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 8 - CHURN VIEW */}
+      <StepFadeIn delay={330}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Churn Overview
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={340}>
+        <View style={styles.churnContainer}>
+          <View style={styles.churnMetric}>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: Colors.growthGreen }]}>{dashboardMetrics?.churnMetrics?.new_paid || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.churnMetricLabel}>New Paid</ThemedText>
+          </View>
+          <View style={styles.churnMetric}>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: '#FF3B30' }]}>{dashboardMetrics?.churnMetrics?.cancelled || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.churnMetricLabel}>Cancelled</ThemedText>
+          </View>
+          <View style={styles.churnMetric}>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? Colors.growthGreen : '#FF3B30' }]}>{(dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? '+' : ''}{dashboardMetrics?.churnMetrics?.net_growth ?? 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.churnMetricLabel}>Net Growth</ThemedText>
+          </View>
+          <View style={styles.churnMetric}>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.churn_rate ?? 0) > 10 ? '#FF3B30' : Colors.hopeWhite }]}>{dashboardMetrics?.churnMetrics?.churn_rate ?? 0}%</ThemedText>
+            <ThemedText weight="regular" style={styles.churnMetricLabel}>Churn Rate</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 9 - PLAYBOOK DROPOFF */}
+      <StepFadeIn delay={350}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Activation Issues
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={360}>
+        <View style={styles.dropoffContainer}>
+          <View style={styles.dropoffCard}>
+            <ThemedText weight="bold" style={[styles.dropoffValue, { color: '#FF9500' }]}>{dashboardMetrics?.playbookDropoff?.signed_up_no_playbook || 0}</ThemedText>
+            <ThemedText weight="regular" style={styles.dropoffLabel}>Never Generated Playbook</ThemedText>
+          </View>
+          <View style={styles.dropoffCard}>
+            <ThemedText weight="bold" style={styles.dropoffValue}>{dashboardMetrics?.playbookDropoff?.avg_time_to_first_playbook_hours || 0}h</ThemedText>
+            <ThemedText weight="regular" style={styles.dropoffLabel}>Avg Time to First Playbook</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 10 - RECENT USERS FEED */}
+      <StepFadeIn delay={370}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Recent Users
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={380}>
+        <View style={styles.recentUsersContainer}>
+          {dashboardMetrics?.recentUsers?.slice(0, 5).map((user) => (
+            <View key={user.user_id} style={styles.recentUserRow}>
+              <View style={styles.recentUserInfo}>
+                <ThemedText weight="semiBold" style={styles.recentUserName}>{user.name || 'Unknown'}</ThemedText>
+                <ThemedText weight="regular" style={styles.recentUserEmail}>{user.email || 'No email'}</ThemedText>
+              </View>
+              <View style={styles.recentUserStatus}>
+                {user.onboarding_completed && (
+                  <View style={styles.statusBadge}>
+                    <ThemedText weight="regular" style={styles.statusBadgeText}>✓ Onboarding</ThemedText>
+                  </View>
+                )}
+                {user.first_playbook_generated && (
+                  <View style={styles.statusBadge}>
+                    <ThemedText weight="regular" style={styles.statusBadgeText}>📖 Playbook</ThemedText>
+                  </View>
+                )}
+                {user.trial_started && (
+                  <View style={styles.statusBadge}>
+                    <ThemedText weight="regular" style={styles.statusBadgeText}>⏱ Trial</ThemedText>
+                  </View>
+                )}
+                {user.subscribed && (
+                  <View style={[styles.statusBadge, { backgroundColor: 'rgba(52, 199, 89, 0.2)' }]}>
+                    <ThemedText weight="regular" style={[styles.statusBadgeText, { color: Colors.growthGreen }]}>💎 Paid</ThemedText>
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 11 - USERS AT RISK */}
+      <StepFadeIn delay={390}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Users At Risk
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={400}>
+        <View style={styles.atRiskContainer}>
+          {dashboardMetrics?.nonConverterSegments?.map((segment) => (
+            <View key={segment.state} style={styles.atRiskSegment}>
+              <ThemedText weight="bold" style={styles.atRiskSegmentCount}>{segment.count}</ThemedText>
+              <ThemedText weight="regular" style={styles.atRiskSegmentLabel}>{segment.label}</ThemedText>
+            </View>
+          ))}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 12 - HIGH INTENT USERS */}
+      <StepFadeIn delay={410}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          High Intent Non-Converters
+        </ThemedText>
+        <ThemedText weight="regular" style={styles.sectionDescription}>
+          Generated {dashboardMetrics?.highIntentUsers?.reduce((sum, u) => sum + u.playbooks_generated, 0) || 0} playbooks but never subscribed
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={420}>
+        <View style={styles.highIntentContainer}>
+          {dashboardMetrics?.highIntentUsers?.slice(0, 5).map((user) => (
+            <View key={user.user_id} style={styles.highIntentUserRow}>
+              <View style={styles.highIntentUserInfo}>
+                <ThemedText weight="semiBold" style={styles.highIntentUserName}>{user.name || 'Unknown'}</ThemedText>
+                <ThemedText weight="regular" style={styles.highIntentUserEmail}>{user.email || 'No email'}</ThemedText>
+              </View>
+              <View style={styles.highIntentUserMetrics}>
+                <ThemedText weight="regular" style={styles.highIntentUserMetric}>
+                  {user.playbooks_generated} 📖 · {user.app_opens} opens
+                </ThemedText>
+                <ThemedText weight="regular" style={styles.highIntentUserDays}>
+                  {user.days_since_last_activity !== null ? `${user.days_since_last_activity}d ago` : 'Unknown'}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 13 - USER SEGMENTS */}
+      <StepFadeIn delay={430}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          User Segments
+        </ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={440}>
+        <View style={styles.segmentsContainer}>
+          {dashboardMetrics?.userSegments?.map((segment) => (
+            <View 
+              key={segment.id} 
+              style={[
+                styles.segmentCard,
+                segment.priority === 'high' && styles.segmentCardHighPriority
+              ]}
+            >
+              <View style={styles.segmentHeader}>
+                <ThemedText weight="semiBold" style={styles.segmentLabel}>{segment.label}</ThemedText>
+                <View style={[
+                  styles.priorityBadge,
+                  segment.priority === 'high' && styles.priorityBadgeHigh
+                ]}>
+                  <ThemedText weight="regular" style={styles.priorityBadgeText}>{segment.priority.toUpperCase()}</ThemedText>
+                </View>
+              </View>
+              <ThemedText weight="regular" style={styles.segmentDescription}>{segment.description}</ThemedText>
+              <ThemedText weight="bold" style={styles.segmentCount}>{segment.count} users</ThemedText>
+            </View>
+          ))}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 14 - QUICK NAVIGATION TO DETAILED VIEWS */}
+      <StepFadeIn delay={450}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Explore Data</ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={470}>
         {renderTabChoices()}
       </StepFadeIn>
 
@@ -2574,5 +2913,303 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+
+  // Lifecycle Funnel
+  funnelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  funnelStage: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  funnelValue: {
+    fontSize: 28,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  funnelLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
+  funnelArrow: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.3)',
+    marginTop: 4,
+  },
+
+  // Time-Based Metrics
+  timeMetricsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  timeMetricCard: {
+    flex: 1,
+    minWidth: '30%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  timeMetricValue: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  timeMetricLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
+
+  // Conversion Rates
+  conversionRatesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  conversionRateCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  conversionRateValue: {
+    fontSize: 24,
+    color: Colors.growthGreen,
+    marginBottom: 4,
+  },
+  conversionRateLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
+
+  // Churn Metrics
+  churnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  churnMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  churnMetricValue: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  churnMetricLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
+
+  // Playbook Dropoff
+  dropoffContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,149,0,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  dropoffCard: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dropoffValue: {
+    fontSize: 28,
+    color: '#FF9500',
+    marginBottom: 4,
+  },
+  dropoffLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+  },
+
+  // Recent Users Feed
+  recentUsersContainer: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  recentUserRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  recentUserInfo: {
+    flex: 1,
+  },
+  recentUserName: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  recentUserEmail: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  recentUserStatus: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+  },
+
+  // Users At Risk
+  atRiskContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  atRiskSegment: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  atRiskSegmentCount: {
+    fontSize: 28,
+    color: '#FF3B30',
+    marginBottom: 4,
+  },
+  atRiskSegmentLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+  },
+
+  // Section Description
+  sectionDescription: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 12,
+  },
+
+  // High Intent Users
+  highIntentContainer: {
+    backgroundColor: 'rgba(255,193,7,0.08)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  highIntentUserRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,193,7,0.15)',
+  },
+  highIntentUserInfo: {
+    flex: 1,
+  },
+  highIntentUserName: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  highIntentUserEmail: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  highIntentUserMetrics: {
+    alignItems: 'flex-end',
+  },
+  highIntentUserMetric: {
+    fontSize: 12,
+    color: '#FFC107',
+    marginBottom: 2,
+  },
+  highIntentUserDays: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // User Segments
+  segmentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  segmentCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 14,
+  },
+  segmentCardHighPriority: {
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,59,48,0.3)',
+  },
+  segmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  segmentLabel: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  priorityBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  priorityBadgeHigh: {
+    backgroundColor: 'rgba(255,59,48,0.2)',
+  },
+  priorityBadgeText: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  segmentDescription: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 8,
+    lineHeight: 14,
+  },
+  segmentCount: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
   },
 });
