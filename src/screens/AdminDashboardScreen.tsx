@@ -39,6 +39,8 @@ type DrilldownKey =
   | 'yearly_subscribers'
   | 'upcoming_renewals'
   | 'cancelled'
+  | 'cancelled_subscriptions'
+  | 'cancelled_trials'
   | null;
 type OverviewMetric =
   | 'active_trials'
@@ -91,6 +93,8 @@ interface SubscriptionRow {
   updated_at: string | null;
   days_remaining: number | null;
   locale: string | null;
+  onboarding_completed: boolean | null;
+  account_created_at: string | null;
 }
 
 interface WebhookRow {
@@ -412,6 +416,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['downloads_users', 'subscriber_breakdown', 'subscription_health', 'next_renewals', 'needs_attention', 'subscriptions', 'lifetime']));
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<MonthRange>('all');
+  const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>>(new Map());
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail);
@@ -486,7 +491,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const metrics = await adminDashboardService.getAllDashboardMetrics(startDate, endDate);
     setDashboardMetrics(metrics);
 
-    const [subscriptionResult, eventsResult, activityResult] = await Promise.all([
+    const [subscriptionResult, eventsResult, activityResult, contentStatsResult] = await Promise.all([
       supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
       supabase
         .from('analytics_events')
@@ -502,6 +507,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         .lte('date', endDate.toISOString().split('T')[0])
         .order('date', { ascending: false })
         .limit(500),
+      supabase.rpc('admin_get_user_content_stats'),
     ]);
 
     if (!subscriptionResult.error) {
@@ -513,6 +519,19 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     if (!activityResult.error) {
       setDailyActivity((activityResult.data as DailyActivityRow[]) || []);
     }
+
+    // Build per-user content stats from admin RPC (bypasses RLS)
+    const statsMap = new Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>();
+    (contentStatsResult.data || []).forEach((r: any) => {
+      statsMap.set(r.user_id, {
+        playbooks: r.playbook_count ?? 0,
+        devotionals: r.devotional_count ?? 0,
+        guidance: r.wisdom_count ?? 0,
+        refinements: r.refinement_count ?? 0,
+      });
+    });
+
+    setUserContentStats(statsMap);
   }, [getAnalyticsWindow]);
 
   const refresh = useCallback(async (tab: FilterTab = activeTab) => {
@@ -679,6 +698,29 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     row.subscription_start_date &&
     new Date(row.subscription_start_date) >= oneWeekAgo
   ).length;
+
+  // --- Per-tier goal tracking ---
+  // Handles both compound names (e.g. 'spark_annual') and separate tier+billing_cycle
+  const getTierCount = (tier: string, cycle: 'monthly' | 'annual') =>
+    activePaidRows.filter(r => {
+      const t = r.tier?.toLowerCase() || '';
+      const bc = r.billing_cycle?.toLowerCase() || '';
+      if (cycle === 'annual') {
+        return t === `${tier}_annual` || t === `${tier}_yearly` ||
+               (t === tier && (bc === 'annual' || bc === 'yearly'));
+      } else {
+        return (t === tier || t === `${tier}_monthly`) && (bc === 'monthly' || bc === '');
+      }
+    }).length;
+
+  const goalData = [
+    { tier: 'Growth',         cycle: 'Monthly', count: getTierCount('growth', 'monthly'),        goal: 1000, isMainGoal: true },
+    { tier: 'Growth',         cycle: 'Yearly',  count: getTierCount('growth', 'annual'),          goal: null, isMainGoal: false },
+    { tier: 'Transformation', cycle: 'Monthly', count: getTierCount('transformation', 'monthly'), goal: null, isMainGoal: false },
+    { tier: 'Transformation', cycle: 'Yearly',  count: getTierCount('transformation', 'annual'),  goal: null, isMainGoal: false },
+    { tier: 'Spark',          cycle: 'Monthly', count: getTierCount('spark', 'monthly'),          goal: null, isMainGoal: false },
+    { tier: 'Spark',          cycle: 'Yearly',  count: getTierCount('spark', 'annual'),           goal: null, isMainGoal: false },
+  ];
   const attentionRows = analyticsRows.filter(row => {
     const now = new Date();
     const isBillingIssue = !!row.billing_issue;
@@ -692,8 +734,37 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       !row.cancellation_date;
     return isBillingIssue || isStuckTrial || isPaidButExpired;
   });
-  const trackedSignupCount = dashboardMetrics?.userSignups.daily.reduce((sum, item) => sum + item.count, 0) || 0;
-  const trackedDauCount = dashboardMetrics?.dailyActiveUsers.reduce((sum, item) => sum + item.total_dau, 0) || 0;
+  // --- Window-filtered subscription activity (responds to month picker) ---
+  const { startDate: windowStart, endDate: windowEnd } = analyticsWindow;
+
+  // New users in window — use actual account_created_at (real signup date)
+  const windowNewUsers = analyticsRows.filter(row =>
+    row.account_created_at && isWithinRange(row.account_created_at, windowStart, windowEnd)
+  );
+  const trackedSignupCount = windowNewUsers.length;
+
+  // Daily active users — average across days in window (not a sum)
+  const dauDays = dashboardMetrics?.dailyActiveUsers || [];
+  const trackedDauCount = dauDays.length > 0
+    ? Math.round(dauDays.reduce((sum, item) => sum + item.total_dau, 0) / dauDays.length)
+    : 0;
+
+  const windowNewTrials = analyticsRows.filter(row =>
+    row.trial_start_date && isWithinRange(row.trial_start_date, windowStart, windowEnd)
+  );
+  const windowNewPaid = analyticsRows.filter(row =>
+    row.trial_converted_date && isWithinRange(row.trial_converted_date, windowStart, windowEnd)
+  );
+  const windowCancellations = analyticsRows.filter(row =>
+    (row.cancellation_date && isWithinRange(row.cancellation_date, windowStart, windowEnd)) ||
+    (row.trial_cancelled_date && isWithinRange(row.trial_cancelled_date, windowStart, windowEnd))
+  );
+  const windowOnboardingCompleted = analyticsRows.filter(row =>
+    row.onboarding_completed === true &&
+    row.account_created_at && isWithinRange(row.account_created_at, windowStart, windowEnd)
+  );
+  const windowNetGrowth = windowNewPaid.length - windowCancellations.filter(r => !['seeker','free_trial'].includes(r.tier)).length;
+
   const rangeLabel = selectedMonth !== 'all'
     ? selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)
     : analyticsRange === 'daily'
@@ -796,6 +867,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           updated_at: null,
           days_remaining: null,
           locale: null,
+          onboarding_completed: null,
+          account_created_at: null,
         });
       }
     });
@@ -830,6 +903,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     isWithinRange(row.cancellation_date, analyticsWindow.startDate, analyticsWindow.endDate) ||
     isWithinRange(row.trial_cancelled_date, analyticsWindow.startDate, analyticsWindow.endDate)
   ));
+  // ALL-TIME cancelled subscriptions (not date-filtered — shows full history)
+  const cancelledSubscriptionRows = getUserSummaries(analyticsRows.filter(row =>
+    row.cancellation_date && !['seeker', 'free_trial'].includes(row.tier)
+  ));
+  const cancelledTrialRows = getUserSummaries(analyticsRows.filter(row =>
+    row.trial_cancelled_date
+  ));
   const drilldownRows = (() => {
     switch (selectedDrilldown) {
       case 'new_registered':
@@ -848,6 +928,10 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         return upcomingRenewalRows;
       case 'cancelled':
         return cancelledRows;
+      case 'cancelled_subscriptions':
+        return cancelledSubscriptionRows;
+      case 'cancelled_trials':
+        return cancelledTrialRows;
       case 'all_users':
       default:
         return allUserSummaries;
@@ -870,7 +954,11 @@ export default function AdminDashboardScreen({ navigation }: Props) {
                 ? 'Upcoming Renewals'
                 : selectedDrilldown === 'cancelled'
                   ? 'Cancelled'
-                  : 'All Users';
+                  : selectedDrilldown === 'cancelled_subscriptions'
+                    ? 'Cancelled Subscriptions'
+                    : selectedDrilldown === 'cancelled_trials'
+                      ? 'Cancelled Trials'
+                      : 'All Users';
 
   const acquisitionInsights: AdminInsight[] = [
     { label: 'All Users', value: allUserSummaries.length, subtitle: 'View everyone', color: Colors.hopeWhite, drilldown: 'all_users' },
@@ -884,7 +972,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     { label: 'Paid Monthly', value: monthlySubscriberRows.length, subtitle: 'Verified paid active', color: Colors.growthGreen, drilldown: 'monthly_subscribers' },
     { label: 'Paid Yearly', value: yearlySubscriberRows.length, subtitle: 'Verified paid active', color: '#34C759', drilldown: 'yearly_subscribers' },
     { label: 'Renewing Soon', value: upcomingRenewalRows.length, subtitle: 'Next renewal dates', color: '#FFC107', drilldown: 'upcoming_renewals' },
-    { label: 'Cancelled', value: cancelledRows.length, subtitle: rangeLabel, color: '#FF9500', drilldown: 'cancelled' },
+    { label: 'Cancelled Subs', value: cancelledSubscriptionRows.length, subtitle: 'All-time paid cancellations', color: '#FF3B30', drilldown: 'cancelled_subscriptions' },
+    { label: 'Cancelled Trials', value: cancelledTrialRows.length, subtitle: 'All-time trial cancellations', color: '#FF9500', drilldown: 'cancelled_trials' },
   ];
 
   const renderTabChoices = () => (
@@ -1157,52 +1246,57 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   );
 
   const renderRangeSelector = () => (
-    <View>
+    <View style={styles.rangeSelectorWrapper}>
+      {/* Period tabs */}
       <View style={styles.rangeSelector}>
-        {(['daily', 'weekly', 'monthly', 'custom'] as AnalyticsRange[]).map(range => {
-          const selected = analyticsRange === range && selectedMonth === 'all';
+        {([
+          { key: 'daily', label: 'Today' },
+          { key: 'weekly', label: 'This Week' },
+          { key: 'monthly', label: 'This Month' },
+          { key: 'custom', label: '90 Days' },
+        ] as { key: AnalyticsRange; label: string }[]).map(({ key, label }) => {
+          const selected = analyticsRange === key && selectedMonth === 'all';
           return (
             <TouchableOpacity
-              key={range}
+              key={key}
               onPress={() => {
                 triggerLightHaptic();
-                setAnalyticsRange(range);
+                setAnalyticsRange(key);
                 setSelectedMonth('all');
               }}
               style={[styles.rangeButton, selected && styles.rangeButtonSelected]}
               activeOpacity={0.85}
             >
               <ThemedText weight="semiBold" style={[styles.rangeButtonText, selected && styles.rangeButtonTextSelected]}>
-                {range === 'custom' ? '90d' : range.charAt(0).toUpperCase() + range.slice(1)}
+                {label}
               </ThemedText>
             </TouchableOpacity>
           );
         })}
       </View>
-      <View style={styles.monthSelector}>
-        <ThemedText weight="regular" style={styles.monthSelectorLabel}>Or select month:</ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
-          {(['all', 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as MonthRange[]).map(month => {
-            const selected = selectedMonth === month;
-            return (
-              <TouchableOpacity
-                key={month}
-                onPress={() => {
-                  triggerLightHaptic();
-                  setSelectedMonth(month);
-                  setAnalyticsRange('monthly');
-                }}
-                style={[styles.monthButton, selected && styles.monthButtonSelected]}
-                activeOpacity={0.85}
-              >
-                <ThemedText weight="semiBold" style={[styles.monthButtonText, selected && styles.monthButtonTextSelected]}>
-                  {month === 'all' ? 'All' : month.charAt(0).toUpperCase() + month.slice(1)}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+      {/* Month picker */}
+      <ThemedText weight="regular" style={styles.monthSelectorLabel}>Jump to month:</ThemedText>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
+        {(['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as MonthRange[]).map(month => {
+          const selected = selectedMonth === month;
+          return (
+            <TouchableOpacity
+              key={month}
+              onPress={() => {
+                triggerLightHaptic();
+                setSelectedMonth(month === selectedMonth ? 'all' : month);
+                setAnalyticsRange('monthly');
+              }}
+              style={[styles.monthButton, selected && styles.monthButtonSelected]}
+              activeOpacity={0.85}
+            >
+              <ThemedText weight="semiBold" style={[styles.monthButtonText, selected && styles.monthButtonTextSelected]}>
+                {month.charAt(0).toUpperCase() + month.slice(1)}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 
@@ -1257,72 +1351,114 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
+      {/* PERIOD FILTER */}
+      <StepFadeIn delay={50}>
+        {renderRangeSelector()}
+      </StepFadeIn>
+
       {/* SECTION 1 - BUSINESS HEALTH (Layer 1: Executive Snapshot) */}
       <StepFadeIn delay={100}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>Business Health</ThemedText>
       </StepFadeIn>
       <StepFadeIn delay={120}>
-        <View style={styles.healthCardsContainer}>
-          {/* HERO CARD - Paid Subscribers */}
-          <View style={[styles.healthCard, styles.healthCardHero]}>
+        {/* Row 1: Paid + Trials */}
+        <View style={styles.healthRow}>
+          <View style={[styles.healthCard, { flex: 1 }]}>
             <ThemedText weight="bold" style={styles.healthCardHeroValue}>{activePaidRows.length}</ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Paid Subscribers</ThemedText>
             <View style={styles.healthCardTrend}>
-              <Ionicons name="trending-up" size={14} color={Colors.growthGreen} />
+              <Ionicons name="trending-up" size={13} color={Colors.growthGreen} />
               <ThemedText weight="regular" style={styles.healthCardTrendText}>
                 {newPaidThisWeek > 0 ? `+${newPaidThisWeek} this week` : 'No new this week'}
               </ThemedText>
             </View>
           </View>
-          {/* Secondary cards */}
-          <View style={styles.healthCardSecondary}>
-            <ThemedText weight="bold" style={styles.healthCardValue}>{overview?.active_trials || 0}</ThemedText>
+          <View style={[styles.healthCard, { flex: 1 }]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{overview?.active_trials || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Active Trials</ThemedText>
             <View style={styles.healthCardTrend}>
-              <Ionicons name="time" size={12} color="#FFC107" />
-              <ThemedText weight="regular" style={styles.healthCardTrendText}>
-                {trialsExpiringSoon.length > 0
-                  ? `${trialsExpiringSoon.length} expiring in 7d`
-                  : 'none expiring soon'}
+              <Ionicons name="time" size={13} color="#FFC107" />
+              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#FFC107' }]}>
+                {trialsExpiringSoon.length > 0 ? `${trialsExpiringSoon.length} expiring in 7d` : 'none expiring soon'}
               </ThemedText>
             </View>
           </View>
-          <View style={styles.healthCardSecondary}>
-            <ThemedText weight="semiBold" style={styles.healthCardRevenueTitle}>
-              Est. MRR
-            </ThemedText>
+        </View>
+
+        {/* Row 2: MRR + Issues */}
+        <View style={[styles.healthRow, { marginTop: 12, marginBottom: 32 }]}>
+          <View style={[styles.healthCard, { flex: 2 }]}>
+            <ThemedText weight="semiBold" style={styles.healthCardRevenueTitle}>Est. MRR</ThemedText>
             {phpMRR > 0 && (
               <View style={styles.marketRevenueRow}>
                 <ThemedText weight="regular" style={styles.marketRevenueLabel}>🇵🇭 PHP</ThemedText>
-                <ThemedText weight="bold" style={styles.marketRevenueValue}>
-                  ₱{Math.round(phpMRR).toLocaleString()}
-                </ThemedText>
+                <ThemedText weight="bold" style={styles.marketRevenueValue}>₱{Math.round(phpMRR).toLocaleString()}</ThemedText>
               </View>
             )}
             {usdMRR > 0 && (
               <View style={styles.marketRevenueRow}>
                 <ThemedText weight="regular" style={styles.marketRevenueLabel}>🌍 USD</ThemedText>
-                <ThemedText weight="bold" style={styles.marketRevenueValue}>
-                  ${usdMRR.toFixed(2)}
-                </ThemedText>
+                <ThemedText weight="bold" style={styles.marketRevenueValue}>${usdMRR.toFixed(2)}</ThemedText>
               </View>
             )}
             {phpMRR === 0 && usdMRR === 0 && (
-              <ThemedText weight="regular" style={styles.marketRevenueLabel}>No locale data</ThemedText>
+              <ThemedText weight="regular" style={styles.marketRevenueLabel}>Set locale to see MRR</ThemedText>
             )}
           </View>
-          <View style={[styles.healthCardSecondary, { backgroundColor: 'rgba(255,59,48,0.12)' }]}>
-            <ThemedText weight="bold" style={[styles.healthCardValue, { color: '#FF3B30' }]}>{overview?.billing_issues || 0}</ThemedText>
+          <View style={[styles.healthCard, { flex: 1, backgroundColor: (overview?.billing_issues || 0) > 0 ? 'rgba(255,59,48,0.12)' : 'rgba(255,255,255,0.04)' }]}>
+            <ThemedText weight="bold" style={[styles.healthCardHeroValue, { color: (overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.hopeWhite }]}>
+              {overview?.billing_issues || 0}
+            </ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Issues</ThemedText>
             <View style={styles.healthCardTrend}>
-              <Ionicons name="alert-circle" size={12} color="#FF3B30" />
-              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#FF3B30' }]}>needs attention</ThemedText>
+              <Ionicons
+                name={(overview?.billing_issues || 0) > 0 ? 'alert-circle' : 'checkmark-circle'}
+                size={13}
+                color={(overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.growthGreen}
+              />
+              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: (overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.growthGreen }]}>
+                {(overview?.billing_issues || 0) > 0 ? 'needs attention' : 'all clear'}
+              </ThemedText>
             </View>
           </View>
         </View>
       </StepFadeIn>
 
-      {/* SECTION 2 - NEEDS ATTENTION (Layer 2: Action Needed) */}
+      {/* SECTION 2 - GOALS */}
+      <StepFadeIn delay={130}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Goals</ThemedText>
+      </StepFadeIn>
+      <StepFadeIn delay={135}>
+        {/* Main goal: Growth Monthly → 1000 */}
+        {(() => {
+          const main = goalData.find(g => g.isMainGoal)!;
+          const pct = Math.min(100, Math.round((main.count / 1000) * 100));
+          return (
+            <View style={styles.mainGoalCard}>
+              <View style={styles.mainGoalHeader}>
+                <ThemedText weight="bold" style={styles.mainGoalTitle}>🎯 Growth Monthly</ThemedText>
+                <ThemedText weight="bold" style={styles.mainGoalCount}>{main.count} <ThemedText weight="regular" style={styles.mainGoalOf}>/ 1,000</ThemedText></ThemedText>
+              </View>
+              <View style={styles.goalProgressTrack}>
+                <View style={[styles.goalProgressFill, { width: `${pct}%` as any }]} />
+              </View>
+              <ThemedText weight="regular" style={styles.mainGoalPct}>{pct}% to goal</ThemedText>
+            </View>
+          );
+        })()}
+        {/* Tier breakdown grid */}
+        <View style={styles.goalGrid}>
+          {goalData.filter(g => !g.isMainGoal).map(g => (
+            <View key={`${g.tier}-${g.cycle}`} style={styles.goalCard}>
+              <ThemedText weight="bold" style={styles.goalCardCount}>{g.count}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.goalCardTier}>{g.tier}</ThemedText>
+              <ThemedText weight="regular" style={styles.goalCardCycle}>{g.cycle}</ThemedText>
+            </View>
+          ))}
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 3 - NEEDS ATTENTION (Layer 2: Action Needed) */}
       <StepFadeIn delay={140}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>Needs Attention</ThemedText>
       </StepFadeIn>
@@ -1393,7 +1529,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </View>
           <View style={styles.growthMetric}>
             <ThemedText weight="regular" style={styles.growthLabel}>Conversions</ThemedText>
-            <ThemedText weight="bold" style={styles.growthValue}>{overview?.converted_trials || 0}</ThemedText>
+            <ThemedText weight="bold" style={styles.growthValue}>{windowNewPaid.length}</ThemedText>
             <ThemedText weight="regular" style={styles.growthSub}>Trial to paid</ThemedText>
           </View>
         </View>
@@ -1434,7 +1570,42 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
-      {/* SECTION 5 - LIFECYCLE FUNNEL */}
+      {/* SECTION 5 - PERIOD ACTIVITY (fully window-scoped) */}
+      <StepFadeIn delay={265}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
+          Activity · {rangeLabel}
+        </ThemedText>
+        <View style={styles.periodActivityGrid}>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={styles.periodActivityValue}>{windowNewUsers.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>New Users</ThemedText>
+          </View>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={styles.periodActivityValue}>{windowOnboardingCompleted.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>Personalized</ThemedText>
+          </View>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={styles.periodActivityValue}>{windowNewTrials.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>New Trials</ThemedText>
+          </View>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={[styles.periodActivityValue, { color: Colors.growthGreen }]}>{windowNewPaid.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>Converted</ThemedText>
+          </View>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={[styles.periodActivityValue, windowCancellations.length > 0 ? { color: '#FF3B30' } : {}]}>{windowCancellations.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>Cancelled</ThemedText>
+          </View>
+          <View style={styles.periodActivityCard}>
+            <ThemedText weight="bold" style={[styles.periodActivityValue, windowNetGrowth > 0 ? { color: Colors.growthGreen } : windowNetGrowth < 0 ? { color: '#FF3B30' } : {}]}>
+              {windowNetGrowth >= 0 ? `+${windowNetGrowth}` : `${windowNetGrowth}`}
+            </ThemedText>
+            <ThemedText weight="regular" style={styles.periodActivityLabel}>Net Growth</ThemedText>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* SECTION 6 - LIFECYCLE FUNNEL */}
       <StepFadeIn delay={270}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>
           User Journey Funnel
@@ -1445,22 +1616,22 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           <View style={styles.funnelStage}>
             <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.signups || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.funnelLabel}>Signups</ThemedText>
-            <View style={styles.funnelArrow}>↓</View>
+            <ThemedText style={styles.funnelArrow}>↓</ThemedText>
           </View>
           <View style={styles.funnelStage}>
             <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.onboarding_completed ?? '—'}</ThemedText>
-            <ThemedText weight="regular" style={styles.funnelLabel}>Onboarding Completed</ThemedText>
-            <View style={styles.funnelArrow}>↓</View>
+            <ThemedText weight="regular" style={styles.funnelLabel}>Personalization Done</ThemedText>
+            <ThemedText style={styles.funnelArrow}>↓</ThemedText>
           </View>
           <View style={styles.funnelStage}>
             <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.first_playbook_generated ?? '—'}</ThemedText>
-            <ThemedText weight="regular" style={styles.funnelLabel}>First Playbook</ThemedText>
-            <View style={styles.funnelArrow}>↓</View>
+            <ThemedText weight="regular" style={styles.funnelLabel}>First Playbook Generated</ThemedText>
+            <ThemedText style={styles.funnelArrow}>↓</ThemedText>
           </View>
           <View style={styles.funnelStage}>
             <ThemedText weight="bold" style={styles.funnelValue}>{dashboardMetrics?.lifecycleFunnel?.trial_started || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.funnelLabel}>Trial Started</ThemedText>
-            <View style={styles.funnelArrow}>↓</View>
+            <ThemedText style={styles.funnelArrow}>↓</ThemedText>
           </View>
           <View style={styles.funnelStage}>
             <ThemedText weight="bold" style={[styles.funnelValue, { color: Colors.growthGreen }]}>{dashboardMetrics?.lifecycleFunnel?.subscription_purchased || 0}</ThemedText>
@@ -1469,40 +1640,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
-      {/* SECTION 6 - TIME-BASED METRICS */}
-      <StepFadeIn delay={290}>
-        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
-          This Week
-        </ThemedText>
-      </StepFadeIn>
-      <StepFadeIn delay={300}>
-        <View style={styles.timeMetricsContainer}>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.new_signups || 0}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>New Signups</ThemedText>
-          </View>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.onboarding_completed ?? '—'}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>Onboarding</ThemedText>
-          </View>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.first_playbooks ?? '—'}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>Playbooks</ThemedText>
-          </View>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={styles.timeMetricValue}>{dashboardMetrics?.timeBasedMetrics?.week?.trials_started || 0}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>Trials</ThemedText>
-          </View>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={[styles.timeMetricValue, { color: Colors.growthGreen }]}>{dashboardMetrics?.timeBasedMetrics?.week?.subscriptions || 0}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>Subscribed</ThemedText>
-          </View>
-          <View style={styles.timeMetricCard}>
-            <ThemedText weight="bold" style={[styles.timeMetricValue, { color: '#FF3B30' }]}>{dashboardMetrics?.timeBasedMetrics?.week?.cancellations || 0}</ThemedText>
-            <ThemedText weight="regular" style={styles.timeMetricLabel}>Cancelled</ThemedText>
-          </View>
-        </View>
-      </StepFadeIn>
 
       {/* SECTION 7 - CONVERSION RATES */}
       <StepFadeIn delay={310}>
@@ -1513,7 +1650,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       <StepFadeIn delay={320}>
         <View style={styles.conversionRatesContainer}>
           <View style={styles.conversionRateCard}>
-            <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.signup_to_onboarding !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.signup_to_onboarding}%` : '—'}</ThemedText>
+            <ThemedText weight="bold" style={styles.conversionRateValue}>
+              {dashboardMetrics?.conversionRates?.signup_to_onboarding != null ? `${dashboardMetrics.conversionRates.signup_to_onboarding}%` : '—'}
+            </ThemedText>
             <ThemedText weight="regular" style={styles.conversionRateLabel}>Signup → Onboarding</ThemedText>
           </View>
           <View style={styles.conversionRateCard}>
@@ -1522,7 +1661,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           </View>
           <View style={styles.conversionRateCard}>
             <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.playbook_to_trial !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.playbook_to_trial}%` : '—'}</ThemedText>
-            <ThemedText weight="regular" style={styles.conversionRateLabel}>Playbook → Trial</ThemedText>
+            <ThemedText weight="regular" style={styles.conversionRateLabel}>Onboarding → Trial</ThemedText>
           </View>
           <View style={styles.conversionRateCard}>
             <ThemedText weight="bold" style={styles.conversionRateValue}>{dashboardMetrics?.conversionRates?.trial_to_paid !== null && dashboardMetrics?.conversionRates ? `${dashboardMetrics.conversionRates.trial_to_paid}%` : '—'}</ThemedText>
@@ -1568,7 +1707,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         <View style={styles.dropoffContainer}>
           <View style={styles.dropoffCard}>
             <ThemedText weight="bold" style={[styles.dropoffValue, { color: '#FF9500' }]}>{dashboardMetrics?.playbookDropoff?.signed_up_no_playbook || 0}</ThemedText>
-            <ThemedText weight="regular" style={styles.dropoffLabel}>Never Generated Playbook</ThemedText>
+            <ThemedText weight="regular" style={styles.dropoffLabel}>Personalized but No Playbook</ThemedText>
           </View>
           <View style={styles.dropoffCard}>
             <ThemedText weight="bold" style={styles.dropoffValue}>{dashboardMetrics?.playbookDropoff?.avg_time_to_first_playbook_hours || 0}h</ThemedText>
@@ -1635,75 +1774,82 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
-      {/* SECTION 12 - HIGH INTENT USERS */}
-      <StepFadeIn delay={410}>
-        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
-          High Intent Non-Converters
-        </ThemedText>
-        <ThemedText weight="regular" style={styles.sectionDescription}>
-          Generated {dashboardMetrics?.highIntentUsers?.reduce((sum, u) => sum + u.playbooks_generated, 0) || 0} playbooks but never subscribed
-        </ThemedText>
-      </StepFadeIn>
-      <StepFadeIn delay={420}>
-        <View style={styles.highIntentContainer}>
-          {dashboardMetrics?.highIntentUsers?.slice(0, 5).map((user) => (
-            <View key={user.user_id} style={styles.highIntentUserRow}>
-              <View style={styles.highIntentUserInfo}>
-                <ThemedText weight="semiBold" style={styles.highIntentUserName}>{user.name || 'Unknown'}</ThemedText>
-                <ThemedText weight="regular" style={styles.highIntentUserEmail}>{user.email || 'No email'}</ThemedText>
-              </View>
-              <View style={styles.highIntentUserMetrics}>
-                <ThemedText weight="regular" style={styles.highIntentUserMetric}>
-                  {user.playbooks_generated} 📖 · {user.app_opens} opens
-                </ThemedText>
-                <ThemedText weight="regular" style={styles.highIntentUserDays}>
-                  {user.days_since_last_activity !== null ? `${user.days_since_last_activity}d ago` : 'Unknown'}
-                </ThemedText>
-              </View>
-            </View>
-          ))}
-        </View>
-      </StepFadeIn>
 
-      {/* SECTION 13 - USER SEGMENTS */}
-      <StepFadeIn delay={430}>
-        <ThemedText weight="semiBold" style={styles.newSectionLabel}>
-          User Segments
-        </ThemedText>
-      </StepFadeIn>
-      <StepFadeIn delay={440}>
-        <View style={styles.segmentsContainer}>
-          {dashboardMetrics?.userSegments?.map((segment) => (
-            <View 
-              key={segment.id} 
-              style={[
-                styles.segmentCard,
-                segment.priority === 'high' && styles.segmentCardHighPriority
-              ]}
-            >
-              <View style={styles.segmentHeader}>
-                <ThemedText weight="semiBold" style={styles.segmentLabel}>{segment.label}</ThemedText>
-                <View style={[
-                  styles.priorityBadge,
-                  segment.priority === 'high' && styles.priorityBadgeHigh
-                ]}>
-                  <ThemedText weight="regular" style={styles.priorityBadgeText}>{segment.priority.toUpperCase()}</ThemedText>
-                </View>
-              </View>
-              <ThemedText weight="regular" style={styles.segmentDescription}>{segment.description}</ThemedText>
-              <ThemedText weight="bold" style={styles.segmentCount}>{segment.count} users</ThemedText>
-            </View>
-          ))}
-        </View>
-      </StepFadeIn>
-
-      {/* SECTION 14 - QUICK NAVIGATION TO DETAILED VIEWS */}
+      {/* SECTION 14 - EXPLORE DATA */}
       <StepFadeIn delay={450}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>Explore Data</ThemedText>
       </StepFadeIn>
-      <StepFadeIn delay={470}>
+      <StepFadeIn delay={460}>
         {renderTabChoices()}
       </StepFadeIn>
+      <StepFadeIn delay={470}>
+        <ThemedText weight="regular" style={styles.exploreGroupLabel}>ACQUISITION</ThemedText>
+        {renderInsightGrid(acquisitionInsights)}
+      </StepFadeIn>
+      <StepFadeIn delay={480}>
+        <ThemedText weight="regular" style={styles.exploreGroupLabel}>SUBSCRIPTIONS</ThemedText>
+        {renderInsightGrid(subscriptionInsights)}
+      </StepFadeIn>
+      {selectedDrilldown && (
+        <StepFadeIn delay={0}>
+          <View style={styles.drilldownHeader}>
+            <ThemedText weight="semiBold" style={styles.sectionTitle}>{drilldownTitle}</ThemedText>
+            <ThemedText weight="regular" style={styles.filteredHeaderText}>{drilldownRows.length} users</ThemedText>
+          </View>
+          {drilldownRows.length === 0 ? (
+            <ThemedText weight="regular" style={styles.emptyText}>No users in this segment</ThemedText>
+          ) : (
+            drilldownRows.slice(0, 50).map(item => {
+              const subRow = analyticsRows.find(r => r.user_id === item.user_id);
+              const stats = userContentStats.get(item.user_id);
+              return (
+                <View key={`${selectedDrilldown}-${item.user_id}`} style={styles.drilldownUserCard}>
+                  {/* Name + tier pill */}
+                  <View style={styles.drilldownUserHeader}>
+                    <ThemedText weight="semiBold" style={styles.drilldownUserName}>{item.name}</ThemedText>
+                    <View style={[styles.drilldownTierPill, { backgroundColor: tierColor(subRow || {} as any) + '33' }]}>
+                      <ThemedText weight="regular" style={[styles.drilldownTierText, { color: tierColor(subRow || {} as any) }]}>
+                        {item.tier?.replace(/_/g, ' ').toUpperCase()}
+                      </ThemedText>
+                    </View>
+                  </View>
+                  {/* Email */}
+                  <ThemedText weight="regular" style={styles.drilldownUserEmail}>{item.email}</ThemedText>
+                  {/* Signed up */}
+                  <ThemedText weight="regular" style={styles.drilldownUserMeta}>
+                    Signed up: {formatDate(subRow?.account_created_at || subRow?.trial_start_date || subRow?.subscription_start_date || null)}
+                  </ThemedText>
+                  {/* Status line */}
+                  {subRow && (
+                    <ThemedText weight="regular" style={styles.drilldownUserMeta}>
+                      {getStatusLine(subRow)}
+                    </ThemedText>
+                  )}
+                  {/* Content stats */}
+                  <View style={styles.drilldownStatsRow}>
+                    <View style={styles.drilldownStat}>
+                      <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.playbooks ?? 0}</ThemedText>
+                      <ThemedText weight="regular" style={styles.drilldownStatLabel}>Playbooks</ThemedText>
+                    </View>
+                    <View style={styles.drilldownStat}>
+                      <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.devotionals ?? 0}</ThemedText>
+                      <ThemedText weight="regular" style={styles.drilldownStatLabel}>Devotionals</ThemedText>
+                    </View>
+                    <View style={styles.drilldownStat}>
+                      <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.guidance ?? 0}</ThemedText>
+                      <ThemedText weight="regular" style={styles.drilldownStatLabel}>Guidance</ThemedText>
+                    </View>
+                    <View style={styles.drilldownStat}>
+                      <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.refinements ?? 0}</ThemedText>
+                      <ThemedText weight="regular" style={styles.drilldownStatLabel}>Refinements</ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </StepFadeIn>
+      )}
 
       <View style={{ height: 100 }} />
     </ScrollView>
@@ -2343,6 +2489,80 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
+  drilldownUserCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 10,
+  },
+  drilldownUserHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  drilldownUserName: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    flex: 1,
+  },
+  drilldownTierPill: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginLeft: 8,
+  },
+  drilldownTierText: {
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  drilldownUserEmail: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: 6,
+  },
+  drilldownUserMeta: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 2,
+  },
+  drilldownStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  drilldownStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  drilldownStatValue: {
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  drilldownStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.45)',
+    textAlign: 'center',
+  },
+  exploreGroupLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  drilldownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    marginBottom: 12,
+  },
   filteredHeaderText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.65)',
@@ -2637,11 +2857,85 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 32,
   },
+  healthRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mainGoalCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)',
+  },
+  mainGoalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  mainGoalTitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  mainGoalCount: {
+    fontSize: 22,
+    color: '#FFD700',
+  },
+  mainGoalOf: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  goalProgressTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  goalProgressFill: {
+    height: 8,
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
+  },
+  mainGoalPct: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  goalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 28,
+  },
+  goalCard: {
+    width: '30%',
+    flexGrow: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+  },
+  goalCardCount: {
+    fontSize: 24,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  goalCardTier: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  goalCardCycle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 2,
+  },
   healthCard: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 18,
     padding: 20,
-    minHeight: 120,
+    minHeight: 110,
   },
   healthCardHero: {
     flex: 1,
@@ -2749,6 +3043,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 32,
+  },
+  activityWindowGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 28,
+  },
+  activityWindowCard: {
+    flex: 1,
+    minWidth: '40%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  activityWindowValue: {
+    fontSize: 30,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  activityWindowLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
+  },
+  rangeSelectorWrapper: {
+    marginBottom: 8,
+  },
+  periodActivityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 28,
+  },
+  periodActivityCard: {
+    width: '30%',
+    flexGrow: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  periodActivityValue: {
+    fontSize: 26,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  periodActivityLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
   },
   marketBreakdownContainer: {
     flexDirection: 'row',

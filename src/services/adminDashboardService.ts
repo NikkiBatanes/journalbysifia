@@ -412,19 +412,28 @@ class AdminDashboardService {
    */
   async getLifecycleFunnel(): Promise<LifecycleFunnel> {
     try {
-      const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
-      if (error) {throw error;}
+      const [subscriptionsResult, playbooksResult] = await Promise.all([
+        supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
+        supabase.from('playbooks').select('user_id').limit(5000),
+      ]);
 
-      const rows = subscriptions as any[] || [];
+      if (subscriptionsResult.error) { throw subscriptionsResult.error; }
+
+      const rows = subscriptionsResult.data as any[] || [];
       const signups = rows.length;
+      const onboardingCompleted = rows.filter(r => r.onboarding_completed === true).length;
       const trialStarted = rows.filter(r => r.trial_start_date).length;
       const subscribed = rows.filter(r => r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active').length;
+
+      // Count distinct users who generated at least one playbook
+      const playbookRows = playbooksResult.data || [];
+      const usersWithPlaybook = new Set(playbookRows.map((r: any) => r.user_id)).size;
 
       return {
         app_installs: 0, // Not tracked
         signups,
-        onboarding_completed: null, // Requires event tracking
-        first_playbook_generated: null, // Requires event tracking
+        onboarding_completed: onboardingCompleted,
+        first_playbook_generated: usersWithPlaybook,
         trial_started: trialStarted,
         subscription_purchased: subscribed,
       };
@@ -447,35 +456,41 @@ class AdminDashboardService {
    */
   async getTimeBasedMetrics(startDate: Date, endDate: Date): Promise<{ week: TimeBasedMetrics; month: TimeBasedMetrics }> {
     try {
-      const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
-      if (error) {throw error;}
-
-      const rows = subscriptions as any[] || [];
       const now = new Date();
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      const filterByDate = (row: any, start: Date) => {
-        const signupDate = row.subscription_start_date || row.trial_start_date;
-        return signupDate && new Date(signupDate) >= start;
+      const [subscriptionsResult, weekPlaybooksResult, monthPlaybooksResult] = await Promise.all([
+        supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
+        supabase.from('playbooks').select('user_id').gte('created_at', weekStart.toISOString()),
+        supabase.from('playbooks').select('user_id').gte('created_at', monthStart.toISOString()),
+      ]);
+
+      if (subscriptionsResult.error) { throw subscriptionsResult.error; }
+
+      const rows = subscriptionsResult.data as any[] || [];
+      const inRange = (date: string | null, start: Date) =>
+        !!date && new Date(date) >= start && new Date(date) <= now;
+
+      const calculateMetrics = (start: Date, playbookRows: any[]) => {
+        const usersWithPlaybook = new Set(playbookRows.map((r: any) => r.user_id)).size;
+        return {
+          period: start === weekStart ? 'week' : 'month',
+          // trial_start_date is the best signup proxy we have without auth.users created_at
+          new_signups: rows.filter((r: any) => inRange(r.trial_start_date, start)).length,
+          onboarding_completed: rows.filter((r: any) => r.onboarding_completed === true && inRange(r.trial_start_date, start)).length,
+          first_playbooks: usersWithPlaybook,
+          trials_started: rows.filter((r: any) => inRange(r.trial_start_date, start)).length,
+          subscriptions: rows.filter((r: any) => inRange(r.trial_converted_date, start)).length,
+          cancellations: rows.filter((r: any) =>
+            inRange(r.cancellation_date, start) || inRange(r.trial_cancelled_date, start)
+          ).length,
+        };
       };
 
-      const weekRows = rows.filter((r: any) => filterByDate(r, weekStart));
-      const monthRows = rows.filter((r: any) => filterByDate(r, monthStart));
-
-      const calculateMetrics = (filteredRows: any[]) => ({
-        period: filteredRows === weekRows ? 'week' : 'month',
-        new_signups: filteredRows.length,
-        onboarding_completed: null, // Requires event tracking
-        first_playbooks: null, // Requires event tracking
-        trials_started: filteredRows.filter((r: any) => r.trial_start_date).length,
-        subscriptions: filteredRows.filter((r: any) => r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active').length,
-        cancellations: filteredRows.filter((r: any) => r.cancellation_date || r.trial_cancelled_date).length,
-      });
-
       return {
-        week: calculateMetrics(weekRows),
-        month: calculateMetrics(monthRows),
+        week: calculateMetrics(weekStart, weekPlaybooksResult.data || []),
+        month: calculateMetrics(monthStart, monthPlaybooksResult.data || []),
       };
     } catch (error) {
       console.error('Failed to get time-based metrics:', error);
@@ -511,16 +526,26 @@ class AdminDashboardService {
       const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
       if (error) {throw error;}
 
-      const rows = subscriptions as any[] || [];
+      const [subscriptionsResult, playbooksResult] = await Promise.all([
+        supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
+        supabase.from('playbooks').select('user_id').limit(5000),
+      ]);
+      if (subscriptionsResult.error) { throw subscriptionsResult.error; }
+
+      const rows = subscriptionsResult.data as any[] || [];
       const signups = rows.length;
-      const trialStarted = rows.filter(r => r.trial_start_date).length;
-      const subscribed = rows.filter(r => r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active').length;
+      const onboardingCompleted = rows.filter((r: any) => r.onboarding_completed === true).length;
+      const trialStarted = rows.filter((r: any) => r.trial_start_date).length;
+      const everConverted = rows.filter((r: any) => r.trial_converted_date).length;
+
+      const playbookRows = playbooksResult.data || [];
+      const usersWithPlaybook = new Set(playbookRows.map((r: any) => r.user_id)).size;
 
       return {
-        signup_to_onboarding: null, // Requires event tracking
-        onboarding_to_playbook: null, // Requires event tracking
-        playbook_to_trial: null, // Requires event tracking
-        trial_to_paid: trialStarted > 0 ? Math.round((subscribed / trialStarted) * 100) : 0,
+        signup_to_onboarding: signups > 0 ? Math.round((onboardingCompleted / signups) * 100) : 0,
+        onboarding_to_playbook: onboardingCompleted > 0 ? Math.round((usersWithPlaybook / onboardingCompleted) * 100) : null,
+        playbook_to_trial: onboardingCompleted > 0 ? Math.round((trialStarted / onboardingCompleted) * 100) : null,
+        trial_to_paid: trialStarted > 0 ? Math.round((everConverted / trialStarted) * 100) : 0,
       };
     } catch (error) {
       console.error('Failed to get conversion rates:', error);
@@ -545,23 +570,31 @@ class AdminDashboardService {
       const now = new Date();
       const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      const monthRows = rows.filter((r: any) => {
-        const subStart = r.subscription_start_date;
-        return subStart && new Date(subStart) >= monthStart;
-      });
+      const inMonth = (date: string | null) =>
+        !!date && new Date(date) >= monthStart && new Date(date) <= now;
 
-      const cancelled = rows.filter((r: any) => {
-        const cancelDate = r.cancellation_date || r.trial_cancelled_date;
-        return cancelDate && new Date(cancelDate) >= monthStart;
-      }).length;
+      // New paid = users who converted to paid in last 30 days (regardless of current status)
+      const newPaid = rows.filter((r: any) => inMonth(r.trial_converted_date)).length;
 
-      const newPaid = monthRows.filter((r: any) => r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active').length;
+      // Cancelled = paid subscription cancellations in last 30 days (not trial cancellations)
+      const cancelled = rows.filter((r: any) =>
+        inMonth(r.cancellation_date) &&
+        !['seeker', 'free_trial'].includes(r.tier)
+      ).length;
+
+      // Currently active paid subscribers (denominator for churn rate)
+      const totalActive = rows.filter((r: any) =>
+        r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active'
+      ).length;
+
+      // Churn rate = cancellations in last 30d / total active subscribers
+      const churnRate = totalActive > 0 ? Math.round((cancelled / totalActive) * 100) : 0;
 
       return {
         new_paid: newPaid,
         cancelled,
         net_growth: newPaid - cancelled,
-        churn_rate: newPaid > 0 ? Math.round((cancelled / newPaid) * 100) : 0,
+        churn_rate: churnRate,
       };
     } catch (error) {
       console.error('Failed to get churn metrics:', error);
@@ -579,15 +612,45 @@ class AdminDashboardService {
    */
   async getPlaybookDropoff(): Promise<PlaybookDropoff> {
     try {
-      const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
-      if (error) {throw error;}
+      const [subscriptionsResult, playbooksResult] = await Promise.all([
+        supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
+        supabase.from('playbooks').select('user_id, created_at').limit(5000),
+      ]);
+      if (subscriptionsResult.error) { throw subscriptionsResult.error; }
 
-      const rows = subscriptions as any[] || [];
-      const signups = rows.length;
+      const rows = subscriptionsResult.data as any[] || [];
+      const playbookRows = playbooksResult.data || [];
+
+      // Users who have completed onboarding but never generated a playbook
+      const usersWithPlaybook = new Set(playbookRows.map((r: any) => r.user_id));
+      const signedUpNoPlaybook = rows.filter((r: any) =>
+        r.onboarding_completed === true && !usersWithPlaybook.has(r.user_id)
+      ).length;
+
+      // Avg hours between trial_start_date and first playbook created_at
+      const firstPlaybookByUser = playbookRows.reduce<Record<string, string>>((acc, r: any) => {
+        if (!acc[r.user_id] || new Date(r.created_at) < new Date(acc[r.user_id])) {
+          acc[r.user_id] = r.created_at;
+        }
+        return acc;
+      }, {});
+
+      const timeDiffs: number[] = [];
+      for (const row of rows) {
+        const firstPlaybook = firstPlaybookByUser[row.user_id];
+        if (firstPlaybook && row.trial_start_date) {
+          const diffHours = (new Date(firstPlaybook).getTime() - new Date(row.trial_start_date).getTime()) / (1000 * 60 * 60);
+          if (diffHours >= 0) { timeDiffs.push(diffHours); }
+        }
+      }
+
+      const avgHours = timeDiffs.length > 0
+        ? Math.round(timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length)
+        : null;
 
       return {
-        signed_up_no_playbook: Math.round(signups * 0.58), // Placeholder - needs playbook tracking
-        avg_time_to_first_playbook_hours: 24, // Placeholder - needs playbook tracking
+        signed_up_no_playbook: signedUpNoPlaybook,
+        avg_time_to_first_playbook_hours: avgHours,
       };
     } catch (error) {
       console.error('Failed to get playbook dropoff:', error);
@@ -676,27 +739,51 @@ class AdminDashboardService {
    */
   private async getUsersWithBehavior(): Promise<UserWithBehavior[]> {
     try {
-      const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
-      if (error) {throw error;}
+      const [subscriptionsResult, playbooksResult] = await Promise.all([
+        supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
+        supabase.from('playbooks').select('user_id, created_at').limit(5000),
+      ]);
+      if (subscriptionsResult.error) { throw subscriptionsResult.error; }
 
-      const rows = subscriptions as any[] || [];
+      const rows = subscriptionsResult.data as any[] || [];
+      const playbookRows = playbooksResult.data || [];
+
+      // Build per-user playbook stats from real data
+      const playbookStatsByUser = playbookRows.reduce<Record<string, { count: number; lastAt: string }>>((acc, p: any) => {
+        if (!acc[p.user_id]) { acc[p.user_id] = { count: 0, lastAt: p.created_at }; }
+        acc[p.user_id].count += 1;
+        if (new Date(p.created_at) > new Date(acc[p.user_id].lastAt)) {
+          acc[p.user_id].lastAt = p.created_at;
+        }
+        return acc;
+      }, {});
+
       return rows.map((r: any) => {
-        const userState = this.calculateUserState(r);
-        const behavioralTier = this.calculateBehavioralTier(r, userState);
-        const lastActivity = r.last_activity || r.updated_at;
-        const daysSinceActivity = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)) : null;
-        
-        // Determine market based on locale ONLY (not email - dangerous to infer from gmail/yahoo)
-        // TODO: Add currency and app_store_country when available
+        const playbookStats = playbookStatsByUser[r.user_id];
+        const playbooksGenerated = playbookStats?.count || 0;
+        const lastPlaybookAt = playbookStats?.lastAt || null;
+
+        // Use latest of: last playbook, subscription update
+        const lastActivity = lastPlaybookAt || r.updated_at;
+        const daysSinceActivity = lastActivity
+          ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+
+        // Enrich row with real playbook data before calculating state/tier
+        const enrichedRow = {
+          ...r,
+          first_playbook_generated: playbooksGenerated > 0,
+          playbooks_generated: playbooksGenerated,
+          last_activity: lastActivity,
+        };
+
+        const userState = this.calculateUserState(enrichedRow);
+        const behavioralTier = this.calculateBehavioralTier(enrichedRow, userState);
+
         let market: 'PH' | 'GLOBAL' = 'GLOBAL';
         if (r.locale) {
           const localeLower = r.locale.toLowerCase();
-          if (
-            localeLower.includes('ph') ||
-            localeLower.includes('philippines') ||
-            localeLower.includes('en-ph') ||
-            localeLower.includes('fil-ph')
-          ) {
+          if (localeLower.includes('ph') || localeLower.includes('philippines') || localeLower.includes('en-ph') || localeLower.includes('fil-ph')) {
             market = 'PH';
           }
         }
@@ -707,27 +794,23 @@ class AdminDashboardService {
           name: r.first_name || r.full_name,
           signed_up_at: r.subscription_start_date || r.trial_start_date,
           onboarding_completed: r.onboarding_completed || false,
-          first_playbook_generated: r.first_playbook_generated || false,
+          first_playbook_generated: playbooksGenerated > 0,
           trial_started: !!r.trial_start_date,
           subscribed: r.tier !== 'seeker' && r.tier !== 'free_trial' && r.status === 'active',
           cancelled: r.status === 'cancelled' || !!r.cancellation_date,
           last_activity: lastActivity,
-          
           user_state: userState,
           behavioral_tier: behavioralTier,
-          
           app_opens: r.app_opens || 0,
-          playbooks_generated: r.playbooks_generated || 0,
+          playbooks_generated: playbooksGenerated,
           devotionals_viewed: r.devotionals_viewed || 0,
           days_since_last_activity: daysSinceActivity,
-          
           trial_chosen_tier: r.trial_chosen_tier || null,
           trial_start_date: r.trial_start_date || null,
           trial_end_date: r.trial_end_date || null,
           subscription_tier: r.tier || null,
           subscription_start_date: r.subscription_start_date || null,
           cancellation_date: r.cancellation_date || null,
-          
           market,
         };
       });
