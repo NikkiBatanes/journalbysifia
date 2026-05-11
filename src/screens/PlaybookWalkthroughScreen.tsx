@@ -1268,6 +1268,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const rowHeight = useRef(new Animated.Value(0)).current;
   const rowOpacity = useRef(new Animated.Value(0)).current;
   const howToButtonAnim = useRef(new Animated.Value(0)).current;
+  const wisdomChevronAnim = useRef(new Animated.Value(0)).current;
   // Ref tracks real expanded state to avoid stale closure in toggle
   const journalExpandedRef = useRef(false);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
@@ -1306,8 +1307,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     return () => subscription.remove();
   }, [loadWisdomUsage]);
 
-  // Animate How to button appearance with 1 second delay
+  // Animate How to button appearance with 2 second delay
   React.useEffect(() => {
+    // Reset animation to 0 when step changes
+    howToButtonAnim.setValue(0);
+    
     const timer = setTimeout(() => {
       Animated.spring(howToButtonAnim, {
         toValue: 1,
@@ -1315,10 +1319,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         friction: 8,
         useNativeDriver: true,
       }).start();
-    }, 1000);
+    }, 2000);
 
     return () => clearTimeout(timer);
-  }, [howToButtonAnim]);
+  }, [actionStepIndex]);
 
   const rotateInterpolate = triggerRotation.interpolate({
     inputRange: [0, 1],
@@ -1386,6 +1390,20 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setWisdomThread(restoredThread);
     setWisdomExpanded(false);
   }, [currentStep?.id, currentStep?.wisdom_text]);
+
+  // Animate wisdom chevron rotation when expanded/collapsed
+  React.useEffect(() => {
+    Animated.timing(wisdomChevronAnim, {
+      toValue: wisdomExpanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [wisdomExpanded, wisdomChevronAnim]);
+
+  const wisdomChevronRotate = wisdomChevronAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
   const isLastStep = actionStepIndex >= steps.length - 1;
 
   useEffect(() => {
@@ -1947,7 +1965,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     }}
                   >
                     <View style={styles.actionWisdomHeaderTitle}>
-                      <MaterialCommunityIcons name="head-heart-outline" size={15} color={Colors.alertCoral} />
                       <ThemedText weight="semiBold" style={styles.actionWisdomLabel}>
                         Wisdom thread
                       </ThemedText>
@@ -1957,11 +1974,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                         </ThemedText>
                       ) : null}
                     </View>
-                    <Ionicons
-                      name={wisdomExpanded ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color="rgba(255,255,255,0.6)"
-                    />
+                    <Animated.View style={{ transform: [{ rotate: wisdomChevronRotate }] }}>
+                      <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.6)" />
+                    </Animated.View>
                   </TouchableOpacity>
 
                   {wisdomExpanded ? (
@@ -1981,7 +1996,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                               {entry.question ? (
                                 <View style={styles.actionWisdomUserRow}>
                                   <View style={styles.actionWisdomUserBubble} collapsable={false}>
-                                    <ThemedText weight="semiBold" style={styles.actionWisdomThreadLabel}>Your question</ThemedText>
                                     <ThemedText style={styles.actionWisdomUserText} selectable={true}>
                                       {entry.question}
                                     </ThemedText>
@@ -4516,9 +4530,10 @@ const styles = StyleSheet.create({
   actionWisdomThreadDot: {
     width: 9,
     height: 9,
-    borderRadius: 5,
     backgroundColor: Colors.alertCoral,
     marginTop: 6,
+    borderRadius: 2,
+    transform: [{ rotate: '45deg' }],
   },
   actionWisdomThreadLine: {
     flex: 1,
