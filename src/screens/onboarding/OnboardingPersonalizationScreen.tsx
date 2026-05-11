@@ -209,7 +209,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       const parts = initialBirthDate.split('-').map(Number);
       if (parts.length === 3) {
         const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        if (!isNaN(d.getTime())) return d;
+        if (!isNaN(d.getTime())) {
+          return d;
+        }
       }
     }
     // Default to 25 years ago
@@ -227,7 +229,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       const parts = initialBirthDate.split('-').map(Number);
       if (parts.length === 3) {
         const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        if (!isNaN(d.getTime())) setTempBirthDate(d);
+        if (!isNaN(d.getTime())) {
+          setTempBirthDate(d);
+        }
       }
     }
   }, [birthDate, initialBirthDate]);
@@ -252,9 +256,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const formatBirthDate = (dateString: string) => {
     const parts = dateString.split('-').map(Number);
-    if (parts.length !== 3) return 'Select your birthday';
+    if (parts.length !== 3) {
+      return 'Select your birthday';
+    }
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    if (isNaN(date.getTime())) return 'Select your birthday';
+    if (isNaN(date.getTime())) {
+      return 'Select your birthday';
+    }
     return date.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
@@ -482,7 +490,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         const rparts = rewriteData.birthDate.split('-').map(Number);
         if (rparts.length === 3) {
           const rd = new Date(rparts[0], rparts[1] - 1, rparts[2]);
-          if (!isNaN(rd.getTime())) setTempBirthDate(rd);
+          if (!isNaN(rd.getTime())) {
+            setTempBirthDate(rd);
+          }
         }
       }
       if (rewriteData.faithJourney) {
@@ -1422,7 +1432,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       // Do NOT auto-focus - wait for iOS save password alert to be dismissed
       // User can manually tap the input field to focus when ready
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [askBoxOpacity, askBoxTranslateY, contentEntryAnim, headerIntroOpacity, headerTranslateY, detailsOnlyFlow]);
 
   const hasRunIntroAnim = useRef(false);

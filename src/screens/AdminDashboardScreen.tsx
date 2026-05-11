@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,17 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Animated,
+  Platform,
+  UIManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
 
@@ -104,13 +109,55 @@ function tierLabel(row: SubscriptionRow): string {
   return (row.tier || '').toUpperCase().replace('_', ' ');
 }
 
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'trials', label: 'Trials' },
-  { key: 'paid', label: 'Paid' },
-  { key: 'issues', label: 'Issues' },
-  { key: 'webhooks', label: 'Webhooks' },
+const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
+  { key: 'overview', label: 'Overview', icon: 'analytics' },
+  { key: 'trials', label: 'Trials', icon: 'timer' },
+  { key: 'paid', label: 'Paid', icon: 'card' },
+  { key: 'issues', label: 'Issues', icon: 'warning' },
+  { key: 'webhooks', label: 'Webhooks', icon: 'webhook' },
 ];
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// StepFadeIn component
+interface StepFadeInProps {
+  delay?: number;
+  children: React.ReactNode;
+  style?: any;
+}
+
+const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(16)).current;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 340,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 55,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(t);
+  }, [delay, opacity, translateY]);
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+};
 
 interface Props {
   navigation: any;
@@ -118,6 +165,7 @@ interface Props {
 
 export default function AdminDashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<FilterTab>('overview');
   const [overview, setOverview] = useState<Overview | null>(null);
   const [rows, setRows] = useState<SubscriptionRow[]>([]);
@@ -184,40 +232,59 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     );
   }
 
-  const renderStatCard = (label: string, value: number | undefined, color: string) => (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
+  const renderStatCard = (label: string, value: number | undefined, color: string, delay: number = 0) => (
+    <StepFadeIn delay={delay} style={[styles.statCard, { borderLeftColor: color }]}>
       <Text style={[styles.statValue, { color }]}>{value ?? '—'}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    </StepFadeIn>
   );
 
   const renderOverview = () => (
     <ScrollView
-      contentContainerStyle={styles.overviewContent}
+      style={styles.stepScroll}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); refresh('overview'); }} tintColor={Colors.hopeWhite} />}
+      showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Subscriptions</Text>
-      <View style={styles.statGrid}>
-        {renderStatCard('Active Trials', overview?.active_trials, '#FFC107')}
-        {renderStatCard('Paid Active', overview?.paid_active, Colors.growthGreen)}
-        {renderStatCard('Converted', overview?.converted_trials, '#34C759')}
-        {renderStatCard('Billing Issues', overview?.billing_issues, '#FF3B30')}
-      </View>
-      <View style={styles.statGrid}>
-        {renderStatCard('Stuck Trials', overview?.stuck_trials, '#FF9500')}
-        {renderStatCard('Cancelled', overview?.cancelled, '#FF9500')}
-        {renderStatCard('Expired', overview?.expired, 'rgba(255,255,255,0.4)')}
-        {renderStatCard('Free (No Sub)', overview?.seeker_free, 'rgba(255,255,255,0.4)')}
-      </View>
+      <StepFadeIn delay={0}>
+        <View style={styles.focusLabelContainer}>
+          <MaterialIcons name="analytics" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+          <Text style={styles.focusLabel}>ADMIN DASHBOARD</Text>
+        </View>
+      </StepFadeIn>
 
-      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Lifetime</Text>
-      <View style={styles.statGrid}>
-        {renderStatCard('Total Users', overview?.total_users, Colors.hopeWhite)}
-        {renderStatCard('Total Trials Started', overview?.total_trials_ever, '#FFC107')}
-      </View>
+      <StepFadeIn delay={80}>
+        <View style={styles.titleRow}>
+          <Text style={styles.stepTitle}>Overview</Text>
+        </View>
+      </StepFadeIn>
+
+      <StepFadeIn delay={160} style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Subscriptions</Text>
+        <View style={styles.statGrid}>
+          {renderStatCard('Active Trials', overview?.active_trials, '#FFC107', 0)}
+          {renderStatCard('Paid Active', overview?.paid_active, Colors.growthGreen, 40)}
+          {renderStatCard('Converted', overview?.converted_trials, '#34C759', 80)}
+          {renderStatCard('Billing Issues', overview?.billing_issues, '#FF3B30', 120)}
+        </View>
+        <View style={styles.statGrid}>
+          {renderStatCard('Stuck Trials', overview?.stuck_trials, '#FF9500', 0)}
+          {renderStatCard('Cancelled', overview?.cancelled, '#FF9500', 40)}
+          {renderStatCard('Expired', overview?.expired, 'rgba(255,255,255,0.4)', 80)}
+          {renderStatCard('Free (No Sub)', overview?.seeker_free, 'rgba(255,255,255,0.4)', 120)}
+        </View>
+      </StepFadeIn>
+
+      <StepFadeIn delay={240} style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Lifetime</Text>
+        <View style={styles.statGrid}>
+          {renderStatCard('Total Users', overview?.total_users, Colors.hopeWhite, 0)}
+          {renderStatCard('Total Trials Started', overview?.total_trials_ever, '#FFC107', 40)}
+        </View>
+      </StepFadeIn>
 
       {overview && overview.total_trials_ever > 0 && (
-        <View style={styles.conversionBox}>
+        <StepFadeIn delay={320} style={styles.conversionBox}>
           <Text style={styles.conversionLabel}>Trial → Paid Conversion Rate</Text>
           <Text style={styles.conversionValue}>
             {Math.round(((overview.converted_trials || 0) / overview.total_trials_ever) * 100)}%
@@ -225,8 +292,10 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           <Text style={styles.conversionSub}>
             {overview.converted_trials} of {overview.total_trials_ever} trials converted
           </Text>
-        </View>
+        </StepFadeIn>
       )}
+
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 
@@ -302,24 +371,20 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     </View>
   );
 
-  const filterForRpc = (tab: FilterTab): string => {
-    if (tab === 'paid') { return 'paid'; }
-    if (tab === 'issues') { return 'issues'; }
-    return 'trials';
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
-          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Admin Dashboard</Text>
-        <TouchableOpacity onPress={() => refresh()} style={styles.refreshBtn}>
-          {loading
-            ? <ActivityIndicator size="small" color={Colors.hopeWhite} />
-            : <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />}
+      {/* Close button - top right */}
+      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
       </View>
 
@@ -329,12 +394,30 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => onTabPress(tab.key)}
+            onPress={() => {
+              triggerLightHaptic();
+              onTabPress(tab.key);
+            }}
           >
+            <Ionicons name={tab.icon as any} size={16} color={activeTab === tab.key ? Colors.hopeWhite : 'rgba(255,255,255,0.6)'} style={styles.tabIcon} />
             <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Refresh button - floating */}
+      <TouchableOpacity
+        onPress={() => {
+          triggerLightHaptic();
+          refresh();
+        }}
+        style={[styles.floatingRefreshButton, { bottom: insets.bottom + 20 }]}
+        activeOpacity={0.7}
+      >
+        {loading
+          ? <ActivityIndicator size="small" color={Colors.hopeWhite} />
+          : <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />}
+      </TouchableOpacity>
 
       {/* Content */}
       {activeTab === 'overview' && renderOverview()}
@@ -412,93 +495,133 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   noAccessText: { marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 15 },
 
-  header: {
+  // Walkthrough-style close button
+  closeButton: {
+    position: 'absolute',
+    right: 16,
+    width: 32,
+    height: 32,
+    zIndex: 100,
+  },
+
+  // Walkthrough-style layout
+  stepScroll: { flex: 1 },
+  stepContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.12)',
+    marginBottom: 12,
   },
-  closeBtn: { padding: 4, marginRight: 8 },
-  refreshBtn: { padding: 4, marginLeft: 'auto' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.hopeWhite, flex: 1, textAlign: 'center' },
+  labelIcon: { marginRight: 6 },
+  focusLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.alertCoral,
+    letterSpacing: 1.2,
+  },
+  titleRow: { marginBottom: 8 },
+  stepTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
+    lineHeight: 34,
+  },
+  sectionContainer: { marginTop: 32 },
 
-  tabsScroll: { flexGrow: 0 },
-  tabsContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, flexDirection: 'row' },
+  // Tab navigation
+  tabsScroll: { flexGrow: 0, marginTop: 16 },
+  tabsContent: { paddingHorizontal: 16, gap: 8, flexDirection: 'row' },
   tab: {
-    paddingHorizontal: 14, paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.08)',
+    gap: 6,
   },
   tabActive: { backgroundColor: Colors.alertCoral },
+  tabIcon: {},
   tabText: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
   tabTextActive: { color: Colors.hopeWhite, fontWeight: '700' },
 
-  overviewContent: { padding: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, marginBottom: 10 },
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
+  // Floating refresh button
+  floatingRefreshButton: {
+    position: 'absolute',
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+
+  // Overview content
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, marginBottom: 12 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard: {
     flex: 1, minWidth: '44%',
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 10, padding: 14,
+    borderRadius: 12, padding: 16,
     borderLeftWidth: 3,
   },
-  statValue: { fontSize: 26, fontWeight: '800', marginBottom: 2 },
+  statValue: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
   statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: '500' },
 
   conversionBox: {
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 12, padding: 18, marginTop: 10,
+    borderRadius: 16, padding: 24, marginTop: 20,
     alignItems: 'center',
   },
-  conversionLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6 },
-  conversionValue: { fontSize: 40, fontWeight: '900', color: Colors.growthGreen },
-  conversionSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  conversionLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 },
+  conversionValue: { fontSize: 44, fontWeight: '900', color: Colors.growthGreen },
+  conversionSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 },
 
-  listContent: { paddingHorizontal: 14, paddingBottom: 40 },
+  // List content
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   rowCount: { fontSize: 11, color: 'rgba(255,255,255,0.35)', paddingVertical: 8, paddingHorizontal: 2 },
 
   row: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 10, marginBottom: 8, overflow: 'hidden',
+    borderRadius: 12, marginBottom: 10, overflow: 'hidden',
   },
-  rowMain: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  rowMain: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   badge: {
-    borderWidth: 1, borderRadius: 6,
-    paddingHorizontal: 7, paddingVertical: 3,
+    borderWidth: 1, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4,
     minWidth: 80, alignItems: 'center',
   },
   badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   rowInfo: { flex: 1 },
-  rowName: { fontSize: 13, fontWeight: '600', color: Colors.hopeWhite },
-  rowEmail: { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 },
-  rowRight: { alignItems: 'flex-end', gap: 2 },
+  rowName: { fontSize: 14, fontWeight: '600', color: Colors.hopeWhite },
+  rowEmail: { fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
+  rowRight: { alignItems: 'flex-end', gap: 4 },
   daysText: { fontSize: 12, fontWeight: '700' },
   cycleText: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
 
   rowDetail: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 14, paddingVertical: 10, gap: 6,
+    paddingHorizontal: 16, paddingVertical: 12, gap: 8,
   },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  detailLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)', width: 120 },
-  detailValue: { fontSize: 11, color: 'rgba(255,255,255,0.75)', flex: 1, textAlign: 'right' },
+  detailLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', width: 130 },
+  detailValue: { fontSize: 12, color: 'rgba(255,255,255,0.75)', flex: 1, textAlign: 'right' },
   detailHighlight: { color: '#FF3B30', fontWeight: '700' },
 
   webhookRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, paddingHorizontal: 14,
+    paddingVertical: 12, paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   webhookLeft: { flex: 1 },
-  webhookType: { fontSize: 13, fontWeight: '600', color: Colors.hopeWhite },
-  webhookSub: { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 },
+  webhookType: { fontSize: 14, fontWeight: '600', color: Colors.hopeWhite },
+  webhookSub: { fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
   webhookRight: { alignItems: 'flex-end' },
-  webhookDate: { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
-  webhookDetail: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  webhookDate: { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
+  webhookDetail: { fontSize: 12, fontWeight: '600', marginTop: 4 },
 
   emptyText: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
 });

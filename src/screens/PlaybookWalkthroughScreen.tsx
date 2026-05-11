@@ -22,7 +22,6 @@ import {
   Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BlurView } from '@react-native-community/blur';
 
@@ -1386,7 +1385,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setCurrentActionWisdom(storedWisdom);
     setWisdomThread(restoredThread);
     setWisdomExpanded(false);
-  }, [currentStep?.id]);
+  }, [currentStep?.id, currentStep?.wisdom_text]);
   const isLastStep = actionStepIndex >= steps.length - 1;
 
   useEffect(() => {

@@ -14,7 +14,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
@@ -62,7 +61,6 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [question, setQuestion] = useState('');
-  const [submittedQuestion, setSubmittedQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean } | null>(null);
   const preserveDraftOnCloseRef = React.useRef(false);
@@ -174,7 +172,6 @@ const HowToModal: React.FC<HowToModalProps> = ({
     const currentQuestion = question.trim();
     triggerLightHaptic();
     setLoading(true);
-    setSubmittedQuestion(currentQuestion);
     setResult(null);
     try {
       const response = await onSubmit(currentQuestion);
