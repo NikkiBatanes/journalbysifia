@@ -37,17 +37,17 @@ export function getDeviceLocale(): string {
  * Extract country code from locale (e.g., "en_PH" -> "PH", "en-PH" -> "PH")
  */
 export function getCountryCodeFromLocale(locale: string): string {
-  if (!locale) return '';
-  
+  if (!locale) {return '';}
+
   const countryMatch = locale.match(/[-_]([A-Z]{2})$/i);
   const countryCode = countryMatch ? countryMatch[1].toUpperCase() : '';
-  
+
   logger.info('[LocaleHelper] Extracted country code', {
     component: 'localeHelper',
     locale,
     countryCode,
   });
-  
+
   return countryCode;
 }
 
@@ -55,8 +55,8 @@ export function getCountryCodeFromLocale(locale: string): string {
  * Check if locale indicates Philippines
  */
 export function isPhilippinesLocale(locale: string): boolean {
-  if (!locale) return false;
-  
+  if (!locale) {return false;}
+
   const countryCode = getCountryCodeFromLocale(locale);
   return countryCode === 'PH';
 }

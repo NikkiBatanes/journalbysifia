@@ -1,19 +1,19 @@
 /**
  * Admin Dashboard Service
  * Fetches dashboard metrics from Supabase RPC functions
- * 
+ *
  * DATA SOURCE LIMITATIONS:
  * - Behavioral intelligence (app_opens, playbooks_generated, devotionals_viewed) currently inferred from subscription data
  * - Should come from activity/event tables when available
  * - Onboarding completion and playbook generation tracking not yet implemented (returns null)
  * - Market detection uses locale only (email inference removed for accuracy)
  * - Signup dates use subscription_start_date as fallback (should use auth.users.created_at)
- * 
+ *
  * ARCHITECTURE NOTES:
  * - Currently client-side heavy - calculations happen in JavaScript
  * - Future: Move to SQL views, materialized views, analytics tables
  * - Future: Event-driven analytics architecture (user_signed_up, onboarding_completed, playbook_generated, etc.)
- * 
+ *
  * BEHAVIORAL INTELLIGENCE:
  * - UserState: Dead Signup, Curious, Activated Not Monetized, Trial Non-Converter, Converted, Cancelled
  * - BehavioralTier: New, Curious, Activated, Engaged, At Risk, Paying, Churned
@@ -169,17 +169,17 @@ export interface UserWithBehavior {
   subscribed: boolean;
   cancelled: boolean;
   last_activity: string | null;
-  
+
   // Behavioral intelligence
   user_state: UserState;
   behavioral_tier: BehavioralTier;
-  
+
   // Activity metrics
   app_opens: number;
   playbooks_generated: number;
   devotionals_viewed: number;
   days_since_last_activity: number | null;
-  
+
   // Monetization
   trial_chosen_tier: string | null;
   trial_start_date: string | null;
@@ -187,7 +187,7 @@ export interface UserWithBehavior {
   subscription_tier: string | null;
   subscription_start_date: string | null;
   cancellation_date: string | null;
-  
+
   // Market
   market: 'PH' | 'GLOBAL';
 }
@@ -232,7 +232,7 @@ export interface DashboardMetrics {
   churnMetrics: ChurnMetrics;
   playbookDropoff: PlaybookDropoff;
   recentUsers: RecentUser[];
-  
+
   // User Intelligence
   nonConverterSegments: NonConverterSegment[];
   userSegments: UserSegment[];
@@ -454,7 +454,7 @@ class AdminDashboardService {
    * Get time-based metrics (week/month) - client-side calculation
    * NOTE: onboarding_completed and first_playbooks return null until event tracking exists
    */
-  async getTimeBasedMetrics(startDate: Date, endDate: Date): Promise<{ week: TimeBasedMetrics; month: TimeBasedMetrics }> {
+  async getTimeBasedMetrics(_startDate: Date, _endDate: Date): Promise<{ week: TimeBasedMetrics; month: TimeBasedMetrics }> {
     try {
       const now = new Date();
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -523,7 +523,7 @@ class AdminDashboardService {
    */
   async getConversionRates(): Promise<ConversionRates> {
     try {
-      const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
+      const { error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
       if (error) {throw error;}
 
       const [subscriptionsResult, playbooksResult] = await Promise.all([
@@ -561,7 +561,7 @@ class AdminDashboardService {
   /**
    * Get churn metrics (client-side calculation)
    */
-  async getChurnMetrics(startDate: Date, endDate: Date): Promise<ChurnMetrics> {
+  async getChurnMetrics(_startDate: Date, _endDate: Date): Promise<ChurnMetrics> {
     try {
       const { data: subscriptions, error } = await supabase.rpc('admin_get_subscriptions', { p_filter: 'all' });
       if (error) {throw error;}
@@ -671,7 +671,7 @@ class AdminDashboardService {
       if (error) {throw error;}
 
       const rows = subscriptions as any[] || [];
-      
+
       // Explicitly sort by last activity (most recent first)
       const sortedRows = rows.sort((a: any, b: any) => {
         const dateA = new Date(a.last_activity || a.updated_at || a.subscription_start_date || a.trial_start_date || 0).getTime();
@@ -706,18 +706,18 @@ class AdminDashboardService {
     const onboardingCompleted = row.onboarding_completed || false;
     const firstPlaybookGenerated = row.first_playbook_generated || false;
 
-    if (cancelled) return 'cancelled';
-    if (subscribed) return 'converted';
-    if (trialStarted) return 'trial_non_converter';
-    if (firstPlaybookGenerated) return 'activated_not_monetized';
-    if (onboardingCompleted) return 'curious';
+    if (cancelled) {return 'cancelled';}
+    if (subscribed) {return 'converted';}
+    if (trialStarted) {return 'trial_non_converter';}
+    if (firstPlaybookGenerated) {return 'activated_not_monetized';}
+    if (onboardingCompleted) {return 'curious';}
     return 'dead_signup';
   }
 
   /**
    * Calculate behavioral tier based on activity and engagement
    */
-  private calculateBehavioralTier(row: any, userState: UserState): BehavioralTier {
+  private calculateBehavioralTier(row: any, _userState: UserState): BehavioralTier {
     const subscribed = row.tier !== 'seeker' && row.tier !== 'free_trial' && row.status === 'active';
     const cancelled = row.status === 'cancelled' || row.cancellation_date;
     const appOpens = row.app_opens || 0;
@@ -725,12 +725,12 @@ class AdminDashboardService {
     const lastActivity = row.last_activity || row.updated_at;
     const daysSinceActivity = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-    if (cancelled) return 'churned';
-    if (subscribed) return 'paying';
-    if (daysSinceActivity !== null && daysSinceActivity > 14) return 'at_risk';
-    if (playbooksGenerated >= 3 && appOpens >= 10) return 'engaged';
-    if (playbooksGenerated >= 1) return 'activated';
-    if (appOpens >= 3) return 'curious';
+    if (cancelled) {return 'churned';}
+    if (subscribed) {return 'paying';}
+    if (daysSinceActivity !== null && daysSinceActivity > 14) {return 'at_risk';}
+    if (playbooksGenerated >= 3 && appOpens >= 10) {return 'engaged';}
+    if (playbooksGenerated >= 1) {return 'activated';}
+    if (appOpens >= 3) {return 'curious';}
     return 'new';
   }
 
@@ -875,7 +875,6 @@ class AdminDashboardService {
     try {
       const users = await this.getUsersWithBehavior();
       const now = new Date();
-      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
       const segments: UserSegment[] = [
@@ -953,8 +952,8 @@ class AdminDashboardService {
 
       const rows = subscriptions as any[] || [];
       const user = rows.find((r: any) => r.user_id === userId);
-      
-      if (!user) return [];
+
+      if (!user) {return [];}
 
       const timeline: UserTimelineEvent[] = [];
 

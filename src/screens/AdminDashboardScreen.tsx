@@ -6,7 +6,6 @@ import {
   StyleSheet,
   RefreshControl,
   FlatList,
-  ActivityIndicator,
   Alert,
   Animated,
   Platform,
@@ -16,7 +15,6 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
@@ -290,7 +288,7 @@ function getMarket(row: SubscriptionRow): 'PH' | 'GLOBAL' {
       return 'PH';
     }
   }
-  
+
   // Fallback to email domain check
   const email = (row.email || '').toLowerCase();
   if (
@@ -413,31 +411,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [selectedDrilldown, setSelectedDrilldown] = useState<DrilldownKey>('all_users');
   const [searchQuery, setSearchQuery] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['downloads_users', 'subscriber_breakdown', 'subscription_health', 'next_renewals', 'needs_attention', 'subscriptions', 'lifetime']));
+  const [_collapsedSections, _setCollapsedSections] = useState<Set<string>>(new Set(['downloads_users', 'subscriber_breakdown', 'subscription_health', 'next_renewals', 'needs_attention', 'subscriptions', 'lifetime']));
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<MonthRange>('all');
   const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>>(new Map());
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail);
-
-  // Color themes for each section
-  const getThemeColor = () => {
-    switch (activeTab) {
-      case 'paid':
-        return Colors.growthGreen;
-      case 'trials':
-        return '#FFC107';
-      case 'issues':
-        return '#FF3B30';
-      case 'webhooks':
-        return '#007AFF';
-      default:
-        return Colors.alertCoral;
-    }
-  };
-
-  const themeColor = getThemeColor();
 
   const loadOverview = useCallback(async () => {
     const { data, error } = await supabase.rpc('admin_subscription_overview');
@@ -586,7 +566,10 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   }, []);
 
   const getFilteredRows = useCallback((items: SubscriptionRow[]) => {
-    let filtered = items;
+    // For paid tab: exclude seeker/free/unknown tiers
+    let filtered = activeTab === 'paid'
+      ? items.filter(r => !['seeker', 'free_trial', 'unknown'].includes(r.tier?.toLowerCase() || ''))
+      : items;
 
     // Apply metric filter
     if (selectedMetric) {
@@ -626,39 +609,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     }
 
     return filtered;
-  }, [selectedMetric, searchQuery]);
-
-  const toggleSection = (sectionId: string) => {
-    triggerLightHaptic();
-    setCollapsedSections(prev => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  };
-
-  const exportToCSV = (data: any[], filename: string) => {
-    if (data.length === 0) {
-      Alert.alert('Export Error', 'No data to export');
-      return;
-    }
-
-    const headers = Object.keys(data[0]);
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => headers.map(header => {
-        const value = row[header];
-        const stringValue = value === null || value === undefined ? '' : String(value);
-        return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
-      }).join(','))
-    ].join('\n');
-
-    Alert.alert('Export Ready', `${data.length} records ready for export. In production, this would save to a file.`);
-  };
+  }, [selectedMetric, searchQuery, activeTab]);
 
   const analyticsWindow = getAnalyticsWindow();
   const activePaidRows = analyticsRows.filter(isPaidSubscriptionRow);
@@ -668,12 +619,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   // MRR: sum of per-tier monthly contribution, annual divided by 12
   const phpMRR = phPaidRows.reduce((sum, row) => sum + getMRRContribution(row, 'PH'), 0);
   const usdMRR = globalPaidRows.reduce((sum, row) => sum + getMRRContribution(row, 'GLOBAL'), 0);
-
-  // Monthly-only revenue (not annualized)
-  const phpMonthlyOnlyRows = phPaidRows.filter(r => r.billing_cycle === 'monthly' && !r.tier.includes('annual'));
-  const phpAnnualRows = phPaidRows.filter(r => r.billing_cycle === 'annual' || r.tier.includes('annual'));
-  const usdMonthlyOnlyRows = globalPaidRows.filter(r => r.billing_cycle === 'monthly' && !r.tier.includes('annual'));
-  const usdAnnualRows = globalPaidRows.filter(r => r.billing_cycle === 'annual' || r.tier.includes('annual'));
 
   // All upcoming renewals (not sliced) for accurate count
   const allUpcomingRenewals = activePaidRows
@@ -837,10 +782,11 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     return parts.length ? parts.join(' · ') : 'No activity details tracked in this range';
   };
 
-  const getUserSummaries = (sourceRows: SubscriptionRow[]): UserActivitySummary[] => {
+  const getUserSummaries = (sourceRows: SubscriptionRow[], includeEvents = false): UserActivitySummary[] => {
     const rowMap = new Map(sourceRows.map(row => [row.user_id, row]));
 
-    activityEvents.forEach(event => {
+    if (includeEvents) {
+      activityEvents.forEach(event => {
       if (!rowMap.has(event.user_id)) {
         rowMap.set(event.user_id, {
           user_id: event.user_id,
@@ -872,6 +818,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         });
       }
     });
+    }
 
     return Array.from(rowMap.values()).map(row => {
       const latestEvent = latestEventByUser[row.user_id];
@@ -891,7 +838,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     }).sort((a, b) => new Date(b.last_activity_at || 0).getTime() - new Date(a.last_activity_at || 0).getTime());
   };
 
-  const allUserSummaries = getUserSummaries(analyticsRows);
+  const allUserSummaries = getUserSummaries(analyticsRows, true);
   const newRegisteredRows = allUserSummaries.filter(item => signupUserIds.has(item.user_id));
   const activeUserRows = allUserSummaries.filter(item => activeUserIds.has(item.user_id));
   const trialsStartedRows = getUserSummaries(analyticsRows.filter(row => isWithinRange(row.trial_start_date, analyticsWindow.startDate, analyticsWindow.endDate)));
@@ -989,15 +936,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               : tab.key === 'issues'
                 ? overview?.billing_issues
                 : webhooks.length;
-        const tabThemeColor = tab.key === 'paid'
-          ? Colors.growthGreen
-          : tab.key === 'trials'
-            ? '#FFC107'
-            : tab.key === 'issues'
-              ? '#FF3B30'
-              : tab.key === 'webhooks'
-                ? '#007AFF'
-                : Colors.alertCoral;
         return (
           <TouchableOpacity
             key={tab.key}
@@ -1061,13 +999,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   );
 
   const renderLastUpdated = () => {
-    if (!lastUpdated) return null;
+    if (!lastUpdated) {return null;}
     const timeDiff = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
     let timeString = '';
-    if (timeDiff < 60) timeString = 'just now';
-    else if (timeDiff < 3600) timeString = `${Math.floor(timeDiff / 60)}m ago`;
-    else if (timeDiff < 86400) timeString = `${Math.floor(timeDiff / 3600)}h ago`;
-    else timeString = `${Math.floor(timeDiff / 86400)}d ago`;
+    if (timeDiff < 60) {timeString = 'just now';}
+    else if (timeDiff < 3600) {timeString = `${Math.floor(timeDiff / 60)}m ago`;}
+    else if (timeDiff < 86400) {timeString = `${Math.floor(timeDiff / 3600)}h ago`;}
+    else {timeString = `${Math.floor(timeDiff / 86400)}d ago`;}
 
     return (
       <View style={styles.lastUpdatedContainer}>
@@ -1077,81 +1015,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     );
   };
 
-  const renderCollapsibleSection = (
-    sectionId: string,
-    title: string,
-    count: number,
-    children: React.ReactNode,
-    showCount = true
-  ) => {
-    const isCollapsed = collapsedSections.has(sectionId);
-    return (
-      <View style={styles.collapsibleSection}>
-        <TouchableOpacity
-          style={styles.collapsibleHeader}
-          onPress={() => toggleSection(sectionId)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.collapsibleTitleRow}>
-            <ThemedText weight="semiBold" style={styles.collapsibleTitle}>{title}</ThemedText>
-            {showCount && (
-              <View style={styles.countBadge}>
-                <ThemedText weight="bold" style={styles.countBadgeText}>{count}</ThemedText>
-              </View>
-            )}
-          </View>
-          <Ionicons
-            name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
-            size={16}
-            color="rgba(255,255,255,0.5)"
-          />
-        </TouchableOpacity>
-        {!isCollapsed && <View style={styles.collapsibleContent}>{children}</View>}
-      </View>
-    );
-  };
-
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsContainer}>
-      <TouchableOpacity
-        style={styles.quickActionButton}
-        onPress={() => {
-          triggerLightHaptic();
-          refresh(activeTab);
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="refresh" size={20} color={Colors.hopeWhite} />
-        <ThemedText weight="medium" style={styles.quickActionText}>Refresh</ThemedText>
-      </TouchableOpacity>
-      {(activeTab === 'trials' || activeTab === 'paid' || activeTab === 'issues') && (
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => {
-            triggerLightHaptic();
-            exportToCSV(getFilteredRows(rows), `${activeTab}_export.csv`);
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="download-outline" size={20} color={Colors.hopeWhite} />
-          <ThemedText weight="medium" style={styles.quickActionText}>Export</ThemedText>
-        </TouchableOpacity>
-      )}
-      <TouchableOpacity
-        style={styles.quickActionButton}
-        onPress={() => {
-          triggerLightHaptic();
-          setSearchQuery('');
-          setSelectedMetric(null);
-          setExpandedId(null);
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="filter-outline" size={20} color={Colors.hopeWhite} />
-        <ThemedText weight="medium" style={styles.quickActionText}>Clear Filters</ThemedText>
-      </TouchableOpacity>
-    </View>
-  );
 
   if (!isAdmin) {
     return (
@@ -1164,25 +1027,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     );
   }
 
-  const renderMetricCard = (label: string, value: number | undefined, color: string, delay: number = 0, tab: FilterTab = 'overview', metric: OverviewMetric = null) => {
-    const selected = activeTab === tab && selectedMetric === metric;
-    return (
-      <StepFadeIn delay={delay} style={styles.metricCardWrap}>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            openTab(tab, metric);
-          }}
-          activeOpacity={0.85}
-          style={[styles.metricCard, { borderColor: color }, selected && styles.metricCardSelected]}
-        >
-          <ThemedText weight="bold" style={[styles.metricValue, { color }]}>{value ?? '—'}</ThemedText>
-          <ThemedText weight="semiBold" style={styles.metricLabel}>{label}</ThemedText>
-          <ThemedText weight="regular" style={styles.metricSub}>{metric ? 'Tap to view data' : 'Overview'}</ThemedText>
-        </TouchableOpacity>
-      </StepFadeIn>
-    );
-  };
 
   const renderInsightGrid = (items: AdminInsight[]) => (
     <ScrollView
@@ -1210,40 +1054,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     </ScrollView>
   );
 
-  const renderUserActivityRows = () => (
-    <StepFadeIn delay={240} style={styles.sectionContainer}>
-      <View style={styles.filteredHeaderRow}>
-        <ThemedText weight="semiBold" style={styles.sectionTitle}>{drilldownTitle}</ThemedText>
-        <ThemedText weight="regular" style={styles.filteredHeaderText}>{drilldownRows.length} users</ThemedText>
-      </View>
-      {drilldownRows.length === 0 ? (
-        <ThemedText weight="regular" style={styles.emptyMiniText}>No user records found for this card and date range.</ThemedText>
-      ) : (
-        drilldownRows.slice(0, 50).map(item => (
-          <View key={`${selectedDrilldown || 'all'}-${item.user_id}`} style={styles.activityUserRow}>
-            <View style={styles.activityUserHeader}>
-              <View style={styles.activityUserInfo}>
-                <ThemedText weight="semiBold" style={styles.activityUserName} numberOfLines={1}>{item.name}</ThemedText>
-                <ThemedText weight="regular" style={styles.activityUserEmail} numberOfLines={1}>{item.email || item.user_id}</ThemedText>
-              </View>
-              <View style={styles.activityBadge}>
-                <ThemedText weight="bold" style={styles.activityBadgeText}>{item.tier}</ThemedText>
-              </View>
-            </View>
-            <ThemedText weight="regular" style={styles.activitySummary}>{item.activity_summary}</ThemedText>
-            <View style={styles.activityMetaRow}>
-              <ThemedText weight="regular" style={styles.activityMeta}>Last action: {item.last_event.replace(/_/g, ' ')}</ThemedText>
-              <ThemedText weight="regular" style={styles.activityMeta}>{formatDate(item.last_activity_at)}</ThemedText>
-            </View>
-            <View style={styles.activityMetaRow}>
-              <ThemedText weight="regular" style={styles.activityMeta}>Status: {item.status}</ThemedText>
-              <ThemedText weight="regular" style={styles.activityMeta}>{item.billing_cycle ? `${item.billing_cycle} plan` : 'No paid plan'}</ThemedText>
-            </View>
-          </View>
-        ))
-      )}
-    </StepFadeIn>
-  );
 
   const renderRangeSelector = () => (
     <View style={styles.rangeSelectorWrapper}>
@@ -1300,39 +1110,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     </View>
   );
 
-  const renderMiniRows = (title: string, items: SubscriptionRow[], empty: string, previewLimit = 8) => (
-    <StepFadeIn delay={360} style={styles.sectionContainer}>
-      <View style={styles.filteredHeaderRow}>
-        <ThemedText weight="semiBold" style={styles.sectionTitle}>{title}</ThemedText>
-        <ThemedText weight="regular" style={styles.filteredHeaderText}>{items.length} total</ThemedText>
-      </View>
-      {items.length === 0 ? (
-        <ThemedText weight="regular" style={styles.emptyMiniText}>{empty}</ThemedText>
-      ) : (
-        <>
-          {items.slice(0, previewLimit).map(item => (
-            <View key={`${title}-${item.user_id}`} style={styles.miniRow}>
-              <View style={styles.miniRowLeft}>
-                <ThemedText weight="bold" style={styles.miniRowTitle} numberOfLines={1}>{displayName(item)}</ThemedText>
-                <ThemedText weight="regular" style={styles.miniRowSub} numberOfLines={1}>{item.email || item.tier}</ThemedText>
-              </View>
-              <View style={styles.miniRowRight}>
-                <ThemedText weight="bold" style={styles.miniRowDate}>
-                  {item.subscription_end_date ? formatDate(item.subscription_end_date) : formatDate(item.trial_end_date)}
-                </ThemedText>
-                <ThemedText weight="regular" style={styles.miniRowCycle}>
-                  {item.billing_cycle === 'annual' ? '★ Annual' : item.billing_cycle === 'monthly' ? 'Monthly' : item.status}
-                </ThemedText>
-              </View>
-            </View>
-          ))}
-          {items.length > previewLimit && (
-            <ThemedText weight="regular" style={styles.moreRowsText}>Showing {previewLimit} of {items.length}. Use SQL/export for the full list.</ThemedText>
-          )}
-        </>
-      )}
-    </StepFadeIn>
-  );
 
   const renderOverview = () => (
     <ScrollView
@@ -1363,6 +1140,14 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       <StepFadeIn delay={120}>
         {/* Row 1: Paid + Trials */}
         <View style={styles.healthRow}>
+          <View style={[styles.healthCard, { flex: 1 }]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{overview?.total_users || analyticsRows.length}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Total Users</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="people" size={13} color="rgba(255,255,255,0.5)" />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>all time</ThemedText>
+            </View>
+          </View>
           <View style={[styles.healthCard, { flex: 1 }]}>
             <ThemedText weight="bold" style={styles.healthCardHeroValue}>{activePaidRows.length}</ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Paid Subscribers</ThemedText>
@@ -1724,29 +1509,29 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       </StepFadeIn>
       <StepFadeIn delay={380}>
         <View style={styles.recentUsersContainer}>
-          {dashboardMetrics?.recentUsers?.slice(0, 5).map((user) => (
-            <View key={user.user_id} style={styles.recentUserRow}>
+          {dashboardMetrics?.recentUsers?.slice(0, 5).map((recentUser) => (
+            <View key={recentUser.user_id} style={styles.recentUserRow}>
               <View style={styles.recentUserInfo}>
-                <ThemedText weight="semiBold" style={styles.recentUserName}>{user.name || 'Unknown'}</ThemedText>
-                <ThemedText weight="regular" style={styles.recentUserEmail}>{user.email || 'No email'}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.recentUserName}>{recentUser.name || 'Unknown'}</ThemedText>
+                <ThemedText weight="regular" style={styles.recentUserEmail}>{recentUser.email || 'No email'}</ThemedText>
               </View>
               <View style={styles.recentUserStatus}>
-                {user.onboarding_completed && (
+                {recentUser.onboarding_completed && (
                   <View style={styles.statusBadge}>
                     <ThemedText weight="regular" style={styles.statusBadgeText}>✓ Onboarding</ThemedText>
                   </View>
                 )}
-                {user.first_playbook_generated && (
+                {recentUser.first_playbook_generated && (
                   <View style={styles.statusBadge}>
                     <ThemedText weight="regular" style={styles.statusBadgeText}>📖 Playbook</ThemedText>
                   </View>
                 )}
-                {user.trial_started && (
+                {recentUser.trial_started && (
                   <View style={styles.statusBadge}>
                     <ThemedText weight="regular" style={styles.statusBadgeText}>⏱ Trial</ThemedText>
                   </View>
                 )}
-                {user.subscribed && (
+                {recentUser.subscribed && (
                   <View style={[styles.statusBadge, { backgroundColor: 'rgba(52, 199, 89, 0.2)' }]}>
                     <ThemedText weight="regular" style={[styles.statusBadgeText, { color: Colors.growthGreen }]}>💎 Paid</ThemedText>
                   </View>
@@ -1874,16 +1659,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       : daysLeft < 0 ? '#FF3B30'
       : daysLeft < 7 ? '#FF9500'
       : Colors.hopeWhite;
-
-    // Subscription window string e.g. "Dec 11, 2025 → Dec 23, 2026"
-    const subWindow = item.subscription_start_date && item.subscription_end_date
-      ? `${formatDate(item.subscription_start_date)} → ${formatDate(item.subscription_end_date)}`
-      : null;
-
-    // Trial window string
-    const trialWindow = item.trial_start_date && item.trial_end_date
-      ? `${formatDate(item.trial_start_date)} → ${formatDate(item.trial_end_date)}`
-      : null;
 
     return (
       <TouchableOpacity
@@ -2120,15 +1895,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           }
         />
       )}
-    </View>
-  );
-}
-
-function DetailRow({ label, value, highlight = false }: { label: string; value: string | null | undefined; highlight?: boolean }) {
-  return (
-    <View style={styles.detailRow}>
-      <ThemedText weight="regular" style={styles.detailLabel}>{label}</ThemedText>
-      <ThemedText weight="regular" style={[styles.detailValue, highlight && styles.detailHighlight]}>{value || '—'}</ThemedText>
     </View>
   );
 }
@@ -3161,7 +2927,7 @@ const styles = StyleSheet.create({
   navigationItemSelected: {
     backgroundColor: 'rgba(255,107,107,0.15)',
     borderWidth: 1,
-    borderColor: Colors.alertCoral
+    borderColor: Colors.alertCoral,
   },
   navigationItemLeft: {
     flexDirection: 'row',
