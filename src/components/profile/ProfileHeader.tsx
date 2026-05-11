@@ -18,6 +18,8 @@ export interface ProfileStatsLite {
 interface UsageSummary {
   playbooks: { used: number; limit: number };
   devotionals: { used: number; limit: number };
+  refinements: { used: number; limit: number };
+  wisdom: { used: number; limit: number };
 }
 
 interface Props {
@@ -116,7 +118,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="clipboard-text-play" size={14} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>
                         {usage.playbooks.used}
                         {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
@@ -129,21 +131,47 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="book" size={14} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>
                         {usage.devotionals.used}
                         {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  {/* Usage stats: Playbooks, Devotionals, Faith Points, Badges */}
+                  <TouchableOpacity
+                    style={styles.usagePill}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('refinements'); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="auto-fix" size={12} color={Colors.hopeWhite} />
+                      <Text style={[styles.usageText, font]}>
+                        {usage.refinements.used}
+                        {usage.refinements.limit >= 0 ? `/${usage.refinements.limit}` : '/∞'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.usagePill}
+                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('wisdom'); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="lightbulb" size={12} color={Colors.hopeWhite} />
+                      <Text style={[styles.usageText, font]}>
+                        {usage.wisdom.used}
+                        {usage.wisdom.limit >= 0 ? `/${usage.wisdom.limit}` : '/∞'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  {/* Usage stats: Playbooks, Devotionals, Refinements, Wisdom, Faith Points, Badges */}
                   <TouchableOpacity
                     style={styles.usagePill}
                     onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('faithPoints'); }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>{points} FP</Text>
                     </View>
                   </TouchableOpacity>
@@ -153,7 +181,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                     activeOpacity={0.7}
                   >
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="trophy" size={14} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
                       <Text style={[styles.usageText, font]}>{badgesCount}</Text>
                     </View>
                   </TouchableOpacity>
@@ -351,9 +379,9 @@ const styles = StyleSheet.create({
   },
   usagePill: {
     marginLeft: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 18,
     // Transparent with visible border
     backgroundColor: 'transparent',
     borderWidth: 1,
@@ -365,7 +393,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'nowrap',
-    gap: 4 as any,
+    gap: 3 as any,
     flexShrink: 1,
   },
   faithPointsPill: {
@@ -382,10 +410,10 @@ const styles = StyleSheet.create({
   usageItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4 as any,
+    gap: 3 as any,
   },
   usageText: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.hopeWhite,
     fontWeight: '700',
   },
@@ -460,8 +488,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.borderLight,
   },
   skeletonUsageItem: {
-    height: 14,
-    width: 38,
+    height: 12,
+    width: 32,
     // Very light bar like 'no fill' progress
     backgroundColor: Colors.trustGrey,
     borderRadius: 5,

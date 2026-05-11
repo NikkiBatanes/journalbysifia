@@ -10,7 +10,7 @@ import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerLightHaptic } from '../../utils/haptics';
 
-export type TooltipType = 'playbooks' | 'devotionals' | 'faithPoints' | 'badges';
+export type TooltipType = 'playbooks' | 'devotionals' | 'refinements' | 'wisdom' | 'faithPoints' | 'badges';
 
 interface TooltipContent {
   title: string;
@@ -33,6 +33,8 @@ interface Props {
   usage: {
     playbooks: { used: number; limit: number };
     devotionals: { used: number; limit: number };
+    refinements: { used: number; limit: number };
+    wisdom: { used: number; limit: number };
   } | null;
   stats: {
     faithPoints: number;
@@ -191,6 +193,86 @@ const UsageTooltipModal: React.FC<Props> = ({
           iconColor: Colors.alertCoral,
         };
 
+      case 'refinements':
+        const refinementsUsed = usage?.refinements.used || 0;
+        const refinementsLimit = usage?.refinements.limit || 0;
+        const refinementsRemaining = Math.max(0, refinementsLimit - refinementsUsed);
+
+        let refinementsDesc = 'Refinements let you regenerate and improve your playbook content with AI-powered insights to better match your current journey and needs.';
+        
+        if (isOnTrial) {
+          const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
+          if (refinementsRemaining === 0) {
+            const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
+            refinementsDesc += `\n\nYou are on ${displayName}. You have used all ${refinementsLimit} ${refinementsLimit === 1 ? 'refinement' : 'refinements'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.refinements === -1 ? 'refinements without a monthly counter' : `${fullLimits.refinements} refinements`} every month.`;
+          } else {
+            refinementsDesc += `\n\nYou are on ${displayName}. You have ${refinementsLimit} ${refinementsLimit === 1 ? 'refinement' : 'refinements'} available during your trial and have used ${refinementsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.refinements === -1 ? 'refinements without a monthly counter' : `${fullLimits.refinements} refinements`} every month.`;
+          }
+        } else if (refinementsLimit === -1) {
+          refinementsDesc += `\n\nYou are on ${displayName}. This plan does not use a monthly refinement counter.`;
+        } else if (refinementsLimit === 0) {
+          refinementsDesc += '\n\nYour monthly refinement limit could not be loaded.';
+        } else {
+          const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
+          const now = new Date();
+          const daysUntilReset = Math.max(0, Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+          const dayText = daysUntilReset === 1 ? 'day' : 'days';
+          const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+          if (refinementsRemaining === 0) {
+            refinementsDesc += `\n\nYou are on ${displayName}. You have used all ${refinementsLimit} ${refinementsLimit === 1 ? 'refinement' : 'refinements'} available this month.\n\nYour refinements will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+          } else {
+            refinementsDesc += `\n\nYou are on ${displayName}. You have ${refinementsLimit} ${refinementsLimit === 1 ? 'refinement' : 'refinements'} available each month and have used ${refinementsUsed}.\n\n${refinementsRemaining} ${refinementsRemaining === 1 ? 'refinement' : 'refinements'} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+          }
+        }
+
+        return {
+          title: 'Playbook Refinements',
+          description: refinementsDesc,
+          icon: 'auto-fix',
+          iconColor: Colors.alertCoral,
+        };
+
+      case 'wisdom':
+        const wisdomUsed = usage?.wisdom.used || 0;
+        const wisdomLimit = usage?.wisdom.limit || 0;
+        const wisdomRemaining = Math.max(0, wisdomLimit - wisdomUsed);
+
+        let wisdomDesc = "How to's provide personalized, step-by-step guidance for your faithful actions. Ask siFia for practical wisdom on how to apply biblical truths to specific situations in your life.";
+        
+        if (isOnTrial) {
+          const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
+          if (wisdomRemaining === 0) {
+            const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
+            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
+          } else {
+            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available during your trial and have used ${wisdomUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
+          }
+        } else if (wisdomLimit === -1) {
+          wisdomDesc += `\n\nYou are on ${displayName}. This plan does not use a monthly how-to counter.`;
+        } else if (wisdomLimit === 0) {
+          wisdomDesc += '\n\nYour monthly how-to limit could not be loaded.';
+        } else {
+          const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
+          const now = new Date();
+          const daysUntilReset = Math.max(0, Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+          const dayText = daysUntilReset === 1 ? 'day' : 'days';
+          const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+          if (wisdomRemaining === 0) {
+            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available this month.\n\nYour how-to's will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+          } else {
+            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available each month and have used ${wisdomUsed}.\n\n${wisdomRemaining} ${wisdomRemaining === 1 ? "how-to" : "how-to's"} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+          }
+        }
+
+        return {
+          title: "How to's for Faithful Actions",
+          description: wisdomDesc,
+          icon: 'lightbulb',
+          iconColor: Colors.alertCoral,
+        };
+
       case 'faithPoints':
         const points = stats?.faithPoints || 0;
         const level = stats?.level || 1;
@@ -245,18 +327,18 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   // Helper function to get full tier limits
-  const getFullTierLimits = (tier: string): { playbooks: number; devotionals: number } => {
+  const getFullTierLimits = (tier: string): { playbooks: number; devotionals: number; refinements: number; wisdom: number } => {
     switch (tier) {
       case 'spark':
-        return { playbooks: 10, devotionals: 10 };
+        return { playbooks: 10, devotionals: 10, refinements: 3, wisdom: 5 };
       case 'growth':
-        return { playbooks: 25, devotionals: 25 };
+        return { playbooks: 25, devotionals: 25, refinements: 6, wisdom: 12 };
       case 'transformation':
-        return { playbooks: 60, devotionals: 60 };
+        return { playbooks: 60, devotionals: 60, refinements: 15, wisdom: 25 };
       case 'family':
-        return { playbooks: -1, devotionals: -1 };
+        return { playbooks: -1, devotionals: -1, refinements: -1, wisdom: -1 };
       default:
-        return { playbooks: 2, devotionals: 1 };
+        return { playbooks: 2, devotionals: 1, refinements: 1, wisdom: 2 };
     }
   };
 
@@ -390,7 +472,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           ) : (
             <TouchableOpacity style={styles.fullWidthButton} onPress={() => { triggerLightHaptic(); onClose(); }} activeOpacity={0.7}>
               <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-                Got it!
+                Got it
               </ThemedText>
             </TouchableOpacity>
           )}

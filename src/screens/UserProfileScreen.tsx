@@ -48,6 +48,8 @@ interface Subscription {
     playbooks: number;
     devotionals: number;
   };
+  refinement_limit?: number;
+  wisdom_limit?: number;
   subscription_display_name?: string;
   billing_cycle?: 'monthly' | 'annual';
 }
@@ -55,6 +57,8 @@ interface Subscription {
 interface UsageTracking {
   playbooks_generated: number;
   devotionals_generated: number;
+  refinements_generated: number;
+  wisdom_generated: number;
 }
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
@@ -423,6 +427,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         const usageData = {
           playbooks_generated: subscriptionData.playbooks_used || 0,
           devotionals_generated: subscriptionData.devotionals_used || 0,
+          refinements_generated: subscriptionData.refinement_count || 0,
+          wisdom_generated: subscriptionData.wisdom_count || 0,
         };
         setUsage(usageData);
 
@@ -1380,14 +1386,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const normalizeLimit = (limitValue?: number | null) => {
       if (typeof limitValue !== 'number') {return 0;}
       if (limitValue < 0) {return -1;}
-      if (limitValue >= 999999) {return -1;}
       return limitValue;
     };
     const playbookLimitNum = normalizeLimit(subscription.limits?.playbooks);
     const devotionalLimitNum = normalizeLimit(subscription.limits?.devotionals);
+    const refinementLimitNum = normalizeLimit(subscription.refinement_limit);
+    const wisdomLimitNum = normalizeLimit(subscription.wisdom_limit);
     return {
       playbooks: { used: usage.playbooks_generated || 0, limit: playbookLimitNum },
       devotionals: { used: usage.devotionals_generated || 0, limit: devotionalLimitNum },
+      refinements: { used: usage.refinements_generated || 0, limit: refinementLimitNum },
+      wisdom: { used: usage.wisdom_generated || 0, limit: wisdomLimitNum },
     } as const;
   }, [subscription, usage]);
 
