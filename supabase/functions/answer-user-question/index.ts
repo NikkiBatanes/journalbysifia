@@ -8,13 +8,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function calculateAgeFromDate(dateOfBirth?: string): number | null {
+  if (!dateOfBirth || typeof dateOfBirth !== 'string') {
+    return null;
+  }
+
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0 || age > 120) {
+    return null;
+  }
+  return age;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { question, context } = await req.json();
+    const { question, context, dateOfBirth } = await req.json();
 
     // Extract user ID from authorization header for rate limiting
     const authHeader = req.headers.get('authorization');
@@ -37,11 +60,18 @@ serve(async (req) => {
 
     console.log('Generating AI response for user question:', question?.substring(0, 50) + '...');
 
+    // Calculate age for audience context
+    const calculatedAge = calculateAgeFromDate(dateOfBirth);
+    const audienceContext = calculatedAge !== null
+      ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+      : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
+
     // Build personalized coaching prompt
     const questionPrompt = `
 You are a wise, compassionate Christian spiritual director and coach. A user is asking you: "${question}"
 
 ${context ? `Context: ${context}` : 'Context: General spiritual guidance'}
+${audienceContext}
 
 🚨 CORE CHRISTIAN DOCTRINES - NON-NEGOTIABLE (SOLA SCRIPTURA):
 When addressing theological topics, you MUST:

@@ -969,7 +969,7 @@ serve(async (req: Request) => {
     // Add unique timestamp to ensure no caching and fresh generation every time
     const generationTimestamp = new Date().toISOString();
     const audienceContext = calculatedAge !== null
-      ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, tone, and action scale to this exact age. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+      ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, tone, and action scale to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
       : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
     contextualPrompt += `\n\nUser Name: ${userName}\nUser Request: ${effectiveUserInput}\nGeneration ID: ${generationTimestamp}
 

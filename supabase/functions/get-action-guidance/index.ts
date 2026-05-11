@@ -18,6 +18,7 @@ interface WisdomRequest {
   truthSummary: string;
   truthInLove: string;
   previousWisdom?: string;
+  dateOfBirth?: string;
 }
 
 interface WisdomThreadEntry {
@@ -258,6 +259,29 @@ function isTooSimilarToPrevious(wisdom: { intro: string; steps: string[] }, prev
   return overlap / Math.min(currentTokens.size, previousTokens.size) > 0.55;
 }
 
+function calculateAgeFromDate(dateOfBirth?: string): number | null {
+  if (!dateOfBirth || typeof dateOfBirth !== 'string') {
+    return null;
+  }
+
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0 || age > 120) {
+    return null;
+  }
+  return age;
+}
+
 function buildWisdomPrompt(args: {
   playbookTitle: string;
   truthSummary: string;
@@ -267,13 +291,20 @@ function buildWisdomPrompt(args: {
   userQuestion: string;
   userName: string;
   previousWisdom?: string;
+  dateOfBirth?: string;
 }): string {
+  const calculatedAge = calculateAgeFromDate(args.dateOfBirth);
+  const audienceContext = calculatedAge !== null
+    ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+    : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
+
   return [
     'ACTION EXECUTION HELPER: Help the user carry out ONE specific faithful action. This is not general coaching.',
     '',
     '=== CONTEXT ===',
     `Playbook: ${cleanText(args.playbookTitle, 180)}`,
     `Truth: ${cleanText(args.truthSummary, 500)}`,
+    audienceContext,
     '',
     '=== THE ONE ACTION THE USER NEEDS TO DO ===',
     `Action: ${cleanText(args.actionTitle, 180)}`,
@@ -386,6 +417,8 @@ serve(async (req: Request) => {
       .eq('user_id', userId)
       .single();
 
+    const dateOfBirth = cleanText(body.dateOfBirth, 50);
+
     if (playbookError || !playbook) {
       return new Response(JSON.stringify({ error: 'PLAYBOOK_NOT_FOUND', message: 'Playbook not found.' }), {
         status: 404,
@@ -422,6 +455,7 @@ serve(async (req: Request) => {
       userQuestion,
       userName,
       previousWisdom: wisdomHistory,
+      dateOfBirth,
     });
     const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove}`;
 

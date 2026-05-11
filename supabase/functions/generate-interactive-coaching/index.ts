@@ -8,11 +8,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function calculateAgeFromDate(dateOfBirth?: string): number | null {
+  if (!dateOfBirth || typeof dateOfBirth !== 'string') {
+    return null;
+  }
+
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 0 || age > 120) {
+    return null;
+  }
+  return age;
+}
+
 interface ConversationContext {
   originalUserInput: string;
   playbookTitle: string;
   currentStepText: string;
   userSpiritualProfile?: Record<string, unknown>;
+  dateOfBirth?: string;
 }
 
 interface ConversationMessage {
@@ -162,6 +186,11 @@ serve(async (req) => {
  * Build opening prompt for starting a conversation
  */
 function buildOpeningPrompt(context: ConversationContext): string {
+  const calculatedAge = calculateAgeFromDate(context.dateOfBirth);
+  const audienceContext = calculatedAge !== null
+    ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+    : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
+
   return `
 You are a wise, compassionate Christian spiritual director starting a conversation with someone working on: "${context.currentStepText}"
 
@@ -169,6 +198,7 @@ Context:
 - Their original struggle/input: "${context.originalUserInput}"
 - Playbook: "${context.playbookTitle}"
 - This is the beginning of a personal coaching conversation
+${audienceContext}
 
 Your role is to:
 1. Create a warm, safe space for spiritual conversation
@@ -232,6 +262,11 @@ function buildConversationalPrompt(
   const themes = insights?.keyThemes?.join(', ') || 'spiritual growth';
   const prayerRequests = insights?.prayerRequests?.slice(-2).join(', ') || '';
 
+  const calculatedAge = calculateAgeFromDate(context.dateOfBirth);
+  const audienceContext = calculatedAge !== null
+    ? `\n\n## AUDIENCE CONTEXT\nUser is exactly ${calculatedAge} years old, calculated from their birthday. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`
+    : '\n\n## AUDIENCE CONTEXT\nAge is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.';
+
   return `
 You are continuing a spiritual coaching conversation. Here's the context:
 
@@ -244,6 +279,7 @@ ${recentHistory}
 
 Current Themes: ${themes}
 ${prayerRequests ? `Prayer Areas: ${prayerRequests}` : ''}
+${audienceContext}
 
 User just said: "${userMessage}"
 

@@ -1196,7 +1196,7 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
       calculatedAge,
       ageSource: 'dateOfBirth',
       isTeenUser: calculatedAge <= 17,
-      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, devotional depth, and application to this exact age. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
+      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, devotional depth, and application to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
     };
   }
 
