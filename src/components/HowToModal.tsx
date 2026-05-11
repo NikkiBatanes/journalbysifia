@@ -287,7 +287,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
             </View>
             <View style={styles.titleRow}>
               <ThemedText weight="semiBold" style={styles.prompt}>
-                {hasWisdom ? "Here's some wisdom" : 'What do you need help with for this action?'}
+                {hasWisdom ? "Here's some wisdom" : 'What do you need help\nwith for this action?'}
               </ThemedText>
             </View>
             <View style={styles.subtextRow}>
@@ -401,7 +401,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         numberOfLines={1}
                         style={[styles.submitButtonText, { opacity: loadingAnim, fontFamily: theme.fontFamily }]}
                       >
-                        Asking
+                        Thinking
                       </Animated.Text>
                       <Animated.Text
                         numberOfLines={1}
