@@ -198,7 +198,29 @@ export class NewSubscriptionService {
       throw new SubscriptionError(`Failed to get subscription: ${error.message}`, 'DATABASE_ERROR', error);
     }
 
-    return this.enrichSubscriptionData(data);
+    const subscription = this.enrichSubscriptionData(data);
+
+    // FAILSAFE: If a paid subscription has already expired but the webhook has not
+    // downgraded it yet, normalize the row immediately so stale paid users do not
+    // keep appearing as active in the app or admin views.
+    const isPaidSubscription = subscription.tier !== 'seeker' && subscription.tier !== 'free_trial';
+    if (isPaidSubscription && subscription.subscription_end_date) {
+      const endDate = new Date(subscription.subscription_end_date);
+      if (!Number.isNaN(endDate.getTime()) && endDate < new Date()) {
+        Logger.warn('[NewSubscriptionService] Expired paid subscription detected during fetch; downgrading to seeker', {
+          component: 'NewSubscriptionService',
+          userId,
+          tier: subscription.tier,
+          status: subscription.status,
+          subscriptionEndDate: subscription.subscription_end_date,
+        });
+
+        await this.handleExpiredSubscription(userId);
+        return await this.getUserSubscription(userId, true);
+      }
+    }
+
+    return subscription;
   }
 
   /**

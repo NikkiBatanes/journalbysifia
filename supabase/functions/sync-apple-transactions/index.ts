@@ -127,6 +127,15 @@ serve(async (req) => {
       );
     }
 
+    // Fetch current subscription status for all users to avoid overwriting cancelled/expired ones
+    const userIds = [...new Set((receipts as ValidatedReceiptRow[]).map(r => r.user_id))];
+    const { data: subscriptions } = await supabaseClient
+      .from('user_subscriptions_new')
+      .select('user_id, tier, status, cancellation_date, subscription_end_date, auto_renew_enabled')
+      .in('user_id', userIds);
+
+    const subMap = new Map((subscriptions || []).map((s: any) => [s.user_id, s]));
+
     // Group receipts by user and get their original transaction IDs
     const userTransactions = new Map();
     for (const receipt of receipts as ValidatedReceiptRow[]) {
@@ -140,10 +149,23 @@ serve(async (req) => {
         continue;
       }
 
+      const sub = subMap.get(receipt.user_id);
+
+      // Skip users who cancelled and are already expired — nothing to recover
+      if (
+        sub?.cancellation_date &&
+        sub?.subscription_end_date &&
+        new Date(sub.subscription_end_date) < new Date()
+      ) {
+        console.log(`[SyncApple] Skipping cancelled+expired user ${receipt.user_id}`);
+        continue;
+      }
+
       if (!userTransactions.has(receipt.user_id)) {
         userTransactions.set(receipt.user_id, {
           user_id: receipt.user_id,
           original_transaction_id: originalTransactionId,
+          tier: sub?.tier,
           receipts: [],
         });
       }
@@ -316,7 +338,6 @@ serve(async (req) => {
             playbooks_used: 0,
             devotionals_used: 0,
             smart_journaling_enabled: limits.smart_journaling_enabled,
-            show_dashboard_counts: true,
             subscription_start_date: new Date(latestPaid.purchaseDate).toISOString(),
             subscription_end_date: subscriptionEndDate.toISOString(),
             trial_converted_date: new Date(latestPaid.purchaseDate).toISOString(),

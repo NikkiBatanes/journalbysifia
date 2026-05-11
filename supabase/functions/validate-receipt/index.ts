@@ -234,6 +234,7 @@ serve(async (req) => {
         validation_response: validationResult.data,
         product_id: productId || validationResult.data?.productId,
         transaction_id: validationResult.data?.transactionId,
+        original_transaction_id: validationResult.data?.originalTransactionId || null,
         expires_at: validationResult.data?.expiresAt?.toISOString(),
         is_valid: true,
         validated_at: new Date().toISOString(),
