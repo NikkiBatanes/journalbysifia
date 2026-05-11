@@ -1791,7 +1791,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // POST-LAUNCH: Family Management Section - Removed for MVP launch
   // Function preserved in feature/family-subscription branch
 
-  const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
+  const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
   const isAdmin = ADMIN_EMAILS.includes((user as any)?.email ?? '');
 
   const renderAdminSection = () => {

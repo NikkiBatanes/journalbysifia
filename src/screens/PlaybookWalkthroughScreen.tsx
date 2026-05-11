@@ -3672,6 +3672,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
+        <StatusBar hidden={true} />
         <PlaybookSkeletonLoader />
       </View>
     );

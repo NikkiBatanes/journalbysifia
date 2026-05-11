@@ -22,7 +22,7 @@ import { triggerLightHaptic } from '../utils/haptics';
 import { adminDashboardService, DashboardMetrics } from '../services/adminDashboardService';
 import ThemedText from '../components/common/ThemedText';
 
-const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com'];
+const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
 
 type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks';
 type AnalyticsRange = 'daily' | 'weekly' | 'monthly' | 'custom';

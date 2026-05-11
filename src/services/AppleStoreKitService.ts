@@ -777,12 +777,21 @@ export class AppleStoreKitService {
       }
 
       if (!hasActivePurchaseFlow) {
-        Logger.warn(`[StoreKit][${debugId}] Skipping receipt validation for replayed transaction`, {
+        Logger.warn(`[StoreKit][${debugId}] Background renewal/replay — finishing transaction, webhook handles subscription update`, {
           component: 'AppleStoreKitService',
           productId: purchase.productId,
           purchaseAge: `${Math.round(purchaseAge / 1000)}s`,
-          reason: 'No active purchase flow or pending resolver',
+          reason: 'No active purchase flow — server webhook handles renewals',
         });
+        // CRITICAL: Must acknowledge the transaction or Apple will keep redelivering it.
+        // The subscription update (trial→paid conversion, renewal) is handled by the
+        // apple-webhook edge function server-side — no app-side processing needed here.
+        try {
+          await finishTransaction({ purchase, isConsumable: false });
+          Logger.info(`[StoreKit][${debugId}] ✅ Background renewal acknowledged`);
+        } catch (err) {
+          Logger.warn('[StoreKit] Failed to finish background renewal transaction', { error: String(err) });
+        }
         return;
       }
 
