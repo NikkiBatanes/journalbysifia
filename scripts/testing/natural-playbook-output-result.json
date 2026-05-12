@@ -1,0 +1,81 @@
+{
+  "testMode": "natural-playbook-output",
+  "mode": "raw_discernment",
+  "productionSafe": true,
+  "savedToDatabase": false,
+  "model": "gpt-4o-mini",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 339,
+    "completion_tokens": 505,
+    "total_tokens": 844,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "generatedAt": "2026-05-12T07:03:13.622Z",
+  "rawContent": "Title of the Playbook: \"Restoration Through Truth and Love\"\n\n**Truth in Love Summary:** The journey toward restoration in your marriage requires an honest reckoning with the past and a commitment to change. By addressing the underlying issues head-on, you can break free from the cycle of pain and deception, ultimately fostering a deeper connection rooted in faith and accountability.\n\n**Truth in Love:** Honesty is not merely about revealing the truth but embracing it as a catalyst for healing. Your husband's struggles with lying and pornography are symptoms of deeper issues that must be addressed—both individually and collectively. You cannot navigate this path without confronting the root causes, setting boundaries, and renewing your commitment to each other and God.\n\n**Bible Verse:** Ephesians 4:15 - \"Instead, speaking the truth in love, we will grow to become in every respect the mature body of him who is the head, that is, Christ.\"\n\n**Three Notes for the Topic:**\n1. **Communication:** Open dialogue about difficult subjects fosters understanding instead of division.\n2. **Accountability:** Both partners must be committed not just to their own healing but also to supporting each other's journey.\n3. **Renewal:** True transformation requires an ongoing process of repentance and growth in faith.\n\n**Faithful Actions:**\n1. Schedule regular time for honest conversations focused on feelings rather than accusations.\n2. Implement accountability measures—consider counseling or support groups where both partners can express their struggles in a safe environment.\n3. Create tangible goals for a shared future that aligns with biblical values (e.g., prayer together, serving others).\n\n**Prayer:** “Heavenly Father, I come before You seeking healing for our marriage. Help us face our truths with courage and nurture our relationship through integrity and love. Grant us wisdom as we navigate these challenges together, trusting in Your grace to restore what has been broken. In Jesus' name, Amen.”\n\n**Words to Speak Over Myself:**\n- “I am worthy of love and truth.”\n- “I choose healing over hurt; I will stand firm in my faith.”\n- “Together, we can overcome any challenge by leaning on God’s strength.”\n\n**Closing:** You've taken an essential step by acknowledging the depth of your situation; now it's time to act boldly towards restoration. What will you commit to doing this week that pushes you beyond your comfort zone in pursuing healing and honesty? Remember that growth often begins at the end of our comfort zones—embrace this moment for deeper insight into yourselves and each other.",
+  "parseError": null,
+  "parsed": null,
+  "truthStructure": {
+    "paragraphCountByBlankLines": 9,
+    "lineCount": 18,
+    "hasMarkdownHeadings": false,
+    "hasNumberedLines": true,
+    "hasBulletLines": true,
+    "hasSectionLabels": false,
+    "headingLines": [],
+    "numberedLines": [
+      "1. **Communication:** Open dialogue about difficult subjects fosters understanding instead of division.",
+      "2. **Accountability:** Both partners must be committed not just to their own healing but also to supporting each other's journey.",
+      "3. **Renewal:** True transformation requires an ongoing process of repentance and growth in faith.",
+      "1. Schedule regular time for honest conversations focused on feelings rather than accusations.",
+      "2. Implement accountability measures—consider counseling or support groups where both partners can express their struggles in a safe environment.",
+      "3. Create tangible goals for a shared future that aligns with biblical values (e.g., prayer together, serving others)."
+    ],
+    "bulletLines": [
+      "- “I am worthy of love and truth.”",
+      "- “I choose healing over hurt; I will stand firm in my faith.”",
+      "- “Together, we can overcome any challenge by leaning on God’s strength.”"
+    ],
+    "currentTruthCardParagraphs": [
+      "Title of the Playbook: \"Restoration Through Truth and Love\"",
+      "**Truth in Love Summary:** The journey toward restoration in your marriage requires an honest reckoning with the past and a commitment to change. By addressing the underlying issues head-on, you can break free from the cycle of pain and deception, ultimately fostering a deeper connection rooted in faith and accountability.",
+      "**Truth in Love:** Honesty is not merely about revealing the truth but embracing it as a catalyst for healing. Your husband's struggles with lying and pornography are symptoms of deeper issues that must be addressed—both individually and collectively. You cannot navigate this path without confronting the root causes, setting boundaries, and renewing your commitment to each other and God.",
+      "**Bible Verse:** Ephesians 4:15 - \"Instead, speaking the truth in love, we will grow to become in every respect the mature body of him who is the head, that is, Christ.\"",
+      "**Three Notes for the Topic:**\n1. **Communication:** Open dialogue about difficult subjects fosters understanding instead of division.\n2. **Accountability:** Both partners must be committed not just to their own healing but also to supporting each other's journey.\n3. **Renewal:** True transformation requires an ongoing process of repentance and growth in faith.",
+      "**Faithful Actions:**\n1. Schedule regular time for honest conversations focused on feelings rather than accusations.\n2. Implement accountability measures—consider counseling or support groups where both partners can express their struggles in a safe environment.\n3. Create tangible goals for a shared future that aligns with biblical values (e.g., prayer together, serving others).",
+      "**Prayer:** “Heavenly Father, I come before You seeking healing for our marriage. Help us face our truths with courage and nurture our relationship through integrity and love. Grant us wisdom as we navigate these challenges together, trusting in Your grace to restore what has been broken. In Jesus' name, Amen.”",
+      "**Words to Speak Over Myself:**\n- “I am worthy of love and truth.”\n- “I choose healing over hurt; I will stand firm in my faith.”\n- “Together, we can overcome any challenge by leaning on God’s strength.”",
+      "**Closing:** You've taken an essential step by acknowledging the depth of your situation; now it's time to act boldly towards restoration. What will you commit to doing this week that pushes you beyond your comfort zone in pursuing healing and honesty? Remember that growth often begins at the end of our comfort zones—embrace this moment for deeper insight into yourselves and each other."
+    ],
+    "currentWalkthroughParagraphs": [
+      "Title of the Playbook: \"Restoration Through Truth and Love\"",
+      "**Truth in Love Summary:** The journey toward restoration in your marriage requires an honest reckoning with the past and a commitment to change. By addressing the underlying issues head-on, you can break free from the cycle of pain and deception, ultimately fostering a deeper connection rooted in faith and accountability.",
+      "**Truth in Love:** Honesty is not merely about revealing the truth but embracing it as a catalyst for healing. Your husband's struggles with lying and pornography are symptoms of deeper issues that must be addressed—both individually and collectively. You cannot navigate this path without confronting the root causes, setting boundaries, and renewing your commitment to each other and God.",
+      "**Bible Verse:** Ephesians 4:15 - \"Instead, speaking the truth in love, we will grow to become in every respect the mature body of him who is the head, that is, Christ.\"",
+      "**Three Notes for the Topic:**",
+      "1. **Communication:** Open dialogue about difficult subjects fosters understanding instead of division.",
+      "2. **Accountability:** Both partners must be committed not just to their own healing but also to supporting each other's journey.",
+      "3. **Renewal:** True transformation requires an ongoing process of repentance and growth in faith.",
+      "**Faithful Actions:**",
+      "1. Schedule regular time for honest conversations focused on feelings rather than accusations.",
+      "2. Implement accountability measures—consider counseling or support groups where both partners can express their struggles in a safe environment.",
+      "3. Create tangible goals for a shared future that aligns with biblical values (e.g., prayer together, serving others).",
+      "**Prayer:** “Heavenly Father, I come before You seeking healing for our marriage. Help us face our truths with courage and nurture our relationship through integrity and love. Grant us wisdom as we navigate these challenges together, trusting in Your grace to restore what has been broken. In Jesus' name, Amen.”",
+      "**Words to Speak Over Myself:**",
+      "- “I am worthy of love and truth.”",
+      "- “I choose healing over hurt; I will stand firm in my faith.”",
+      "- “Together, we can overcome any challenge by leaning on God’s strength.”",
+      "**Closing:** You've taken an essential step by acknowledging the depth of your situation; now it's time to act boldly towards restoration. What will you commit to doing this week that pushes you beyond your comfort zone in pursuing healing and honesty? Remember that growth often begins at the end of our comfort zones—embrace this moment for deeper insight into yourselves and each other."
+    ]
+  },
+  "normalizationPreview": "Title of the Playbook: \"Restoration Through Truth and Love\"\n\n**Truth in Love Summary:** The journey toward restoration in your marriage requires an honest reckoning with the past and a commitment to change. By addressing the underlying issues head-on, you can break free from the cycle of pain and deception, ultimately fostering a deeper connection rooted in faith and accountability.\n\n**Truth in Love:** Honesty is not merely about revealing the truth but embracing it as a catalyst for healing. Your husband's struggles with lying and pornography are symptoms of deeper issues that must be addressed—both individually and collectively. You cannot navigate this path without confronting the root causes, setting boundaries, and renewing your commitment to each other and God.\n\n**Bible Verse:** Ephesians 4:15 - \"Instead, speaking the truth in love, we will grow to become in every respect the mature body of him who is the head, that is, Christ.\"\n\n**Three Notes for the Topic:**\n1. **Communication:** Open dialogue about difficult subjects fosters understanding instead of division.\n2. **Accountability:** Both partners must be committed not just to their own healing but also to supporting each other's journey.\n3. **Renewal:** True transformation requires an ongoing process of repentance and growth in faith.\n\n**Faithful Actions:**\n1. Schedule regular time for honest conversations focused on feelings rather than accusations.\n2. Implement accountability measures—consider counseling or support groups where both partners can express their struggles in a safe environment.\n3. Create tangible goals for a shared future that aligns with biblical values (e.g., prayer together, serving others).\n\n**Prayer:** “Heavenly Father, I come before You seeking healing for our marriage. Help us face our truths with courage and nurture our relationship through integrity and love. Grant us wisdom as we navigate these challenges together, trusting in Your grace to restore what has been broken. In Jesus' name, Amen.”\n\n**Words to Speak Over Myself:**\n- “I am worthy of love and truth.”\n- “I choose healing over hurt; I will stand firm in my faith.”\n- “Together, we can overcome any challenge by leaning on God’s strength.”\n\n**Closing:** You've taken an essential step by acknowledging the depth of your situation; now it's time to act boldly towards restoration. What will you commit to doing this week that pushes you beyond your comfort zone in pursuing healing and honesty? Remember that growth often begins at the end of our comfort zones—embrace this moment for deeper insight into yourselves and each other."
+}
