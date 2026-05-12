@@ -474,8 +474,8 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
       softIssues.push(`truth_summary has ${sentenceCount} sentences (expected 2-4 natural sentences, not a fixed template)`);
     }
     const wordCount = summaryText.split(/\s+/).filter(Boolean).length;
-    if (wordCount > 55) {
-      softIssues.push(`truth_summary is too long (${wordCount} words — max 55; keep it distilled and memorable)`);
+    if (wordCount > 65) {
+      softIssues.push(`truth_summary is too long (${wordCount} words — max 65; keep it distilled and mobile-friendly)`);
     }
     const lowerSummary = summaryText.toLowerCase();
     const stalePhrases = STALE_TRUTH_SUMMARY_PHRASES.filter(p => lowerSummary.includes(p));
@@ -491,14 +491,14 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     }
   }
 
-  // truth_in_love: 3-4 paragraphs, no word-root repetition, no logic repetition
+  // truth_in_love: short mobile paragraphs with enough depth, no word-root repetition, no logic repetition
   if (json.truth_in_love) {
     const truthText = String(json.truth_in_love);
     const paraCount = countParagraphs(truthText);
-    if (paraCount < 3) {
-      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 3-4: name the pattern, expose the root, reveal cost and direction)`);
-    } else if (paraCount > 4) {
-      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 4 — reduce by merging cost and direction into one paragraph)`);
+    if (paraCount < 4) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 6-14 short mobile paragraphs for normal adult cases, fewer only for overwhelmed or teen users)`);
+    } else if (paraCount > 14) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 14 — reduce by merging repeated ideas)`);
     }
     if (truthText.length < 400) {
       softIssues.push(`truth_in_love lacks depth (${truthText.length} chars, min 400 for a real pastoral diagnosis)`);
@@ -862,13 +862,13 @@ serve(async (req: Request) => {
       const context = buildPlaybookUserContext(input);
       const separator = '\n---\n\nNow generate a playbook:\n\n';
 
-      // If examples + context would exceed a safe token budget, drop to 2 examples
+      // gpt-4o-mini has a 128k context window; 50k chars (~12.5k tokens) for examples is safe.
       const fullMsg = FEW_SHOT_EXAMPLES + separator + context;
-      if (fullMsg.length <= 14000) return fullMsg;
+      if (fullMsg.length <= 50000) return fullMsg;
 
-      // Trim: take only the first two examples (up to the third "---" separator)
+      // Trim: keep first 4 examples (intro + ex1 + ex2 + ex3 + ex4)
       const parts = FEW_SHOT_EXAMPLES.split('\n---\n');
-      const trimmedExamples = parts.slice(0, 3).join('\n---\n'); // intro + ex1 + ex2
+      const trimmedExamples = parts.slice(0, 5).join('\n---\n');
       return trimmedExamples + separator + context;
     };
 
@@ -1079,9 +1079,9 @@ serve(async (req: Request) => {
         '\nARCHITECTURAL CORRECTION — the previous attempt failed these checks:',
         ...architecturalIssues.map(i => `  - ${i}`),
         'Follow the DISCERNMENT PATTERN structure exactly:',
-        '  truth_summary must be 2-4 natural sentences, 24-55 words total. Apply ache, burden, correction, and stabilizing truth without forcing four identical beats.',
+        '  truth_summary must be 2-4 natural sentences, 24-65 words total, short enough for a mobile screen. Apply ache, burden, correction, and stabilizing truth without forcing four identical beats.',
         '  truth_summary must sound freshly spoken for this exact user. Do not begin with "Remember." Do not use "God calls you" or "God is calling you" as the landing.',
-        '  truth_in_love must be 3-4 paragraphs (P1 names the pattern, P2 exposes the root with a specific false belief, P3 combines cost and direction). Each paragraph must cover distinct ground — no word-root repetition across paragraphs.',
+        '  truth_in_love must be 6-14 short mobile paragraphs for normal adult cases, with fewer only for overwhelmed or teen users. It must name the pattern, expose the root with a specific false belief, reveal the cost, and offer direction. Each paragraph must cover distinct ground — no word-root repetition across paragraphs.',
         '  Every truth_in_love must include a heart-condition diagnosis: what is being loved, feared, protected, demanded, avoided, trusted, or used for worth? Use biblical categories such as idolatry, fear of man, control, unbelief, misplaced identity, bitterness, pride, shame, repentance, trust, endurance, stewardship, forgiveness, or love.',
         '  If this is a family or relational wound, truth_in_love must diagnose the heart-level issue beneath the conflict, such as worth anchored in being noticed, family approval, retaliation, bitterness, self-protection, or idolatry of being seen. Do not stop at "reach out with grace."',
         '  faithful_actions must follow the A1→A2→A3→A4+→Final sequence — not a list of tips.',
