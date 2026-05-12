@@ -1,0 +1,8 @@
+{
+  "notificationType": "SUBSCRIBED",
+  "subtype": "INITIAL_BUY",
+  "data": {
+    "signedTransactionInfo": "fake_transaction_jwt_for_testing",
+    "signedRenewalInfo": "fake_renewal_jwt_for_testing"
+  }
+}
