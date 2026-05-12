@@ -1055,6 +1055,12 @@ export async function deletePlaybook(
       return { success: false, error: error.message };
     }
 
+    // Emit event to notify dashboard and other components
+    try {
+      const { DeviceEventEmitter } = require('react-native');
+      DeviceEventEmitter.emit('playbook_deleted', { id: playbookId, user_id: _userId });
+    } catch {}
+
     return { success: true };
 
   } catch (error: any) {

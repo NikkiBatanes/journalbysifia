@@ -1142,6 +1142,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     };
 
     fetchFaithfulActions();
+
+    // Listen for playbook deletion events to refresh faithful actions
+    const subscription = DeviceEventEmitter.addListener('playbook_deleted', () => {
+      fetchFaithfulActions();
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [user?.id]);
 
   const handleOpenPrayer = (req: any) => {
