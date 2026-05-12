@@ -790,7 +790,7 @@ export class AppleStoreKitService {
           await finishTransaction({ purchase, isConsumable: false });
           Logger.info(`[StoreKit][${debugId}] ✅ Background renewal acknowledged`);
         } catch (err) {
-          Logger.warn('[StoreKit] Failed to finish background renewal transaction', { error: String(err) });
+          Logger.warn('[StoreKit] Failed to finish background renewal transaction', { error: err as Error });
         }
         return;
       }

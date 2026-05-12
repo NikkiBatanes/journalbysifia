@@ -418,7 +418,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         const tierFeatures = chosenTier === 'spark' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
-          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.wisdom} how-to's for faithful actions during trial`,
           `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day and 3-day devotionals',
           'Gentle reminders',
@@ -430,7 +430,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : chosenTier === 'growth' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
-          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.wisdom} how-to's for faithful actions during trial`,
           `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day, 3-day, and 5-day devotionals',
           'Gentle reminders',
@@ -444,7 +444,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : chosenTier === 'transformation' ? [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
-          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.wisdom} how-to's for faithful actions during trial`,
           `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day, 3-day, 5-day, and 7-day devotionals',
           'Gentle reminders',
@@ -459,7 +459,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         ] : [
           `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.devotionals} devotionals during trial`,
-          `${trialLimits.wisdom} how-to\'s for faithful actions during trial`,
+          `${trialLimits.wisdom} how-to's for faithful actions during trial`,
           `${trialLimits.refinement} playbook refinements during trial`,
           'Access 1-day and 3-day devotionals',
           'Gentle reminders',

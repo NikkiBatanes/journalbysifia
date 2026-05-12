@@ -523,7 +523,6 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const refiningAnim = useRef(new Animated.Value(1)).current;
   const [dotIndex, setDotIndex] = useState(0);
   const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
-  const canRefine = active && refinementsRemaining > 0;
   const canShowButton = active;
   const bottomOffset = insets.bottom + 20;
   const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom - 12) : 0;
@@ -1321,7 +1320,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   React.useEffect(() => {
     // Reset animation to 0 when step changes
     howToButtonAnim.setValue(0);
-    
+
     const timer = setTimeout(() => {
       Animated.spring(howToButtonAnim, {
         toValue: 1,
@@ -1332,7 +1331,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [actionStepIndex]);
+  }, [actionStepIndex, howToButtonAnim]);
 
   const rotateInterpolate = triggerRotation.interpolate({
     inputRange: [0, 1],
@@ -3112,7 +3111,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const refinementsRemaining = refinementLimit === -1
     ? Number.MAX_SAFE_INTEGER
     : Math.max(0, refinementLimit - refinementCount);
-  const canRefine = refinementsRemaining > 0;
 
   const loadRefinementUsage = useCallback(() => {
     if (!userId) {

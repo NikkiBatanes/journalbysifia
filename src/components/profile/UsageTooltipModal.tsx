@@ -199,7 +199,7 @@ const UsageTooltipModal: React.FC<Props> = ({
         const refinementsRemaining = Math.max(0, refinementsLimit - refinementsUsed);
 
         let refinementsDesc = 'Refinements let you regenerate and improve your playbook content with AI-powered insights to better match your current journey and needs.';
-        
+
         if (isOnTrial) {
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
           if (refinementsRemaining === 0) {
@@ -239,14 +239,14 @@ const UsageTooltipModal: React.FC<Props> = ({
         const wisdomRemaining = Math.max(0, wisdomLimit - wisdomUsed);
 
         let wisdomDesc = "How to's provide personalized, step-by-step guidance for your faithful actions. Ask siFia for practical wisdom on how to apply biblical truths to specific situations in your life.";
-        
+
         if (isOnTrial) {
           const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
           if (wisdomRemaining === 0) {
             const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
+            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? 'how-to' : "how-to's"} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
           } else {
-            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available during your trial and have used ${wisdomUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
+            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? 'how-to' : "how-to's"} available during your trial and have used ${wisdomUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.wisdom === -1 ? "how-to's without a monthly counter" : `${fullLimits.wisdom} how-to's`} every month.`;
           }
         } else if (wisdomLimit === -1) {
           wisdomDesc += `\n\nYou are on ${displayName}. This plan does not use a monthly how-to counter.`;
@@ -260,9 +260,9 @@ const UsageTooltipModal: React.FC<Props> = ({
           const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
           if (wisdomRemaining === 0) {
-            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available this month.\n\nYour how-to's will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+            wisdomDesc += `\n\nYou are on ${displayName}. You have used all ${wisdomLimit} ${wisdomLimit === 1 ? 'how-to' : "how-to's"} available this month.\n\nYour how-to's will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
           } else {
-            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? "how-to" : "how-to's"} available each month and have used ${wisdomUsed}.\n\n${wisdomRemaining} ${wisdomRemaining === 1 ? "how-to" : "how-to's"} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
+            wisdomDesc += `\n\nYou are on ${displayName}. You have ${wisdomLimit} ${wisdomLimit === 1 ? 'how-to' : "how-to's"} available each month and have used ${wisdomUsed}.\n\n${wisdomRemaining} ${wisdomRemaining === 1 ? 'how-to' : "how-to's"} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
           }
         }
 

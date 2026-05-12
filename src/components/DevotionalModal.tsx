@@ -1227,6 +1227,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               used: devotionalGating.subscription?.devotionals_used || 0,
               limit: devotionalGating.subscription?.devotionals_limit || 0,
             },
+            refinements: { used: 0, limit: 0 },
+            wisdom: { used: 0, limit: 0 },
           }}
           stats={null}
         />
