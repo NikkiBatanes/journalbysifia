@@ -521,32 +521,64 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
 
   // ── Soft checks: structural architecture ─────────────────────────────────
 
-  // truth_summary: concise generate-playbook-style
+  // truth_summary should be memorable without collapsing into a repeatable template.
   if (json.truth_summary) {
     const summaryText = String(json.truth_summary);
     const wordCount = summaryText.split(/\s+/).filter(Boolean).length;
     if (wordCount > 22) {
-      softIssues.push(`truth_summary is too long (${wordCount} words — expected a concise summary)`);
+      softIssues.push(`truth_summary is too long (${wordCount} words — expected a concise generate-playbook style summary)`);
+    }
+    const lowerSummary = summaryText.toLowerCase();
+    const stalePhrases = STALE_TRUTH_SUMMARY_PHRASES.filter(p => lowerSummary.includes(p));
+    if (stalePhrases.length > 0) {
+      softIssues.push(`stale truth_summary phrasing detected — avoid: ${stalePhrases.join(', ')}`);
+    }
+    if (REMEMBER_SENTENCE_OPENER_REGEX.test(summaryText)) {
+      softIssues.push('stale truth_summary phrasing detected — do not open a sentence with "Remember"');
+    }
+    const summaryAfterName = summaryText.replace(/^\s*(?:\[User's Name\]|[^,]{2,40}),\s*/i, '').trim();
+    if (TEMPLATE_TRUTH_SUMMARY_OPENING_REGEX.test(summaryAfterName)) {
+      softIssues.push('template truth_summary opening detected — vary the first sentence after the name');
     }
   }
 
-  // truth_blocks: 4-7 supporting beats for UI rhythm
   if (Array.isArray(json.truth_blocks)) {
     const truthBlocks = json.truth_blocks.filter(isTruthBlockPayload).filter((block) => block.text.trim().length > 0);
     if (truthBlocks.length < 4) {
-      softIssues.push(`truth_blocks has ${truthBlocks.length} items (expected 4-7)`);
+      softIssues.push(`truth_blocks has ${truthBlocks.length} items (expected 4-7 rhythm blocks to preserve cadence)`);
     } else if (truthBlocks.length > 7) {
-      softIssues.push(`truth_blocks has ${truthBlocks.length} items (max 7)`);
+      softIssues.push(`truth_blocks has ${truthBlocks.length} items (max 7 — reduce repeated beats)`);
     }
   } else {
-    softIssues.push('truth_blocks is missing');
+    softIssues.push('truth_blocks is missing — use rhythm blocks to preserve cadence, confrontation, and emotional movement');
   }
 
-  // truth_in_love: basic length check only
+  // truth_in_love: short mobile paragraphs with enough depth, no word-root repetition, no logic repetition
   if (json.truth_in_love) {
     const truthText = String(json.truth_in_love);
-    if (truthText.length < 200) {
-      softIssues.push(`truth_in_love is too short (${truthText.length} chars, min 200)`);
+    const paraCount = countParagraphs(truthText);
+    if (paraCount < 4) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 6-14 short mobile paragraphs for normal adult cases, fewer only for overwhelmed or teen users)`);
+    } else if (paraCount > 14) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 14 — reduce by merging repeated ideas)`);
+    }
+    if (truthText.length < 400) {
+      softIssues.push(`truth_in_love lacks depth (${truthText.length} chars, min 400 for a real pastoral diagnosis)`);
+    }
+    if (!UNIVERSAL_HEART_DIAGNOSIS_REGEX.test(truthText)) {
+      softIssues.push('truth_in_love lacks explicit heart-condition diagnosis — name what is being loved, feared, protected, demanded, trusted, avoided, or used for worth');
+    }
+    if (RELATIONAL_WOUND_REGEX.test(originalInput) && !HEART_DIAGNOSIS_REGEX.test(truthText)) {
+      softIssues.push('Relational wound lacks heart-level diagnosis — name worth, being seen, approval, bitterness, retaliation, idolatry, or self-protection where appropriate');
+    }
+    // Detect word-root repetition: flag if any single root word dominates more than 2 paragraphs
+    const paragraphs = truthText.split(/\n\n+/).filter(p => p.trim().length > 30);
+    const diagnosticRoots = ['protect', 'fear', 'control', 'pride', 'shame', 'hide', 'trust', 'worth', 'approval', 'idolatry', 'idol', 'unbelief', 'self-protect', 'bitter'];
+    for (const root of diagnosticRoots) {
+      const paraWithRoot = paragraphs.filter(p => p.toLowerCase().includes(root));
+      if (paraWithRoot.length >= paragraphs.length && paragraphs.length >= 3) {
+        softIssues.push(`truth_in_love overuses root word "${root}" in all paragraphs — each paragraph must center on a distinct biblical category`);
+      }
     }
   }
 
@@ -939,10 +971,10 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.65,
+                temperature: 0.3,
                 max_completion_tokens: 6000,
-                frequency_penalty: 0.5,
-                presence_penalty: 0.2,
+                frequency_penalty: 0.35,
+                presence_penalty: 0.25,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,
