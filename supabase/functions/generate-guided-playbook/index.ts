@@ -380,6 +380,16 @@ const DRIFT_PHRASES = [
   'god is writing your story',
 ];
 
+const STALE_TRUTH_SUMMARY_PHRASES = [
+  'remember,',
+  'god calls you',
+  'god is calling you',
+  'god invites you to remember',
+  'do not forget that',
+];
+
+const REMEMBER_SENTENCE_OPENER_REGEX = /(?:^|[.!?]\s+)remember\b/i;
+const TEMPLATE_TRUTH_SUMMARY_OPENING_REGEX = /^(the ache is|this hurt because|you did not only|saying\b|that is why)\b/i;
 const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
 
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
@@ -456,11 +466,28 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
 
   // ── Soft checks: structural architecture ─────────────────────────────────
 
-  // truth_summary must be exactly 4 sentences
+  // truth_summary should be memorable without collapsing into a repeatable template.
   if (json.truth_summary) {
-    const sentenceCount = countSentences(String(json.truth_summary));
-    if (sentenceCount < 3 || sentenceCount > 5) {
-      softIssues.push(`truth_summary has ${sentenceCount} sentences (expected exactly 4: ache, burden, correction, stabilizing truth)`);
+    const summaryText = String(json.truth_summary);
+    const sentenceCount = countSentences(summaryText);
+    if (sentenceCount < 2 || sentenceCount > 4) {
+      softIssues.push(`truth_summary has ${sentenceCount} sentences (expected 2-4 natural sentences, not a fixed template)`);
+    }
+    const wordCount = summaryText.split(/\s+/).filter(Boolean).length;
+    if (wordCount > 55) {
+      softIssues.push(`truth_summary is too long (${wordCount} words — max 55; keep it distilled and memorable)`);
+    }
+    const lowerSummary = summaryText.toLowerCase();
+    const stalePhrases = STALE_TRUTH_SUMMARY_PHRASES.filter(p => lowerSummary.includes(p));
+    if (stalePhrases.length > 0) {
+      softIssues.push(`stale truth_summary phrasing detected — avoid: ${stalePhrases.join(', ')}`);
+    }
+    if (REMEMBER_SENTENCE_OPENER_REGEX.test(summaryText)) {
+      softIssues.push('stale truth_summary phrasing detected — do not open a sentence with "Remember"');
+    }
+    const summaryAfterName = summaryText.replace(/^\s*(?:\[User's Name\]|[^,]{2,40}),\s*/i, '').trim();
+    if (TEMPLATE_TRUTH_SUMMARY_OPENING_REGEX.test(summaryAfterName)) {
+      softIssues.push('template truth_summary opening detected — vary the first sentence after the name');
     }
   }
 
@@ -862,10 +889,10 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.3,
+                temperature: 0.55,
                 max_tokens: 6000,
-                frequency_penalty: 0.1,
-                presence_penalty: 0.1,
+                frequency_penalty: 0.35,
+                presence_penalty: 0.25,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,
@@ -1031,7 +1058,9 @@ serve(async (req: Request) => {
       i.includes('heart-level diagnosis') ||
       i.includes('Action sequence drift') ||
       i.includes('Abstraction drift') ||
-      i.includes('Overused navigation language')
+      i.includes('Overused navigation language') ||
+      i.includes('stale truth_summary phrasing') ||
+      i.includes('template truth_summary opening')
     );
 
     if (architecturalIssues.length > 0) {
@@ -1041,7 +1070,8 @@ serve(async (req: Request) => {
         '\nARCHITECTURAL CORRECTION — the previous attempt failed these checks:',
         ...architecturalIssues.map(i => `  - ${i}`),
         'Follow the DISCERNMENT PATTERN structure exactly:',
-        '  truth_summary must be exactly 4 sentences (S1 ache, S2 burden, S3 correction, S4 stabilizing truth).',
+        '  truth_summary must be 2-4 natural sentences, 24-55 words total. Apply ache, burden, correction, and stabilizing truth without forcing four identical beats.',
+        '  truth_summary must sound freshly spoken for this exact user. Do not begin with "Remember." Do not use "God calls you" or "God is calling you" as the landing.',
         '  truth_in_love must be exactly 4 paragraphs (P1 diagnosis, P2 distinction, P3 correction, P4 direction).',
         '  Every truth_in_love must include a heart-condition diagnosis: what is being loved, feared, protected, demanded, avoided, trusted, or used for worth? Use biblical categories such as idolatry, fear of man, control, unbelief, misplaced identity, bitterness, pride, shame, repentance, trust, endurance, stewardship, forgiveness, or love.',
         '  If this is a family or relational wound, truth_in_love must diagnose the heart-level issue beneath the conflict, such as worth anchored in being noticed, family approval, retaliation, bitterness, self-protection, or idolatry of being seen. Do not stop at "reach out with grace."',
