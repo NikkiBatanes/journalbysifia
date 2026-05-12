@@ -85,11 +85,13 @@ function buildRefinementInput(args: {
     '',
     '=== TRUTH_IN_LOVE DEPTH REQUIREMENTS ===',
     '- truth_in_love must NOT become a short summary. It is the main pastoral diagnosis.',
-    '- Write truth_in_love as 4 to 6 substantial paragraphs.',
-    '- Minimum depth: at least 650 characters total, and normally 900+ characters when the original moment is complex.',
-    '- Include these movements: name the pattern, expose the root, reveal the cost, offer hope and direction.',
-    '- Each paragraph must be specific to the original moment and the clarification. Do not write generic encouragement.',
+    '- Write truth_in_love as exactly 3 paragraphs (4 only if there are two genuinely distinct issues).',
+    '- Minimum depth: at least 400 characters total.',
+    '- P1 names the pattern specifically from the user\'s own words. P2 exposes the root — name the specific false belief, what they are treating as a verdict, or what they are trusting instead of God. P3 combines the cost and direction decisively.',
+    '- Each paragraph must cover ground the others do not. No word-root repetition across paragraphs — if P1 uses "protect/protection," P2 must shift to a different biblical category.',
+    '- Each paragraph must be specific to the original moment. Do not write generic encouragement.',
     '- Do not replace truth_in_love with a one-line takeaway, slogan, or devotional caption.',
+    '- For anything inferred (not directly stated by the user), use humble language: "this may be...", "it is possible that...", "part of what might be happening..."',
   ].filter(Boolean).join('\n');
 }
 
@@ -380,9 +382,9 @@ serve(async (req: Request) => {
       const retry = await generateReplacement([
         'RETRY QUALITY FIX:',
         'The previous refinement made truth_in_love too short.',
-        'Regenerate the full playbook, but make truth_in_love a complete 4 to 6 paragraph pastoral diagnosis.',
+        'Regenerate the full playbook, but make truth_in_love a complete 3-paragraph pastoral diagnosis.',
         'Do not summarize. Do not write a short devotional thought. Keep it specific, direct, and grounded in the original moment.',
-        'Minimum truth_in_love length: 650 characters.',
+        'Minimum truth_in_love length: 400 characters.',
       ].join('\n'));
 
       generationResponse = retry.generationResponse;

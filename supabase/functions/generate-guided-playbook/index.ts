@@ -491,23 +491,32 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     }
   }
 
-  // truth_in_love must be exactly 4 paragraphs (5 allowed with hard landing)
+  // truth_in_love: 3-4 paragraphs, no word-root repetition, no logic repetition
   if (json.truth_in_love) {
     const truthText = String(json.truth_in_love);
-    const paraCount = countParagraphs(String(json.truth_in_love));
+    const paraCount = countParagraphs(truthText);
     if (paraCount < 3) {
-      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 4: diagnosis, distinction, correction, direction)`);
-    } else if (paraCount > 5) {
-      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 5 — model may have drifted into essay mode)`);
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (expected 3-4: name the pattern, expose the root, reveal cost and direction)`);
+    } else if (paraCount > 4) {
+      softIssues.push(`truth_in_love has ${paraCount} paragraphs (max 4 — reduce by merging cost and direction into one paragraph)`);
     }
-    if (truthText.length < 650) {
-      softIssues.push(`truth_in_love lacks depth (${truthText.length} chars, expected at least 650 for pastoral diagnosis)`);
+    if (truthText.length < 400) {
+      softIssues.push(`truth_in_love lacks depth (${truthText.length} chars, min 400 for a real pastoral diagnosis)`);
     }
     if (!UNIVERSAL_HEART_DIAGNOSIS_REGEX.test(truthText)) {
       softIssues.push('truth_in_love lacks explicit heart-condition diagnosis — name what is being loved, feared, protected, demanded, trusted, avoided, or used for worth');
     }
     if (RELATIONAL_WOUND_REGEX.test(originalInput) && !HEART_DIAGNOSIS_REGEX.test(truthText)) {
       softIssues.push('Relational wound lacks heart-level diagnosis — name worth, being seen, approval, bitterness, retaliation, idolatry, or self-protection where appropriate');
+    }
+    // Detect word-root repetition: flag if any single root word dominates more than 2 paragraphs
+    const paragraphs = truthText.split(/\n\n+/).filter(p => p.trim().length > 30);
+    const diagnosticRoots = ['protect', 'fear', 'control', 'pride', 'shame', 'hide', 'trust', 'worth', 'approval', 'idolatry', 'idol', 'unbelief', 'self-protect', 'bitter'];
+    for (const root of diagnosticRoots) {
+      const paraWithRoot = paragraphs.filter(p => p.toLowerCase().includes(root));
+      if (paraWithRoot.length >= paragraphs.length && paragraphs.length >= 3) {
+        softIssues.push(`truth_in_love overuses root word "${root}" in all paragraphs — each paragraph must center on a distinct biblical category`);
+      }
     }
   }
 
@@ -1072,7 +1081,7 @@ serve(async (req: Request) => {
         'Follow the DISCERNMENT PATTERN structure exactly:',
         '  truth_summary must be 2-4 natural sentences, 24-55 words total. Apply ache, burden, correction, and stabilizing truth without forcing four identical beats.',
         '  truth_summary must sound freshly spoken for this exact user. Do not begin with "Remember." Do not use "God calls you" or "God is calling you" as the landing.',
-        '  truth_in_love must be exactly 4 paragraphs (P1 diagnosis, P2 distinction, P3 correction, P4 direction).',
+        '  truth_in_love must be 3-4 paragraphs (P1 names the pattern, P2 exposes the root with a specific false belief, P3 combines cost and direction). Each paragraph must cover distinct ground — no word-root repetition across paragraphs.',
         '  Every truth_in_love must include a heart-condition diagnosis: what is being loved, feared, protected, demanded, avoided, trusted, or used for worth? Use biblical categories such as idolatry, fear of man, control, unbelief, misplaced identity, bitterness, pride, shame, repentance, trust, endurance, stewardship, forgiveness, or love.',
         '  If this is a family or relational wound, truth_in_love must diagnose the heart-level issue beneath the conflict, such as worth anchored in being noticed, family approval, retaliation, bitterness, self-protection, or idolatry of being seen. Do not stop at "reach out with grace."',
         '  faithful_actions must follow the A1→A2→A3→A4+→Final sequence — not a list of tips.',

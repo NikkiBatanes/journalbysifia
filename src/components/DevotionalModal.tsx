@@ -1090,7 +1090,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       <ThemedText weight="semiBold" style={styles.errorText}>{creationError?.message || 'An error occurred'}</ThemedText>
       <TouchableOpacity
         style={styles.retryButton}
-        onPress={() => {
+        onPress={async () => {
+          // Check if devotional already completed while app was backgrounded
+          if (playbookId) {
+            try {
+              const { supabase } = await import('../services/supabaseClient');
+              const { data: existing } = await supabase
+                .from('devotionals')
+                .select('id, created_at')
+                .eq('playbook_id', playbookId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+              if (existing && existing.length > 0) {
+                const ageMs = Date.now() - new Date(existing[0].created_at).getTime();
+                if (ageMs < 3 * 60 * 1000) {
+                  setCreationError(null);
+                  handleClose(() => {
+                    if (onDevotionalCreated) onDevotionalCreated(existing[0].id);
+                  });
+                  return;
+                }
+              }
+            } catch {}
+          }
           setCreationError(null);
           handleClose();
         }}

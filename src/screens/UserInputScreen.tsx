@@ -966,7 +966,36 @@ const UserInputScreen: React.FC = () => {
         [
           {
             text: 'Try Again',
-            onPress: () => {
+            onPress: async () => {
+              // Check if generation already completed while app was backgrounded
+              try {
+                const { supabase } = await import('../services/supabaseClient');
+                const { data: recentPlaybooks } = await supabase
+                  .from('playbooks')
+                  .select('id, created_at')
+                  .eq('user_id', user?.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+
+                if (recentPlaybooks && recentPlaybooks.length > 0) {
+                  const ageMs = Date.now() - new Date(recentPlaybooks[0].created_at).getTime();
+                  if (ageMs < 3 * 60 * 1000 && user?.id) {
+                    const { getPlaybook } = await import('../services/modernPlaybookApi');
+                    const existing = await getPlaybook(user.id, recentPlaybooks[0].id);
+                    if (existing) {
+                      generationAbortRef.current = true;
+                      navigation.reset({
+                        index: 0,
+                        routes: [
+                          { name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Playbooks' }], index: 1 } },
+                          { name: 'PlaybookWalkthrough', params: { playbook: existing, source: 'user_input' } },
+                        ],
+                      });
+                      return;
+                    }
+                  }
+                }
+              } catch {}
               generationAbortRef.current = false;
               handleGenerationFlow();
             },
