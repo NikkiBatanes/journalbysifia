@@ -227,8 +227,15 @@ const StreakPlanScreen: React.FC = () => {
         skipNotificationPreference: false,
       });
     } else {
-      // Done - returns to where the user last was
-      navigation.goBack();
+      // Done - go back twice to dismiss both StreakPlan and PlaybookWalkthrough
+      // when source is 'playbook' or 'action_step_completed'
+      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud') {
+        navigation.goBack();
+        navigation.goBack();
+      } else {
+        // For other sources, just go back once
+        navigation.goBack();
+      }
     }
   };
 
