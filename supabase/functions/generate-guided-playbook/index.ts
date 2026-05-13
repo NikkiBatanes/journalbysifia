@@ -461,6 +461,9 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   if (!json.truth_summary || String(json.truth_summary).trim().split(/\s+/).filter(Boolean).length < 8) {
     hardIssues.push(`truth_summary is too short (${String(json.truth_summary || '').trim().split(/\s+/).filter(Boolean).length} words, min 8)`);
   }
+  if (json.truth_summary && String(json.truth_summary).trim().split(/\s+/).filter(Boolean).length > 50) {
+    softIssues.push(`truth_summary is too long (${String(json.truth_summary).trim().split(/\s+/).filter(Boolean).length} words — expected a concise summary)`);
+  }
   if (!json.truth_in_love || String(json.truth_in_love).length < 500) {
     hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 500 — must be at least 4 full paragraphs)`);
   }
