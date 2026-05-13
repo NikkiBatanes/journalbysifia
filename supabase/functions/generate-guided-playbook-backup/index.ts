@@ -898,7 +898,7 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.55,
+                temperature: 0.5,
                 max_completion_tokens: 6000,
                 frequency_penalty: 0.35,
                 presence_penalty: 0.25,

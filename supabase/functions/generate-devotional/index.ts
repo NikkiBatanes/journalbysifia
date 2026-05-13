@@ -1474,7 +1474,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                 'Authorization': `Bearer ${apiKey.key}`,
               },
               body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: 'gpt-5.4-mini',
                 messages: [
                   {
                     role: 'system',
@@ -1485,7 +1485,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                     content: buildUserMessage(originalUserInput, input),
                   },
                 ],
-                temperature: 0.7,
+                temperature: 0.5,
                 max_completion_tokens: duration === 7 ? 8000 : 6000,
               }),
             },

@@ -101,7 +101,7 @@ async function fetchVerseFromOpenAI(reference: string, version: string): Promise
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           {
             role: 'system',
@@ -112,7 +112,7 @@ async function fetchVerseFromOpenAI(reference: string, version: string): Promise
             content: `Return the exact text of ${reference} from the ${version} translation. Include ALL punctuation, brackets, and formatting exactly as it appears in the official ${version} Bible.`,
           },
         ],
-        temperature: 0.1,
+        temperature: 0.5,
         max_completion_tokens: 500,
       }),
     });

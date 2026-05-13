@@ -474,7 +474,7 @@ serve(async (req: Request) => {
         'Authorization': `Bearer ${openAIKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           {
             role: 'system',
@@ -486,7 +486,7 @@ serve(async (req: Request) => {
           },
         ],
         max_completion_tokens: 550,
-        temperature: 0.65,
+        temperature: 0.5,
         response_format: { type: 'json_object' },
       }),
     });

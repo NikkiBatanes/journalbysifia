@@ -111,7 +111,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini',
           messages: [
             {
               role: 'system',
@@ -123,7 +123,7 @@ serve(async (req) => {
             },
           ],
           max_completion_tokens: 1000,
-          temperature: 0.7,
+          temperature: 0.5,
         }),
       },
       OPENAI_RETRY_CONFIG
