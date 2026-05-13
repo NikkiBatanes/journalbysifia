@@ -2930,7 +2930,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   const { contextLine, questionLine, actionLines, isChoicePills } = parseCompletionText(closingText);
 
   return (
-    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top }]}>
       <StepFadeIn delay={0}>
         <Animated.View style={{ transform: [{ translateY: headerAnim }] }}>
           <View style={styles.completionHeaderContainer}>
@@ -5237,7 +5237,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 28,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: -8,
   },
   completionHeaderRow: {
     flexDirection: 'row',
@@ -5265,9 +5265,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   completionTitle: {
-    fontSize: 28,
+    fontSize: 22,
     color: Colors.hopeWhite,
-    lineHeight: 34,
+    lineHeight: 28,
     textAlign: 'center',
   },
   completionPastoralClosing: {
@@ -5279,17 +5279,17 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   completionContext: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: Colors.hopeWhite,
-    lineHeight: 24,
+    lineHeight: 20,
     marginBottom: 16,
   },
   completionQuestion: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.hopeWhite,
-    lineHeight: 28,
+    lineHeight: 24,
     marginBottom: 20,
   },
   completionChoicesContainer: {
