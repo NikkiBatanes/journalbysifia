@@ -176,20 +176,29 @@ export async function fetchWithRetry(
   config: RetryConfig = DEFAULT_RETRY_CONFIG
 ): Promise<Response> {
   const result = await withRetry(async () => {
-    const response = await fetch(url, options);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
     
-    // Check if status code is retryable
-    if (!response.ok && isRetryableError(null, response.status, config)) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      // Check if status code is retryable
+      if (!response.ok && isRetryableError(null, response.status, config)) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // For non-retryable errors, throw immediately
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-    
-    // For non-retryable errors, throw immediately
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-    
-    return response;
   }, config);
 
   if (!result.success) {
