@@ -964,7 +964,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'choice' | 'punch' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'choice' | 'punch' | 'bullet' | 'body';
 
 interface BodyLine {
   text: string;
@@ -974,6 +974,11 @@ interface BodyLine {
 function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   return lines.map((raw, idx) => {
     const line = raw.trim();
+
+    // Bullet items from Format B/D — lines starting with '* '
+    if (/^\* /.test(line)) {
+      return { text: line.replace(/^\* /, '').trim(), type: 'bullet' };
+    }
 
     // Quoted text (starts with any quote char)
     if (/^[""\u201C\u201D\u2018\u2019']/.test(line)) {
@@ -1635,17 +1640,29 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   // Button labels from actionType
   const actionType = currentStep.actionType ?? 'done_skip';
 
-  // Strip leftover markdown bold/italic markers (** or *) from any field
+  // Strip bold/italic markdown markers only — bullet '* ' lines are handled separately below
   const stripMd = (s: string) => s.replace(/\*\*|__|\*/g, '').trim();
 
   // Split body into main text and example (split on "Example:" marker)
   const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
   const exampleSplit = rawDescription.split(/Example:\s*/i);
-  const mainBodyText = stripMd(exampleSplit[0] ?? '');
+  const rawMainBody = exampleSplit[0] ?? '';
   const exampleText = exampleSplit.length > 1 ? stripMd(exampleSplit.slice(1).join('Example: ')) : null;
 
-  const rawBodyLines: string[] = mainBodyText
-    .split('\n').map(l => stripMd(l)).filter(Boolean);
+  // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
+  const rawBodyLines: string[] = rawMainBody
+    .split('\n')
+    .map(l => {
+      const trimmed = l.trim();
+      if (!trimmed) { return ''; }
+      // Bullet lines: preserve the '* ' prefix so detectBodyLines can identify them
+      if (/^\* /.test(trimmed)) { return trimmed.replace(/\*\*/g, '').replace(/__/g, ''); }
+      return stripMd(trimmed);
+    })
+    .filter(Boolean);
+
+  // Full plain text for prayer saving and body-start detection (strips bullet markers)
+  const mainBodyText = rawBodyLines.map(l => l.replace(/^\* /, '')).join(' ');
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const hasActionWisdom = Boolean(currentActionWisdom || wisdomThread.length > 0);
@@ -1905,6 +1922,26 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                       </ThemedText>
                     )}
                   </TouchableOpacity>
+                );
+              }
+              if (item.type === 'bullet') {
+                return (
+                  <View key={idx} style={styles.bodyLineBulletRow}>
+                    <View style={styles.bodyLineBulletDot} />
+                    {Platform.OS === 'ios' ? (
+                      <TextInput
+                        value={item.text}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[styles.bodyLineBullet, { fontFamily }]}
+                      />
+                    ) : (
+                      <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                        {item.text}
+                      </ThemedText>
+                    )}
+                  </View>
                 );
               }
               if (item.type === 'punch') {
@@ -4488,6 +4525,27 @@ const styles = StyleSheet.create({
   bodyLinePunch: {
     fontSize: 16,
     color: Colors.hopeWhite,
+    lineHeight: 23,
+  },
+  bodyLineBulletRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    marginTop: 6,
+    paddingLeft: 4,
+  },
+  bodyLineBulletDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    marginTop: 9,
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  bodyLineBullet: {
+    flex: 1,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.80)',
     lineHeight: 23,
   },
   // Example block — matches ActionStepsCard original design

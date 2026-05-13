@@ -1045,6 +1045,20 @@ serve(async (req: Request) => {
       throw new Error('AI returned malformed JSON. Please try again.');
     }
 
+    // Defensive cleanup: strip leading/trailing single-quote wrapping from string fields
+    // The model occasionally outputs "'Heavenly Father,...'" or "'What am I...?'"
+    const stripWrappingQuotes = (s: unknown): string => {
+      if (typeof s !== 'string') return s as string;
+      const t = s.trim();
+      if (t.startsWith("'") && t.endsWith("'") && t.length > 2) return t.slice(1, -1).trim();
+      if (t.startsWith("'")) return t.slice(1).trim();
+      return s;
+    };
+    if (typeof parsedJson.prayer === 'string') parsedJson.prayer = stripWrappingQuotes(parsedJson.prayer);
+    if (parsedJson.completion && typeof parsedJson.completion.question === 'string') {
+      parsedJson.completion.question = stripWrappingQuotes(parsedJson.completion.question);
+    }
+
     // Refusal detection (rare with structured outputs but possible)
     if (isRefusal(parsedJson)) {
       console.log('[Generate-Playbook] AI refused, attempting paraphrase retry...');
