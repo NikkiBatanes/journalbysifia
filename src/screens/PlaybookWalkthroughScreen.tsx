@@ -1653,7 +1653,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
   const exampleSplit = rawDescription.split(/Example:\s*/i);
   const rawMainBody = exampleSplit[0] ?? '';
-  const exampleText = exampleSplit.length > 1 ? stripMd(exampleSplit.slice(1).join('Example: ')) : null;
+  const exampleText = exampleSplit.length > 1 ? capitalizeFirstLetter(stripMd(exampleSplit.slice(1).join('Example: '))) : null;
 
   // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
   const rawBodyLines: string[] = rawMainBody
@@ -1762,8 +1762,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     <ScrollView
       style={styles.stepScroll}
       contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 80 }]}
-      scrollEnabled={hasActionWisdom}
-      showsVerticalScrollIndicator={hasActionWisdom}
+      scrollEnabled={true}
+      showsVerticalScrollIndicator={true}
       removeClippedSubviews={false}
     >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -2535,7 +2535,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
 
   // Split "In Jesus' Name, Amen" out so we can add a clear gap before it
   const jesusNameIdx = fullPrayer.search(/In Jesus'? [Nn]ame/i);
-  const prayerBodyText = jesusNameIdx > 0 ? fullPrayer.slice(0, jesusNameIdx).trimEnd() : fullPrayer;
+  const prayerBodyText = jesusNameIdx > 0 ? capitalizeFirstLetter(fullPrayer.slice(0, jesusNameIdx).trimEnd()) : capitalizeFirstLetter(fullPrayer);
   const prayerClosing = jesusNameIdx > 0 ? fullPrayer.slice(jesusNameIdx) : null;
 
   return (
