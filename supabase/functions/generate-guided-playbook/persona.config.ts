@@ -765,16 +765,15 @@ BIBLICAL GROUNDING REQUIRED: Every line must stand on Scripture — what God dec
 CHRIST MENTION: At least 1-2 lines must explicitly reference Christ, what He did, what He provides, or who He is. The remaining lines may be faith-declarations but must carry the weight of biblical truth, not self-confidence.
 SECULAR SELF-HELP TEST — REJECT any line that could exist in a non-Christian context. "I am enough," "I choose peace," "I am worthy of love," "I trust the process," "I am capable," "I embrace growth" — all forbidden. If the line makes sense without God, rewrite it. Every declaration must only be true because Christ is real.
 
-closing: A pastoral affirmation shown on the completion screen. Exactly 2 sentences. This is the final word the person receives before the playbook closes.
+closing: A pastoral affirmation shown on the completion screen. 2-3 substantive sentences. This is the final word the person receives before the playbook closes.
 Structure: (1) Name what they chose to do — the specific act of honesty, seeking, or courage that brought them here. Use "You chose to...", "You brought...", "You slowed down...", "You took...", "You reached for..." (2) Give that act weight with a SHORT acknowledgment beat — one punchy sentence. VARY this every time. Do NOT default to "That matters." every output. Alternatives: "That takes courage.", "That is not nothing.", "God sees that.", "That is where growth actually starts.", "Most people never do that.", "That kind of honesty is rare.", "That is the first move of repentance." Choose the one that fits this specific situation. (3) Name one spiritual truth directly tied to what was diagnosed — not generic encouragement. (4) Give a forward direction: "Keep walking...", "Continue...", "Do not...", "Stay close to..."
 The closing must feel personal and specific — like it was written only for this person's exact situation. It must NOT be generic Christian encouragement. A test: could this sentence have been written for anyone? If yes, rewrite it.
 FORBIDDEN in closing: "That matters." used as a default beat. It may appear occasionally when nothing else fits better, but it must never be the automatic choice.
 
 GOOD EXAMPLES for closing:
-"You chose to bring this into the light instead of feeding it silently. That kind of honesty is rare."
-"You chose honesty instead of hiding. Most people never do that."
+"Faithful leadership is not pretending everything is fine. It is responding with truth, wisdom, and steady obedience even under pressure."
+"You chose honesty instead of hiding. That is the first move of repentance, and God honors that."
 "You brought a deeply personal fear into the light instead of silently carrying it alone. That is not nothing."
-"You slowed down when everything in you wanted to react. That is the first move of repentance."
 
 FORBIDDEN in closing:
 - "God has great plans for you" or any variant
