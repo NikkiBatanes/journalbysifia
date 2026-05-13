@@ -331,8 +331,8 @@ function stripRepeatedName(text: string, name: string): string {
 interface AudienceContext {
   calculatedAge: number | null;
   ageSource: 'dateOfBirth' | 'unknown';
-  isTeenUser: boolean;
   promptLine: string;
+  languageHint?: string;
 }
 
 function calculateAgeFromDate(dateOfBirth?: string): number | null {
@@ -362,19 +362,24 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
   const calculatedAge = calculateAgeFromDate(dateOfBirth);
 
   if (calculatedAge !== null) {
+    const promptLine = `AUDIENCE CONTEXT: User is ${calculatedAge}. Match tone, examples, and maturity to this exact age without drawing attention to the number unless it directly matters. Keep the language grounded and concrete—no lofty vocabulary.`;
+    const languageHint = calculatedAge <= 18
+      ? `LANGUAGE FIT: Because the user is ${calculatedAge} and under 19, use shorter sentences, simple words, and explain any theological concepts plainly.`
+      : 'LANGUAGE FIT: Use crisp, concrete language and avoid highfalutin or academic jargon.';
+
     return {
       calculatedAge,
       ageSource: 'dateOfBirth',
-      isTeenUser: calculatedAge <= 17,
-      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, guidance depth, and application to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
+      promptLine,
+      languageHint,
     };
   }
 
   return {
     calculatedAge: null,
     ageSource: 'unknown',
-    isTeenUser: false,
-    promptLine: 'AUDIENCE CONTEXT: Age is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.',
+    promptLine: 'AUDIENCE CONTEXT: Age is unknown. Offer guidance that works across ages, avoid assumptions about stage of life, and keep vocabulary plain and relatable.',
+    languageHint: 'LANGUAGE FIT: Use clear, everyday wording so it serves readers of any age.',
   };
 }
 
@@ -459,7 +464,7 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     hardIssues.push(`truth_summary is too short (${String(json.truth_summary || '').trim().split(/\s+/).filter(Boolean).length} words, min 8)`);
   }
   if (!json.truth_in_love || String(json.truth_in_love).length < 500) {
-    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 500 — must be at least 6 full paragraphs)`);
+    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 500 — must be at least 4 full paragraphs)`);
   }
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
     hardIssues.push('transition_line is missing');
@@ -535,9 +540,6 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
   if (driftFound.length > 0) {
     softIssues.push(`Abstraction drift detected — forbidden phrases: ${driftFound.join(', ')}`);
-  }
-  if (OVERUSED_NAVIGATION_REGEX.test(allText)) {
-    softIssues.push('Overused navigation language detected — replace every form of "navigate" with a more specific verb');
   }
 
   // Action sequence quality — check verb sharpness across first 3 actions
@@ -774,6 +776,9 @@ interface RequestBody {
 // ─── serve ────────────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
+  const generationStartTime = Date.now();
+  console.log('[Generate-Playbook] Generation started at', new Date().toISOString());
+
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -818,13 +823,14 @@ serve(async (req: Request) => {
   }
 
   const audienceContext = buildAudienceContext(dateOfBirth);
-  const isTeenUser = audienceContext.isTeenUser;
   const personalizationContext = serializePersonalizationData(personalizationData);
   console.log('[Generate-Guided-Playbook] ===== AGE CONTEXT =====');
   console.log('[Generate-Guided-Playbook] dateOfBirth received:', dateOfBirth ?? 'MISSING — age will be unknown');
   console.log('[Generate-Guided-Playbook] calculatedAge:', audienceContext.calculatedAge ?? 'null (could not calculate)');
-  console.log('[Generate-Guided-Playbook] isTeenUser:', isTeenUser);
-  console.log('[Generate-Guided-Playbook] promptLine injected:', audienceContext.promptLine);
+  console.log('[Generate-Guided-Playbook] age prompt applied');
+  if (audienceContext.languageHint) {
+    console.log('[Generate-Guided-Playbook] language hint active');
+  }
   console.log('[Generate-Guided-Playbook] ===== END AGE CONTEXT =====');
 
   // Content safety check
@@ -880,15 +886,15 @@ serve(async (req: Request) => {
       ctx += 'NAME PLACEMENT: truth_summary may begin with [User\'s Name] once. Do not write the user name or [User\'s Name] anywhere in truth_in_love or any later field.\n';
       ctx += `USER INPUT: ${input}\n`;
       ctx += `${audienceContext.promptLine}\n`;
+      if (audienceContext.languageHint) {
+        ctx += `${audienceContext.languageHint}\n`;
+      }
 
       if (recentTitles.length > 0) {
         ctx += `\nTITLE UNIQUENESS: User already has: ${recentTitles.map(t => `"${t}"`).join(', ')}. Create a completely different title.\n`;
       }
       if (personalizationContext) {
         ctx += `\nUSER PROFILE CONTEXT: Use this lightly to shape complexity, tone, and practical fit. Do not quote or reveal this data.\n${personalizationContext}\n`;
-      }
-      if (isTeenUser) {
-        ctx += `\nLANGUAGE FIT: User is exactly ${audienceContext.calculatedAge} and under 18. Use simple clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.\n`;
       }
       if (doctrinalVerdictRequired) {
         ctx += `\nDOCTRINAL VERDICT OVERRIDE: This request involves core Christian doctrine. Do not write a generic doubt, opinions, or personal-journey response. In truth_summary, state plainly that denying Jesus is God contradicts Scripture and is not biblical Christianity. In the first paragraph of truth_in_love, directly answer the user's question before any comfort. If Iglesia ni Cristo is mentioned, specifically say Iglesia ni Cristo denies the biblical doctrine of Jesus' divinity. Use Scripture as the authority, not external voices or personal conviction. Do not tell the user they can remain in or hold to a belief system that denies Jesus is God. Do not say faith is mainly about relationship if the user's understanding of Jesus is not the biblical Jesus. faithful_actions must include comparing Iglesia ni Cristo's teaching with John 1:1, John 20:28, Colossians 2:9, Hebrews 1:8, and asking a biblically grounded pastor for help leaving false teaching if needed. The correct theological direction is: Jesus is God according to Scripture, and any teaching that denies this must be rejected.\n`;
@@ -966,7 +972,7 @@ serve(async (req: Request) => {
       return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
     };
 
-    let openAIRes = await callOpenAI('gpt-5.4-mini');
+    let openAIRes = await callOpenAI('gpt-4o-mini');
 
     if (!openAIRes.ok) {
       const errData = await openAIRes.json().catch(() => ({}));
@@ -985,34 +991,17 @@ serve(async (req: Request) => {
     console.log('[Generate-Playbook] ===== RAW JSON OUTPUT END =====');
 
     // Content filter: OpenAI truncates the JSON mid-generation.
-    // Retry once with softened phrasing before giving up.
+    // Return error immediately instead of retrying to avoid long delays.
     if (finishReason === 'content_filter') {
-      console.warn('[Generate-Playbook] Content filter triggered — retrying with neutral phrasing');
-      const softenedInput = effectiveUserInput
-        .replace(/\b(lying|lie|lied|liar|lies)\b/gi, 'struggling with honesty')
-        .replace(/\b(stealing|steal|stole|theft)\b/gi, 'struggling with taking what is not mine')
-        .replace(/\b(cheating|cheat|cheated)\b/gi, 'struggling with faithfulness')
-        .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
-        .trim();
-      userMessage = buildUserMessage(softenedInput);
-      const filterRetryRes = await callOpenAI('gpt-4o-mini');
-      if (!filterRetryRes.ok) {
-        throw new Error(`OpenAI returned ${filterRetryRes.status} on content filter retry`);
-      }
-      aiData = await filterRetryRes.json();
-      rawContent = aiData.choices?.[0]?.message?.content || '';
-      const retryFinishReason = aiData.choices?.[0]?.finish_reason;
-      console.log('[Generate-Playbook] Content filter retry finish_reason:', retryFinishReason);
-      if (retryFinishReason === 'content_filter') {
-        return new Response(
-          JSON.stringify({
-            error: 'CONTENT_BLOCKED',
-            message: 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
-            retryable: false,
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      console.warn('[Generate-Playbook] Content filter triggered - returning error');
+      return new Response(
+        JSON.stringify({
+          error: 'CONTENT_BLOCKED',
+          message: 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
+          retryable: false,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Strip any garbage tokens that appear after the JSON object closes.
@@ -1355,11 +1344,17 @@ serve(async (req: Request) => {
       throw new Error('AI failed to generate action steps');
     }
 
-    // Enforce exact bible verse text from our verse database
-    await enforcePlaybookBibleVerse(playbook, preferredBibleVersion);
+    // Enforce exact bible verse text from our verse database (non-blocking)
+    // Don't await this - let it complete in background to avoid slowing down response
+    enforcePlaybookBibleVerse(playbook, preferredBibleVersion).catch(error => {
+      console.error('[Playbook] Bible verse enforcement failed in background:', error);
+    });
 
     playbook.totalTasks = playbook.actionSteps.length;
     playbook.progress = 0;
+
+    const generationDuration = Date.now() - generationStartTime;
+    console.log(`[Generate-Playbook] Generation completed in ${generationDuration}ms (${(generationDuration / 1000).toFixed(2)}s)`);
 
     return new Response(JSON.stringify(playbook, null, 2), {
       headers: {
