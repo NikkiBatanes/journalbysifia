@@ -391,8 +391,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       subscriptionStartDate: subscription?.subscription_start_date,
       requestedDuration,
       hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : effectiveHasEverStartedTrial,
+      billingCycle: routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle || (effectiveCurrentUserTier?.includes('_annual') ? 'annual' : 'monthly'),
     });
-  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, routeParams?.testModeBillingCycle, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
 
   const selectedBillingCycle = isAnnual ? 'annual' : 'monthly';
   const currentPaidPlanTier = normalizePaidPlanTier(effectiveCurrentUserTier);

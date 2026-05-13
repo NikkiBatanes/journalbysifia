@@ -1006,7 +1006,7 @@ serve(async (req: Request) => {
       return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
     };
 
-    let openAIRes = await callOpenAI('gpt-5.4-mini');
+    let openAIRes = await callOpenAI('gpt-4o-mini');
 
     if (!openAIRes.ok) {
       const errData = await openAIRes.json().catch(() => ({}));
@@ -1035,7 +1035,7 @@ serve(async (req: Request) => {
         .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
         .trim();
       userMessage = buildUserMessage(softenedInput);
-      const filterRetryRes = await callOpenAI('gpt-5.4-mini');
+      const filterRetryRes = await callOpenAI('gpt-4o-mini');
       if (!filterRetryRes.ok) {
         throw new Error(`OpenAI returned ${filterRetryRes.status} on content filter retry`);
       }
@@ -1103,7 +1103,7 @@ serve(async (req: Request) => {
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
-        openAIRes = await callOpenAI('gpt-5.4-mini');
+        openAIRes = await callOpenAI('gpt-4o-mini');
         if (!openAIRes.ok) break;
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
@@ -1174,7 +1174,7 @@ serve(async (req: Request) => {
 
       const correctedMessage = userMessage + correctionNote;
 
-      const retryRes = await callOpenAI('gpt-5.4-mini', correctedMessage);
+      const retryRes = await callOpenAI('gpt-4o-mini', correctedMessage);
       if (retryRes.ok) {
         const retryData = await retryRes.json();
         const retryContent: string = retryData.choices?.[0]?.message?.content || '';

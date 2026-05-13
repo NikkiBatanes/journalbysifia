@@ -970,7 +970,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'choice' | 'punch' | 'bullet' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'choice' | 'bullet' | 'body';
 
 interface BodyLine {
   text: string;
@@ -986,14 +986,16 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       return { text: line.replace(/^\* /, '').trim(), type: 'bullet' };
     }
 
-    // Quoted text (starts with any quote char)
-    if (/^[""\u201C\u201D\u2018\u2019']/.test(line)) {
-      return { text: line, type: 'quote' };
+    // Intro / label line ending with colon — check BEFORE quote detection
+    // so lines like "'Stop' doing this:" are treated as intro, not quote
+    if (line.endsWith(':') && line.length < 90) {
+      return { text: line, type: 'intro' };
     }
 
-    // Intro / label line ending with colon (e.g. "Is it:", "Ask yourself:")
-    if (line.endsWith(':') && line.length < 55) {
-      return { text: line, type: 'intro' };
+    // Quoted text — only double-quote chars, NOT single quotes.
+    // Single quotes wrap emphasis words (e.g. 'Stop') and must not be treated as quotes.
+    if (/^["\u201C\u201D]/.test(line)) {
+      return { text: line, type: 'quote' };
     }
 
     // For 'choose' type: candidate list items are short, not the first line, no trailing period
@@ -1006,11 +1008,6 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       !line.endsWith(':')
     ) {
       return { text: line, type: 'choice' };
-    }
-
-    // Short punchy imperatives (single clause, < 38 chars)
-    if (line.length < 38 && !line.endsWith('?')) {
-      return { text: line, type: 'punch' };
     }
 
     return { text: line, type: 'body' };
@@ -1152,6 +1149,7 @@ interface FaithfulActionsStepProps {
   onJournalExpanded?: (expanded: boolean) => void;
   onJournalCollapseComplete?: () => void;
   navigation?: any;
+  collapseAnimRef?: React.RefObject<Animated.Value>;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -1262,6 +1260,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   onJournalExpanded,
   onJournalCollapseComplete,
   navigation,
+  collapseAnimRef,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1293,6 +1292,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const journalExpandedRef = useRef(false);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
   const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const collapseAnim = collapseAnimRef || useRef(new Animated.Value(0)).current;
+  const lastScrollYRef = useRef(0);
+  const fabBarHiddenRef = useRef(false);
+  const scrollViewRef = useRef<any>(null);
+  const [fabCollapsed, setFabCollapsed] = React.useState(false);
 
   const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
 
@@ -1372,6 +1376,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     ]).start();
 
     if (expanding) {
+      scrollViewRef.current?.scrollTo({ y: lastScrollYRef.current + 82, animated: true });
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
@@ -1381,6 +1386,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         )).start();
       });
     } else {
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, lastScrollYRef.current - 82), animated: true });
       Animated.stagger(35, [...iconAnims].reverse().map(anim =>
         Animated.spring(anim, { toValue: 0, useNativeDriver: true, tension: 200, friction: 12 })
       )).start(() => {
@@ -1462,6 +1468,17 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     setSelectedChoice(null);
   }, [actionStepIndex, ICON_ROW_HEIGHT, iconAnims, rowHeight, rowOpacity, triggerRotation, triggerScale]);
 
+  // Reset FAB bar visibility when action step changes; animate expand on mount if not provided by parent
+  useEffect(() => {
+    fabBarHiddenRef.current = false;
+    lastScrollYRef.current = 0;
+    setFabCollapsed(false);
+    if (!collapseAnimRef) {
+      collapseAnim.setValue(1);
+      Animated.spring(collapseAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+    }
+  }, [actionStepIndex, collapseAnim, collapseAnimRef]);
+
   // Auto-nudge: expand journal icons on first step, then collapse — one time only per session.
   // ALL inner timers are tracked in nudgeTimerRefs so they can be cancelled on unmount or
   // if the user interacts before the nudge completes (preventing stale state updates).
@@ -1473,6 +1490,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       // Expand
       journalExpandedRef.current = true;
       setJournalExpanded(true);
+      scrollViewRef.current?.scrollTo({ y: lastScrollYRef.current + 82, animated: true });
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
@@ -1629,6 +1647,25 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     );
   }, [journalText, userId, createJournalEntry, advanceStep]);
 
+  const handleActionScroll = useCallback((event: any) => {
+    const currentY = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = currentY < lastScrollYRef.current;
+    lastScrollYRef.current = currentY;
+    if (currentY > 60 && !fabBarHiddenRef.current) {
+      fabBarHiddenRef.current = true;
+      setFabCollapsed(true);
+      Animated.spring(collapseAnim, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
+      // Auto-collapse journal icons on scroll
+      if (journalExpandedRef.current) {
+        toggleJournalIcons();
+      }
+    } else if (isScrollingUp && currentY <= 0 && fabBarHiddenRef.current) {
+      fabBarHiddenRef.current = false;
+      setFabCollapsed(false);
+      Animated.spring(collapseAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+    }
+  }, [collapseAnim, toggleJournalIcons]);
+
   if (!currentStep) {
     return (
       <View style={[styles.stepScroll, styles.stepContent]}>
@@ -1671,6 +1708,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const mainBodyText = rawBodyLines.map(l => l.replace(/^\* /, '')).join(' ');
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
+  console.log('[FaithfulActions] rawDescription:', JSON.stringify(rawDescription));
+  console.log('[FaithfulActions] rawBodyLines:', rawBodyLines);
+  console.log('[FaithfulActions] smartBodyLines:', smartBodyLines);
   const hasActionWisdom = Boolean(currentActionWisdom || wisdomThread.length > 0);
   const displayWisdomThread = getDisplayWisdomThread(currentActionWisdom, wisdomThread);
   const wisdomContext = wisdomThread.length > 0
@@ -1757,13 +1797,24 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     }
   };
 
+  const FAB_PILL_WIDTH = SCREEN_WIDTH - 32;
+  const FAB_CIRCLE_RATIO = 56 / FAB_PILL_WIDTH;
+  const fabContentOpacity = collapseAnim.interpolate({ inputRange: [0, 0.35], outputRange: [1, 0], extrapolate: 'clamp' });
+  const fabShapeOpacity = collapseAnim.interpolate({ inputRange: [0, 0.7], outputRange: [1, 0], extrapolate: 'clamp' });
+  const fabCircleOpacity = collapseAnim.interpolate({ inputRange: [0.5, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  const fabShapeScaleX = collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, FAB_CIRCLE_RATIO], extrapolate: 'clamp' });
+  const fabShapeTranslateX = collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -(FAB_PILL_WIDTH / 2) * (1 - FAB_CIRCLE_RATIO)], extrapolate: 'clamp' });
+
   return (
     <>
     <ScrollView
+      ref={scrollViewRef}
       style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 80 }]}
+      onScroll={handleActionScroll}
+      scrollEventThrottle={16}
+      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 140 }]}
       scrollEnabled={true}
-      showsVerticalScrollIndicator={true}
+      showsVerticalScrollIndicator={false}
       removeClippedSubviews={false}
     >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -1948,22 +1999,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                       </ThemedText>
                     )}
                   </View>
-                );
-              }
-              if (item.type === 'punch') {
-                return Platform.OS === 'ios' ? (
-                  <TextInput
-                    key={idx}
-                    value={item.text}
-                    editable={false}
-                    multiline={true}
-                    scrollEnabled={false}
-                    style={[styles.bodyLinePunch, { fontWeight: '500' as any, fontFamily }]}
-                  />
-                ) : (
-                  <ThemedText key={idx} weight="medium" style={styles.bodyLinePunch} selectable={true}>
-                    {item.text}
-                  </ThemedText>
                 );
               }
               return Platform.OS === 'ios' ? (
@@ -2235,39 +2270,50 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         </Animated.View>
         </StepFadeIn>
 
-        {/* Button area — relative container so expanded icons float above */}
-        <StepFadeIn delay={200}>
-        <View style={styles.buttonArea}>
-          {/* Expanded journal icons — animated height so row slides smoothly */}
-          <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
-            {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
-              <Animated.View
-                key={type}
-                style={{
-                  opacity: iconAnims[idx],
-                  transform: [{ scale: iconAnims[idx] }],
-                  alignItems: 'center',
-                }}
+    </ScrollView>
+
+      {/* Floating action bar — collapses to circle on scroll, matches bottom nav behavior */}
+      <Animated.View style={[styles.actionFABContainer, { bottom: insets.bottom + 16 }]}>
+        {/* Journal expanded icons — float above FAB row */}
+        <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
+          {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+            <Animated.View
+              key={type}
+              style={{
+                opacity: iconAnims[idx],
+                transform: [{ scale: iconAnims[idx] }],
+                alignItems: 'center',
+              }}
+            >
+              <TouchableOpacity
+                style={styles.journalIconButton}
+                onPress={() => { journalExpandedRef.current = false; setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                activeOpacity={0.75}
               >
-                <TouchableOpacity
-                  style={styles.journalIconButton}
-                  onPress={() => { journalExpandedRef.current = false; setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
-                    <MaterialCommunityIcons name={icon} size={20} color={color} />
-                  </View>
-                  <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </Animated.View>
+                <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
+                  <MaterialCommunityIcons name={icon} size={20} color={color} />
+                </View>
+                <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+        </Animated.View>
 
-
-          <View style={styles.doneSkipRow}>
-            {/* Journal trigger circle */}
+        {/* Full pill: shape contracts left→circle, content fades independently */}
+        <Animated.View
+          style={[
+            styles.actionFABRow,
+            {
+              opacity: fabShapeOpacity,
+              transform: [{ translateX: fabShapeTranslateX }, { scaleX: fabShapeScaleX }],
+            },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Animated.View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, opacity: fabContentOpacity }}>
+            {/* Journal trigger FAB */}
             <TouchableOpacity
-              style={styles.journalTrigger}
+              style={styles.actionFABCircle}
               onPress={toggleJournalIcons}
               activeOpacity={0.8}
             >
@@ -2280,8 +2326,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               </Animated.View>
             </TouchableOpacity>
 
+            {/* Done FAB */}
             <TouchableOpacity
-              style={[styles.doneButton, isCommitted && styles.doneButtonCommitted]}
+              style={[styles.actionFABDone, isCommitted && styles.doneButtonCommitted]}
               onPress={() => {
                 if (actionType === 'text_input') {
                   handleSaveJournal();
@@ -2291,39 +2338,54 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               }}
               activeOpacity={0.85}
             >
-              <ThemedText weight="semiBold" style={[styles.doneButtonText, isCommitted && styles.doneButtonTextCommitted, { textAlign: 'center' }]} numberOfLines={0}>
+              <ThemedText weight="semiBold" style={[styles.actionFABDoneText, isCommitted && styles.doneButtonTextCommitted]} numberOfLines={1}>
                 {primaryLabel}
               </ThemedText>
             </TouchableOpacity>
 
+            {/* Skip FAB */}
             <TouchableOpacity
               onPress={() => advanceStep(false)}
               activeOpacity={0.7}
-              style={styles.skipButton}
+              style={styles.actionFABSkip}
             >
-              <ThemedText style={[styles.skipButtonText, { textAlign: 'center' }]} numberOfLines={0}>
+              <ThemedText style={styles.skipButtonText} numberOfLines={1}>
                 {secondaryLabel}
               </ThemedText>
             </TouchableOpacity>
-          </View>
 
-        </View>
-        </StepFadeIn>
+            {/* Back FAB — beside Skip, visible from step 2 onwards */}
+            {actionStepIndex >= 1 && onGoBack && (
+              <TouchableOpacity
+                style={styles.actionFABCircle}
+                onPress={onGoBack}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="chevron-back" size={18} color="rgba(255,255,255,0.65)" />
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+        </Animated.View>
 
-        {/* Back button — below the button row, right-aligned, shown from step 2 onwards */}
-        {actionStepIndex >= 1 && onGoBack && (
-          <View style={styles.backButtonRow}>
-            <TouchableOpacity
-              style={styles.journalTrigger}
-              onPress={onGoBack}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="chevron-back" size={18} color="rgba(255,255,255,0.65)" />
-            </TouchableOpacity>
-          </View>
-        )}
-    </ScrollView>
+        {/* Collapsed circle — fades in as pill contracts; tap to re-expand */}
+        <Animated.View
+          style={[styles.actionFABCollapsedCircle, { opacity: fabCircleOpacity }]}
+          pointerEvents={fabCollapsed ? 'box-none' : 'none'}
+        >
+          <TouchableOpacity
+            style={styles.actionFABCollapsedCircleTouchable}
+            activeOpacity={0.8}
+            onPress={() => {
+              setFabCollapsed(false);
+              fabBarHiddenRef.current = false;
+              Animated.spring(collapseAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
 
       {activeJournalModal === 'reflection' && (
         <SmartJournalingReflectionModal
@@ -3082,6 +3144,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
+  const fabCollapseAnimRef = useRef(new Animated.Value(1)).current;
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
       return initialStep;
@@ -3672,6 +3735,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           animateStep(next, 'forward');
         });
       } else {
+        // Collapse FAB when leaving Faithful Actions (step 3)
+        if (stepIndex === 3) {
+          Animated.spring(fabCollapseAnimRef, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
+        }
         // Skip prayer step (4) if this playbook has no prayer
         const hasPrayer = (playbook?.prayer || '').length > 0;
         const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
@@ -3685,12 +3752,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (stepIndex === 0) {
       navigation.goBack();
     } else {
+      // Collapse FAB when leaving Faithful Actions (step 3) via back
+      if (stepIndex === 3) {
+        Animated.spring(fabCollapseAnimRef, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
+      }
       // Skip back over prayer step (4) if this playbook has no prayer
       const hasPrayer = (playbook?.prayer || '').length > 0;
       const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
       animateStep(prev, 'back');
     }
-  }, [stepIndex, animateStep, navigation, playbook?.prayer]);
+  }, [stepIndex, animateStep, navigation, playbook?.prayer, fabCollapseAnimRef]);
 
   // Back within faithful actions sub-steps (or go to previous main step if at sub-step 0)
   const goBackActionStep = useCallback(() => {
@@ -3703,7 +3774,17 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } else {
       goBack();
     }
-  }, [actionStepIndex, goBack]);
+  }, [actionStepIndex, goBack, fabCollapseAnimRef]);
+
+  const prevStepIndexRef = useRef(stepIndex);
+  useEffect(() => {
+    const prevStep = prevStepIndexRef.current;
+    // Expand FAB when entering Faithful Actions (step 3)
+    if (stepIndex === 3 && prevStep !== 3) {
+      Animated.spring(fabCollapseAnimRef, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+    }
+    prevStepIndexRef.current = stepIndex;
+  }, [stepIndex, fabCollapseAnimRef]);
 
   const handleSkipWalkthrough = useCallback(() => {
     if (source === 'onboarding') {
@@ -3861,6 +3942,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onJournalExpanded={setJournalExpanded}
                 onJournalCollapseComplete={() => setJournalCollapseComplete(true)}
                 navigation={navigation}
+                collapseAnimRef={fabCollapseAnimRef}
               />
             )}
 
@@ -4503,37 +4585,36 @@ const styles = StyleSheet.create({
     borderLeftColor: Colors.faithGold,
   },
   bodyLineIntro: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.55)',
-    lineHeight: 20,
-    letterSpacing: 0.3,
-    marginTop: 4,
-  },
-  bodyLinePunch: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    lineHeight: 23,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.90)',
+    lineHeight: 22,
+    letterSpacing: 0.1,
+    marginTop: 10,
+    marginBottom: 4,
+    fontStyle: 'italic',
   },
   bodyLineBulletRow: {
     flexDirection: 'row' as const,
     alignItems: 'flex-start' as const,
-    marginTop: 6,
-    paddingLeft: 4,
+    marginTop: 4,
+    paddingLeft: 16,
   },
   bodyLineBulletDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-    marginTop: 9,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.alertCoral,
+    marginTop: 8,
     marginRight: 10,
     flexShrink: 0,
   },
   bodyLineBullet: {
     flex: 1,
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.80)',
-    lineHeight: 23,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 22,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   // Example block — matches ActionStepsCard original design
   exampleContainer: {
@@ -4906,6 +4987,74 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 12,
+  },
+  actionFABContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 100,
+    elevation: 10,
+  },
+  actionFABRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  actionFABCollapsedCircle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionFABCollapsedCircleTouchable: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(38, 71, 119, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionFABCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  actionFABDone: {
+    flex: 1,
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  actionFABDoneText: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+  },
+  actionFABSkip: {
+    height: 44,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   savedFeedbackRow: {
     flexDirection: 'row' as const,

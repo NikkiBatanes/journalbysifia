@@ -1474,7 +1474,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                 'Authorization': `Bearer ${apiKey.key}`,
               },
               body: JSON.stringify({
-                model: 'gpt-5.4-mini',
+                model: 'gpt-4o-mini',
                 messages: [
                   {
                     role: 'system',

@@ -142,7 +142,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       mainTitle = titleMatchBold[1].trim();
       subtitle = titleMatchBold[2].trim();
     } else {
-      // Fallback to ## or ### header format (new gpt-5.4-mini format)
+      // Fallback to ## or ### header format (new gpt-4o-mini format)
       const titleMatchHash = content.match(/##+ (.+?)\n\n(.+?)\n/i);
       if (titleMatchHash) {
         mainTitle = titleMatchHash[1].trim();
@@ -372,7 +372,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   if (affMatch) {
     const affirmationsText = affMatch[1].trim();
     // Split by numbered lines or lines that start with common affirmation patterns
-    // Handle both gpt-4o (blank lines) and gpt-5.4-mini formats
+    // Handle both gpt-4o (blank lines) and gpt-4o-mini formats
     let affirmations: string[];
 
     // Check if affirmations are numbered
@@ -1097,7 +1097,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       contextualPrompt = contextualPrompt.substring(0, 4000) + '\n\n[Response truncated to fit token limit]';
     }
 
-    // Try with gpt-5.4-mini, paraphrase and retry if refused
+    // Try with gpt-4o-mini, paraphrase and retry if refused
     let openAIRes: Response;
     let aiData: any;
     let rawContent: string;
@@ -1105,7 +1105,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 
     try {
       // First try with original input
-      openAIRes = await callOpenAIWithFallback('gpt-5.4-mini');
+      openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -1187,7 +1187,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         while (paraphrasedAttempt < maxParaphrasedAttempts) {
           paraphrasedAttempt++;
           console.log(`[Generate-Playbook] Paraphrased attempt ${paraphrasedAttempt}/${maxParaphrasedAttempts}`);
-          openAIRes = await callOpenAIWithFallback('gpt-5.4-mini');
+          openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
           aiData = await openAIRes.json();
           rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -1248,7 +1248,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         }
       }
     } catch (error) {
-      console.error('[Generate-Playbook] Error with gpt-5.4-mini:', error);
+      console.error('[Generate-Playbook] Error with gpt-4o-mini:', error);
       throw error; // Propagate error instead of falling back
     }
 

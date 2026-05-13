@@ -19,6 +19,7 @@ export interface SalesCopyParams {
   subscriptionStartDate?: string | null;
   requestedDuration?: number; // For devotionals - which duration was requested
   hasEverStartedTrial?: boolean; // Whether user has ever started a 3-day trial
+  billingCycle?: 'monthly' | 'annual'; // Current billing cycle for upsell logic
 }
 
 export interface SalesCopyResult {
@@ -136,6 +137,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     subscriptionStartDate,
     requestedDuration,
     hasEverStartedTrial = false,
+    billingCycle,
   } = params;
 
   const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : featureType === 'refinement' ? 'Refinements' : 'Devotionals';
@@ -275,16 +277,34 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         isCurrentTier: 'spark',
       };
     } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
-      return {
-        title: `No ${featureNamePlural}\nRemaining`,
-        message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
-        primaryCta: 'Got it',
-        secondaryCta: 'Wait for Refresh',
-        recommendedTier: 'transformation',
-        showUpgradeOptions: false,
-        closeOnPrimaryCta: true,
-        isCurrentTier: 'transformation',
-      };
+      // Differentiate between monthly and yearly Transformation
+      const isMonthly = billingCycle === 'monthly' || currentTier === 'transformation';
+      const isYearly = billingCycle === 'annual' || currentTier === 'transformation_annual';
+
+      if (isMonthly) {
+        // Transformation monthly - offer yearly upgrade
+        return {
+          title: `No ${featureNamePlural}\nRemaining`,
+          message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.\n\nUpgrade to annual billing to get 2 months free and never worry about limits.`,
+          primaryCta: 'Upgrade to Annual',
+          secondaryCta: 'Wait for Refresh',
+          recommendedTier: 'transformation',
+          showUpgradeOptions: false,
+          isCurrentTier: 'transformation',
+        };
+      } else {
+        // Transformation yearly - already at max, just show reset info
+        return {
+          title: `No ${featureNamePlural}\nRemaining`,
+          message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.`,
+          primaryCta: 'Got it',
+          secondaryCta: 'Wait for Refresh',
+          recommendedTier: 'transformation',
+          showUpgradeOptions: false,
+          closeOnPrimaryCta: true,
+          isCurrentTier: 'transformation',
+        };
+      }
     } else {
       return {
         title: `No ${featureNamePlural}\nRemaining`,

@@ -1285,6 +1285,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                         trialChosenTier: trialChosenTier as any,
                         trialEndDate,
                         subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
+                        billingCycle: (devotionalGating.subscription as any)?.billing_cycle || ((isOnTrial ? trialChosenTier : tier) as any)?.includes('_annual') ? 'annual' : 'monthly',
                       });
                       return salesCopy.title;
                     })()}
@@ -1326,6 +1327,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     trialChosenTier: trialChosenTier as any,
                     trialEndDate,
                     subscriptionStartDate: devotionalGating.subscription?.subscription_start_date,
+                    billingCycle: (devotionalGating.subscription as any)?.billing_cycle || ((isOnTrial ? trialChosenTier : tier) as any)?.includes('_annual') ? 'annual' : 'monthly',
                   });
 
                   const isTopTrialPlan = isOnTrial && (trialChosenTier === 'transformation');
