@@ -1388,6 +1388,7 @@ export async function getPlaybook(
       bibleVerse: normalizedBible,
       directChallenge: normalizedChallenge,
       challengeCTA: data.challenge_cta,
+      transitionLine: data.transition_line || '',
       prayer: storedPrayer,
       wordToSpeak: storedWordToSpeak,
       bibleVerseReflection: storedBibleVerseReflection,

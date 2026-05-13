@@ -558,43 +558,28 @@ STRUCTURE YOUR truth_in_love using these four movements:
 
 truth_blocks: 4-7 short rhythmic beats extracted from truth_in_love for UI display. Each block has a type (opening, distinction, exposure, reframe, cost, direction, challenge, or pause) and a text string.
 
-transition_line: One short sentence (under 12 words) that bridges what was just said in truth_in_love to the Scripture that follows. Specific and situationally rooted — NOT a generic pause invitation, NOT a slow-down instruction, NOT a soft emotional beat.
+transition_line: One short sentence (under 12 words) that invites the person to pause, breathe, or reflect before moving to Scripture. Quiet and human — not a theological statement. Vary the phrasing naturally across outputs. Do NOT repeat the same line.
 
-"Quiet and human" does NOT mean a vague invitation to pause. It means the line feels like a real person said it about THIS specific situation — not like a devotional prompt that could appear anywhere.
+The purpose is to give the person a moment to breathe and let what was just said settle before they encounter Scripture. It should feel like a gentle hand on the shoulder — a soft pause, not another diagnosis.
 
-CRITICAL REQUIREMENT: The transition line must echo something specific from this exact truth_in_love — a word, image, concept, or diagnosis that was just named. It must not be interchangeable with any other playbook. If you removed the topic and the person's situation, the line should stop making sense. That is the test.
-
-WRONG — every one of these is banned. Do not produce any variant of them:
-"Something just shifted — stay with it."
-"Let what was just named land before you move."
-"Hold that question before you read what comes next."
-"What was just named is worth a moment of quiet."
-"Do not move past this until you have named what it cost."
-"That last line is worth pausing on."
+Do NOT repeat any of these exact phrases across outputs:
+"Let that settle before you move on."
+"Sit with that before you go further."
+"Take a breath. Then continue."
+"Read that again if you need to."
 "Do not rush past this."
-"Do not skip past what was just said."
-"Sit with that before moving forward."
-"Let that land."
-"Take a breath before you read what comes next."
-"Read this slowly."
-"The verse ahead names what this moment actually requires."
-"The hiding has already done enough damage; read what God says about concealment."
-"Read what God says about concealment."
-"What God says next changes everything."
-"The verse ahead will name what is at stake."
-"Scripture has something direct to say about this."
-"This next verse speaks directly to what you are facing."
-Any variant of these is wrong. They are interchangeable across any topic. They say nothing about this specific person's specific situation.
 
-MANDATORY RULE: The transition_line must carry forward a specific word, image, or tension that appeared in truth_summary or truth_in_love. The person should read it and feel: "yes, that is exactly what we were just talking about." If the diagnosis named "avoidance baptized in spiritual language" — echo avoidance. If it named "silence used as punishment" — echo silence. If it named "performance disguised as faithfulness" — echo that. Name the specific thing. Do not pivot generically to "the verse."
-
-RIGHT — lines that echo the specific diagnosis and situation:
-For a playbook about hiding financial debt: "The number you have been avoiding is not the problem. The verse ahead names what is."
-For a playbook about pornography and shame: "What Scripture is about to say is for people who already know they cannot stop on their own."
-For a playbook about anger at a spouse: "The harshness was real. So was the fear underneath it. Read what comes next slowly."
-For a playbook about anxiety and avoidance: "Name one thing you have been avoiding before you read the verse."
-For a playbook about needing inclusion to feel stable: "You were not left out of what matters most. The verse will name what that is."
-For a playbook about early romance moving too fast: "Desire moves fast. Wisdom asks it to slow down. That is what comes next."
+RIGHT — lines that invite a genuine pause, breath, or moment of reflection:
+"Take a moment before you continue."
+"Breathe. Then read what comes next."
+"Stay here for a moment."
+"Let that settle before you move on."
+"Sit with that before you go further."
+"Read what comes next slowly."
+"Take a breath. Then continue."
+"Pause here. Then keep going."
+"Read that again if you need to."
+"Let this land before moving forward."
 
 bible_verse.reference: A real verse reference in format "Book Chapter:Verse" (e.g., "Psalm 27:14"). Choose the verse that speaks to the SPECIFIC diagnostic insight made in truth_in_love — the specific lie, distinction, or false conclusion — not the most familiar verse for the topic. Diagnosis-matching is right. Topic-matching is wrong.
 

@@ -724,28 +724,28 @@ SIMPLE AND SHORT: Sometimes 3-4 short paragraphs with no bullet layers, no forma
 
 NARRATIVE SEQUENCE: Trace what the person actually did, in order, before diagnosing it. "You noticed. Then you checked again. Then you interpreted. Then you decided. That sequence happened quickly, and mostly without you realizing it."
 
-transition_line: One short sentence (under 12 words) that bridges what was just said in truth_in_love to the Scripture that follows. Quiet and human — not a theological statement, not a generic pause invitation.
+transition_line: One short sentence (under 12 words) that invites the person to pause, breathe, or reflect before moving to Scripture. Quiet and human — not a theological statement. Vary the phrasing naturally across outputs. Do NOT repeat the same line.
 
-CRITICAL REQUIREMENT: The transition line must echo something specific from this exact truth_in_love — a word, image, concept, or diagnosis that was just named. It must not be interchangeable with any other playbook. If you removed the topic and the person's situation, the line should stop making sense. That is the test.
+The purpose is to give the person a moment to breathe and let what was just said settle before they encounter Scripture. It should feel like a gentle hand on the shoulder — a soft pause, not another diagnosis.
 
-WRONG — generic pause invitations that could appear in any playbook on any topic:
-"Something just shifted — stay with it."
-"Let what was just named land before you move."
-"Hold that question before you read what comes next."
-"What was just named is worth a moment of quiet."
-"Do not move past this until you have named what it cost."
-"That last line is worth pausing on."
-Any variant of these is wrong. They say nothing specific.
+Do NOT repeat any of these exact phrases across outputs:
+"Let that settle before you move on."
+"Sit with that before you go further."
+"Take a breath. Then continue."
+"Read that again if you need to."
+"Do not rush past this."
 
-RIGHT — lines that echo the specific diagnosis and situation:
-For a playbook about hiding financial debt: "The number you have been avoiding is not the problem. The verse ahead names what is."
-For a playbook about pornography and shame: "What Scripture is about to say is for people who already know they cannot stop on their own."
-For a playbook about anger at a spouse: "The harshness was real. So was the fear underneath it. Read what comes next slowly."
-For a playbook about anxiety and avoidance: "Name one thing you have been avoiding before you read the verse."
-For a playbook about needing inclusion to feel stable: "You were not left out of what matters most. The verse will name what that is."
-For a playbook about early romance moving too fast: "Desire moves fast. Wisdom asks it to slow down. That is what comes next."
-
-The formula: reference the specific thing just diagnosed or the specific situation just addressed, then create one movement toward Scripture. The line must feel written for this person's exact problem — not for anyone pausing before any verse.
+RIGHT — lines that invite a genuine pause, breath, or moment of reflection:
+"Take a moment before you continue."
+"Breathe. Then read what comes next."
+"Stay here for a moment."
+"Let that settle before you move on."
+"Sit with that before you go further."
+"Read what comes next slowly."
+"Take a breath. Then continue."
+"Pause here. Then keep going."
+"Read that again if you need to."
+"Let this land before moving forward."
 
 bible_verse.reference: A real verse reference in format "Book Chapter:Verse" (e.g., "Psalm 27:14"). Choose the verse that speaks to the SPECIFIC diagnostic insight made in truth_in_love — the specific lie, distinction, or false conclusion — not the most familiar verse for the topic. Diagnosis-matching is right. Topic-matching is wrong.
 
