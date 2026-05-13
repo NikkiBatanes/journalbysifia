@@ -864,7 +864,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
   return (
     <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
       <StepFadeIn delay={0} style={styles.stepLabelRow}>
-        <MaterialCommunityIcons name="book" size={18} color={Colors.alertCoral} />
+        <MaterialCommunityIcons name="script-text" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
           Scripture to Anchor
         </ThemedText>
@@ -936,24 +936,30 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         bibleVersion={version || 'NASB'}
       />
 
-      <StepFadeIn delay={190} style={styles.reflectionBlock}>
+      <View style={[styles.reflectionBlock, { marginLeft: 12 }]}>
         {reflectionLines.map((line, i) => (
-          Platform.OS === 'ios' ? (
-            <TextInput
-              key={i}
-              value={line}
-              editable={false}
-              multiline={true}
-              scrollEnabled={false}
-              style={[styles.reflectionNote, { fontFamily }]}
-            />
-          ) : (
-            <ThemedText key={i} style={styles.reflectionNote} selectable={true}>
-              {line}
-            </ThemedText>
-          )
+          <StepFadeIn key={i} delay={190 + i * 60}>
+            <View style={styles.completionActionItem}>
+              <View style={[styles.completionActionCircle, { width: 22, height: 22, borderRadius: 11 }]}>
+                <Ionicons name="sparkles" size={11} color={Colors.alertCoral} />
+              </View>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={line}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.completionActionLine, { fontFamily }]}
+                />
+              ) : (
+                <ThemedText style={styles.completionActionLine} selectable={true}>
+                  {line}
+                </ThemedText>
+              )}
+            </View>
+          </StepFadeIn>
         ))}
-      </StepFadeIn>
+      </View>
 
       <View style={{ height: 80 }} />
     </View>
