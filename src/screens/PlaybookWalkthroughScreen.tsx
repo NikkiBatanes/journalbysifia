@@ -3788,6 +3788,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     prevStepIndexRef.current = stepIndex;
   }, [stepIndex]);
 
+  // Animate FAB expansion on mount if starting on step 3
+  useEffect(() => {
+    if (stepIndex === 3) {
+      const timer = setTimeout(() => {
+        Animated.spring(fabCollapseAnimRef.current, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const handleSkipWalkthrough = useCallback(() => {
     if (source === 'onboarding') {
       triggerLightHaptic();
@@ -4556,7 +4566,7 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
   },
   stepCircle: {
     width: 28,
@@ -4587,9 +4597,9 @@ const styles = StyleSheet.create({
     borderLeftColor: Colors.faithGold,
   },
   bodyLineIntro: {
-    fontSize: 15,
+    fontSize: 17,
     color: 'rgba(255,255,255,0.90)',
-    lineHeight: 22,
+    lineHeight: 25,
     letterSpacing: 0.1,
     marginTop: 10,
     marginBottom: 4,
@@ -4927,7 +4937,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 24,
     padding: 22,
-    paddingTop: 30,
+    paddingTop: 14,
     marginBottom: 32,
     gap: 12,
     position: 'relative',
@@ -4952,7 +4962,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   actionTitleContainer: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   actionHowToButton: {
     position: 'absolute',
@@ -5019,7 +5029,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: 'rgba(38, 71, 119, 0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -5027,7 +5037,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#2c4b78',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -5036,7 +5046,7 @@ const styles = StyleSheet.create({
   actionFABDone: {
     flex: 1,
     height: 44,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#2c4b78',
     borderRadius: 22,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -5051,7 +5061,7 @@ const styles = StyleSheet.create({
   actionFABSkip: {
     height: 44,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#2c4b78',
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',

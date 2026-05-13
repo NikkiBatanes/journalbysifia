@@ -933,7 +933,7 @@ serve(async (req: Request) => {
       return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
     };
 
-    let openAIRes = await callOpenAI('gpt-4o-mini');
+    let openAIRes = await callOpenAI('gpt-5.4-mini');
 
     if (!openAIRes.ok) {
       const errData = await openAIRes.json().catch(() => ({}));

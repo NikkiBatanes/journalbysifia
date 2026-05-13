@@ -753,7 +753,7 @@ faithful_actions: 3 to 7 steps. These are not suggestions. They are assignments 
       - Use \n for line breaks between body parts. Use \n* for bullet items.
       - Do NOT start body text with "Acknowledge," "Recognize that," or "Remember that." These are the same formulaic openers as the banned title verbs. Begin with the action, the observation, or the direct instruction instead.
 
-    primary_button: Max 4 words. First-person past tense — what the person says after completing the action. Match the specific verb in the title. Examples: "I've committed", "I wrote it down", "I prayed this", "I said it", "I reached out", "I scheduled it", "I named it", "I cut them", "I audited it", "I separated them". Use "I've committed" only when the step is a decision or internal commitment — not when there is a specific concrete external action.
+    primary_button: Max 20 characters. Max 4 words. First-person past tense — what the person says after completing the action. Match the specific verb in the title. Examples: "I've committed", "I wrote it down", "I prayed this", "I said it", "I reached out", "I scheduled it", "I named it", "I cut them", "I audited it", "I separated them". Use "I've committed" only when the step is a decision or internal commitment — not when there is a specific concrete external action.
     secondary_button: Always "Skip" — do not change this.
 
 prayer: The PERSON praying to God — written AS the person speaking directly to God in first person. "I," "me," "my" throughout. NEVER write "pray for [name]" or refer to the person in third person. NEVER say "Heavenly Father, help Nikki..." — it must be "Heavenly Father, help me..." This is the user's own prayer, not an intercession.
