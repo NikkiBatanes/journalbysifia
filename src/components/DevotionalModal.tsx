@@ -1107,7 +1107,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 if (ageMs < 3 * 60 * 1000) {
                   setCreationError(null);
                   handleClose(() => {
-                    if (onDevotionalCreated) onDevotionalCreated(existing[0].id);
+                    if (onDevotionalCreated) {
+                      onDevotionalCreated(existing[0].id);
+                    }
                   });
                   return;
                 }
