@@ -326,7 +326,7 @@ const StreakPlanScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          {params.source === 'playbook' && (
+          {(params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud' || params.source === 'playbook_walkthrough') && (
             <TouchableOpacity
               style={[styles.secondaryButton]}
               onPress={handleProcessAnotherMoment}
