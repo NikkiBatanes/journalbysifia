@@ -186,34 +186,37 @@ const PLAYBOOK_JSON_SCHEMA = {
       // 3–7 steps — enforced in validation + prompt
       faithful_actions: {
         type: 'array',
+        minItems: 3,
         items: {
           type: 'object',
           properties: {
-            title: { type: 'string' },
-            body: { type: 'string' },
-            primary_button: { type: 'string' },
-            secondary_button: { type: 'string' },
+            title: { type: 'string', minLength: 3 },
+            body: { type: 'string', minLength: 10 },
+            primary_button: { type: 'string', minLength: 2 },
+            secondary_button: { type: 'string', minLength: 2 },
           },
           required: ['title', 'body', 'primary_button', 'secondary_button'],
           additionalProperties: false,
         },
       },
-      prayer: { type: 'string' },
+      prayer: { type: 'string', minLength: 50 },
       // 4–5 lines — enforced in validation + prompt
       words_to_speak: {
         type: 'array',
-        items: { type: 'string' },
+        minItems: 4,
+        items: { type: 'string', minLength: 5 },
       },
       // Pastoral closing affirmation shown on the completion screen before "Before you close:"
-      closing: { type: 'string' },
+      closing: { type: 'string', minLength: 20 },
       // Structured object: separates reflective question from closing imperatives
       completion: {
         type: 'object',
         properties: {
-          question: { type: 'string' },
+          question: { type: 'string', minLength: 10 },
           lines: {
             type: 'array',
-            items: { type: 'string' },
+            minItems: 2,
+            items: { type: 'string', minLength: 3 },
           },
         },
         required: ['question', 'lines'],
