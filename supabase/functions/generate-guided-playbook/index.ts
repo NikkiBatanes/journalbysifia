@@ -927,7 +927,7 @@ serve(async (req: Request) => {
               body: JSON.stringify({
                 model,
                 messages: [
-                  // 'developer' role is supported by GPT-4o family models
+                  // 'developer' role is supported by GPT-4.1 family models
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
@@ -966,7 +966,7 @@ serve(async (req: Request) => {
       return refusalPhrases.some(p => title.includes(p) || truth.includes(p));
     };
 
-    let openAIRes = await callOpenAI('gpt-5.4-mini');
+    let openAIRes = await callOpenAI('gpt-4.1-mini');
 
     if (!openAIRes.ok) {
       const errData = await openAIRes.json().catch(() => ({}));
@@ -995,7 +995,7 @@ serve(async (req: Request) => {
         .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
         .trim();
       userMessage = buildUserMessage(softenedInput);
-      const filterRetryRes = await callOpenAI('gpt-4o-mini');
+      const filterRetryRes = await callOpenAI('gpt-4.1-mini');
       if (!filterRetryRes.ok) {
         throw new Error(`OpenAI returned ${filterRetryRes.status} on content filter retry`);
       }
@@ -1077,7 +1077,7 @@ serve(async (req: Request) => {
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
-        openAIRes = await callOpenAI('gpt-4o-mini');
+        openAIRes = await callOpenAI('gpt-4.1-mini');
         if (!openAIRes.ok) break;
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';
@@ -1153,7 +1153,7 @@ serve(async (req: Request) => {
         ].join('\n');
 
         const correctedMessage = userMessage + completionNote;
-        const completionRetryRes = await callOpenAI('gpt-4o-mini', correctedMessage);
+        const completionRetryRes = await callOpenAI('gpt-4.1-mini', correctedMessage);
 
         if (!completionRetryRes.ok) {
           throw new Error(`OpenAI returned ${completionRetryRes.status} on content-completeness retry`);
@@ -1231,7 +1231,7 @@ serve(async (req: Request) => {
             ].join('\n');
 
             const patchMessage = userMessage + patchNote;
-            const patchRes = await callOpenAI('gpt-4o-mini', patchMessage);
+            const patchRes = await callOpenAI('gpt-4.1-mini', patchMessage);
 
             if (patchRes.ok) {
               try {
@@ -1320,7 +1320,7 @@ serve(async (req: Request) => {
 
       const correctedMessage = userMessage + correctionNote;
 
-      const retryRes = await callOpenAI('gpt-4o-mini', correctedMessage);
+      const retryRes = await callOpenAI('gpt-4.1-mini', correctedMessage);
       if (retryRes.ok) {
         const retryData = await retryRes.json();
         const retryContent: string = retryData.choices?.[0]?.message?.content || '';

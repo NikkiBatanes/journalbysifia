@@ -42,7 +42,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.00015 // gpt-5.4-mini input cost ($0.15 per 1M tokens)
+        costPerToken: 0.00040 // gpt-4.1-mini input cost ($0.40 per 1M tokens)
       }
     ]);
 
