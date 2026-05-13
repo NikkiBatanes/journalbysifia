@@ -942,7 +942,7 @@ serve(async (req: Request) => {
                   frequency_penalty: 0.5,
                   presence_penalty: 0.2,
                 }),
-                max_completion_tokens: 16000,
+                max_completion_tokens: 6000,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,
