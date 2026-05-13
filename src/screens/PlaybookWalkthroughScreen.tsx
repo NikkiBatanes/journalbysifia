@@ -1292,7 +1292,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const journalExpandedRef = useRef(false);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
   const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const collapseAnim = collapseAnimRef || useRef(new Animated.Value(0)).current;
+  const collapseAnimFallback = useRef(new Animated.Value(0)).current;
+  const collapseAnim = collapseAnimRef?.current || collapseAnimFallback;
   const lastScrollYRef = useRef(0);
   const fabBarHiddenRef = useRef(false);
   const scrollViewRef = useRef<any>(null);
@@ -1353,7 +1354,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     outputRange: ['0deg', '45deg'],
   });
 
-  const toggleJournalIcons = () => {
+  const toggleJournalIcons = useCallback(() => {
     // Use ref so we always read the real current value, not a stale closure
     const expanding = !journalExpandedRef.current;
     journalExpandedRef.current = expanding;
@@ -1399,7 +1400,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         });
       });
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onJournalExpanded, onJournalCollapseComplete]);
 
   const createJournalEntry = useCreateJournalEntry();
 
@@ -3144,7 +3146,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
-  const fabCollapseAnimRef = useRef(new Animated.Value(1)).current;
+  const fabCollapseAnimRef = useRef(new Animated.Value(1));
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
       return initialStep;
@@ -3737,7 +3739,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       } else {
         // Collapse FAB when leaving Faithful Actions (step 3)
         if (stepIndex === 3) {
-          Animated.spring(fabCollapseAnimRef, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
+          Animated.spring(fabCollapseAnimRef.current, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
         }
         // Skip prayer step (4) if this playbook has no prayer
         const hasPrayer = (playbook?.prayer || '').length > 0;
@@ -3754,14 +3756,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } else {
       // Collapse FAB when leaving Faithful Actions (step 3) via back
       if (stepIndex === 3) {
-        Animated.spring(fabCollapseAnimRef, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
+        Animated.spring(fabCollapseAnimRef.current, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
       }
       // Skip back over prayer step (4) if this playbook has no prayer
       const hasPrayer = (playbook?.prayer || '').length > 0;
       const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
       animateStep(prev, 'back');
     }
-  }, [stepIndex, animateStep, navigation, playbook?.prayer, fabCollapseAnimRef]);
+  }, [stepIndex, animateStep, navigation, playbook?.prayer]);
 
   // Back within faithful actions sub-steps (or go to previous main step if at sub-step 0)
   const goBackActionStep = useCallback(() => {
@@ -3774,17 +3776,17 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } else {
       goBack();
     }
-  }, [actionStepIndex, goBack, fabCollapseAnimRef]);
+  }, [actionStepIndex, goBack]);
 
   const prevStepIndexRef = useRef(stepIndex);
   useEffect(() => {
     const prevStep = prevStepIndexRef.current;
     // Expand FAB when entering Faithful Actions (step 3)
     if (stepIndex === 3 && prevStep !== 3) {
-      Animated.spring(fabCollapseAnimRef, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
+      Animated.spring(fabCollapseAnimRef.current, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
     }
     prevStepIndexRef.current = stepIndex;
-  }, [stepIndex, fabCollapseAnimRef]);
+  }, [stepIndex]);
 
   const handleSkipWalkthrough = useCallback(() => {
     if (source === 'onboarding') {

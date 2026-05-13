@@ -279,7 +279,6 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
       // Differentiate between monthly and yearly Transformation
       const isMonthly = billingCycle === 'monthly' || currentTier === 'transformation';
-      const isYearly = billingCycle === 'annual' || currentTier === 'transformation_annual';
 
       if (isMonthly) {
         // Transformation monthly - offer yearly upgrade

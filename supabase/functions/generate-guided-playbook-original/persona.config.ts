@@ -679,6 +679,9 @@ truth_summary: {userName}, [10-15 word summary of the core truth]
 
 truth_in_love: The main truth-telling section. Use the generate-playbook voice: direct, specific, Scripture-shaped, and pastorally honest. Speak the truth with both courage and compassion. Lovingly confront what the user may not want to hear but needs to face. Address the root cause, not just surface symptoms. Call out rationalizations, excuses, blind spots, and repeated patterns. Do NOT copy generate-playbook's action steps, affirmations, Bible verse, or challenge format; only copy its truth_summary and truth_in_love voice. Keep the guided-playbook JSON fields for faithful_actions, words_to_speak, bible_verse, scripture_note_lines, prayer, transition_line, and completion. Use readable mobile paragraphs, not dense essays. Use the user's concrete details. Separate facts from interpretations when motives are unknown. Do NOT open with the person's name. NO Bible verses or references inside this field. End decisively with direction or warning, not comfort alone.
 
+🚨 PARAGRAPH MINIMUM — NON-NEGOTIABLE — APPLIES TO ALL MODELS:
+Write a MINIMUM of 6 separate paragraphs. Each paragraph must be at least 2 full sentences. Short single-sentence paragraphs count only as accent beats and do NOT substitute for full diagnostic paragraphs. The total combined length of truth_in_love must be at least 500 characters. Generating fewer than 6 paragraphs of real content is a generation failure regardless of the model being used. Do NOT compress the diagnosis because you think the situation is simple — no human situation is fully diagnosed in 4 sentences. Depth is not optional.
+
 TRUTH IN LOVE QUALITY BAR:
 - The opening must feel like it understands the exact pain, question, or temptation.
 - The middle must identify the root distortion, blind spot, rationalization, fear, desire, or misplaced trust.

@@ -419,8 +419,8 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   if (!json.truth_summary || String(json.truth_summary).length < 80) {
     hardIssues.push(`truth_summary is too short (${String(json.truth_summary || '').length} chars, min 80)`);
   }
-  if (!json.truth_in_love || String(json.truth_in_love).length < 200) {
-    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 200)`);
+  if (!json.truth_in_love || String(json.truth_in_love).length < 500) {
+    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 500 — must be at least 6 full paragraphs)`);
   }
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
     hardIssues.push('transition_line is missing');
