@@ -3164,6 +3164,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     return persistedActionStepIndex;
   });
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const mountTimeRef = useRef(Date.now());
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalGenerated, setDevotionalGenerated] = useState(false);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
@@ -3215,8 +3216,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       typeof (routePlaybook as any).prayer === 'string'
     );
 
+  console.log('[PlaybookWalkthrough] isFullPlaybook:', isFullPlaybook, 'bibleVerse.text length:', (routePlaybook?.bibleVerse as any)?.text?.length, 'prayer type:', typeof (routePlaybook as any)?.prayer);
+
   const playbookId = routePlaybook?.id;
   const shouldFetch = !isFullPlaybook && !!playbookId && !!userId;
+  console.log('[PlaybookWalkthrough] shouldFetch:', shouldFetch, 'playbookId:', playbookId, 'userId:', userId);
 
   const { data: fetchedPlaybook, isLoading } = useQuery({
     queryKey: ['playbook', playbookId, userId],
@@ -3291,13 +3295,20 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // We gate rendering on sessionLoaded so child components always initialize
   // from the correct (AsyncStorage-hydrated) module-level vars.
   useEffect(() => {
+    const sessionStart = Date.now();
+    console.log('[PlaybookWalkthrough] Starting AsyncStorage session load at', sessionStart - mountTimeRef.current, 'ms after mount');
+    
     if (!playbookId) {
       setSessionLoaded(true);
+      console.log('[PlaybookWalkthrough] No playbookId - sessionLoaded set immediately at', Date.now() - mountTimeRef.current, 'ms');
       return;
     }
 
     AsyncStorage.getItem(getSessionKey(playbookId))
       .then(raw => {
+        const sessionEnd = Date.now();
+        console.log('[PlaybookWalkthrough] AsyncStorage.getItem completed in', sessionEnd - sessionStart, 'ms (total:', sessionEnd - mountTimeRef.current, 'ms after mount)');
+        
         if (raw) {
           try {
             const session = JSON.parse(raw);
@@ -3331,10 +3342,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           setActionStepIndex(persistedActionStepIndex);
         }
         setSessionLoaded(true);
+        console.log('[PlaybookWalkthrough] sessionLoaded set to true at', Date.now() - mountTimeRef.current, 'ms after mount');
       })
       .catch(() => {
         // Storage failure — still render with whatever state we have
         setSessionLoaded(true);
+        console.log('[PlaybookWalkthrough] AsyncStorage failed - sessionLoaded set to true at', Date.now() - mountTimeRef.current, 'ms after mount');
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playbookId]);
@@ -3845,7 +3858,17 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   // Show loading state while fetching the full playbook from DB or awaiting session load
-  if (!sessionLoaded || isLoading || (shouldFetch && !playbook)) {
+  const loadingGatePassed = sessionLoaded && !isLoading && !(shouldFetch && !playbook);
+  console.log('[PlaybookWalkthrough] Loading gate check:', {
+    sessionLoaded,
+    isLoading,
+    shouldFetch,
+    hasPlaybook: !!playbook,
+    loadingGatePassed,
+    timeSinceMount: Date.now() - mountTimeRef.current + 'ms'
+  });
+  
+  if (!loadingGatePassed) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
         <StatusBar hidden={true} />
@@ -4312,7 +4335,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 20,
     marginBottom: 20,
-    minHeight: 44,
+    minHeight: 60,
   },
   userInputText: {
     fontSize: 14,

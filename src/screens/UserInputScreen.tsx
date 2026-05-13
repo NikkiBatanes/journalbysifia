@@ -891,33 +891,35 @@ const UserInputScreen: React.FC = () => {
       // ── Walk through any phases that haven't fired yet, each with a visible gap ──
       // This ensures "shaping" and "preparing" never check simultaneously.
       if (currentPhase < 1) {
-        await wait(200);
+        await wait(400);
         advanceToPhase(1);
       }
       if (currentPhase < 2) {
-        await wait(300);
+        await wait(1500);
         advanceToPhase(2);
       }
       if (currentPhase < 3) {
-        await wait(300);
+        await wait(1500);
         advanceToPhase(3);
       }
 
       // Let the final step pulse as "active" briefly before the checkmark lands
-      await wait(300);
+      await wait(1000);
 
       stopProgressTrickle();
       await completeProgress();
       try { triggerSuccessHaptic(); } catch {}
 
-      // Award faith points in background (non-blocking)
       if (user.id) {
-        faithPointsService.awardPoints(user.id, 'playbook_generated', {
-          suppressNotification: true,
-          isOnboarding: false,
-        }).catch(pointsError => {
+        try {
+          await faithPointsService.awardPoints(user.id, 'playbook_generated', {
+            suppressNotification: true, // hide faith points reward notification
+            isOnboarding: false,
+          });
+        } catch (pointsError) {
           Logger.error('[UserInputScreen] Failed to award faith points', pointsError as Error);
-        });
+        }
+
       }
 
       try {
