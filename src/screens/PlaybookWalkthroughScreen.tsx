@@ -3774,26 +3774,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Derive data
   const prayerText = playbook.prayer || '';
 
-  // Gentle transition phrases — rotate based on playbook id so each playbook gets a
-  // consistent phrase, but it varies across different playbooks.
-  const TRANSITION_PHRASES = [
-    'Sit with that before you go further.',
-    'Take a breath. Then continue.',
-    'Let that settle before you move on.',
-    'Stay here for a moment before you read on.',
-    'Pause before you continue.',
-    'Read that again if you need to.',
-    'Let that land before moving forward.',
-    'Do not rush past this.',
-  ];
-  const transitionLine: string =
-    (playbook.transitionLine && playbook.transitionLine.trim().length > 0
-      ? playbook.transitionLine
-      : (() => {
-          const id = playbook.id || '';
-          const idx = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % TRANSITION_PHRASES.length;
-          return TRANSITION_PHRASES[idx];
-        })());
+  const transitionLine: string = playbook.transitionLine?.trim() || '';
 
   const wordToSpeak =
     playbook.wordToSpeak ||
