@@ -19,6 +19,7 @@ import { queueService } from './queueService';
 import { supabase } from './supabaseClient';
 import { savePlaybook } from './modernPlaybookApi';
 import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
+import { findIncompletePlaybookFields } from '../utils/playbookCompleteness';
 
 export interface PlaybookGenerationRequest {
   userId: string;
@@ -292,6 +293,12 @@ export class UnifiedGenerationService {
         try {
           const errorData = await response.json();
 
+          Logger.error('[UnifiedGenerationService] Direct generation HTTP error', new Error(`HTTP ${response.status}`), {
+            component: 'unifiedGenerationService',
+            status: response.status,
+            errorBody: errorData,
+          });
+
           // Handle CONTENT_BLOCKED error
           if (errorData.error === 'CONTENT_BLOCKED') {
             const blockError: any = new Error(errorData.message || 'Content blocked');
@@ -302,16 +309,39 @@ export class UnifiedGenerationService {
             throw blockError;
           }
 
-          throw new Error(errorData.message || 'Network connection issue detected. Please check your connection and try again.');
+          throw new Error(errorData.message || `Generation failed (HTTP ${response.status}). Please try again.`);
         } catch (parseError) {
           if ((parseError as any).contentBlocked) {
             throw parseError;
           }
-          throw new Error('Network connection issue detected. Please check your connection and try again.');
+          Logger.error('[UnifiedGenerationService] Direct generation non-JSON error', new Error(`HTTP ${response.status}`), {
+            component: 'unifiedGenerationService',
+            status: response.status,
+          });
+          throw new Error(`Generation failed (HTTP ${response.status}). Please try again.`);
         }
       }
 
       const result = await response.json();
+
+      // Client-side completeness guard: refuse to save partial generations.
+      // The backend already retries on missing content, but if anything still slips
+      // through (network truncation, parser race, etc.) we surface a retryable error
+      // rather than persisting a half-built playbook the UI can't render.
+      const incompleteFields = findIncompletePlaybookFields(result);
+      if (incompleteFields.length > 0) {
+        Logger.error(
+          '[UnifiedGenerationService] Refusing to save incomplete playbook',
+          new Error(`Incomplete fields: ${incompleteFields.join(', ')}`),
+          { component: 'unifiedGenerationService' }
+        );
+        const err = new Error(
+          'We received an incomplete playbook. Please try generating again.'
+        ) as Error & { retryable: boolean; incompleteFields: string[] };
+        err.retryable = true;
+        err.incompleteFields = incompleteFields;
+        throw err;
+      }
 
       // Save the unique playbook to database
       const playbookToSave = {
@@ -327,7 +357,7 @@ export class UnifiedGenerationService {
         directChallenge: result.directChallenge,
         prayer: result.prayer,
         wordToSpeak: result.wordToSpeak,
-        transitionLine: result.transition_line || '',
+        transitionLine: result.transitionLine || result.transition_line || '',
         challengeCTA: result.challengeCTA || '',
         status: 'ongoing' as const,
         createdAt: result.createdAt || new Date().toISOString(),

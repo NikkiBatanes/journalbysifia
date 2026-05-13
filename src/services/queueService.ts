@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { subscriptionService } from './subscriptionService';
 import { intelligenceService } from './intelligenceService';
+import { findIncompletePlaybookFields } from '../utils/playbookCompleteness';
 
 export interface QueueRequest {
   userId: string;
@@ -491,6 +492,21 @@ export class QueueService {
     }
 
     const result = await response.json();
+
+    // Completeness guard — refuse to persist a partial playbook (missing prayer,
+    // words_to_speak, completion, etc.). The backend retries internally; this is the
+    // last line of defence so the walkthrough never opens with blank screens.
+    const incompleteFields = findIncompletePlaybookFields(result);
+    if (incompleteFields.length > 0) {
+      Logger.error(
+        '[QueueService] Refusing to save incomplete playbook',
+        new Error(`Incomplete fields: ${incompleteFields.join(', ')}`),
+        { component: 'queueService' }
+      );
+      throw new Error(
+        `Playbook generation returned incomplete content (${incompleteFields.join(', ')}). Please try again.`
+      );
+    }
 
     // Save the generated playbook to the database using proper savePlaybook function
 

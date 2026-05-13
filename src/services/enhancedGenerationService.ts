@@ -10,6 +10,7 @@ import { intelligenceService } from './intelligenceService';
 // import { GenerationResult } from './types';
 import { queueService } from './queueService';
 import { supabase } from './supabaseClient';
+import { findIncompletePlaybookFields } from '../utils/playbookCompleteness';
 
 export interface PlaybookGenerationRequest {
   userId: string;
@@ -291,6 +292,21 @@ export class EnhancedGenerationService {
       }
 
       const result = await response.json();
+
+      // Completeness guard — refuse to persist a partial playbook (missing prayer,
+      // words_to_speak, completion, etc.). Last line of defence so the walkthrough
+      // never opens with blank screens.
+      const incompleteFields = findIncompletePlaybookFields(result);
+      if (incompleteFields.length > 0) {
+        Logger.error(
+          '[EnhancedGenerationService] Refusing to save incomplete playbook',
+          new Error(`Incomplete fields: ${incompleteFields.join(', ')}`),
+          { component: 'enhancedGenerationService' }
+        );
+        throw new Error(
+          `Playbook generation returned incomplete content (${incompleteFields.join(', ')}). Please try again.`
+        );
+      }
 
       // Save the result directly to database
       try {

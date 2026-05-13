@@ -401,13 +401,6 @@ function serializePersonalizationData(personalizationData?: Record<string, unkno
 
 // ─── Structural quality helpers ──────────────────────────────────────────────
 
-// Count sentences in a string (splits on . ? ! followed by space or end)
-function _countSentences(text: string): number {
-  const cleaned = text.trim().replace(/\s+/g, ' ');
-  const matches = cleaned.match(/[^.!?]*[.!?](\s|$)/g);
-  return matches ? matches.filter(s => s.trim().length > 2).length : 0;
-}
-
 // Count non-empty paragraphs (blocks separated by \n\n or \n)
 function countParagraphs(text: string): number {
   return text
@@ -435,24 +428,11 @@ const DRIFT_PHRASES = [
   'god is writing your story',
 ];
 
-const STALE_TRUTH_SUMMARY_PHRASES = [
-  'remember,',
-  'god calls you',
-  'god is calling you',
-  'god invites you to remember',
-  'do not forget that',
-];
-
-const REMEMBER_SENTENCE_OPENER_REGEX = /(?:^|[.!?]\s+)remember\b/i;
-const TEMPLATE_TRUTH_SUMMARY_OPENING_REGEX = /^(the ache is|this hurt because|you did not only|saying\b|that is why)\b/i;
 const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
 
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
-const RELATIONAL_WOUND_REGEX = /\b(sister|sisters|sibling|family|mother'?s day|birthday|overlooked|ignored|left out|not speaking|not in speaking terms|reaches out|hurt by|feel.*hurt|felt.*hurt)\b/i;
-const HEART_DIAGNOSIS_REGEX = /\b(worth|value|valued|seen|noticed|chosen|belong|approval|idol|idolatry|demand|prove|punish|punishment|retaliat|bitterness|bitter|scorekeeping|score[- ]keeping|self-protection|self protection|pride|envy|motherhood|children|overlooked)\b/i;
-const UNIVERSAL_HEART_DIAGNOSIS_REGEX = /\b(heart|worth|value|identity|fear|afraid|control|approval|idol|idolatry|worship|trust|unbelief|self-protection|self protection|pride|envy|bitterness|bitter|shame|despair|avoidance|avoid|withdraw|demand|prove|protect|retaliat|repent|repentance|forgiveness|stewardship|misplaced|false conclusion|lie|distortion|desire|too weighty|verdict|security|belong|approval|fear of man|people-pleasing|self-reliance)\b/i;
 
 // ─── Validate JSON playbook response ─────────────────────────────────────────
 // Returns two categories: hardIssues (must retry/fail) and softIssues (warn only).
@@ -506,6 +486,10 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     hardIssues.push(`words_to_speak has ${wordCount} items (need at least 4)`);
   }
 
+  if (!json.closing || String(json.closing).trim().length < 5) {
+    hardIssues.push('closing is missing or too short');
+  }
+
   if (!json.completion?.question || String(json.completion.question).trim().length < 10) {
     hardIssues.push('completion.question is missing or too short');
   }
@@ -540,14 +524,6 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     }
   } else {
     softIssues.push('truth_blocks is missing');
-  }
-
-  // truth_in_love: basic length check only
-  if (json.truth_in_love) {
-    const truthText = String(json.truth_in_love);
-    if (truthText.length < 200) {
-      softIssues.push(`truth_in_love is too short (${truthText.length} chars, min 200)`);
-    }
   }
 
   // Abstraction drift — flag forbidden phrases
@@ -674,12 +650,17 @@ function parseJsonPlaybook(
         const lines = Array.isArray(c.lines)
           ? c.lines.filter((l: any) => typeof l === 'string' && l.trim().length > 0)
           : [];
-        return `Before you close:\n${question}${lines.length > 0 ? '\n\n' + lines.join('\n') : ''}`;
+        const q = question.length >= 10 ? question : 'What specific step will you take this week to act on what you have learned?';
+        const ls = lines.length >= 2 ? lines : ['Take one step forward today.', 'Trust God with the outcome.'];
+        return `Before you close:\n${q}\n\n${ls.join('\n')}`;
       }
       // fallback for unexpected string (schema change race condition)
       return String(c || '');
     })(),
-    challengeCTA: json.closing ? stripAllName(cleanMarkdown(String(json.closing)), userName) : undefined,
+    challengeCTA: json.closing && String(json.closing).trim().length >= 5
+      ? stripAllName(cleanMarkdown(String(json.closing)), userName)
+      : 'God is faithful to complete the work He began in you.',
+    // ^ fallback for when the model leaves closing empty
     prayer: stripAllName(cleanMarkdown(json.prayer || ''), userName),
     transitionLine: json.transition_line || '',
     createdAt: new Date().toISOString(),
@@ -690,24 +671,31 @@ function parseJsonPlaybook(
   };
 
   // Map faithful_actions → ActionStep[]
+  // Filter out empty entries (model sometimes emits trailing blank objects)
   const actions = Array.isArray(json.faithful_actions) ? json.faithful_actions : [];
-  playbook.actionSteps = actions.map((action: any, idx: number) => {
-    const title = cleanMarkdown(String(action.title || ''));
-    const body = cleanMarkdown(String(action.body || ''));
-    return {
-      id: generateUUID(),
-      title,
-      description: body,
-      primaryButton: action.primary_button ? cleanMarkdown(String(action.primary_button)) : undefined,
-      secondaryButton: action.secondary_button ? cleanMarkdown(String(action.secondary_button)) : undefined,
-      subTasks: [],
-      examples: [],
-      example_interactive: false,
-      completed: false,
-      orderIndex: idx,
-      actionType: 'done_skip' as const,
-    };
-  });
+  playbook.actionSteps = actions
+    .filter((action: any) => {
+      const title = String(action?.title || '').trim();
+      const body = String(action?.body || '').trim();
+      return title.length > 0 && body.length > 0;
+    })
+    .map((action: any, idx: number) => {
+      const title = cleanMarkdown(String(action.title || ''));
+      const body = cleanMarkdown(String(action.body || ''));
+      return {
+        id: generateUUID(),
+        title,
+        description: body,
+        primaryButton: action.primary_button ? cleanMarkdown(String(action.primary_button)) : undefined,
+        secondaryButton: action.secondary_button ? cleanMarkdown(String(action.secondary_button)) : undefined,
+        subTasks: [],
+        examples: [],
+        example_interactive: false,
+        completed: false,
+        orderIndex: idx,
+        actionType: 'done_skip' as const,
+      };
+    });
   playbook.totalTasks = playbook.actionSteps.length;
 
   // Map words_to_speak → string[]
@@ -940,7 +928,7 @@ serve(async (req: Request) => {
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
                 temperature: 0.5,
-                max_completion_tokens: 6000,
+                max_completion_tokens: 16000,
                 frequency_penalty: 0.5,
                 presence_penalty: 0.2,
                 response_format: {
@@ -1112,8 +1100,180 @@ serve(async (req: Request) => {
       if (criticalFails.length > 0) {
         throw new Error(`AI failed validation: ${criticalFails.join(', ')}`);
       }
-      // Non-critical hard issues: log but continue (length issues, missing minor fields)
-      console.warn('[Generate-Playbook] Non-critical hard issues (continuing):', hardIssues);
+
+      // Content-completeness retry: missing prayer / words_to_speak / completion / closing
+      // The model sometimes "gives up" on trailing fields. Issue a single retry with an
+      // explicit fill-in-the-gaps directive before saving an incomplete playbook.
+      const missingContentIssues = hardIssues.filter(i =>
+        i.startsWith('prayer is too short') ||
+        i.startsWith('words_to_speak has') ||
+        i.startsWith('closing is') ||
+        i.startsWith('completion.question is missing') ||
+        i.startsWith('completion.lines has') ||
+        i.startsWith('truth_in_love is too short') ||
+        i.startsWith('truth_summary is too short') ||
+        i.startsWith('transition_line is missing') ||
+        i.startsWith('scripture_note_lines has') ||
+        i.startsWith('bible_verse missing')
+      );
+
+      if (missingContentIssues.length > 0) {
+        console.log('[Generate-Playbook] Missing content detected — retrying with completion directive:', missingContentIssues);
+
+        const completionNote = [
+          '',
+          'CRITICAL FIX — your previous response left these required fields empty or too short:',
+          ...missingContentIssues.map(i => `  - ${i}`),
+          'You MUST fill EVERY required field with substantive content. Do not return empty strings or empty arrays for any required field.',
+          'Specifically:',
+          '  - prayer: write a complete prayer (at least 50 characters, in second person to God).',
+          '  - words_to_speak: provide 4-5 declaration lines the user can speak aloud.',
+          '  - completion.question: one reflective question (10+ chars) ending with "?".',
+          '  - completion.lines: 2-4 short imperative lines for closing.',
+          '  - closing: one pastoral closing affirmation sentence.',
+          'Return the FULL JSON, complete in every section.',
+        ].join('\n');
+
+        const correctedMessage = userMessage + completionNote;
+        const completionRetryRes = await callOpenAI('gpt-5.4-mini', correctedMessage);
+
+        if (!completionRetryRes.ok) {
+          throw new Error(`OpenAI returned ${completionRetryRes.status} on content-completeness retry`);
+        }
+
+        let retry1Json: any = null;
+        try {
+          const completionRetryData = await completionRetryRes.json();
+          const completionRetryContent: string = completionRetryData.choices?.[0]?.message?.content || '';
+          retry1Json = JSON.parse(completionRetryContent);
+        } catch {
+          throw new Error('AI returned invalid JSON on content-completeness retry');
+        }
+
+        if (isRefusal(retry1Json)) {
+          throw new Error('AI returned a refusal on content-completeness retry');
+        }
+
+        // Merge any good fields from retry1 into parsedJson before checking gaps
+        // (model may have fixed prayer/words_to_speak but still left closing/completion empty)
+        const mergedJson = { ...parsedJson, ...retry1Json };
+        // Preserve best-of for prayer and words_to_speak
+        if (String(retry1Json?.prayer || '').trim().length > String(parsedJson?.prayer || '').trim().length) {
+          mergedJson.prayer = retry1Json.prayer;
+        }
+        if (Array.isArray(retry1Json?.words_to_speak) && retry1Json.words_to_speak.length > (parsedJson?.words_to_speak?.length ?? 0)) {
+          mergedJson.words_to_speak = retry1Json.words_to_speak;
+        }
+
+        const { hardIssues: retryHard } = validatePlaybook(mergedJson, effectiveUserInput);
+        const stillMissingContent = retryHard.filter(i =>
+          i.startsWith('prayer is too short') ||
+          i.startsWith('words_to_speak has') ||
+          i.startsWith('completion.question is missing') ||
+          i.startsWith('completion.lines has') ||
+          i.startsWith('closing is')
+        );
+
+        if (stillMissingContent.length === 0) {
+          console.log('[Generate-Playbook] Content-completeness retry succeeded');
+          parsedJson = mergedJson;
+        } else {
+          // Only closing/completion still missing — do a targeted second retry
+          const onlyClosingCompletion = stillMissingContent.every(i =>
+            i.startsWith('completion.question is missing') ||
+            i.startsWith('completion.lines has') ||
+            i.startsWith('closing is')
+          );
+
+          if (onlyClosingCompletion) {
+            console.log('[Generate-Playbook] Targeted patch retry for closing/completion:', stillMissingContent);
+
+            // Injects safe fallbacks into a json object for closing/completion fields
+            const injectClosingFallbacks = (target: Record<string, any>): void => {
+              if (!String(target.closing || '').trim()) {
+                target.closing = 'God is faithful to complete the work He began in you.';
+              }
+              if (!String(target.completion?.question || '').trim()) {
+                target.completion = target.completion || {};
+                target.completion.question = 'What specific step will you take this week to act on what you have learned?';
+              }
+              if (!Array.isArray(target.completion?.lines) || target.completion.lines.length < 2) {
+                target.completion = target.completion || {};
+                target.completion.lines = ['Take one step forward today.', 'Trust God with the outcome.'];
+              }
+            };
+
+            const patchNote = [
+              '',
+              'FINAL PATCH — only these two fields are incomplete. Fill them in now:',
+              '  - closing: write one warm pastoral affirmation sentence (e.g., "God is faithful to complete the work He began in you.").',
+              '  - completion.question: write one reflective question ending with "?" (e.g., "What specific action will you take this week?").',
+              '  - completion.lines: write 2-4 short imperative encouragement lines (e.g., "Take one step.", "Trust His timing.").',
+              'Return the FULL JSON with all fields populated.',
+            ].join('\n');
+
+            const patchMessage = userMessage + patchNote;
+            const patchRes = await callOpenAI('gpt-5.4-mini', patchMessage);
+
+            if (patchRes.ok) {
+              try {
+                const patchData = await patchRes.json();
+                const patchContent: string = patchData.choices?.[0]?.message?.content || '';
+                const patchJson = JSON.parse(patchContent);
+                if (!isRefusal(patchJson)) {
+                  // Merge patch fields into mergedJson
+                  const finalJson = { ...mergedJson };
+                  if (String(patchJson?.closing || '').trim().length > 0) {
+                    finalJson.closing = patchJson.closing;
+                  }
+                  if (patchJson?.completion?.question && String(patchJson.completion.question).trim().length >= 10) {
+                    finalJson.completion = { ...finalJson.completion, question: patchJson.completion.question };
+                  }
+                  if (Array.isArray(patchJson?.completion?.lines) && patchJson.completion.lines.length >= 2) {
+                    finalJson.completion = { ...finalJson.completion, lines: patchJson.completion.lines };
+                  }
+
+                  const { hardIssues: patchHard } = validatePlaybook(finalJson, effectiveUserInput);
+                  const patchStillMissing = patchHard.filter(i =>
+                    i.startsWith('completion.question is missing') ||
+                    i.startsWith('completion.lines has') ||
+                    i.startsWith('closing is')
+                  );
+
+                  if (patchStillMissing.length === 0) {
+                    console.log('[Generate-Playbook] Targeted patch retry succeeded');
+                  } else {
+                    console.warn('[Generate-Playbook] Patch retry still incomplete — injecting safe fallbacks:', patchStillMissing);
+                    injectClosingFallbacks(finalJson);
+                  }
+                  parsedJson = finalJson;
+                }
+              } catch (patchErr) {
+                if (patchErr instanceof SyntaxError) {
+                  console.warn('[Generate-Playbook] Patch retry returned invalid JSON — injecting fallbacks');
+                  const finalJson = { ...mergedJson };
+                  injectClosingFallbacks(finalJson);
+                  parsedJson = finalJson;
+                } else {
+                  throw patchErr;
+                }
+              }
+            } else {
+              console.warn('[Generate-Playbook] Patch call failed — injecting fallbacks for closing/completion');
+              const finalJson = { ...mergedJson };
+              injectClosingFallbacks(finalJson);
+              parsedJson = finalJson;
+            }
+          } else {
+            // Core content (prayer/words_to_speak) still missing after retry — hard fail
+            console.warn('[Generate-Playbook] Content-completeness retry still has core gaps:', stillMissingContent);
+            throw new Error(`AI failed to generate complete playbook content: ${stillMissingContent.join(', ')}`);
+          }
+        }
+      } else {
+        // Remaining non-critical hard issues (e.g., minor length warnings on optional shapes)
+        console.warn('[Generate-Playbook] Non-critical hard issues (continuing):', hardIssues);
+      }
     }
 
     if (softIssues.length > 0) {
