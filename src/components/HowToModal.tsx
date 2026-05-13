@@ -280,7 +280,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
             <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
 
-          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 20 }}>
+          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40 }}>
             <View style={styles.labelRow}>
               <Ionicons name="help-circle-outline" size={16} color={Colors.alertCoral} />
               <ThemedText weight="semiBold" style={styles.label}>HOW TO</ThemedText>
@@ -352,6 +352,16 @@ const HowToModal: React.FC<HowToModalProps> = ({
                       }}
                     >
                       <ThemedText weight="semiBold" style={styles.doneButtonText}>Done</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.stillNeedHelpButton}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setResult(null);
+                        setQuestion('');
+                      }}
+                    >
+                      <ThemedText weight="semiBold" style={styles.stillNeedHelpButtonText}>Still need help?</ThemedText>
                     </TouchableOpacity>
                   </>
                 ) : result.success === false ? (
@@ -690,6 +700,21 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  stillNeedHelpButton: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderRadius: 22,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.3)',
+    marginTop: 12,
+  },
+  stillNeedHelpButtonText: {
+    color: Colors.alertCoral,
     fontSize: 16,
     fontWeight: '600',
   },
