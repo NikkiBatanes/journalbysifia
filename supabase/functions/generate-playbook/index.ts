@@ -1070,7 +1070,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
                 },
               ],
               temperature: 0.3,
-              max_tokens: 6000,
+              max_completion_tokens: 6000,
               frequency_penalty: 0.1,
               presence_penalty: 0.1,
             }),

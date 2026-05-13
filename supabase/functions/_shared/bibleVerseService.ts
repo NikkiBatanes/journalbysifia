@@ -113,7 +113,7 @@ async function fetchVerseFromOpenAI(reference: string, version: string): Promise
           },
         ],
         temperature: 0.1,
-        max_tokens: 500,
+        max_completion_tokens: 500,
       }),
     });
 

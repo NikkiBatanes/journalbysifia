@@ -485,7 +485,7 @@ serve(async (req: Request) => {
             content: userPrompt,
           },
         ],
-        max_tokens: 550,
+        max_completion_tokens: 550,
         temperature: 0.65,
         response_format: { type: 'json_object' },
       }),

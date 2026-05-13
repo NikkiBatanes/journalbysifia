@@ -212,11 +212,11 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
     }
 
     // Affirmation card
-    if (playbook.affirmations && playbook.affirmations.length > 0) {
+    if (playbook.wordsToSpeak && playbook.wordsToSpeak.length > 0) {
       result.push({
         id: 'affirmations',
         type: 'affirmation',
-        affirmations: playbook.affirmations,
+        affirmations: playbook.wordsToSpeak.map((text, idx) => ({ id: `affirmation-${idx}`, text, completed: false })),
       });
     }
 

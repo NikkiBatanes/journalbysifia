@@ -1486,7 +1486,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                   },
                 ],
                 temperature: 0.7,
-                max_tokens: duration === 7 ? 8000 : 6000,
+                max_completion_tokens: duration === 7 ? 8000 : 6000,
               }),
             },
             OPENAI_RETRY_CONFIG

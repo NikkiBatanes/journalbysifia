@@ -225,7 +225,7 @@ serve(async (req: Request) => {
         },
       ],
       temperature: mode === 'raw_discernment' ? 0.9 : 0.85,
-      max_tokens: mode === 'raw_discernment' ? 6000 : 4500,
+      max_completion_tokens: mode === 'raw_discernment' ? 6000 : 4500,
       frequency_penalty: mode === 'raw_discernment' ? 0.35 : 0.15,
       presence_penalty: mode === 'raw_discernment' ? 0.45 : 0.35,
     };

@@ -2729,6 +2729,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
 interface CompletionStepProps {
   title: string;
   closingText: string;
+  pastoralClosing?: string;
   onFinish: () => void;
   insets: { top: number };
   onTurnIntoDevotional?: () => void;
@@ -2742,6 +2743,7 @@ interface CompletionStepProps {
 const CompletionStep: React.FC<CompletionStepProps> = ({
   title,
   closingText,
+  pastoralClosing,
   onFinish,
   insets,
   onTurnIntoDevotional,
@@ -2860,6 +2862,22 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           </View>
         </Animated.View>
       </StepFadeIn>
+
+      {pastoralClosing ? (
+        <StepFadeIn delay={80}>
+          {Platform.OS === 'ios' ? (
+            <TextInput
+              value={pastoralClosing}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              style={[styles.completionPastoralClosing, { fontFamily }]}
+            />
+          ) : (
+            <ThemedText style={styles.completionPastoralClosing} selectable={true}>{pastoralClosing}</ThemedText>
+          )}
+        </StepFadeIn>
+      ) : null}
 
       <StepFadeIn delay={100}>
         <>
@@ -3742,8 +3760,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ? playbook.affirmations.map((a: any) => a.text).join('\n')
           : ''));
 
+  const pastoralClosing = playbook.challengeCTA || '';
   const closingText =
-    playbook.challengeCTA ||
     getDirectChallengeText(playbook.directChallenge) ||
     'Carry what God has shown you into the room.';
 
@@ -3846,6 +3864,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               <CompletionStep
                 title={playbook.title}
                 closingText={closingText}
+                pastoralClosing={pastoralClosing}
                 onFinish={handleFinish}
                 insets={insets}
                 onTurnIntoDevotional={() => setShowDevotionalModal(true)}
@@ -5054,6 +5073,14 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 34,
     textAlign: 'center',
+  },
+  completionPastoralClosing: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    marginBottom: 28,
+    opacity: 0.88,
   },
   completionContext: {
     fontSize: 16,

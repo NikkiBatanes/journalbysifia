@@ -172,7 +172,7 @@ Keep your response personal, encouraging, and around 2-3 paragraphs. Make it fee
               content: questionPrompt,
             },
           ],
-          max_tokens: 600,
+          max_completion_tokens: 600,
           temperature: 0.7,
         }),
       },
