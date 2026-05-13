@@ -437,8 +437,6 @@ const DRIFT_PHRASES = [
   'god is writing your story',
 ];
 
-const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
-
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
@@ -1293,8 +1291,7 @@ serve(async (req: Request) => {
     // architectural correction injected into the user message.
     const architecturalIssues = softIssues.filter(i =>
       i.includes('Action sequence drift') ||
-      i.includes('Abstraction drift') ||
-      i.includes('Overused navigation language')
+      i.includes('Abstraction drift')
     );
 
     if (architecturalIssues.length > 0) {
@@ -1306,7 +1303,6 @@ serve(async (req: Request) => {
         'Fix these structural issues:',
         '  faithful_actions must be 3-7 specific, concrete steps — not a list of tips.',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
-        '  Do not use any form of "navigate" or "navigation"; choose a concrete verb like face, discern, obey, endure, confront, or rebuild.',
       ].join('\n');
 
       const correctedMessage = userMessage + correctionNote;
