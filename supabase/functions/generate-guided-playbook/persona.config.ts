@@ -746,6 +746,7 @@ faithful_actions: 3 to 7 steps. These are not suggestions. They are assignments 
       - The example can be embedded naturally anywhere in the body — it does not have to be at the end or labeled "Example:" if it flows better inline. But it must be present and specific.
       - Good example: "Example: Say this to your spouse tonight: 'I have been avoiding this because I am afraid. I want to stop doing that.'"
       - Good example: "Example: Use the journal in this app and write one sentence: what you are most afraid of losing if you obey."
+      - CRITICAL: When examples contain quoted text, ALWAYS preserve both opening and closing quotes. Never strip closing quotes. Example: "'He said this' and 'I felt that.'" — both pairs of quotes must be complete.
       - NEVER suggest "notes app," "phone notes," or any external app for writing. This app has a built-in journal — always say "use the journal in this app" or "write it in your journal here" when directing the user to write something down.
       - Bad example (too vague): "Example: Pray about this situation." — this is not a coaching example, it is a generic instruction.
       - Biblical notes must feel embedded and natural — not inserted at a fixed position in every step.

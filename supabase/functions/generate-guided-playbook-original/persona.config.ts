@@ -836,6 +836,7 @@ faithful_actions: 3 to 7 steps. These are not suggestions. They are assignments 
       (1) The main action — concrete and specific. Include exact words to say or specific things to do where applicable. Not motivational.
       (2) One brief biblical or Christ-centered note — 1 short sentence that connects this action to what Scripture teaches, what Christ modeled, or what faithful obedience looks like. Keep it natural and light, not heavy theology. It should feel like it belongs, not like it was inserted.
       (3) Example: One concrete example of how to actually do this step. Real words, real scenario, real behavior. Start with "Example:"
+    CRITICAL: When examples contain quoted text, ALWAYS preserve both opening and closing quotes. Never strip closing quotes. Example: "'He said this' and 'I felt that.'" — both pairs of quotes must be complete.
     primary_button: Max 20 characters. Max 4 words. First-person past tense — what the person says after completing the action. Match the specific verb in the title. Examples: "I've committed", "I wrote it down", "I prayed this", "I said it", "I reached out", "I scheduled it", "I named it", "I cut them", "I audited it", "I separated them". Use "I've committed" only when the step is a decision or internal commitment — not when there is a specific concrete external action.
     secondary_button: Always "Skip" — do not change this.
 
