@@ -369,6 +369,9 @@ const UsageTooltipModal: React.FC<Props> = ({
                     return;
         }
 
+                // Check if user is on a paid tier (not seeker/trial) and force annual plans
+                const actualTier = subscription?.tier || 'seeker';
+                const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
                 nav.navigate('OnboardingSalesOffer', {
           upgradeMode: true,
           currentTier: subscription?.tier || 'seeker',
@@ -379,6 +382,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           returnTo: 'UserProfile',
           context: 'profile_settings',
           dismissBothModalsOnClose: true, // Custom flag to handle dismissal
+          forceAnnualOnly: isPaidTier,
         });
         /* Navigation completed */
       } catch (error) {

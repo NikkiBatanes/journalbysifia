@@ -284,7 +284,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         // Transformation monthly - offer yearly upgrade
         return {
           title: `No ${featureNamePlural}\nRemaining`,
-          message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.\n\nUpgrade to annual billing to get 2 months free and never worry about limits.`,
+          message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}.\n\nUpgrade to annual billing to get 2 months free.`,
           primaryCta: 'Upgrade to Annual',
           secondaryCta: 'Wait for Refresh',
           recommendedTier: 'transformation',

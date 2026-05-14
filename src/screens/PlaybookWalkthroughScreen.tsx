@@ -873,7 +873,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
       {/* Verse card */}
       <StepFadeIn delay={100} style={styles.verseCard}>
         <View style={styles.verseRefRow}>
-          <Ionicons name="book-outline" size={13} color={Colors.alertCoral} />
           {Platform.OS === 'ios' ? (
             <TextInput
               value={reference}
@@ -909,7 +908,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
               onPress={() => { triggerLightHaptic(); setShowCopyright(true); }}
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginLeft: -4 }}
+              style={{ marginLeft: -4, alignSelf: 'center' }}
             >
               <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
@@ -4535,7 +4534,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 12,
-    flexWrap: 'wrap',
   },
   scriptureRef: {
     fontSize: 14,

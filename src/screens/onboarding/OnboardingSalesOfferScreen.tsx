@@ -60,6 +60,11 @@ const getNextPaidPlanTier = (tier?: string | null): PaidPlanTier => {
   return PAID_PLAN_ORDER[Math.min(currentIndex + 1, PAID_PLAN_ORDER.length - 1)];
 };
 
+const getSameTierAnnual = (tier?: string | null): PaidPlanTier => {
+  const current = normalizePaidPlanTier(tier);
+  return current || 'growth';
+};
+
 const normalizeBillingCycle = (billingCycle?: string | null): BillingCycle => {
   const normalized = String(billingCycle || '').toLowerCase();
   return normalized === 'annual' || normalized === 'yearly' || normalized === 'year' ? 'annual' : 'monthly';
@@ -212,7 +217,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
   const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
                               routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
-                              routeParams?.forceAnnualOnly ? getNextPaidPlanTier(currentUserTier) :
+                              routeParams?.forceAnnualOnly ? getSameTierAnnual(currentUserTier) :
                               isFromProfile && currentUserTier && currentUserTier !== 'seeker' ? normalizePaidPlanTier(currentUserTier) || currentUserTier :
                               routeParams?.profileTrialViewPlans && effectiveIsCurrentlyOnTrial ? trialUpgradeTier :
                               routeParams?.testModeTrialChosenTier ? normalizePaidPlanTier(routeParams.testModeTrialChosenTier) || routeParams.testModeTrialChosenTier :

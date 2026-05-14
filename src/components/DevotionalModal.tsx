@@ -625,6 +625,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           });
 
           onClose();
+          // Check if user is on a paid tier (not seeker/trial) and force annual plans
+          const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
+          const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
           navigation.navigate('OnboardingSalesOffer' as any, {
             upgradeMode: true,
             currentTier: devotionalGating.tier,
@@ -633,6 +636,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             featureType: 'devotionals',
             source: 'devotional_limit',
             feature: 'devotionals',
+            forceAnnualOnly: isPaidTier,
           });
           return;
         }
@@ -657,14 +661,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
 
       onClose(); // Close the devotional modal
+      // Check if user is on a paid tier (not seeker/trial) and force annual plans
+      const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
+      const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
-        currentTier: 'seeker',
+        currentTier: isPaidTier ? actualTier : 'seeker',
         requestedDuration: days,
         skipNotificationPreference: true,
         featureType: 'devotionals',
         source: 'devotional_seeker_limit',
         feature: 'devotionals',
+        forceAnnualOnly: isPaidTier,
       });
       return;
     }
@@ -709,6 +717,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
 
       onClose(); // Close the devotional modal first
+      // Check if user is on a paid tier (not seeker/trial) and force annual plans
+      const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
+      const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
         currentTier: devotionalGating.tier,
@@ -717,6 +728,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         featureType: 'devotionals',
         source: 'devotional_duration_lock',
         feature: 'devotionals',
+        forceAnnualOnly: isPaidTier,
       });
       return;
     }
@@ -1184,6 +1196,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                             });
 
                             onClose();
+                            // Check if user is on a paid tier (not seeker/trial) and force annual plans
+                            const actualTier = devotionalGating.subscription?.tier || devotionalGating.tier;
+                            const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
                             navigation.navigate('OnboardingSalesOffer' as any, {
                               upgradeMode: true,
                               currentTier: devotionalGating.tier,
@@ -1192,6 +1207,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                               source: 'devotional_lock',
                               feature: 'devotionals',
                               skipNotificationPreference: true,
+                              forceAnnualOnly: isPaidTier,
                             });
                           }}
                           size={20}
@@ -1365,14 +1381,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                       setShowUsageLimitModal(false);
                       setUsageLimitModalData(null);
                       onClose();
+                      // Check if user is on a paid tier (not seeker/trial) and force annual plans
+                      const actualTier = devotionalGating.subscription?.tier || tier || 'spark';
+                      const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
                       navigation.navigate('OnboardingSalesOffer' as any, {
                         upgradeMode: true,
                         currentTier: tier || 'spark',
-                        selectedTier: salesCopy.recommendedTier,
+                        selectedTier: isPaidTier ? undefined : salesCopy.recommendedTier, // Use forceAnnualOnly instead of selectedTier for paid users
                         skipNotificationPreference: true,
                         featureType: 'devotionals', // Explicitly mark this as devotional upgrade
                         source: 'devotional_usage_limit',
                         feature: 'devotionals',
+                        forceAnnualOnly: isPaidTier,
                       });
                     }}
                   >

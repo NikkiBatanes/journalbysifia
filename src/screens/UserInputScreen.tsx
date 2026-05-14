@@ -1077,12 +1077,16 @@ const UserInputScreen: React.FC = () => {
         });
       } else if (playbooksRemaining === 0) {
         // Navigate to sales offer for usage limit reached
+        // Check if user is on a paid tier (not seeker/trial) and force annual plans
+        const actualTier = subscription?.tier || 'seeker';
+        const isPaidTier = ['spark', 'growth', 'transformation'].includes(actualTier.replace('_annual', ''));
         (navigation as any).navigate('OnboardingSalesOffer', {
           upgradeMode: true,
           currentTier: subscription?.tier || 'seeker',
           skipNotificationPreference: true,
           source: 'user_input_usage_limit',
           feature: 'playbooks',
+          forceAnnualOnly: isPaidTier,
         });
       }
       return;
