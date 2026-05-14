@@ -4335,7 +4335,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 20,
     marginBottom: 20,
-    minHeight: 60,
   },
   userInputText: {
     fontSize: 14,
