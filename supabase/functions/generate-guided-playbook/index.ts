@@ -902,7 +902,11 @@ serve(async (req: Request) => {
     const buildUserMessage = (input: string): string => {
       const context = buildPlaybookUserContext(input);
       const separator = '\n---\n\nNow generate a playbook:\n\n';
-      return separator + context;
+      const message = separator + context;
+      console.log('[Generate-Playbook] User message length:', message.length, 'chars');
+      console.log('[Generate-Playbook] Developer prompt length:', DEVELOPER_PROMPT.length, 'chars');
+      console.log('[Generate-Playbook] JSON schema size:', JSON.stringify(PLAYBOOK_JSON_SCHEMA).length, 'chars');
+      return message;
     };
 
     let userMessage = buildUserMessage(effectiveUserInput);
@@ -931,10 +935,11 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.5,
-                max_completion_tokens: 16000,
-                frequency_penalty: 0.5,
-                presence_penalty: 0.2,
+                temperature: 0.35,
+                top_p: 1,
+                max_completion_tokens: 3000,
+                frequency_penalty: 0.30,
+                presence_penalty: 0,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,
@@ -976,6 +981,21 @@ serve(async (req: Request) => {
 
     let aiData = await openAIRes.json();
     let rawContent: string = aiData.choices?.[0]?.message?.content || '';
+
+    // Log token usage
+    const usage = aiData.usage;
+    if (usage) {
+      console.log('[Generate-Playbook] ===== TOKEN USAGE =====');
+      console.log('[Generate-Playbook] Model:', aiData.model);
+      console.log('[Generate-Playbook] Prompt Tokens (Input):', usage.prompt_tokens);
+      console.log('[Generate-Playbook] Completion Tokens (Output):', usage.completion_tokens);
+      console.log('[Generate-Playbook] Total Tokens:', usage.total_tokens);
+      console.log('[Generate-Playbook] Cost Calculation (gpt-4.1-mini):');
+      console.log('[Generate-Playbook] - Input Cost ($0.40/M):', (usage.prompt_tokens * 0.00040 / 1000).toFixed(6), 'USD');
+      console.log('[Generate-Playbook] - Output Cost ($1.60/M):', (usage.completion_tokens * 0.00160 / 1000).toFixed(6), 'USD');
+      console.log('[Generate-Playbook] - Total Cost:', ((usage.prompt_tokens * 0.00040 + usage.completion_tokens * 0.00160) / 1000).toFixed(6), 'USD');
+      console.log('[Generate-Playbook] =============================');
+    }
 
     const finishReason = aiData.choices?.[0]?.finish_reason;
     console.log('[Generate-Playbook] finish_reason:', finishReason);

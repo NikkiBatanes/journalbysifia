@@ -971,10 +971,11 @@ serve(async (req: Request) => {
                   { role: 'developer', content: DEVELOPER_PROMPT },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.5,
-                max_completion_tokens: 6000,
-                frequency_penalty: 0.35,
-                presence_penalty: 0.25,
+                temperature: 0.35,
+                top_p: 1,
+                max_completion_tokens: 3000,
+                frequency_penalty: 0.30,
+                presence_penalty: 0,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,
@@ -1103,7 +1104,7 @@ serve(async (req: Request) => {
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
-        openAIRes = await callOpenAI('gpt-4omini');
+        openAIRes = await callOpenAI('gpt-4.1-mini');
         if (!openAIRes.ok) break;
         aiData = await openAIRes.json();
         rawContent = aiData.choices?.[0]?.message?.content || '';

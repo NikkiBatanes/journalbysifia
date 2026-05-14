@@ -56,7 +56,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
+        costPerToken: 0.00040 // gpt-4.1-mini cost ($0.40 per 1M tokens)
       }
     ]);
 
@@ -70,7 +70,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
+        costPerToken: 0.00040 // gpt-4.1-mini cost ($0.40 per 1M tokens)
       }
     ]);
 
@@ -84,7 +84,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
+        costPerToken: 0.00040 // gpt-4.1-mini cost ($0.40 per 1M tokens)
       }
     ]);
 
@@ -98,7 +98,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
+        costPerToken: 0.00040 // gpt-4.1-mini cost ($0.40 per 1M tokens)
       }
     ]);
 
@@ -112,7 +112,7 @@ class KeyPoolManager {
         currentUsage: 0,
         lastUsed: 0,
         isHealthy: true,
-        costPerToken: 0.000015
+        costPerToken: 0.00040 // gpt-4.1-mini cost ($0.40 per 1M tokens)
       }
     ]);
   }

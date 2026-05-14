@@ -112,8 +112,11 @@ async function fetchVerseFromOpenAI(reference: string, version: string): Promise
             content: `Return the exact text of ${reference} from the ${version} translation. Include ALL punctuation, brackets, and formatting exactly as it appears in the official ${version} Bible.`,
           },
         ],
-        temperature: 0.5,
+        temperature: 0.30,
+        top_p: 1,
         max_completion_tokens: 500,
+        frequency_penalty: 0.20,
+        presence_penalty: 0,
       }),
     });
 

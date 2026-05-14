@@ -485,8 +485,11 @@ serve(async (req: Request) => {
             content: userPrompt,
           },
         ],
+        temperature: 0.30,
+        top_p: 1,
         max_completion_tokens: 550,
-        temperature: 0.5,
+        frequency_penalty: 0.20,
+        presence_penalty: 0,
         response_format: { type: 'json_object' },
       }),
     });

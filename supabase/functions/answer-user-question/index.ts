@@ -172,8 +172,11 @@ Keep your response personal, encouraging, and around 2-3 paragraphs. Make it fee
               content: questionPrompt,
             },
           ],
+          temperature: 0.35,
+          top_p: 1,
           max_completion_tokens: 600,
-          temperature: 0.5,
+          frequency_penalty: 0.30,
+          presence_penalty: 0,
         }),
       },
       OPENAI_RETRY_CONFIG

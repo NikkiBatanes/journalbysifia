@@ -1485,8 +1485,11 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                     content: buildUserMessage(originalUserInput, input),
                   },
                 ],
-                temperature: 0.5,
-                max_completion_tokens: duration === 7 ? 8000 : 6000,
+                temperature: 0.45,
+                top_p: 1,
+                max_completion_tokens: duration === 7 ? 7000 : (duration === 5 ? 5000 : 4000),
+                frequency_penalty: 0.25,
+                presence_penalty: 0,
               }),
             },
             OPENAI_RETRY_CONFIG
