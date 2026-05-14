@@ -1,6 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { DEVELOPER_PROMPT } from './persona.config.ts';
+import { buildGuidedPlaybookPrompt } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
@@ -332,6 +332,7 @@ interface AudienceContext {
   calculatedAge: number | null;
   ageSource: 'dateOfBirth' | 'unknown';
   isTeenUser: boolean;
+  isYoungUser: boolean;
   promptLine: string;
 }
 
@@ -366,6 +367,7 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
       calculatedAge,
       ageSource: 'dateOfBirth',
       isTeenUser: calculatedAge <= 17,
+      isYoungUser: calculatedAge <= 24,
       promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, guidance depth, and application to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
     };
   }
@@ -374,6 +376,7 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
     calculatedAge: null,
     ageSource: 'unknown',
     isTeenUser: false,
+    isYoungUser: false,
     promptLine: 'AUDIENCE CONTEXT: Age is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.',
   };
 }
@@ -858,7 +861,10 @@ serve(async (req: Request) => {
             .limit(3);
           if (data) recentTitles = data.map((p: { title: string }) => p.title).filter(Boolean);
         }
-      } catch { /* non-blocking */ }
+      } catch (error) {
+        // non-blocking
+        console.log('[Generate-Guided-Playbook] Failed to fetch recent titles:', error);
+      }
     }
 
     let effectiveUserInput = userInput;
@@ -887,8 +893,11 @@ serve(async (req: Request) => {
       if (personalizationContext) {
         ctx += `\nUSER PROFILE CONTEXT: Use this lightly to shape complexity, tone, and practical fit. Do not quote or reveal this data.\n${personalizationContext}\n`;
       }
-      if (isTeenUser) {
-        ctx += `\nLANGUAGE FIT: User is exactly ${audienceContext.calculatedAge} and under 18. Use simple clear language, shorter sentences, and age-appropriate action steps. Avoid complex theological terms unless briefly explained.\n`;
+      if (audienceContext.isYoungUser) {
+        ctx += `\nLANGUAGE FIT: User is ${audienceContext.calculatedAge} years old and under 25. Use clear, direct, everyday language. Avoid highfalutin strategy, psychology, or theology words unless necessary. Keep sentences readable and concrete. Prefer everyday wording: say "what is really going on" instead of "governing issue," "what this is costing you" instead of "tradeoff," and "what to do next" instead of "strategic response." Do not sound childish, academic, corporate, or overly intense.\n`;
+      }
+      if (audienceContext.isTeenUser) {
+        ctx += `\nTEEN LANGUAGE FIT: User is ${audienceContext.calculatedAge} years old and under 18. Use simple, concrete words and shorter sentences. Explain any theological or strategic word in plain language. Action steps must be realistic for a teenager and must not assume marriage, parenting, full-time work, business ownership, or adult independence unless the user said so.\n`;
       }
       if (doctrinalVerdictRequired) {
         ctx += `\nDOCTRINAL VERDICT OVERRIDE: This request involves core Christian doctrine. Do not write a generic doubt, opinions, or personal-journey response. In truth_summary, state plainly that denying Jesus is God contradicts Scripture and is not biblical Christianity. In the first paragraph of truth_in_love, directly answer the user's question before any comfort. If Iglesia ni Cristo is mentioned, specifically say Iglesia ni Cristo denies the biblical doctrine of Jesus' divinity. Use Scripture as the authority, not external voices or personal conviction. Do not tell the user they can remain in or hold to a belief system that denies Jesus is God. Do not say faith is mainly about relationship if the user's understanding of Jesus is not the biblical Jesus. faithful_actions must include comparing Iglesia ni Cristo's teaching with John 1:1, John 20:28, Colossians 2:9, Hebrews 1:8, and asking a biblically grounded pastor for help leaving false teaching if needed. The correct theological direction is: Jesus is God according to Scripture, and any teaching that denies this must be rejected.\n`;
@@ -904,12 +913,13 @@ serve(async (req: Request) => {
       const separator = '\n---\n\nNow generate a playbook:\n\n';
       const message = separator + context;
       console.log('[Generate-Playbook] User message length:', message.length, 'chars');
-      console.log('[Generate-Playbook] Developer prompt length:', DEVELOPER_PROMPT.length, 'chars');
+      const developerPrompt = buildGuidedPlaybookPrompt(input);
+      console.log('[Generate-Playbook] Developer prompt length:', developerPrompt.length, 'chars');
       console.log('[Generate-Playbook] JSON schema size:', JSON.stringify(PLAYBOOK_JSON_SCHEMA).length, 'chars');
-      return message;
+      return { message, developerPrompt };
     };
 
-    let userMessage = buildUserMessage(effectiveUserInput);
+    const { message: userMessage, developerPrompt } = buildUserMessage(effectiveUserInput);
 
     // OpenAI call helper — accepts optional message override for architectural retry
     async function callOpenAI(model: string, messageOverride?: string): Promise<Response> {
@@ -932,7 +942,7 @@ serve(async (req: Request) => {
                 model,
                 messages: [
                   // 'developer' role is supported by GPT-4.1 family models
-                  { role: 'developer', content: DEVELOPER_PROMPT },
+                  { role: 'developer', content: developerPrompt },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
                 temperature: 0.35,
