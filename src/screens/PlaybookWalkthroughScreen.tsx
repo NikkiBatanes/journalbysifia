@@ -20,6 +20,7 @@ import {
   Clipboard,
   PanResponder,
   Keyboard,
+  ActionSheetIOS,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -274,32 +275,51 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
             style={styles.userInputCard}
             onLongPress={() => {
               triggerLightHaptic();
-              Alert.alert(
-                'Moment you shared',
-                'What would you like to do?',
-                [
+              if (Platform.OS === 'ios') {
+                ActionSheetIOS.showActionSheetWithOptions(
                   {
-                    text: 'Copy',
-                    onPress: () => {
+                    options: ['Copy', 'Edit', 'Cancel'],
+                    cancelButtonIndex: 2,
+                  },
+                  (buttonIndex) => {
+                    if (buttonIndex === 0) {
                       triggerLightHaptic();
                       Clipboard.setString(userInput);
                       Alert.alert('Copied', 'Moment copied to clipboard');
-                    },
-                  },
-                  {
-                    text: 'Edit',
-                    onPress: () => {
+                    } else if (buttonIndex === 1) {
                       triggerLightHaptic();
                       _onEditUserInput?.();
+                    }
+                  }
+                );
+              } else {
+                Alert.alert(
+                  'Moment you shared',
+                  'What would you like to do?',
+                  [
+                    {
+                      text: 'Copy',
+                      onPress: () => {
+                        triggerLightHaptic();
+                        Clipboard.setString(userInput);
+                        Alert.alert('Copied', 'Moment copied to clipboard');
+                      },
                     },
-                  },
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                  },
-                ],
-                { cancelable: true }
-              );
+                    {
+                      text: 'Edit',
+                      onPress: () => {
+                        triggerLightHaptic();
+                        _onEditUserInput?.();
+                      },
+                    },
+                    {
+                      text: 'Cancel',
+                      style: 'cancel',
+                    },
+                  ],
+                  { cancelable: true }
+                );
+              }
             }}
             activeOpacity={0.7}
           >
