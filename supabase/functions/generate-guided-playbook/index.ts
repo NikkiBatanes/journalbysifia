@@ -333,6 +333,7 @@ interface AudienceContext {
   ageSource: 'dateOfBirth' | 'unknown';
   isTeenUser: boolean;
   isYoungUser: boolean;
+  isAdultUser: boolean;
   promptLine: string;
 }
 
@@ -363,12 +364,18 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
   const calculatedAge = calculateAgeFromDate(dateOfBirth);
 
   if (calculatedAge !== null) {
+    const isAdult = calculatedAge >= 25;
+    const promptLine = isAdult
+      ? ''
+      : `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, guidance depth, and application to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`;
+
     return {
       calculatedAge,
       ageSource: 'dateOfBirth',
       isTeenUser: calculatedAge <= 17,
       isYoungUser: calculatedAge <= 24,
-      promptLine: `AUDIENCE CONTEXT: User is exactly ${calculatedAge} years old, calculated from their birthday. Tailor examples, guidance depth, and application to this exact age. Use language that is appropriate for this age level - simpler vocabulary and sentence structure for younger users, more nuanced language for adults. Do not generalize beyond the exact age, and do not mention the age unless it directly matters.`,
+      isAdultUser: isAdult,
+      promptLine,
     };
   }
 
@@ -377,6 +384,7 @@ function buildAudienceContext(dateOfBirth?: string): AudienceContext {
     ageSource: 'unknown',
     isTeenUser: false,
     isYoungUser: false,
+    isAdultUser: false,
     promptLine: 'AUDIENCE CONTEXT: Age is unknown because no birthday is available. Do not assume school, parents, marriage, parenting, career stage, or retirement unless the user clearly says it.',
   };
 }

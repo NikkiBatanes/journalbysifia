@@ -312,36 +312,54 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         },
                       ]}
                     >
-                      {wisdomItems.intro ? (
-                        <ThemedText style={styles.wisdomText}>
-                          {wisdomItems.intro}
-                        </ThemedText>
-                      ) : null}
+                      {Platform.OS === 'ios' ? (
+                        <TextInput
+                          value={`${wisdomItems.intro}${wisdomItems.intro ? '\n\n' : ''}${wisdomItems.items.map((item, index) => {
+                            const titledItem = splitWisdomItemTitle(item);
+                            if (titledItem) {
+                              return `${titledItem.title}\n${titledItem.body}`;
+                            }
+                            return item;
+                          }).join('\n\n')}`}
+                          editable={false}
+                          multiline={true}
+                          scrollEnabled={false}
+                          style={[styles.wisdomText, { fontFamily: theme.fontFamily }]}
+                        />
+                      ) : (
+                        <>
+                          {wisdomItems.intro ? (
+                            <ThemedText style={styles.wisdomText} selectable={true}>
+                              {wisdomItems.intro}
+                            </ThemedText>
+                          ) : null}
 
-                      {wisdomItems.items.map((item, index) => {
-                        const titledItem = splitWisdomItemTitle(item);
+                          {wisdomItems.items.map((item, index) => {
+                            const titledItem = splitWisdomItemTitle(item);
 
-                        return (
-                          <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
-                            <View style={styles.wisdomStepTextWrapper}>
-                              {titledItem ? (
-                                <>
-                                  <ThemedText weight="bold" style={styles.wisdomStepTitle}>
-                                    {titledItem.title}
-                                  </ThemedText>
-                                  <ThemedText style={styles.wisdomStepText}>
-                                    {titledItem.body}
-                                  </ThemedText>
-                                </>
-                              ) : (
-                                <ThemedText style={styles.wisdomStepText}>
-                                  {item}
-                                </ThemedText>
-                              )}
-                            </View>
-                          </View>
-                        );
-                      })}
+                            return (
+                              <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
+                                <View style={styles.wisdomStepTextWrapper}>
+                                  {titledItem ? (
+                                    <>
+                                      <ThemedText weight="bold" style={styles.wisdomStepTitle} selectable={true}>
+                                        {titledItem.title}
+                                      </ThemedText>
+                                      <ThemedText style={styles.wisdomStepText} selectable={true}>
+                                        {titledItem.body}
+                                      </ThemedText>
+                                    </>
+                                  ) : (
+                                    <ThemedText style={styles.wisdomStepText} selectable={true}>
+                                      {item}
+                                    </ThemedText>
+                                  )}
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </>
+                      )}
                     </Animated.View>
                     <TouchableOpacity
                       style={styles.doneButton}
