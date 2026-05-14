@@ -8,7 +8,7 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { Playbook, ActionStep } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
-import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
+import { API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
 import { withTimeout, TIMEOUT_CONFIGS, isTimeoutError } from '../utils/apiTimeout';
 // Deduplication disabled for fresh personalized generation
 // import { deduplicatePlaybookGeneration } from '../utils/requestDeduplication';
@@ -19,6 +19,8 @@ import { ENV } from '../config/environment';
 import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
 // Offline queue utilities available but not currently used
 // import { queuePlaybookGeneration, isOnline } from '../utils/offlineQueue';
+
+const PLAYBOOK_GENERATION_RETRY_ATTEMPTS = 0;
 
 /**
  * Utility function to detect network errors
@@ -234,7 +236,7 @@ async function generatePlaybookInternal(
   userInput: string,
   userName: string,
   userId: string,
-  maxRetries: number = API_RETRY_ATTEMPTS
+  maxRetries: number = PLAYBOOK_GENERATION_RETRY_ATTEMPTS
 ): Promise<Playbook> {
   // Start performance timer (no UI impact)
   const endTimer = monitoring.startTimer('playbook_generation');
@@ -524,7 +526,7 @@ async function generatePlaybookInternal(
 export async function generatePlaybook(
   userInput: string,
   userName: string,
-  maxRetries: number = API_RETRY_ATTEMPTS
+  maxRetries: number = PLAYBOOK_GENERATION_RETRY_ATTEMPTS
 ): Promise<Playbook> {
   // Get userId and tier for enterprise resilience
   let userId: string;
@@ -573,6 +575,7 @@ export async function generatePlaybook(
       tier: userTier,
       operationName: 'playbook-generation',
       priority: priority,
+      maxRetries,
     }
   );
 }

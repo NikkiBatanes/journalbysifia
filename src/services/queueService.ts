@@ -116,7 +116,7 @@ export class QueueService {
         personalization_enabled: personalizationEnabled,
         is_onboarding: request.isOnboarding || false,
         retry_count: 0,
-        max_retries: 3,
+        max_retries: request.type === 'playbook' ? 0 : 3,
         tokens_used: 0,
         cost_cents: 0,
       };
@@ -494,7 +494,7 @@ export class QueueService {
     const result = await response.json();
 
     // Completeness guard — refuse to persist a partial playbook (missing prayer,
-    // words_to_speak, completion, etc.). The backend retries internally; this is the
+    // words_to_speak, completion, etc.). The backend repairs locally where possible; this is the
     // last line of defence so the walkthrough never opens with blank screens.
     const incompleteFields = findIncompletePlaybookFields(result);
     if (incompleteFields.length > 0) {

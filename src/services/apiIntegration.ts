@@ -142,6 +142,7 @@ export async function generatePlaybook(
 ): Promise<any> {
   const { showUserFeedback = true, onAuthRequired, _retryCount = 0 } = options;
   const MAX_RETRIES = 2;
+  const ALLOW_PAID_PLAYBOOK_FAILURE_RETRY = false;
 
   if (_retryCount > MAX_RETRIES) {
     Logger.error('[generatePlaybook] Max retries exceeded, aborting', undefined, {
@@ -230,11 +231,11 @@ export async function generatePlaybook(
     const result = await authErrorHandler.handleApiError(error, {
       operationName: 'playbook generation',
       showUserFeedback,
-      retryAttempts: 2,
+      retryAttempts: 0,
       onAuthRequired,
     });
 
-    if (result.shouldRetry) {
+    if (result.shouldRetry && ALLOW_PAID_PLAYBOOK_FAILURE_RETRY) {
 
       return generatePlaybook(userInput, userName, { ...options, _retryCount: _retryCount + 1 });
     }

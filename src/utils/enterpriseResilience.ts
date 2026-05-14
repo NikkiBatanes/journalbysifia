@@ -411,9 +411,10 @@ export class EnterpriseResilience {
       operationName: string;
       priority?: number;
       deduplicationKey?: string;
+      maxRetries?: number;
     }
   ): Promise<T> {
-    const { userId, tier, operationName, priority = 5, deduplicationKey } = options;
+    const { userId, tier, operationName, priority = 5, deduplicationKey, maxRetries: maxRetriesOverride } = options;
 
     // 1. Check rate limit
     const allowed = await this.rateLimiter.checkLimit(userId, tier);
@@ -435,7 +436,7 @@ export class EnterpriseResilience {
     // 3. Create resilient execution with retries
     const resilientFn = async (): Promise<T> => {
       let lastError: Error | null = null;
-      const maxRetries = TIER_CONFIGS[tier]?.maxRetries || this.config.maxRetries;
+      const maxRetries = maxRetriesOverride ?? TIER_CONFIGS[tier]?.maxRetries ?? this.config.maxRetries;
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const startTime = Date.now();

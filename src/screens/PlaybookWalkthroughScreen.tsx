@@ -97,6 +97,24 @@ const splitParagraphs = (text: string): string[] =>
     .map(p => p.trim())
     .filter(Boolean);
 
+const stripVerseQuotes = (text: string): string => {
+  // Check if the verse contains actual speech attribution
+  const hasSpeechAttribution = /(Jesus|Peter|Paul|they) said/i.test(text);
+  
+  // If no speech attribution, remove wrapping quotes
+  if (!hasSpeechAttribution) {
+    // Remove wrapping quotes if they exist
+    if (text.startsWith('"') && text.endsWith('"')) {
+      return text.slice(1, -1);
+    }
+    if (text.startsWith("'") && text.endsWith("'")) {
+      return text.slice(1, -1);
+    }
+  }
+  
+  return text;
+};
+
 const USER_NAME_PLACEHOLDER_REGEX = /\[(?:User's Name|First Name|Last Name)\](?:'s|’s)?/gi;
 
 const nameReplacementFor = (match: string): string =>
@@ -916,7 +934,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         </View>
         {Platform.OS === 'ios' ? (
           <TextInput
-            value={`"${text}"`}
+            value={stripVerseQuotes(text)}
             editable={false}
             multiline={true}
             scrollEnabled={false}
@@ -924,7 +942,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
           />
         ) : (
           <ThemedText weight="medium" style={styles.scriptureText} selectable={true}>
-            "{text}"
+            {stripVerseQuotes(text)}
           </ThemedText>
         )}
       </StepFadeIn>
@@ -969,11 +987,206 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'choice' | 'bullet' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'choice' | 'bullet' | 'field' | 'body';
 
 interface BodyLine {
   text: string;
   type: BodyLineType;
+  label?: string;
+}
+
+function stripBalancedActionQuotes(text: string): string {
+  let out = String(text || '').trim();
+  const quotePairs: Array<[string, string]> = [
+    ['"', '"'],
+    ["'", "'"],
+    ['`', '`'],
+    ['“', '”'],
+    ['‘', '’'],
+  ];
+
+  let changed = true;
+  while (changed && out.length >= 2) {
+    changed = false;
+    for (const [open, close] of quotePairs) {
+      if (out.startsWith(open) && out.endsWith(close)) {
+        out = out.slice(open.length, out.length - close.length).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return out;
+}
+
+function isActionApostrophe(text: string, index: number): boolean {
+  const char = text[index];
+  if (char !== "'" && char !== '’') { return false; }
+  return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
+}
+
+function matchingCloseActionQuote(open: string): string {
+  if (open === '“') { return '”'; }
+  if (open === '‘') { return '’'; }
+  return open;
+}
+
+function matchingOpenActionQuote(close: string): string {
+  if (close === '”') { return '“'; }
+  if (close === '’') { return '‘'; }
+  return close;
+}
+
+function hasClosingActionQuoteAfter(text: string, open: string): boolean {
+  const close = matchingCloseActionQuote(open);
+  for (let i = 1; i < text.length; i++) {
+    if (text[i] === close && !isActionApostrophe(text, i)) { return true; }
+  }
+  return false;
+}
+
+function hasOpeningActionQuoteBefore(text: string, close: string): boolean {
+  const open = matchingOpenActionQuote(close);
+  for (let i = 0; i < text.length - 1; i++) {
+    if (text[i] === open && !isActionApostrophe(text, i)) { return true; }
+  }
+  return false;
+}
+
+function stripDanglingActionQuotes(text: string): string {
+  let out = String(text || '').trim();
+  const firstQuote = out.match(/^["'`“”‘’]/)?.[0] || '';
+  const lastQuote = out.match(/["'`“”‘’]$/)?.[0] || '';
+
+  if (firstQuote && !hasClosingActionQuoteAfter(out, firstQuote)) {
+    out = out.replace(/^["'`“”‘’]\s*/, '').trim();
+  }
+  if (lastQuote && !hasOpeningActionQuoteBefore(out, lastQuote)) {
+    out = out.replace(/\s*["'`“”‘’]$/, '').trim();
+  }
+
+  return out;
+}
+
+function normalizeActionMarkup(text: string): string {
+  return String(text || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n')
+    .replace(/<p\s*>/gi, '')
+    .replace(/<\/?[^>]+>/g, '');
+}
+
+function closeUnmatchedActionDoubleQuote(text: string): string {
+  let straightCount = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '"' && text[i - 1] !== '\\') { straightCount++; }
+  }
+
+  if (straightCount % 2 === 1) {
+    return `${text}"`;
+  }
+
+  const openCurly = (text.match(/“/g) || []).length;
+  const closeCurly = (text.match(/”/g) || []).length;
+  return openCurly > closeCurly ? `${text}”` : text;
+}
+
+function removeDecorativeActionSingleQuotes(text: string): string {
+  let out = '';
+  const source = String(text || '');
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if ((char === "'" || char === '’') && !isActionApostrophe(source, i)) {
+      continue;
+    }
+    out += char;
+  }
+
+  return out;
+}
+
+function normalizeActionPracticeLoopText(text: string): string {
+  const source = String(text || '')
+    .replace(/^Trigger\s*(?:→|->|>)\s*temptation\s*(?:→|->|>)\s*replacement response\s*practice:\s*/i, '')
+    .trim();
+
+  const match = source.match(/^(.+?)\s*(?:→|->|>)\s*temptation\s+is\s+(.+?)\s*(?:→|->|>)\s*replacement response\s+is\s+(.+?)(?:\s+Practice\s+(.+))?$/i);
+  if (!match) {
+    return text;
+  }
+
+  const trigger = match[1].trim();
+  const temptation = match[2].trim();
+  const response = match[3].trim();
+  const practice = (match[4] || '').trim();
+  const lines = [
+    `Trigger: ${trigger}`,
+    `Temptation: ${temptation}`,
+    `Replacement response: ${response}`,
+  ];
+
+  if (practice) {
+    lines.push(`Practice: Do this ${practice.replace(/^this\s+/i, '')}`);
+  }
+
+  return lines.join('\n');
+}
+
+function stripLeakedActionFieldFragments(value: string): string {
+  let out = String(value || '');
+  const leakedFieldIndex = out.search(/(?:^|[\s,}"'`])\\?["']?\s*(?:primary_button|secondary_button|primaryButton|secondaryButton)\s*\\?["']?\s*:/i);
+  if (leakedFieldIndex >= 0) {
+    out = out.slice(0, leakedFieldIndex);
+  }
+
+  return out
+    .replace(/(?:\\?["']?\s*,\s*)+$/g, '')
+    .replace(/(?:\\?["'`“”‘’]){2,}\s*$/g, '')
+    .trim();
+}
+
+function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false): string {
+  let out = normalizeActionMarkup(stripLeakedActionFieldFragments(String(value || '')))
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/\*\*|__/g, '');
+
+  out = preserveBulletMarkers
+    ? out.split('\n').map(line => line.trimStart().startsWith('* ') ? line : line.replace(/\*/g, '')).join('\n')
+    : out.replace(/\*/g, '');
+
+  out = removeDecorativeActionSingleQuotes(out.replace(/ +([,.;:!?])/g, '$1')).trim();
+  const cleaned = closeUnmatchedActionDoubleQuote(stripDanglingActionQuotes(stripBalancedActionQuotes(out)));
+  return normalizeActionPracticeLoopText(cleaned);
+}
+
+function splitActionDescription(value: string): { body: string; example?: string } {
+  const parts = String(value || '').split(/Example\s*[:：]\s*/i);
+  const body = cleanActionDisplaySegment(parts[0] || '', true);
+  if (parts.length < 2) {
+    return { body };
+  }
+
+  const example = cleanActionDisplaySegment(parts.slice(1).join('Example: '));
+  return example ? { body, example } : { body };
+}
+
+function splitReadableActionLine(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed) { return []; }
+  if (/^\* /.test(trimmed)) { return [trimmed]; }
+  if (/^(?:Trigger|Temptation|Replacement response|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
+  if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
+  if (trimmed.length < 145) { return [trimmed]; }
+
+  const sentences = trimmed
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  return sentences.length >= 2 ? sentences : [trimmed];
 }
 
 function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
@@ -995,6 +1208,14 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     // Single quotes wrap emphasis words (e.g. 'Stop') and must not be treated as quotes.
     if (/^["\u201C\u201D]/.test(line)) {
       return { text: line, type: 'quote' };
+    }
+
+    const fieldMatch = line.match(/^(Trigger|Temptation|Replacement response|Practice|Stop|Start):\s*(.+)$/i);
+    if (fieldMatch) {
+      const label = fieldMatch[1]
+        .replace(/\b\w/g, char => char.toUpperCase())
+        .replace(/^Replacement Response$/i, 'Response');
+      return { label, text: fieldMatch[2].trim(), type: 'field' };
     }
 
     // For 'choose' type: candidate list items are short, not the first line, no trailing period
@@ -1439,11 +1660,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     }
 
     const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
-    const exampleSplit = rawDescription.split(/Example:\s*/i);
-    const stepBody = exampleSplit[0]?.replace(/\*\*|__|\*/g, '').trim() || undefined;
-    const stepExample = exampleSplit.length > 1
-      ? exampleSplit.slice(1).join('Example: ').replace(/\*\*|__|\*/g, '').trim()
-      : undefined;
+    const actionDescription = splitActionDescription(rawDescription);
+    const stepBody = actionDescription.body || undefined;
+    const stepExample = actionDescription.example;
 
     const metadata = {
       playbookId,
@@ -1689,19 +1908,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   // Split body into main text and example (split on "Example:" marker)
   const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
-  const exampleSplit = rawDescription.split(/Example:\s*/i);
-  const rawMainBody = exampleSplit[0] ?? '';
-  const exampleText = exampleSplit.length > 1 ? capitalizeFirstLetter(stripMd(exampleSplit.slice(1).join('Example: '))) : null;
+  const actionDescription = splitActionDescription(rawDescription);
+  const rawMainBody = actionDescription.body;
+  const exampleText = actionDescription.example ? capitalizeFirstLetter(actionDescription.example) : null;
 
   // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
   const rawBodyLines: string[] = rawMainBody
     .split('\n')
-    .map(l => {
+    .flatMap(l => {
       const trimmed = l.trim();
-      if (!trimmed) { return ''; }
+      if (!trimmed) { return []; }
       // Bullet lines: preserve the '* ' prefix so detectBodyLines can identify them
-      if (/^\* /.test(trimmed)) { return trimmed.replace(/\*\*/g, '').replace(/__/g, ''); }
-      return stripMd(trimmed);
+      if (/^\* /.test(trimmed)) { return [trimmed.replace(/\*\*/g, '').replace(/__/g, '')]; }
+      return splitReadableActionLine(stripMd(trimmed));
     })
     .filter(Boolean);
 
@@ -1996,6 +2215,30 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                       />
                     ) : (
                       <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                        {item.text}
+                      </ThemedText>
+                    )}
+                  </View>
+                );
+              }
+              if (item.type === 'field') {
+                return (
+                  <View key={idx} style={styles.bodyFieldRow}>
+                    <View style={styles.bodyFieldLabel}>
+                      <ThemedText weight="semiBold" style={styles.bodyFieldLabelText}>
+                        {item.label}
+                      </ThemedText>
+                    </View>
+                    {Platform.OS === 'ios' ? (
+                      <TextInput
+                        value={item.text}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[styles.bodyFieldValue, { fontFamily }]}
+                      />
+                    ) : (
+                      <ThemedText style={styles.bodyFieldValue} selectable={true}>
                         {item.text}
                       </ThemedText>
                     )}
@@ -4569,7 +4812,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     lineHeight: 24,
-    opacity: 0.7,
+    opacity: 0.5,
   },
 
   // Faithful Actions
@@ -4603,9 +4846,10 @@ const styles = StyleSheet.create({
   },
   // Body line styles — smart rendering
   actionBodyLine: {
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 25,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.80)',
+    lineHeight: 24,
+    marginBottom: 2,
   },
   bodyLineQuote: {
     fontSize: 16,
@@ -4629,7 +4873,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'flex-start' as const,
     marginTop: 4,
-    paddingLeft: 16,
+    paddingLeft: 4,
   },
   bodyLineBulletDot: {
     width: 7,
@@ -4642,9 +4886,37 @@ const styles = StyleSheet.create({
   },
   bodyLineBullet: {
     flex: 1,
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 22,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 23,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  bodyFieldRow: {
+    marginTop: 4,
+    paddingVertical: 5,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255,107,107,0.42)',
+    gap: 4,
+  },
+  bodyFieldLabel: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,107,107,0.16)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  bodyFieldLabelText: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.alertCoral,
+    letterSpacing: 0.2,
+  },
+  bodyFieldValue: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.86)',
+    lineHeight: 23,
     paddingTop: 0,
     paddingBottom: 0,
   },

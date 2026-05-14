@@ -175,29 +175,6 @@ export class EnhancedGenerationService {
           Logger.error('[EnhancedGenerationService] Direct generation also failed', directError as Error, {
       component: 'enhancedGenerationService',
     });
-          // Try one more fallback - simple API call
-          try {
-            await this.generateSimpleFallback(request);
-            // Return success without queueId for fallback too
-            return {
-              success: true,
-              message: 'Playbook generated successfully!',
-              estimatedWaitTime: 0,
-              intelligenceEnabled: false,
-              upgradeRequired: false,
-              remaining: 5,
-              limit: 10,
-            };
-          } catch (fallbackError) {
-            // If this is a content blocked error, re-throw it immediately
-            if ((fallbackError as any).contentBlocked) {
-              throw fallbackError;
-            }
-
-            Logger.error('[EnhancedGenerationService] All generation methods failed', fallbackError as Error, {
-      component: 'enhancedGenerationService',
-    });
-          }
         }
       }
 

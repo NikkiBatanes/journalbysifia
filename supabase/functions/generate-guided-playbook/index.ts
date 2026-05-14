@@ -183,10 +183,11 @@ const PLAYBOOK_JSON_SCHEMA = {
         type: 'array',
         items: { type: 'string' },
       },
-      // 3–7 steps — enforced in validation + prompt
+      // 5–7 steps — enforced in validation + prompt
       faithful_actions: {
         type: 'array',
-        minItems: 3,
+        minItems: 5,
+        maxItems: 7,
         items: {
           type: 'object',
           properties: {
@@ -265,16 +266,158 @@ function sanitizeText(text: string): string {
   return removeOverusedNavigationLanguage(text.replace(/\byoga\b/gi, 'gentle stretching'));
 }
 
+function stripBalancedWrappingQuotes(text: string): string {
+  let out = String(text || '').trim();
+  const quotePairs: Array<[string, string]> = [
+    ['"', '"'],
+    ["'", "'"],
+    ['`', '`'],
+    ['“', '”'],
+    ['‘', '’'],
+  ];
+
+  let changed = true;
+  while (changed && out.length >= 2) {
+    changed = false;
+    for (const [open, close] of quotePairs) {
+      if (out.startsWith(open) && out.endsWith(close)) {
+        out = out.slice(open.length, out.length - close.length).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return out;
+}
+
+function isActionApostrophe(text: string, index: number): boolean {
+  const char = text[index];
+  if (char !== "'" && char !== '’') return false;
+  return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
+}
+
+function matchingCloseQuote(open: string): string {
+  if (open === '“') return '”';
+  if (open === '‘') return '’';
+  return open;
+}
+
+function matchingOpenQuote(close: string): string {
+  if (close === '”') return '“';
+  if (close === '’') return '‘';
+  return close;
+}
+
+function hasClosingQuoteAfter(text: string, open: string): boolean {
+  const close = matchingCloseQuote(open);
+  for (let i = 1; i < text.length; i++) {
+    if (text[i] === close && !isActionApostrophe(text, i)) return true;
+  }
+  return false;
+}
+
+function hasOpeningQuoteBefore(text: string, close: string): boolean {
+  const open = matchingOpenQuote(close);
+  for (let i = 0; i < text.length - 1; i++) {
+    if (text[i] === open && !isActionApostrophe(text, i)) return true;
+  }
+  return false;
+}
+
+function stripDanglingBoundaryQuotes(text: string): string {
+  let out = String(text || '').trim();
+  const firstQuote = out.match(/^["'`“”‘’]/)?.[0] || '';
+  const lastQuote = out.match(/["'`“”‘’]$/)?.[0] || '';
+
+  if (firstQuote && !hasClosingQuoteAfter(out, firstQuote)) {
+    out = out.replace(/^["'`“”‘’]\s*/, '').trim();
+  }
+  if (lastQuote && !hasOpeningQuoteBefore(out, lastQuote)) {
+    out = out.replace(/\s*["'`“”‘’]$/, '').trim();
+  }
+
+  return out;
+}
+
+function normalizeGeneratedMarkup(text: string): string {
+  return String(text || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n')
+    .replace(/<p\s*>/gi, '')
+    .replace(/<\/?[^>]+>/g, '');
+}
+
+function closeUnmatchedDoubleQuote(text: string): string {
+  let straightCount = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '"' && text[i - 1] !== '\\') straightCount++;
+  }
+
+  if (straightCount % 2 === 1) {
+    return `${text}"`;
+  }
+
+  const openCurly = (text.match(/“/g) || []).length;
+  const closeCurly = (text.match(/”/g) || []).length;
+  return openCurly > closeCurly ? `${text}”` : text;
+}
+
+function removeDecorativeSingleQuotes(text: string): string {
+  let out = '';
+  const source = String(text || '');
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if ((char === "'" || char === '’') && !isActionApostrophe(source, i)) {
+      continue;
+    }
+    out += char;
+  }
+
+  return out;
+}
+
+function normalizePracticeLoopText(text: string): string {
+  const source = String(text || '')
+    .replace(/^Trigger\s*(?:→|->|>)\s*temptation\s*(?:→|->|>)\s*replacement response\s*practice:\s*/i, '')
+    .trim();
+
+  const match = source.match(/^(.+?)\s*(?:→|->|>)\s*temptation\s+is\s+(.+?)\s*(?:→|->|>)\s*replacement response\s+is\s+(.+?)(?:\s+Practice\s+(.+))?$/i);
+  if (!match) {
+    return text;
+  }
+
+  const trigger = match[1].trim();
+  const temptation = match[2].trim();
+  const response = match[3].trim();
+  const practice = (match[4] || '').trim();
+  const lines = [
+    `Trigger: ${trigger}`,
+    `Temptation: ${temptation}`,
+    `Replacement response: ${response}`,
+  ];
+
+  if (practice) {
+    lines.push(`Practice: Do this ${practice.replace(/^this\s+/i, '')}`);
+  }
+
+  return lines.join('\n');
+}
+
+function stripMarkdownMarkers(text: string): string {
+  return normalizeGeneratedMarkup(text)
+    .replace(/\*\*|__/g, '')                // strip bold markers
+    .replace(/(?<!\n)\*(?!\s)/g, '')        // strip inline italic * not followed by space (e.g. *word*)
+    .replace(/ +([,.;:!?])/g, '$1')
+    .trim();
+}
+
 function cleanMarkdown(text: string): string {
   if (!text) {
     return '';
   }
-  return text
-    .replace(/\*\*|__/g, '')                // strip bold markers
-    .replace(/(?<!\n)\*(?!\s)/g, '')        // strip inline italic * not followed by space (e.g. *word*)
-    .replace(/^["'`]+|["'`]+$/g, '')
-    .replace(/ +([,.;:!?])/g, '$1')
-    .trim();
+  return stripBalancedWrappingQuotes(stripMarkdownMarkers(text));
 }
 
 function capitalizeFirstLetter(text: string): string {
@@ -425,6 +568,10 @@ function countParagraphs(text: string): number {
     .filter(p => p.length > 0).length;
 }
 
+function countWords(text: string): number {
+  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
 // Phrases that indicate the output is drifting toward polished spiritual generalism
 const DRIFT_PHRASES = [
   'god can hold both',
@@ -445,17 +592,146 @@ const DRIFT_PHRASES = [
 ];
 
 const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
-
+const TRUTH_IN_LOVE_MIN_CHARS = 320;
+const TRUTH_IN_LOVE_LONG_OPENING_WORDS = 55;
+const ENABLE_PAID_MODEL_RETRIES = false;
+const ENABLE_PROVIDER_CONTENT_FILTER_RETRY = true;
+const ENABLE_PAID_ARCHITECTURAL_RETRY = false;
+const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce|marital)\b/i;
+const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
+const INDIRECT_TRUTH_OPENERS = [
+  /^it (?:is|can be|may be)\b/i,
+  /^sometimes\b/i,
+  /^there (?:is|are)\b/i,
+  /^when you\b/i,
+  /^what you(?:'re| are) feeling\b/i,
+  /^your (?:pain|concern|hurt|confusion|fear|frustration)\b/i,
+  /^you(?:'re| are) not wrong\b/i,
+  /^you(?:'re| are) not alone\b/i,
+  /^this (?:is|can be|may be) (?:a|an)\b/i,
+];
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
+
+function detectFaithfulActionBodyFormat(body: string): string {
+  const normalized = String(body || '').trim();
+  const lower = normalized.toLowerCase();
+
+  if (!normalized) return 'empty';
+  if (/\n\s*\*\s+/.test(normalized)) return 'bullet checklist';
+  if (/(?:^|\|)\s*[A-Za-z][A-Za-z ]{1,24}:\s*_{2,}/.test(normalized)) return 'audit table';
+  if (/(?:trigger|craving|temptation)\b/i.test(normalized) && /(?:→|->)/.test(normalized)) return 'practice loop';
+  if (/\bstop\b[\s\S]{0,160}\bstart\b/i.test(normalized)) return 'stop/start';
+  if (
+    /\b(?:today|tomorrow|within|until|date|deadline|limit|day|days|week|weeks|minutes|hours)\b/i.test(lower) &&
+    /\b(?:plan|pick|choose|reduce|schedule|limit|finish|stage|next)\b/i.test(lower)
+  ) {
+    return 'timeline or limit';
+  }
+
+  const questionCount = (normalized.match(/\?/g) || []).length;
+  if (
+    questionCount >= 2 ||
+    (questionCount >= 1 && /\b(?:ask|questions?|filter|separate|decide whether|test whether)\b/i.test(normalized))
+  ) {
+    return 'decision filter';
+  }
+
+  if (
+    /\b(?:say|text|message|tell|ask)\s+(?:this|them|him|her|yourself|god|the person|your pastor|your spouse|your friend)\b/i.test(lower) ||
+    /["“][^"”]{12,}["”]/.test(normalized)
+  ) {
+    return 'script';
+  }
+
+  return 'prose instruction';
+}
+
+function requiredFaithfulActionFormatCount(actionCount: number): number {
+  if (actionCount >= 5) return 4;
+  if (actionCount === 4) return 3;
+  if (actionCount === 3) return 2;
+  return 0;
+}
+
+function hasActionExampleMarker(value: string): boolean {
+  return /Example:\s*\S/i.test(String(value || ''));
+}
+
+function stripLeakedActionFieldFragments(value: string): string {
+  let out = String(value || '');
+  const leakedFieldIndex = out.search(/(?:^|[\s,}"'`])\\?["']?\s*(?:primary_button|secondary_button|primaryButton|secondaryButton)\s*\\?["']?\s*:/i);
+  if (leakedFieldIndex >= 0) {
+    out = out.slice(0, leakedFieldIndex);
+  }
+
+  return out
+    .replace(/(?:\\?["']?\s*,\s*)+$/g, '')
+    .replace(/(?:\\?["'`“”‘’]){2,}\s*$/g, '')
+    .trim();
+}
+
+function cleanActionTextSegment(value: string): string {
+  const normalized = stripMarkdownMarkers(stripLeakedActionFieldFragments(value))
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'");
+
+  const withoutDecorativeQuotes = removeDecorativeSingleQuotes(normalized);
+  const cleaned = closeUnmatchedDoubleQuote(stripDanglingBoundaryQuotes(stripBalancedWrappingQuotes(withoutDecorativeQuotes))).trim();
+  return normalizePracticeLoopText(cleaned);
+}
+
+function splitActionExample(value: string): { main: string; example: string | null } {
+  const parts = String(value || '').split(/Example:\s*/i);
+  const main = cleanActionTextSegment(parts[0] || '');
+  if (parts.length < 2) return { main, example: null };
+
+  const example = cleanActionTextSegment(parts.slice(1).join('Example: '));
+  return { main, example: example || null };
+}
+
+function extractActionExample(value: string): string | null {
+  const { example } = splitActionExample(value);
+  return example ? `Example: ${example}` : null;
+}
+
+function buildFallbackActionExample(description: string): string {
+  const { main: descriptionMain } = splitActionExample(description);
+  if (descriptionMain && descriptionMain.length <= 180) {
+    return descriptionMain;
+  }
+
+  return 'Write one concrete version of this step and do it today.';
+}
+
+function buildRenderedActionDescription(body: string, description = ''): string {
+  const bodyParts = splitActionExample(body);
+  const descriptionParts = splitActionExample(description);
+  const main = bodyParts.main || descriptionParts.main;
+  const example = bodyParts.example || descriptionParts.example || buildFallbackActionExample(description);
+
+  if (!main) return example ? `Example: ${example}` : '';
+
+  return example ? `${main}\n\nExample: ${example}` : main;
+}
+
+function getOpeningParagraph(text: string): string {
+  return String(text || '').split(/\n{2,}|\n/).map(p => p.trim()).find(Boolean) || '';
+}
+
+function getOpeningSentence(text: string): string {
+  const openingParagraph = getOpeningParagraph(text);
+  const match = openingParagraph.match(/^.+?[.!?](?:\s|$)/);
+  return (match?.[0] || openingParagraph).trim();
+}
 
 // ─── Validate JSON playbook response ─────────────────────────────────────────
 // Returns two categories: hardIssues (must retry/fail) and softIssues (warn only).
 
 interface ValidationResult {
   hardIssues: string[];   // Missing fields, generation failures — block or retry
-  softIssues: string[];   // Structural drift — log, trigger architectural retry
+  softIssues: string[];   // Structural drift — warn by default, optional paid retry
 }
 
 function validatePlaybook(json: Record<string, any>, originalInput = ''): ValidationResult {
@@ -467,11 +743,11 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   if (!json.playbook_title || String(json.playbook_title).trim().length < 5) {
     hardIssues.push('playbook_title is missing or too short');
   }
-  if (!json.truth_summary || String(json.truth_summary).trim().split(/\s+/).filter(Boolean).length < 8) {
-    hardIssues.push(`truth_summary is too short (${String(json.truth_summary || '').trim().split(/\s+/).filter(Boolean).length} words, min 8)`);
+  if (!json.truth_summary || countWords(String(json.truth_summary || '')) < 8) {
+    softIssues.push(`truth_summary is too short (${countWords(String(json.truth_summary || ''))} words, min 8) — will auto-repair`);
   }
-  if (!json.truth_in_love || String(json.truth_in_love).length < 500) {
-    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min 500 — must be at least 6 full paragraphs)`);
+  if (!json.truth_in_love || String(json.truth_in_love).length < TRUTH_IN_LOVE_MIN_CHARS) {
+    hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min ${TRUTH_IN_LOVE_MIN_CHARS} — must be direct but substantive)`);
   }
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
     hardIssues.push('transition_line is missing');
@@ -486,8 +762,8 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   }
 
   const actionCount = Array.isArray(json.faithful_actions) ? json.faithful_actions.length : 0;
-  if (actionCount < 3) {
-    hardIssues.push(`faithful_actions has ${actionCount} items (need at least 3) — generation failure`);
+  if (actionCount < 5) {
+    hardIssues.push(`faithful_actions has ${actionCount} items (need at least 5) — generation failure`);
   }
   if (actionCount > 7) {
     softIssues.push(`faithful_actions has ${actionCount} items (max 7) — will trim`);
@@ -524,9 +800,23 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   // truth_summary: concise generate-playbook-style
   if (json.truth_summary) {
     const summaryText = String(json.truth_summary);
-    const wordCount = summaryText.split(/\s+/).filter(Boolean).length;
+    const wordCount = countWords(summaryText);
     if (wordCount > 22) {
       softIssues.push(`truth_summary is too long (${wordCount} words — expected a concise summary)`);
+    }
+  }
+
+  if (json.truth_in_love) {
+    const truthText = String(json.truth_in_love).trim();
+    const openingParagraph = getOpeningParagraph(truthText);
+    const openingSentence = getOpeningSentence(truthText);
+    const openingWordCount = openingParagraph.split(/\s+/).filter(Boolean).length;
+
+    if (openingWordCount > TRUTH_IN_LOVE_LONG_OPENING_WORDS) {
+      softIssues.push(`Truth in Love opening is too long (${openingWordCount} words). Start with the diagnosis in 1-2 direct sentences.`);
+    }
+    if (INDIRECT_TRUTH_OPENERS.some(regex => regex.test(openingSentence))) {
+      softIssues.push(`Truth in Love opening is indirect ("${openingSentence.slice(0, 90)}"). Start with the diagnosis, correction, cost, or decision.`);
     }
   }
 
@@ -560,9 +850,137 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     if (softCount >= 2 && sharpCount === 0) {
       softIssues.push(`Action sequence drift — first 3 actions start with soft verbs (${firstThreeTitles.join(' | ')}). Expected sharp diagnostic verbs.`);
     }
+
+    const bodyFormats = json.faithful_actions
+      .slice(0, 7)
+      .map((action: any) => detectFaithfulActionBodyFormat(String(action?.body || action?.description || '')));
+    const distinctBodyFormats = new Set(bodyFormats.filter(format => format !== 'empty'));
+    const requiredFormatCount = requiredFaithfulActionFormatCount(Math.min(json.faithful_actions.length, 7));
+    if (requiredFormatCount > 0 && distinctBodyFormats.size < requiredFormatCount) {
+      softIssues.push(`Faithful action body format variation missing — detected ${distinctBodyFormats.size}/${requiredFormatCount} formats (${bodyFormats.join(', ')}). Vary faithful_actions.body, because that is the walkthrough text.`);
+    }
+
+    const missingExampleIndexes = json.faithful_actions
+      .slice(0, 7)
+      .map((action: any, idx: number) => (
+        hasActionExampleMarker(String(action?.body || '')) || hasActionExampleMarker(String(action?.description || ''))
+          ? -1
+          : idx + 1
+      ))
+      .filter((idx: number) => idx > 0);
+    if (missingExampleIndexes.length > 0) {
+      softIssues.push(`Faithful action example bubble missing — action bodies need Example: markers for steps ${missingExampleIndexes.join(', ')}.`);
+    }
+
+    const paragraphExampleCount = json.faithful_actions
+      .slice(0, 7)
+      .filter((action: any) => {
+        const body = String(action?.body || action?.description || '').trim();
+        return body.length > 0 && !/\n/.test(body) && /Example:\s*/i.test(body);
+      }).length;
+    if (paragraphExampleCount >= Math.min(json.faithful_actions.length, 7)) {
+      softIssues.push('Faithful action body format variation missing — every action body is a single paragraph followed by Example.');
+    }
   }
 
   return { hardIssues, softIssues };
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter(item => typeof item === 'string' && item.trim().length > 0)
+        .map(item => cleanMarkdown(String(item)))
+        .filter(Boolean)
+    : [];
+}
+
+function appendUnique(existing: string[], fallback: string[], maxItems: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const item of [...existing, ...fallback]) {
+    const cleaned = cleanMarkdown(item);
+    const key = cleaned.toLowerCase();
+    if (!cleaned || seen.has(key)) continue;
+    seen.add(key);
+    out.push(cleaned);
+    if (out.length >= maxItems) break;
+  }
+
+  return out;
+}
+
+function injectLocalRequiredFieldFallbacks(target: Record<string, any>): void {
+  const title = cleanMarkdown(String(target.playbook_title || 'this moment'));
+  const summary = cleanMarkdown(String(target.truth_summary || 'God is calling you to honest obedience right now.'));
+  const truthBlocks = Array.isArray(target.truth_blocks)
+    ? target.truth_blocks
+        .map((block: any) => cleanMarkdown(String(block?.text || '')))
+        .filter(Boolean)
+    : [];
+
+  if (!target.truth_in_love || String(target.truth_in_love).trim().length < TRUTH_IN_LOVE_MIN_CHARS) {
+    target.truth_in_love = [
+      summary,
+      truthBlocks.slice(0, 2).join('\n\n'),
+      `The issue in ${title.toLowerCase()} needs a direct response, not delay. Name what is wrong, bring it into the light before God, and refuse the easier path of avoidance.`,
+      `Count the cost of staying passive. What feels easier today can harden into a pattern that weakens repentance, trust, and faithful action.`,
+      `Take the next clear step with humility and courage. Obedience does not require perfect feelings first; it requires a willing yes to what God has already made clear.`,
+    ].filter(Boolean).join('\n\n');
+  }
+
+  if (!target.transition_line || String(target.transition_line).trim().length < 5) {
+    target.transition_line = 'Take the next step with clear obedience.';
+  }
+
+  if (!target.bible_verse || typeof target.bible_verse !== 'object') {
+    target.bible_verse = {};
+  }
+  if (!target.bible_verse.reference) {
+    target.bible_verse.reference = 'James 1:22';
+  }
+  if (!target.bible_verse.text) {
+    target.bible_verse.text = 'But prove yourselves doers of the word, and not merely hearers who delude themselves.';
+  }
+
+  const noteFallbacks = [
+    'God calls for obedience that moves beyond hearing.',
+    'Faith responds to truth with concrete action.',
+    'Delay can become self-deception when God has already made the next step clear.',
+  ];
+  target.scripture_note_lines = appendUnique(stringArray(target.scripture_note_lines), noteFallbacks, 4);
+
+  if (!target.prayer || String(target.prayer).trim().length < 50) {
+    target.prayer = [
+      'Father, give me humility to receive Your correction and courage to obey what You have made clear.',
+      'Help me stop delaying, face this honestly, and take the next faithful step with a clean heart before You.',
+    ].join('\n\n');
+  }
+
+  const wordFallbacks = [
+    'I will obey the truth God has shown me.',
+    'I will take one faithful step today.',
+    'I will not hide behind delay or discouragement.',
+    'God gives grace for honest repentance and action.',
+  ];
+  target.words_to_speak = appendUnique(stringArray(target.words_to_speak), wordFallbacks, 5);
+
+  if (!target.closing || String(target.closing).trim().length < 5) {
+    target.closing = 'God is faithful to meet you as you take the next obedient step.';
+  }
+
+  if (!target.completion || typeof target.completion !== 'object') {
+    target.completion = {};
+  }
+  if (!target.completion.question || String(target.completion.question).trim().length < 10) {
+    target.completion.question = 'What specific step will I take today to obey what God has shown me?';
+  }
+  target.completion.lines = appendUnique(
+    stringArray(target.completion.lines),
+    ['Name the truth plainly.', 'Choose one obedient action.', 'Do it today.'],
+    4
+  );
 }
 
 // ─── Repair JSON playbook response ───────────────────────────────────────────
@@ -586,6 +1004,20 @@ function repairPlaybook(json: Record<string, any>): Record<string, any> {
   };
 
   const repaired = fix(json);
+
+  if (!repaired.truth_summary || countWords(String(repaired.truth_summary)) < 8) {
+    const truthOpening = getOpeningSentence(String(repaired.truth_in_love || ''));
+    const title = cleanMarkdown(String(repaired.playbook_title || 'this moment')).toLowerCase();
+    const fallbackCore = countWords(truthOpening) >= 8
+      ? truthOpening
+      : `this moment needs honest diagnosis, biblical clarity, and concrete obedience instead of delay.`;
+    const normalizedCore = fallbackCore
+      .replace(/^\s*(?:\[User's Name\]|[^,]{2,40}),\s*/i, '')
+      .replace(/^you\b/i, 'you')
+      .trim();
+
+    repaired.truth_summary = `[User's Name], ${normalizedCore || `the issue in ${title} needs honest obedience now.`}`;
+  }
 
   // Ensure prayer doesn't contain the closing — added by the UI
   if (repaired.prayer) {
@@ -697,12 +1129,14 @@ function parseJsonPlaybook(
     })
     .map((action: any, idx: number) => {
       const title = cleanMarkdown(String(action.title || ''));
-      const body = cleanMarkdown(String(action.body || ''));
-      const description = action.description ? cleanMarkdown(String(action.description)) : undefined;
+      const body = String(action.body || '');
+      const description = action.description ? String(action.description) : undefined;
       return {
         id: generateUUID(),
         title,
-        description: description || body,
+        // The prompt varies faithful_actions.body; the app renders ActionStep.description.
+        // Preserve an Example: marker so the walkthrough renders the speech-bubble block.
+        description: buildRenderedActionDescription(body, description),
         primaryButton: action.primary_button ? cleanMarkdown(String(action.primary_button)) : undefined,
         secondaryButton: action.secondary_button ? cleanMarkdown(String(action.secondary_button)) : undefined,
         subTasks: [],
@@ -842,6 +1276,38 @@ serve(async (req: Request) => {
 
   // Content safety check
   const contentAnalysis = analyzeContent(userInput);
+  const providerFilterShouldBlockUser = contentAnalysis.shouldBlock || [
+    'self_harm',
+    'violence',
+    'sexual_assault',
+    'harassment',
+    'hate_speech',
+  ].includes(contentAnalysis.category || '');
+
+  const providerContentFilterResponse = () => {
+    if (providerFilterShouldBlockUser) {
+      return new Response(
+        JSON.stringify({
+          error: 'CONTENT_BLOCKED',
+          message: contentAnalysis.christianMessage || 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
+          alternatives: contentAnalysis.constructiveAlternatives,
+          category: contentAnalysis.category,
+          retryable: false,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'GENERATION_INTERRUPTED',
+        message: 'I started creating your playbook, but the AI response stopped before it finished. Your topic was not blocked. Please try again.',
+        retryable: false,
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  };
+
   if (contentAnalysis.shouldBlock) {
     return new Response(
       JSON.stringify({
@@ -879,6 +1345,8 @@ serve(async (req: Request) => {
 
     let effectiveUserInput = userInput;
     const preferredBibleVersion = bibleVersion || 'NASB';
+    const hasExplicitMarriageContext = MARRIAGE_EXPLICIT_REGEX.test(effectiveUserInput);
+    const hasAmbiguousRelationshipContext = AMBIGUOUS_RELATIONSHIP_REGEX.test(effectiveUserInput) && !hasExplicitMarriageContext;
     const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectiveUserInput)
       || (/\b(jesus|christ)\b/i.test(effectiveUserInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectiveUserInput));
 
@@ -896,6 +1364,9 @@ serve(async (req: Request) => {
       ctx += 'NAME PLACEMENT: truth_summary may begin with [User\'s Name] once. Do not write the user name or [User\'s Name] anywhere in truth_in_love or any later field.\n';
       ctx += `USER INPUT: ${input}\n`;
       ctx += `${audienceContext.promptLine}\n`;
+      if (hasAmbiguousRelationshipContext) {
+        ctx += 'RELATIONSHIP STATUS: The user mentioned a relationship but did not say husband, wife, spouse, married, marriage, divorce, or marital. Do not assume marriage. Use neutral relationship and safety language unless the user explicitly states marriage in this request. Current input overrides profile context for relationship status.\n';
+      }
 
       if (recentTitles.length > 0) {
         ctx += `\nTITLE UNIQUENESS: User already has: ${recentTitles.map(t => `"${t}"`).join(', ')}. Create a completely different title.\n`;
@@ -918,7 +1389,7 @@ serve(async (req: Request) => {
     };
 
     // Build the full user message: context payload only (no few-shot examples).
-    const buildUserMessage = (input: string): string => {
+    const buildUserMessage = (input: string): { message: string; developerPrompt: string } => {
       const context = buildPlaybookUserContext(input);
       const separator = '\n---\n\nNow generate a playbook:\n\n';
       const message = separator + context;
@@ -929,47 +1400,50 @@ serve(async (req: Request) => {
       return { message, developerPrompt };
     };
 
-    const { message: userMessage, developerPrompt } = buildUserMessage(effectiveUserInput);
+    let { message: userMessage, developerPrompt } = buildUserMessage(effectiveUserInput);
 
-    // OpenAI call helper — accepts optional message override for architectural retry
+    // OpenAI call helper — accepts optional message override for explicit retry paths.
     async function callOpenAI(model: string, messageOverride?: string): Promise<Response> {
       const tierForKey = isOnboarding ? 'onboarding' : (userTier || 'spark');
       const apiKey = keyPoolManager.getBestKey(userId || 'anonymous', tierForKey);
       if (!apiKey) throw new Error('Service temporarily unavailable. Please try again.');
+      const requestOptions: RequestInit = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.key}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            // 'developer' role is supported by GPT-4.1 family models
+            { role: 'developer', content: developerPrompt },
+            { role: 'user', content: messageOverride ?? userMessage },
+          ],
+          temperature: 0.5,
+          top_p: 1,
+          max_completion_tokens: 3000,
+          frequency_penalty: 0.5,
+          presence_penalty: 0.3,
+          response_format: {
+            type: 'json_schema',
+            json_schema: PLAYBOOK_JSON_SCHEMA,
+          },
+        }),
+      };
 
       try {
         const response = await CircuitBreaker.execute(
           CIRCUIT_KEYS.OPENAI_PLAYBOOK,
-          async () => await fetchWithRetry(
-            'https://api.openai.com/v1/chat/completions',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey.key}`,
-              },
-              body: JSON.stringify({
-                model,
-                messages: [
-                  // 'developer' role is supported by GPT-4.1 family models
-                  { role: 'developer', content: developerPrompt },
-                  { role: 'user', content: messageOverride ?? userMessage },
-                ],
-                temperature: 0.5,
-                top_p: 1,
-                max_completion_tokens: 3000,
-                frequency_penalty: 0.5,
-                presence_penalty: 0.3,
-                response_format: {
-                  type: 'json_schema',
-                  json_schema: PLAYBOOK_JSON_SCHEMA,
-                },
-              }),
-            },
-            OPENAI_RETRY_CONFIG
-          )
+          async () => ENABLE_PAID_MODEL_RETRIES
+            ? await fetchWithRetry(
+              'https://api.openai.com/v1/chat/completions',
+              requestOptions,
+              OPENAI_RETRY_CONFIG
+            )
+            : await fetch('https://api.openai.com/v1/chat/completions', requestOptions)
         );
-        keyPoolManager.setKeyHealth(apiKey.id, true);
+        keyPoolManager.setKeyHealth(apiKey.id, response.ok);
         return response;
       } catch (error) {
         keyPoolManager.setKeyHealth(apiKey.id, false);
@@ -1027,31 +1501,55 @@ serve(async (req: Request) => {
     // Content filter: OpenAI truncates the JSON mid-generation.
     // Retry once with softened phrasing before giving up.
     if (finishReason === 'content_filter') {
-      console.warn('[Generate-Playbook] Content filter triggered — retrying with neutral phrasing');
+      if (providerFilterShouldBlockUser) {
+        console.warn('[Generate-Playbook] Provider content filter triggered for sensitive category', {
+          category: contentAnalysis.category,
+          appBlocked: contentAnalysis.shouldBlock,
+        });
+        return providerContentFilterResponse();
+      }
+
+      if (!ENABLE_PROVIDER_CONTENT_FILTER_RETRY) {
+        console.warn('[Generate-Playbook] Provider content filter triggered; provider retry disabled', {
+          category: contentAnalysis.category,
+          appBlocked: contentAnalysis.shouldBlock,
+        });
+        return providerContentFilterResponse();
+      }
+
+      console.warn('[Generate-Playbook] Provider content filter false positive suspected — retrying once', {
+        category: contentAnalysis.category,
+      });
       const softenedInput = effectiveUserInput
         .replace(/\b(lying|lie|lied|liar|lies)\b/gi, 'struggling with honesty')
         .replace(/\b(stealing|steal|stole|theft)\b/gi, 'struggling with taking what is not mine')
         .replace(/\b(cheating|cheat|cheated)\b/gi, 'struggling with faithfulness')
         .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
         .trim();
-      userMessage = buildUserMessage(softenedInput);
+      const softenedPrompt = buildUserMessage(softenedInput);
+      userMessage = softenedPrompt.message;
+      developerPrompt = softenedPrompt.developerPrompt;
       const filterRetryRes = await callOpenAI('gpt-4.1-mini');
       if (!filterRetryRes.ok) {
         throw new Error(`OpenAI returned ${filterRetryRes.status} on content filter retry`);
       }
       aiData = await filterRetryRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
+      const retryUsage = aiData.usage;
+      if (retryUsage) {
+        console.log('[Generate-Playbook] Provider Filter Retry Model:', aiData.model);
+        console.log('[Generate-Playbook] Provider Filter Retry Prompt Tokens (Input):', retryUsage.prompt_tokens);
+        console.log('[Generate-Playbook] Provider Filter Retry Completion Tokens (Output):', retryUsage.completion_tokens);
+        console.log('[Generate-Playbook] Provider Filter Retry Total Tokens:', retryUsage.total_tokens);
+        console.log('[Generate-Playbook] Provider Filter Retry Cost Calculation (gpt-4.1-mini):');
+        console.log('[Generate-Playbook] - Provider Filter Retry Input Cost ($0.40/M):', (retryUsage.prompt_tokens * 0.00040 / 1000).toFixed(6), 'USD');
+        console.log('[Generate-Playbook] - Provider Filter Retry Output Cost ($1.60/M):', (retryUsage.completion_tokens * 0.00160 / 1000).toFixed(6), 'USD');
+        console.log('[Generate-Playbook] - Provider Filter Retry Total Cost:', ((retryUsage.prompt_tokens * 0.00040 + retryUsage.completion_tokens * 0.00160) / 1000).toFixed(6), 'USD');
+      }
       const retryFinishReason = aiData.choices?.[0]?.finish_reason;
       console.log('[Generate-Playbook] Content filter retry finish_reason:', retryFinishReason);
       if (retryFinishReason === 'content_filter') {
-        return new Response(
-          JSON.stringify({
-            error: 'CONTENT_BLOCKED',
-            message: 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
-            retryable: false,
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return providerContentFilterResponse();
       }
     }
 
@@ -1102,6 +1600,22 @@ serve(async (req: Request) => {
 
     // Refusal detection (rare with structured outputs but possible)
     if (isRefusal(parsedJson)) {
+      if (!ENABLE_PAID_MODEL_RETRIES) {
+        console.warn('[Generate-Playbook] AI refusal detected; paid paraphrase retry disabled');
+        const isShSensitive = contentAnalysis.category === 'self_harm';
+        return new Response(
+          JSON.stringify({
+            error: 'CONTENT_BLOCKED',
+            message: isShSensitive
+              ? 'If you are in crisis, please reach out for immediate support. You are deeply loved by God, and your life has immeasurable value in Christ. Please contact a crisis helpline or a trusted Christian counselor.'
+              : 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
+            alternatives: contentAnalysis.constructiveAlternatives,
+            category: contentAnalysis.category,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log('[Generate-Playbook] AI refused, attempting paraphrase retry...');
 
       effectiveUserInput = contentAnalysis.isVictimExperience
@@ -1113,7 +1627,9 @@ serve(async (req: Request) => {
             .replace(/\s+/g, ' ')
             .trim();
 
-      userMessage = buildUserMessage(effectiveUserInput);
+      const paraphrasedPrompt = buildUserMessage(effectiveUserInput);
+      userMessage = paraphrasedPrompt.message;
+      developerPrompt = paraphrasedPrompt.developerPrompt;
 
       let paraphrasedSuccess = false;
       for (let attempt = 0; attempt < 2; attempt++) {
@@ -1169,28 +1685,40 @@ serve(async (req: Request) => {
         i.startsWith('completion.question is missing') ||
         i.startsWith('completion.lines has') ||
         i.startsWith('truth_in_love is too short') ||
-        i.startsWith('truth_summary is too short') ||
         i.startsWith('transition_line is missing') ||
         i.startsWith('scripture_note_lines has') ||
         i.startsWith('bible_verse missing')
       );
 
       if (missingContentIssues.length > 0) {
-        console.log('[Generate-Playbook] Missing content detected — retrying with completion directive:', missingContentIssues);
+        if (!ENABLE_PAID_MODEL_RETRIES) {
+          console.warn('[Generate-Playbook] Missing content detected; paid retry disabled, injecting local fallbacks:', missingContentIssues);
+          injectLocalRequiredFieldFallbacks(parsedJson!);
 
-        const completionNote = [
-          '',
-          'CRITICAL FIX — your previous response left these required fields empty or too short:',
-          ...missingContentIssues.map(i => `  - ${i}`),
-          'You MUST fill EVERY required field with substantive content. Do not return empty strings or empty arrays for any required field.',
-          'Specifically:',
-          '  - prayer: write a complete prayer (at least 50 characters, in second person to God).',
-          '  - words_to_speak: provide 4-5 declaration lines the user can speak aloud.',
-          '  - completion.question: one reflective question (10+ chars) ending with "?".',
-          '  - completion.lines: 2-4 short imperative lines for closing.',
-          '  - closing: one pastoral closing affirmation sentence.',
-          'Return the FULL JSON, complete in every section.',
-        ].join('\n');
+          const { hardIssues: fallbackHard } = validatePlaybook(parsedJson!, effectiveUserInput);
+          const unresolvedFallbackIssues = fallbackHard.filter(i =>
+            i.includes('playbook_title') ||
+            i.includes('generation failure')
+          );
+          if (unresolvedFallbackIssues.length > 0) {
+            throw new Error(`AI failed validation after local fallbacks: ${unresolvedFallbackIssues.join(', ')}`);
+          }
+        } else {
+          console.log('[Generate-Playbook] Missing content detected — retrying with completion directive:', missingContentIssues);
+
+          const completionNote = [
+            '',
+            'CRITICAL FIX — your previous response left these required fields empty or too short:',
+            ...missingContentIssues.map(i => `  - ${i}`),
+            'You MUST fill EVERY required field with substantive content. Do not return empty strings or empty arrays for any required field.',
+            'Specifically:',
+            '  - prayer: write a complete prayer (at least 50 characters, in second person to God).',
+            '  - words_to_speak: provide 4-5 declaration lines the user can speak aloud.',
+            '  - completion.question: one reflective question (10+ chars) ending with "?".',
+            '  - completion.lines: 2-4 short imperative lines for closing.',
+            '  - closing: one pastoral closing affirmation sentence.',
+            'Return the FULL JSON, complete in every section.',
+          ].join('\n');
 
         const correctedMessage = userMessage + completionNote;
         const completionRetryRes = await callOpenAI('gpt-4.1-mini', correctedMessage);
@@ -1328,6 +1856,7 @@ serve(async (req: Request) => {
             throw new Error(`AI failed to generate complete playbook content: ${stillMissingContent.join(', ')}`);
           }
         }
+        }
       } else {
         // Remaining non-critical hard issues (e.g., minor length warnings on optional shapes)
         console.warn('[Generate-Playbook] Non-critical hard issues (continuing):', hardIssues);
@@ -1335,16 +1864,24 @@ serve(async (req: Request) => {
     }
 
     if (softIssues.length > 0) {
-      console.warn('[Generate-Playbook] Structural soft issues:', softIssues);
+      const softIssueLabel = ENABLE_PAID_MODEL_RETRIES && ENABLE_PAID_ARCHITECTURAL_RETRY
+        ? '[Generate-Playbook] Structural soft issues:'
+        : '[Generate-Playbook] Structural soft issues (warn-only; no paid architectural retry):';
+      console.warn(softIssueLabel, softIssues);
     }
 
-    // Retry-on-weak-structure: if structural issues detected, retry once with an explicit
-    // architectural correction injected into the user message.
-    const architecturalIssues = softIssues.filter(i =>
-      i.includes('Action sequence drift') ||
-      i.includes('Abstraction drift') ||
-      i.includes('Overused navigation language')
-    );
+    // Architectural/style checks should not spend a second OpenAI call by default.
+    // The prompt and local repair handle formatting; retries stay reserved for missing core content.
+    const architecturalIssues = ENABLE_PAID_MODEL_RETRIES && ENABLE_PAID_ARCHITECTURAL_RETRY
+      ? softIssues.filter(i =>
+        i.includes('Action sequence drift') ||
+        i.includes('Abstraction drift') ||
+        i.includes('Overused navigation language') ||
+        i.includes('Truth in Love opening') ||
+        i.includes('Faithful action body format variation') ||
+        i.includes('Faithful action example bubble missing')
+      )
+      : [];
 
     if (architecturalIssues.length > 0) {
       console.log('[Generate-Playbook] Architectural drift detected — retrying with correction:', architecturalIssues);
@@ -1353,17 +1890,38 @@ serve(async (req: Request) => {
         '\nARCHITECTURAL CORRECTION — the previous attempt failed these checks:',
         ...architecturalIssues.map(i => `  - ${i}`),
         'Fix these structural issues:',
-        '  faithful_actions must be 3-7 specific, concrete steps — not a list of tips.',
+        '  truth_in_love must start directly with the diagnosis, correction, cost, or decision. No emotional setup, throat-clearing, or long pastoral intro.',
+        '  truth_in_love first paragraph must be 1-2 direct sentences, then continue only as needed.',
+        '  faithful_actions must be 5-7 specific, concrete steps — not a list of tips.',
+        '  faithful_actions.body is the rendered walkthrough text. Vary the body field itself, not only description.',
+        '  Every faithful_actions.body must include one Example: marker after the main assignment so the UI renders a speech-bubble example.',
+        '  Use the required format mix in body: bullets with \\n* lines, decision filter, script, stop/start, timeline, practice loop, audit fields, or concise prose.',
+        '  Do not make every body a single paragraph followed by Example. Vary the main assignment before Example:',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
         '  Do not use any form of "navigate" or "navigation"; choose a concrete verb like face, discern, obey, endure, confront, or rebuild.',
       ].join('\n');
 
       const correctedMessage = userMessage + correctionNote;
 
+      console.log('[Generate-Playbook] ===== ARCHITECTURAL RETRY START =====');
       const retryRes = await callOpenAI('gpt-4.1-mini', correctedMessage);
       if (retryRes.ok) {
         const retryData = await retryRes.json();
         const retryContent: string = retryData.choices?.[0]?.message?.content || '';
+
+        // Log retry token usage and cost
+        const retryUsage = retryData.usage;
+        if (retryUsage) {
+          console.log('[Generate-Playbook] Retry Model:', retryData.model);
+          console.log('[Generate-Playbook] Retry Prompt Tokens (Input):', retryUsage.prompt_tokens);
+          console.log('[Generate-Playbook] Retry Completion Tokens (Output):', retryUsage.completion_tokens);
+          console.log('[Generate-Playbook] Retry Total Tokens:', retryUsage.total_tokens);
+          console.log('[Generate-Playbook] Retry Cost Calculation (gpt-4.1-mini):');
+          console.log('[Generate-Playbook] - Retry Input Cost ($0.40/M):', (retryUsage.prompt_tokens * 0.00040 / 1000).toFixed(6), 'USD');
+          console.log('[Generate-Playbook] - Retry Output Cost ($1.60/M):', (retryUsage.completion_tokens * 0.00160 / 1000).toFixed(6), 'USD');
+          console.log('[Generate-Playbook] - Retry Total Cost:', ((retryUsage.prompt_tokens * 0.00040 + retryUsage.completion_tokens * 0.00160) / 1000).toFixed(6), 'USD');
+        }
+
         try {
           const retryJson = JSON.parse(retryContent);
           if (!isRefusal(retryJson)) {
@@ -1378,7 +1936,10 @@ serve(async (req: Request) => {
         } catch {
           console.warn('[Generate-Playbook] Architectural retry parse failed — using original');
         }
+      } else {
+        console.warn('[Generate-Playbook] Architectural retry request failed — using original');
       }
+      console.log('[Generate-Playbook] ===== ARCHITECTURAL RETRY END =====');
     }
 
     // Repair (em dash removal, completion prefix, prayer closing strip)
@@ -1420,7 +1981,7 @@ serve(async (req: Request) => {
       JSON.stringify({
         error: "We couldn't create your playbook right now",
         message: 'Something went wrong. Please try again in a moment.',
-        retryable: true,
+        retryable: false,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
