@@ -191,11 +191,12 @@ const PLAYBOOK_JSON_SCHEMA = {
           type: 'object',
           properties: {
             title: { type: 'string', minLength: 3 },
+            description: { type: 'string' },
             body: { type: 'string', minLength: 10 },
             primary_button: { type: 'string', minLength: 2 },
             secondary_button: { type: 'string', minLength: 2 },
           },
-          required: ['title', 'body', 'primary_button', 'secondary_button'],
+          required: ['title', 'description', 'body', 'primary_button', 'secondary_button'],
           additionalProperties: false,
         },
       },
@@ -697,10 +698,11 @@ function parseJsonPlaybook(
     .map((action: any, idx: number) => {
       const title = cleanMarkdown(String(action.title || ''));
       const body = cleanMarkdown(String(action.body || ''));
+      const description = action.description ? cleanMarkdown(String(action.description)) : undefined;
       return {
         id: generateUUID(),
         title,
-        description: body,
+        description: description || body,
         primaryButton: action.primary_button ? cleanMarkdown(String(action.primary_button)) : undefined,
         secondaryButton: action.secondary_button ? cleanMarkdown(String(action.secondary_button)) : undefined,
         subTasks: [],
@@ -953,11 +955,11 @@ serve(async (req: Request) => {
                   { role: 'developer', content: developerPrompt },
                   { role: 'user', content: messageOverride ?? userMessage },
                 ],
-                temperature: 0.35,
+                temperature: 0.5,
                 top_p: 1,
                 max_completion_tokens: 3000,
-                frequency_penalty: 0.30,
-                presence_penalty: 0,
+                frequency_penalty: 0.5,
+                presence_penalty: 0.3,
                 response_format: {
                   type: 'json_schema',
                   json_schema: PLAYBOOK_JSON_SCHEMA,

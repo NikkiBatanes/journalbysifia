@@ -228,8 +228,8 @@ const StreakPlanScreen: React.FC = () => {
       });
     } else {
       // Done - go back twice to dismiss both StreakPlan and PlaybookWalkthrough
-      // when source is 'playbook' or 'action_step_completed'
-      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud') {
+      // when source is 'playbook', 'action_step_completed', 'affirmation_read_aloud', or 'playbook_walkthrough'
+      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud' || params.source === 'playbook_walkthrough') {
         navigation.goBack();
         navigation.goBack();
       } else {
