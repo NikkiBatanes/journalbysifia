@@ -449,7 +449,8 @@ const HowToModal: React.FC<HowToModalProps> = ({
       source: 'wisdom_limit',
       feature: 'wisdom',
       featureType: 'wisdom',
-      // Don't pass currentTier - let sales offer screen get it from subscription data
+      currentTier,
+      tier: currentTier,
       dismissBehavior: 'goBack',
       skipNotificationPreference: true,
       testModeRemaining: limit === -1 ? -1 : Math.max(0, limit - count),
