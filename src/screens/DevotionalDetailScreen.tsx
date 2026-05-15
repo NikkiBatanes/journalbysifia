@@ -1502,7 +1502,7 @@ const styles = StyleSheet.create({
   progressSection: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 16, // Increased to provide more space before day title
     backgroundColor: Colors.hopeWhite,
   },
   progressBarContainer: {
@@ -1592,7 +1592,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
-    paddingTop: 2, // Further reduced to bring content even closer to progress bar
+    paddingTop: 8, // Increased to prevent day title from being cut off
     paddingBottom: 80,
   },
   scrollViewContent: {
