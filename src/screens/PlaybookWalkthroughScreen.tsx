@@ -1148,6 +1148,15 @@ function normalizeActionBulletMarkers(text: string): string {
     .join('\n');
 }
 
+function normalizeActionInlineStructure(text: string): string {
+  return String(text || '')
+    .replace(/\s+(?=(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice):\s*)/gi, '\n')
+    .replace(/(^|\n)\s*Replacement:\s*/gi, '$1Replacement response: ')
+    .replace(/\s+(?=(?:Stop doing|Start doing)\b)/gi, '\n')
+    .replace(/(^|\n)\s*Stop doing\s+/gi, '$1Stop: ')
+    .replace(/(^|\n)\s*Start doing\s+/gi, '$1Start: ');
+}
+
 function normalizeActionPracticeLoopText(text: string): string {
   const source = String(text || '')
     .replace(/^Trigger\s*(?:→|->|>)\s*temptation\s*(?:→|->|>)\s*replacement response\s*practice:\s*/i, '')
@@ -1248,13 +1257,19 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
     ? out.split('\n').map(line => line.trimStart().startsWith('* ') ? line : line.replace(/\*/g, '')).join('\n')
     : out.replace(/\*/g, '');
 
-  out = removeDecorativeActionSingleQuotes(out.replace(/ +([,.;:!?])/g, '$1')).trim();
+  out = normalizeActionInlineStructure(removeDecorativeActionSingleQuotes(out.replace(/ +([,.;:!?])/g, '$1')).trim());
   const cleaned = closeUnmatchedActionDoubleQuote(stripDanglingActionQuotes(stripBalancedActionQuotes(out)));
   return normalizeActionPracticeLoopText(cleaned);
 }
 
 function normalizeActionExampleDisplayText(example: string): string {
   let value = String(example || '').trim();
+  const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
+  const quotedRemainder = value.replace(/["“][^"”]+["”]/g, '').replace(/[,\s]+/g, '');
+  if (quotedItems.length >= 2 && !quotedRemainder) {
+    return quotedItems.join('\n');
+  }
+
   if (!value || /^["“]/.test(value)) {
     return value;
   }
@@ -1269,6 +1284,15 @@ function normalizeActionExampleDisplayText(example: string): string {
   const textedAsking = value.match(/^(?:I\s+)?Texted\s+(.+?)\s+asking\s+(.+?)\.?$/i);
   if (textedAsking) {
     return `Text ${textedAsking[1].trim()} asking ${textedAsking[2].trim()}.`;
+  }
+
+  if (/^(?:loop\s+written\s+out\s+clearly|practice\s+loop\s+written\s+out\s+clearly)\.?$/i.test(value)) {
+    return 'Fill in each loop line with your real trigger, temptation, and replacement response.';
+  }
+
+  const catchThought = value.match(/^Catch\s+(?:the\s+)?thought\s+(.+?\?)\s+then\s+(.+)$/i);
+  if (catchThought) {
+    return `Catch the thought "${catchThought[1].trim()}" then ${catchThought[2].trim()}`;
   }
 
   const sharedAndAsked = value.match(/^I\s+shared\s+with\s+(.+?)\s+who\s+agreed\s+to\s+(.+?)\.?$/i);
@@ -1341,8 +1365,18 @@ function splitReadableActionLine(line: string): string[] {
   const trimmed = line.trim();
   if (!trimmed) { return []; }
   if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
-  if (/^(?:Trigger|Temptation|Replacement response|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
-  const inlineScript = trimmed.match(/^((?:say|send|text|message|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
+  if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
+  if (embeddedScript) {
+    const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
+    return [
+      embeddedScript[1].trim(),
+      embeddedScript[2].trim(),
+      quote,
+      ...splitReadableActionLine(rest),
+    ];
+  }
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -1379,7 +1413,7 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:say|send|text|message|write|ask|pray)\b[^:]{0,60}:\s*$/i.test(trimmed)
+  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
     && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
 }
 
@@ -1431,11 +1465,11 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       continue;
     }
 
-    const fieldMatch = line.match(/^(Trigger|Temptation|Replacement response|Practice|Stop|Start):\s*(.+)$/i);
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s*(.+)$/i);
     if (fieldMatch) {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
-        .replace(/^Replacement Response$/i, 'Response');
+        .replace(/^Replacement(?: Response)?$/i, 'Response');
       out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
       continue;
     }

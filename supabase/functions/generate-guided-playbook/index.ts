@@ -353,6 +353,15 @@ function normalizeActionBulletMarkers(text: string): string {
     .join('\n');
 }
 
+function normalizeActionInlineStructure(text: string): string {
+  return String(text || '')
+    .replace(/\s+(?=(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice):\s*)/gi, '\n')
+    .replace(/(^|\n)\s*Replacement:\s*/gi, '$1Replacement response: ')
+    .replace(/\s+(?=(?:Stop doing|Start doing)\b)/gi, '\n')
+    .replace(/(^|\n)\s*Stop doing\s+/gi, '$1Stop: ')
+    .replace(/(^|\n)\s*Start doing\s+/gi, '$1Start: ');
+}
+
 function normalizePracticeLoopText(text: string): string {
   const source = String(text || '')
     .replace(/^Trigger\s*(?:→|->|>)\s*temptation\s*(?:→|->|>)\s*replacement response\s*practice:\s*/i, '')
@@ -653,7 +662,7 @@ function cleanActionTextSegment(value: string): string {
     .replace(/\\"/g, '"')
     .replace(/\\'/g, "'");
 
-  const withoutDecorativeQuotes = removeDecorativeSingleQuotes(normalized);
+  const withoutDecorativeQuotes = normalizeActionInlineStructure(removeDecorativeSingleQuotes(normalized));
   const cleaned = closeUnmatchedDoubleQuote(stripDanglingBoundaryQuotes(stripBalancedWrappingQuotes(withoutDecorativeQuotes))).trim();
   return normalizePracticeLoopText(cleaned);
 }
@@ -705,6 +714,12 @@ function capitalizeInstruction(text: string): string {
 
 function normalizeActionExampleText(example: string): string {
   let value = String(example || '').trim();
+  const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
+  const quotedRemainder = value.replace(/["“][^"”]+["”]/g, '').replace(/[,\s]+/g, '');
+  if (quotedItems.length >= 2 && !quotedRemainder) {
+    return quotedItems.join('\n');
+  }
+
   if (!value || /^["“]/.test(value)) {
     return value;
   }
@@ -719,6 +734,15 @@ function normalizeActionExampleText(example: string): string {
   const textedAsking = value.match(/^(?:I\s+)?Texted\s+(.+?)\s+asking\s+(.+?)\.?$/i);
   if (textedAsking) {
     return `Text ${textedAsking[1].trim()} asking ${textedAsking[2].trim()}.`;
+  }
+
+  if (/^(?:loop\s+written\s+out\s+clearly|practice\s+loop\s+written\s+out\s+clearly)\.?$/i.test(value)) {
+    return 'Fill in each loop line with your real trigger, temptation, and replacement response.';
+  }
+
+  const catchThought = value.match(/^Catch\s+(?:the\s+)?thought\s+(.+?\?)\s+then\s+(.+)$/i);
+  if (catchThought) {
+    return `Catch the thought "${catchThought[1].trim()}" then ${catchThought[2].trim()}`;
   }
 
   const sharedAndAsked = value.match(/^I\s+shared\s+with\s+(.+?)\s+who\s+agreed\s+to\s+(.+?)\.?$/i);
@@ -1973,7 +1997,9 @@ serve(async (req: Request) => {
         '  Do not write past-tense completion reports like "Message sent...", "I texted...", "I wrote...", "I hid...", or "I shared...". Only primary_button should sound completed.',
         '  Use the required format mix in body: bullets with \\n* lines, decision filter, script, stop/start, timeline, practice loop, audit fields, or concise prose.',
         '  Bullet checklists must put each bullet on its own line. Use "Do this:\\n* First step\\n* Second step", never "Do this: * First step * Second step".',
+        '  Labeled formats must put each label on its own line. Use "Trigger: ...\\nLie: ...\\nReplacement response: ...", never one inline label chain.',
         '  Script/message formats must put the quoted message on its own line and follow-up instruction on a separate line after the quote.',
+        '  Never write meta examples like "Example loop written out clearly"; write the actual filled-in example.',
         '  Practice loops must use clear grammar. Use "Pause, step outside, and pray one honest sentence" instead of "Stop walking outside..." Never use "prayer walk-up".',
         '  Do not make every body a single paragraph followed by Example. Vary the main assignment before Example:',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',

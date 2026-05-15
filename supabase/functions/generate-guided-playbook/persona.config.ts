@@ -375,6 +375,7 @@ Available body formats:
 * Audit table style: short fields the user must fill in, such as "Trigger: __ | Lie: __ | Replacement: __"
 The description may stay simple and preview-like. The body is where the action format should vary.
 For practice loops, keep the replacement response grammatically clear. If the replacement is movement plus prayer, write "Pause, step outside, and pray one honest sentence" or "Walk outside for 5 minutes while praying." Never write "Stop walking outside..." and never use the phrase "prayer walk-up" or "prayer walk-ups."
+For labeled formats, every label must be on its own line. Correct: "Trigger: ...\nLie: ...\nReplacement response: ..." Wrong: "Trigger: ... Lie: ... Replacement: ..."
 For scripts or messages, put the label on one line, the exact quoted words on the next line, and any follow-up instruction on its own separate line after the quote. Correct: "Message your pastor:\n\"I need help.\"\nBring your notes." Wrong: "Message your pastor: \"I need help.\" Bring your notes."
 Use \n for line breaks.
 For bullet checklists, use only lines that begin with "* ". Put the label on its own line, then each bullet on its own new line. Correct: "Do this:\n* First step\n* Second step". Wrong: "Do this: * First step * Second step". Never use hyphen bullets ("- ") or dash bullets inside faithful_actions.body.
@@ -383,6 +384,7 @@ Every body must end with or contain an Example: section. The main assignment bef
 Example contract: Example means "here is what to do, write, say, choose, remove, or fill in before the user taps the button." It is pre-action guidance, not completion proof. The primary_button is the only field that should sound like "I did it."
 The Example must not be a past-tense completion report. Never begin Example with "I messaged", "I texted", "I told", "I wrote", "I listed", "I hid", "I removed", "I shared", "I prayed", or similar first-person completed actions. Exact speech may begin with "I" only when it is inside straight double quotes.
 Avoid examples like "Message sent to my discipleship leader", "I threw it away", or "I texted my pastor." Instead write the sample action or exact wording: "Send this to your discipleship leader: ..." or "Put the vape device in the trash now."
+Never write meta examples like "Example loop written out clearly" or "Example filled out." If the example involves a thought or question, use straight double quotes, e.g. "Catch the thought \"What if no one likes it?\" and answer it with truth."
 - primary_button: very short completed-action label for a small mobile button. Must be 15 characters or fewer, including spaces. Max 3 words. First-person past tense when possible. Prefer compact labels like "I did it", "I wrote it", "I asked", "I prayed", "I sent it", "I chose", "I stopped", "I planned", "I checked". Do not summarize the whole action. If primary_button is longer than 15 characters, the UI will cut it off.
 - secondary_button: always "Skip"
 Do not give generic devotional steps.
