@@ -546,11 +546,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
     try {
       const response = await onSubmit(currentQuestion);
       if (response.error === 'WISDOM_LIMIT_REACHED') {
-        if (response.canUpgrade === false) {
-          setResult(response);
-        } else {
-          navigateToSalesOffer(response.wisdomCount ?? wisdomCount, response.wisdomLimit ?? wisdomLimit, response.currentTier);
-        }
+        navigateToSalesOffer(response.wisdomCount ?? wisdomCount, response.wisdomLimit ?? wisdomLimit, response.currentTier);
         return;
       }
 
