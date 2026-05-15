@@ -1745,6 +1745,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const manuallyExpandedRef = useRef(false);
   // Tracks when journal icons were last manually toggled (to prevent scroll handler from immediately collapsing)
   const lastManualToggleRef = useRef(0);
+  // Tracks if we're in the middle of a programmatic scroll (to prevent scroll handler from reacting)
+  const isProgrammaticScrollRef = useRef(false);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
   const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   const collapseAnimFallback = useRef(new Animated.Value(0)).current;
@@ -1834,7 +1836,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     ]).start();
 
     if (expanding) {
+      isProgrammaticScrollRef.current = true;
       scrollViewRef.current?.scrollToEnd({ animated: true });
+      setTimeout(() => { isProgrammaticScrollRef.current = false; }, 500);
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
@@ -2109,6 +2113,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const currentY = event.nativeEvent.contentOffset.y;
     const isScrollingUp = currentY < lastScrollYRef.current;
     lastScrollYRef.current = currentY;
+    // Skip scroll handling during programmatic scrolls (e.g., scrollToEnd when expanding journal icons)
+    if (isProgrammaticScrollRef.current) {
+      return;
+    }
     if (currentY > 60 && !fabBarHiddenRef.current) {
       // Don't collapse FAB bar if journal icons are manually expanded
       if (journalExpandedRef.current && manuallyExpandedRef.current) {
