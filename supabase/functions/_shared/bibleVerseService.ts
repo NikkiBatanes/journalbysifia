@@ -101,7 +101,7 @@ async function fetchVerseFromOpenAI(reference: string, version: string): Promise
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-mini',
         messages: [
           {
             role: 'system',

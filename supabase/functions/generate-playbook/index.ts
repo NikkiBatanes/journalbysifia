@@ -142,7 +142,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       mainTitle = titleMatchBold[1].trim();
       subtitle = titleMatchBold[2].trim();
     } else {
-      // Fallback to ## or ### header format (new gpt-4o-mini format)
+      // Fallback to ## or ### header format (new gpt-4.1-mini format)
       const titleMatchHash = content.match(/##+ (.+?)\n\n(.+?)\n/i);
       if (titleMatchHash) {
         mainTitle = titleMatchHash[1].trim();
@@ -154,7 +154,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
           mainTitle = titleMatchHashTitle[1].trim();
           subtitle = titleMatchHashTitle[2].trim();
         } else {
-        // Fallback to non-bold without angle brackets (gpt-4o-mini format)
+        // Fallback to non-bold without angle brackets (gpt-4.1-mini format)
         const titleMatchGPT4o = content.match(/PLAYBOOK TITLE:\s*\n(.+?)\n(.+?)\n/i);
         if (titleMatchGPT4o) {
           mainTitle = titleMatchGPT4o[1].trim();
@@ -372,7 +372,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   if (affMatch) {
     const affirmationsText = affMatch[1].trim();
     // Split by numbered lines or lines that start with common affirmation patterns
-    // Handle both gpt-4o (blank lines) and gpt-4o-mini formats
+    // Handle both gpt-4o (blank lines) and gpt-4.1-mini formats
     let affirmations: string[];
 
     // Check if affirmations are numbered
@@ -1098,7 +1098,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
       contextualPrompt = contextualPrompt.substring(0, 4000) + '\n\n[Response truncated to fit token limit]';
     }
 
-    // Try with gpt-4o-mini, paraphrase and retry if refused
+    // Try with gpt-4.1-mini, paraphrase and retry if refused
     let openAIRes: Response;
     let aiData: any;
     let rawContent: string;
@@ -1106,7 +1106,7 @@ IMPORTANT: Always use generic language like "your local hotline" or "support ser
 
     try {
       // First try with original input
-      openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+      openAIRes = await callOpenAIWithFallback('gpt-4.1-mini');
       aiData = await openAIRes.json();
       rawContent = aiData.choices?.[0]?.message?.content || '';
 
@@ -1188,7 +1188,7 @@ ${recentTitles.length > 0 ? `\n\n## TITLE UNIQUENESS REQUIREMENT\nThe user alrea
         while (paraphrasedAttempt < maxParaphrasedAttempts) {
           paraphrasedAttempt++;
           console.log(`[Generate-Playbook] Paraphrased attempt ${paraphrasedAttempt}/${maxParaphrasedAttempts}`);
-          openAIRes = await callOpenAIWithFallback('gpt-4o-mini');
+          openAIRes = await callOpenAIWithFallback('gpt-4.1-mini');
           aiData = await openAIRes.json();
           rawContent = aiData.choices?.[0]?.message?.content || '';
 
