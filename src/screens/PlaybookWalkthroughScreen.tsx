@@ -1741,6 +1741,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const wisdomChevronAnim = useRef(new Animated.Value(0)).current;
   // Ref tracks real expanded state to avoid stale closure in toggle
   const journalExpandedRef = useRef(false);
+  // Tracks when journal icons were last manually toggled (to prevent scroll handler from immediately collapsing)
+  const lastManualToggleRef = useRef(0);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
   const nudgeTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   const collapseAnimFallback = useRef(new Animated.Value(0)).current;
@@ -1809,6 +1811,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     // Use ref so we always read the real current value, not a stale closure
     const expanding = !journalExpandedRef.current;
     journalExpandedRef.current = expanding;
+    lastManualToggleRef.current = Date.now(); // Track when this was manually toggled
     setJournalExpanded(expanding);
     onJournalExpanded?.(expanding);
     triggerLightHaptic();
@@ -2106,8 +2109,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       fabBarHiddenRef.current = true;
       setFabCollapsed(true);
       Animated.spring(collapseAnim, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
-      // Auto-collapse journal icons on scroll
-      if (journalExpandedRef.current) {
+      // Auto-collapse journal icons on scroll, but only if it's been more than 500ms since manual toggle
+      if (journalExpandedRef.current && Date.now() - lastManualToggleRef.current > 500) {
         toggleJournalIcons();
       }
     } else if (isScrollingUp && currentY <= 0 && fabBarHiddenRef.current) {
