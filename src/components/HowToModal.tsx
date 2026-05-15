@@ -541,6 +541,8 @@ const HowToModal: React.FC<HowToModalProps> = ({
     triggerLightHaptic();
     setLoading(true);
     setResult(null);
+    // Force a re-render to ensure loading state is visible
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
       const response = await onSubmit(currentQuestion);
       if (response.error === 'WISDOM_LIMIT_REACHED') {
