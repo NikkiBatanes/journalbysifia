@@ -26,6 +26,22 @@ interface WisdomThreadEntry {
   wisdom: string;
 }
 
+function wisdomLimitForTier(tier?: string | null, trialChosenTier?: string | null): number {
+  const base = String(tier || 'seeker').replace('_annual', '');
+  const trialBase = String(trialChosenTier || 'growth').replace('_annual', '');
+
+  if (base === 'free_trial') {
+    if (trialBase === 'spark') return 2;
+    if (trialBase === 'transformation') return 10;
+    return 6;
+  }
+
+  if (base === 'spark') return 5;
+  if (base === 'growth') return 12;
+  if (base === 'transformation') return 25;
+  return 2;
+}
+
 function cleanText(value: unknown, max = 800): string {
   if (typeof value !== 'string') return '';
   return value.replace(/\s+/g, ' ').trim().slice(0, max);
@@ -304,6 +320,7 @@ function buildWisdomPrompt(args: {
     '=== CONTEXT ===',
     `Playbook: ${cleanText(args.playbookTitle, 180)}`,
     `Truth: ${cleanText(args.truthSummary, 500)}`,
+    args.truthInLove?.trim() ? `Truth in Love direction: ${cleanText(args.truthInLove, 500)}` : '',
     audienceContext,
     '',
     '=== THE ONE ACTION THE USER NEEDS TO DO ===',
@@ -380,6 +397,8 @@ serve(async (req: Request) => {
     });
   }
 
+  let refundReservedWisdomCharge: (() => Promise<void>) | null = null;
+
   try {
     const body = await req.json() as WisdomRequest;
     const playbookId = cleanText(body.playbookId, 80);
@@ -390,7 +409,7 @@ serve(async (req: Request) => {
     const actionBody = cleanActionBody(body.actionBody, 1500);
     const userQuestion = cleanText(body.userQuestion, 500);
     const truthSummary = cleanText(body.truthSummary, 700);
-    const truthInLove = cleanText(body.truthInLove, 200);
+    const truthInLove = cleanText(body.truthInLove, 700);
     const previousWisdom = cleanText(body.previousWisdom, 1200);
 
     if (!playbookId || !userId || !actionId || userQuestion.length < 5) {
@@ -408,6 +427,8 @@ serve(async (req: Request) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    let wisdomLimit = 0;
+    let usedWisdom = 0;
 
     // Get playbook data
     const { data: playbook, error: playbookError } = await supabase
@@ -444,6 +465,76 @@ serve(async (req: Request) => {
     const wisdomHistory = existingThread.length > 0
       ? serializeWisdomThread(existingThread)
       : (previousWisdom || persistedWisdom);
+
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('user_subscriptions_new')
+      .select('tier, trial_chosen_tier, wisdom_count')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (subscriptionError) {
+      throw subscriptionError;
+    }
+
+    wisdomLimit = wisdomLimitForTier(subscription?.tier, subscription?.trial_chosen_tier);
+    usedWisdom = Number(subscription?.wisdom_count || 0);
+
+    if (wisdomLimit !== -1 && usedWisdom >= wisdomLimit) {
+      const normalizedTier = String(subscription?.tier || 'seeker').replace('_annual', '');
+      return new Response(
+        JSON.stringify({
+          error: 'WISDOM_LIMIT_REACHED',
+          message: normalizedTier === 'transformation'
+            ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
+            : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`,
+          wisdomCount: usedWisdom,
+          wisdomLimit,
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const { data: reservedWisdom, error: reserveError } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        wisdom_count: usedWisdom + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('wisdom_count', usedWisdom)
+      .select('wisdom_count')
+      .maybeSingle();
+
+    if (reserveError) {
+      throw reserveError;
+    }
+
+    if (!reservedWisdom) {
+      return new Response(
+        JSON.stringify({
+          error: 'WISDOM_LIMIT_REACHED',
+          message: 'Your wisdom usage changed while siFia was preparing this request. Please try again.',
+          wisdomCount: usedWisdom,
+          wisdomLimit,
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    refundReservedWisdomCharge = async () => {
+      const { error: refundError } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          wisdom_count: usedWisdom,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('wisdom_count', usedWisdom + 1);
+
+      if (refundError) {
+        console.warn('[Get-Action-Guidance] Failed to refund reserved wisdom usage after generation failure', refundError);
+      }
+    };
 
     // Build the prompt
     const prompt = buildWisdomPrompt({
@@ -499,6 +590,8 @@ serve(async (req: Request) => {
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
       console.error('[Get-Action-Guidance] OpenAI error:', errorText);
+      await refundReservedWisdomCharge?.();
+      refundReservedWisdomCharge = null;
       return new Response(
         JSON.stringify({ error: 'AI_ERROR', message: 'Could not generate wisdom right now. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -600,10 +693,13 @@ serve(async (req: Request) => {
       actionId,
       storedWisdom,
       wisdomThread: [threadEntry, ...existingThread],
+      wisdomCount: usedWisdom + 1,
+      wisdomLimit,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    await refundReservedWisdomCharge?.();
     console.error('[Get-Action-Guidance] Error:', error);
     return new Response(
       JSON.stringify({

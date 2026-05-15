@@ -222,6 +222,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
 interface EnterMomentProps {
   title: string;
   userInput: string;
+  refinementNote?: string | null;
   summary: string;
   userName: string;
   transitionLine?: string;
@@ -233,6 +234,7 @@ interface EnterMomentProps {
 const EnterMomentStep: React.FC<EnterMomentProps> = ({
   title,
   userInput,
+  refinementNote,
   summary,
   userName,
   transitionLine,
@@ -264,6 +266,10 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   const personalized = keepOnlyOpeningUserName(summary, userName);
   // Cap to 2 paragraphs — this is an entry moment, not the full truth section
   const paragraphs = splitParagraphs(personalized).slice(0, 2);
+  const cleanRefinementNote = String(refinementNote || '').trim();
+  const momentCopyText = cleanRefinementNote
+    ? `${userInput}\n\nRefined:\n${cleanRefinementNote}`
+    : userInput;
 
   return (
     <ScrollView
@@ -301,7 +307,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
                     text: 'Copy',
                     onPress: () => {
                       triggerLightHaptic();
-                      Clipboard.setString(userInput);
+                      Clipboard.setString(momentCopyText);
                       Alert.alert('Copied', 'Moment copied to clipboard');
                     },
                   },
@@ -337,6 +343,30 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
             ) : (
               <ThemedText style={styles.userInputText} selectable={false}>{userInput}</ThemedText>
             )}
+
+            {cleanRefinementNote ? (
+              <View style={styles.refinedInputBlock}>
+                <View style={styles.refinedInputLabelRow}>
+                  <Ionicons name="refresh-outline" size={12} color="rgba(255,255,255,0.72)" />
+                  <ThemedText weight="semiBold" style={styles.refinedInputLabel}>REFINED</ThemedText>
+                </View>
+                {Platform.OS === 'ios' ? (
+                  <TextInput
+                    value={cleanRefinementNote}
+                    editable={false}
+                    multiline={true}
+                    scrollEnabled={false}
+                    contextMenuHidden={true}
+                    selectTextOnFocus={false}
+                    pointerEvents="none"
+                    textAlignVertical="top"
+                    style={[styles.refinedInputText, { fontFamily, padding: 0, margin: 0 }]}
+                  />
+                ) : (
+                  <ThemedText style={styles.refinedInputText} selectable={false}>{cleanRefinementNote}</ThemedText>
+                )}
+              </View>
+            ) : null}
           </TouchableOpacity>
         )}
       </StepFadeIn>
@@ -891,6 +921,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
       {/* Verse card */}
       <StepFadeIn delay={100} style={styles.verseCard}>
+        <View style={styles.verseRail} />
         <View style={styles.verseRefRow}>
           {Platform.OS === 'ios' ? (
             <TextInput
@@ -988,7 +1019,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'choice' | 'bullet' | 'field' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'field' | 'body';
 
 interface BodyLine {
   text: string;
@@ -1110,6 +1141,8 @@ function removeDecorativeActionSingleQuotes(text: string): string {
 
 function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
+    .replace(/(^|\n)([^*\n]{1,90}:\s*)\*\s+/g, (_match, prefix, label) => `${prefix}${String(label).trimEnd()}\n* `)
+    .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
     .split('\n')
     .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
     .join('\n');
@@ -1142,6 +1175,56 @@ function normalizeActionPracticeLoopText(text: string): string {
   return lines.join('\n');
 }
 
+function toInstructionPointOfView(text: string): string {
+  return String(text || '')
+    .replace(/\bmyself\b/gi, 'yourself')
+    .replace(/\bmy\b/gi, 'your')
+    .replace(/\bmine\b/gi, 'yours')
+    .replace(/\bme\b/gi, 'you')
+    .replace(/\bI\s+will\b/gi, 'you will')
+    .replace(/\bI\s+would\b/gi, 'you would')
+    .replace(/\bI\s+can\b/gi, 'you can')
+    .replace(/\bI\s+need\b/gi, 'you need')
+    .replace(/\bI\s+am\b/gi, 'you are')
+    .replace(/\bI'm\b/gi, "you're")
+    .replace(/\bI\s+(leave|call|ask|stop|remove|write|tell|send|go|pack|bring|keep|contact|message|text|document|share)\b/gi, 'you $1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function capitalizeInstruction(text: string): string {
+  const trimmed = String(text || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() + trimmed.slice(1) : '';
+}
+
+function splitLeadingQuotedActionText(value: string): { quote: string; rest: string } {
+  const source = String(value || '').trim();
+  const open = source[0];
+  if (open !== '"' && open !== '“') {
+    return { quote: source, rest: '' };
+  }
+
+  const close = open === '“' ? '”' : '"';
+  for (let i = 1; i < source.length; i++) {
+    if (source[i] === close && source[i - 1] !== '\\') {
+      return {
+        quote: source.slice(0, i + 1).trim(),
+        rest: source.slice(i + 1).trim(),
+      };
+    }
+  }
+
+  return { quote: source, rest: '' };
+}
+
+function splitQuestionPromptText(value: string): string[] {
+  const questions = String(value || '')
+    .split(/(?<=\?)\s+(?=[A-Z])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
+}
+
 function stripLeakedActionFieldFragments(value: string): string {
   let out = String(value || '');
   const leakedFieldIndex = out.search(/(?:^|[\s,}"'`])\\?["']?\s*(?:primary_button|secondary_button|primaryButton|secondaryButton)\s*\\?["']?\s*:/i);
@@ -1170,6 +1253,77 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
   return normalizeActionPracticeLoopText(cleaned);
 }
 
+function normalizeActionExampleDisplayText(example: string): string {
+  let value = String(example || '').trim();
+  if (!value || /^["“]/.test(value)) {
+    return value;
+  }
+
+  value = value.replace(/^(?:Today,\s+|Today\s+)I\s+/i, 'I ');
+
+  const messageSent = value.match(/^Message sent to\s+(.+?)\.?$/i);
+  if (messageSent) {
+    return `Send this message to ${messageSent[1].trim()}.`;
+  }
+
+  const textedAsking = value.match(/^(?:I\s+)?Texted\s+(.+?)\s+asking\s+(.+?)\.?$/i);
+  if (textedAsking) {
+    return `Text ${textedAsking[1].trim()} asking ${textedAsking[2].trim()}.`;
+  }
+
+  const sharedAndAsked = value.match(/^I\s+shared\s+with\s+(.+?)\s+who\s+agreed\s+to\s+(.+?)\.?$/i);
+  if (sharedAndAsked) {
+    return capitalizeInstruction(toInstructionPointOfView(`Share with ${sharedAndAsked[1].trim()} and ask them to ${sharedAndAsked[2].trim()}.`));
+  }
+
+  const instructionRules: Array<[RegExp, string]> = [
+    [/^I\s+will\s+(.+)$/i, '$1'],
+    [/^I\s+messaged\s+(.+)$/i, 'Message $1'],
+    [/^I\s+sent\s+(.+)$/i, 'Send $1'],
+    [/^I\s+texted\s+(.+)$/i, 'Text $1'],
+    [/^I\s+called\s+(.+)$/i, 'Call $1'],
+    [/^I\s+contacted\s+(.+)$/i, 'Contact $1'],
+    [/^I\s+asked\s+(.+)$/i, 'Ask $1'],
+    [/^I\s+told\s+(.+)$/i, 'Tell $1'],
+    [/^I\s+shared\s+with\s+(.+)$/i, 'Share with $1'],
+    [/^I\s+wrote\s+down\s+(.+)$/i, 'Write down $1'],
+    [/^I\s+wrote\s+(.+)$/i, 'Write $1'],
+    [/^I\s+listed\s+(.+)$/i, 'List $1'],
+    [/^I\s+documented\s+(.+)$/i, 'Document $1'],
+    [/^I\s+packed\s+(.+)$/i, 'Pack $1'],
+    [/^I\s+removed\s+(.+)$/i, 'Remove $1'],
+    [/^I\s+threw\s+(?:away|out)\s+(.+)$/i, 'Throw away $1'],
+    [/^I\s+hid\s+(.+)$/i, 'Secure $1'],
+    [/^I\s+secured\s+(.+)$/i, 'Secure $1'],
+    [/^I\s+put\s+(.+)$/i, 'Put $1'],
+    [/^I\s+placed\s+(.+)$/i, 'Place $1'],
+    [/^I\s+set\s+(.+)$/i, 'Set $1'],
+    [/^I\s+chose\s+(.+)$/i, 'Choose $1'],
+    [/^I\s+planned\s+(.+)$/i, 'Plan $1'],
+    [/^I\s+prayed\s+(.+)$/i, 'Pray $1'],
+    [/^I\s+read\s+(.+)$/i, 'Read $1'],
+    [/^I\s+confessed\s+(.+)$/i, 'Confess $1'],
+    [/^I\s+apologized\s+(.+)$/i, 'Apologize $1'],
+    [/^I\s+deleted\s+(.+)$/i, 'Delete $1'],
+    [/^I\s+blocked\s+(.+)$/i, 'Block $1'],
+    [/^I\s+avoided\s+(.+)$/i, 'Avoid $1'],
+    [/^I\s+stopped\s+(.+)$/i, 'Stop $1'],
+    [/^I\s+started\s+(.+)$/i, 'Start $1'],
+    [/^I\s+created\s+(.+)$/i, 'Create $1'],
+    [/^I\s+made\s+(.+)$/i, 'Make $1'],
+    [/^I\s+brought\s+(.+)$/i, 'Bring $1'],
+    [/^I\s+kept\s+(.+)$/i, 'Keep $1'],
+  ];
+
+  for (const [pattern, replacement] of instructionRules) {
+    if (pattern.test(value)) {
+      return capitalizeInstruction(toInstructionPointOfView(value.replace(pattern, replacement)));
+    }
+  }
+
+  return value;
+}
+
 function splitActionDescription(value: string): { body: string; example?: string } {
   const parts = String(value || '').split(/Example\s*[:：]\s*/i);
   const body = cleanActionDisplaySegment(parts[0] || '', true);
@@ -1177,7 +1331,9 @@ function splitActionDescription(value: string): { body: string; example?: string
     return { body };
   }
 
-  const example = cleanActionDisplaySegment(parts.slice(1).join('Example: '));
+  const example = normalizeActionExampleDisplayText(
+    cleanActionDisplaySegment(parts.slice(1).join('Example: '))
+  );
   return example ? { body, example } : { body };
 }
 
@@ -1186,6 +1342,26 @@ function splitReadableActionLine(line: string): string[] {
   if (!trimmed) { return []; }
   if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
   if (/^(?:Trigger|Temptation|Replacement response|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
+  const inlineScript = trimmed.match(/^((?:say|send|text|message|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
+  if (inlineScript) {
+    const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
+    return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
+  }
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (embeddedQuestionPrompt) {
+    return [
+      embeddedQuestionPrompt[1].trim(),
+      capitalizeFirstLetter(embeddedQuestionPrompt[2].trim()),
+      ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
+    ];
+  }
+  const questionPrompt = trimmed.match(/^((?:then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (questionPrompt) {
+    return [
+      capitalizeFirstLetter(questionPrompt[1].trim()),
+      ...splitQuestionPromptText(questionPrompt[2]),
+    ];
+  }
   if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
   if (trimmed.length < 145) { return [trimmed]; }
 
@@ -1197,25 +1373,62 @@ function splitReadableActionLine(line: string): string[] {
   return sentences.length >= 2 ? sentences : [trimmed];
 }
 
+function isQuotedActionLine(line: string): boolean {
+  return /^["\u201C\u201D]/.test(line.trim());
+}
+
+function isScriptIntroLine(line: string): boolean {
+  const trimmed = line.trim();
+  return /^(?:say|send|text|message|write|ask|pray)\b[^:]{0,60}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
+}
+
+function scriptLabelForIntro(line: string): string {
+  if (/\b(?:message|text|send|reply)\b/i.test(line)) {
+    return 'Message to send';
+  }
+  if (/\b(?:pray|prayer)\b/i.test(line)) {
+    return 'Prayer to say';
+  }
+  return 'Words to say';
+}
+
 function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
-  return lines.map((raw, idx) => {
+  const out: BodyLine[] = [];
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const raw = lines[idx];
     const line = raw.trim();
+    const nextLine = lines[idx + 1]?.trim() || '';
+
+    if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
+      out.push({
+        label: scriptLabelForIntro(line),
+        text: stripBalancedActionQuotes(nextLine),
+        type: 'script',
+      });
+      idx++;
+      continue;
+    }
 
     // Bullet items from Format B/D — lines starting with '* ', '- ', or '• '
     if (/^(?:\*|-|•) /.test(line)) {
-      return { text: line.replace(/^(?:\*|-|•) /, '').trim(), type: 'bullet' };
+      out.push({ text: line.replace(/^(?:\*|-|•) /, '').trim(), type: 'bullet' });
+      continue;
     }
 
     // Intro / label line ending with colon — check BEFORE quote detection
     // so lines like "'Stop' doing this:" are treated as intro, not quote
     if (line.endsWith(':') && line.length < 90) {
-      return { text: line, type: 'intro' };
+      out.push({ text: line, type: 'intro' });
+      continue;
     }
 
     // Quoted text — only double-quote chars, NOT single quotes.
     // Single quotes wrap emphasis words (e.g. 'Stop') and must not be treated as quotes.
-    if (/^["\u201C\u201D]/.test(line)) {
-      return { text: line, type: 'quote' };
+    if (isQuotedActionLine(line)) {
+      out.push({ text: line, type: 'quote' });
+      continue;
     }
 
     const fieldMatch = line.match(/^(Trigger|Temptation|Replacement response|Practice|Stop|Start):\s*(.+)$/i);
@@ -1223,7 +1436,8 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
         .replace(/^Replacement Response$/i, 'Response');
-      return { label, text: fieldMatch[2].trim(), type: 'field' };
+      out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
+      continue;
     }
 
     // For 'choose' type: candidate list items are short, not the first line, no trailing period
@@ -1235,11 +1449,14 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       !line.endsWith('?') &&
       !line.endsWith(':')
     ) {
-      return { text: line, type: 'choice' };
+      out.push({ text: line, type: 'choice' });
+      continue;
     }
 
-    return { text: line, type: 'body' };
-  });
+    out.push({ text: line, type: 'body' });
+  }
+
+  return out;
 }
 
 function cleanWisdomDisplayText(value: string): string {
@@ -1367,6 +1584,9 @@ interface FaithfulActionsStepProps {
   playbookId?: string;
   playbookTitle?: string;
   playbookStatus?: string;
+  truthSummary?: string;
+  truthInLove?: string;
+  dateOfBirth?: string;
   userId: string;
   onNext: () => void;
   onGoBack?: () => void;
@@ -1478,6 +1698,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   playbookId,
   playbookTitle,
   playbookStatus,
+  truthSummary,
+  truthInLove,
+  dateOfBirth,
   userId,
   onNext,
   onGoBack,
@@ -1936,6 +2159,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   // Full plain text for prayer saving and body-start detection (strips bullet markers)
   const mainBodyText = rawBodyLines.map(l => l.replace(/^(?:\*|-|•) /, '')).join(' ');
+  const actionGuidanceBody = [
+    mainBodyText,
+    exampleText ? `Example: ${exampleText}` : '',
+  ].filter(Boolean).join('\n\n');
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   console.log('[FaithfulActions] rawDescription:', JSON.stringify(rawDescription));
@@ -2150,6 +2377,21 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
             {/* Smart body lines */}
             {smartBodyLines.map((item, idx) => {
+              if (item.type === 'script') {
+                return (
+                  <View key={idx} style={styles.bodyScriptBlock}>
+                    <View style={styles.bodyScriptRail} />
+                    <View style={styles.bodyScriptHeader}>
+                      <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
+                        {item.label || 'Words to say'}
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.bodyScriptText} selectable={true}>
+                      {item.text}
+                    </ThemedText>
+                  </View>
+                );
+              }
               if (item.type === 'quote') {
                 return Platform.OS === 'ios' ? (
                   <TextInput
@@ -2234,6 +2476,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               if (item.type === 'field') {
                 return (
                   <View key={idx} style={styles.bodyFieldRow}>
+                    <View style={styles.bodyFieldRail} />
                     <View style={styles.bodyFieldLabel}>
                       <ThemedText weight="semiBold" style={styles.bodyFieldLabelText}>
                         {item.label}
@@ -2275,6 +2518,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             {exampleText && (
               <StepFadeIn key={`example-${actionStepIndex}`} delay={300}>
                 <View style={styles.exampleContainer}>
+                  <View style={styles.exampleRail} />
                   <View style={styles.exampleHeader}>
                     <Ionicons name="chatbubble-ellipses-outline" size={14} color="rgba(255,255,255,0.6)" />
                   </View>
@@ -2631,6 +2875,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             style={styles.actionFABCollapsedCircleTouchable}
             activeOpacity={0.8}
             onPress={() => {
+              triggerLightHaptic();
               setFabCollapsed(false);
               fabBarHiddenRef.current = false;
               Animated.spring(collapseAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 13 }).start();
@@ -2696,11 +2941,12 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               userName: (user as any)?.user_metadata?.full_name?.split(' ')[0] || (user as any)?.email?.split('@')[0] || '',
               actionId: currentStep.id || '',
               actionTitle: currentStep.title || '',
-              actionBody: mainBodyText || '',
+              actionBody: actionGuidanceBody || '',
               userQuestion: question,
-              truthSummary: '',
-              truthInLove: '',
+              truthSummary: truthSummary || '',
+              truthInLove: truthInLove || '',
               previousWisdom: wisdomContext,
+              dateOfBirth,
             });
 
             if (response.success && response.wisdom) {
@@ -2724,7 +2970,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               setCurrentActionWisdom(serializedThread);
               LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
               setWisdomExpanded(false);
-              setWisdomCount(response.wisdomCount || wisdomCount + 1);
+              setWisdomCount(typeof response.wisdomCount === 'number' ? response.wisdomCount : wisdomCount + 1);
+              if (typeof response.wisdomLimit === 'number') {
+                setWisdomLimit(response.wisdomLimit);
+              }
               if (playbookId && user?.id) {
                 queryClient.setQueryData(['playbook', playbookId, user.id], (cachedPlaybook: any) => {
                   if (!cachedPlaybook?.actionSteps) {
@@ -2741,6 +2990,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   };
                 });
                 queryClient.invalidateQueries({ queryKey: ['playbook', playbookId, user.id] });
+                queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
               }
               triggerSuccessHaptic();
             }
@@ -3099,6 +3349,10 @@ interface CompletionStepProps {
   fromNotification?: boolean;
 }
 
+function stripLeadingCompletionPunctuation(text: string): string {
+  return String(text || '').replace(/^\s*[.,;:!?]+\s*(?=[A-Za-z])/g, '').trim();
+}
+
 const CompletionStep: React.FC<CompletionStepProps> = ({
   title,
   closingText,
@@ -3118,6 +3372,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(persistedCompletionChoice);
   const headerAnim = useRef(new Animated.Value(40)).current;
   const buttonsAnim = useRef(new Animated.Value(30)).current;
+  const cleanPastoralClosing = stripLeadingCompletionPunctuation(pastoralClosing || '');
 
   useEffect(() => {
     Animated.spring(headerAnim, {
@@ -3149,7 +3404,10 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       .replace(/^TACTICAL\s+DEADLINE:\s*/gim, '')
       .replace(/\*\*|__|\*/g, '');
 
-    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = normalized
+      .split('\n')
+      .map(l => stripLeadingCompletionPunctuation(l))
+      .filter(Boolean);
 
     // Always show context line — inject if not already present
     // Use "Final reflection:" for completed playbooks, "Before you close:" for new ones
@@ -3222,18 +3480,18 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
         </Animated.View>
       </StepFadeIn>
 
-      {pastoralClosing ? (
+      {cleanPastoralClosing ? (
         <StepFadeIn delay={80}>
           {Platform.OS === 'ios' ? (
             <TextInput
-              value={pastoralClosing}
+              value={cleanPastoralClosing}
               editable={false}
               multiline={true}
               scrollEnabled={false}
               style={[styles.completionPastoralClosing, { fontFamily }]}
             />
           ) : (
-            <ThemedText style={styles.completionPastoralClosing} selectable={true}>{pastoralClosing}</ThemedText>
+            <ThemedText style={styles.completionPastoralClosing} selectable={true}>{cleanPastoralClosing}</ThemedText>
           )}
         </StepFadeIn>
       ) : null}
@@ -4140,6 +4398,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   // Derive data
+  const userMetadata = (user as any)?.user_metadata || {};
+  const dateOfBirth = userMetadata.birth_date || userMetadata.dateOfBirth || userMetadata.birthDate || '';
+  const truthInLoveText =
+    typeof playbook.truthInLove === 'string'
+      ? playbook.truthInLove
+      : playbook.truthInLove?.text || '';
+  const truthInLoveSummary =
+    typeof playbook.truthInLove === 'string'
+      ? ''
+      : playbook.truthInLove?.summary || '';
   const prayerText = playbook.prayer || '';
 
   const transitionLine: string = playbook.transitionLine?.trim() || '';
@@ -4174,6 +4442,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               <EnterMomentStep
                 title={playbook.title}
                 userInput={playbook.userInput}
+                refinementNote={playbook.latestRefinementNote}
                 summary={playbook.truthInLove?.summary || ''}
                 userName={userName}
                 transitionLine={transitionLine}
@@ -4212,6 +4481,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 playbookId={playbook.id}
                 playbookTitle={playbook.title}
                 playbookStatus={playbook.status}
+                truthSummary={truthInLoveSummary}
+                truthInLove={truthInLoveText}
+                dateOfBirth={dateOfBirth}
                 userId={userId}
                 onNext={goNext}
                 onGoBack={goBackActionStep}
@@ -4593,6 +4865,28 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 20,
   },
+  refinedInputBlock: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  refinedInputLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  refinedInputLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.72)',
+  },
+  refinedInputText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 20,
+  },
   title: {
     fontSize: 16,
     color: Colors.hopeWhite,
@@ -4780,13 +5074,20 @@ const styles = StyleSheet.create({
   // Scripture
   // alertCoral vertical bar on the left — blockquote style
   verseCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.alertCoral,
-    borderRadius: 2,
+    position: 'relative',
     paddingLeft: 18,
     paddingVertical: 4,
     marginTop: 28,
     marginBottom: 28,
+  },
+  verseRail: {
+    position: 'absolute',
+    left: 0,
+    top: 4,
+    bottom: 4,
+    width: 3,
+    borderRadius: 999,
+    backgroundColor: Colors.alertCoral,
   },
   verseRefRow: {
     flexDirection: 'row',
@@ -4876,6 +5177,44 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: Colors.faithGold,
   },
+  bodyScriptBlock: {
+    position: 'relative',
+    marginTop: 6,
+    marginBottom: 6,
+    paddingLeft: 14,
+    paddingVertical: 8,
+    paddingRight: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,204,102,0.06)',
+  },
+  bodyScriptRail: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 999,
+    backgroundColor: Colors.faithGold,
+  },
+  bodyScriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 5,
+  },
+  bodyScriptLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.faithGold,
+    letterSpacing: 0.4,
+  },
+  bodyScriptText: {
+    fontSize: 16,
+    color: Colors.faithGold,
+    lineHeight: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
   bodyLineIntro: {
     fontSize: 17,
     color: 'rgba(255,255,255,0.90)',
@@ -4909,12 +5248,20 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   bodyFieldRow: {
+    position: 'relative',
     marginTop: 4,
     paddingVertical: 5,
     paddingLeft: 10,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(255,107,107,0.42)',
     gap: 4,
+  },
+  bodyFieldRail: {
+    position: 'absolute',
+    left: 0,
+    top: 5,
+    bottom: 5,
+    width: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,107,107,0.42)',
   },
   bodyFieldLabel: {
     alignSelf: 'flex-start',
@@ -4938,12 +5285,20 @@ const styles = StyleSheet.create({
   },
   // Example block — matches ActionStepsCard original design
   exampleContainer: {
+    position: 'relative',
     marginTop: 12,
     marginLeft: 28,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(255,255,255,0.2)',
     paddingLeft: 12,
     paddingRight: 4,
+  },
+  exampleRail: {
+    position: 'absolute',
+    left: 0,
+    top: 3,
+    bottom: 3,
+    width: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   exampleHeader: {
     flexDirection: 'row' as const,
@@ -5526,7 +5881,7 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 8,
   },
   wordNumberCircle: {
     width: 28,

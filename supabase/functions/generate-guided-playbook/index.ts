@@ -262,8 +262,26 @@ function removeOverusedNavigationLanguage(text: string): string {
     .trim();
 }
 
+function normalizeAwkwardActionPhrases(text: string): string {
+  return String(text || '')
+    .replace(/\b[Ss]top walking outside while praying\b/g, (match) =>
+      match[0] === 'S' ? 'Step outside and pray' : 'step outside and pray')
+    .replace(/\b[Ss]top walking outside and pray\b/g, (match) =>
+      match[0] === 'S' ? 'Step outside and pray' : 'step outside and pray')
+    .replace(/\b[Ss]top walking outside to pray\b/g, (match) =>
+      match[0] === 'S' ? 'Step outside to pray' : 'step outside to pray')
+    .replace(/\bprayer walk-ups\b/gi, 'prayer pauses')
+    .replace(/\bprayer walk-up\b/gi, 'prayer pause');
+}
+
 function sanitizeText(text: string): string {
-  return removeOverusedNavigationLanguage(text.replace(/\byoga\b/gi, 'gentle stretching'));
+  return normalizeAwkwardActionPhrases(
+    removeOverusedNavigationLanguage(text.replace(/\byoga\b/gi, 'gentle stretching'))
+  );
+}
+
+function stripLeadingStrayPunctuation(text: string): string {
+  return String(text || '').replace(/^\s*[.,;:!?]+\s*(?=[A-Za-z])/g, '').trim();
 }
 
 function stripBalancedWrappingQuotes(text: string): string {
@@ -380,6 +398,8 @@ function removeDecorativeSingleQuotes(text: string): string {
 
 function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
+    .replace(/(^|\n)([^*\n]{1,90}:\s*)\*\s+/g, (_match, prefix, label) => `${prefix}${String(label).trimEnd()}\n* `)
+    .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
     .split('\n')
     .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
     .join('\n');
@@ -713,11 +733,105 @@ function buildFallbackActionExample(description: string): string {
   return 'Write one concrete version of this step and do it today.';
 }
 
+function toInstructionPointOfView(text: string): string {
+  return String(text || '')
+    .replace(/\bmyself\b/gi, 'yourself')
+    .replace(/\bmy\b/gi, 'your')
+    .replace(/\bmine\b/gi, 'yours')
+    .replace(/\bme\b/gi, 'you')
+    .replace(/\bI\s+will\b/gi, 'you will')
+    .replace(/\bI\s+would\b/gi, 'you would')
+    .replace(/\bI\s+can\b/gi, 'you can')
+    .replace(/\bI\s+need\b/gi, 'you need')
+    .replace(/\bI\s+am\b/gi, 'you are')
+    .replace(/\bI'm\b/gi, "you're")
+    .replace(/\bI\s+(leave|call|ask|stop|remove|write|tell|send|go|pack|bring|keep|contact|message|text|document|share)\b/gi, 'you $1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function capitalizeInstruction(text: string): string {
+  const trimmed = String(text || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() + trimmed.slice(1) : '';
+}
+
+function normalizeActionExampleText(example: string): string {
+  let value = String(example || '').trim();
+  if (!value || /^["“]/.test(value)) {
+    return value;
+  }
+
+  value = value.replace(/^(?:Today,\s+|Today\s+)I\s+/i, 'I ');
+
+  const messageSent = value.match(/^Message sent to\s+(.+?)\.?$/i);
+  if (messageSent) {
+    return `Send this message to ${messageSent[1].trim()}.`;
+  }
+
+  const textedAsking = value.match(/^(?:I\s+)?Texted\s+(.+?)\s+asking\s+(.+?)\.?$/i);
+  if (textedAsking) {
+    return `Text ${textedAsking[1].trim()} asking ${textedAsking[2].trim()}.`;
+  }
+
+  const sharedAndAsked = value.match(/^I\s+shared\s+with\s+(.+?)\s+who\s+agreed\s+to\s+(.+?)\.?$/i);
+  if (sharedAndAsked) {
+    return capitalizeInstruction(toInstructionPointOfView(`Share with ${sharedAndAsked[1].trim()} and ask them to ${sharedAndAsked[2].trim()}.`));
+  }
+
+  const instructionRules: Array<[RegExp, string]> = [
+    [/^I\s+will\s+(.+)$/i, '$1'],
+    [/^I\s+messaged\s+(.+)$/i, 'Message $1'],
+    [/^I\s+sent\s+(.+)$/i, 'Send $1'],
+    [/^I\s+texted\s+(.+)$/i, 'Text $1'],
+    [/^I\s+called\s+(.+)$/i, 'Call $1'],
+    [/^I\s+contacted\s+(.+)$/i, 'Contact $1'],
+    [/^I\s+asked\s+(.+)$/i, 'Ask $1'],
+    [/^I\s+told\s+(.+)$/i, 'Tell $1'],
+    [/^I\s+shared\s+with\s+(.+)$/i, 'Share with $1'],
+    [/^I\s+wrote\s+down\s+(.+)$/i, 'Write down $1'],
+    [/^I\s+wrote\s+(.+)$/i, 'Write $1'],
+    [/^I\s+listed\s+(.+)$/i, 'List $1'],
+    [/^I\s+documented\s+(.+)$/i, 'Document $1'],
+    [/^I\s+packed\s+(.+)$/i, 'Pack $1'],
+    [/^I\s+removed\s+(.+)$/i, 'Remove $1'],
+    [/^I\s+threw\s+(?:away|out)\s+(.+)$/i, 'Throw away $1'],
+    [/^I\s+hid\s+(.+)$/i, 'Secure $1'],
+    [/^I\s+secured\s+(.+)$/i, 'Secure $1'],
+    [/^I\s+put\s+(.+)$/i, 'Put $1'],
+    [/^I\s+placed\s+(.+)$/i, 'Place $1'],
+    [/^I\s+set\s+(.+)$/i, 'Set $1'],
+    [/^I\s+chose\s+(.+)$/i, 'Choose $1'],
+    [/^I\s+planned\s+(.+)$/i, 'Plan $1'],
+    [/^I\s+prayed\s+(.+)$/i, 'Pray $1'],
+    [/^I\s+read\s+(.+)$/i, 'Read $1'],
+    [/^I\s+confessed\s+(.+)$/i, 'Confess $1'],
+    [/^I\s+apologized\s+(.+)$/i, 'Apologize $1'],
+    [/^I\s+deleted\s+(.+)$/i, 'Delete $1'],
+    [/^I\s+blocked\s+(.+)$/i, 'Block $1'],
+    [/^I\s+avoided\s+(.+)$/i, 'Avoid $1'],
+    [/^I\s+stopped\s+(.+)$/i, 'Stop $1'],
+    [/^I\s+started\s+(.+)$/i, 'Start $1'],
+    [/^I\s+created\s+(.+)$/i, 'Create $1'],
+    [/^I\s+made\s+(.+)$/i, 'Make $1'],
+    [/^I\s+brought\s+(.+)$/i, 'Bring $1'],
+    [/^I\s+kept\s+(.+)$/i, 'Keep $1'],
+  ];
+
+  for (const [pattern, replacement] of instructionRules) {
+    if (pattern.test(value)) {
+      return capitalizeInstruction(toInstructionPointOfView(value.replace(pattern, replacement)));
+    }
+  }
+
+  return value;
+}
+
 function buildRenderedActionDescription(body: string, description = ''): string {
   const bodyParts = splitActionExample(body);
   const descriptionParts = splitActionExample(description);
   const main = bodyParts.main || descriptionParts.main;
-  const example = bodyParts.example || descriptionParts.example || buildFallbackActionExample(description);
+  const rawExample = bodyParts.example || descriptionParts.example || buildFallbackActionExample(description);
+  const example = normalizeActionExampleText(rawExample);
 
   if (!main) return example ? `Example: ${example}` : '';
 
@@ -1036,6 +1150,19 @@ function repairPlaybook(json: Record<string, any>): Record<string, any> {
   }
 
   // Ensure completion.question ends with ?
+  if (repaired.closing) {
+    repaired.closing = stripLeadingStrayPunctuation(String(repaired.closing));
+  }
+  if (repaired.completion?.question) {
+    repaired.completion.question = stripLeadingStrayPunctuation(String(repaired.completion.question));
+  }
+  if (Array.isArray(repaired.completion?.lines)) {
+    repaired.completion.lines = repaired.completion.lines.map((line: any) =>
+      typeof line === 'string' ? stripLeadingStrayPunctuation(line) : line
+    );
+  }
+
+  // Ensure completion.question ends with ?
   if (repaired.completion?.question && !String(repaired.completion.question).trim().endsWith('?')) {
     repaired.completion.question = String(repaired.completion.question).trim() + '?';
   }
@@ -1102,9 +1229,11 @@ function parseJsonPlaybook(
     directChallenge: (() => {
       const c = json.completion;
       if (c && typeof c === 'object') {
-        const question = String(c.question || '').trim();
+        const question = stripLeadingStrayPunctuation(String(c.question || ''));
         const lines = Array.isArray(c.lines)
           ? c.lines.filter((l: any) => typeof l === 'string' && l.trim().length > 0)
+              .map((l: string) => stripLeadingStrayPunctuation(l))
+              .filter((l: string) => l.length > 0)
           : [];
         const q = question.length >= 10 ? question : 'What specific step will you take this week to act on what you have learned?';
         const ls = lines.length >= 2 ? lines : ['Take one step forward today.', 'Trust God with the outcome.'];
@@ -1114,7 +1243,7 @@ function parseJsonPlaybook(
       return String(c || '');
     })(),
     challengeCTA: json.closing && String(json.closing).trim().length >= 5
-      ? stripAllName(cleanMarkdown(String(json.closing)), userName)
+      ? stripLeadingStrayPunctuation(stripAllName(cleanMarkdown(String(json.closing)), userName))
       : 'God is faithful to complete the work He began in you.',
     // ^ fallback for when the model leaves closing empty
     prayer: stripAllName(cleanMarkdown(json.prayer || ''), userName),
@@ -1187,6 +1316,7 @@ function sanitizePlaybook(playbook: Playbook) {
     examples: step.examples.map(e => sanitizeText(e)),
   }));
   if (playbook.directChallenge) playbook.directChallenge = sanitizeText(playbook.directChallenge);
+  if (playbook.challengeCTA) playbook.challengeCTA = stripLeadingStrayPunctuation(sanitizeText(playbook.challengeCTA));
   if (playbook.prayer) playbook.prayer = sanitizeText(playbook.prayer);
   if (playbook.wordToSpeak) playbook.wordToSpeak = sanitizeText(playbook.wordToSpeak);
   if (playbook.bibleVerseReflection) playbook.bibleVerseReflection = sanitizeText(playbook.bibleVerseReflection);
@@ -1925,7 +2055,12 @@ serve(async (req: Request) => {
         '  faithful_actions must be 5-7 specific, concrete steps — not a list of tips.',
         '  faithful_actions.body is the rendered walkthrough text. Vary the body field itself, not only description.',
         '  Every faithful_actions.body must include one Example: marker after the main assignment so the UI renders a speech-bubble example.',
+        '  Example text must be pre-action guidance: a sample action, exact wording, or filled-in field. It is not completion proof.',
+        '  Do not write past-tense completion reports like "Message sent...", "I texted...", "I wrote...", "I hid...", or "I shared...". Only primary_button should sound completed.',
         '  Use the required format mix in body: bullets with \\n* lines, decision filter, script, stop/start, timeline, practice loop, audit fields, or concise prose.',
+        '  Bullet checklists must put each bullet on its own line. Use "Do this:\\n* First step\\n* Second step", never "Do this: * First step * Second step".',
+        '  Script/message formats must put the quoted message on its own line and follow-up instruction on a separate line after the quote.',
+        '  Practice loops must use clear grammar. Use "Pause, step outside, and pray one honest sentence" instead of "Stop walking outside..." Never use "prayer walk-up".',
         '  Do not make every body a single paragraph followed by Example. Vary the main assignment before Example:',
         '  Do not use: ' + DRIFT_PHRASES.slice(0, 5).join(', ') + '.',
         '  Do not use any form of "navigate" or "navigation"; choose a concrete verb like face, discern, obey, endure, confront, or rebuild.',

@@ -606,6 +606,7 @@ serve(async (req: Request) => {
         refinementLimit,
         lastRefinedAt: refinedAt,
         activeVersion: nextVersion,
+        latestRefinementNote: clarification,
       },
       refinementCount: Number(incrementedSubscription.refinement_count || usedGlobalRefinements + 1),
       refinementLimit,

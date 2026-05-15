@@ -12,6 +12,7 @@ export interface WisdomRequest {
   truthSummary: string;
   truthInLove: string;
   previousWisdom?: string;
+  dateOfBirth?: string;
 }
 
 export interface WisdomThreadEntry {
@@ -45,6 +46,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
     truthSummary,
     truthInLove,
     previousWisdom,
+    dateOfBirth,
   } = request;
 
   // Check wisdom limits before making the API call
@@ -78,6 +80,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         truthSummary,
         truthInLove,
         previousWisdom,
+        dateOfBirth,
       },
     });
 
@@ -110,20 +113,14 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
       };
     }
 
-    // Increment wisdom usage count
-    await NewSubscriptionService.incrementUsage(userId, 'wisdom');
-
-    // Get updated subscription for count
-    const subscription = await NewSubscriptionService.getUserSubscription(userId);
-
     return {
       success: true,
       wisdom: data.wisdom,
       storedWisdom: data.storedWisdom,
       wisdomThread: data.wisdomThread,
       actionId: data.actionId,
-      wisdomCount: (subscription as any).wisdom_count || 0,
-      wisdomLimit: subscription.wisdom_limit || 0,
+      wisdomCount: typeof data.wisdomCount === 'number' ? data.wisdomCount : undefined,
+      wisdomLimit: typeof data.wisdomLimit === 'number' ? data.wisdomLimit : undefined,
     };
   } catch (error) {
     console.error('[actionWisdomService] Error:', error);

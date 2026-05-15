@@ -68,6 +68,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const resultAnim = React.useRef(new Animated.Value(0)).current;
   const loadingAnim = React.useRef(new Animated.Value(1)).current;
   const [dotIndex, setDotIndex] = useState(0);
+  const [showStillNeedHelpLabel, setShowStillNeedHelpLabel] = useState(false);
+  const stillNeedHelpWidthAnim = React.useRef(new Animated.Value(44)).current;
+  const stillNeedHelpTranslateXAnim = React.useRef(new Animated.Value(0)).current;
 
   const navigateToSalesOffer = React.useCallback((count = wisdomCount, limit = wisdomLimit, currentTier?: string) => {
     preserveDraftOnCloseRef.current = true;
@@ -252,6 +255,31 @@ const HowToModal: React.FC<HowToModalProps> = ({
     outputRange: [18, 0],
   });
 
+  // Still need help button animation - expand to show label then collapse
+  React.useEffect(() => {
+    if (result && hasWisdom) {
+      Animated.timing(stillNeedHelpWidthAnim, {
+        toValue: 160,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => {
+        setShowStillNeedHelpLabel(true);
+        setTimeout(() => {
+          setShowStillNeedHelpLabel(false);
+          Animated.timing(stillNeedHelpWidthAnim, {
+            toValue: 44,
+            duration: 300,
+            useNativeDriver: false,
+          }).start();
+        }, 3000);
+      });
+    } else {
+      stillNeedHelpWidthAnim.setValue(44);
+      stillNeedHelpTranslateXAnim.setValue(0);
+      setShowStillNeedHelpLabel(false);
+    }
+  }, [result, hasWisdom, stillNeedHelpWidthAnim, stillNeedHelpTranslateXAnim]);
+
   if (!visible) {return null;}
 
   return (
@@ -280,7 +308,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
             <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
 
-          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40 }}>
+          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
             <View style={styles.labelRow}>
               <Ionicons name="help-circle-outline" size={16} color={Colors.alertCoral} />
               <ThemedText weight="semiBold" style={styles.label}>HOW TO</ThemedText>
@@ -361,26 +389,6 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         </>
                       )}
                     </Animated.View>
-                    <TouchableOpacity
-                      style={styles.doneButton}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        preserveDraftOnCloseRef.current = false;
-                        onDismiss();
-                      }}
-                    >
-                      <ThemedText weight="semiBold" style={styles.doneButtonText}>Done</ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.stillNeedHelpButton}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        setResult(null);
-                        setQuestion('');
-                      }}
-                    >
-                      <ThemedText weight="semiBold" style={styles.stillNeedHelpButtonText}>Still need help?</ThemedText>
-                    </TouchableOpacity>
                   </>
                 ) : result.success === false ? (
                   <>
@@ -451,6 +459,36 @@ const HowToModal: React.FC<HowToModalProps> = ({
               </>
             )}
           </ScrollView>
+
+          {/* FAB Buttons - Fixed at bottom */}
+          {result && hasWisdom && (
+            <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  setResult(null);
+                  setQuestion('');
+                }}
+              >
+                <Animated.View style={[styles.stillNeedHelpButton, { width: stillNeedHelpWidthAnim, gap: showStillNeedHelpLabel ? 8 : 0, paddingHorizontal: showStillNeedHelpLabel ? 16 : 0 }]}>
+                  <Ionicons name="help-circle-outline" size={20} color={Colors.alertCoral} />
+                  {showStillNeedHelpLabel && (
+                    <ThemedText style={styles.stillNeedHelpLabel}>Still need help?</ThemedText>
+                  )}
+                </Animated.View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => {
+                  triggerLightHaptic();
+                  preserveDraftOnCloseRef.current = false;
+                  onDismiss();
+                }}
+              >
+                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -505,23 +543,26 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 24,
     alignSelf: 'center',
+    paddingHorizontal: 32,
   },
   stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: 'rgba(255,107,107,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumber: {
-    fontSize: 14,
+    fontSize: 11,
     color: Colors.alertCoral,
-    lineHeight: 18,
+    lineHeight: 14,
   },
   subtext: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
+    flex: 1,
+    flexShrink: 1,
   },
   title: {
     fontSize: 18,
@@ -708,11 +749,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   doneButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.anchorBlue,
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
   },
@@ -722,19 +764,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stillNeedHelpButton: {
-    backgroundColor: 'rgba(255,107,107,0.15)',
+    backgroundColor: '#3c436c',
+    height: 44,
     borderRadius: 22,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,107,107,0.3)',
-    marginTop: 12,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
   },
   stillNeedHelpButtonText: {
     color: Colors.alertCoral,
     fontSize: 16,
     fontWeight: '600',
+  },
+  stillNeedHelpLabel: {
+    color: Colors.alertCoral,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    zIndex: 100,
   },
   errorTitle: {
     fontSize: 20,
