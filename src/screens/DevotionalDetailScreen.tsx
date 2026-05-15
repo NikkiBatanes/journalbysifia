@@ -1588,7 +1588,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 0, // No top padding as per design
+    paddingTop: 60, // Add top padding to account for absolute header
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
