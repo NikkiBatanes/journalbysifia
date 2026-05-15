@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Colors } from '../theme/colors';
@@ -425,6 +426,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const navigation = useNavigation();
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
+  const queryClient = useQueryClient();
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean } | null>(null);
@@ -437,8 +439,10 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const stillNeedHelpWidthAnim = React.useRef(new Animated.Value(44)).current;
   const stillNeedHelpTranslateXAnim = React.useRef(new Animated.Value(0)).current;
 
-  const navigateToSalesOffer = React.useCallback((count = wisdomCount, limit = wisdomLimit, currentTier?: string) => {
+  const navigateToSalesOffer = React.useCallback(async (count = wisdomCount, limit = wisdomLimit, currentTier?: string) => {
     preserveDraftOnCloseRef.current = true;
+    // Invalidate subscription query to ensure fresh data before navigation
+    await queryClient.invalidateQueries({ queryKey: ['subscription'] });
     onDismiss();
     (navigation as any).navigate('OnboardingSalesOffer', {
       upgradeMode: true,
@@ -451,7 +455,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       testModeRemaining: limit === -1 ? -1 : Math.max(0, limit - count),
       testModeLimit: limit,
     });
-  }, [navigation, onDismiss, wisdomCount, wisdomLimit]);
+  }, [navigation, onDismiss, wisdomCount, wisdomLimit, queryClient]);
 
 
   // Loading animation - pulsing effect like refine modal

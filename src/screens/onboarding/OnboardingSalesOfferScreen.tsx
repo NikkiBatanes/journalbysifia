@@ -212,8 +212,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Check if coming from profile to preselect current tier
   const isFromProfile = routeParams?.source === 'profile';
 
-  const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
-                              (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
+  const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || subscription?.tier || 'seeker') :
+                              (routeParams?.currentTier || routeParams?.tier || subscription?.tier || devotionalGating.tier || 'seeker') as string;
   const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
   const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
                               routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
