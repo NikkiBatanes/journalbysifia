@@ -46,7 +46,7 @@ type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
 const PAID_PLAN_ORDER: PaidPlanTier[] = ['spark', 'growth', 'transformation'];
 
 const normalizePaidPlanTier = (tier?: string | null): PaidPlanTier | undefined => {
-  const normalized = String(tier || '').toLowerCase().replace(/_annual$/, '');
+  const normalized = String(tier || '').toLowerCase().replace(/_(?:annual|monthly)$/, '');
   return PAID_PLAN_ORDER.includes(normalized as PaidPlanTier) ? normalized as PaidPlanTier : undefined;
 };
 
@@ -212,8 +212,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   // Check if coming from profile to preselect current tier
   const isFromProfile = routeParams?.source === 'profile';
 
-  const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || subscription?.tier || 'seeker') :
-                              (routeParams?.currentTier || routeParams?.tier || subscription?.tier || devotionalGating.tier || 'seeker') as string;
+  const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
+                              (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
   const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
   const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
                               routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
@@ -244,10 +244,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   }, [hasManualTierSelection, selectedPlanTier, selectedTier]);
 
   useEffect(() => {
-    if (!hasManualTierSelection && selectedPlanTier !== initialSelectedTier) {
+    if (routeParams?.selectedTier && !isUpgradeMode && !hasManualTierSelection && selectedPlanTier !== initialSelectedTier) {
       setSelectedTier(initialSelectedTier);
     }
-  }, [hasManualTierSelection, initialSelectedTier, selectedPlanTier]);
+  }, [hasManualTierSelection, initialSelectedTier, isUpgradeMode, routeParams?.selectedTier, selectedPlanTier]);
 
   // Helper function to get tier display name
   const getTierDisplayName = (tier: string): string => {
@@ -568,8 +568,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           });
         }
 
-        // Filter to only show selected tier for Seeker/trial users in upgrade mode when collapsed (unless showAllPlans is true)
-        if (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher) && !showAllPlans) {
+        // Filter to only show selected tier in upgrade mode when collapsed (unless showAllPlans is true)
+        if (isUpgradeMode && !showAllPlans && !dynamicSalesCopy?.closeOnPrimaryCta) {
           tiers = tiers.filter(t => t.id === selectedPlanTier);
           logger.debug('Filtered to show selected tier when collapsed in upgrade mode', {
             selectedTier: selectedPlanTier,
@@ -707,16 +707,59 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     }
   }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
 
-  // Preselect recommended tier for paid users who hit limits
+  // Preselect next upgrade for paid users who hit limits.
+  // Only keep current plan selected when no further upgrade exists.
   useEffect(() => {
-    if (!hasManualTierSelection && dynamicSalesCopy?.recommendedTier && isUpgradeMode && !shouldUseTrialPlanSwitcher) {
-      const recommendedTier = dynamicSalesCopy.recommendedTier;
-      const tierExists = pricingTiers.find(t => t.id === recommendedTier);
-      if (tierExists && selectedTier !== recommendedTier) {
-        setSelectedTier(recommendedTier);
+    if (!hasManualTierSelection && isUpgradeMode && !shouldUseTrialPlanSwitcher && pricingTiers.length > 0) {
+      const currentTier = currentComparableTier;
+      const currentRank = getPaidPlanRank(currentTier);
+      const hasNextTier = currentRank >= 0 && currentRank < PAID_PLAN_ORDER.length - 1;
+
+      if (hasNextTier) {
+        const nextTier = PAID_PLAN_ORDER[currentRank + 1];
+        const tierExists = pricingTiers.find(t => t.id === nextTier);
+        if (tierExists && selectedTier !== nextTier) {
+          setSelectedTier(nextTier);
+        }
+        if (currentComparableBillingCycle === 'annual' && !isAnnual) {
+          setIsAnnual(true);
+        }
+        if (currentComparableBillingCycle === 'monthly' && isAnnual) {
+          setIsAnnual(false);
+        }
+        return;
+      }
+
+      const canUpgradeBillingCycle = currentTier === 'transformation' && currentComparableBillingCycle === 'monthly';
+      if (canUpgradeBillingCycle) {
+        if (selectedTier !== 'transformation') {
+          setSelectedTier('transformation');
+        }
+        if (!isAnnual) {
+          setIsAnnual(true);
+        }
+        return;
+      }
+
+      if (dynamicSalesCopy?.recommendedTier) {
+        const recommendedTier = dynamicSalesCopy.recommendedTier;
+        const tierExists = pricingTiers.find(t => t.id === recommendedTier);
+        if (tierExists && selectedTier !== recommendedTier) {
+          setSelectedTier(recommendedTier);
+        }
       }
     }
-  }, [hasManualTierSelection, dynamicSalesCopy?.recommendedTier, isUpgradeMode, pricingTiers, selectedTier, shouldUseTrialPlanSwitcher]);
+  }, [
+    currentComparableBillingCycle,
+    currentComparableTier,
+    dynamicSalesCopy?.recommendedTier,
+    hasManualTierSelection,
+    isAnnual,
+    isUpgradeMode,
+    pricingTiers,
+    selectedTier,
+    shouldUseTrialPlanSwitcher,
+  ]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
@@ -1935,7 +1978,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           {/* Bottom Links */}
           <View style={styles.bottomLinksContainer}>
             {/* See All Plans Button - show when in filtered mode, hide for "Got it" scenarios */}
-            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || (isUpgradeMode && (effectiveIsSeekerTier || shouldUseTrialPlanSwitcher)) || routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly) && !isCurrentTransformationPlan && !dynamicSalesCopy?.closeOnPrimaryCta && (
+            {(routeParams?.onboardingFlow || (!routeParams?.onboardingFlow && !isUpgradeMode) || isUpgradeMode || routeParams?.forceTransformationAnnual || routeParams?.forceAnnualOnly) && !isCurrentTransformationPlan && !dynamicSalesCopy?.closeOnPrimaryCta && (
               <TouchableOpacity
                 style={styles.seeAllPlansButton}
                 onPress={() => {

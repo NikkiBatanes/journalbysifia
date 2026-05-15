@@ -49,6 +49,10 @@ function getTierDisplayName(tier: SubscriptionTier): string {
   return tierNames[tier] || tier;
 }
 
+function normalizeTierVariant(tier?: string | null): string {
+  return String(tier || '').toLowerCase().replace(/_(?:annual|monthly)$/, '');
+}
+
 /**
  * Get tier limits
  */
@@ -142,18 +146,13 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : featureType === 'refinement' ? 'Refinements' : 'Devotionals';
   const hasNoRemaining = remaining === 0;
-  const effectiveTier = currentTier === 'free_trial' && trialChosenTier
-    ? trialChosenTier
-    : currentTier === 'transformation_annual'
-      ? 'transformation'
-      : currentTier === 'growth_annual'
-        ? 'growth'
-        : currentTier === 'spark_annual'
-          ? 'spark'
-      : currentTier;
+  const normalizedCurrentTier = normalizeTierVariant(currentTier) as SubscriptionTier;
+  const effectiveTier = normalizedCurrentTier === 'free_trial' && trialChosenTier
+    ? normalizeTierVariant(trialChosenTier)
+    : normalizedCurrentTier;
 
   // CASE 1: Seeker tier - monthly free access used up (2 PB / 1 DEV per month)
-  if (currentTier === 'seeker' && hasNoRemaining) {
+  if (normalizedCurrentTier === 'seeker' && hasNoRemaining) {
     const title = hasEverStartedTrial ? 'Upgrade to Keep Going' : 'Start Your Free Trial';
     const message = featureType === 'playbooks'
       ? hasEverStartedTrial
@@ -185,7 +184,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   // CASE 2: Trial user - no remaining
   if (isOnTrial && hasNoRemaining) {
-    const trialTier = trialChosenTier || 'spark';
+    const trialTier = normalizeTierVariant(trialChosenTier || 'spark') as SubscriptionTier;
     const tierName = getTierDisplayName(trialTier);
     const fullLimit = getTierLimits(trialTier, featureType);
     const fullLimitText = fullLimit === 1
@@ -243,12 +242,9 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
 
   // CASE 3: Paid user - no remaining (Spark, Growth, or Transformation)
   if (hasNoRemaining && (
-    currentTier === 'spark' ||
-    currentTier === 'spark_annual' ||
-    currentTier === 'growth' ||
-    currentTier === 'growth_annual' ||
-    currentTier === 'transformation' ||
-    currentTier === 'transformation_annual'
+    normalizedCurrentTier === 'spark' ||
+    normalizedCurrentTier === 'growth' ||
+    normalizedCurrentTier === 'transformation'
   )) {
     const resetDate = getNextMonthlyResetDate(subscriptionStartDate);
     const daysUntilReset = getDaysUntilReset(resetDate);
@@ -266,7 +262,7 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         : limit === 1 ? `1 ${featureType.slice(0, -1)}` : `${limit} ${featureType}`;
     const refreshName = featureType === 'wisdom' ? 'wisdom requests' : featureType === 'refinement' ? 'refinements' : featureNamePlural.toLowerCase();
 
-    if (currentTier === 'spark' || currentTier === 'spark_annual') {
+    if (normalizedCurrentTier === 'spark') {
       return {
         title: `No ${featureNamePlural}\nRemaining`,
         message: `You've used all your ${limitText} for this month.\n\nYour ${refreshName} will refresh in ${daysUntilReset} ${dayText}, on ${resetDateStr}. Want more? Upgrade to a different plan.`,
@@ -276,9 +272,11 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         showUpgradeOptions: true,
         isCurrentTier: 'spark',
       };
-    } else if (currentTier === 'transformation' || currentTier === 'transformation_annual') {
+    } else if (normalizedCurrentTier === 'transformation') {
       // Differentiate between monthly and yearly Transformation
-      const isMonthly = billingCycle === 'monthly' || currentTier === 'transformation';
+      const isMonthly = billingCycle
+        ? billingCycle === 'monthly'
+        : !String(currentTier || '').includes('_annual');
 
       if (isMonthly) {
         // Transformation monthly - offer yearly upgrade
