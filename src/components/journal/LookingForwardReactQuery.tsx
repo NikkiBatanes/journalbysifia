@@ -418,7 +418,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         triggerSuccessHaptic();
       } else {
         // Create new entry with optimistic update
-        const tempId = `temp-${Date.now()}`;
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const optimisticEntry = {
           id: tempId,
           text: trimmedText,

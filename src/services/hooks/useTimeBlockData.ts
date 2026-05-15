@@ -119,7 +119,7 @@ export const useCreateTimeBlock = () => {
       const queryKey = queryKeys.timeBlocks.byDate(newTimeBlock.user_id, newTimeBlock.selected_date);
       await queryClient.cancelQueries({ queryKey });
 
-      const optimisticId = `temp-${Date.now()}`;
+      const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
       const optimisticTimeBlock: TimeBlockWithVersion = {
         ...newTimeBlock,
@@ -234,7 +234,7 @@ export const useUpdateTimeBlock = () => {
       const previousTimeBlock = { ...timeBlockToUpdate };
 
       // Optimistically update the time block
-      const optimisticId = `update-${Date.now()}-${id}`;
+      const optimisticId = `update-${Date.now()}-${id}-${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
       queryClient.setQueryData<TimeBlockWithVersion[]>(
@@ -324,7 +324,7 @@ export const useDeleteTimeBlock = () => {
       const previousTimeBlocks = queryClient.getQueryData<TimeBlockWithVersion[]>(queryKey);
 
       // Optimistically remove the time block with a tombstone
-      const optimisticId = `delete-${Date.now()}-${timeBlockId}`;
+      const optimisticId = `delete-${Date.now()}-${timeBlockId}-${Math.random().toString(36).substr(2, 9)}`;
 
       queryClient.setQueryData<TimeBlockWithVersion[]>(
         queryKey,

@@ -224,7 +224,7 @@ export const useCreateJournalEntry = () => {
       // Create the optimistic entry
       const optimisticEntry = {
         ...newEntry,
-        id: 'temp-' + Date.now(),
+        id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -503,7 +503,7 @@ export const useCreateLookingForwardEntry = () => {
         ...old,
         {
           ...newEntry,
-          id: 'temp-' + Date.now(),
+          id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
           content_type: 'looking_forward',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -681,7 +681,7 @@ export const useCreateTodaysFocusEntry = () => {
         ...old,
         {
           ...newEntry,
-          id: 'temp-' + Date.now(),
+          id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
           content_type: 'todays_focus',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -809,7 +809,7 @@ export const useCreateTodoEntry = () => {
         ...old,
         {
           ...newEntry,
-          id: 'temp-' + Date.now(),
+          id: 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
           content_type: 'todo',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

@@ -195,7 +195,7 @@ export const useCreatePrayer = () => {
       // Optimistically update to the new value
       const optimisticPrayer: PrayerApiEntry = {
         ...newPrayer,
-        id: `temp-${Date.now()}`,
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -925,7 +925,7 @@ export const useCreateDevotionalPrayer = () => {
 
       // Create optimistic prayer entry
       const optimisticPrayer: PrayerApiEntry = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         user_id: userId,
         prayer_type: actualPrayerType,
         content,

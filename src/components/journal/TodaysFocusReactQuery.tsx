@@ -118,10 +118,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             // Generate unique ID that doesn't conflict with existing ones
             const existingIds = existingPriorities.map((p: PriorityItem) => p.id);
             const allCurrentIds = priorities.map((p: PriorityItem) => p.id);
-            let newId = `priority_${i + 1}_${Date.now()}`;
-            let counter = 1;
-            while (existingIds.includes(newId) || allCurrentIds.includes(newId)) {
-              newId = `priority_${i + 1}_${Date.now()}_${counter}`;
+            const allIds = [...existingIds, ...allCurrentIds];
+            let newId = `priority_${i + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            let counter = 0;
+            while (allIds.includes(newId) && counter < 100) {
+              newId = `priority_${i + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${counter}`;
               counter++;
             }
             priorities.push({ id: newId, text: '', completed: false });

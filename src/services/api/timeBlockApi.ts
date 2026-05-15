@@ -272,13 +272,20 @@ export class TimeBlockApi {
         // Create a virtual instance for this date
         const virtualBlock: TimeBlockApiEntry = {
           ...block,
-          id: `${block.id}-${targetDate}`, // Virtual ID for this instance
+          id: block.id, // Keep original UUID to avoid database validation errors
           selected_date: targetDate,
           // Update start_time and end_time to the target date
           start_time: this.adjustTimeToDate(block.start_time, targetDate),
           end_time: this.adjustTimeToDate(block.end_time, targetDate),
           // Virtual instances should reference the original's calendar event but with metadata
           calendar_event_id: block.calendar_event_id ? `${block.calendar_event_id}:${targetDate}` : undefined,
+          // Store virtual instance info in metadata to track this is a virtual block
+          metadata: {
+            ...block.metadata,
+            _virtualInstance: true,
+            _originalDate: block.selected_date,
+            _virtualDate: targetDate,
+          },
         };
         expandedBlocks.push(virtualBlock);
       } else {
