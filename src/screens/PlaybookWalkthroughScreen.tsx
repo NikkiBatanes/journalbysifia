@@ -1831,7 +1831,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     ]).start();
 
     if (expanding) {
-      scrollViewRef.current?.scrollTo({ y: lastScrollYRef.current + 82, animated: true });
+      scrollViewRef.current?.scrollToEnd({ animated: true });
       Animated.parallel([
         Animated.timing(rowHeight, { toValue: ICON_ROW_HEIGHT, duration: 260, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
