@@ -200,13 +200,6 @@ Examples:
 Do not invent motives. But when the user's words reveal a conclusion, name it plainly.
 Then confront whether that conclusion is true under Scripture.
 
-truth_blocks:
-4-7 short rhythmic beats extracted from truth_in_love for UI display.
-Each block must include:
-- type: one of opening, distinction, exposure, reframe, cost, direction, challenge, pause
-- text: 1-2 short sentences, no Bible references, no markdown
-The blocks must follow the same order as the truth_in_love logic.
-
 transition_line: One short sentence under 12 words that invites the person to pause, breathe, or let the diagnosis settle. Quiet and human, not explanatory. Do not mention Scripture, verses, reading, the next section, or what comes next. Vary the phrasing naturally across outputs. Do not repeat the same line.
 
 The purpose is to give the person a moment to breathe and let what was just said settle. It should feel like a gentle hand on the shoulder, a soft pause, not another diagnosis or app-navigation cue.
@@ -472,7 +465,7 @@ FORBIDDEN — formatting:
 IMPORTANT: You are generating a guided playbook. Do NOT write section headers (TRUTH IN LOVE:, ACTION STEPS:, AFFIRMATIONS:, CHALLENGE:, etc.). Output STRICT JSON ONLY. The JSON schema enforces structure — your job is voice and quality.
 
 Map each section to these JSON fields:
-playbook_title, category, truth_summary, truth_in_love, truth_blocks, transition_line, bible_verse (reference + text), scripture_note_lines, faithful_actions (array with title, description, body, primary_button, secondary_button per step), prayer, words_to_speak, closing, completion (question + lines).
+playbook_title, category, truth_summary, truth_in_love, transition_line, bible_verse (reference + text), scripture_note_lines, faithful_actions (array with title, description, body, primary_button, secondary_button per step), prayer, words_to_speak, closing, completion (question + lines).
 
 DO NOT output AFFIRMATIONS: or CHALLENGE: section text — they are replaced by words_to_speak and completion fields.
 Return strict JSON only. No markdown. No commentary outside the JSON object.`;

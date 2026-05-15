@@ -57,7 +57,6 @@ interface Playbook {
     reference: string;
     version?: string;
   };
-  truthBlocks?: TruthBlock[];
   directChallenge?: string;
   challengeCTA?: string;
   prayer?: string;
@@ -76,41 +75,6 @@ interface Playbook {
   location?: string;
   userTier?: string;
   isOnboarding?: string;
-}
-
-interface TruthBlock {
-  type: 'opening' | 'distinction' | 'exposure' | 'reframe' | 'cost' | 'direction' | 'challenge' | 'pause';
-  text: string;
-}
-
-type TruthBlockCandidate = {
-  type?: unknown;
-  text?: unknown;
-};
-
-type TruthBlockInput = {
-  type?: unknown;
-  text: string;
-};
-
-const TRUTH_BLOCK_TYPES = new Set<TruthBlock['type']>([
-  'opening',
-  'distinction',
-  'exposure',
-  'reframe',
-  'cost',
-  'direction',
-  'challenge',
-  'pause',
-]);
-
-function isTruthBlockPayload(block: unknown): block is TruthBlockInput {
-  if (!block || typeof block !== 'object') {
-    return false;
-  }
-
-  const candidate = block as TruthBlockCandidate;
-  return typeof candidate.text === 'string';
 }
 
 // ─── JSON Schema for Structured Outputs ─────────────────────────────────────
@@ -153,21 +117,6 @@ const PLAYBOOK_JSON_SCHEMA = {
       },
       truth_summary: { type: 'string' },
       truth_in_love: { type: 'string' },
-      truth_blocks: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            type: {
-              type: 'string',
-              enum: ['opening', 'distinction', 'exposure', 'reframe', 'cost', 'direction', 'challenge', 'pause'],
-            },
-            text: { type: 'string' },
-          },
-          required: ['type', 'text'],
-          additionalProperties: false,
-        },
-      },
       transition_line: { type: 'string' },
       bible_verse: {
         type: 'object',
@@ -230,7 +179,6 @@ const PLAYBOOK_JSON_SCHEMA = {
       'category',
       'truth_summary',
       'truth_in_love',
-      'truth_blocks',
       'transition_line',
       'bible_verse',
       'scripture_note_lines',
@@ -942,18 +890,6 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     }
   }
 
-  // truth_blocks: 4-7 supporting beats for UI rhythm
-  if (Array.isArray(json.truth_blocks)) {
-    const truthBlocks = json.truth_blocks.filter(isTruthBlockPayload).filter((block) => block.text.trim().length > 0);
-    if (truthBlocks.length < 4) {
-      softIssues.push(`truth_blocks has ${truthBlocks.length} items (expected 4-7)`);
-    } else if (truthBlocks.length > 7) {
-      softIssues.push(`truth_blocks has ${truthBlocks.length} items (max 7)`);
-    }
-  } else {
-    softIssues.push('truth_blocks is missing');
-  }
-
   // Abstraction drift — flag forbidden phrases
   const allText = JSON.stringify(json).toLowerCase();
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
@@ -1036,16 +972,10 @@ function appendUnique(existing: string[], fallback: string[], maxItems: number):
 function injectLocalRequiredFieldFallbacks(target: Record<string, any>): void {
   const title = cleanMarkdown(String(target.playbook_title || 'this moment'));
   const summary = cleanMarkdown(String(target.truth_summary || 'God is calling you to honest obedience right now.'));
-  const truthBlocks = Array.isArray(target.truth_blocks)
-    ? target.truth_blocks
-        .map((block: any) => cleanMarkdown(String(block?.text || '')))
-        .filter(Boolean)
-    : [];
 
   if (!target.truth_in_love || String(target.truth_in_love).trim().length < TRUTH_IN_LOVE_MIN_CHARS) {
     target.truth_in_love = [
       summary,
-      truthBlocks.slice(0, 2).join('\n\n'),
       `The issue in ${title.toLowerCase()} needs a direct response, not delay. Name what is wrong, bring it into the light before God, and refuse the easier path of avoidance.`,
       `Count the cost of staying passive. What feels easier today can harden into a pattern that weakens repentance, trust, and faithful action.`,
       `Take the next clear step with humility and courage. Obedience does not require perfect feelings first; it requires a willing yes to what God has already made clear.`,
@@ -1183,23 +1113,8 @@ function parseJsonPlaybook(
   userInput: string,
   bibleVersion?: string
 ): Playbook {
-  const truthBlocks: TruthBlock[] = Array.isArray(json.truth_blocks)
-    ? json.truth_blocks
-        .filter(isTruthBlockPayload)
-        .filter((block) => block.text.trim().length > 0)
-        .slice(0, 7)
-        .map((block) => ({
-          type: TRUTH_BLOCK_TYPES.has(String(block.type) as TruthBlock['type'])
-            ? (String(block.type) as TruthBlock['type'])
-            : 'pause',
-          text: cleanMarkdown(String(block.text || '')),
-        }))
-    : [];
-
   const rawTruthInLove = cleanMarkdown(json.truth_in_love || '');
-  const blockRenderedTruth = truthBlocks.map(block => block.text).filter(Boolean).join('\n\n');
-  const rawHasEnoughShape = rawTruthInLove.trim().length >= 200 && countParagraphs(rawTruthInLove) >= 4;
-  const truthInLoveText = rawHasEnoughShape ? rawTruthInLove : (blockRenderedTruth || rawTruthInLove);
+  const truthInLoveText = rawTruthInLove;
 
   const playbook: Playbook = {
     id: generateUUID(),
@@ -1210,7 +1125,6 @@ function parseJsonPlaybook(
       summary: stripRepeatedName(cleanMarkdown(json.truth_summary || ''), userName),
       text: stripAllName(truthInLoveText, userName),
     },
-    truthBlocks,
     actionSteps: [],
     wordsToSpeak: [],
     bibleVerse: {
