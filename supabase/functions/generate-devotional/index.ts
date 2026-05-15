@@ -1540,6 +1540,19 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
       const openAIRes = await executeOpenAIRequest(effectiveUserInput);
       aiData = await openAIRes.json();
 
+      // Log token usage
+      const usage = (aiData as any)?.usage;
+      if (usage) {
+        console.log('[Generate-Devotional] ===== TOKEN USAGE =====');
+        console.log('[Generate-Devotional] Model:', (aiData as any)?.model);
+        console.log('[Generate-Devotional] Prompt Tokens (Input):', usage.prompt_tokens);
+        console.log('[Generate-Devotional] Completion Tokens (Output):', usage.completion_tokens);
+        console.log('[Generate-Devotional] Total Tokens:', usage.total_tokens);
+        console.log('[Generate-Devotional] - Input Cost ($0.40/M):', (usage.prompt_tokens * 0.00040 / 1000).toFixed(6), 'USD');
+        console.log('[Generate-Devotional] - Output Cost ($1.60/M):', (usage.completion_tokens * 0.00160 / 1000).toFixed(6), 'USD');
+        console.log('[Generate-Devotional] - Total Cost:', ((usage.prompt_tokens * 0.00040 + usage.completion_tokens * 0.00160) / 1000).toFixed(6), 'USD');
+      }
+
       const choice = (aiData as any)?.choices?.[0];
       const finishReason = choice?.finish_reason;
       rawContent = typeof choice?.message?.content === 'string' ? choice.message.content : '';

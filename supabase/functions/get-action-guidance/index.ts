@@ -602,6 +602,19 @@ serve(async (req: Request) => {
     const rawWisdom = openAIdata.choices?.[0]?.message?.content || '';
     console.log('[Get-Action-Guidance] AI Raw Response:', rawWisdom);
 
+    // Log token usage
+    const usage = openAIdata.usage;
+    if (usage) {
+      console.log('[Get-Action-Guidance] ===== TOKEN USAGE =====');
+      console.log('[Get-Action-Guidance] Model:', openAIdata.model);
+      console.log('[Get-Action-Guidance] Prompt Tokens (Input):', usage.prompt_tokens);
+      console.log('[Get-Action-Guidance] Completion Tokens (Output):', usage.completion_tokens);
+      console.log('[Get-Action-Guidance] Total Tokens:', usage.total_tokens);
+      console.log('[Get-Action-Guidance] - Input Cost ($0.40/M):', (usage.prompt_tokens * 0.00040 / 1000).toFixed(6), 'USD');
+      console.log('[Get-Action-Guidance] - Output Cost ($1.60/M):', (usage.completion_tokens * 0.00160 / 1000).toFixed(6), 'USD');
+      console.log('[Get-Action-Guidance] - Total Cost:', ((usage.prompt_tokens * 0.00040 + usage.completion_tokens * 0.00160) / 1000).toFixed(6), 'USD');
+    }
+
     let parsedWisdom = parseWisdomJson(rawWisdom);
 
     if (isWeakWisdomAnswer(parsedWisdom, userQuestion, actionContext)) {
