@@ -1592,7 +1592,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
-    paddingTop: 8, // Increased to prevent day title from being cut off
+    paddingTop: 16, // Further increased to prevent day title from being cut off
     paddingBottom: 80,
   },
   scrollViewContent: {
