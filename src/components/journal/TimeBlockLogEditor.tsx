@@ -614,7 +614,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: Colors.anchorBlue,
     borderRadius: 24,
     padding: 20,
-    maxWidth: 280,
+    maxWidth: 340,
     alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
