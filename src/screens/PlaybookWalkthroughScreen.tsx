@@ -1741,6 +1741,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const wisdomChevronAnim = useRef(new Animated.Value(0)).current;
   // Ref tracks real expanded state to avoid stale closure in toggle
   const journalExpandedRef = useRef(false);
+  // Tracks if journal icons were manually expanded by user (to prevent auto-collapse)
+  const manuallyExpandedRef = useRef(false);
   // Tracks when journal icons were last manually toggled (to prevent scroll handler from immediately collapsing)
   const lastManualToggleRef = useRef(0);
   // Tracks all timers spawned by the auto-nudge so they can be cancelled on unmount
@@ -1811,6 +1813,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     // Use ref so we always read the real current value, not a stale closure
     const expanding = !journalExpandedRef.current;
     journalExpandedRef.current = expanding;
+    manuallyExpandedRef.current = expanding; // Track if this was a manual expansion
     lastManualToggleRef.current = Date.now(); // Track when this was manually toggled
     setJournalExpanded(expanding);
     onJournalExpanded?.(expanding);
@@ -1941,8 +1944,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     journalNudgeFired = true;
 
     const t1 = setTimeout(() => {
-      // Expand
+      // Expand (auto-nudge, so mark as not manual)
       journalExpandedRef.current = true;
+      manuallyExpandedRef.current = false; // Auto-nudge expansion, not manual
       setJournalExpanded(true);
       scrollViewRef.current?.scrollTo({ y: lastScrollYRef.current + 82, animated: true });
       Animated.parallel([
@@ -2109,8 +2113,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       fabBarHiddenRef.current = true;
       setFabCollapsed(true);
       Animated.spring(collapseAnim, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
-      // Auto-collapse journal icons on scroll, but only if it's been more than 500ms since manual toggle
-      if (journalExpandedRef.current && Date.now() - lastManualToggleRef.current > 500) {
+      // Auto-collapse journal icons on scroll, but only if they were NOT manually expanded by user
+      if (journalExpandedRef.current && !manuallyExpandedRef.current && Date.now() - lastManualToggleRef.current > 2000) {
         toggleJournalIcons();
       }
     } else if (isScrollingUp && currentY <= 0 && fabBarHiddenRef.current) {
