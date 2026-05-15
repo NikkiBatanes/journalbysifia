@@ -2110,6 +2110,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     const isScrollingUp = currentY < lastScrollYRef.current;
     lastScrollYRef.current = currentY;
     if (currentY > 60 && !fabBarHiddenRef.current) {
+      // Don't collapse FAB bar if journal icons are manually expanded
+      if (journalExpandedRef.current && manuallyExpandedRef.current) {
+        return;
+      }
       fabBarHiddenRef.current = true;
       setFabCollapsed(true);
       Animated.spring(collapseAnim, { toValue: 1, useNativeDriver: true, tension: 55, friction: 14 }).start();
