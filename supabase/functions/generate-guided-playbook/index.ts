@@ -293,7 +293,7 @@ function stripBalancedWrappingQuotes(text: string): string {
 
 function isActionApostrophe(text: string, index: number): boolean {
   const char = text[index];
-  if (char !== "'" && char !== '’') return false;
+  if (char !== "'" && char !== '‘' && char !== '’') return false;
   return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
 }
 
@@ -369,13 +369,20 @@ function removeDecorativeSingleQuotes(text: string): string {
 
   for (let i = 0; i < source.length; i++) {
     const char = source[i];
-    if ((char === "'" || char === '’') && !isActionApostrophe(source, i)) {
+    if ((char === "'" || char === '‘' || char === '’') && !isActionApostrophe(source, i)) {
       continue;
     }
     out += char;
   }
 
   return out;
+}
+
+function normalizeActionBulletMarkers(text: string): string {
+  return String(text || '')
+    .split('\n')
+    .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
+    .join('\n');
 }
 
 function normalizePracticeLoopText(text: string): string {
@@ -620,7 +627,7 @@ function detectFaithfulActionBodyFormat(body: string): string {
   const lower = normalized.toLowerCase();
 
   if (!normalized) return 'empty';
-  if (/\n\s*\*\s+/.test(normalized)) return 'bullet checklist';
+  if (/(?:^|\n)\s*(?:\*|-|•)\s+/.test(normalized)) return 'bullet checklist';
   if (/(?:^|\|)\s*[A-Za-z][A-Za-z ]{1,24}:\s*_{2,}/.test(normalized)) return 'audit table';
   if (/(?:trigger|craving|temptation)\b/i.test(normalized) && /(?:→|->)/.test(normalized)) return 'practice loop';
   if (/\bstop\b[\s\S]{0,160}\bstart\b/i.test(normalized)) return 'stop/start';
@@ -674,7 +681,7 @@ function stripLeakedActionFieldFragments(value: string): string {
 }
 
 function cleanActionTextSegment(value: string): string {
-  const normalized = stripMarkdownMarkers(stripLeakedActionFieldFragments(value))
+  const normalized = normalizeActionBulletMarkers(stripMarkdownMarkers(stripLeakedActionFieldFragments(value)))
     .replace(/\\"/g, '"')
     .replace(/\\'/g, "'");
 

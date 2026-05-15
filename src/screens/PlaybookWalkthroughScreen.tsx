@@ -1023,7 +1023,7 @@ function stripBalancedActionQuotes(text: string): string {
 
 function isActionApostrophe(text: string, index: number): boolean {
   const char = text[index];
-  if (char !== "'" && char !== '’') { return false; }
+  if (char !== "'" && char !== '‘' && char !== '’') { return false; }
   return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
 }
 
@@ -1099,13 +1099,20 @@ function removeDecorativeActionSingleQuotes(text: string): string {
 
   for (let i = 0; i < source.length; i++) {
     const char = source[i];
-    if ((char === "'" || char === '’') && !isActionApostrophe(source, i)) {
+    if ((char === "'" || char === '‘' || char === '’') && !isActionApostrophe(source, i)) {
       continue;
     }
     out += char;
   }
 
   return out;
+}
+
+function normalizeActionBulletMarkers(text: string): string {
+  return String(text || '')
+    .split('\n')
+    .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
+    .join('\n');
 }
 
 function normalizeActionPracticeLoopText(text: string): string {
@@ -1149,7 +1156,7 @@ function stripLeakedActionFieldFragments(value: string): string {
 }
 
 function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false): string {
-  let out = normalizeActionMarkup(stripLeakedActionFieldFragments(String(value || '')))
+  let out = normalizeActionBulletMarkers(normalizeActionMarkup(stripLeakedActionFieldFragments(String(value || ''))))
     .replace(/\\"/g, '"')
     .replace(/\\'/g, "'")
     .replace(/\*\*|__/g, '');
@@ -1177,7 +1184,7 @@ function splitActionDescription(value: string): { body: string; example?: string
 function splitReadableActionLine(line: string): string[] {
   const trimmed = line.trim();
   if (!trimmed) { return []; }
-  if (/^\* /.test(trimmed)) { return [trimmed]; }
+  if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
   if (/^(?:Trigger|Temptation|Replacement response|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
   if (trimmed.length < 145) { return [trimmed]; }
@@ -1194,9 +1201,9 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   return lines.map((raw, idx) => {
     const line = raw.trim();
 
-    // Bullet items from Format B/D — lines starting with '* '
-    if (/^\* /.test(line)) {
-      return { text: line.replace(/^\* /, '').trim(), type: 'bullet' };
+    // Bullet items from Format B/D — lines starting with '* ', '- ', or '• '
+    if (/^(?:\*|-|•) /.test(line)) {
+      return { text: line.replace(/^(?:\*|-|•) /, '').trim(), type: 'bullet' };
     }
 
     // Intro / label line ending with colon — check BEFORE quote detection
@@ -1919,14 +1926,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     .flatMap(l => {
       const trimmed = l.trim();
       if (!trimmed) { return []; }
-      // Bullet lines: preserve the '* ' prefix so detectBodyLines can identify them
-      if (/^\* /.test(trimmed)) { return [trimmed.replace(/\*\*/g, '').replace(/__/g, '')]; }
+      // Bullet lines: preserve the marker so detectBodyLines can identify them
+      if (/^(?:\*|-|•) /.test(trimmed)) {
+        return [trimmed.replace(/^(?:-|•) /, '* ').replace(/\*\*/g, '').replace(/__/g, '')];
+      }
       return splitReadableActionLine(stripMd(trimmed));
     })
     .filter(Boolean);
 
   // Full plain text for prayer saving and body-start detection (strips bullet markers)
-  const mainBodyText = rawBodyLines.map(l => l.replace(/^\* /, '')).join(' ');
+  const mainBodyText = rawBodyLines.map(l => l.replace(/^(?:\*|-|•) /, '')).join(' ');
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   console.log('[FaithfulActions] rawDescription:', JSON.stringify(rawDescription));

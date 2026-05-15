@@ -383,6 +383,7 @@ Available body formats:
 * Audit table style: short fields the user must fill in, such as "Trigger: __ | Lie: __ | Replacement: __"
 The description may stay simple and preview-like. The body is where the action format should vary.
 Use \n for line breaks.
+For bullet checklists, use only lines that begin with "* ". Never use hyphen bullets ("- ") or dash bullets inside faithful_actions.body.
 Never output <br>, <br/>, <br />, <p>, <b>, or any HTML tag in any field. Use literal \n line breaks only.
 Every body must end with or contain an Example: section. The main assignment before Example: must vary by format; the Example: section can be one short concrete coaching example, exact phrase, filled-in field, or sample action.
 - primary_button: very short completed-action label for a small mobile button. Must be 15 characters or fewer, including spaces. Max 3 words. First-person past tense when possible. Prefer compact labels like "I did it", "I wrote it", "I asked", "I prayed", "I sent it", "I chose", "I stopped", "I planned", "I checked". Do not summarize the whole action. If primary_button is longer than 15 characters, the UI will cut it off.
@@ -392,6 +393,7 @@ Do not suggest vague reflection as the main action.
 Do not suggest an external notes app. Use the journal in this app.
 Do not wrap the whole description, body, or Example text in single quotes or double quotes. Use quotes only when the user must say exact words out loud or in a message. The speech-bubble example itself does not need quotation marks.
 Do not wrap labels, headings, or phrases like Stop/start, Trigger, temptation, replacement response, or Do this in single quotes.
+When the user must say exact words, use straight double quotes only. Never use single quotes or curly single quotes for speech.
 When examples contain exact quoted speech, ALWAYS preserve both opening and closing quotes.
 Topic modules may require more actions. If a module gives specific action requirements, use enough actions to satisfy those requirements without padding the list.
 
