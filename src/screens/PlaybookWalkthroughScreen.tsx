@@ -78,6 +78,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const REFINEMENT_OPTIONS: Array<{ type: PlaybookCorrectionType; label: string }> = [
   { type: 'missing_detail', label: 'Missing important detail' },
   { type: 'wrong_assumption', label: 'Wrong assumption' },
+  { type: 'wrong_tone', label: 'Tone feels off' },
   { type: 'explain_more', label: 'I need to explain more' },
 ];
 
@@ -4656,17 +4657,23 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 12,
+    backgroundColor: '#2c4b78',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.24,
-    shadowRadius: 8,
-    elevation: 7,
+    paddingHorizontal: 14,
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.24,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 7,
+      },
+    }),
   },
   floatingRefinementButtonOpen: {
     backgroundColor: 'rgba(230, 90, 70, 0.28)',
@@ -4694,7 +4701,7 @@ const styles = StyleSheet.create({
   },
   refinementCountBadge: {
     borderRadius: 999,
-    backgroundColor: 'rgba(230, 90, 70, 0.34)',
+    backgroundColor: 'rgba(76, 184, 144, 0.34)',
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
@@ -5423,7 +5430,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   doneButtonCommitted: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: '#3c436c',
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   doneButtonTextCommitted: {

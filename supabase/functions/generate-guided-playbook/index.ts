@@ -599,6 +599,7 @@ const ENABLE_PROVIDER_CONTENT_FILTER_RETRY = true;
 const ENABLE_PAID_ARCHITECTURAL_RETRY = false;
 const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce|marital)\b/i;
 const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
+const NEGATED_MARRIAGE_REGEX = /\b(?:not|never|no longer|isn't|is not|wasn't|was not|aren't|are not)\s+(?:married|in a marriage|my husband|my wife|my spouse)\b|\bnot\s+(?:my\s+)?(?:husband|wife|spouse)\b|\bnot\s+about\s+(?:marriage|my marriage)\b/i;
 const INDIRECT_TRUTH_OPENERS = [
   /^it (?:is|can be|may be)\b/i,
   /^sometimes\b/i,
@@ -1216,6 +1217,7 @@ interface RequestBody {
   location?: string;
   userTier?: string;
   isOnboarding?: boolean;
+  promptDetectionInput?: string;
 }
 
 // ─── serve ────────────────────────────────────────────────────────────────────
@@ -1252,6 +1254,7 @@ serve(async (req: Request) => {
     bibleVersion,
     userTier,
     isOnboarding,
+    promptDetectionInput,
   } = requestBody;
 
   const authHeader = req.headers.get('authorization');
@@ -1274,8 +1277,12 @@ serve(async (req: Request) => {
   console.log('[Generate-Guided-Playbook] promptLine injected:', audienceContext.promptLine);
   console.log('[Generate-Guided-Playbook] ===== END AGE CONTEXT =====');
 
+  const detectionInput = typeof promptDetectionInput === 'string' && promptDetectionInput.trim()
+    ? promptDetectionInput.trim()
+    : userInput;
+
   // Content safety check
-  const contentAnalysis = analyzeContent(userInput);
+  const contentAnalysis = analyzeContent(detectionInput);
   const providerFilterShouldBlockUser = contentAnalysis.shouldBlock || [
     'self_harm',
     'violence',
@@ -1344,11 +1351,13 @@ serve(async (req: Request) => {
     }
 
     let effectiveUserInput = userInput;
+    let effectivePromptDetectionInput = detectionInput;
     const preferredBibleVersion = bibleVersion || 'NASB';
-    const hasExplicitMarriageContext = MARRIAGE_EXPLICIT_REGEX.test(effectiveUserInput);
-    const hasAmbiguousRelationshipContext = AMBIGUOUS_RELATIONSHIP_REGEX.test(effectiveUserInput) && !hasExplicitMarriageContext;
-    const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectiveUserInput)
-      || (/\b(jesus|christ)\b/i.test(effectiveUserInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectiveUserInput));
+    const hasNegatedMarriageContext = NEGATED_MARRIAGE_REGEX.test(effectivePromptDetectionInput);
+    const hasExplicitMarriageContext = MARRIAGE_EXPLICIT_REGEX.test(effectivePromptDetectionInput) && !hasNegatedMarriageContext;
+    const hasAmbiguousRelationshipContext = (AMBIGUOUS_RELATIONSHIP_REGEX.test(effectivePromptDetectionInput) || hasNegatedMarriageContext) && !hasExplicitMarriageContext;
+    const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectivePromptDetectionInput)
+      || (/\b(jesus|christ)\b/i.test(effectivePromptDetectionInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectivePromptDetectionInput));
 
     // Build a clean structured context payload for the user turn.
     // Keep this slim: name, Bible version, user moment, and per-request overrides only.
@@ -1389,18 +1398,18 @@ serve(async (req: Request) => {
     };
 
     // Build the full user message: context payload only (no few-shot examples).
-    const buildUserMessage = (input: string): { message: string; developerPrompt: string } => {
+    const buildUserMessage = (input: string, promptInput: string = effectivePromptDetectionInput): { message: string; developerPrompt: string } => {
       const context = buildPlaybookUserContext(input);
       const separator = '\n---\n\nNow generate a playbook:\n\n';
       const message = separator + context;
       console.log('[Generate-Playbook] User message length:', message.length, 'chars');
-      const developerPrompt = buildGuidedPlaybookPrompt(input);
+      const developerPrompt = buildGuidedPlaybookPrompt(promptInput);
       console.log('[Generate-Playbook] Developer prompt length:', developerPrompt.length, 'chars');
       console.log('[Generate-Playbook] JSON schema size:', JSON.stringify(PLAYBOOK_JSON_SCHEMA).length, 'chars');
       return { message, developerPrompt };
     };
 
-    let { message: userMessage, developerPrompt } = buildUserMessage(effectiveUserInput);
+    let { message: userMessage, developerPrompt } = buildUserMessage(effectiveUserInput, effectivePromptDetectionInput);
 
     // OpenAI call helper — accepts optional message override for explicit retry paths.
     async function callOpenAI(model: string, messageOverride?: string): Promise<Response> {
@@ -1526,7 +1535,13 @@ serve(async (req: Request) => {
         .replace(/\b(cheating|cheat|cheated)\b/gi, 'struggling with faithfulness')
         .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
         .trim();
-      const softenedPrompt = buildUserMessage(softenedInput);
+      const softenedPromptDetectionInput = effectivePromptDetectionInput
+        .replace(/\b(lying|lie|lied|liar|lies)\b/gi, 'struggling with honesty')
+        .replace(/\b(stealing|steal|stole|theft)\b/gi, 'struggling with taking what is not mine')
+        .replace(/\b(cheating|cheat|cheated)\b/gi, 'struggling with faithfulness')
+        .replace(/\b(hurting|hitting|hit)\s+(him|her|them|my|someone)\b/gi, 'struggling in this relationship')
+        .trim();
+      const softenedPrompt = buildUserMessage(softenedInput, softenedPromptDetectionInput);
       userMessage = softenedPrompt.message;
       developerPrompt = softenedPrompt.developerPrompt;
       const filterRetryRes = await callOpenAI('gpt-4.1-mini');
@@ -1626,8 +1641,16 @@ serve(async (req: Request) => {
             .replace(/\b(i want|i need|i will)\b/gi, 'I am thinking about')
             .replace(/\s+/g, ' ')
             .trim();
+      effectivePromptDetectionInput = contentAnalysis.isVictimExperience
+        ? paraphraseVictimExperience(detectionInput)
+        : detectionInput
+            .replace(/\b(i want to|i need to|i will)\s+(commit\s+)?suicide\b/gi, 'I am struggling with thoughts of ending my life')
+            .replace(/\b(i want to|i need to|i will)\s+kill\s+myself\b/gi, 'I am having thoughts of self-harm')
+            .replace(/\b(i want|i need|i will)\b/gi, 'I am thinking about')
+            .replace(/\s+/g, ' ')
+            .trim();
 
-      const paraphrasedPrompt = buildUserMessage(effectiveUserInput);
+      const paraphrasedPrompt = buildUserMessage(effectiveUserInput, effectivePromptDetectionInput);
       userMessage = paraphrasedPrompt.message;
       developerPrompt = paraphrasedPrompt.developerPrompt;
 

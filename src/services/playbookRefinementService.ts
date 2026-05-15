@@ -4,7 +4,6 @@ import type { Playbook } from '../interfaces/playbook';
 export type PlaybookCorrectionType =
   | 'wrong_assumption'
   | 'missing_detail'
-  | 'too_generic'
   | 'wrong_tone'
   | 'explain_more';
 

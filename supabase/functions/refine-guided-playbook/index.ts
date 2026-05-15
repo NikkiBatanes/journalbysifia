@@ -1,13 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
-import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
-import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
-import { bibleVerseService } from '../_shared/bibleVerseService.ts';
-import { analyzeContent, paraphraseVictimExperience } from '../_shared/contentSafety.ts';
-import { keyPoolManager } from '../_shared/keyPoolManager.ts';
-import { buildGuidedPlaybookPrompt } from '../generate-guided-playbook/persona.config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +38,21 @@ function cleanText(value: unknown, max = 800): string {
   return value.replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+function correctionTypeInstruction(type: string): string {
+  switch (type) {
+    case 'wrong_assumption':
+      return 'WRONG ASSUMPTION: The user is correcting a fact or inference. Treat the clarification as authoritative. Remove the wrong assumption from every section, including title, truth_in_love, verse framing, faithful_actions, prayer, and words_to_speak.';
+    case 'missing_detail':
+      return 'MISSING DETAIL: Integrate the new detail into the original moment without turning the clarification into a separate topic.';
+    case 'wrong_tone':
+      return 'WRONG TONE: Keep biblical directness, but adjust the tone according to the user clarification. Do not become harsh, accusatory, vague, or overly soft.';
+    case 'explain_more':
+      return 'EXPLAIN MORE: Deepen the diagnosis and practical next steps using the clarification, while keeping the original moment as the main topic.';
+    default:
+      return 'GENERAL REFINEMENT: Use the clarification to make the playbook more accurate, specific, and useful for the original moment.';
+  }
+}
+
 function buildRefinementInput(args: {
   originalInput: string;
   title: string;
@@ -59,8 +67,6 @@ function buildRefinementInput(args: {
     .slice(0, 5)
     .map(m => `- ${m.memory_text}`)
     .join('\n');
-
-  const personaPrompt = buildGuidedPlaybookPrompt(args.originalInput, false);
 
   return [
     'REFINEMENT REQUEST: Revise the same playbook because the previous output missed or misunderstood part of the user\'s moment.',
@@ -80,19 +86,19 @@ function buildRefinementInput(args: {
     '',
     memoryLines ? `RELEVANT REMEMBERED CONTEXT:\n${memoryLines}\n` : '',
     '=== CRITICAL REVISION RULES ===',
-    '- The PRIOR USER INPUT above is the PRIMARY CONTEXT - this is the original moment the user shared. ALL content must address this original moment first.',
-    '- The USER CLARIFICATION is secondary - use it only to add missing details or correct misunderstandings about the ORIGINAL moment.',
+    correctionTypeInstruction(args.correctionType),
+    '- The PRIOR USER INPUT defines the main situation - this is the original moment the user shared. ALL content must address this original moment first.',
+    '- The USER CLARIFICATION is authoritative for corrected facts, relationship status, missing context, tone, and what the previous playbook got wrong.',
+    '- If the previous playbook, remembered context, or ambiguous original wording conflicts with the USER CLARIFICATION, obey the USER CLARIFICATION.',
     '- Do NOT shift focus to the clarification. The clarification is a tool to better understand the original moment, not a new moment itself.',
     '- EVERY faithful_action, prayer, and words_to_speak line MUST be grounded in the original moment. If an action/prayer/declaration could have been written without reading the PRIOR USER INPUT, it is WRONG.',
     '- The original gist, tone, and heart of the moment must be preserved. Do not lose the essence of what the user originally shared.',
     '- The truth_in_love diagnosis must be grounded in the original moment, using the clarification only to sharpen accuracy where the previous playbook missed something.',
-    '- When in doubt, ALWAYS prioritize the original prompt over the clarification. The original moment is what the user is actually living through.',
+    '- When deciding the topic, prioritize the original prompt. When deciding corrected facts, prioritize the clarification.',
     '- Do not mention that this is a revision.',
     '- Do not apologize for the previous playbook.',
     '- Generate a complete replacement playbook for the same moment.',
     '- Preserve the app format exactly.',
-    '',
-    personaPrompt,
   ].filter(Boolean).join('\n');
 }
 
@@ -116,6 +122,13 @@ function truthInLoveIsTooShort(result: any): boolean {
 
 function detectMemoryTopic(text: string): { topic: string; memoryText: string } | null {
   const lower = text.toLowerCase();
+  if (/\b(?:do not|don't)\s+(?:remember|save|store|keep)\b/.test(lower)) return null;
+
+  const isNegatedMention = (index: number): boolean => {
+    const before = lower.slice(Math.max(0, index - 44), index);
+    return /\b(?:not|never|no|without|isn't|is not|wasn't|was not|aren't|are not|ain't|don't|do not|doesn't|does not|didn't|did not)\b/.test(before);
+  };
+
   const checks: Array<{ topic: string; patterns: RegExp[]; memoryText: string }> = [
     {
       topic: 'sisters',
@@ -139,7 +152,16 @@ function detectMemoryTopic(text: string): { topic: string; memoryText: string } 
     },
   ];
 
-  return checks.find(check => check.patterns.some(pattern => pattern.test(lower))) || null;
+  for (const check of checks) {
+    const hasAffirmedMatch = check.patterns.some(pattern => {
+      const match = lower.match(pattern);
+      if (!match || match.index === undefined) return false;
+      return !isNegatedMention(match.index);
+    });
+    if (hasAffirmedMatch) return check;
+  }
+
+  return null;
 }
 
 async function updateMemoryItem(supabase: any, userId: string, text: string) {
@@ -342,6 +364,11 @@ serve(async (req: Request) => {
     });
 
     const authHeader = req.headers.get('authorization') || `Bearer ${anonKey}`;
+    const promptDetectionInput = [
+      playbook.user_input || '',
+      clarification,
+    ].filter(Boolean).join('\n');
+
     const generateReplacement = async (extraInstruction = '') => {
       const generationResponse = await fetch(`${supabaseUrl}/functions/v1/generate-guided-playbook`, {
         method: 'POST',
@@ -357,6 +384,7 @@ serve(async (req: Request) => {
           userTier: tier,
           isOnboarding: false,
           dateOfBirth: body.dateOfBirth,
+          promptDetectionInput,
         }),
       });
 
@@ -410,6 +438,25 @@ serve(async (req: Request) => {
       throw new Error('Generated playbook did not include action steps');
     }
 
+    let refinementChargeReserved = false;
+    const refundRefinementCharge = async () => {
+      if (!refinementChargeReserved) return;
+      const { error: refundError } = await supabase
+        .from('user_subscriptions_new')
+        .update({
+          refinement_count: usedGlobalRefinements,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('refinement_count', usedGlobalRefinements + 1);
+
+      if (refundError) {
+        console.warn('[refine-guided-playbook] Failed to refund reserved refinement after write failure', refundError);
+      } else {
+        refinementChargeReserved = false;
+      }
+    };
+
     const { data: incrementedSubscription, error: incrementError } = await supabase
       .from('user_subscriptions_new')
       .update({
@@ -436,89 +483,107 @@ serve(async (req: Request) => {
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
+    refinementChargeReserved = true;
 
     const playbookRefinementCount = Number(playbook.refinement_count || 0);
 
     const oldActionIds = (oldActions || []).map((action: any) => action.id).filter(Boolean);
 
-    // Delete old actions first to avoid duplicate key conflicts
-    if (oldActionIds.length > 0) {
-      const { error: deleteSubTasksError } = await supabase
-        .from('playbook_sub_tasks')
-        .delete()
-        .in('action_step_id', oldActionIds);
+    try {
+      // Delete old actions first to avoid duplicate key conflicts
+      if (oldActionIds.length > 0) {
+        const { error: deleteSubTasksError } = await supabase
+          .from('playbook_sub_tasks')
+          .delete()
+          .in('action_step_id', oldActionIds);
 
-      if (deleteSubTasksError) {
-        throw deleteSubTasksError;
+        if (deleteSubTasksError) {
+          throw deleteSubTasksError;
+        }
+
+        const { error: deleteActionsError } = await supabase
+          .from('playbook_action_steps')
+          .delete()
+          .in('id', oldActionIds);
+
+        if (deleteActionsError) {
+          throw deleteActionsError;
+        }
       }
 
-      const { error: deleteActionsError } = await supabase
+      // Now insert new actions with no conflict
+      const { error: insertActionsError } = await supabase
         .from('playbook_action_steps')
-        .delete()
-        .in('id', oldActionIds);
+        .insert(newActionRows);
 
-      if (deleteActionsError) {
-        throw deleteActionsError;
+      if (insertActionsError) {
+        throw insertActionsError;
       }
+
+      // Clean up stale affirmations so refined content doesn't accumulate orphaned rows
+      await supabase
+        .from('playbook_affirmations')
+        .delete()
+        .eq('playbook_id', playbookId);
+
+      const bibleVerseToSave = {
+        ...(generated.bibleVerse || {}),
+        ...(generated.bibleVerseReflection ? { reflection: generated.bibleVerseReflection } : {}),
+      };
+
+      const nextVersion = currentVersion + 1;
+      const refinedAt = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('playbooks')
+        .update({
+          title: generated.title,
+          category: generated.category || playbook.category || null,
+          truth_in_love: generated.truthInLove,
+          bible_verse: bibleVerseToSave,
+          direct_challenge: directChallengeToSave(generated),
+          challenge_cta: generated.challengeCTA || '',
+          transition_line: generated.transitionLine || '',
+          refinement_count: playbookRefinementCount + 1,
+          last_refined_at: refinedAt,
+          active_version: nextVersion,
+          latest_refinement_note: clarification,
+          updated_at: refinedAt,
+        })
+        .eq('id', playbookId)
+        .eq('user_id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } catch (writeError) {
+      await refundRefinementCharge();
+      throw writeError;
     }
-
-    // Now insert new actions with no conflict
-    const { error: insertActionsError } = await supabase
-      .from('playbook_action_steps')
-      .insert(newActionRows);
-
-    if (insertActionsError) {
-      throw insertActionsError;
-    }
-
-    // Clean up stale affirmations so refined content doesn't accumulate orphaned rows
-    await supabase
-      .from('playbook_affirmations')
-      .delete()
-      .eq('playbook_id', playbookId);
-
-    const bibleVerseToSave = {
-      ...(generated.bibleVerse || {}),
-      ...(generated.bibleVerseReflection ? { reflection: generated.bibleVerseReflection } : {}),
-    };
+    refinementChargeReserved = false;
 
     const nextVersion = currentVersion + 1;
     const refinedAt = new Date().toISOString();
-    const { error: updateError } = await supabase
-      .from('playbooks')
-      .update({
-        title: generated.title,
-        category: generated.category || playbook.category || null,
-        truth_in_love: generated.truthInLove,
-        bible_verse: bibleVerseToSave,
-        direct_challenge: directChallengeToSave(generated),
-        challenge_cta: generated.challengeCTA || '',
-        transition_line: generated.transitionLine || '',
-        refinement_count: playbookRefinementCount + 1,
-        last_refined_at: refinedAt,
-        active_version: nextVersion,
-        latest_refinement_note: clarification,
-        updated_at: refinedAt,
-      })
-      .eq('id', playbookId)
-      .eq('user_id', userId);
 
-    if (updateError) {
-      throw updateError;
+    try {
+      await supabase
+        .from('playbook_refinement_feedback')
+        .insert({
+          playbook_id: playbookId,
+          user_id: userId,
+          from_version: currentVersion,
+          to_version: nextVersion,
+          correction_type: correctionType,
+          clarification,
+        });
+    } catch (feedbackError) {
+      console.warn('[refine-guided-playbook] Failed to save refinement feedback', feedbackError);
     }
 
-    await supabase
-      .from('playbook_refinement_feedback')
-      .insert({
-        playbook_id: playbookId,
-        user_id: userId,
-        from_version: currentVersion,
-        to_version: nextVersion,
-        correction_type: correctionType,
-        clarification,
-      });
-
-    await updateMemoryItem(supabase, userId, `${playbook.user_input || ''}\n${clarification}`);
+    try {
+      await updateMemoryItem(supabase, userId, clarification);
+    } catch (memoryError) {
+      console.warn('[refine-guided-playbook] Failed to update refinement memory', memoryError);
+    }
 
     const { data: updatedPlaybook } = await supabase
       .from('playbooks')
