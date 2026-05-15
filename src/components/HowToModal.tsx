@@ -342,7 +342,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                     >
                       {Platform.OS === 'ios' ? (
                         <TextInput
-                          value={`${wisdomItems.intro}${wisdomItems.intro ? '\n\n' : ''}${wisdomItems.items.map((item, index) => {
+                          value={`${wisdomItems.intro}${wisdomItems.intro ? '\n\n' : ''}${wisdomItems.items.map((item) => {
                             const titledItem = splitWisdomItemTitle(item);
                             if (titledItem) {
                               return `${titledItem.title}\n${titledItem.body}`;

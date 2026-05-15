@@ -101,7 +101,7 @@ const splitParagraphs = (text: string): string[] =>
 const stripVerseQuotes = (text: string): string => {
   // Check if the verse contains actual speech attribution
   const hasSpeechAttribution = /(Jesus|Peter|Paul|they) said/i.test(text);
-  
+
   // If no speech attribution, remove wrapping quotes
   if (!hasSpeechAttribution) {
     // Remove wrapping quotes if they exist
@@ -112,7 +112,7 @@ const stripVerseQuotes = (text: string): string => {
       return text.slice(1, -1);
     }
   }
-  
+
   return text;
 };
 
@@ -3807,7 +3807,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     const sessionStart = Date.now();
     console.log('[PlaybookWalkthrough] Starting AsyncStorage session load at', sessionStart - mountTimeRef.current, 'ms after mount');
-    
+
     if (!playbookId) {
       setSessionLoaded(true);
       console.log('[PlaybookWalkthrough] No playbookId - sessionLoaded set immediately at', Date.now() - mountTimeRef.current, 'ms');
@@ -3818,7 +3818,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       .then(raw => {
         const sessionEnd = Date.now();
         console.log('[PlaybookWalkthrough] AsyncStorage.getItem completed in', sessionEnd - sessionStart, 'ms (total:', sessionEnd - mountTimeRef.current, 'ms after mount)');
-        
+
         if (raw) {
           try {
             const session = JSON.parse(raw);
@@ -4319,7 +4319,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [stepIndex]);
 
   const handleSkipWalkthrough = useCallback(() => {
     if (source === 'onboarding') {
@@ -4375,9 +4375,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     shouldFetch,
     hasPlaybook: !!playbook,
     loadingGatePassed,
-    timeSinceMount: Date.now() - mountTimeRef.current + 'ms'
+    timeSinceMount: Date.now() - mountTimeRef.current + 'ms',
   });
-  
+
   if (!loadingGatePassed) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
