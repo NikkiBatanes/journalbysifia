@@ -1449,6 +1449,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingRight: 50, // Add padding to prevent overlap with share button
   },
   exportButton: {
     position: 'absolute',
@@ -1490,6 +1491,8 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 4,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   dayCounterContainer: {
     flexDirection: 'row',
@@ -1568,6 +1571,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     marginBottom: 10,
     alignItems: 'flex-start',
+    width: '100%', // Ensure full width for proper wrapping
   },
   dayNumber: {
     fontSize: 14,
