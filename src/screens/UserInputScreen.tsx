@@ -960,9 +960,14 @@ const UserInputScreen: React.FC = () => {
         return;
       }
 
+      const generationInterrupted = (error as any).generationInterrupted;
       Alert.alert(
-        'Connection Lost',
-        (error as Error)?.message || 'The network connection was lost. Please try again.',
+        generationInterrupted ? 'Try Again' : 'Connection Lost',
+        (error as Error)?.message || (
+          generationInterrupted
+            ? 'I started creating your playbook, but the response stopped before it finished. Please try again.'
+            : 'The network connection was lost. Please try again.'
+        ),
         [
           {
             text: 'Try Again',

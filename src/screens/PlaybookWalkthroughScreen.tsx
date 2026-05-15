@@ -5588,10 +5588,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   completionQuestion: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.hopeWhite,
-    lineHeight: 24,
+    lineHeight: 28,
     marginBottom: 20,
   },
   completionChoicesContainer: {
@@ -5604,7 +5604,7 @@ const styles = StyleSheet.create({
   },
   completionActionItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
   },
   completionActionCircle: {
@@ -5615,7 +5615,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
-    marginTop: 2,
   },
   completionActionNumber: {
     fontSize: 14,
@@ -5625,7 +5624,7 @@ const styles = StyleSheet.create({
   completionActionLine: {
     flex: 1,
     fontSize: 15,
-    color: Colors.hopeWhite,
+    color: 'rgba(255,255,255,0.6)',
     lineHeight: 24,
   },
   completionStayNote: {

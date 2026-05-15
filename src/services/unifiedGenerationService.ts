@@ -309,9 +309,24 @@ export class UnifiedGenerationService {
             throw blockError;
           }
 
-          throw new Error(errorData.message || `Generation failed (HTTP ${response.status}). Please try again.`);
+          if (errorData.error === 'GENERATION_INTERRUPTED') {
+            const interruptedError: any = new Error(
+              errorData.message || 'I started creating your playbook, but the response stopped before it finished. Please try again.'
+            );
+            interruptedError.generationInterrupted = true;
+            interruptedError.retryable = errorData.retryable === true;
+            throw interruptedError;
+          }
+
+          const backendError: any = new Error(errorData.message || `Generation failed (HTTP ${response.status}). Please try again.`);
+          backendError.backendError = true;
+          throw backendError;
         } catch (parseError) {
-          if ((parseError as any).contentBlocked) {
+          if (
+            (parseError as any).contentBlocked ||
+            (parseError as any).generationInterrupted ||
+            (parseError as any).backendError
+          ) {
             throw parseError;
           }
           Logger.error('[UnifiedGenerationService] Direct generation non-JSON error', new Error(`HTTP ${response.status}`), {

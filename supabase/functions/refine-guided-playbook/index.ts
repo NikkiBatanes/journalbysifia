@@ -1,6 +1,13 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
+import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
+import { CircuitBreaker, CIRCUIT_KEYS } from '../_shared/circuitBreaker.ts';
+import { bibleVerseService } from '../_shared/bibleVerseService.ts';
+import { analyzeContent, paraphraseVictimExperience } from '../_shared/contentSafety.ts';
+import { keyPoolManager } from '../_shared/keyPoolManager.ts';
+import { buildGuidedPlaybookPrompt } from '../generate-guided-playbook/persona.config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,6 +60,8 @@ function buildRefinementInput(args: {
     .map(m => `- ${m.memory_text}`)
     .join('\n');
 
+  const personaPrompt = buildGuidedPlaybookPrompt(args.originalInput, false);
+
   return [
     'REFINEMENT REQUEST: Revise the same playbook because the previous output missed or misunderstood part of the user\'s moment.',
     '',
@@ -83,15 +92,7 @@ function buildRefinementInput(args: {
     '- Generate a complete replacement playbook for the same moment.',
     '- Preserve the app format exactly.',
     '',
-    '=== TRUTH_IN_LOVE DEPTH REQUIREMENTS ===',
-    '- truth_in_love must NOT become a short summary. It is the main pastoral diagnosis.',
-    '- Write truth_in_love as exactly 3 paragraphs (4 only if there are two genuinely distinct issues).',
-    '- Minimum depth: at least 400 characters total.',
-    '- P1 names the pattern specifically from the user\'s own words. P2 exposes the root — name the specific false belief, what they are treating as a verdict, or what they are trusting instead of God. P3 combines the cost and direction decisively.',
-    '- Each paragraph must cover ground the others do not. No word-root repetition across paragraphs — if P1 uses "protect/protection," P2 must shift to a different biblical category.',
-    '- Each paragraph must be specific to the original moment. Do not write generic encouragement.',
-    '- Do not replace truth_in_love with a one-line takeaway, slogan, or devotional caption.',
-    '- For anything inferred (not directly stated by the user), use humble language: "this may be...", "it is possible that...", "part of what might be happening..."',
+    personaPrompt,
   ].filter(Boolean).join('\n');
 }
 
@@ -108,8 +109,8 @@ function paragraphCount(text: string): number {
 
 function truthInLoveIsTooShort(result: any): boolean {
   const text = truthInLoveText(result);
-  if (text.length < 650) return true;
-  if (paragraphCount(text) < 3) return true;
+  if (text.length < 280) return true;
+  if (paragraphCount(text) < 2) return true;
   return false;
 }
 
@@ -382,9 +383,9 @@ serve(async (req: Request) => {
       const retry = await generateReplacement([
         'RETRY QUALITY FIX:',
         'The previous refinement made truth_in_love too short.',
-        'Regenerate the full playbook, but make truth_in_love a complete 3-paragraph pastoral diagnosis.',
+        'Regenerate the full playbook, but make truth_in_love a complete 2-4 paragraph pastoral diagnosis.',
         'Do not summarize. Do not write a short devotional thought. Keep it specific, direct, and grounded in the original moment.',
-        'Minimum truth_in_love length: 400 characters.',
+        'Minimum truth_in_love length: 280 characters.',
       ].join('\n'));
 
       generationResponse = retry.generationResponse;
