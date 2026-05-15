@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
@@ -28,6 +29,370 @@ interface HowToModalProps {
   onThreadUpdate?: (entry: { question: string; wisdom: string }) => void;
   wisdomCount: number;
   wisdomLimit: number;
+}
+
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'ask' | 'question' | 'checklist' | 'body';
+
+interface BodyLine {
+  text: string;
+  type: BodyLineType;
+  label?: string;
+}
+
+function capitalizeFirstLetter(text: string): string {
+  const trimmed = String(text || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() + trimmed.slice(1) : '';
+}
+
+function isActionApostrophe(text: string, index: number): boolean {
+  const char = text[index];
+  if (char !== "'" && char !== '‘' && char !== '’') { return false; }
+  return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
+}
+
+function stripBalancedActionQuotes(text: string): string {
+  let out = String(text || '').trim();
+  const quotePairs: Array<[string, string]> = [
+    ['"', '"'],
+    ["'", "'"],
+    ['`', '`'],
+    ['"', '"'],
+    ['', ''],
+  ];
+
+  let changed = true;
+  while (changed && out.length >= 2) {
+    changed = false;
+    for (const [open, close] of quotePairs) {
+      if (out.startsWith(open) && out.endsWith(close)) {
+        out = out.slice(open.length, out.length - close.length).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return out;
+}
+
+function isQuotedActionLine(line: string): boolean {
+  return /^["\u201C\u201D]/.test(line.trim());
+}
+
+function isScriptIntroLine(line: string): boolean {
+  const trimmed = line.trim();
+  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
+}
+
+function scriptLabelForIntro(line: string): string {
+  if (/\bsay\s+plainly\b/i.test(line)) {
+    return 'Say plainly';
+  }
+  if (/\beach\s+morning\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Each morning say aloud';
+  }
+  if (/\beach\s+(?:day|night|evening)\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Say aloud daily';
+  }
+  if (/\b(?:message|text|send|reply)\b/i.test(line)) {
+    return 'Message to send';
+  }
+  if (/\b(?:pray|prayer)\b/i.test(line)) {
+    return 'Prayer to say';
+  }
+  return 'Words to say';
+}
+
+function isChecklistIntroLine(line: string): boolean {
+  return /^(?:do this|steps to take|action steps):\s*$/i.test(line.trim());
+}
+
+function isAskPromptIntroLine(line: string): boolean {
+  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|ask|then ask|ask yourself|test|check):\s*$/i.test(line.trim());
+}
+
+function askPromptLabel(line: string): string {
+  const trimmed = line.trim();
+  if (/^(?:read|rad) slow(?:ly|ely) and ask/i.test(trimmed)) {
+    return 'Read slowly and ask';
+  }
+  if (/^pause and ask/i.test(trimmed)) {
+    return 'Pause and ask';
+  }
+  if (/^test/i.test(trimmed)) {
+    return 'Test this';
+  }
+  if (/^check/i.test(trimmed)) {
+    return 'Check this';
+  }
+  return 'Ask yourself';
+}
+
+function isCheckInLabelValueLine(line: string): { label: string; text: string } | null {
+  const match = line.match(/^([^:\n]{3,72}):\s*(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const label = match[1].trim();
+  const text = match[2].trim();
+  if (!label || !text || /^example$/i.test(label) || isScriptIntroLine(`${label}:`)) {
+    return null;
+  }
+
+  const looksLikeCheckIn =
+    /^(?:today|areas?|what|where|when|who|why|how|wins?|setbacks?|progress|notes?|action|fear|lie|truth|helped|next|specifics?|journal|discipline|temptation|response|replacement)\b/i.test(label) ||
+    /^(?:yes\s*\/\s*no|list\b|note\b|name\b|choose\b|write\b|fill\b|mark\b|track\b|specifics?\b)/i.test(text);
+
+  return looksLikeCheckIn ? { label, text } : null;
+}
+
+function parentheticalHintLabelForMain(main: string): string {
+  return /\b(?:limit|limits|boundary|boundaries|off-limits|allowed|forbidden|rules?)\b/i.test(main)
+    ? 'Possible limits'
+    : 'Suggestions';
+}
+
+function splitListHintItems(value: string): string[] {
+  return String(value || '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
+    .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
+    .split(/\s*,\s*/)
+    .map(part => part.trim().replace(/[.!?]+$/g, ''))
+    .filter(Boolean);
+}
+
+function extractParentheticalActionHint(value: string): { main: string; hints: string[]; label: string } | null {
+  const match = String(value || '').trim().match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const hints = splitListHintItems(match[2]);
+  if (!main || hints.length === 0) {
+    return null;
+  }
+
+  return {
+    main: /[.!?]$/.test(main) ? main : `${main}${match[3] || ''}`,
+    hints,
+    label: parentheticalHintLabelForMain(main),
+  };
+}
+
+function splitQuestionPromptText(value: string): string[] {
+  const questions = String(value || '')
+    .split(/(?<=\?)\s+(?=\S)/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
+}
+
+function splitLeadingQuotedActionText(value: string): { quote: string; rest: string } {
+  const source = String(value || '').trim();
+  const open = source[0];
+  if (open !== '"' && open !== '"' && open !== "'" && open !== '') {
+    return { quote: source, rest: '' };
+  }
+
+  const close = open === '"' ? '"' : open === '' ? '' : open;
+  for (let i = 1; i < source.length; i++) {
+    if (source[i] === close && source[i - 1] !== '\\' && !isActionApostrophe(source, i)) {
+      const rawQuote = source.slice(0, i + 1).trim();
+      const quote = open === "'" || open === ''
+        ? `"${stripBalancedActionQuotes(rawQuote)}"`
+        : rawQuote;
+      return {
+        quote,
+        rest: source.slice(i + 1).trim(),
+      };
+    }
+  }
+
+  return { quote: source, rest: '' };
+}
+
+function splitReadableActionLine(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed) { return []; }
+  if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  if (embeddedScript) {
+    const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
+    return [
+      embeddedScript[1].trim(),
+      embeddedScript[2].trim(),
+      quote,
+      ...splitReadableActionLine(rest),
+    ];
+  }
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  if (inlineScript) {
+    const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
+    return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
+  }
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (embeddedQuestionPrompt) {
+    return [
+      embeddedQuestionPrompt[1].trim(),
+      capitalizeFirstLetter(embeddedQuestionPrompt[2].trim()),
+      ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
+    ];
+  }
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
+    return [
+      ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
+      capitalizeFirstLetter(embeddedLooseQuestionPrompt[2].trim()),
+      ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
+    ];
+  }
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (questionPrompt) {
+    return [
+      capitalizeFirstLetter(questionPrompt[1].trim()),
+      ...splitQuestionPromptText(questionPrompt[2]),
+    ];
+  }
+  if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
+
+  const sentenceParts = trimmed
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  if (
+    sentenceParts.length >= 2 &&
+    sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
+  ) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
+
+  const parentheticalHint = extractParentheticalActionHint(trimmed);
+  if (parentheticalHint) {
+    return [parentheticalHint.main, `${parentheticalHint.label}: ${parentheticalHint.hints.join('; ')}`];
+  }
+
+  if (trimmed.length < 145) { return [trimmed]; }
+
+  return sentenceParts.length >= 2 ? sentenceParts : [trimmed];
+}
+
+function normalizeActionMarkup(text: string): string {
+  return String(text || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n')
+    .replace(/<p\s*>/gi, '')
+    .replace(/<\/?.[^>]+>/g, '');
+}
+
+function cleanWisdomDisplayText(value: string): string {
+  if (!value) return '';
+  return value
+    .replace(/\*\*/g, '')
+    .replace(/__([^_]+)__/g, '$1')
+    .trim();
+}
+
+function detectBodyLines(lines: string[]): BodyLine[] {
+  const out: BodyLine[] = [];
+  let expectingPromptQuestion = false;
+  let inChecklist = false;
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const raw = lines[idx];
+    const line = raw.trim();
+    const nextLine = lines[idx + 1]?.trim() || '';
+
+    if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
+      out.push({
+        label: scriptLabelForIntro(line),
+        text: stripBalancedActionQuotes(nextLine),
+        type: 'script',
+      });
+      idx++;
+      inChecklist = false;
+      continue;
+    }
+
+    if (/^(?:\*|-|•) /.test(line)) {
+      out.push({
+        text: line.replace(/^(?:\*|-|•) /, '').trim(),
+        type: inChecklist ? 'checklistItem' : 'bullet',
+      });
+      expectingPromptQuestion = false;
+      continue;
+    }
+
+    if (isAskPromptIntroLine(line)) {
+      out.push({ label: askPromptLabel(line), text: '', type: 'ask' });
+      expectingPromptQuestion = true;
+      inChecklist = false;
+      continue;
+    }
+
+    if (expectingPromptQuestion && line.endsWith('?')) {
+      out.push({ text: line, type: 'question' });
+      inChecklist = false;
+      continue;
+    }
+
+    if (isChecklistIntroLine(line)) {
+      out.push({ label: 'Do this', text: '', type: 'checklist' });
+      expectingPromptQuestion = false;
+      inChecklist = true;
+      continue;
+    }
+
+    if (line.endsWith(':') && line.length < 90) {
+      out.push({ text: line, type: 'intro' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (isQuotedActionLine(line)) {
+      out.push({ text: line, type: 'quote' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    const hintMatch = line.match(/^(Suggestions|Examples|Possible limits|Limit examples|Daily supports):\s*(.+)$/i);
+    if (hintMatch) {
+      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintMatch[2].trim(), type: 'hint' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s*(.+)$/i);
+    if (fieldMatch) {
+      const label = fieldMatch[1]
+        .replace(/\b\w/g, char => char.toUpperCase())
+        .replace(/^Replacement(?: Response)?$/i, 'Response');
+      out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    const checkInLine = isCheckInLabelValueLine(line);
+    if (checkInLine) {
+      out.push({ label: checkInLine.label, text: checkInLine.text, type: 'check' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    out.push({ text: line, type: 'body' });
+    expectingPromptQuestion = false;
+    inChecklist = false;
+  }
+
+  return out;
 }
 
 function splitWisdomItemTitle(value: string): { title: string; body: string } | null {
@@ -206,48 +571,19 @@ const HowToModal: React.FC<HowToModalProps> = ({
   };
 
   const hasWisdom = Boolean(result?.success && result?.wisdom);
-  const wisdomItems = React.useMemo(() => {
+  const wisdomBodyLines = React.useMemo(() => {
     if (!result?.wisdom) {
-      return { intro: '', items: [] as string[] };
+      return [];
     }
 
     const lines = result.wisdom
       .split(/\n+/)
-      .map(line => line.replace(/\*\*/g, '').replace(/__([^_]+)__/g, '$1').trim())
+      .flatMap(line => splitReadableActionLine(line))
+      .filter((line): line is string => Boolean(line))
+      .map(line => cleanWisdomDisplayText(line))
       .filter(Boolean);
 
-    const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/.test(line));
-    const hasList = listStartIndex !== -1;
-
-    if (hasList) {
-      const intro = lines.slice(0, listStartIndex).join('\n\n');
-      const introLines = intro ? [intro] : [];
-      const items: string[] = [];
-
-      lines.slice(listStartIndex).forEach(line => {
-        const item = line.replace(/^(?:\d+(?:\.\d+)?[.)]|[-*•])\s+/, '').trim();
-        if (!item) {
-          return;
-        }
-        if (/^(?:here\s+(?:are|is)|these\s+are|some\s+(?:examples|actionable\s+steps)|actionable\s+steps|examples)(?:\s+are|\s+is)?[\w\s,'-]*:?$/i.test(item)) {
-          introLines.push(item);
-          return;
-        }
-        if (items.length > 0 && isWisdomOutroLine(item)) {
-          introLines.push(item);
-          return;
-        }
-        if (items.length >= 3 && !splitWisdomItemTitle(item)) {
-          introLines.push(item);
-          return;
-        }
-        items.push(item);
-      });
-
-      return { intro: introLines.join('\n\n'), items };
-    }
-
-    return { intro: result.wisdom.replace(/\*\*/g, '').replace(/__([^_]+)__/g, '$1').trim(), items: [] as string[] };
+    return detectBodyLines(lines);
   }, [result?.wisdom]);
 
   const resultTranslateY = resultAnim.interpolate({
@@ -340,54 +676,266 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         },
                       ]}
                     >
-                      {Platform.OS === 'ios' ? (
-                        <TextInput
-                          value={`${wisdomItems.intro}${wisdomItems.intro ? '\n\n' : ''}${wisdomItems.items.map((item) => {
-                            const titledItem = splitWisdomItemTitle(item);
-                            if (titledItem) {
-                              return `${titledItem.title}\n${titledItem.body}`;
-                            }
-                            return item;
-                          }).join('\n\n')}`}
-                          editable={false}
-                          multiline={true}
-                          scrollEnabled={false}
-                          style={[styles.wisdomText, { fontFamily: theme.fontFamily }]}
-                        />
-                      ) : (
-                        <>
-                          {wisdomItems.intro ? (
-                            <ThemedText style={styles.wisdomText} selectable={true}>
-                              {wisdomItems.intro}
-                            </ThemedText>
-                          ) : null}
-
-                          {wisdomItems.items.map((item, index) => {
-                            const titledItem = splitWisdomItemTitle(item);
-
-                            return (
-                              <View key={`${index}-${item}`} style={styles.wisdomStepRow}>
-                                <View style={styles.wisdomStepTextWrapper}>
-                                  {titledItem ? (
-                                    <>
-                                      <ThemedText weight="bold" style={styles.wisdomStepTitle} selectable={true}>
-                                        {titledItem.title}
-                                      </ThemedText>
-                                      <ThemedText style={styles.wisdomStepText} selectable={true}>
-                                        {titledItem.body}
-                                      </ThemedText>
-                                    </>
-                                  ) : (
-                                    <ThemedText style={styles.wisdomStepText} selectable={true}>
-                                      {item}
-                                    </ThemedText>
-                                  )}
-                                </View>
+                      {wisdomBodyLines.map((item, idx) => {
+                        if (item.type === 'script') {
+                          return (
+                            <View key={idx} style={styles.bodyScriptBlock}>
+                              <View style={styles.bodyScriptRail} />
+                              <View style={styles.bodyScriptHeader}>
+                                <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
+                                <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
+                                  {item.label || 'Words to say'}
+                                </ThemedText>
                               </View>
-                            );
-                          })}
-                        </>
-                      )}
+                              <ThemedText style={styles.bodyScriptText} selectable={true}>
+                                {item.text}
+                              </ThemedText>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'ask') {
+                          return (
+                            <View key={idx} style={styles.bodyAskHeader}>
+                              <Ionicons name="help-circle-outline" size={14} color="rgba(255,204,102,0.78)" />
+                              <ThemedText weight="semiBold" style={styles.bodyAskLabel}>
+                                {item.label || 'Ask yourself'}
+                              </ThemedText>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'question') {
+                          return (
+                            <View key={idx} style={styles.bodyQuestionRow}>
+                              <ThemedText style={styles.bodyQuestionMark}>?</ThemedText>
+                              <ThemedText style={styles.bodyQuestionText} selectable={true}>
+                                {item.text}
+                              </ThemedText>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'checklist') {
+                          return (
+                            <View key={idx} style={styles.bodyChecklistHeader}>
+                              <FontAwesome6 name="list-check" size={13} color="rgba(255,204,102,0.78)" />
+                              <ThemedText weight="semiBold" style={styles.bodyChecklistLabel}>
+                                {item.label || 'Do this'}
+                              </ThemedText>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'checklistItem') {
+                          const bulletHint = extractParentheticalActionHint(item.text);
+                          return (
+                            <View key={idx} style={styles.bodyChecklistItemRow}>
+                              <View style={styles.bodyChecklistItemIcon}>
+                                <Ionicons name="checkmark" size={12} color={Colors.faithGold} />
+                              </View>
+                              <View style={styles.bodyChecklistItemContent}>
+                                <ThemedText style={styles.bodyChecklistItemText} selectable={true}>
+                                  {bulletHint?.main || item.text}
+                                </ThemedText>
+                                {bulletHint && (
+                                  <View style={styles.bodyInlineHintBlock}>
+                                    <View style={styles.bodyHintHeader}>
+                                      <Ionicons
+                                        name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                                        size={13}
+                                        color="rgba(255,204,102,0.72)"
+                                      />
+                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                        {bulletHint.label}
+                                      </ThemedText>
+                                    </View>
+                                    <View style={styles.bodyLineBulletHintRow}>
+                                      {bulletHint.hints.map(hint => (
+                                        <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                          <ThemedText style={styles.bodyLineBulletHintText}>
+                                            {hint}
+                                          </ThemedText>
+                                        </View>
+                                      ))}
+                                    </View>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'bullet') {
+                          const bulletHint = extractParentheticalActionHint(item.text);
+                          return (
+                            <View key={idx} style={styles.bodyLineBulletRow}>
+                              <View style={styles.bodyLineBulletDot} />
+                              <View style={styles.bodyLineBulletContent}>
+                                {Platform.OS === 'ios' && !bulletHint ? (
+                                  <TextInput
+                                    value={item.text}
+                                    editable={false}
+                                    multiline={true}
+                                    scrollEnabled={false}
+                                    style={[styles.bodyLineBullet, { fontFamily: theme.fontFamily }]}
+                                  />
+                                ) : (
+                                  <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                                    {bulletHint?.main || item.text}
+                                  </ThemedText>
+                                )}
+                                {bulletHint && (
+                                  <View style={styles.bodyInlineHintBlock}>
+                                    <View style={styles.bodyHintHeader}>
+                                      <Ionicons
+                                        name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                                        size={13}
+                                        color="rgba(255,204,102,0.72)"
+                                      />
+                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                        {bulletHint.label}
+                                      </ThemedText>
+                                    </View>
+                                    <View style={styles.bodyLineBulletHintRow}>
+                                      {bulletHint.hints.map(hint => (
+                                        <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                          <ThemedText style={styles.bodyLineBulletHintText}>
+                                            {hint}
+                                          </ThemedText>
+                                        </View>
+                                      ))}
+                                    </View>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        }
+                        if (item.type === 'check') {
+                          const isYesNo = /^yes\s*\/\s*no$/i.test(item.text);
+                          return (
+                            <View key={idx} style={styles.bodyCheckRow}>
+                              <ThemedText weight="semiBold" style={styles.bodyCheckLabel}>
+                                {item.label}
+                              </ThemedText>
+                              {isYesNo ? (
+                                <View style={styles.bodyCheckValuePill}>
+                                  <ThemedText weight="semiBold" style={styles.bodyCheckValuePillText}>
+                                    Yes / No
+                                  </ThemedText>
+                                </View>
+                              ) : (
+                                <ThemedText style={styles.bodyCheckValue} selectable={true}>
+                                  {item.text}
+                                </ThemedText>
+                              )}
+                            </View>
+                          );
+                        }
+                        if (item.type === 'hint') {
+                          const hintItems = item.text
+                            .split(/\s*(?:;|,)\s*/)
+                            .map(part => part.trim())
+                            .filter(Boolean);
+                          const showHintChips = hintItems.length > 1 && hintItems.every(part => part.length <= 72);
+                          return (
+                            <View key={idx} style={styles.bodyHintRow}>
+                              <View style={styles.bodyHintHeader}>
+                                <Ionicons
+                                  name={/limit/i.test(item.label || '') ? 'options-outline' : /daily|support/i.test(item.label || '') ? 'calendar-outline' : 'sparkles-outline'}
+                                  size={13}
+                                  color="rgba(255,204,102,0.72)"
+                                />
+                                <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                  {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                                </ThemedText>
+                              </View>
+                              {showHintChips ? (
+                                <View style={styles.bodyHintChipRow}>
+                                  {hintItems.map(part => (
+                                    <View key={part} style={styles.bodyHintChip}>
+                                      <ThemedText style={styles.bodyHintChipText}>
+                                        {part}
+                                      </ThemedText>
+                                    </View>
+                                  ))}
+                                </View>
+                              ) : (
+                                <ThemedText style={styles.bodyHintText} selectable={true}>
+                                  {item.text}
+                                </ThemedText>
+                              )}
+                            </View>
+                          );
+                        }
+                        if (item.type === 'field') {
+                          return (
+                            <View key={idx} style={styles.bodyFieldRow}>
+                              <View style={styles.bodyFieldRail} />
+                              <View style={styles.bodyFieldLabel}>
+                                <ThemedText weight="semiBold" style={styles.bodyFieldLabelText}>
+                                  {item.label}
+                                </ThemedText>
+                              </View>
+                              {Platform.OS === 'ios' ? (
+                                <TextInput
+                                  value={item.text}
+                                  editable={false}
+                                  multiline={true}
+                                  scrollEnabled={false}
+                                  style={[styles.bodyFieldValue, { fontFamily: theme.fontFamily }]}
+                                />
+                              ) : (
+                                <ThemedText style={styles.bodyFieldValue} selectable={true}>
+                                  {item.text}
+                                </ThemedText>
+                              )}
+                            </View>
+                          );
+                        }
+                        if (item.type === 'quote') {
+                          return Platform.OS === 'ios' ? (
+                            <TextInput
+                              key={idx}
+                              value={item.text}
+                              editable={false}
+                              multiline={true}
+                              scrollEnabled={false}
+                              style={[styles.bodyLineQuote, { fontFamily: theme.fontFamily }]}
+                            />
+                          ) : (
+                            <ThemedText key={idx} style={styles.bodyLineQuote} selectable={true}>
+                              {item.text}
+                            </ThemedText>
+                          );
+                        }
+                        if (item.type === 'intro') {
+                          return Platform.OS === 'ios' ? (
+                            <TextInput
+                              key={idx}
+                              value={item.text}
+                              editable={false}
+                              multiline={true}
+                              scrollEnabled={false}
+                              style={[styles.bodyLineIntro, { fontFamily: theme.fontFamily }]}
+                            />
+                          ) : (
+                            <ThemedText key={idx} style={styles.bodyLineIntro} selectable={true}>
+                              {item.text}
+                            </ThemedText>
+                          );
+                        }
+                        return Platform.OS === 'ios' ? (
+                          <TextInput
+                            key={idx}
+                            value={item.text}
+                            editable={false}
+                            multiline={true}
+                            scrollEnabled={false}
+                            style={[styles.wisdomText, { fontFamily: theme.fontFamily }]}
+                          />
+                        ) : (
+                          <ThemedText key={idx} style={styles.wisdomText} selectable={true}>
+                            {item.text}
+                          </ThemedText>
+                        );
+                      })}
                     </Animated.View>
                   </>
                 ) : result.success === false ? (
@@ -821,6 +1369,295 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Body line styles — smart rendering (matching PlaybookWalkthroughScreen)
+  bodyLineQuote: {
+    fontSize: 16,
+    color: Colors.faithGold,
+    lineHeight: 24,
+    fontStyle: 'italic',
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.faithGold,
+  },
+  bodyScriptBlock: {
+    position: 'relative',
+    marginTop: 6,
+    marginBottom: 6,
+    paddingLeft: 16,
+    paddingVertical: 10,
+    paddingRight: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,204,102,0.06)',
+  },
+  bodyScriptRail: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 999,
+    backgroundColor: Colors.faithGold,
+  },
+  bodyScriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 5,
+  },
+  bodyScriptLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.faithGold,
+    letterSpacing: 0.4,
+  },
+  bodyScriptText: {
+    fontSize: 16,
+    color: Colors.faithGold,
+    lineHeight: 24,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  bodyAskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  bodyAskLabel: {
+    fontSize: 12,
+    color: 'rgba(255,204,102,0.78)',
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyQuestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 4,
+    paddingLeft: 2,
+  },
+  bodyQuestionMark: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    overflow: 'hidden',
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.faithGold,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+  },
+  bodyQuestionText: {
+    flex: 1,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 23,
+  },
+  bodyChecklistHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 8,
+    marginBottom: 3,
+  },
+  bodyChecklistLabel: {
+    fontSize: 12,
+    color: 'rgba(255,204,102,0.78)',
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyChecklistItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 7,
+    paddingVertical: 2,
+  },
+  bodyChecklistItemIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  bodyChecklistItemContent: {
+    flex: 1,
+    gap: 6,
+  },
+  bodyChecklistItemText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.86)',
+    lineHeight: 23,
+  },
+  bodyLineIntro: {
+    fontSize: 17,
+    color: 'rgba(255,255,255,0.90)',
+    lineHeight: 25,
+    letterSpacing: 0.1,
+    marginTop: 4,
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  bodyLineBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 4,
+    paddingLeft: 4,
+  },
+  bodyLineBulletDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,107,107,0.4)',
+    marginTop: 8,
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  bodyLineBullet: {
+    flex: 1,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 23,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  bodyLineBulletContent: {
+    flex: 1,
+    gap: 6,
+  },
+  bodyInlineHintBlock: {
+    gap: 5,
+  },
+  bodyLineBulletHintRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  bodyLineBulletHintChip: {
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  bodyLineBulletHintText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.66)',
+    lineHeight: 16,
+  },
+  bodyCheckRow: {
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    gap: 6,
+  },
+  bodyCheckLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.66)',
+    lineHeight: 17,
+  },
+  bodyCheckValue: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 23,
+  },
+  bodyCheckValuePill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.24)',
+  },
+  bodyCheckValuePillText: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+  },
+  bodyHintRow: {
+    marginTop: 2,
+    marginBottom: 6,
+    paddingLeft: 2,
+    gap: 6,
+  },
+  bodyHintHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  bodyHintLabel: {
+    fontSize: 11,
+    color: 'rgba(255,204,102,0.72)',
+    lineHeight: 14,
+    letterSpacing: 0.2,
+  },
+  bodyHintText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.64)',
+    lineHeight: 21,
+  },
+  bodyHintChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  bodyHintChip: {
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+  },
+  bodyHintChipText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 17,
+  },
+  bodyFieldRow: {
+    position: 'relative',
+    marginTop: 4,
+    paddingVertical: 5,
+    paddingLeft: 10,
+    gap: 4,
+  },
+  bodyFieldRail: {
+    position: 'absolute',
+    left: 0,
+    top: 5,
+    bottom: 5,
+    width: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,107,107,0.42)',
+  },
+  bodyFieldLabel: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,107,107,0.16)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  bodyFieldLabelText: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.alertCoral,
+    letterSpacing: 0.2,
+  },
+  bodyFieldValue: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.86)',
+    lineHeight: 23,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 });
 
