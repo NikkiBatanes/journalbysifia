@@ -769,19 +769,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
                             <View key={idx} style={styles.bodyLineBulletRow}>
                               <View style={styles.bodyLineBulletDot} />
                               <View style={styles.bodyLineBulletContent}>
-                                {Platform.OS === 'ios' && !bulletHint ? (
-                                  <TextInput
-                                    value={item.text}
-                                    editable={false}
-                                    multiline={true}
-                                    scrollEnabled={false}
-                                    style={[styles.bodyLineBullet, { fontFamily: theme.fontFamily }]}
-                                  />
-                                ) : (
-                                  <ThemedText style={styles.bodyLineBullet} selectable={true}>
-                                    {bulletHint?.main || item.text}
-                                  </ThemedText>
-                                )}
+                                <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                                  {bulletHint?.main || item.text}
+                                </ThemedText>
                                 {bulletHint && (
                                   <View style={styles.bodyInlineHintBlock}>
                                     <View style={styles.bodyHintHeader}>
@@ -875,64 +865,27 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                   {item.label}
                                 </ThemedText>
                               </View>
-                              {Platform.OS === 'ios' ? (
-                                <TextInput
-                                  value={item.text}
-                                  editable={false}
-                                  multiline={true}
-                                  scrollEnabled={false}
-                                  style={[styles.bodyFieldValue, { fontFamily: theme.fontFamily }]}
-                                />
-                              ) : (
-                                <ThemedText style={styles.bodyFieldValue} selectable={true}>
-                                  {item.text}
-                                </ThemedText>
-                              )}
+                              <ThemedText style={styles.bodyFieldValue} selectable={true}>
+                                {item.text}
+                              </ThemedText>
                             </View>
                           );
                         }
                         if (item.type === 'quote') {
-                          return Platform.OS === 'ios' ? (
-                            <TextInput
-                              key={idx}
-                              value={item.text}
-                              editable={false}
-                              multiline={true}
-                              scrollEnabled={false}
-                              style={[styles.bodyLineQuote, { fontFamily: theme.fontFamily }]}
-                            />
-                          ) : (
+                          return (
                             <ThemedText key={idx} style={styles.bodyLineQuote} selectable={true}>
                               {item.text}
                             </ThemedText>
                           );
                         }
                         if (item.type === 'intro') {
-                          return Platform.OS === 'ios' ? (
-                            <TextInput
-                              key={idx}
-                              value={item.text}
-                              editable={false}
-                              multiline={true}
-                              scrollEnabled={false}
-                              style={[styles.bodyLineIntro, { fontFamily: theme.fontFamily }]}
-                            />
-                          ) : (
+                          return (
                             <ThemedText key={idx} style={styles.bodyLineIntro} selectable={true}>
                               {item.text}
                             </ThemedText>
                           );
                         }
-                        return Platform.OS === 'ios' ? (
-                          <TextInput
-                            key={idx}
-                            value={item.text}
-                            editable={false}
-                            multiline={true}
-                            scrollEnabled={false}
-                            style={[styles.wisdomText, { fontFamily: theme.fontFamily }]}
-                          />
-                        ) : (
+                        return (
                           <ThemedText key={idx} style={styles.wisdomText} selectable={true}>
                             {item.text}
                           </ThemedText>

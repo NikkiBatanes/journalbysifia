@@ -3127,23 +3127,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                             <View key={`wisdom-block-${blockIndex}`} collapsable={false}>
                               {block.intro ? (
                                 <View style={styles.actionWisdomTextWrapper}>
-                                  {Platform.OS === 'ios' ? (
-                                    <ThemedTextInput
-                                      value={block.intro}
-                                      editable={false}
-                                      multiline={true}
-                                      scrollEnabled={false}
-                                      underlineColorAndroid="transparent"
-                                      pointerEvents="none"
-                                      contextMenuHidden={true}
-                                      caretHidden={true}
-                                      style={styles.actionWisdomIntroTextInput}
-                                    />
-                                  ) : (
-                                    <ThemedText style={styles.actionWisdomIntro} selectable={true}>
-                                      {block.intro}
-                                    </ThemedText>
-                                  )}
+                                  <ThemedText style={styles.actionWisdomIntro} selectable={true}>
+                                    {block.intro}
+                                  </ThemedText>
                                 </View>
                               ) : null}
 
