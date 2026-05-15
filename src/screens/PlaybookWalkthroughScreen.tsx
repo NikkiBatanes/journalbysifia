@@ -2525,12 +2525,12 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const isCommitted = !!committedSteps[actionStepIndex];
 
+  const fallbackSecondaryLabel = actionType === 'choose' ? "I'm still unsure" :
+    actionType === 'text_input' ? 'Not yet' :
+    'Not yet';
+
   const secondaryLabel = isCommitted ? 'Next' : (
-    currentStep.secondaryButton ?? (
-      actionType === 'choose' ? "I'm still unsure" :
-      actionType === 'text_input' ? 'Skip' :
-      'Skip'
-    )
+    currentStep.secondaryButton ?? fallbackSecondaryLabel
   );
 
   // Detect special step types — check label, title, AND body content so old playbooks
