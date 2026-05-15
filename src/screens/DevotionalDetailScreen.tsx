@@ -1567,7 +1567,7 @@ const styles = StyleSheet.create({
 
   dayTitleContainer: {
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 8,
     paddingBottom: 4,
     marginBottom: 10,
     alignItems: 'flex-start',
@@ -1584,6 +1584,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     flexWrap: 'wrap',
     flexShrink: 1,
+    width: '100%', // Ensure full width for proper wrapping
   },
   scrollView: {
     flex: 1,
