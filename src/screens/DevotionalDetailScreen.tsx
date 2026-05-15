@@ -1567,8 +1567,8 @@ const styles = StyleSheet.create({
 
   dayTitleContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 12,
+    paddingBottom: 8,
     marginBottom: 10,
     alignItems: 'flex-start',
     width: '100%', // Ensure full width for proper wrapping
