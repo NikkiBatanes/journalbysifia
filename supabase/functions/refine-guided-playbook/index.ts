@@ -53,6 +53,35 @@ function correctionTypeInstruction(type: string): string {
   }
 }
 
+function buildCorrectedFactLock(originalInput: string, clarification: string): string {
+  const original = cleanText(originalInput, 1600).toLowerCase();
+  const clarified = cleanText(clarification, 1600);
+  const lowerClarified = clarified.toLowerCase();
+  const factRules: string[] = [
+    `- Corrected fact from the user: ${clarified}`,
+    '- Treat this corrected fact as more reliable than the previous playbook, remembered context, or ambiguous wording in the original moment.',
+  ];
+
+  const mentionsSisters = /\bsisters?\b/.test(lowerClarified) || /\bsisters?\b/.test(original);
+  const mentionsSonRelationship = /\b(?:son|him|child|kid)\b/.test(lowerClarified)
+    && /\b(?:relationship|dating|boyfriend|girlfriend)\b/.test(lowerClarified);
+  const saysDoesNotWantRelationship = /\b(?:does\s+not|doesn't|doesnt|do\s+not|don't|dont|not)\s+want\b/.test(lowerClarified)
+    && /\b(?:relationship|dating|boyfriend|girlfriend)\b/.test(lowerClarified);
+
+  if (mentionsSisters && mentionsSonRelationship && saysDoesNotWantRelationship) {
+    factRules.push(
+      '- The sisters are against, concerned about, or not wanting the son to have a relationship this early.',
+      '- Do NOT say the sisters oppose the mother\'s protective boundaries unless the clarification explicitly says that.',
+      '- Frame the mother\'s tension around guilt from her own childhood experience and how to set boundaries wisely, not around fighting sisters who support early dating.',
+    );
+  }
+
+  return [
+    '=== CORRECTED FACTS LOCK ===',
+    ...factRules,
+  ].join('\n');
+}
+
 function buildRefinementInput(args: {
   originalInput: string;
   title: string;
@@ -67,6 +96,7 @@ function buildRefinementInput(args: {
     .slice(0, 5)
     .map(m => `- ${m.memory_text}`)
     .join('\n');
+  const correctedFactLock = buildCorrectedFactLock(args.originalInput, args.clarification);
 
   return [
     'REFINEMENT REQUEST: Revise the same playbook because the previous output missed or misunderstood part of the user\'s moment.',
@@ -79,17 +109,21 @@ function buildRefinementInput(args: {
     `CORRECTION TYPE: ${cleanText(args.correctionType, 120)}`,
     `USER CLARIFICATION: ${cleanText(args.clarification, 1600)}`,
     '',
-    'PREVIOUS PLAYBOOK CONTEXT:',
+    correctedFactLock,
+    '',
+    'PREVIOUS PLAYBOOK CONTEXT (MAY CONTAIN THE ERROR; DO NOT TREAT AS FACT IF IT CONFLICTS):',
     `Title: ${cleanText(args.title, 180)}`,
     `Truth summary: ${cleanText(args.truthSummary, 700)}`,
     `Truth in love excerpt: ${cleanText(args.truthInLove, 1400)}`,
     '',
-    memoryLines ? `RELEVANT REMEMBERED CONTEXT:\n${memoryLines}\n` : '',
+    memoryLines ? `RELEVANT REMEMBERED CONTEXT (BACKGROUND ONLY; NEVER OVERRIDES CLARIFICATION):\n${memoryLines}\n` : '',
     '=== CRITICAL REVISION RULES ===',
     correctionTypeInstruction(args.correctionType),
     '- The PRIOR USER INPUT defines the main situation - this is the original moment the user shared. ALL content must address this original moment first.',
     '- The USER CLARIFICATION is authoritative for corrected facts, relationship status, missing context, tone, and what the previous playbook got wrong.',
     '- If the previous playbook, remembered context, or ambiguous original wording conflicts with the USER CLARIFICATION, obey the USER CLARIFICATION.',
+    '- If the clarification reverses who agrees, opposes, wants, or does not want something, update that stance everywhere. Do not preserve the previous output\'s stance.',
+    '- Do not repeat any prior claim about who opposes or supports the user unless it is supported by the USER CLARIFICATION.',
     '- Do NOT shift focus to the clarification. The clarification is a tool to better understand the original moment, not a new moment itself.',
     '- EVERY faithful_action, prayer, and words_to_speak line MUST be grounded in the original moment. If an action/prayer/declaration could have been written without reading the PRIOR USER INPUT, it is WRONG.',
     '- The original gist, tone, and heart of the moment must be preserved. Do not lose the essence of what the user originally shared.',

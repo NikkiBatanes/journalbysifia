@@ -584,6 +584,8 @@ const ENABLE_PAID_ARCHITECTURAL_RETRY = false;
 const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce|marital)\b/i;
 const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
 const NEGATED_MARRIAGE_REGEX = /\b(?:not|never|no longer|isn't|is not|wasn't|was not|aren't|are not)\s+(?:married|in a marriage|my husband|my wife|my spouse)\b|\bnot\s+(?:my\s+)?(?:husband|wife|spouse)\b|\bnot\s+about\s+(?:marriage|my marriage)\b/i;
+const CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX = /\b(?:son|daughter|child|kid|boy|girl)\b[\s\S]{0,180}\b(?:relationship|dating|boyfriend|girlfriend|classmate)\b[\s\S]{0,220}\b(?:sister|sisters|family|mother|father|parents|siblings)\b[\s\S]{0,80}\b(?:against|oppose|opposes|opposed|do\s+not\s+want|don't\s+want|does\s+not\s+want|doesn't\s+want)\b[\s\S]{0,120}\b(?:open\s+doors|opens\s+doors|opening\s+doors|too\s+early|early)\b/i;
+const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action))?\s*[:：]\s*/i;
 const INDIRECT_TRUTH_OPENERS = [
   /^it (?:is|can be|may be)\b/i,
   /^sometimes\b/i,
@@ -641,7 +643,7 @@ function requiredFaithfulActionFormatCount(actionCount: number): number {
 }
 
 function hasActionExampleMarker(value: string): boolean {
-  return /Example:\s*\S/i.test(String(value || ''));
+  return ACTION_EXAMPLE_MARKER_REGEX.test(String(value || ''));
 }
 
 function stripLeakedActionFieldFragments(value: string): string {
@@ -668,11 +670,15 @@ function cleanActionTextSegment(value: string): string {
 }
 
 function splitActionExample(value: string): { main: string; example: string | null } {
-  const parts = String(value || '').split(/Example:\s*/i);
+  const parts = String(value || '').split(ACTION_EXAMPLE_MARKER_REGEX);
   const main = cleanActionTextSegment(parts[0] || '');
   if (parts.length < 2) return { main, example: null };
 
-  const example = cleanActionTextSegment(parts.slice(1).join('Example: '));
+  const exampleSegments = parts
+    .slice(1)
+    .map(part => cleanActionTextSegment(part))
+    .filter(Boolean);
+  const example = exampleSegments.find(part => /^["“]/.test(part.trim())) || exampleSegments[0] || '';
   return { main, example: example || null };
 }
 
@@ -958,7 +964,7 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
       .slice(0, 7)
       .filter((action: any) => {
         const body = String(action?.body || action?.description || '').trim();
-        return body.length > 0 && !/\n/.test(body) && /Example:\s*/i.test(body);
+        return body.length > 0 && !/\n/.test(body) && ACTION_EXAMPLE_MARKER_REGEX.test(body);
       }).length;
     if (paragraphExampleCount >= Math.min(json.faithful_actions.length, 7)) {
       softIssues.push('Faithful action body format variation missing — every action body is a single paragraph followed by Example.');
@@ -1365,13 +1371,17 @@ serve(async (req: Request) => {
     'harassment',
     'hate_speech',
   ].includes(contentAnalysis.category || '');
+  const selfHarmSafetyMessage =
+    "Your life matters deeply to God. If you might hurt yourself, don't stay alone: tell a trusted person now and contact local emergency services, the nearest emergency room, or a suicide crisis line. If you're in the U.S., call or text 988.";
 
   const providerContentFilterResponse = () => {
     if (providerFilterShouldBlockUser) {
       return new Response(
         JSON.stringify({
           error: 'CONTENT_BLOCKED',
-          message: contentAnalysis.christianMessage || 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
+          message: contentAnalysis.category === 'self_harm'
+            ? selfHarmSafetyMessage
+            : contentAnalysis.christianMessage || 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
           alternatives: contentAnalysis.constructiveAlternatives,
           category: contentAnalysis.category,
           retryable: false,
@@ -1431,6 +1441,7 @@ serve(async (req: Request) => {
     const hasNegatedMarriageContext = NEGATED_MARRIAGE_REGEX.test(effectivePromptDetectionInput);
     const hasExplicitMarriageContext = MARRIAGE_EXPLICIT_REGEX.test(effectivePromptDetectionInput) && !hasNegatedMarriageContext;
     const hasAmbiguousRelationshipContext = (AMBIGUOUS_RELATIONSHIP_REGEX.test(effectivePromptDetectionInput) || hasNegatedMarriageContext) && !hasExplicitMarriageContext;
+    const hasChildEarlyRelationshipFamilyOpposesContext = CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX.test(effectivePromptDetectionInput);
     const doctrinalVerdictRequired = /\b(iglesia ni cristo|inc|jehovah'?s witnesses|mormon|lds|unitarian)\b/i.test(effectivePromptDetectionInput)
       || (/\b(jesus|christ)\b/i.test(effectivePromptDetectionInput) && /\b(not god|isn'?t god|not divine|created being|only man|not acknowledge.*god|dont acknowledge.*god|don't acknowledge.*god)\b/i.test(effectivePromptDetectionInput));
 
@@ -1450,6 +1461,9 @@ serve(async (req: Request) => {
       ctx += `${audienceContext.promptLine}\n`;
       if (hasAmbiguousRelationshipContext) {
         ctx += 'RELATIONSHIP STATUS: The user mentioned a relationship but did not say husband, wife, spouse, married, marriage, divorce, or marital. Do not assume marriage. Use neutral relationship and safety language unless the user explicitly states marriage in this request. Current input overrides profile context for relationship status.\n';
+      }
+      if (hasChildEarlyRelationshipFamilyOpposesContext) {
+        ctx += 'PARENTING FACT CLARIFICATION: The user describes a child having an early relationship and says sisters/family are against it because it opens doors. Interpret sisters/family as against the early child relationship, not against the user\'s protective boundaries, unless the user explicitly says they oppose the boundaries. Do not frame the playbook around family pressure to loosen boundaries. Focus on the user\'s guilt from her own childhood boyfriend experience and on communicating wise boundaries to the child.\n';
       }
 
       if (recentTitles.length > 0) {
@@ -1697,7 +1711,7 @@ serve(async (req: Request) => {
           JSON.stringify({
             error: 'CONTENT_BLOCKED',
             message: isShSensitive
-              ? 'If you are in crisis, please reach out for immediate support. You are deeply loved by God, and your life has immeasurable value in Christ. Please contact a crisis helpline or a trusted Christian counselor.'
+              ? selfHarmSafetyMessage
               : 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
             alternatives: contentAnalysis.constructiveAlternatives,
             category: contentAnalysis.category,
@@ -1751,7 +1765,7 @@ serve(async (req: Request) => {
           JSON.stringify({
             error: 'CONTENT_BLOCKED',
             message: isShSensitive
-              ? 'If you are in crisis, please reach out for immediate support. You are deeply loved by God, and your life has immeasurable value in Christ. Please contact a crisis helpline or a trusted Christian counselor.'
+              ? selfHarmSafetyMessage
               : 'This topic could not be processed. For personalized guidance on sensitive matters, we recommend speaking with a Christian counselor or pastor.',
             alternatives: contentAnalysis.constructiveAlternatives,
             category: contentAnalysis.category,

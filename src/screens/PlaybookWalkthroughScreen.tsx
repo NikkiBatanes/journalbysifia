@@ -98,6 +98,39 @@ const splitParagraphs = (text: string): string[] =>
     .map(p => p.trim())
     .filter(Boolean);
 
+const SELF_HARM_CRISIS_REGEX = /\b(?:suicid(?:e|al)|self[-\s]?harm|kill\s+myself|end(?:ing)?\s+my\s+life|want\s+to\s+die|thoughts?\s+of\s+(?:suicide|self[-\s]?harm|ending\s+my\s+life)|hurt\s+myself|harm\s+myself|cannot\s+stay\s+safe|can't\s+stay\s+safe|means\s+of\s+self[-\s]?harm)\b/i;
+
+const isSelfHarmCrisisPlaybook = (parts: Array<string | undefined | null>): boolean =>
+  SELF_HARM_CRISIS_REGEX.test(parts.filter(Boolean).join('\n'));
+
+const CRISIS_HELP_ITEMS: Array<{ icon: string; label: string }> = [
+  { icon: 'chatbubbles-outline', label: 'Tell someone now' },
+  { icon: 'people-outline', label: 'Do not stay alone' },
+  { icon: 'shield-checkmark-outline', label: 'Remove harm access' },
+  { icon: 'call-outline', label: 'Emergency help if danger is immediate' },
+];
+
+const CrisisHelpPills: React.FC = () => (
+  <View style={styles.crisisHelpContainer}>
+    <View style={styles.crisisHelpHeader}>
+      <Ionicons name="heart-circle-outline" size={15} color={Colors.alertCoral} />
+      <ThemedText weight="semiBold" style={styles.crisisHelpHeaderText}>
+        Safety first
+      </ThemedText>
+    </View>
+    <View style={styles.crisisHelpPillRow}>
+      {CRISIS_HELP_ITEMS.map(item => (
+        <View key={item.label} style={styles.crisisHelpPill}>
+          <Ionicons name={item.icon as any} size={13} color={Colors.alertCoral} />
+          <ThemedText weight="medium" style={styles.crisisHelpPillText}>
+            {item.label}
+          </ThemedText>
+        </View>
+      ))}
+    </View>
+  </View>
+);
+
 const stripVerseQuotes = (text: string): string => {
   // Check if the verse contains actual speech attribution
   const hasSpeechAttribution = /(Jesus|Peter|Paul|they) said/i.test(text);
@@ -226,6 +259,7 @@ interface EnterMomentProps {
   summary: string;
   userName: string;
   transitionLine?: string;
+  showSafetyHelp?: boolean;
   onContinue: () => void;
   onEditUserInput?: () => void;
   insets: { top: number };
@@ -238,6 +272,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   summary,
   userName,
   transitionLine,
+  showSafetyHelp = false,
   onContinue: _onContinue,
   onEditUserInput: _onEditUserInput,
   insets,
@@ -404,6 +439,12 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         ))}
       </StepFadeIn>
 
+      {showSafetyHelp ? (
+        <StepFadeIn delay={420} style={styles.crisisHelpOnMoment}>
+          <CrisisHelpPills />
+        </StepFadeIn>
+      ) : null}
+
       {transitionLine ? (
         <StepFadeIn delay={500} style={styles.transitionLineContainer}>
           {Platform.OS === 'ios' ? (
@@ -429,6 +470,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
 interface TruthStepProps {
   text: string;
   userName: string;
+  showSafetyHelp?: boolean;
   onNext: () => void;
   insets: { top: number; bottom: number };
 }
@@ -439,6 +481,7 @@ const MAX_PARAGRAPH_LENGTH = 300; // Maximum characters for paragraphs when coll
 const TruthInLoveStep: React.FC<TruthStepProps> = ({
   text,
   userName,
+  showSafetyHelp = false,
   onNext: _onNext,
   insets,
 }) => {
@@ -487,6 +530,12 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
             Truth in Love
           </ThemedText>
         </StepFadeIn>
+
+        {showSafetyHelp ? (
+          <StepFadeIn delay={80} style={styles.crisisHelpOnTruth}>
+            <CrisisHelpPills />
+          </StepFadeIn>
+        ) : null}
 
         <View style={styles.textBlock}>
           {visible.map((para, i) => (
@@ -1019,7 +1068,8 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'field' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'ask' | 'question' | 'checklist' | 'body';
+const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action))?\s*[:：]\s*/i;
 
 interface BodyLine {
   text: string;
@@ -1148,6 +1198,13 @@ function normalizeActionBulletMarkers(text: string): string {
     .join('\n');
 }
 
+function normalizeSingleQuotedActionScripts(text: string): string {
+  return String(text || '').replace(
+    /(\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:\n]{0,80}:\s*)['‘]([\s\S]*?)['’](?=(?:\s+(?:Repeat|Practice|Bring|Include|Ask|This|Do|Keep|Schedule|Share|Tell|Contact|Call|Message|Text|Example)\b)|\s*$|\n)/gi,
+    (_match, intro, quote) => `${intro}"${String(quote).trim()}"`
+  );
+}
+
 function normalizeActionInlineStructure(text: string): string {
   return String(text || '')
     .replace(/\s+(?=(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice):\s*)/gi, '\n')
@@ -1209,15 +1266,19 @@ function capitalizeInstruction(text: string): string {
 function splitLeadingQuotedActionText(value: string): { quote: string; rest: string } {
   const source = String(value || '').trim();
   const open = source[0];
-  if (open !== '"' && open !== '“') {
+  if (open !== '"' && open !== '“' && open !== "'" && open !== '‘') {
     return { quote: source, rest: '' };
   }
 
-  const close = open === '“' ? '”' : '"';
+  const close = open === '“' ? '”' : open === '‘' ? '’' : open;
   for (let i = 1; i < source.length; i++) {
-    if (source[i] === close && source[i - 1] !== '\\') {
+    if (source[i] === close && source[i - 1] !== '\\' && !isActionApostrophe(source, i)) {
+      const rawQuote = source.slice(0, i + 1).trim();
+      const quote = open === "'" || open === '‘'
+        ? `"${stripBalancedActionQuotes(rawQuote)}"`
+        : rawQuote;
       return {
-        quote: source.slice(0, i + 1).trim(),
+        quote,
         rest: source.slice(i + 1).trim(),
       };
     }
@@ -1228,10 +1289,85 @@ function splitLeadingQuotedActionText(value: string): { quote: string; rest: str
 
 function splitQuestionPromptText(value: string): string[] {
   const questions = String(value || '')
-    .split(/(?<=\?)\s+(?=[A-Z])/)
+    .split(/(?<=\?)\s+(?=\S)/)
     .map(part => part.trim())
     .filter(Boolean);
   return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
+}
+
+function parentheticalHintLabelForMain(main: string): string {
+  return /\b(?:limit|limits|boundary|boundaries|off-limits|allowed|forbidden|rules?)\b/i.test(main)
+    ? 'Possible limits'
+    : 'Suggestions';
+}
+
+function splitParentheticalActionHint(line: string): string[] | null {
+  const trimmed = String(line || '').trim();
+  const match = trimmed.match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const hint = match[2].trim();
+  if (!main || !hint) {
+    return null;
+  }
+
+  const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
+  const hintLabel = parentheticalHintLabelForMain(main);
+
+  return [mainLine, `${hintLabel}: ${hint}`];
+}
+
+function splitListHintItems(value: string): string[] {
+  return String(value || '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
+    .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
+    .split(/\s*,\s*/)
+    .map(part => part.trim().replace(/[.!?]+$/g, ''))
+    .filter(Boolean);
+}
+
+function extractParentheticalActionHint(value: string): { main: string; hints: string[]; label: string } | null {
+  const match = String(value || '').trim().match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const hints = splitListHintItems(match[2]);
+  if (!main || hints.length === 0) {
+    return null;
+  }
+
+  return {
+    main: /[.!?]$/.test(main) ? main : `${main}${match[3] || ''}`,
+    hints,
+    label: parentheticalHintLabelForMain(main),
+  };
+}
+
+function splitSuchAsActionHint(line: string): string[] | null {
+  const trimmed = String(line || '').trim();
+  const match = trimmed.match(/^(.+?)\s+(?:such as|including)\s+(.+?)([.!?])?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const hintItems = splitListHintItems(match[2]);
+  if (!main || hintItems.length < 2) {
+    return null;
+  }
+
+  const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
+  const hintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
+    ? 'Daily supports'
+    : 'Suggestions';
+
+  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`];
 }
 
 function stripLeakedActionFieldFragments(value: string): string {
@@ -1257,7 +1393,11 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
     ? out.split('\n').map(line => line.trimStart().startsWith('* ') ? line : line.replace(/\*/g, '')).join('\n')
     : out.replace(/\*/g, '');
 
-  out = normalizeActionInlineStructure(removeDecorativeActionSingleQuotes(out.replace(/ +([,.;:!?])/g, '$1')).trim());
+  out = normalizeActionInlineStructure(
+    removeDecorativeActionSingleQuotes(
+      normalizeSingleQuotedActionScripts(out).replace(/ +([,.;:!?])/g, '$1')
+    ).trim()
+  );
   const cleaned = closeUnmatchedActionDoubleQuote(stripDanglingActionQuotes(stripBalancedActionQuotes(out)));
   return normalizeActionPracticeLoopText(cleaned);
 }
@@ -1349,14 +1489,19 @@ function normalizeActionExampleDisplayText(example: string): string {
 }
 
 function splitActionDescription(value: string): { body: string; example?: string } {
-  const parts = String(value || '').split(/Example\s*[:：]\s*/i);
+  const parts = String(value || '').split(ACTION_EXAMPLE_MARKER_REGEX);
   const body = cleanActionDisplaySegment(parts[0] || '', true);
   if (parts.length < 2) {
     return { body };
   }
 
+  const exampleSegments = parts
+    .slice(1)
+    .map(part => cleanActionDisplaySegment(part))
+    .filter(Boolean);
+  const preferredExample = exampleSegments.find(part => /^["“]/.test(part.trim())) || exampleSegments[0] || '';
   const example = normalizeActionExampleDisplayText(
-    cleanActionDisplaySegment(parts.slice(1).join('Example: '))
+    preferredExample
   );
   return example ? { body, example } : { body };
 }
@@ -1366,7 +1511,7 @@ function splitReadableActionLine(line: string): string[] {
   if (!trimmed) { return []; }
   if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1376,12 +1521,12 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["\u201C].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -1389,7 +1534,15 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
+    return [
+      ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
+      capitalizeFirstLetter(embeddedLooseQuestionPrompt[2].trim()),
+      ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
+    ];
+  }
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
@@ -1397,14 +1550,31 @@ function splitReadableActionLine(line: string): string[] {
     ];
   }
   if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
-  if (trimmed.length < 145) { return [trimmed]; }
 
-  const sentences = trimmed
+  const sentenceParts = trimmed
     .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
     .map(part => part.trim())
     .filter(Boolean);
+  if (
+    sentenceParts.length >= 2 &&
+    sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
+  ) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
 
-  return sentences.length >= 2 ? sentences : [trimmed];
+  const parentheticalHint = splitParentheticalActionHint(trimmed);
+  if (parentheticalHint) {
+    return parentheticalHint;
+  }
+
+  const suchAsHint = splitSuchAsActionHint(trimmed);
+  if (suchAsHint) {
+    return suchAsHint;
+  }
+
+  if (trimmed.length < 145) { return [trimmed]; }
+
+  return sentenceParts.length >= 2 ? sentenceParts : [trimmed];
 }
 
 function isQuotedActionLine(line: string): boolean {
@@ -1413,11 +1583,23 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
     && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/\bsay\s+plainly\b/i.test(line)) {
+    return 'Say plainly';
+  }
+  if (/\beach\s+morning\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Each morning say aloud';
+  }
+  if (/\beach\s+(?:day|night|evening)\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Say aloud daily';
+  }
+  if (/\bwhen\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Say this when it rises';
+  }
   if (/\b(?:message|text|send|reply)\b/i.test(line)) {
     return 'Message to send';
   }
@@ -1427,8 +1609,54 @@ function scriptLabelForIntro(line: string): string {
   return 'Words to say';
 }
 
+function isChecklistIntroLine(line: string): boolean {
+  return /^(?:do this|steps to take|action steps):\s*$/i.test(line.trim());
+}
+
+function isAskPromptIntroLine(line: string): boolean {
+  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|ask|then ask|ask yourself|test|check):\s*$/i.test(line.trim());
+}
+
+function askPromptLabel(line: string): string {
+  const trimmed = line.trim();
+  if (/^(?:read|rad) slow(?:ly|ely) and ask/i.test(trimmed)) {
+    return 'Read slowly and ask';
+  }
+  if (/^pause and ask/i.test(trimmed)) {
+    return 'Pause and ask';
+  }
+  if (/^test/i.test(trimmed)) {
+    return 'Test this';
+  }
+  if (/^check/i.test(trimmed)) {
+    return 'Check this';
+  }
+  return 'Ask yourself';
+}
+
+function isCheckInLabelValueLine(line: string): { label: string; text: string } | null {
+  const match = line.match(/^([^:\n]{3,72}):\s*(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const label = match[1].trim();
+  const text = match[2].trim();
+  if (!label || !text || /^example$/i.test(label) || isScriptIntroLine(`${label}:`)) {
+    return null;
+  }
+
+  const looksLikeCheckIn =
+    /^(?:today|areas?|what|where|when|who|why|how|wins?|setbacks?|progress|notes?|action|fear|lie|truth|helped|next|specifics?|journal|discipline|temptation|response|replacement)\b/i.test(label) ||
+    /^(?:yes\s*\/\s*no|list\b|note\b|name\b|choose\b|write\b|fill\b|mark\b|track\b|specifics?\b)/i.test(text);
+
+  return looksLikeCheckIn ? { label, text } : null;
+}
+
 function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   const out: BodyLine[] = [];
+  let expectingPromptQuestion = false;
+  let inChecklist = false;
 
   for (let idx = 0; idx < lines.length; idx++) {
     const raw = lines[idx];
@@ -1442,12 +1670,37 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
         type: 'script',
       });
       idx++;
+      inChecklist = false;
       continue;
     }
 
     // Bullet items from Format B/D — lines starting with '* ', '- ', or '• '
     if (/^(?:\*|-|•) /.test(line)) {
-      out.push({ text: line.replace(/^(?:\*|-|•) /, '').trim(), type: 'bullet' });
+      out.push({
+        text: line.replace(/^(?:\*|-|•) /, '').trim(),
+        type: inChecklist ? 'checklistItem' : 'bullet',
+      });
+      expectingPromptQuestion = false;
+      continue;
+    }
+
+    if (isAskPromptIntroLine(line)) {
+      out.push({ label: askPromptLabel(line), text: '', type: 'ask' });
+      expectingPromptQuestion = true;
+      inChecklist = false;
+      continue;
+    }
+
+    if (expectingPromptQuestion && line.endsWith('?')) {
+      out.push({ text: line, type: 'question' });
+      inChecklist = false;
+      continue;
+    }
+
+    if (isChecklistIntroLine(line)) {
+      out.push({ label: 'Do this', text: '', type: 'checklist' });
+      expectingPromptQuestion = false;
+      inChecklist = true;
       continue;
     }
 
@@ -1455,6 +1708,8 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     // so lines like "'Stop' doing this:" are treated as intro, not quote
     if (line.endsWith(':') && line.length < 90) {
       out.push({ text: line, type: 'intro' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
       continue;
     }
 
@@ -1462,6 +1717,16 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     // Single quotes wrap emphasis words (e.g. 'Stop') and must not be treated as quotes.
     if (isQuotedActionLine(line)) {
       out.push({ text: line, type: 'quote' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    const hintMatch = line.match(/^(Suggestions|Examples|Possible limits|Limit examples|Daily supports):\s*(.+)$/i);
+    if (hintMatch) {
+      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintMatch[2].trim(), type: 'hint' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
       continue;
     }
 
@@ -1471,6 +1736,16 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
         .replace(/\b\w/g, char => char.toUpperCase())
         .replace(/^Replacement(?: Response)?$/i, 'Response');
       out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    const checkInLine = isCheckInLabelValueLine(line);
+    if (checkInLine) {
+      out.push({ label: checkInLine.label, text: checkInLine.text, type: 'check' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
       continue;
     }
 
@@ -1484,13 +1759,27 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       !line.endsWith(':')
     ) {
       out.push({ text: line, type: 'choice' });
+      expectingPromptQuestion = false;
+      inChecklist = false;
       continue;
     }
 
     out.push({ text: line, type: 'body' });
+    expectingPromptQuestion = false;
+    inChecklist = false;
   }
 
   return out;
+}
+
+function parseExampleFieldLines(example: string): BodyLine[] {
+  const rawLines = cleanActionDisplaySegment(example)
+    .split('\n')
+    .flatMap(line => splitReadableActionLine(line))
+    .map(line => line.trim())
+    .filter(Boolean);
+  const parsed = detectBodyLines(rawLines, 'done_skip').filter(item => item.type === 'field');
+  return parsed.length >= 2 ? parsed : [];
 }
 
 function cleanWisdomDisplayText(value: string): string {
@@ -2195,6 +2484,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const actionDescription = splitActionDescription(rawDescription);
   const rawMainBody = actionDescription.body;
   const exampleText = actionDescription.example ? capitalizeFirstLetter(actionDescription.example) : null;
+  const exampleFieldLines = exampleText ? parseExampleFieldLines(exampleText) : [];
 
   // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
   const rawBodyLines: string[] = rawMainBody
@@ -2435,12 +2725,43 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   <View key={idx} style={styles.bodyScriptBlock}>
                     <View style={styles.bodyScriptRail} />
                     <View style={styles.bodyScriptHeader}>
+                      <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
                       <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
                         {item.label || 'Words to say'}
                       </ThemedText>
                     </View>
                     <ThemedText style={styles.bodyScriptText} selectable={true}>
                       {item.text}
+                    </ThemedText>
+                  </View>
+                );
+              }
+              if (item.type === 'ask') {
+                return (
+                  <View key={idx} style={styles.bodyAskHeader}>
+                    <Ionicons name="help-circle-outline" size={14} color="rgba(255,204,102,0.78)" />
+                    <ThemedText weight="semiBold" style={styles.bodyAskLabel}>
+                      {item.label || 'Ask yourself'}
+                    </ThemedText>
+                  </View>
+                );
+              }
+              if (item.type === 'question') {
+                return (
+                  <View key={idx} style={styles.bodyQuestionRow}>
+                    <ThemedText style={styles.bodyQuestionMark}>?</ThemedText>
+                    <ThemedText style={styles.bodyQuestionText} selectable={true}>
+                      {item.text}
+                    </ThemedText>
+                  </View>
+                );
+              }
+              if (item.type === 'checklist') {
+                return (
+                  <View key={idx} style={styles.bodyChecklistHeader}>
+                    <FontAwesome6 name="list-check" size={13} color="rgba(255,204,102,0.78)" />
+                    <ThemedText weight="semiBold" style={styles.bodyChecklistLabel}>
+                      {item.label || 'Do this'}
                     </ThemedText>
                   </View>
                 );
@@ -2506,20 +2827,141 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   </TouchableOpacity>
                 );
               }
+              if (item.type === 'checklistItem') {
+                const bulletHint = extractParentheticalActionHint(item.text);
+                return (
+                  <View key={idx} style={styles.bodyChecklistItemRow}>
+                    <View style={styles.bodyChecklistItemIcon}>
+                      <Ionicons name="checkmark" size={12} color={Colors.faithGold} />
+                    </View>
+                    <View style={styles.bodyChecklistItemContent}>
+                      <ThemedText style={styles.bodyChecklistItemText} selectable={true}>
+                        {bulletHint?.main || item.text}
+                      </ThemedText>
+                      {bulletHint && (
+                        <View style={styles.bodyInlineHintBlock}>
+                          <View style={styles.bodyHintHeader}>
+                            <Ionicons
+                              name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                              size={13}
+                              color="rgba(255,204,102,0.72)"
+                            />
+                            <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                              {bulletHint.label}
+                            </ThemedText>
+                          </View>
+                          <View style={styles.bodyLineBulletHintRow}>
+                            {bulletHint.hints.map(hint => (
+                              <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                <ThemedText style={styles.bodyLineBulletHintText}>
+                                  {hint}
+                                </ThemedText>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              }
               if (item.type === 'bullet') {
+                const bulletHint = extractParentheticalActionHint(item.text);
                 return (
                   <View key={idx} style={styles.bodyLineBulletRow}>
                     <View style={styles.bodyLineBulletDot} />
-                    {Platform.OS === 'ios' ? (
-                      <TextInput
-                        value={item.text}
-                        editable={false}
-                        multiline={true}
-                        scrollEnabled={false}
-                        style={[styles.bodyLineBullet, { fontFamily }]}
-                      />
+                    <View style={styles.bodyLineBulletContent}>
+                      {Platform.OS === 'ios' && !bulletHint ? (
+                        <TextInput
+                          value={item.text}
+                          editable={false}
+                          multiline={true}
+                          scrollEnabled={false}
+                          style={[styles.bodyLineBullet, { fontFamily }]}
+                        />
+                      ) : (
+                        <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                          {bulletHint?.main || item.text}
+                        </ThemedText>
+                      )}
+                      {bulletHint && (
+                        <View style={styles.bodyInlineHintBlock}>
+                          <View style={styles.bodyHintHeader}>
+                            <Ionicons
+                              name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                              size={13}
+                              color="rgba(255,204,102,0.72)"
+                            />
+                            <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                              {bulletHint.label}
+                            </ThemedText>
+                          </View>
+                          <View style={styles.bodyLineBulletHintRow}>
+                            {bulletHint.hints.map(hint => (
+                              <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                <ThemedText style={styles.bodyLineBulletHintText}>
+                                  {hint}
+                                </ThemedText>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              }
+              if (item.type === 'check') {
+                const isYesNo = /^yes\s*\/\s*no$/i.test(item.text);
+                return (
+                  <View key={idx} style={styles.bodyCheckRow}>
+                    <ThemedText weight="semiBold" style={styles.bodyCheckLabel}>
+                      {item.label}
+                    </ThemedText>
+                    {isYesNo ? (
+                      <View style={styles.bodyCheckValuePill}>
+                        <ThemedText weight="semiBold" style={styles.bodyCheckValuePillText}>
+                          Yes / No
+                        </ThemedText>
+                      </View>
                     ) : (
-                      <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                      <ThemedText style={styles.bodyCheckValue} selectable={true}>
+                        {item.text}
+                      </ThemedText>
+                    )}
+                  </View>
+                );
+              }
+              if (item.type === 'hint') {
+                const hintItems = item.text
+                  .split(/\s*(?:;|,)\s*/)
+                  .map(part => part.trim())
+                  .filter(Boolean);
+                const showHintChips = hintItems.length > 1 && hintItems.every(part => part.length <= 72);
+                return (
+                  <View key={idx} style={styles.bodyHintRow}>
+                    <View style={styles.bodyHintHeader}>
+                      <Ionicons
+                        name={/limit/i.test(item.label || '') ? 'options-outline' : /daily|support/i.test(item.label || '') ? 'calendar-outline' : 'sparkles-outline'}
+                        size={13}
+                        color="rgba(255,204,102,0.72)"
+                      />
+                      <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                        {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                      </ThemedText>
+                    </View>
+                    {showHintChips ? (
+                      <View style={styles.bodyHintChipRow}>
+                        {hintItems.map(part => (
+                          <View key={part} style={styles.bodyHintChip}>
+                            <ThemedText style={styles.bodyHintChipText}>
+                              {part}
+                            </ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <ThemedText style={styles.bodyHintText} selectable={true}>
                         {item.text}
                       </ThemedText>
                     )}
@@ -2576,15 +3018,49 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                     <Ionicons name="chatbubble-ellipses-outline" size={14} color="rgba(255,255,255,0.6)" />
                   </View>
                   {Platform.OS === 'ios' ? (
-                    <TextInput
-                      value={exampleText}
-                      editable={false}
-                      multiline={true}
-                      scrollEnabled={false}
-                      style={[styles.exampleText, { fontFamily }]}
-                    />
+                    exampleFieldLines.length > 0 ? (
+                      <View style={styles.exampleLoopList}>
+                        {exampleFieldLines.map((line, idx) => (
+                          <View key={`${line.label}-${idx}`} style={styles.exampleLoopRow}>
+                            <View style={styles.exampleLoopLabelPill}>
+                              <ThemedText weight="semiBold" style={styles.exampleLoopLabelText}>
+                                {line.label}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.exampleLoopValue} selectable={true}>
+                              {line.text}
+                            </ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <TextInput
+                        value={exampleText}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[styles.exampleText, { fontFamily }]}
+                      />
+                    )
                   ) : (
-                    <ThemedText style={styles.exampleText} selectable={true}>{exampleText}</ThemedText>
+                    exampleFieldLines.length > 0 ? (
+                      <View style={styles.exampleLoopList}>
+                        {exampleFieldLines.map((line, idx) => (
+                          <View key={`${line.label}-${idx}`} style={styles.exampleLoopRow}>
+                            <View style={styles.exampleLoopLabelPill}>
+                              <ThemedText weight="semiBold" style={styles.exampleLoopLabelText}>
+                                {line.label}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.exampleLoopValue} selectable={true}>
+                              {line.text}
+                            </ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <ThemedText style={styles.exampleText} selectable={true}>{exampleText}</ThemedText>
+                    )
                   )}
                 </View>
               </StepFadeIn>
@@ -4104,11 +4580,14 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         const rawExamples: any = (step as any).examples;
 
         if (rawExamples && typeof rawExamples === 'string') {
-          if (/Example:\s*/i.test(rawExamples)) {
+          if (ACTION_EXAMPLE_MARKER_REGEX.test(rawExamples)) {
             const exampleMatches = rawExamples
-              .split(/Example:\s*/i)
+              .split(ACTION_EXAMPLE_MARKER_REGEX)
+              .slice(1)
               .filter((text: string) => text.trim().length > 0);
-            examples = exampleMatches.map((ex: string) => ex.replace(/^Example:\s*/i, '').trim());
+            examples = exampleMatches.map((ex: string) => ex.trim());
+            const preferredExample = examples.find((ex: string) => /^["“]/.test(ex.trim())) || examples[0];
+            examples = preferredExample ? [preferredExample] : [];
           } else if (rawExamples.includes(';')) {
             examples = rawExamples
               .split(';')
@@ -4477,6 +4956,22 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const closingText =
     getDirectChallengeText(playbook.directChallenge) ||
     'Carry what God has shown you into the room.';
+  const showSafetyHelp = isSelfHarmCrisisPlaybook([
+    playbook.title,
+    playbook.category,
+    playbook.userInput,
+    truthInLoveSummary,
+    truthInLoveText,
+    playbook.bibleVerse?.reference,
+    playbook.bibleVerse?.text,
+    playbook.prayer,
+    (playbook as any).closing,
+    ...(playbook.actionSteps || []).flatMap((step: any) => [
+      step?.title,
+      step?.description,
+      ...(step?.subTasks || []).map((subTask: any) => subTask?.text || subTask?.title || String(subTask || '')),
+    ]),
+  ]);
 
   // Only Completion (step 6) handles its own CTA — all other steps get the floating next
   // Faithful Actions (step 3) has its own Done/Skip buttons, so hide the floating next
@@ -4499,6 +4994,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 summary={playbook.truthInLove?.summary || ''}
                 userName={userName}
                 transitionLine={transitionLine}
+                showSafetyHelp={showSafetyHelp}
                 onContinue={goNext}
                 onEditUserInput={() => {
                   navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
@@ -4511,6 +5007,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               <TruthInLoveStep
                 text={playbook.truthInLove?.text || ''}
                 userName={userName}
+                showSafetyHelp={showSafetyHelp}
                 onNext={goNext}
                 insets={insets}
               />
@@ -4992,6 +5489,49 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     opacity: 0.9,
   },
+  crisisHelpOnMoment: {
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  crisisHelpOnTruth: {
+    marginTop: 18,
+    marginBottom: 2,
+  },
+  crisisHelpContainer: {
+    gap: 10,
+  },
+  crisisHelpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  crisisHelpHeaderText: {
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.7,
+    color: Colors.alertCoral,
+    textTransform: 'uppercase',
+  },
+  crisisHelpPillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  crisisHelpPill: {
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(255,107,107,0.14)',
+  },
+  crisisHelpPillText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.88)',
+  },
   refinementBackdrop: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 120,
@@ -5234,9 +5774,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginTop: 6,
     marginBottom: 6,
-    paddingLeft: 14,
-    paddingVertical: 8,
-    paddingRight: 4,
+    paddingLeft: 16,
+    paddingVertical: 10,
+    paddingRight: 10,
     borderRadius: 8,
     backgroundColor: 'rgba(255,204,102,0.06)',
   },
@@ -5267,6 +5807,82 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  bodyAskHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  bodyAskLabel: {
+    fontSize: 12,
+    color: 'rgba(255,204,102,0.78)',
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyQuestionRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 8,
+    marginTop: 4,
+    paddingLeft: 2,
+  },
+  bodyQuestionMark: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    overflow: 'hidden' as const,
+    textAlign: 'center' as const,
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.faithGold,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+  },
+  bodyQuestionText: {
+    flex: 1,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 23,
+  },
+  bodyChecklistHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 7,
+    marginTop: 8,
+    marginBottom: 3,
+  },
+  bodyChecklistLabel: {
+    fontSize: 12,
+    color: 'rgba(255,204,102,0.78)',
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyChecklistItemRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 10,
+    marginTop: 7,
+    paddingVertical: 2,
+  },
+  bodyChecklistItemIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  bodyChecklistItemContent: {
+    flex: 1,
+    gap: 6,
+  },
+  bodyChecklistItemText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.86)',
+    lineHeight: 23,
   },
   bodyLineIntro: {
     fontSize: 17,
@@ -5299,6 +5915,103 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  bodyLineBulletContent: {
+    flex: 1,
+    gap: 6,
+  },
+  bodyInlineHintBlock: {
+    gap: 5,
+  },
+  bodyLineBulletHintRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+  },
+  bodyLineBulletHintChip: {
+    maxWidth: '100%' as const,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  bodyLineBulletHintText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.66)',
+    lineHeight: 16,
+  },
+  bodyCheckRow: {
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    gap: 6,
+  },
+  bodyCheckLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.66)',
+    lineHeight: 17,
+  },
+  bodyCheckValue: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 23,
+  },
+  bodyCheckValuePill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.24)',
+  },
+  bodyCheckValuePillText: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+  },
+  bodyHintRow: {
+    marginTop: 2,
+    marginBottom: 6,
+    paddingLeft: 2,
+    gap: 6,
+  },
+  bodyHintHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+  },
+  bodyHintLabel: {
+    fontSize: 11,
+    color: 'rgba(255,204,102,0.72)',
+    lineHeight: 14,
+    letterSpacing: 0.2,
+  },
+  bodyHintText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.64)',
+    lineHeight: 21,
+  },
+  bodyHintChipRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 7,
+  },
+  bodyHintChip: {
+    maxWidth: '100%' as const,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+  },
+  bodyHintChipText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 17,
   },
   bodyFieldRow: {
     position: 'relative',
@@ -5361,6 +6074,30 @@ const styles = StyleSheet.create({
   exampleText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
+    lineHeight: 18,
+  },
+  exampleLoopList: {
+    gap: 7,
+  },
+  exampleLoopRow: {
+    gap: 4,
+  },
+  exampleLoopLabelPill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+  },
+  exampleLoopLabelText: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.58)',
+    lineHeight: 13,
+    letterSpacing: 0.25,
+  },
+  exampleLoopValue: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.76)',
     lineHeight: 18,
   },
   actionWisdomContainer: {
