@@ -1305,8 +1305,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         });
                         const content = (() => {
                         if (item.type === 'script') {
+                          const isPrayerScript = /\bpray\b/i.test(item.label || '');
                           return (
-                            <View key={idx} style={styles.bodyScriptBlock}>
+                            <View key={idx} style={[styles.bodyScriptBlock, isPrayerScript && styles.bodyScriptBlockPrayer]}>
                               <View style={styles.bodyScriptRail} />
                               <View style={styles.bodyScriptHeader}>
                                 <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
@@ -2102,12 +2103,15 @@ const styles = StyleSheet.create({
   bodyScriptBlock: {
     position: 'relative',
     marginTop: 6,
-    marginBottom: 18,
+    marginBottom: 6,
     paddingLeft: 16,
     paddingVertical: 10,
     paddingRight: 10,
     borderRadius: 8,
     backgroundColor: 'rgba(255,204,102,0.06)',
+  },
+  bodyScriptBlockPrayer: {
+    marginBottom: 12,
   },
   bodyScriptRail: {
     position: 'absolute',
