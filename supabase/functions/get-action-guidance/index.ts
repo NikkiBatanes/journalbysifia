@@ -299,30 +299,48 @@ function calculateAgeFromDate(dateOfBirth?: string): number | null {
   return age;
 }
 
-function detectScriptureRequest(question: string): { isScripture: boolean; reference?: string; isFullChapter: boolean } {
+function detectScriptureRequest(question: string, actionContext?: string): { isScripture: boolean; reference?: string; isFullChapter: boolean } {
   const q = question.toLowerCase();
+  const context = actionContext?.toLowerCase() || '';
   
-  // Detect if asking for scripture
-  const scriptureKeywords = /\b(scripture|bible|verse|verses|chapter|passage|read|text|full|entire|whole|complete)\b/i.test(q);
-  const hasBookReference = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i.test(q);
+  console.log('[Get-Action-Guidance] Detecting scripture request in:', q);
+  console.log('[Get-Action-Guidance] Action context:', context);
+  
+  // Detect if asking for scripture - more flexible keywords
+  const scriptureKeywords = /\b(scripture|bible|verse|verses|chapter|passage|read|text|full|entire|whole|complete|show|give|what|what's|whats)\b/i.test(q);
+  
+  // Check for book reference in question OR action context
+  const hasBookReference = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+/i.test(q) ||
+                          /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+/i.test(context);
+  
+  console.log('[Get-Action-Guidance] scriptureKeywords:', scriptureKeywords, 'hasBookReference:', hasBookReference);
   
   if (!scriptureKeywords || !hasBookReference) {
     return { isScripture: false, isFullChapter: false };
   }
 
-  // Extract reference
-  const referenceMatch = q.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i);
+  // Extract reference - check question first, then context
+  let referenceMatch = q.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i);
+  
+  if (!referenceMatch && context) {
+    referenceMatch = context.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i);
+  }
   
   if (!referenceMatch) {
+    console.log('[Get-Action-Guidance] No reference match found');
     return { isScripture: false, isFullChapter: false };
   }
 
   const reference = referenceMatch[0].replace(/\s+/g, ' ');
+  console.log('[Get-Action-Guidance] Reference extracted:', reference);
   
   // Detect if asking for full chapter
   const isFullChapter = /\b(full|entire|whole|complete)\b.*chapter/i.test(q) || 
-                        /\bchapter.*\b(full|entire|whole|complete)\b/i.test(q);
+                        /\bchapter.*\b(full|entire|whole|complete)\b/i.test(q) ||
+                        /\b\d+:\d+-\d+\b/.test(q) ||
+                        /\b\d+:\d+-\d+\b/.test(context); // Also detect range like 53:1-12 in context
 
+  console.log('[Get-Action-Guidance] isFullChapter:', isFullChapter);
   return { isScripture: true, reference, isFullChapter };
 }
 
@@ -494,7 +512,7 @@ serve(async (req: Request) => {
 
     const { data: actionStep, error: actionStepError } = await supabase
       .from('playbook_action_steps')
-      .select('wisdom_text')
+      .select('wisdom_text, faithful_actions')
       .eq('id', actionId)
       .eq('playbook_id', playbookId)
       .single();
@@ -510,6 +528,21 @@ serve(async (req: Request) => {
     const wisdomHistory = existingThread.length > 0
       ? serializeWisdomThread(existingThread)
       : (previousWisdom || persistedWisdom);
+
+    // Extract faithful actions text for scripture detection
+    let faithfulActionsText = '';
+    if (actionStep?.faithful_actions) {
+      try {
+        const actions = typeof actionStep.faithful_actions === 'string'
+          ? JSON.parse(actionStep.faithful_actions)
+          : actionStep.faithful_actions;
+        if (Array.isArray(actions)) {
+          faithfulActionsText = actions.map((a: { title?: string; body?: string }) => `${a.title || ''} ${a.body || ''}`).join(' ');
+        }
+      } catch (e) {
+        console.error('[Get-Action-Guidance] Failed to parse faithful_actions:', e);
+      }
+    }
 
     const { data: subscription, error: subscriptionError } = await supabase
       .from('user_subscriptions_new')
@@ -593,10 +626,10 @@ serve(async (req: Request) => {
       previousWisdom: wisdomHistory,
       dateOfBirth,
     });
-    const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove}`;
+    const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove} ${faithfulActionsText}`;
 
     // Check if user is asking for scripture text before charging wisdom
-    const scriptureRequest = detectScriptureRequest(userQuestion);
+    const scriptureRequest = detectScriptureRequest(userQuestion, actionContext);
     if (scriptureRequest.isScripture && scriptureRequest.reference) {
       console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
       
