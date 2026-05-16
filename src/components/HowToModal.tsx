@@ -121,7 +121,7 @@ function isChecklistIntroLine(line: string): boolean {
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
@@ -129,17 +129,23 @@ function askPromptLabel(line: string): string {
   if (/\bask\s+these\s+questions\b/i.test(trimmed)) {
     return 'Ask these questions';
   }
-  if (/^(?:read|rad) slow(?:ly|ely) and ask/i.test(trimmed)) {
+  if (/^(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask/i.test(trimmed)) {
     return 'Read slowly and ask';
+  }
+  if (/^(?:read|rad) slow(?:ly|ely)\s+(?:each day|daily)/i.test(trimmed)) {
+    return 'Read slowly each day';
   }
   if (/^pause and ask/i.test(trimmed)) {
     return 'Pause and ask';
   }
+  if (/^then ask/i.test(trimmed)) {
+    return 'Then ask';
+  }
   if (/^test/i.test(trimmed)) {
-    return 'Test this';
+    return 'Test';
   }
   if (/^check/i.test(trimmed)) {
-    return 'Check this';
+    return 'Check';
   }
   return 'Ask yourself';
 }
