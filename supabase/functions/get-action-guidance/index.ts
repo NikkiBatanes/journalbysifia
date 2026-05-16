@@ -20,6 +20,7 @@ interface WisdomRequest {
   truthInLove: string;
   previousWisdom?: string;
   dateOfBirth?: string;
+  preferredBibleTranslation?: string;
 }
 
 interface WisdomThreadEntry {
@@ -352,10 +353,11 @@ function detectScriptureRequest(question: string, actionContext?: string): { isS
   return { isScripture: true, reference, isFullChapter };
 }
 
-async function fetchScriptureText(reference: string): Promise<string> {
+async function fetchScriptureText(reference: string, preferredTranslation?: string): Promise<string> {
   try {
-    // Default to NASB for scripture requests (you can make this configurable)
-    const version = 'NASB';
+    // Use user's preferred translation if provided, otherwise default to NASB
+    const version = preferredTranslation || 'NASB';
+    console.log('[Get-Action-Guidance] Fetching scripture with version:', version);
     const verse = await bibleVerseService.fetchVerse(reference, version);
     return verse.text;
   } catch (error) {
@@ -482,6 +484,7 @@ serve(async (req: Request) => {
     const truthSummary = cleanText(body.truthSummary, 700);
     const truthInLove = cleanText(body.truthInLove, 700);
     const previousWisdom = cleanText(body.previousWisdom, 1200);
+    const preferredBibleTranslation = cleanText(body.preferredBibleTranslation, 20);
 
     if (!playbookId || !userId || !actionId || userQuestion.length < 5) {
       return new Response(
@@ -627,7 +630,7 @@ serve(async (req: Request) => {
       console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
       
       try {
-        const scriptureText = await fetchScriptureText(scriptureRequest.reference);
+        const scriptureText = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
         
         // Return scripture without charging wisdom count
         return new Response(JSON.stringify({
