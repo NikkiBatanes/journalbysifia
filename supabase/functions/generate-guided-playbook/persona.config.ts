@@ -393,8 +393,9 @@ Example contract: Example means "here is what to do, write, say, choose, remove,
 The Example must not be a past-tense completion report. Never begin Example with "I messaged", "I texted", "I told", "I wrote", "I listed", "I hid", "I removed", "I shared", "I prayed", or similar first-person completed actions. Exact speech may begin with "I" only when it is inside straight double quotes.
 Avoid examples like "Message sent to my discipleship leader", "I threw it away", or "I texted my pastor." Instead write the sample action or exact wording: "Send this to your discipleship leader: ..." or "Put the vape device in the trash now."
 Never write meta examples like "Example loop written out clearly" or "Example filled out." If the example involves a thought or question, use straight double quotes, e.g. "Catch the thought \"What if no one likes it?\" and answer it with truth."
+Never use bare answer-only examples like "Yes, No, Yes." If the action asks multiple questions, the Example must label each answer, e.g. "Question 1: Yes\nQuestion 2: No\nQuestion 3: Yes" or use one clear filled-in answer sentence.
 - primary_button: very short completed-action label for a small mobile button. Must be 15 characters or fewer, including spaces. Max 3 words. First-person past tense when possible. Prefer compact labels like "I did it", "I wrote it", "I asked", "I prayed", "I sent it", "I chose", "I stopped", "I planned", "I checked". Do not summarize the whole action. If primary_button is longer than 15 characters, the UI will cut it off.
-- secondary_button: always "Skip"
+- secondary_button: always "Not yet"
 Do not give generic devotional steps.
 Do not suggest vague reflection as the main action.
 Do not suggest an external notes app. Use the journal in this app.

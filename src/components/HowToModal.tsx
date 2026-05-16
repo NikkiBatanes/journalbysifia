@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StatusBar,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -31,12 +33,16 @@ interface HowToModalProps {
   wisdomLimit: number;
 }
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'ask' | 'question' | 'checklist' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'ask' | 'question' | 'checklist' | 'body';
 
 interface BodyLine {
   text: string;
   type: BodyLineType;
   label?: string;
+  items?: string[];
+  columns?: Array<{ title: string; items: string[] }>;
+  reference?: string;
+  summary?: string;
 }
 
 function capitalizeFirstLetter(text: string): string {
@@ -56,8 +62,8 @@ function stripBalancedActionQuotes(text: string): string {
     ['"', '"'],
     ["'", "'"],
     ['`', '`'],
-    ['"', '"'],
-    ['', ''],
+    ['“', '”'],
+    ['‘', '’'],
   ];
 
   let changed = true;
@@ -95,8 +101,14 @@ function scriptLabelForIntro(line: string): string {
   if (/\beach\s+(?:day|night|evening)\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
     return 'Say aloud daily';
   }
+  if (/\bwhen\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
+    return 'Say this when it rises';
+  }
+  if (/\bsay\s+aloud\b/i.test(line)) {
+    return 'Say aloud';
+  }
   if (/\b(?:message|text|send|reply)\b/i.test(line)) {
-    return 'Message to send';
+    return 'Suggested message';
   }
   if (/\b(?:pray|prayer)\b/i.test(line)) {
     return 'Prayer to say';
@@ -109,11 +121,14 @@ function isChecklistIntroLine(line: string): boolean {
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|ask|then ask|ask yourself|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
   const trimmed = line.trim();
+  if (/\bask\s+these\s+questions\b/i.test(trimmed)) {
+    return 'Ask these questions';
+  }
   if (/^(?:read|rad) slow(?:ly|ely) and ask/i.test(trimmed)) {
     return 'Read slowly and ask';
   }
@@ -160,8 +175,145 @@ function splitListHintItems(value: string): string[] {
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
     .split(/\s*,\s*/)
-    .map(part => part.trim().replace(/[.!?]+$/g, ''))
+    .map(part => stripBalancedActionQuotes(part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '')))
     .filter(Boolean);
+}
+
+function splitResourceListItems(value: string): string[] {
+  const items: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+  let quoteClose = '';
+  const source = String(value || '').trim().replace(/[.!?]+$/g, '');
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+
+    if (quoteClose) {
+      current += char;
+      if (char === quoteClose && !isActionApostrophe(source, i)) {
+        quoteClose = '';
+      }
+      continue;
+    }
+
+    if ((char === '"' || char === "'" || char === '“' || char === '‘') && !isActionApostrophe(source, i)) {
+      quoteClose = char === '“' ? '”' : char === '‘' ? '’' : char;
+      current += char;
+      continue;
+    }
+
+    if (char === '(') {
+      parenDepth++;
+    } else if (char === ')' && parenDepth > 0) {
+      parenDepth--;
+    }
+
+    if ((char === ',' || char === ';') && parenDepth === 0) {
+      if (current.trim()) {
+        items.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) {
+    items.push(current.trim());
+  }
+
+  return items
+    .map(item => stripBalancedActionQuotes(item.replace(/^(?:and|or)\s+/i, '').trim()))
+    .filter(Boolean);
+}
+
+function parseResourceListLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(.{0,120}?\b(?:including|include|list|consider|choose from)\b[^:]{0,90}\b(?:materials?|resources?|studies|books|curricula|curriculum|options)\b[^:]*):\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const items = splitResourceListItems(match[2]);
+  if (items.length < 2) {
+    return null;
+  }
+
+  return {
+    label: /material/i.test(match[1]) ? 'Materials to consider' : 'Resources to consider',
+    text: match[1].trim().replace(/:\s*$/, '.'),
+    type: 'resourceList',
+    items,
+  };
+}
+
+function parseResourceHintLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(?:Suggestion|Suggestions|Example|Examples):\s*(?:(?:these|the)\s+)?(materials?|resources?|studies|books|curricula|curriculum|options)\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const items = splitResourceListItems(match[2]);
+  if (items.length < 2) {
+    return null;
+  }
+
+  return {
+    label: /material/i.test(match[1]) ? 'Materials to consider' : 'Resources to consider',
+    text: 'Make a list from these options.',
+    type: 'resourceList',
+    items,
+  };
+}
+
+function splitComparisonColumnItems(value: string): string[] {
+  const source = String(value || '').trim().replace(/[.!?]+$/g, '');
+  const numberedParts = source
+    .split(/\s*;\s*(?=\d+\)|[-*•]\s+)/)
+    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+
+  if (numberedParts.length >= 2) {
+    return numberedParts;
+  }
+
+  return source
+    .split(/\s*;\s*/)
+    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function parseComparisonColumnLine(line: string): { title: string; items: string[] } | null {
+  const match = String(line || '').trim().match(/^Under\s+["'“‘]?([^"'”’]+?)["'”’]?,?\s+list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const title = stripBalancedActionQuotes(match[1].trim().replace(/,\s*$/, ''));
+  const items = splitComparisonColumnItems(match[2]);
+  return title && items.length > 0 ? { title, items } : null;
+}
+
+function parseScriptureReadLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
+    || String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*(.+?)\s+Write:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const reference = match[1].trim();
+  const verseText = stripBalancedActionQuotes(match[2].trim());
+  const summary = match[3].trim();
+  if (!reference || !verseText || !summary) {
+    return null;
+  }
+
+  return {
+    text: verseText,
+    type: 'scriptureRead',
+    reference,
+    summary,
+  };
 }
 
 function extractParentheticalActionHint(value: string): { main: string; hints: string[]; label: string } | null {
@@ -191,18 +343,46 @@ function splitQuestionPromptText(value: string): string[] {
   return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
 }
 
+function splitHintTextFromTrailingInstruction(value: string): { hintText: string; trailingText: string } {
+  const parts = String(value || '')
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return { hintText: String(value || '').trim(), trailingText: '' };
+  }
+
+  const firstInstructionIndex = parts.findIndex((part, index) => {
+    if (index === 0) {
+      return false;
+    }
+    return /^(?:Evaluate|Decide|Choose|Compare|Review|Then|Next|After|Ask|Write|Use|Pick|Select|Note|Share|Bring|Schedule|Contact|Message|Practice|Repeat|Set)\b/i.test(part);
+  });
+
+  if (firstInstructionIndex < 1) {
+    return { hintText: String(value || '').trim(), trailingText: '' };
+  }
+
+  return {
+    hintText: parts.slice(0, firstInstructionIndex).join(' '),
+    trailingText: parts.slice(firstInstructionIndex).join(' '),
+  };
+}
+
 function splitLeadingQuotedActionText(value: string): { quote: string; rest: string } {
   const source = String(value || '').trim();
   const open = source[0];
-  if (open !== '"' && open !== '"' && open !== "'" && open !== '') {
+  if (open !== '"' && open !== '“' && open !== "'" && open !== '‘') {
     return { quote: source, rest: '' };
   }
 
-  const close = open === '"' ? '"' : open === '' ? '' : open;
+  const close = open === '“' ? '”' : open === '‘' ? '’' : open;
   for (let i = 1; i < source.length; i++) {
     if (source[i] === close && source[i - 1] !== '\\' && !isActionApostrophe(source, i)) {
       const rawQuote = source.slice(0, i + 1).trim();
-      const quote = open === "'" || open === ''
+      const quote = open === "'" || open === '‘'
         ? `"${stripBalancedActionQuotes(rawQuote)}"`
         : rawQuote;
       return {
@@ -215,10 +395,54 @@ function splitLeadingQuotedActionText(value: string): { quote: string; rest: str
   return { quote: source, rest: '' };
 }
 
+function splitParentheticalActionHint(line: string): string[] | null {
+  const trimmed = String(line || '').trim();
+  const match = trimmed.match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?(?:\s+(.+))?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const hintItems = splitListHintItems(match[2]);
+  if (!main || hintItems.length === 0) {
+    return null;
+  }
+
+  const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
+  const hintLabel = parentheticalHintLabelForMain(main);
+  const trailingLines = match[4] ? splitReadableActionLine(match[4].trim()) : [];
+
+  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...trailingLines];
+}
+
+function splitSuchAsActionHint(line: string): string[] | null {
+  const trimmed = String(line || '').trim();
+  const match = trimmed.match(/^(.+?)\s+(?:such as|including)\s+(.+?)([.!?])?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const main = match[1].trim();
+  const { hintText, trailingText } = splitHintTextFromTrailingInstruction(match[2]);
+  const hintItems = splitListHintItems(hintText);
+  if (!main || hintItems.length < 2) {
+    return null;
+  }
+
+  const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
+  const hintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
+    ? 'Daily supports'
+    : 'Suggestions';
+
+  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...splitReadableActionLine(trailingText)];
+}
+
 function splitReadableActionLine(line: string): string[] {
   const trimmed = line.trim();
   if (!trimmed) { return []; }
   if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
+  if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
+  if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
   const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
@@ -234,7 +458,7 @@ function splitReadableActionLine(line: string): string[] {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -242,7 +466,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
     return [
       ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
@@ -250,7 +474,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
@@ -263,6 +487,9 @@ function splitReadableActionLine(line: string): string[] {
     .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
     .map(part => part.trim())
     .filter(Boolean);
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (
     sentenceParts.length >= 2 &&
     sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
@@ -270,9 +497,14 @@ function splitReadableActionLine(line: string): string[] {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
 
-  const parentheticalHint = extractParentheticalActionHint(trimmed);
+  const parentheticalHint = splitParentheticalActionHint(trimmed);
   if (parentheticalHint) {
-    return [parentheticalHint.main, `${parentheticalHint.label}: ${parentheticalHint.hints.join('; ')}`];
+    return parentheticalHint;
+  }
+
+  const suchAsHint = splitSuchAsActionHint(trimmed);
+  if (suchAsHint) {
+    return suchAsHint;
   }
 
   if (trimmed.length < 145) { return [trimmed]; }
@@ -288,12 +520,117 @@ function normalizeActionMarkup(text: string): string {
     .replace(/<\/?.[^>]+>/g, '');
 }
 
+function normalizeActionBulletMarkers(text: string): string {
+  return String(text || '')
+    .replace(/(^|\n)([^*\n]{1,90}:\s*)\*\s+/g, (_match, prefix, label) => `${prefix}${String(label).trimEnd()}\n* `)
+    .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
+    .split('\n')
+    .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
+    .join('\n');
+}
+
 function cleanWisdomDisplayText(value: string): string {
   if (!value) return '';
   return value
     .replace(/\*\*/g, '')
     .replace(/__([^_]+)__/g, '$1')
     .trim();
+}
+
+function renderResourceListBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyResourceBlock}>
+      {item.text ? (
+        <ThemedText style={styles.bodyResourceIntro} selectable={true}>
+          {item.text}
+        </ThemedText>
+      ) : null}
+      <View style={styles.bodyResourceHeader}>
+        <Ionicons name="library-outline" size={13} color="rgba(255,204,102,0.78)" />
+        <ThemedText weight="semiBold" style={styles.bodyResourceLabel}>
+          {item.label || 'Resources to consider'}
+        </ThemedText>
+      </View>
+      <View style={styles.bodyResourceList}>
+        {(item.items || []).map(resource => (
+          <View key={resource} style={styles.bodyResourceItemRow}>
+            <View style={styles.bodyResourceItemDot} />
+            <ThemedText style={styles.bodyResourceItemText} selectable={true}>
+              {resource}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function renderComparisonColumnsBlock(item: BodyLine, key: string | number): React.ReactElement {
+  const columns = (item.columns || []).slice(0, 3);
+  if (columns.length === 0 || columns.every(column => column.items.length === 0)) {
+    return (
+      <ThemedText key={key} style={styles.wisdomText} selectable={true}>
+        {item.text}
+      </ThemedText>
+    );
+  }
+
+  return (
+    <View key={key} style={styles.bodyColumnsBlock}>
+      {columns.map(column => (
+        <View key={column.title} style={styles.bodyColumnCard}>
+          <View style={styles.bodyColumnHeader}>
+            <ThemedText weight="semiBold" style={styles.bodyColumnHeaderText}>
+              {column.title}
+            </ThemedText>
+          </View>
+          <View style={styles.bodyColumnList}>
+            {column.items.map((columnItem, itemIndex) => (
+              <View key={`${column.title}-${itemIndex}`} style={styles.bodyColumnItemRow}>
+                <View style={styles.bodyColumnItemNumber}>
+                  <ThemedText weight="semiBold" style={styles.bodyColumnItemNumberText}>
+                    {itemIndex + 1}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.bodyColumnItemText} selectable={true}>
+                  {columnItem}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function renderScriptureReadBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyScriptureReadBlock}>
+      <View style={styles.bodyScriptureReadHeader}>
+        <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+        <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference}>
+          {item.reference}
+        </ThemedText>
+      </View>
+      <View style={styles.bodyScriptureReadQuoteRow}>
+        <View style={styles.bodyScriptureReadRail} />
+        <ThemedText style={styles.bodyScriptureReadText} selectable={true}>
+          {item.text}
+        </ThemedText>
+      </View>
+      {item.summary ? (
+        <View style={styles.bodyScriptureReadSummary}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+            Write
+          </ThemedText>
+          <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
+            {item.summary}
+          </ThemedText>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function detectBodyLines(lines: string[]): BodyLine[] {
@@ -305,6 +642,46 @@ function detectBodyLines(lines: string[]): BodyLine[] {
     const raw = lines[idx];
     const line = raw.trim();
     const nextLine = lines[idx + 1]?.trim() || '';
+    const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
+    const comparisonColumn = parseComparisonColumnLine(line);
+    const scriptureRead = parseScriptureReadLine(line);
+
+    if (scriptureRead) {
+      out.push(scriptureRead);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (comparisonColumn) {
+      const columns = [comparisonColumn];
+      let cursor = idx + 1;
+      while (cursor < lines.length) {
+        const nextColumn = parseComparisonColumnLine(lines[cursor]?.trim() || '');
+        if (!nextColumn) {
+          break;
+        }
+        columns.push(nextColumn);
+        cursor++;
+      }
+
+      out.push({
+        text: 'Compare these side by side.',
+        type: 'columns',
+        columns,
+      });
+      idx = cursor - 1;
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (resourceList) {
+      out.push(resourceList);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
 
     if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
       out.push({
@@ -362,7 +739,11 @@ function detectBodyLines(lines: string[]): BodyLine[] {
 
     const hintMatch = line.match(/^(Suggestions|Examples|Possible limits|Limit examples|Daily supports):\s*(.+)$/i);
     if (hintMatch) {
-      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintMatch[2].trim(), type: 'hint' });
+      const { hintText, trailingText } = splitHintTextFromTrailingInstruction(hintMatch[2]);
+      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintText, type: 'hint' });
+      if (trailingText) {
+        out.push(...detectBodyLines(splitReadableActionLine(trailingText)));
+      }
       expectingPromptQuestion = false;
       inChecklist = false;
       continue;
@@ -533,10 +914,10 @@ const HowToModal: React.FC<HowToModalProps> = ({
   React.useEffect(() => {
     if (result?.success && result.wisdom) {
       resultAnim.setValue(0);
-      Animated.spring(resultAnim, {
+      Animated.timing(resultAnim, {
         toValue: 1,
-        tension: 42,
-        friction: 8,
+        duration: 720,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
     }
@@ -557,6 +938,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
         return;
       }
 
+      if (response.success && response.wisdom) {
+        Keyboard.dismiss();
+      }
       setResult(response);
       if (response.success) {
         if (response.wisdom) {
@@ -581,9 +965,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
       return [];
     }
 
-    const lines = result.wisdom
+    const lines = normalizeActionBulletMarkers(normalizeActionMarkup(result.wisdom))
       .split(/\n+/)
-      .flatMap(line => splitReadableActionLine(line))
+      .flatMap(line => splitReadableActionLine(line.replace(/^(?:\d+(?:\.\d+)?[\.)])\s+/, '')))
       .filter((line): line is string => Boolean(line))
       .map(line => cleanWisdomDisplayText(line))
       .filter(Boolean);
@@ -682,6 +1066,20 @@ const HowToModal: React.FC<HowToModalProps> = ({
                       ]}
                     >
                       {wisdomBodyLines.map((item, idx) => {
+                        const lineDelay = Math.min(0.62, idx * 0.045);
+                        const lineStart = Math.max(0.001, lineDelay);
+                        const lineEnd = Math.min(0.96, lineStart + 0.24);
+                        const lineOpacity = resultAnim.interpolate({
+                          inputRange: [0, lineStart, lineEnd, 1],
+                          outputRange: [0, 0, 1, 1],
+                          extrapolate: 'clamp',
+                        });
+                        const lineTranslateY = resultAnim.interpolate({
+                          inputRange: [0, lineStart, lineEnd, 1],
+                          outputRange: [10, 10, 0, 0],
+                          extrapolate: 'clamp',
+                        });
+                        const content = (() => {
                         if (item.type === 'script') {
                           return (
                             <View key={idx} style={styles.bodyScriptBlock}>
@@ -823,12 +1221,23 @@ const HowToModal: React.FC<HowToModalProps> = ({
                             </View>
                           );
                         }
+                        if (item.type === 'resourceList') {
+                          return renderResourceListBlock(item, idx);
+                        }
+                        if (item.type === 'columns') {
+                          return renderComparisonColumnsBlock(item, idx);
+                        }
+                        if (item.type === 'scriptureRead') {
+                          return renderScriptureReadBlock(item, idx);
+                        }
                         if (item.type === 'hint') {
                           const hintItems = item.text
                             .split(/\s*(?:;|,)\s*/)
                             .map(part => part.trim())
                             .filter(Boolean);
-                          const showHintChips = hintItems.length > 1 && hintItems.every(part => part.length <= 72);
+                          const showHintChips = hintItems.length > 1 &&
+                            hintItems.every(part => part.length <= 72) &&
+                            !hintItems.some(part => /:\s*/.test(part));
                           return (
                             <View key={idx} style={styles.bodyHintRow}>
                               <View style={styles.bodyHintHeader}>
@@ -892,6 +1301,15 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           <ThemedText key={idx} style={styles.wisdomText} selectable={true}>
                             {item.text}
                           </ThemedText>
+                        );
+                        })();
+                        return (
+                          <Animated.View
+                            key={`wisdom-line-${idx}-${item.type}-${item.label || ''}`}
+                            style={{ opacity: lineOpacity, transform: [{ translateY: lineTranslateY }] }}
+                          >
+                            {content}
+                          </Animated.View>
                         );
                       })}
                     </Animated.View>
@@ -1580,6 +1998,158 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.72)',
     lineHeight: 17,
+  },
+  bodyResourceBlock: {
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 9,
+  },
+  bodyResourceIntro: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.76)',
+    lineHeight: 22,
+  },
+  bodyResourceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bodyResourceLabel: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyResourceList: {
+    gap: 8,
+  },
+  bodyResourceItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  bodyResourceItemDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,204,102,0.66)',
+    flexShrink: 0,
+  },
+  bodyResourceItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
+  },
+  bodyColumnsBlock: {
+    marginTop: 10,
+    marginBottom: 12,
+    gap: 12,
+  },
+  bodyColumnCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    overflow: 'hidden',
+  },
+  bodyColumnHeader: {
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  bodyColumnHeaderText: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+    letterSpacing: 0.25,
+  },
+  bodyColumnList: {
+    paddingVertical: 6,
+    gap: 2,
+  },
+  bodyColumnItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  bodyColumnItemNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  bodyColumnItemNumberText: {
+    fontSize: 11,
+    color: Colors.faithGold,
+    lineHeight: 14,
+  },
+  bodyColumnItemText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 19,
+  },
+  bodyScriptureReadBlock: {
+    marginTop: 8,
+    marginBottom: 10,
+    gap: 8,
+  },
+  bodyScriptureReadHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bodyScriptureReadReference: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+    letterSpacing: 0.25,
+  },
+  bodyScriptureReadQuoteRow: {
+    position: 'relative',
+    paddingLeft: 12,
+  },
+  bodyScriptureReadRail: {
+    position: 'absolute',
+    left: 0,
+    top: 3,
+    bottom: 3,
+    width: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,204,102,0.42)',
+  },
+  bodyScriptureReadText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 21,
+  },
+  bodyScriptureReadSummary: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  bodyScriptureReadSummaryLabel: {
+    fontSize: 11,
+    color: Colors.faithGold,
+    lineHeight: 17,
+  },
+  bodyScriptureReadSummaryText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 18,
   },
   bodyFieldRow: {
     position: 'relative',

@@ -585,7 +585,7 @@ const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce
 const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
 const NEGATED_MARRIAGE_REGEX = /\b(?:not|never|no longer|isn't|is not|wasn't|was not|aren't|are not)\s+(?:married|in a marriage|my husband|my wife|my spouse)\b|\bnot\s+(?:my\s+)?(?:husband|wife|spouse)\b|\bnot\s+about\s+(?:marriage|my marriage)\b/i;
 const CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX = /\b(?:son|daughter|child|kid|boy|girl)\b[\s\S]{0,180}\b(?:relationship|dating|boyfriend|girlfriend|classmate)\b[\s\S]{0,220}\b(?:sister|sisters|family|mother|father|parents|siblings)\b[\s\S]{0,80}\b(?:against|oppose|opposes|opposed|do\s+not\s+want|don't\s+want|does\s+not\s+want|doesn't\s+want)\b[\s\S]{0,120}\b(?:open\s+doors|opens\s+doors|opening\s+doors|too\s+early|early)\b/i;
-const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action))?\s*[:：]\s*/i;
+const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 const INDIRECT_TRUTH_OPENERS = [
   /^it (?:is|can be|may be)\b/i,
   /^sometimes\b/i,
@@ -720,6 +720,17 @@ function capitalizeInstruction(text: string): string {
 
 function normalizeActionExampleText(example: string): string {
   let value = String(example || '').trim();
+  const bareYesNoAnswers = value.replace(/[.!?]+$/g, '').match(/^(yes|no)(?:\s*,\s*(yes|no))+$/i);
+  if (bareYesNoAnswers) {
+    const answers = value
+      .replace(/[.!?]+$/g, '')
+      .split(/\s*,\s*/)
+      .map(answer => answer.charAt(0).toUpperCase() + answer.slice(1).toLowerCase());
+    return answers
+      .map((answer, index) => `Question ${index + 1}: ${answer}`)
+      .join('\n');
+  }
+
   const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
   const quotedRemainder = value.replace(/["“][^"”]+["”]/g, '').replace(/[,\s]+/g, '');
   if (quotedItems.length >= 2 && !quotedRemainder) {
@@ -1219,7 +1230,7 @@ function parseJsonPlaybook(
         // Preserve an Example: marker so the walkthrough renders the speech-bubble block.
         description: buildRenderedActionDescription(body, description),
         primaryButton: action.primary_button ? cleanMarkdown(String(action.primary_button)) : undefined,
-        secondaryButton: action.secondary_button ? cleanMarkdown(String(action.secondary_button)) : undefined,
+        secondaryButton: 'Not yet',
         subTasks: [],
         examples: [],
         example_interactive: false,

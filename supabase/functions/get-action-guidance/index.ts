@@ -76,7 +76,7 @@ function parseWisdomJson(content: string): { intro: string; steps: string[] } {
     const parsed = JSON.parse(content);
     const intro = cleanOutputText(parsed?.intro, 500);
     const steps = Array.isArray(parsed?.steps)
-      ? parsed.steps.map((step: unknown) => cleanOutputText(step, 300)).filter(Boolean).slice(0, 5)
+      ? parsed.steps.map((step: unknown) => cleanOutputText(step, 600)).filter(Boolean).slice(0, 8)
       : [];
 
     if (intro || steps.length > 0) {
@@ -101,9 +101,9 @@ function parseWisdomJson(content: string): { intro: string; steps: string[] } {
     steps: lines
       .slice(listStartIndex)
       .filter(line => /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line))
-      .map(line => cleanOutputText(line.replace(/^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/, ''), 300))
+      .map(line => cleanOutputText(line.replace(/^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/, ''), 600))
       .filter(Boolean)
-      .slice(0, 5),
+      .slice(0, 8),
   };
 }
 
@@ -366,6 +366,10 @@ function buildWisdomPrompt(args: {
     'Steps should feel like: "Here is exactly how to do this thing you are already trying to do."',
     'IMPORTANT: If the action description already contains sub-steps, exact words, or a script, extract and present those — do not invent a new one.',
     'When presenting a script from the action description, each distinct line or instruction becomes one clean step in the JSON steps array.',
+    'If the user asks for a two-column list, comparison table, or side-by-side columns, put each column in its own step using this exact shape: "Under \"Column A,\" list these points: 1) point one; 2) point two; 3) point three." and "Under \"Column B,\" list these points: 1) point one; 2) point two; 3) point three."',
+    'For two-column answers, do not flatten both columns into ordinary numbered steps only. The app renders "Under ..." column steps as a side-by-side table.',
+    'If the user asks for a list of resources, materials, books, curricula, or studies, put the whole resource list in ONE step using this exact shape: "Make a list including these materials: item one, item two, item three, item four, item five."',
+    'For resource/material lists, do not put all resources in the intro and do not split one resource list across separate unrelated prose steps.',
     'If previous wisdom already gave the opener or first line of the script, do NOT repeat the opener. Continue from where the user left off: give the bridge, deeper explanation, gospel content, response question, or next thing to say.',
     'If the user asks a follow-up like "what next", "how do I segue", "how do I say Jesus", "can you give another example", or asks the same thing again, assume they need the NEXT layer of help — not the same opening line.',
     'The intro should briefly explain how to use the script or what to expect — not repeat the script itself.',

@@ -1068,13 +1068,17 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'ask' | 'question' | 'checklist' | 'body';
-const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action))?\s*[:：]\s*/i;
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'ask' | 'question' | 'checklist' | 'body';
+const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 
 interface BodyLine {
   text: string;
   type: BodyLineType;
   label?: string;
+  items?: string[];
+  columns?: Array<{ title: string; items: string[] }>;
+  reference?: string;
+  summary?: string;
 }
 
 function stripBalancedActionQuotes(text: string): string {
@@ -1295,6 +1299,34 @@ function splitQuestionPromptText(value: string): string[] {
   return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
 }
 
+function splitHintTextFromTrailingInstruction(value: string): { hintText: string; trailingText: string } {
+  const parts = String(value || '')
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) {
+    return { hintText: String(value || '').trim(), trailingText: '' };
+  }
+
+  const firstInstructionIndex = parts.findIndex((part, index) => {
+    if (index === 0) {
+      return false;
+    }
+    return /^(?:Evaluate|Decide|Choose|Compare|Review|Then|Next|After|Ask|Write|Use|Pick|Select|Note|Share|Bring|Schedule|Contact|Message|Practice|Repeat|Set)\b/i.test(part);
+  });
+
+  if (firstInstructionIndex < 1) {
+    return { hintText: String(value || '').trim(), trailingText: '' };
+  }
+
+  return {
+    hintText: parts.slice(0, firstInstructionIndex).join(' '),
+    trailingText: parts.slice(firstInstructionIndex).join(' '),
+  };
+}
+
 function parentheticalHintLabelForMain(main: string): string {
   return /\b(?:limit|limits|boundary|boundaries|off-limits|allowed|forbidden|rules?)\b/i.test(main)
     ? 'Possible limits'
@@ -1303,21 +1335,22 @@ function parentheticalHintLabelForMain(main: string): string {
 
 function splitParentheticalActionHint(line: string): string[] | null {
   const trimmed = String(line || '').trim();
-  const match = trimmed.match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?$/i);
+  const match = trimmed.match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?(?:\s+(.+))?$/i);
   if (!match) {
     return null;
   }
 
   const main = match[1].trim();
-  const hint = match[2].trim();
-  if (!main || !hint) {
+  const hintItems = splitListHintItems(match[2]);
+  if (!main || hintItems.length === 0) {
     return null;
   }
 
   const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
   const hintLabel = parentheticalHintLabelForMain(main);
+  const trailingLines = match[4] ? splitReadableActionLine(match[4].trim()) : [];
 
-  return [mainLine, `${hintLabel}: ${hint}`];
+  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...trailingLines];
 }
 
 function splitListHintItems(value: string): string[] {
@@ -1326,8 +1359,145 @@ function splitListHintItems(value: string): string[] {
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
     .split(/\s*,\s*/)
-    .map(part => part.trim().replace(/[.!?]+$/g, ''))
+    .map(part => stripBalancedActionQuotes(part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '')))
     .filter(Boolean);
+}
+
+function splitResourceListItems(value: string): string[] {
+  const items: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+  let quoteClose = '';
+  const source = String(value || '').trim().replace(/[.!?]+$/g, '');
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+
+    if (quoteClose) {
+      current += char;
+      if (char === quoteClose && !isActionApostrophe(source, i)) {
+        quoteClose = '';
+      }
+      continue;
+    }
+
+    if ((char === '"' || char === "'" || char === '“' || char === '‘') && !isActionApostrophe(source, i)) {
+      quoteClose = char === '“' ? '”' : char === '‘' ? '’' : char;
+      current += char;
+      continue;
+    }
+
+    if (char === '(') {
+      parenDepth++;
+    } else if (char === ')' && parenDepth > 0) {
+      parenDepth--;
+    }
+
+    if ((char === ',' || char === ';') && parenDepth === 0) {
+      if (current.trim()) {
+        items.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) {
+    items.push(current.trim());
+  }
+
+  return items
+    .map(item => stripBalancedActionQuotes(item.replace(/^(?:and|or)\s+/i, '').trim()))
+    .filter(Boolean);
+}
+
+function parseResourceListLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(.{0,120}?\b(?:including|include|list|consider|choose from)\b[^:]{0,90}\b(?:materials?|resources?|studies|books|curricula|curriculum|options)\b[^:]*):\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const items = splitResourceListItems(match[2]);
+  if (items.length < 2) {
+    return null;
+  }
+
+  return {
+    label: /material/i.test(match[1]) ? 'Materials to consider' : 'Resources to consider',
+    text: match[1].trim().replace(/:\s*$/, '.'),
+    type: 'resourceList',
+    items,
+  };
+}
+
+function parseResourceHintLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(?:Suggestion|Suggestions|Example|Examples):\s*(?:(?:these|the)\s+)?(materials?|resources?|studies|books|curricula|curriculum|options)\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const items = splitResourceListItems(match[2]);
+  if (items.length < 2) {
+    return null;
+  }
+
+  return {
+    label: /material/i.test(match[1]) ? 'Materials to consider' : 'Resources to consider',
+    text: 'Make a list from these options.',
+    type: 'resourceList',
+    items,
+  };
+}
+
+function splitComparisonColumnItems(value: string): string[] {
+  const source = String(value || '').trim().replace(/[.!?]+$/g, '');
+  const numberedParts = source
+    .split(/\s*;\s*(?=\d+\)|[-*•]\s+)/)
+    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+
+  if (numberedParts.length >= 2) {
+    return numberedParts;
+  }
+
+  return source
+    .split(/\s*;\s*/)
+    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function parseComparisonColumnLine(line: string): { title: string; items: string[] } | null {
+  const match = String(line || '').trim().match(/^Under\s+["'“‘]?([^"'”’]+?)["'”’]?,?\s+list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const title = stripBalancedActionQuotes(match[1].trim().replace(/,\s*$/, ''));
+  const items = splitComparisonColumnItems(match[2]);
+  return title && items.length > 0 ? { title, items } : null;
+}
+
+function parseScriptureReadLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
+    || String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*(.+?)\s+Write:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const reference = match[1].trim();
+  const verseText = stripBalancedActionQuotes(match[2].trim());
+  const summary = match[3].trim();
+  if (!reference || !verseText || !summary) {
+    return null;
+  }
+
+  return {
+    text: verseText,
+    type: 'scriptureRead',
+    reference,
+    summary,
+  };
 }
 
 function extractParentheticalActionHint(value: string): { main: string; hints: string[]; label: string } | null {
@@ -1357,7 +1527,8 @@ function splitSuchAsActionHint(line: string): string[] | null {
   }
 
   const main = match[1].trim();
-  const hintItems = splitListHintItems(match[2]);
+  const { hintText, trailingText } = splitHintTextFromTrailingInstruction(match[2]);
+  const hintItems = splitListHintItems(hintText);
   if (!main || hintItems.length < 2) {
     return null;
   }
@@ -1367,7 +1538,7 @@ function splitSuchAsActionHint(line: string): string[] | null {
     ? 'Daily supports'
     : 'Suggestions';
 
-  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`];
+  return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...splitReadableActionLine(trailingText)];
 }
 
 function stripLeakedActionFieldFragments(value: string): string {
@@ -1404,6 +1575,17 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
 
 function normalizeActionExampleDisplayText(example: string): string {
   let value = String(example || '').trim();
+  const bareYesNoAnswers = value.replace(/[.!?]+$/g, '').match(/^(yes|no)(?:\s*,\s*(yes|no))+$/i);
+  if (bareYesNoAnswers) {
+    const answers = value
+      .replace(/[.!?]+$/g, '')
+      .split(/\s*,\s*/)
+      .map(answer => capitalizeFirstLetter(answer.toLowerCase()));
+    return answers
+      .map((answer, index) => `Question ${index + 1}: ${answer}`)
+      .join('\n');
+  }
+
   const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
   const quotedRemainder = value.replace(/["“][^"”]+["”]/g, '').replace(/[,\s]+/g, '');
   if (quotedItems.length >= 2 && !quotedRemainder) {
@@ -1433,6 +1615,13 @@ function normalizeActionExampleDisplayText(example: string): string {
   const catchThought = value.match(/^Catch\s+(?:the\s+)?thought\s+(.+?\?)\s+then\s+(.+)$/i);
   if (catchThought) {
     return `Catch the thought "${catchThought[1].trim()}" then ${catchThought[2].trim()}`;
+  }
+
+  const quotedQuestions = value.match(/["“][^"”]*\?["”]/g);
+  if (quotedQuestions && quotedQuestions.length >= 2) {
+    return quotedQuestions
+      .map(question => stripBalancedActionQuotes(question))
+      .join('\n');
   }
 
   const sharedAndAsked = value.match(/^I\s+shared\s+with\s+(.+?)\s+who\s+agreed\s+to\s+(.+?)\.?$/i);
@@ -1511,6 +1700,7 @@ function splitReadableActionLine(line: string): string[] {
   if (!trimmed) { return []; }
   if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
+  if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
   const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
@@ -1526,7 +1716,7 @@ function splitReadableActionLine(line: string): string[] {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -1534,7 +1724,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
     return [
       ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
@@ -1542,7 +1732,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|ask(?:\s+yourself)?|test|check)\s*:\s*)(.+)$/i);
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
@@ -1555,6 +1745,9 @@ function splitReadableActionLine(line: string): string[] {
     .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
     .map(part => part.trim())
     .filter(Boolean);
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (
     sentenceParts.length >= 2 &&
     sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
@@ -1600,8 +1793,11 @@ function scriptLabelForIntro(line: string): string {
   if (/\bwhen\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
     return 'Say this when it rises';
   }
+  if (/\bsay\s+aloud\b/i.test(line)) {
+    return 'Say aloud';
+  }
   if (/\b(?:message|text|send|reply)\b/i.test(line)) {
-    return 'Message to send';
+    return 'Suggested message';
   }
   if (/\b(?:pray|prayer)\b/i.test(line)) {
     return 'Prayer to say';
@@ -1614,11 +1810,14 @@ function isChecklistIntroLine(line: string): boolean {
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|ask|then ask|ask yourself|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad) slow(?:ly|ely) and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
   const trimmed = line.trim();
+  if (/\bask\s+these\s+questions\b/i.test(trimmed)) {
+    return 'Ask these questions';
+  }
   if (/^(?:read|rad) slow(?:ly|ely) and ask/i.test(trimmed)) {
     return 'Read slowly and ask';
   }
@@ -1662,6 +1861,46 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     const raw = lines[idx];
     const line = raw.trim();
     const nextLine = lines[idx + 1]?.trim() || '';
+    const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
+    const comparisonColumn = parseComparisonColumnLine(line);
+    const scriptureRead = parseScriptureReadLine(line);
+
+    if (scriptureRead) {
+      out.push(scriptureRead);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (comparisonColumn) {
+      const columns = [comparisonColumn];
+      let cursor = idx + 1;
+      while (cursor < lines.length) {
+        const nextColumn = parseComparisonColumnLine(lines[cursor]?.trim() || '');
+        if (!nextColumn) {
+          break;
+        }
+        columns.push(nextColumn);
+        cursor++;
+      }
+
+      out.push({
+        text: 'Compare these side by side.',
+        type: 'columns',
+        columns,
+      });
+      idx = cursor - 1;
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (resourceList) {
+      out.push(resourceList);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
 
     if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
       out.push({
@@ -1724,7 +1963,12 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
 
     const hintMatch = line.match(/^(Suggestions|Examples|Possible limits|Limit examples|Daily supports):\s*(.+)$/i);
     if (hintMatch) {
-      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintMatch[2].trim(), type: 'hint' });
+      const { hintText, trailingText } = splitHintTextFromTrailingInstruction(hintMatch[2]);
+      out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintText, type: 'hint' });
+      if (trailingText) {
+        const trailingBodyLines = detectBodyLines(splitReadableActionLine(trailingText), actionType);
+        out.push(...trailingBodyLines);
+      }
       expectingPromptQuestion = false;
       inChecklist = false;
       continue;
@@ -1787,6 +2031,102 @@ function cleanWisdomDisplayText(value: string): string {
     .replace(/\*\*/g, '')
     .replace(/__([^_]+)__/g, '$1')
     .trim();
+}
+
+function renderResourceListBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyResourceBlock}>
+      {item.text ? (
+        <ThemedText style={styles.bodyResourceIntro} selectable={true}>
+          {item.text}
+        </ThemedText>
+      ) : null}
+      <View style={styles.bodyResourceHeader}>
+        <Ionicons name="library-outline" size={13} color="rgba(255,204,102,0.78)" />
+        <ThemedText weight="semiBold" style={styles.bodyResourceLabel}>
+          {item.label || 'Resources to consider'}
+        </ThemedText>
+      </View>
+      <View style={styles.bodyResourceList}>
+        {(item.items || []).map(resource => (
+          <View key={resource} style={styles.bodyResourceItemRow}>
+            <View style={styles.bodyResourceItemDot} />
+            <ThemedText style={styles.bodyResourceItemText} selectable={true}>
+              {resource}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function renderComparisonColumnsBlock(item: BodyLine, key: string | number): React.ReactElement {
+  const columns = (item.columns || []).slice(0, 3);
+  if (columns.length === 0 || columns.every(column => column.items.length === 0)) {
+    return (
+      <ThemedText key={key} style={styles.actionBodyLine} selectable={true}>
+        {item.text}
+      </ThemedText>
+    );
+  }
+
+  return (
+    <View key={key} style={styles.bodyColumnsBlock}>
+      {columns.map(column => (
+        <View key={column.title} style={styles.bodyColumnCard}>
+          <View style={styles.bodyColumnHeader}>
+            <ThemedText weight="semiBold" style={styles.bodyColumnHeaderText}>
+              {column.title}
+            </ThemedText>
+          </View>
+          <View style={styles.bodyColumnList}>
+            {column.items.map((columnItem, itemIndex) => (
+              <View key={`${column.title}-${itemIndex}`} style={styles.bodyColumnItemRow}>
+                <View style={styles.bodyColumnItemNumber}>
+                  <ThemedText weight="semiBold" style={styles.bodyColumnItemNumberText}>
+                    {itemIndex + 1}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.bodyColumnItemText} selectable={true}>
+                  {columnItem}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function renderScriptureReadBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyScriptureReadBlock}>
+      <View style={styles.bodyScriptureReadHeader}>
+        <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+        <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference}>
+          {item.reference}
+        </ThemedText>
+      </View>
+      <View style={styles.bodyScriptureReadQuoteRow}>
+        <View style={styles.bodyScriptureReadRail} />
+        <ThemedText style={styles.bodyScriptureReadText} selectable={true}>
+          {item.text}
+        </ThemedText>
+      </View>
+      {item.summary ? (
+        <View style={styles.bodyScriptureReadSummary}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+            Write
+          </ThemedText>
+          <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
+            {item.summary}
+          </ThemedText>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function isWisdomLeadInLine(value: string): boolean {
@@ -2525,13 +2865,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   const isCommitted = !!committedSteps[actionStepIndex];
 
-  const fallbackSecondaryLabel = actionType === 'choose' ? "I'm still unsure" :
-    actionType === 'text_input' ? 'Not yet' :
-    'Not yet';
-
-  const secondaryLabel = isCommitted ? 'Next' : (
-    currentStep.secondaryButton ?? fallbackSecondaryLabel
-  );
+  const secondaryLabel = isCommitted ? 'Next' : 'Not yet';
 
   // Detect special step types — check label, title, AND body content so old playbooks
   // without AI-generated primary_button still work correctly
@@ -2932,12 +3266,23 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   </View>
                 );
               }
+              if (item.type === 'resourceList') {
+                return renderResourceListBlock(item, idx);
+              }
+              if (item.type === 'columns') {
+                return renderComparisonColumnsBlock(item, idx);
+              }
+              if (item.type === 'scriptureRead') {
+                return renderScriptureReadBlock(item, idx);
+              }
               if (item.type === 'hint') {
                 const hintItems = item.text
                   .split(/\s*(?:;|,)\s*/)
                   .map(part => part.trim())
                   .filter(Boolean);
-                const showHintChips = hintItems.length > 1 && hintItems.every(part => part.length <= 72);
+                const showHintChips = hintItems.length > 1 &&
+                  hintItems.every(part => part.length <= 72) &&
+                  !hintItems.some(part => /:\s*/.test(part));
                 return (
                   <View key={idx} style={styles.bodyHintRow}>
                     <View style={styles.bodyHintHeader}>
@@ -3137,11 +3482,238 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 <View style={styles.actionWisdomBlockDivider} />
                               )}
 
-                              {block.items.map((item, idx) => {
-                                const titledItem = splitWisdomItemTitle(item);
+                              {(() => {
+                                const wisdomBodyLines = detectBodyLines(
+                                  block.items.flatMap(item =>
+                                    normalizeActionBulletMarkers(normalizeActionMarkup(item))
+                                      .split(/\n+/)
+                                      .flatMap(line => splitReadableActionLine(line))
+                                  ),
+                                  'done_skip'
+                                );
+                                return wisdomBodyLines.map((item, idx) => {
+                                if (item.type === 'resourceList') {
+                                  return renderResourceListBlock(item, `wisdom-item-${blockIndex}-${idx}-resources`);
+                                }
+                                if (item.type === 'columns') {
+                                  return renderComparisonColumnsBlock(item, `wisdom-item-${blockIndex}-${idx}-columns`);
+                                }
+                                if (item.type === 'scriptureRead') {
+                                  return renderScriptureReadBlock(item, `wisdom-item-${blockIndex}-${idx}-scripture-read`);
+                                }
+                                if (item.type === 'hint') {
+                                  const hintItems = item.text
+                                    .split(/\s*(?:;|,)\s*/)
+                                    .map(part => part.trim())
+                                    .filter(Boolean);
+                                  const showHintChips = hintItems.length > 1 &&
+                                    hintItems.every(part => part.length <= 72) &&
+                                    !hintItems.some(part => /:\s*/.test(part));
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-${item.label}-${item.text}`} style={styles.bodyHintRow}>
+                                      <View style={styles.bodyHintHeader}>
+                                        <Ionicons
+                                          name={/limit/i.test(item.label || '') ? 'options-outline' : /daily|support/i.test(item.label || '') ? 'calendar-outline' : 'sparkles-outline'}
+                                          size={13}
+                                          color="rgba(255,204,102,0.72)"
+                                        />
+                                        <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                          {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                                        </ThemedText>
+                                      </View>
+                                      {showHintChips ? (
+                                        <View style={styles.bodyHintChipRow}>
+                                          {hintItems.map(part => (
+                                            <View key={part} style={styles.bodyHintChip}>
+                                              <ThemedText style={styles.bodyHintChipText}>
+                                                {part}
+                                              </ThemedText>
+                                            </View>
+                                          ))}
+                                        </View>
+                                      ) : (
+                                        <ThemedText style={styles.bodyHintText} selectable={true}>
+                                          {item.text}
+                                        </ThemedText>
+                                      )}
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'script') {
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-script`} style={styles.bodyScriptBlock}>
+                                      <View style={styles.bodyScriptRail} />
+                                      <View style={styles.bodyScriptHeader}>
+                                        <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
+                                        <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
+                                          {item.label || 'Words to say'}
+                                        </ThemedText>
+                                      </View>
+                                      <ThemedText style={styles.bodyScriptText} selectable={true}>
+                                        {item.text}
+                                      </ThemedText>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'ask') {
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-ask`} style={styles.bodyAskHeader}>
+                                      <Ionicons name="help-circle-outline" size={14} color="rgba(255,204,102,0.78)" />
+                                      <ThemedText weight="semiBold" style={styles.bodyAskLabel}>
+                                        {item.label || 'Ask yourself'}
+                                      </ThemedText>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'question') {
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-question`} style={styles.bodyQuestionRow}>
+                                      <ThemedText style={styles.bodyQuestionMark}>?</ThemedText>
+                                      <ThemedText style={styles.bodyQuestionText} selectable={true}>
+                                        {item.text}
+                                      </ThemedText>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'checklist') {
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-checklist`} style={styles.bodyChecklistHeader}>
+                                      <FontAwesome6 name="list-check" size={13} color="rgba(255,204,102,0.78)" />
+                                      <ThemedText weight="semiBold" style={styles.bodyChecklistLabel}>
+                                        {item.label || 'Do this'}
+                                      </ThemedText>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'checklistItem') {
+                                  const bulletHint = extractParentheticalActionHint(item.text);
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-checklist-item`} style={styles.bodyChecklistItemRow}>
+                                      <View style={styles.bodyChecklistItemIcon}>
+                                        <Ionicons name="checkmark" size={12} color={Colors.faithGold} />
+                                      </View>
+                                      <View style={styles.bodyChecklistItemContent}>
+                                        <ThemedText style={styles.bodyChecklistItemText} selectable={true}>
+                                          {bulletHint?.main || item.text}
+                                        </ThemedText>
+                                        {bulletHint && (
+                                          <View style={styles.bodyInlineHintBlock}>
+                                            <View style={styles.bodyHintHeader}>
+                                              <Ionicons
+                                                name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                                                size={13}
+                                                color="rgba(255,204,102,0.72)"
+                                              />
+                                              <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                                {bulletHint.label}
+                                              </ThemedText>
+                                            </View>
+                                            <View style={styles.bodyLineBulletHintRow}>
+                                              {bulletHint.hints.map(hint => (
+                                                <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                                  <ThemedText style={styles.bodyLineBulletHintText}>
+                                                    {hint}
+                                                  </ThemedText>
+                                                </View>
+                                              ))}
+                                            </View>
+                                          </View>
+                                        )}
+                                      </View>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'bullet') {
+                                  const bulletHint = extractParentheticalActionHint(item.text);
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-bullet`} style={styles.bodyLineBulletRow}>
+                                      <View style={styles.bodyLineBulletDot} />
+                                      <View style={styles.bodyLineBulletContent}>
+                                        <ThemedText style={styles.bodyLineBullet} selectable={true}>
+                                          {bulletHint?.main || item.text}
+                                        </ThemedText>
+                                        {bulletHint && (
+                                          <View style={styles.bodyInlineHintBlock}>
+                                            <View style={styles.bodyHintHeader}>
+                                              <Ionicons
+                                                name={/limit/i.test(bulletHint.label) ? 'options-outline' : 'sparkles-outline'}
+                                                size={13}
+                                                color="rgba(255,204,102,0.72)"
+                                              />
+                                              <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                                {bulletHint.label}
+                                              </ThemedText>
+                                            </View>
+                                            <View style={styles.bodyLineBulletHintRow}>
+                                              {bulletHint.hints.map(hint => (
+                                                <View key={hint} style={styles.bodyLineBulletHintChip}>
+                                                  <ThemedText style={styles.bodyLineBulletHintText}>
+                                                    {hint}
+                                                  </ThemedText>
+                                                </View>
+                                              ))}
+                                            </View>
+                                          </View>
+                                        )}
+                                      </View>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'check') {
+                                  const isYesNo = /^yes\s*\/\s*no$/i.test(item.text);
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-check`} style={styles.bodyCheckRow}>
+                                      <ThemedText weight="semiBold" style={styles.bodyCheckLabel}>
+                                        {item.label}
+                                      </ThemedText>
+                                      {isYesNo ? (
+                                        <View style={styles.bodyCheckValuePill}>
+                                          <ThemedText weight="semiBold" style={styles.bodyCheckValuePillText}>
+                                            Yes / No
+                                          </ThemedText>
+                                        </View>
+                                      ) : (
+                                        <ThemedText style={styles.bodyCheckValue} selectable={true}>
+                                          {item.text}
+                                        </ThemedText>
+                                      )}
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'field') {
+                                  return (
+                                    <View key={`wisdom-item-${blockIndex}-${idx}-field`} style={styles.bodyFieldRow}>
+                                      <View style={styles.bodyFieldRail} />
+                                      <View style={styles.bodyFieldLabel}>
+                                        <ThemedText weight="semiBold" style={styles.bodyFieldLabelText}>
+                                          {item.label}
+                                        </ThemedText>
+                                      </View>
+                                      <ThemedText style={styles.bodyFieldValue} selectable={true}>
+                                        {item.text}
+                                      </ThemedText>
+                                    </View>
+                                  );
+                                }
+                                if (item.type === 'quote') {
+                                  return (
+                                    <ThemedText key={`wisdom-item-${blockIndex}-${idx}-quote`} style={styles.bodyLineQuote} selectable={true}>
+                                      {item.text}
+                                    </ThemedText>
+                                  );
+                                }
+                                if (item.type === 'intro') {
+                                  return (
+                                    <ThemedText key={`wisdom-item-${blockIndex}-${idx}-intro`} style={styles.bodyLineIntro} selectable={true}>
+                                      {item.text}
+                                    </ThemedText>
+                                  );
+                                }
+                                const titledItem = splitWisdomItemTitle(item.text);
+                                const plainText = item.text;
 
                                 return (
-                                  <React.Fragment key={`wisdom-item-${blockIndex}-${idx}-${item}`}>
+                                  <React.Fragment key={`wisdom-item-${blockIndex}-${idx}-${item.label || ''}-${item.text}`}>
                                     <View style={styles.actionWisdomStepRow}>
                                       <View style={styles.actionWisdomStepTextWrapper}>
                                         {titledItem ? (
@@ -3186,7 +3758,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                         ) : (
                                           Platform.OS === 'ios' ? (
                                             <ThemedTextInput
-                                              value={item}
+                                              value={plainText}
                                               editable={false}
                                               multiline={true}
                                               scrollEnabled={false}
@@ -3198,7 +3770,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                             />
                                           ) : (
                                             <ThemedText style={styles.actionWisdomStepText} selectable={true}>
-                                              {item}
+                                              {plainText}
                                             </ThemedText>
                                           )
                                         )}
@@ -3206,7 +3778,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                     </View>
                                   </React.Fragment>
                                 );
-                              })}
+                                });
+                              })()}
 
                               {block.outro ? (
                                 <View style={styles.actionWisdomOutroWrapper}>
@@ -5998,6 +6571,158 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.72)',
     lineHeight: 17,
+  },
+  bodyResourceBlock: {
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 9,
+  },
+  bodyResourceIntro: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.76)',
+    lineHeight: 22,
+  },
+  bodyResourceHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  bodyResourceLabel: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 15,
+    letterSpacing: 0.25,
+  },
+  bodyResourceList: {
+    gap: 8,
+  },
+  bodyResourceItemRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 8,
+  },
+  bodyResourceItemDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    marginTop: 8,
+    backgroundColor: 'rgba(255,204,102,0.66)',
+    flexShrink: 0,
+  },
+  bodyResourceItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
+  },
+  bodyColumnsBlock: {
+    marginTop: 10,
+    marginBottom: 12,
+    gap: 12,
+  },
+  bodyColumnCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    overflow: 'hidden' as const,
+  },
+  bodyColumnHeader: {
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  bodyColumnHeaderText: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+    letterSpacing: 0.25,
+  },
+  bodyColumnList: {
+    paddingVertical: 6,
+    gap: 2,
+  },
+  bodyColumnItemRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  bodyColumnItemNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: 'rgba(255,204,102,0.12)',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  bodyColumnItemNumberText: {
+    fontSize: 11,
+    color: Colors.faithGold,
+    lineHeight: 14,
+  },
+  bodyColumnItemText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 19,
+  },
+  bodyScriptureReadBlock: {
+    marginTop: 8,
+    marginBottom: 10,
+    gap: 8,
+  },
+  bodyScriptureReadHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  bodyScriptureReadReference: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+    letterSpacing: 0.25,
+  },
+  bodyScriptureReadQuoteRow: {
+    position: 'relative',
+    paddingLeft: 12,
+  },
+  bodyScriptureReadRail: {
+    position: 'absolute',
+    left: 0,
+    top: 3,
+    bottom: 3,
+    width: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,204,102,0.42)',
+  },
+  bodyScriptureReadText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 21,
+  },
+  bodyScriptureReadSummary: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
+  bodyScriptureReadSummaryLabel: {
+    fontSize: 11,
+    color: Colors.faithGold,
+    lineHeight: 17,
+  },
+  bodyScriptureReadSummaryText: {
+    flex: 1,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 18,
   },
   bodyFieldRow: {
     position: 'relative',
