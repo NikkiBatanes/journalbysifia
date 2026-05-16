@@ -327,7 +327,7 @@ function parseResourceHintLine(line: string): BodyLine | null {
 
 function splitComparisonColumnItems(value: string): string[] {
   const source = String(value || '').trim().replace(/[.!?]+$/g, '');
-  
+
   // Try splitting by numbered format like "1) item; 2) item; 3) item"
   const numberedParts = source
     .split(/(?<=\))\s*;\s*/)
@@ -651,7 +651,7 @@ function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
     .split('\n')
     .map(line => {
-      if (/^\s*(?:\d+(?:\.\d+)?[\.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
+      if (/^\s*(?:\d+(?:\.\d+)?[.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
         return line;
       }
 
@@ -665,7 +665,9 @@ function normalizeActionBulletMarkers(text: string): string {
 }
 
 function cleanWisdomDisplayText(value: string): string {
-  if (!value) return '';
+  if (!value) {
+    return '';
+  }
   return value
     .replace(/\*\*/g, '')
     .replace(/__([^_]+)__/g, '$1')
@@ -943,21 +945,6 @@ function detectBodyLines(lines: string[]): BodyLine[] {
   return out;
 }
 
-function splitWisdomItemTitle(value: string): { title: string; body: string } | null {
-  const match = value.match(/^([^:]{3,64}):\s+(.+)$/);
-  if (!match) {
-    return null;
-  }
-
-  return {
-    title: match[1].trim(),
-    body: match[2].trim(),
-  };
-}
-
-function isWisdomOutroLine(value: string): boolean {
-  return /^(?:remember|as you|this simple|these steps|by doing|through this|over time|with each|even small|start small|you can|may this|let this|trust that)\b/i.test(value.trim());
-}
 
 const HowToModal: React.FC<HowToModalProps> = ({
   visible,
@@ -1182,7 +1169,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
     const lines = normalizeActionBulletMarkers(normalizeActionMarkup(result.wisdom))
       .split(/\n+/)
-      .flatMap(line => splitReadableActionLine(line.replace(/^(?:\d+(?:\.\d+)?[\.)])\s+/, '')))
+      .flatMap(line => splitReadableActionLine(line.replace(/^(?:\d+(?:\.\d+)?[.)])\s+/, '')))
       .filter((line): line is string => Boolean(line))
       .map(line => cleanWisdomDisplayText(line))
       .filter(Boolean);

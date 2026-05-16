@@ -686,7 +686,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, routeParams?.source, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, dynamicSalesCopy?.recommendedTier, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
+  }, [hasManualTierSelection, isUpgradeMode, currentUserTier, effectiveCurrentUserTier, effectiveIsSeekerTier, effectiveTrialPlanTier, requestedDuration, isFromProfile, route.params, routeParams?.onboardingFlow, routeParams?.selectedTier, routeParams?.forceAnnualOnly, routeParams?.forceTransformationAnnual, routeParams?.source, showAllPlans, selectedPlanTier, dynamicSalesCopy?.isCurrentTier, dynamicSalesCopy?.recommendedTier, dynamicSalesCopy?.closeOnPrimaryCta, shouldUseTrialPlanSwitcher, trialUpgradeTier]);
 
   // Cleanup navigation guard on unmount
   useEffect(() => {

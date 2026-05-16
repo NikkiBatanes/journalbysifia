@@ -1209,7 +1209,7 @@ function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
     .split('\n')
     .map(line => {
-      if (/^\s*(?:\d+(?:\.\d+)?[\.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
+      if (/^\s*(?:\d+(?:\.\d+)?[.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
         return line;
       }
 
@@ -1502,7 +1502,7 @@ function parseResourceHintLine(line: string): BodyLine | null {
 
 function splitComparisonColumnItems(value: string): string[] {
   const source = String(value || '').trim().replace(/[.!?]+$/g, '');
-  
+
   // Try splitting by numbered format like "1) item; 2) item; 3) item"
   const numberedParts = source
     .split(/(?<=\))\s*;\s*/)
