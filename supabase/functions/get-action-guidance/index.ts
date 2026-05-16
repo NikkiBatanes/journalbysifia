@@ -1,6 +1,7 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { bibleVerseService } from '../_shared/bibleVerseService.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -298,6 +299,45 @@ function calculateAgeFromDate(dateOfBirth?: string): number | null {
   return age;
 }
 
+function detectScriptureRequest(question: string): { isScripture: boolean; reference?: string; isFullChapter: boolean } {
+  const q = question.toLowerCase();
+  
+  // Detect if asking for scripture
+  const scriptureKeywords = /\b(scripture|bible|verse|verses|chapter|passage|read|text|full|entire|whole|complete)\b/i.test(q);
+  const hasBookReference = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i.test(q);
+  
+  if (!scriptureKeywords || !hasBookReference) {
+    return { isScripture: false, isFullChapter: false };
+  }
+
+  // Extract reference
+  const referenceMatch = q.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+:\d+(-\d+)?/i);
+  
+  if (!referenceMatch) {
+    return { isScripture: false, isFullChapter: false };
+  }
+
+  const reference = referenceMatch[0].replace(/\s+/g, ' ');
+  
+  // Detect if asking for full chapter
+  const isFullChapter = /\b(full|entire|whole|complete)\b.*chapter/i.test(q) || 
+                        /\bchapter.*\b(full|entire|whole|complete)\b/i.test(q);
+
+  return { isScripture: true, reference, isFullChapter };
+}
+
+async function fetchScriptureText(reference: string): Promise<string> {
+  try {
+    // Default to NASB for scripture requests (you can make this configurable)
+    const version = 'NASB';
+    const verse = await bibleVerseService.fetchVerse(reference, version);
+    return verse.text;
+  } catch (error) {
+    console.error('[Get-Action-Guidance] Failed to fetch scripture:', error);
+    throw error;
+  }
+}
+
 function buildWisdomPrompt(args: {
   playbookTitle: string;
   truthSummary: string;
@@ -351,7 +391,8 @@ function buildWisdomPrompt(args: {
     'If the action involves a behavior change: give the precise first micro-step to start.',
     'If the user is confused about meaning: explain it clearly and concisely.',
     'If the user asks about differences: explain the actual differences with specifics.',
-    'If the user asks for Scripture: provide the actual verse or reference, not a suggestion to "read" a chapter.',
+    'If the user asks for a short Scripture verse and the text is available in the action context, quote it exactly. If the user asks for a full chapter or long passage, do not invent or paraphrase the full text. Give the reference, explain that the user should open it in their Bible or the app Scripture screen, then give specific study steps for that passage.',
+    'Do not claim "Here is the full text" unless the full Bible text is actually included in the response.',
     '',
     'Before writing the response, ask yourself: what is the user ACTUALLY asking for in THIS specific question?',
     'Answer ONLY what the user is asking about in this follow-up question. Do not assume they want the full arc unless their question explicitly asks for it.',
@@ -553,6 +594,31 @@ serve(async (req: Request) => {
       dateOfBirth,
     });
     const actionContext = `${actionTitle} ${actionBody} ${truthSummary} ${truthInLove}`;
+
+    // Check if user is asking for scripture text before charging wisdom
+    const scriptureRequest = detectScriptureRequest(userQuestion);
+    if (scriptureRequest.isScripture && scriptureRequest.reference) {
+      console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
+      
+      try {
+        const scriptureText = await fetchScriptureText(scriptureRequest.reference);
+        
+        // Return scripture without charging wisdom count
+        return new Response(JSON.stringify({
+          success: true,
+          wisdom: scriptureText,
+          isScripture: true,
+          reference: scriptureRequest.reference,
+          wisdomCount: usedWisdom,
+          wisdomLimit,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error) {
+        console.error('[Get-Action-Guidance] Failed to fetch scripture, falling back to OpenAI:', error);
+        // Fall through to OpenAI if scripture fetch fails
+      }
+    }
 
     console.log('[Get-Action-Guidance] Prompt:', prompt.substring(0, 500) + '...');
 
