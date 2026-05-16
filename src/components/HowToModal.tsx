@@ -2102,7 +2102,7 @@ const styles = StyleSheet.create({
   bodyScriptBlock: {
     position: 'relative',
     marginTop: 6,
-    marginBottom: 6,
+    marginBottom: 12,
     paddingLeft: 16,
     paddingVertical: 10,
     paddingRight: 10,
