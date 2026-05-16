@@ -1553,80 +1553,82 @@ const HowToModal: React.FC<HowToModalProps> = ({
           {/* FAB Buttons - Fixed at bottom */}
           {result && hasWisdom && (
             <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
-              {/* Journal expanded icons */}
-              <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
-                {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
-                  <Animated.View
-                    key={type}
-                    style={{
-                      opacity: iconAnims[idx],
-                      transform: [{ scale: iconAnims[idx] }],
-                      alignItems: 'center',
+              <View style={styles.fabRow}>
+                {/* Journal expanded icons */}
+                <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
+                  {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+                    <Animated.View
+                      key={type}
+                      style={{
+                        opacity: iconAnims[idx],
+                        transform: [{ scale: iconAnims[idx] }],
+                        alignItems: 'center',
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={styles.journalIconButton}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          preserveDraftOnCloseRef.current = false;
+                          setJournalExpanded(false);
+                          onJournalPress?.({
+                            question: resultQuestion || question.trim(),
+                            wisdom: result?.wisdom?.trim() || '',
+                            actionTitle,
+                            type,
+                          });
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
+                          <MaterialCommunityIcons name={icon as any} size={20} color={color} />
+                        </View>
+                        <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  ))}
+                </Animated.View>
+
+                <View style={styles.fabLeftGroup}>
+                  {onJournalPress ? (
+                    <TouchableOpacity
+                      style={styles.journalFabButton}
+                      activeOpacity={0.8}
+                      onPress={toggleJournalIcons}
+                    >
+                      <Animated.View style={{ transform: [{ rotate: triggerRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }, { scale: triggerScale }] }}>
+                        <MaterialCommunityIcons name="pencil-plus-outline" size={20} color="rgba(255,255,255,0.55)" />
+                      </Animated.View>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <View style={styles.fabRightGroup}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setResult(null);
+                      setResultQuestion('');
+                      setQuestion('');
                     }}
                   >
-                    <TouchableOpacity
-                      style={styles.journalIconButton}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        preserveDraftOnCloseRef.current = false;
-                        setJournalExpanded(false);
-                        onJournalPress?.({
-                          question: resultQuestion || question.trim(),
-                          wisdom: result?.wisdom?.trim() || '',
-                          actionTitle,
-                          type,
-                        });
-                      }}
-                      activeOpacity={0.75}
-                    >
-                      <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
-                        <MaterialCommunityIcons name={icon as any} size={20} color={color} />
-                      </View>
-                      <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
-              </Animated.View>
-
-              <View style={styles.fabLeftGroup}>
-                {onJournalPress ? (
-                  <TouchableOpacity
-                    style={styles.journalFabButton}
-                    activeOpacity={0.8}
-                    onPress={toggleJournalIcons}
-                  >
-                    <Animated.View style={{ transform: [{ rotate: triggerRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }, { scale: triggerScale }] }}>
-                      <MaterialCommunityIcons name="pencil-plus-outline" size={20} color="rgba(255,255,255,0.55)" />
+                    <Animated.View style={[styles.stillNeedHelpButton, { width: stillNeedHelpWidthAnim, gap: showStillNeedHelpLabel ? 8 : 0, paddingHorizontal: showStillNeedHelpLabel ? 16 : 0 }]}>
+                      <Ionicons name="help-circle-outline" size={20} color={Colors.alertCoral} />
+                      {showStillNeedHelpLabel && (
+                        <ThemedText style={styles.stillNeedHelpLabel}>Still need help?</ThemedText>
+                      )}
                     </Animated.View>
                   </TouchableOpacity>
-                ) : null}
-              </View>
-              <View style={styles.fabRightGroup}>
-                <TouchableOpacity
-                  onPress={() => {
-                    triggerLightHaptic();
-                    setResult(null);
-                    setResultQuestion('');
-                    setQuestion('');
-                  }}
-                >
-                  <Animated.View style={[styles.stillNeedHelpButton, { width: stillNeedHelpWidthAnim, gap: showStillNeedHelpLabel ? 8 : 0, paddingHorizontal: showStillNeedHelpLabel ? 16 : 0 }]}>
-                    <Ionicons name="help-circle-outline" size={20} color={Colors.alertCoral} />
-                    {showStillNeedHelpLabel && (
-                      <ThemedText style={styles.stillNeedHelpLabel}>Still need help?</ThemedText>
-                    )}
-                  </Animated.View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    preserveDraftOnCloseRef.current = false;
-                    onDismiss();
-                  }}
-                >
-                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      preserveDraftOnCloseRef.current = false;
+                      onDismiss();
+                    }}
+                  >
+                    <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -1930,10 +1932,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
     zIndex: 100,
+  },
+  fabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   fabLeftGroup: {
     minWidth: 64,
@@ -1960,9 +1965,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   journalExpandedRow: {
-    position: 'absolute',
-    bottom: 60,
-    left: 16,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
