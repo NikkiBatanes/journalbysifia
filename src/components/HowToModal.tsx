@@ -1512,7 +1512,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                 {onJournalPress ? (
                   <TouchableOpacity
                     style={styles.journalFabButton}
-                    activeOpacity={0.75}
+                    activeOpacity={0.8}
                     onPress={() => {
                       triggerLightHaptic();
                       preserveDraftOnCloseRef.current = false;
@@ -1524,9 +1524,8 @@ const HowToModal: React.FC<HowToModalProps> = ({
                     }}
                   >
                     <View style={styles.journalFabCircle}>
-                      <MaterialCommunityIcons name="pencil-plus-outline" size={20} color={Colors.faithGold} />
+                      <MaterialCommunityIcons name="pencil-plus-outline" size={20} color="rgba(255,255,255,0.55)" />
                     </View>
-                    <ThemedText style={styles.journalFabLabel}>Journal</ThemedText>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -1875,23 +1874,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   journalFabButton: {
-    alignItems: 'center',
-    gap: 5,
-  },
-  journalFabCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,204,102,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,204,102,0.20)',
+    backgroundColor: '#2c4b78',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  journalFabLabel: {
-    fontSize: 10,
-    color: Colors.faithGold,
-    letterSpacing: 0.2,
+  journalFabCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorTitle: {
     fontSize: 20,
