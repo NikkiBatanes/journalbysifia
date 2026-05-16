@@ -1960,6 +1960,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   journalExpandedRow: {
+    position: 'absolute',
+    bottom: 60,
+    left: 16,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
