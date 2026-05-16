@@ -361,6 +361,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
           if (shouldShowStreak) {
             // Store params — navigation happens after the RN Modal closes (in onDone callback)
+            await visibleStreakService.markShownToday(user.id);
             pendingStreakRef.current = { userId: user.id, source: 'reflection_saved' };
           }
         }

@@ -1231,6 +1231,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             .then(async () => {
               const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_for_now');
               if (shouldShowStreak) {
+                await visibleStreakService.markShownToday(user.id);
                 (navigation as any).navigate('StreakPlan', {
                   userId: user.id,
                   source: 'prayer_for_now',

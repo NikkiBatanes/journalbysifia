@@ -1597,6 +1597,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       if (shouldCheckPrayerStreak) {
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, prayerActivityType);
         if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: prayerActivityType,

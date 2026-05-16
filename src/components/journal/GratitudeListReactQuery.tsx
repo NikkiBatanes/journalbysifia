@@ -420,6 +420,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           // Check if streak celebration should show for gratitude (journal screen — always independent)
           const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added');
           if (shouldShowStreak) {
+            await visibleStreakService.markShownToday(user.id);
             (navigation as any).navigate('StreakPlan', {
               userId: user.id,
               source: 'journal_gratitude_added',

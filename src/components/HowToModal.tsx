@@ -1960,14 +1960,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   journalExpandedRow: {
-    position: 'absolute',
-    bottom: 60,
-    left: 16,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-around',
-    width: 200,
+    alignItems: 'center',
     overflow: 'hidden',
+    marginBottom: 4,
   },
   journalIconButton: {
     alignItems: 'center',

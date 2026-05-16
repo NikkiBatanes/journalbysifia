@@ -329,6 +329,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
         if (shouldShowStreak && user?.id) {
           // Store params — navigation happens after the RN Modal closes (in onDone callback)
+          await visibleStreakService.markShownToday(user.id);
           pendingStreakRef.current = { userId: user.id, source: 'journal_gratitude_added' };
         }
       }

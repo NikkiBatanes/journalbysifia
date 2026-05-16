@@ -262,6 +262,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               if (activityKey === 'prayer_list_request_added') {
                 const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_list_request_added');
                 if (shouldShowStreak && navigation) {
+                  await visibleStreakService.markShownToday(user.id);
                   (navigation as any).navigate('StreakPlan', {
                     userId: user.id,
                     source: 'prayer_list_request_added',

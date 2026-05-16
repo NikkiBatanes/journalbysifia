@@ -149,6 +149,7 @@ const ReflectionEditorScreen: React.FC = () => {
           if (globalEditMode?.isGlobalEditMode) {
             globalEditMode.setGlobalEditMode(false);
           }
+          await visibleStreakService.markShownToday(user.id);
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: 'reflection_saved',

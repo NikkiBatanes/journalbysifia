@@ -747,6 +747,11 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       : false;
 
     if (shouldShowStreak && userId) {
+      await visibleStreakService.markShownToday(userId);
+      (navigation as any).navigate('StreakPlan', {
+        userId,
+        source: activityType,
+      });
     }
 
     // Close modal first
