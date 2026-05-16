@@ -1452,15 +1452,28 @@ function parseResourceHintLine(line: string): BodyLine | null {
 
 function splitComparisonColumnItems(value: string): string[] {
   const source = String(value || '').trim().replace(/[.!?]+$/g, '');
+  
+  // Try splitting by numbered format like "1) item; 2) item; 3) item"
   const numberedParts = source
-    .split(/\s*;\s*(?=\d+\)|[-*•]\s+)/)
-    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .split(/(?<=\))\s*;\s*/)
+    .map(part => part.replace(/^\s*\d+\)\s*/, '').trim())
     .filter(Boolean);
 
   if (numberedParts.length >= 2) {
     return numberedParts;
   }
 
+  // Try splitting by semicolons followed by numbers/bullets
+  const semicolonNumberedParts = source
+    .split(/\s*;\s*(?=\d+\)|[-*•]\s+)/)
+    .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+
+  if (semicolonNumberedParts.length >= 2) {
+    return semicolonNumberedParts;
+  }
+
+  // Fallback to simple semicolon split
   return source
     .split(/\s*;\s*/)
     .map(part => part.replace(/^\s*(?:\d+\)|[-*•])\s*/, '').trim())
