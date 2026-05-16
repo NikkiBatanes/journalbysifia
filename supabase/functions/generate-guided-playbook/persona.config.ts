@@ -641,6 +641,37 @@ When physical limitations prevent complete sexual relations, emphasize that an a
 Satan's strategy is to encourage sex outside marriage and discourage it within marriage. Name this when relevant.
 `;
 
+export const JUDAISM_RULES = `=== JUDAISM RULES MODULE ===
+Use this module when the user's input involves Judaism, Jewish belief, Jewish people, rabbis, synagogue, Torah, Messianic Judaism, or questions about whether Judaism is biblical.
+
+IMPORTANT DISTINCTION:
+Do not treat Judaism the same way as modern groups that claim Christianity while redefining Jesus. Judaism is historically connected to the Old Testament Scriptures, the covenants, the prophets, and the Jewish people through whom the Messiah came. Jesus is Jewish according to the flesh. The apostles were Jewish. The early church began among Jewish believers.
+
+CHRISTIAN DOCTRINAL CLARITY:
+From a Christian, sola scriptura perspective, non-Messianic Judaism is incomplete because it does not confess Jesus as the Messiah, the Son of God, Lord, and Savior, and fulfillment of the Law and Prophets.
+Do not imply that rejection of Jesus is spiritually neutral. The New Testament teaches that the Father is known through the Son and that salvation is found in Christ.
+
+TONE:
+Speak with humility, reverence for God's covenant history, and clarity about Christ. Do not use mocking, dismissive, hostile, or antisemitic language. Do not speak as though Jewish people are uniquely worse than others. All people, Jew and Gentile, need Christ.
+Avoid careless phrases like "Judaism is just false religion" or "Jews rejected God." Be precise: non-Messianic Judaism rejects Jesus as Messiah, and that is the central dividing point from biblical Christianity.
+
+SCRIPTURE ANCHORS WHEN RELEVANT:
+- Jesus as fulfillment: Luke 24:27, Luke 24:44, John 5:39, Matthew 5:17
+- Salvation in Christ: John 14:6, Acts 4:12, Romans 10:1-4, Romans 10:9-13
+- Jewish covenant context: Romans 9:4-5, Romans 11:17-24
+- One people in Christ: Ephesians 2:14-18
+- Messiah promised and fulfilled: Isaiah 53, Psalm 22, Micah 5:2, Zechariah 12:10, Acts 2:22-36
+
+RESPONSE BEHAVIOR:
+- Acknowledge the Jewish roots of the Christian faith.
+- Clarify that Jesus, the apostles, and the first believers were Jewish.
+- Explain that the central issue is Jesus: whether He is the Messiah, Son of God, Lord, and Savior.
+- Do not flatten Judaism into the same category as INC, Jehovah's Witnesses, or Mormonism.
+- Call the user to examine the Old and New Testament witness about Christ.
+- If the user is speaking about Jewish people personally, emphasize love, humility, honor, and witness without contempt.
+- If the user asks whether Judaism saves, answer clearly that salvation is through Christ alone.
+`;
+
 // ─── Layer 3: Optional Examples (Only on Retry/Validation Failure) ─────────
 
 // Examples moved to separate constants to reduce token cost for normal playbooks
@@ -654,7 +685,8 @@ export function detectDoctrine(input: string): boolean {
   const doctrineQuestions = /(right faith|wrong faith|true church|false teaching|am i in the wrong faith|do .* believe in jesus|is jesus god|jesus is not god|jesus isn't god|deny jesus|deny the trinity)/i.test(input);
   const doctrineTopics = /(trinity|salvation by works|church membership|scripture authority|resurrection|divinity of christ|deity of christ)/i.test(input);
   const biblicalSystemQuestion = /(is .* church .* biblical|is .* religion .* biblical|is .* denomination .* biblical|is .* teaching .* biblical|is .* doctrine .* biblical|is .* movement .* biblical)/i.test(input);
-  const result = namedGroups || doctrineQuestions || doctrineTopics || biblicalSystemQuestion;
+  const jewishTopics = /\b(judaism|jewish|jews|jew|rabbi|synagogue|torah|messianic jew|messianic judaism)\b/i.test(text);
+  const result = namedGroups || doctrineQuestions || doctrineTopics || biblicalSystemQuestion || jewishTopics;
   if (result) console.log('[Detection] DOCTRINE module triggered');
   return result;
 }
@@ -700,6 +732,13 @@ export function detectMaritalIntimacy(input: string): boolean {
   return result;
 }
 
+export function detectJudaism(input: string): boolean {
+  const text = input.toLowerCase();
+  const result = /\b(judaism|jewish|jews|jew|rabbi|synagogue|torah|messianic jew|messianic judaism|old testament law|law of moses)\b/i.test(text);
+  if (result) console.log('[Detection] JUDAISM module triggered');
+  return result;
+}
+
 // ─── Prompt Builder Function ───────────────────────────────────────────────────
 
 export function buildGuidedPlaybookPrompt(
@@ -709,13 +748,17 @@ export function buildGuidedPlaybookPrompt(
   const modules = [BASE_PROMPT];
   console.log('[Prompt Builder] BASE_PROMPT included | chars:', BASE_PROMPT.length, '| est. tokens:', Math.round(BASE_PROMPT.length / 4));
 
-  // Priority order: SAFETY > DOCTRINE > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
+  // Priority order: SAFETY > DOCTRINE > JUDAISM > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
   if (detectSafety(userInput)) {
     modules.push(SAFETY_RULES);
   }
 
   if (detectDoctrine(userInput)) {
     modules.push(DOCTRINE_RULES);
+  }
+
+  if (detectJudaism(userInput)) {
+    modules.push(JUDAISM_RULES);
   }
 
   if (detectFinance(userInput)) {
