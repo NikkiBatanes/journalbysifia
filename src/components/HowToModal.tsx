@@ -1686,7 +1686,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   doneButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.growthGreen,
     width: 44,
     height: 44,
     borderRadius: 22,
