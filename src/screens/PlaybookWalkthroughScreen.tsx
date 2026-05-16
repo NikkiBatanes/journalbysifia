@@ -1068,7 +1068,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'ask' | 'question' | 'checklist' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
 const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 
 interface BodyLine {
@@ -1195,10 +1195,18 @@ function removeDecorativeActionSingleQuotes(text: string): string {
 
 function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
-    .replace(/(^|\n)([^*\n]{1,90}:\s*)\*\s+/g, (_match, prefix, label) => `${prefix}${String(label).trimEnd()}\n* `)
-    .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
     .split('\n')
-    .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
+    .map(line => {
+      if (/^\s*(?:\d+(?:\.\d+)?[\.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
+        return line;
+      }
+
+      return line
+        .replace(/([^*\n]{1,90}:\s*)\*\s*/g, (_match, label) => `${String(label).trimEnd()}\n* `)
+        .replace(/([^\n])\s*\*\s*(?=\S)/g, '$1\n* ')
+        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
+        .replace(/^(\s*)[-•+]\s+/, '$1* ');
+    })
     .join('\n');
 }
 
@@ -1492,8 +1500,25 @@ function parseComparisonColumnLine(line: string): { title: string; items: string
 }
 
 function parseScriptureReadLine(line: string): BodyLine | null {
-  const match = String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
-    || String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*(.+?)\s+Write:\s*(.+)$/i);
+  const trimmed = String(line || '').trim();
+  const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*["'“‘](.+)["'”’]?$/i)
+    || trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*(.+)$/i);
+  if (scriptureOnlyMatch) {
+    const reference = scriptureOnlyMatch[1].trim();
+    const verseText = stripBalancedActionQuotes(scriptureOnlyMatch[2].trim());
+    if (!reference || !verseText) {
+      return null;
+    }
+
+    return {
+      text: verseText,
+      type: 'scriptureRead',
+      reference,
+    };
+  }
+
+  const match = trimmed.match(/^Read\s+(.{2,100}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
+    || trimmed.match(/^Read\s+(.{2,100}?):\s*(.+?)\s+Write:\s*(.+)$/i);
   if (!match) {
     return null;
   }
@@ -1510,6 +1535,25 @@ function parseScriptureReadLine(line: string): BodyLine | null {
     type: 'scriptureRead',
     reference,
     summary,
+  };
+}
+
+function parseLineMeaningLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(?:Line|Phrase|Verse\s*\d*)\s*:\s*["'“‘]?(.+?)["'”’]?\s+(?:Means|Meaning|Explanation)\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const phrase = stripBalancedActionQuotes(match[1].trim());
+  const meaning = match[2].trim();
+  if (!phrase || !meaning) {
+    return null;
+  }
+
+  return {
+    text: phrase,
+    type: 'lineMeaning',
+    summary: meaning,
   };
 }
 
@@ -1709,9 +1753,13 @@ function splitActionDescription(value: string): { body: string; example?: string
 }
 
 function splitReadableActionLine(line: string): string[] {
-  const trimmed = line.trim();
+  const trimmed = line
+    .trim()
+    .replace(/([.!?]["'”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1 ')
+    .replace(/(["”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1 ');
   if (!trimmed) { return []; }
-  if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
+  if (parseScriptureReadLine(trimmed) || parseLineMeaningLine(trimmed)) { return [trimmed]; }
+  if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
   const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
@@ -1729,7 +1777,7 @@ function splitReadableActionLine(line: string): string[] {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -1737,7 +1785,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
     return [
       ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
@@ -1745,19 +1793,29 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
       ...splitQuestionPromptText(questionPrompt[2]),
     ];
   }
+  const followUpInstruction = trimmed.match(/^(.+?[.!?]["'”’])\s+((?:If|When|After|Then)\b.+)$/i);
+  if (followUpInstruction) {
+    return [
+      ...splitReadableActionLine(followUpInstruction[1].trim()),
+      ...splitReadableActionLine(followUpInstruction[2].trim()),
+    ];
+  }
   if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
 
   const sentenceParts = trimmed
-    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])|(?<=[.!?]["'”’])\s+(?=[A-Z])/)
     .map(part => part.trim())
     .filter(Boolean);
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => isAskPromptIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
@@ -1819,11 +1877,11 @@ function scriptLabelForIntro(line: string): string {
 }
 
 function isChecklistIntroLine(line: string): boolean {
-  return /^(?:do this|steps to take|action steps):\s*$/i.test(line.trim());
+  return /^(?:do this(?:\s+(?:each|every)\s+(?:day|morning|evening|night|week))?|steps to take|action steps):\s*$/i.test(line.trim());
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
@@ -1839,6 +1897,9 @@ function askPromptLabel(line: string): string {
   }
   if (/^pause and ask/i.test(trimmed)) {
     return 'Pause and ask';
+  }
+  if (/^ask\s+them/i.test(trimmed)) {
+    return 'Ask them';
   }
   if (/^then ask/i.test(trimmed)) {
     return 'Then ask';
@@ -1883,9 +1944,17 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
     const comparisonColumn = parseComparisonColumnLine(line);
     const scriptureRead = parseScriptureReadLine(line);
+    const lineMeaning = parseLineMeaningLine(line);
 
     if (scriptureRead) {
       out.push(scriptureRead);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (lineMeaning) {
+      out.push(lineMeaning);
       expectingPromptQuestion = false;
       inChecklist = false;
       continue;
@@ -2123,7 +2192,7 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
   return (
     <View key={key} style={styles.bodyScriptureReadBlock}>
       <View style={styles.bodyScriptureReadHeader}>
-        <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+        <MaterialCommunityIcons name="script-text" size={14} color={Colors.faithGold} />
         <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference}>
           {item.reference}
         </ThemedText>
@@ -2138,6 +2207,29 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
         <View style={styles.bodyScriptureReadSummary}>
           <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
             Write
+          </ThemedText>
+          <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
+            {item.summary}
+          </ThemedText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function renderLineMeaningBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyLineMeaningBlock}>
+      <View style={styles.bodyScriptureReadQuoteRow}>
+        <View style={styles.bodyScriptureReadRail} />
+        <ThemedText style={styles.bodyLineMeaningPhrase} selectable={true}>
+          {item.text}
+        </ThemedText>
+      </View>
+      {item.summary ? (
+        <View style={styles.bodyLineMeaningSummary}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+            Meaning
           </ThemedText>
           <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
             {item.summary}
@@ -2269,6 +2361,7 @@ interface FaithfulActionsStepProps {
   truthSummary?: string;
   truthInLove?: string;
   dateOfBirth?: string;
+  preferredBibleTranslation?: string;
   userId: string;
   onNext: () => void;
   onGoBack?: () => void;
@@ -2283,6 +2376,12 @@ interface FaithfulActionsStepProps {
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
+
+type HowToJournalContext = {
+  question: string;
+  wisdom: string;
+  actionTitle: string;
+};
 
 // Module-level flag — persists across remounts so the nudge only fires once per session
 let journalNudgeFired = false;
@@ -2383,6 +2482,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   truthSummary,
   truthInLove,
   dateOfBirth,
+  preferredBibleTranslation,
   userId,
   onNext,
   onGoBack,
@@ -2403,6 +2503,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
+  const [howToJournalContext, setHowToJournalContext] = useState<HowToJournalContext | null>(null);
   const [, setJournalExpanded] = useState(false);
   const [howToModalVisible, setHowToModalVisible] = useState(false);
   const [wisdomCount, setWisdomCount] = useState(0);
@@ -2865,6 +2966,16 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     mainBodyText,
     exampleText ? `Example: ${exampleText}` : '',
   ].filter(Boolean).join('\n\n');
+  const reflectionJournalTitle = howToJournalContext
+    ? `How To: ${howToJournalContext.actionTitle || currentStep.title || ''}`.trim()
+    : currentStep.title ?? '';
+  const reflectionJournalBody = howToJournalContext
+    ? [
+        howToJournalContext.question ? `Question:\n${howToJournalContext.question.trim()}` : '',
+        howToJournalContext.wisdom ? `Wisdom:\n${howToJournalContext.wisdom.trim()}` : '',
+      ].filter(Boolean).join('\n\n')
+    : mainBodyText;
+  const reflectionJournalExample = howToJournalContext ? undefined : exampleText || undefined;
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   console.log('[FaithfulActions] rawDescription:', JSON.stringify(rawDescription));
@@ -3294,6 +3405,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               if (item.type === 'scriptureRead') {
                 return renderScriptureReadBlock(item, idx);
               }
+              if (item.type === 'lineMeaning') {
+                return renderLineMeaningBlock(item, idx);
+              }
               if (item.type === 'hint') {
                 const hintItems = item.text
                   .split(/\s*(?:;|,)\s*/)
@@ -3519,6 +3633,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 }
                                 if (item.type === 'scriptureRead') {
                                   return renderScriptureReadBlock(item, `wisdom-item-${blockIndex}-${idx}-scripture-read`);
+                                }
+                                if (item.type === 'lineMeaning') {
+                                  return renderLineMeaningBlock(item, `wisdom-item-${blockIndex}-${idx}-line-meaning`);
                                 }
                                 if (item.type === 'hint') {
                                   const hintItems = item.text
@@ -3892,7 +4009,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             >
               <TouchableOpacity
                 style={styles.journalIconButton}
-                onPress={() => { journalExpandedRef.current = false; setJournalExpanded(false); setActiveJournalModal(type); triggerLightHaptic(); }}
+                onPress={() => {
+                  journalExpandedRef.current = false;
+                  setJournalExpanded(false);
+                  setHowToJournalContext(null);
+                  setActiveJournalModal(type);
+                  triggerLightHaptic();
+                }}
                 activeOpacity={0.75}
               >
                 <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
@@ -3996,16 +4119,23 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       {activeJournalModal === 'reflection' && (
         <SmartJournalingReflectionModal
           visible={true}
-          subtaskTitle={currentStep.title ?? ''}
+          subtaskTitle={reflectionJournalTitle}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
           playbookStatus={playbookStatus}
           actionStepNumber={stepNumber}
-          actionStepTitle={currentStep.title ?? ''}
-          stepBody={mainBodyText || undefined}
-          stepExample={exampleText || undefined}
-          onSave={() => { setActiveJournalModal(null); advanceStep(true); }}
-          onCancel={() => setActiveJournalModal(null)}
+          actionStepTitle={reflectionJournalTitle}
+          stepBody={reflectionJournalBody || undefined}
+          stepExample={reflectionJournalExample}
+          onSave={() => {
+            setHowToJournalContext(null);
+            setActiveJournalModal(null);
+            advanceStep(true);
+          }}
+          onCancel={() => {
+            setHowToJournalContext(null);
+            setActiveJournalModal(null);
+          }}
         />
       )}
       {activeJournalModal === 'gratitude' && (
@@ -4040,6 +4170,11 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         actionTitle={currentStep.title || ''}
         actionNumber={stepNumber}
         onDismiss={() => setHowToModalVisible(false)}
+        onJournalPress={(context) => {
+          setHowToJournalContext(context);
+          setHowToModalVisible(false);
+          setActiveJournalModal('reflection');
+        }}
         onSubmit={async (question) => {
           try {
             const response = await getActionWisdom({
@@ -4054,6 +4189,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               truthInLove: truthInLove || '',
               previousWisdom: wisdomContext,
               dateOfBirth,
+              preferredBibleTranslation,
             });
 
             if (response.success && response.wisdom) {
@@ -5510,6 +5646,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   // Derive data
   const userMetadata = (user as any)?.user_metadata || {};
   const dateOfBirth = userMetadata.birth_date || userMetadata.dateOfBirth || userMetadata.birthDate || '';
+  const preferredBibleTranslation = userMetadata.preferences?.content?.bibleVersion || 'NASB';
   const truthInLoveText =
     typeof playbook.truthInLove === 'string'
       ? playbook.truthInLove
@@ -5612,6 +5749,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 truthSummary={truthInLoveSummary}
                 truthInLove={truthInLoveText}
                 dateOfBirth={dateOfBirth}
+                preferredBibleTranslation={preferredBibleTranslation}
                 userId={userId}
                 onNext={goNext}
                 onGoBack={goBackActionStep}
@@ -6742,6 +6880,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 18,
+  },
+  bodyLineMeaningBlock: {
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  bodyLineMeaningPhrase: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 21,
+  },
+  bodyLineMeaningSummary: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.045)',
   },
   bodyFieldRow: {
     position: 'relative',

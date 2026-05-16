@@ -13,6 +13,7 @@ export interface WisdomRequest {
   truthInLove: string;
   previousWisdom?: string;
   dateOfBirth?: string;
+  preferredBibleTranslation?: string;
 }
 
 export interface WisdomThreadEntry {
@@ -47,6 +48,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
     truthInLove,
     previousWisdom,
     dateOfBirth,
+    preferredBibleTranslation,
   } = request;
 
   // Check wisdom limits before making the API call
@@ -68,6 +70,13 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
   }
 
   try {
+    let resolvedBibleTranslation = preferredBibleTranslation?.trim();
+    if (!resolvedBibleTranslation) {
+      const { data: authData } = await supabase.auth.getUser();
+      resolvedBibleTranslation = (authData?.user as any)?.user_metadata?.preferences?.content?.bibleVersion?.trim();
+    }
+    resolvedBibleTranslation = resolvedBibleTranslation || 'NASB';
+
     const { data, error } = await supabase.functions.invoke('get-action-guidance', {
       body: {
         playbookId,
@@ -81,6 +90,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         truthInLove,
         previousWisdom,
         dateOfBirth,
+        preferredBibleTranslation: resolvedBibleTranslation,
       },
     });
 

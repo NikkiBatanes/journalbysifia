@@ -73,12 +73,63 @@ function cleanOutputText(value: unknown, max = 800): string {
     .slice(0, max);
 }
 
+function cleanLongOutputText(value: unknown, max = 6000): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/\*\*/g, '')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+function cleanWisdomStep(value: unknown, max = 600): string {
+  if (typeof value === 'string') {
+    return cleanOutputText(value, max);
+  }
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const line = cleanOutputText(record.Line ?? record.line ?? record.Phrase ?? record.phrase ?? record.Verse ?? record.verse, 240);
+    const meaning = cleanOutputText(record.Meaning ?? record.meaning ?? record.Explanation ?? record.explanation, max);
+    if (line && meaning) {
+      return `Line: "${line}" Meaning: ${meaning}`;
+    }
+
+    const title = cleanOutputText(record.title ?? record.label ?? record.heading, 120);
+    const text = cleanOutputText(record.text ?? record.body ?? record.content ?? record.description, max);
+    if (title && text) {
+      return `${title}: ${text}`;
+    }
+    if (text) {
+      return text;
+    }
+  }
+
+  return '';
+}
+
+function splitWisdomStepFragments(step: string): string[] {
+  const normalized = cleanOutputText(step, 700)
+    .replace(/([.!?]["'”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1\n')
+    .replace(/(["”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1\n')
+    .replace(/\s+(?=(?:If they|When they|After they|Then ask|Then say)\b)/gi, '\n');
+
+  return normalized
+    .split(/\n+/)
+    .map(part => cleanOutputText(part, 700))
+    .filter(Boolean);
+}
+
 function parseWisdomJson(content: string): { intro: string; steps: string[] } {
   try {
     const parsed = JSON.parse(content);
     const intro = cleanOutputText(parsed?.intro, 500);
     const steps = Array.isArray(parsed?.steps)
-      ? parsed.steps.map((step: unknown) => cleanOutputText(step, 600)).filter(Boolean).slice(0, 8)
+      ? parsed.steps
+          .flatMap((step: unknown) => splitWisdomStepFragments(cleanWisdomStep(step, 700)))
+          .filter(Boolean)
+          .slice(0, 14)
       : [];
 
     if (intro || steps.length > 0) {
@@ -114,6 +165,93 @@ function formatWisdomText(wisdom: { intro: string; steps: string[] }): string {
     wisdom.intro,
     ...wisdom.steps.map((step, index) => `${index + 1}. ${step}`),
   ].filter(Boolean).join('\n\n');
+}
+
+function titleCaseScriptureReference(reference: string): string {
+  return String(reference || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b([a-z])/g, char => char.toUpperCase());
+}
+
+function formatScriptureDisplayReference(reference: string, version: string): string {
+  const cleanReference = titleCaseScriptureReference(reference);
+  const cleanVersion = String(version || 'NASB').trim().toUpperCase();
+  return cleanVersion ? `${cleanReference} (${cleanVersion})` : cleanReference;
+}
+
+function formatScriptureCardStep(reference: string, version: string, scriptureText: string): string {
+  const displayReference = formatScriptureDisplayReference(reference, version);
+  const text = cleanLongOutputText(scriptureText);
+  return `Scripture ${displayReference}: "${text}"`;
+}
+
+function extractScriptureLineSegments(scriptureText: string, maxSegments = 6): string[] {
+  const normalized = cleanLongOutputText(scriptureText, 3000)
+    .replace(/\s*\*\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return [];
+  }
+
+  const verseLikeSegments = normalized
+    .split(/\s+(?=\d{1,3}\s+[A-Z"“])/)
+    .map(segment => segment.replace(/^\d{1,3}\s+/, '').trim())
+    .filter(segment => segment.length > 20);
+
+  const sourceSegments = verseLikeSegments.length >= 2
+    ? verseLikeSegments
+    : normalized.split(/(?<=[.!?])\s+(?=[A-Z"“])/).filter(segment => segment.length > 20);
+
+  return sourceSegments
+    .map(segment => segment.length > 180 ? `${segment.slice(0, 177).trim()}...` : segment)
+    .slice(0, maxSegments);
+}
+
+function fallbackScriptureExplanationSteps(scriptureText: string, isLineByLineRequest: boolean): string[] {
+  const segments = extractScriptureLineSegments(scriptureText, isLineByLineRequest ? 6 : 3);
+
+  if (isLineByLineRequest && segments.length > 0) {
+    return segments.map(segment => (
+      `Line: "${segment}" Meaning: Pause over this part of the passage and ask what it reveals about Jesus, human need, and the response God is calling for.`
+    ));
+  }
+
+  return [
+    'Read the passage slowly once without stopping, then read it again and mark repeated ideas or questions.',
+    'Ask what this passage shows about Jesus, what it exposes about the human heart, and what response of faith or obedience it calls for.',
+    'Write one sentence that begins with: This passage shows me that Jesus...',
+  ];
+}
+
+function normalizeScriptureQuestionIntent(question: string): string {
+  return String(question || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isScriptureExplanationRequest(question: string): boolean {
+  const normalized = normalizeScriptureQuestionIntent(question);
+  const compact = normalized.replace(/\s+/g, '');
+
+  return /\b(explain|explanation|meaning|commentary|interpret|break down|breakdown|what does|what is|why does|how does)\b/i.test(normalized)
+    || /explanati[oa]n/.test(compact)
+    || /explain/.test(compact)
+    || /linebyline/.test(compact)
+    || /versebyverse/.test(compact);
+}
+
+function isScriptureLineByLineRequest(question: string): boolean {
+  const normalized = normalizeScriptureQuestionIntent(question);
+  const compact = normalized.replace(/\s+/g, '');
+
+  return /\b(line by line|line-by-line|verse by verse|verse-by-verse|break down|breakdown)\b/i.test(normalized)
+    || /linebyline/.test(compact)
+    || /versebyverse/.test(compact);
 }
 
 function parseWisdomThread(value = ''): WisdomThreadEntry[] {
@@ -353,13 +491,17 @@ function detectScriptureRequest(question: string, actionContext?: string): { isS
   return { isScripture: true, reference, isFullChapter };
 }
 
-async function fetchScriptureText(reference: string, preferredTranslation?: string): Promise<string> {
+async function fetchScriptureText(reference: string, preferredTranslation?: string): Promise<{ text: string; reference: string; version: string }> {
   try {
     // Use user's preferred translation if provided, otherwise default to NASB
     const version = preferredTranslation || 'NASB';
     console.log('[Get-Action-Guidance] Fetching scripture with version:', version);
     const verse = await bibleVerseService.fetchVerse(reference, version);
-    return verse.text;
+    return {
+      text: verse.text,
+      reference: verse.reference || reference,
+      version: verse.version || version,
+    };
   } catch (error) {
     console.error('[Get-Action-Guidance] Failed to fetch scripture:', error);
     throw error;
@@ -435,10 +577,13 @@ function buildWisdomPrompt(args: {
     'Steps should feel like: "Here is exactly how to do this thing you are already trying to do."',
     'IMPORTANT: If the action description already contains sub-steps, exact words, or a script, extract and present those — do not invent a new one.',
     'When presenting a script from the action description, each distinct line or instruction becomes one clean step in the JSON steps array.',
+    'Do not combine a message/script and a follow-up instruction in the same steps item. Example: one step is "Send this message: ..."; the next separate step is "If they respond positively, ask: ...".',
+    'Never put comma-joined quoted scripts like "\'message\',\'If they respond..." inside one step.',
     'If the user asks for a two-column list, comparison table, or side-by-side columns, put each column in its own step using this exact shape: "Under \"Column A,\" list these points: 1) point one; 2) point two; 3) point three." and "Under \"Column B,\" list these points: 1) point one; 2) point two; 3) point three."',
     'For two-column answers, do not flatten both columns into ordinary numbered steps only. The app renders "Under ..." column steps as a side-by-side table.',
     'If the user asks for a list of resources, materials, books, curricula, or studies, put the whole resource list in ONE step using this exact shape: "Make a list including these materials: item one, item two, item three, item four, item five."',
     'For resource/material lists, do not put all resources in the intro and do not split one resource list across separate unrelated prose steps.',
+    'If the user asks to explain Scripture line by line, each step must use this exact shape: "Line: \\"the verse phrase\\" Meaning: concise explanation."',
     'If previous wisdom already gave the opener or first line of the script, do NOT repeat the opener. Continue from where the user left off: give the bridge, deeper explanation, gospel content, response question, or next thing to say.',
     'If the user asks a follow-up like "what next", "how do I segue", "how do I say Jesus", "can you give another example", or asks the same thing again, assume they need the NEXT layer of help — not the same opening line.',
     'The intro should briefly explain how to use the script or what to expect — not repeat the script itself.',
@@ -627,16 +772,21 @@ serve(async (req: Request) => {
     // Check if user is asking for scripture text before charging wisdom
     const scriptureRequest = detectScriptureRequest(userQuestion, actionContext);
     let scriptureText = '';
+    let scriptureReference = scriptureRequest.reference || '';
+    let scriptureVersion = preferredBibleTranslation || 'NASB';
     let isPureScriptureRequest = false;
-    
+
     if (scriptureRequest.isScripture && scriptureRequest.reference) {
       console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
-      
+
       // Check if it's a pure scripture request (no explanation asked)
-      isPureScriptureRequest = !/\b(explain|explain.*line|line by line|break down|meaning|what does|commentary)\b/i.test(userQuestion);
-      
+      isPureScriptureRequest = !isScriptureExplanationRequest(userQuestion);
+
       try {
-        scriptureText = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
+        const scriptureResult = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
+        scriptureText = scriptureResult.text;
+        scriptureReference = scriptureResult.reference;
+        scriptureVersion = scriptureResult.version;
         console.log('[Get-Action-Guidance] Scripture fetched successfully, length:', scriptureText.length);
       } catch (error) {
         console.error('[Get-Action-Guidance] Failed to fetch scripture, falling back to OpenAI:', error);
@@ -645,49 +795,107 @@ serve(async (req: Request) => {
       }
     }
 
-    // If scripture was fetched, return it directly without OpenAI action guidance format
+    // If scripture was fetched, return it in the same thread format as normal wisdom.
     if (scriptureText) {
-      console.log('[Get-Action-Guidance] Scripture fetched, returning directly');
-      
+      console.log('[Get-Action-Guidance] Scripture fetched, returning formatted scripture wisdom');
+      const displayReference = formatScriptureDisplayReference(scriptureReference, scriptureVersion);
+      const scriptureCardStep = formatScriptureCardStep(scriptureReference, scriptureVersion, scriptureText);
+      let wisdom = formatWisdomText({
+        intro: `Here is ${displayReference}.`,
+        steps: [scriptureCardStep],
+      });
+
       // If explanation is requested, get it from OpenAI and append
       if (!isPureScriptureRequest) {
         console.log('[Get-Action-Guidance] Explanation requested, getting from OpenAI');
-        const explanationPrompt = `Here is the full text of ${scriptureRequest.reference}:\n\n${scriptureText}\n\nUser asks: ${userQuestion}\n\nProvide a clear, helpful explanation. Do not use JSON format. Just give the explanation in plain text.`;
-        
-        const explanationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a helpful Bible teacher. Explain Scripture clearly and faithfully.',
-              },
-              {
-                role: 'user',
-                content: explanationPrompt,
-              },
-            ],
-            temperature: 0.50,
-            max_completion_tokens: 1000,
-          }),
-        });
+        const isLineByLineRequest = isScriptureLineByLineRequest(userQuestion);
+        const explanationPrompt = [
+          `Here is the full text of ${displayReference}:`,
+          '',
+          scriptureText,
+          '',
+          `User asks: ${userQuestion}`,
+          '',
+          'Return ONLY valid JSON in this exact shape:',
+          '{"intro":"one sentence that introduces the explanation","steps":["one clear explanation step","another clear explanation step"]}',
+          isLineByLineRequest
+            ? 'Because the user asked for line-by-line explanation, every step must use this exact shape: Line: "short phrase from the passage" Meaning: concise explanation.'
+            : 'Explain clearly and faithfully. Keep each step concise and easy to render on mobile.',
+        ].join('\n');
 
-        if (explanationResponse.ok) {
-          const explanationData = await explanationResponse.json();
-          const explanation = explanationData.choices?.[0]?.message?.content || '';
-          scriptureText = `${scriptureText}\n\n---\n\nExplanation:\n${explanation}`;
+        let parsedExplanation: { intro: string; steps: string[] } | null = null;
+        const explanationKey = Deno.env.get('OPENAI_API_KEY');
+
+        if (explanationKey) {
+          try {
+            const explanationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${explanationKey}`,
+              },
+              body: JSON.stringify({
+                model: 'gpt-4.1-mini',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are a helpful Bible teacher. Explain Scripture clearly and faithfully. Return only valid JSON.',
+                  },
+                  {
+                    role: 'user',
+                    content: explanationPrompt,
+                  },
+                ],
+                temperature: 0.30,
+                max_completion_tokens: 1200,
+                response_format: { type: 'json_object' },
+              }),
+            });
+
+            if (explanationResponse.ok) {
+              const explanationData = await explanationResponse.json();
+              const explanationRaw = explanationData.choices?.[0]?.message?.content || '';
+              console.log('[Get-Action-Guidance] Explanation AI Raw Response:', explanationRaw);
+              const candidateExplanation = parseWisdomJson(explanationRaw);
+              if (candidateExplanation.steps.length > 0) {
+                parsedExplanation = candidateExplanation;
+              } else {
+                console.warn('[Get-Action-Guidance] Explanation response had no usable steps.');
+              }
+            } else {
+              const explanationError = await explanationResponse.text();
+              console.error('[Get-Action-Guidance] Explanation OpenAI error:', explanationError);
+            }
+          } catch (error) {
+            console.error('[Get-Action-Guidance] Explanation OpenAI request failed:', error);
+          }
+        } else {
+          console.error('[Get-Action-Guidance] Missing OpenAI API key for scripture explanation.');
         }
+
+        const explanationSteps = parsedExplanation?.steps.length
+          ? parsedExplanation.steps
+          : fallbackScriptureExplanationSteps(scriptureText, isLineByLineRequest);
+
+        wisdom = formatWisdomText({
+          intro: parsedExplanation?.intro || (isLineByLineRequest ? 'Here is a line-by-line explanation.' : 'Here is a clear explanation.'),
+          steps: [scriptureCardStep, ...explanationSteps],
+        });
       }
-      
+
+      const threadEntry = {
+        question: cleanOutputText(userQuestion, 1000),
+        wisdom,
+      };
+      const storedWisdom = serializeWisdomThread([threadEntry, ...existingThread]);
+
       // Save to wisdom thread
       const { error: saveError } = await supabase
         .from('playbook_action_steps')
-        .update({ wisdom_text: scriptureText })
+        .update({
+          wisdom_text: storedWisdom,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', actionId)
         .eq('playbook_id', playbookId);
 
@@ -697,8 +905,11 @@ serve(async (req: Request) => {
 
       return new Response(JSON.stringify({
         success: true,
-        wisdom: scriptureText,
-        wisdomCount: usedWisdom,
+        wisdom,
+        actionId,
+        storedWisdom,
+        wisdomThread: [threadEntry, ...existingThread],
+        wisdomCount: usedWisdom + 1,
         wisdomLimit,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

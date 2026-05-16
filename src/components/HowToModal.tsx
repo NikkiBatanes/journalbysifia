@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
@@ -29,11 +30,12 @@ interface HowToModalProps {
   onDismiss: () => void;
   onSubmit: (question: string) => Promise<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean }>;
   onThreadUpdate?: (entry: { question: string; wisdom: string }) => void;
+  onJournalPress?: (context: { question: string; wisdom: string; actionTitle: string }) => void;
   wisdomCount: number;
   wisdomLimit: number;
 }
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'ask' | 'question' | 'checklist' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
 
 interface BodyLine {
   text: string;
@@ -117,11 +119,11 @@ function scriptLabelForIntro(line: string): string {
 }
 
 function isChecklistIntroLine(line: string): boolean {
-  return /^(?:do this|steps to take|action steps):\s*$/i.test(line.trim());
+  return /^(?:do this(?:\s+(?:each|every)\s+(?:day|morning|evening|night|week))?|steps to take|action steps):\s*$/i.test(line.trim());
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
@@ -137,6 +139,9 @@ function askPromptLabel(line: string): string {
   }
   if (/^pause and ask/i.test(trimmed)) {
     return 'Pause and ask';
+  }
+  if (/^ask\s+them/i.test(trimmed)) {
+    return 'Ask them';
   }
   if (/^then ask/i.test(trimmed)) {
     return 'Then ask';
@@ -314,8 +319,25 @@ function parseComparisonColumnLine(line: string): { title: string; items: string
 }
 
 function parseScriptureReadLine(line: string): BodyLine | null {
-  const match = String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
-    || String(line || '').trim().match(/^Read\s+(.{2,80}?):\s*(.+?)\s+Write:\s*(.+)$/i);
+  const trimmed = String(line || '').trim();
+  const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*["'“‘](.+)["'”’]?$/i)
+    || trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*(.+)$/i);
+  if (scriptureOnlyMatch) {
+    const reference = scriptureOnlyMatch[1].trim();
+    const verseText = stripBalancedActionQuotes(scriptureOnlyMatch[2].trim());
+    if (!reference || !verseText) {
+      return null;
+    }
+
+    return {
+      text: verseText,
+      type: 'scriptureRead',
+      reference,
+    };
+  }
+
+  const match = trimmed.match(/^Read\s+(.{2,100}?):\s*["'“‘](.+?)["'”’]?\s+Write:\s*(.+)$/i)
+    || trimmed.match(/^Read\s+(.{2,100}?):\s*(.+?)\s+Write:\s*(.+)$/i);
   if (!match) {
     return null;
   }
@@ -332,6 +354,25 @@ function parseScriptureReadLine(line: string): BodyLine | null {
     type: 'scriptureRead',
     reference,
     summary,
+  };
+}
+
+function parseLineMeaningLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(?:Line|Phrase|Verse\s*\d*)\s*:\s*["'“‘]?(.+?)["'”’]?\s+(?:Means|Meaning|Explanation)\s*:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const phrase = stripBalancedActionQuotes(match[1].trim());
+  const meaning = match[2].trim();
+  if (!phrase || !meaning) {
+    return null;
+  }
+
+  return {
+    text: phrase,
+    type: 'lineMeaning',
+    summary: meaning,
   };
 }
 
@@ -457,9 +498,13 @@ function splitSuchAsActionHint(line: string): string[] | null {
 }
 
 function splitReadableActionLine(line: string): string[] {
-  const trimmed = line.trim();
+  const trimmed = line
+    .trim()
+    .replace(/([.!?]["'”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1 ')
+    .replace(/(["”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1 ');
   if (!trimmed) { return []; }
-  if (/^(?:\*|-|•) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•) /, '* ')]; }
+  if (parseScriptureReadLine(trimmed) || parseLineMeaningLine(trimmed)) { return [trimmed]; }
+  if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
   const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
@@ -477,7 +522,7 @@ function splitReadableActionLine(line: string): string[] {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -485,7 +530,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
     return [
       ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
@@ -493,19 +538,29 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+yourself)?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
       ...splitQuestionPromptText(questionPrompt[2]),
     ];
   }
+  const followUpInstruction = trimmed.match(/^(.+?[.!?]["'”’])\s+((?:If|When|After|Then)\b.+)$/i);
+  if (followUpInstruction) {
+    return [
+      ...splitReadableActionLine(followUpInstruction[1].trim()),
+      ...splitReadableActionLine(followUpInstruction[2].trim()),
+    ];
+  }
   if (/^["\u201C]/.test(trimmed)) { return [trimmed]; }
 
   const sentenceParts = trimmed
-    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])|(?<=[.!?]["'”’])\s+(?=[A-Z])/)
     .map(part => part.trim())
     .filter(Boolean);
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => isAskPromptIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
@@ -541,10 +596,18 @@ function normalizeActionMarkup(text: string): string {
 
 function normalizeActionBulletMarkers(text: string): string {
   return String(text || '')
-    .replace(/(^|\n)([^*\n]{1,90}:\s*)\*\s+/g, (_match, prefix, label) => `${prefix}${String(label).trimEnd()}\n* `)
-    .replace(/([^\n])\s+\*\s+(?=\S)/g, '$1\n* ')
     .split('\n')
-    .map(line => line.replace(/^(\s*)[-•]\s+/, '$1* '))
+    .map(line => {
+      if (/^\s*(?:\d+(?:\.\d+)?[\.)]\s*)?(?:Scripture|Passage)\s+.{2,120}:\s*/i.test(line)) {
+        return line;
+      }
+
+      return line
+        .replace(/([^*\n]{1,90}:\s*)\*\s*/g, (_match, label) => `${String(label).trimEnd()}\n* `)
+        .replace(/([^\n])\s*\*\s*(?=\S)/g, '$1\n* ')
+        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
+        .replace(/^(\s*)[-•+]\s+/, '$1* ');
+    })
     .join('\n');
 }
 
@@ -627,7 +690,7 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
   return (
     <View key={key} style={styles.bodyScriptureReadBlock}>
       <View style={styles.bodyScriptureReadHeader}>
-        <Ionicons name="book-outline" size={13} color={Colors.faithGold} />
+        <MaterialCommunityIcons name="script-text" size={14} color={Colors.faithGold} />
         <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference}>
           {item.reference}
         </ThemedText>
@@ -652,6 +715,29 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
   );
 }
 
+function renderLineMeaningBlock(item: BodyLine, key: string | number): React.ReactElement {
+  return (
+    <View key={key} style={styles.bodyLineMeaningBlock}>
+      <View style={styles.bodyScriptureReadQuoteRow}>
+        <View style={styles.bodyScriptureReadRail} />
+        <ThemedText style={styles.bodyLineMeaningPhrase} selectable={true}>
+          {item.text}
+        </ThemedText>
+      </View>
+      {item.summary ? (
+        <View style={styles.bodyLineMeaningSummary}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+            Meaning
+          </ThemedText>
+          <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
+            {item.summary}
+          </ThemedText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function detectBodyLines(lines: string[]): BodyLine[] {
   const out: BodyLine[] = [];
   let expectingPromptQuestion = false;
@@ -664,9 +750,17 @@ function detectBodyLines(lines: string[]): BodyLine[] {
     const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
     const comparisonColumn = parseComparisonColumnLine(line);
     const scriptureRead = parseScriptureReadLine(line);
+    const lineMeaning = parseLineMeaningLine(line);
 
     if (scriptureRead) {
       out.push(scriptureRead);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      continue;
+    }
+
+    if (lineMeaning) {
+      out.push(lineMeaning);
       expectingPromptQuestion = false;
       inChecklist = false;
       continue;
@@ -818,6 +912,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   onDismiss,
   onSubmit,
   onThreadUpdate,
+  onJournalPress,
   wisdomCount,
   wisdomLimit,
 }) => {
@@ -826,6 +921,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [question, setQuestion] = useState('');
+  const [resultQuestion, setResultQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean } | null>(null);
   const preserveDraftOnCloseRef = React.useRef(false);
@@ -924,6 +1020,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
         preserveDraftOnCloseRef.current = false;
       } else {
         setQuestion('');
+        setResultQuestion('');
         setResult(null);
       }
       setLoading(false);
@@ -948,6 +1045,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
     triggerLightHaptic();
     setLoading(true);
     setResult(null);
+    setResultQuestion('');
     // Force a re-render to ensure loading state is visible
     await new Promise(resolve => setTimeout(resolve, 0));
     try {
@@ -959,6 +1057,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
       if (response.success && response.wisdom) {
         Keyboard.dismiss();
+        setResultQuestion(currentQuestion);
       }
       setResult(response);
       if (response.success) {
@@ -1249,6 +1348,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         if (item.type === 'scriptureRead') {
                           return renderScriptureReadBlock(item, idx);
                         }
+                        if (item.type === 'lineMeaning') {
+                          return renderLineMeaningBlock(item, idx);
+                        }
                         if (item.type === 'hint') {
                           const hintItems = item.text
                             .split(/\s*(?:;|,)\s*/)
@@ -1406,30 +1508,55 @@ const HowToModal: React.FC<HowToModalProps> = ({
           {/* FAB Buttons - Fixed at bottom */}
           {result && hasWisdom && (
             <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  setResult(null);
-                  setQuestion('');
-                }}
-              >
-                <Animated.View style={[styles.stillNeedHelpButton, { width: stillNeedHelpWidthAnim, gap: showStillNeedHelpLabel ? 8 : 0, paddingHorizontal: showStillNeedHelpLabel ? 16 : 0 }]}>
-                  <Ionicons name="help-circle-outline" size={20} color={Colors.alertCoral} />
-                  {showStillNeedHelpLabel && (
-                    <ThemedText style={styles.stillNeedHelpLabel}>Still need help?</ThemedText>
-                  )}
-                </Animated.View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.doneButton}
-                onPress={() => {
-                  triggerLightHaptic();
-                  preserveDraftOnCloseRef.current = false;
-                  onDismiss();
-                }}
-              >
-                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
-              </TouchableOpacity>
+              <View style={styles.fabLeftGroup}>
+                {onJournalPress ? (
+                  <TouchableOpacity
+                    style={styles.journalFabButton}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      preserveDraftOnCloseRef.current = false;
+                      onJournalPress({
+                        question: resultQuestion || question.trim(),
+                        wisdom: result?.wisdom?.trim() || '',
+                        actionTitle,
+                      });
+                    }}
+                  >
+                    <View style={styles.journalFabCircle}>
+                      <MaterialCommunityIcons name="pencil-plus-outline" size={20} color={Colors.faithGold} />
+                    </View>
+                    <ThemedText style={styles.journalFabLabel}>Journal</ThemedText>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <View style={styles.fabRightGroup}>
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setResult(null);
+                    setResultQuestion('');
+                    setQuestion('');
+                  }}
+                >
+                  <Animated.View style={[styles.stillNeedHelpButton, { width: stillNeedHelpWidthAnim, gap: showStillNeedHelpLabel ? 8 : 0, paddingHorizontal: showStillNeedHelpLabel ? 16 : 0 }]}>
+                    <Ionicons name="help-circle-outline" size={20} color={Colors.alertCoral} />
+                    {showStillNeedHelpLabel && (
+                      <ThemedText style={styles.stillNeedHelpLabel}>Still need help?</ThemedText>
+                    )}
+                  </Animated.View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    preserveDraftOnCloseRef.current = false;
+                    onDismiss();
+                  }}
+                >
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </Animated.View>
@@ -1730,11 +1857,41 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
+    left: 16,
     right: 16,
     flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    zIndex: 100,
+  },
+  fabLeftGroup: {
+    minWidth: 64,
+    alignItems: 'flex-start',
+  },
+  fabRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 12,
-    zIndex: 100,
+  },
+  journalFabButton: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  journalFabCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,204,102,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  journalFabLabel: {
+    fontSize: 10,
+    color: Colors.faithGold,
+    letterSpacing: 0.2,
   },
   errorTitle: {
     fontSize: 20,
@@ -2169,6 +2326,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 18,
+  },
+  bodyLineMeaningBlock: {
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  bodyLineMeaningPhrase: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 21,
+  },
+  bodyLineMeaningSummary: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.045)',
   },
   bodyFieldRow: {
     position: 'relative',
