@@ -545,7 +545,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(questionPrompt[2]),
     ];
   }
-  const followUpInstruction = trimmed.match(/^(.+?[.!?]["'”’])\s+((?:If|When|After|Then)\b.+)$/i);
+  const followUpInstruction = trimmed.match(/^(.+?[.!?]["'”’])\s+((?:If|When|After|Then|Repeat)\b.+)$/i);
   if (followUpInstruction) {
     return [
       ...splitReadableActionLine(followUpInstruction[1].trim()),
