@@ -4173,7 +4173,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         onJournalPress={(context) => {
           setHowToJournalContext(context);
           setHowToModalVisible(false);
-          setActiveJournalModal('reflection');
+          setActiveJournalModal(context.type);
         }}
         onSubmit={async (question) => {
           try {

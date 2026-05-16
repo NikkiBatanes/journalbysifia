@@ -180,10 +180,9 @@ function formatScriptureDisplayReference(reference: string, version: string): st
   return cleanVersion ? `${cleanReference} (${cleanVersion})` : cleanReference;
 }
 
-function formatScriptureCardStep(reference: string, version: string, scriptureText: string): string {
-  const displayReference = formatScriptureDisplayReference(reference, version);
+function formatScriptureCardStep(_reference: string, _version: string, scriptureText: string): string {
   const text = cleanLongOutputText(scriptureText);
-  return `Scripture ${displayReference}: "${text}"`;
+  return text;
 }
 
 function extractScriptureLineSegments(scriptureText: string, maxSegments = 6): string[] {
@@ -801,7 +800,7 @@ serve(async (req: Request) => {
       const displayReference = formatScriptureDisplayReference(scriptureReference, scriptureVersion);
       const scriptureCardStep = formatScriptureCardStep(scriptureReference, scriptureVersion, scriptureText);
       let wisdom = formatWisdomText({
-        intro: `Here is ${displayReference}.`,
+        intro: '',
         steps: [scriptureCardStep],
       });
 

@@ -228,9 +228,13 @@ const StreakPlanScreen: React.FC = () => {
       });
     } else {
       // Done - go back twice to dismiss both StreakPlan and PlaybookWalkthrough
-      // when source is 'playbook', 'action_step_completed', 'affirmation_read_aloud', or 'playbook_walkthrough'
-      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud' || params.source === 'playbook_walkthrough') {
+      // when source is 'playbook', 'action_step_completed', or 'affirmation_read_aloud'
+      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud') {
         navigation.goBack();
+        navigation.goBack();
+      } else if (params.source === 'playbook_walkthrough') {
+        // For playbook_walkthrough, the user already tapped Save and Finish
+        // So just go back once to dismiss StreakPlan and return to where they were before playbook
         navigation.goBack();
       } else {
         // For other sources, just go back once

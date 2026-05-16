@@ -30,10 +30,19 @@ interface HowToModalProps {
   onDismiss: () => void;
   onSubmit: (question: string) => Promise<{ success: boolean; wisdom?: string; error?: string; message?: string; wisdomCount?: number; wisdomLimit?: number; currentTier?: string; canUpgrade?: boolean }>;
   onThreadUpdate?: (entry: { question: string; wisdom: string }) => void;
-  onJournalPress?: (context: { question: string; wisdom: string; actionTitle: string }) => void;
+  onJournalPress?: (context: { question: string; wisdom: string; actionTitle: string; type: 'reflection' | 'prayer' | 'gratitude' | 'timeblock' }) => void;
   wisdomCount: number;
   wisdomLimit: number;
 }
+
+type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
+
+const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
+  { type: 'reflection', icon: 'feather', color: Colors.faithGold, label: 'Journal' },
+  { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
+  { type: 'gratitude', icon: 'heart', color: Colors.alertCoral, label: 'Gratitude' },
+  { type: 'timeblock', icon: 'clock', color: Colors.growthGreen, label: 'Schedule' },
+];
 
 type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
 
@@ -932,6 +941,42 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const [showStillNeedHelpLabel, setShowStillNeedHelpLabel] = useState(false);
   const stillNeedHelpWidthAnim = React.useRef(new Animated.Value(44)).current;
   const stillNeedHelpTranslateXAnim = React.useRef(new Animated.Value(0)).current;
+  const [journalExpanded, setJournalExpanded] = useState(false);
+  const triggerRotation = React.useRef(new Animated.Value(0)).current;
+  const triggerScale = React.useRef(new Animated.Value(1)).current;
+  const iconAnims = React.useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
+  const rowHeight = React.useRef(new Animated.Value(0)).current;
+  const rowOpacity = React.useRef(new Animated.Value(0)).current;
+
+  const toggleJournalIcons = React.useCallback(() => {
+    const expanding = !journalExpanded;
+    setJournalExpanded(expanding);
+
+    if (expanding) {
+      Animated.parallel([
+        Animated.timing(triggerRotation, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(triggerScale, { toValue: 0.9, duration: 200, useNativeDriver: true }),
+        Animated.timing(rowHeight, { toValue: 60, duration: 250, useNativeDriver: false }),
+        Animated.timing(rowOpacity, { toValue: 1, duration: 250, useNativeDriver: false }),
+      ]).start();
+
+      iconAnims.forEach((anim, idx) => {
+        Animated.timing(anim, { toValue: 1, duration: 200, delay: idx * 50, useNativeDriver: true }).start();
+      });
+    } else {
+      Animated.parallel([
+        Animated.timing(triggerRotation, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(triggerScale, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(rowHeight, { toValue: 0, duration: 200, useNativeDriver: false }),
+        Animated.timing(rowOpacity, { toValue: 0, duration: 200, useNativeDriver: false }),
+      ]).start();
+
+      iconAnims.forEach((anim) => {
+        Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+      });
+    }
+    triggerLightHaptic();
+  }, [journalExpanded, triggerRotation, triggerScale, rowHeight, rowOpacity, iconAnims]);
 
   const navigateToSalesOffer = React.useCallback((count = wisdomCount, limit = wisdomLimit, currentTier?: string) => {
     const normalizedTier = String(currentTier || '')
@@ -1508,24 +1553,51 @@ const HowToModal: React.FC<HowToModalProps> = ({
           {/* FAB Buttons - Fixed at bottom */}
           {result && hasWisdom && (
             <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
+              {/* Journal expanded icons */}
+              <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
+                {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+                  <Animated.View
+                    key={type}
+                    style={{
+                      opacity: iconAnims[idx],
+                      transform: [{ scale: iconAnims[idx] }],
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={styles.journalIconButton}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        preserveDraftOnCloseRef.current = false;
+                        setJournalExpanded(false);
+                        onJournalPress?.({
+                          question: resultQuestion || question.trim(),
+                          wisdom: result?.wisdom?.trim() || '',
+                          actionTitle,
+                          type,
+                        });
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
+                        <MaterialCommunityIcons name={icon as any} size={20} color={color} />
+                      </View>
+                      <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                    </TouchableOpacity>
+                  </Animated.View>
+                ))}
+              </Animated.View>
+
               <View style={styles.fabLeftGroup}>
                 {onJournalPress ? (
                   <TouchableOpacity
                     style={styles.journalFabButton}
                     activeOpacity={0.8}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      preserveDraftOnCloseRef.current = false;
-                      onJournalPress({
-                        question: resultQuestion || question.trim(),
-                        wisdom: result?.wisdom?.trim() || '',
-                        actionTitle,
-                      });
-                    }}
+                    onPress={toggleJournalIcons}
                   >
-                    <View style={styles.journalFabCircle}>
+                    <Animated.View style={{ transform: [{ rotate: triggerRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }, { scale: triggerScale }] }}>
                       <MaterialCommunityIcons name="pencil-plus-outline" size={20} color="rgba(255,255,255,0.55)" />
-                    </View>
+                    </Animated.View>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -1886,6 +1958,32 @@ const styles = StyleSheet.create({
   journalFabCircle: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  journalExpandedRow: {
+    position: 'absolute',
+    bottom: 60,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: 200,
+    overflow: 'hidden',
+  },
+  journalIconButton: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  journalIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  journalIconLabel: {
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   errorTitle: {
     fontSize: 20,
