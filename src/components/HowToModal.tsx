@@ -36,6 +36,7 @@ interface HowToModalProps {
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
+const JOURNAL_ICON_ROW_HEIGHT = 78;
 
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'feather', color: Colors.faithGold, label: 'Journal' },
@@ -78,16 +79,19 @@ function stripBalancedActionQuotes(text: string): string {
   ];
 
   let changed = true;
-  while (changed && out.length >= 2) {
+  while (changed) {
     changed = false;
     for (const [open, close] of quotePairs) {
       if (out.startsWith(open) && out.endsWith(close)) {
-        out = out.slice(open.length, out.length - close.length).trim();
+        out = out.slice(1, -1).trim();
         changed = true;
         break;
       }
     }
   }
+
+  // Strip commas before periods, exclamation marks, or question marks
+  out = out.replace(/,\s*([.!?])/g, '$1');
 
   return out;
 }
@@ -98,11 +102,14 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
-    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
+  return /^(?:(?:say|send|text|message|write|ask|pray|request)\b|.*\b(?:with this message|add this request|this request|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/\brequest\b/i.test(line)) {
+    return 'Request to add';
+  }
   if (/\bsay\s+plainly\b/i.test(line)) {
     return 'Say plainly';
   }
@@ -189,13 +196,43 @@ function parentheticalHintLabelForMain(main: string): string {
     : 'Suggestions';
 }
 
+function displayHintLabel(label: string | undefined, itemCount = 2): string {
+  const normalized = String(label || '').trim();
+  const singular = itemCount === 1;
+
+  if (/^(?:suggestions?|examples?)$/i.test(normalized)) {
+    return singular ? 'Suggestion' : 'Suggestions';
+  }
+  if (/^(?:possible\s+limits?|limit\s+examples?)$/i.test(normalized)) {
+    return singular ? 'Possible limit' : 'Possible limits';
+  }
+  if (/^daily\s+supports?$/i.test(normalized)) {
+    return singular ? 'Daily support' : 'Daily supports';
+  }
+
+  return normalized || (singular ? 'Suggestion' : 'Suggestions');
+}
+
+function splitHintDisplayItems(text: string): string[] {
+  return String(text || '')
+    .split(/\s*(?:;|,)\s*/)
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
 function splitListHintItems(value: string): string[] {
   return String(value || '')
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
     .split(/\s*,\s*/)
-    .map(part => stripBalancedActionQuotes(part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '')))
+    .map(part => {
+      const cleaned = part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '');
+      if (/^["“]/.test(cleaned)) {
+        return `"${stripBalancedActionQuotes(cleaned)}"`;
+      }
+      return stripBalancedActionQuotes(cleaned);
+    })
     .filter(Boolean);
 }
 
@@ -400,7 +437,7 @@ function extractParentheticalActionHint(value: string): { main: string; hints: s
   return {
     main: /[.!?]$/.test(main) ? main : `${main}${match[3] || ''}`,
     hints,
-    label: parentheticalHintLabelForMain(main),
+    label: displayHintLabel(parentheticalHintLabelForMain(main), hints.length),
   };
 }
 
@@ -478,7 +515,7 @@ function splitParentheticalActionHint(line: string): string[] | null {
   }
 
   const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
-  const hintLabel = parentheticalHintLabelForMain(main);
+  const hintLabel = displayHintLabel(parentheticalHintLabelForMain(main), hintItems.length);
   const trailingLines = match[4] ? splitReadableActionLine(match[4].trim()) : [];
 
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...trailingLines];
@@ -499,9 +536,10 @@ function splitSuchAsActionHint(line: string): string[] | null {
   }
 
   const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
-  const hintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
+  const rawHintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
     ? 'Daily supports'
     : 'Suggestions';
+  const hintLabel = displayHintLabel(rawHintLabel, hintItems.length);
 
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...splitReadableActionLine(trailingText)];
 }
@@ -516,7 +554,7 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -526,7 +564,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -573,6 +611,9 @@ function splitReadableActionLine(line: string): string[] {
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => /^(?:If|When|After)\b/i.test(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (
     sentenceParts.length >= 2 &&
     sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
@@ -614,7 +655,7 @@ function normalizeActionBulletMarkers(text: string): string {
       return line
         .replace(/([^*\n]{1,90}:\s*)\*\s*/g, (_match, label) => `${String(label).trimEnd()}\n* `)
         .replace(/([^\n])\s*\*\s*(?=\S)/g, '$1\n* ')
-        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
+        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:entry|prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
         .replace(/^(\s*)[-•+]\s+/, '$1* ');
     })
     .join('\n');
@@ -941,6 +982,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const [showStillNeedHelpLabel, setShowStillNeedHelpLabel] = useState(false);
   const stillNeedHelpWidthAnim = React.useRef(new Animated.Value(44)).current;
   const stillNeedHelpTranslateXAnim = React.useRef(new Animated.Value(0)).current;
+  const scrollViewRef = React.useRef<ScrollView>(null);
   const [journalExpanded, setJournalExpanded] = useState(false);
   const triggerRotation = React.useRef(new Animated.Value(0)).current;
   const triggerScale = React.useRef(new Animated.Value(1)).current;
@@ -953,10 +995,16 @@ const HowToModal: React.FC<HowToModalProps> = ({
     setJournalExpanded(expanding);
 
     if (expanding) {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      });
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 260);
       Animated.parallel([
         Animated.timing(triggerRotation, { toValue: 1, duration: 200, useNativeDriver: true }),
         Animated.timing(triggerScale, { toValue: 0.9, duration: 200, useNativeDriver: true }),
-        Animated.timing(rowHeight, { toValue: 60, duration: 250, useNativeDriver: false }),
+        Animated.timing(rowHeight, { toValue: JOURNAL_ICON_ROW_HEIGHT, duration: 250, useNativeDriver: false }),
         Animated.timing(rowOpacity, { toValue: 1, duration: 250, useNativeDriver: false }),
       ]).start();
 
@@ -1196,7 +1244,16 @@ const HowToModal: React.FC<HowToModalProps> = ({
             <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
 
-          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.content}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              paddingTop: insets.top + 8,
+              paddingBottom: insets.bottom + (hasWisdom ? 170 : 100),
+            }}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.labelRow}>
               <Ionicons name="help-circle-outline" size={16} color={Colors.alertCoral} />
               <ThemedText weight="semiBold" style={styles.label}>HOW TO</ThemedText>
@@ -1397,10 +1454,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           return renderLineMeaningBlock(item, idx);
                         }
                         if (item.type === 'hint') {
-                          const hintItems = item.text
-                            .split(/\s*(?:;|,)\s*/)
-                            .map(part => part.trim())
-                            .filter(Boolean);
+                          const hintItems = splitHintDisplayItems(item.text);
                           const showHintChips = hintItems.length > 1 &&
                             hintItems.every(part => part.length <= 72) &&
                             !hintItems.some(part => /:\s*/.test(part));
@@ -1413,7 +1467,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                   color="rgba(255,204,102,0.72)"
                                 />
                                 <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
-                                  {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                                  {displayHintLabel(item.label, hintItems.length)}
                                 </ThemedText>
                               </View>
                               {showHintChips ? (
@@ -1900,6 +1954,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   doneButtonText: {
     color: Colors.hopeWhite,
@@ -1917,6 +1976,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   stillNeedHelpButtonText: {
     color: Colors.alertCoral,
@@ -1966,12 +2030,14 @@ const styles = StyleSheet.create({
   },
   journalExpandedRow: {
     position: 'absolute',
-    bottom: 60,
+    bottom: 54,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 6,
     overflow: 'hidden',
   },
   journalIconButton: {
@@ -2235,7 +2301,7 @@ const styles = StyleSheet.create({
   },
   bodyHintRow: {
     marginTop: 2,
-    marginBottom: 6,
+    marginBottom: 12,
     paddingLeft: 2,
     gap: 6,
   },

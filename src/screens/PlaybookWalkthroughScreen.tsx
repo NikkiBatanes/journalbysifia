@@ -1069,7 +1069,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
 // ─── Smart body-line detection ───────────────────────────────────────────────
 
 type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
-const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
+const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:entry|prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 
 interface BodyLine {
   text: string;
@@ -1178,6 +1178,15 @@ function closeUnmatchedActionDoubleQuote(text: string): string {
   return openCurly > closeCurly ? `${text}”` : text;
 }
 
+function stripWrappingQuotesUnlessList(text: string): string {
+  const value = String(text || '').trim();
+  const quotedSegments = value.match(/["“][^"”]+["”]/g) || [];
+  if (quotedSegments.length >= 2 || /["”]\s*,\s*["“]/.test(value)) {
+    return value;
+  }
+  return stripBalancedActionQuotes(value);
+}
+
 function removeDecorativeActionSingleQuotes(text: string): string {
   let out = '';
   const source = String(text || '');
@@ -1204,7 +1213,7 @@ function normalizeActionBulletMarkers(text: string): string {
       return line
         .replace(/([^*\n]{1,90}:\s*)\*\s*/g, (_match, label) => `${String(label).trimEnd()}\n* `)
         .replace(/([^\n])\s*\*\s*(?=\S)/g, '$1\n* ')
-        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
+        .replace(/([a-z)\]"”])\s*(Example(?:\s+(?:entry|prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：])/g, '$1\n$2')
         .replace(/^(\s*)[-•+]\s+/, '$1* ');
     })
     .join('\n');
@@ -1341,6 +1350,30 @@ function parentheticalHintLabelForMain(main: string): string {
     : 'Suggestions';
 }
 
+function displayHintLabel(label: string | undefined, itemCount = 2): string {
+  const normalized = String(label || '').trim();
+  const singular = itemCount === 1;
+
+  if (/^(?:suggestions?|examples?)$/i.test(normalized)) {
+    return singular ? 'Suggestion' : 'Suggestions';
+  }
+  if (/^(?:possible\s+limits?|limit\s+examples?)$/i.test(normalized)) {
+    return singular ? 'Possible limit' : 'Possible limits';
+  }
+  if (/^daily\s+supports?$/i.test(normalized)) {
+    return singular ? 'Daily support' : 'Daily supports';
+  }
+
+  return normalized || (singular ? 'Suggestion' : 'Suggestions');
+}
+
+function splitHintDisplayItems(text: string): string[] {
+  return String(text || '')
+    .split(/\s*(?:;|,)\s*/)
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
 function splitParentheticalActionHint(line: string): string[] | null {
   const trimmed = String(line || '').trim();
   const match = trimmed.match(/^(.+?)\s*\((?:e\.g\.,?\s*)?([^)]+)\)([.!?])?(?:\s+(.+))?$/i);
@@ -1355,7 +1388,7 @@ function splitParentheticalActionHint(line: string): string[] | null {
   }
 
   const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
-  const hintLabel = parentheticalHintLabelForMain(main);
+  const hintLabel = displayHintLabel(parentheticalHintLabelForMain(main), hintItems.length);
   const trailingLines = match[4] ? splitReadableActionLine(match[4].trim()) : [];
 
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...trailingLines];
@@ -1367,7 +1400,13 @@ function splitListHintItems(value: string): string[] {
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
     .split(/\s*,\s*/)
-    .map(part => stripBalancedActionQuotes(part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '')))
+    .map(part => {
+      const cleaned = part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '');
+      if (/^["“]/.test(cleaned)) {
+        return `"${stripBalancedActionQuotes(cleaned)}"`;
+      }
+      return stripBalancedActionQuotes(cleaned);
+    })
     .filter(Boolean);
 }
 
@@ -1572,7 +1611,7 @@ function extractParentheticalActionHint(value: string): { main: string; hints: s
   return {
     main: /[.!?]$/.test(main) ? main : `${main}${match[3] || ''}`,
     hints,
-    label: parentheticalHintLabelForMain(main),
+    label: displayHintLabel(parentheticalHintLabelForMain(main), hints.length),
   };
 }
 
@@ -1591,9 +1630,10 @@ function splitSuchAsActionHint(line: string): string[] | null {
   }
 
   const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
-  const hintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
+  const rawHintLabel = /\b(?:daily|each day|sober|sobriety|recovery|habit|plan|schedule)\b/i.test(main)
     ? 'Daily supports'
     : 'Suggestions';
+  const hintLabel = displayHintLabel(rawHintLabel, hintItems.length);
 
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...splitReadableActionLine(trailingText)];
 }
@@ -1626,7 +1666,7 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
       normalizeSingleQuotedActionScripts(out).replace(/ +([,.;:!?])/g, '$1')
     ).trim()
   );
-  const cleaned = closeUnmatchedActionDoubleQuote(stripDanglingActionQuotes(stripBalancedActionQuotes(out)));
+  const cleaned = closeUnmatchedActionDoubleQuote(stripDanglingActionQuotes(stripWrappingQuotesUnlessList(out)));
   return normalizeActionPracticeLoopText(cleaned);
 }
 
@@ -1646,7 +1686,7 @@ function normalizeActionExampleDisplayText(example: string): string {
   const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
   const quotedRemainder = value.replace(/["“][^"”]+["”]/g, '').replace(/[,\s]+/g, '');
   if (quotedItems.length >= 2 && !quotedRemainder) {
-    return quotedItems.join('\n');
+    return quotedItems.map(item => `"${item}"`).join('\n');
   }
 
   if (!value || /^["“]/.test(value)) {
@@ -1678,6 +1718,7 @@ function normalizeActionExampleDisplayText(example: string): string {
   if (quotedQuestions && quotedQuestions.length >= 2) {
     return quotedQuestions
       .map(question => stripBalancedActionQuotes(question))
+      .map(question => `"${question}"`)
       .join('\n');
   }
 
@@ -1762,7 +1803,7 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1772,7 +1813,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -1819,6 +1860,9 @@ function splitReadableActionLine(line: string): string[] {
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
+  if (sentenceParts.length >= 2 && sentenceParts.some(part => /^(?:If|When|After)\b/i.test(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
   if (
     sentenceParts.length >= 2 &&
     sentenceParts.some(part => /\([^)]+\)/.test(part) || /^Then\b/i.test(part))
@@ -1847,11 +1891,14 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:(?:say|send|text|message|write|ask|pray)\b|.*\b(?:with this message|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
-    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask)\b/i.test(trimmed);
+  return /^(?:(?:say|send|text|message|write|ask|pray|request)\b|.*\b(?:with this message|add this request|this request|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/\brequest\b/i.test(line)) {
+    return 'Request to add';
+  }
   if (/\bsay\s+plainly\b/i.test(line)) {
     return 'Say plainly';
   }
@@ -3409,10 +3456,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 return renderLineMeaningBlock(item, idx);
               }
               if (item.type === 'hint') {
-                const hintItems = item.text
-                  .split(/\s*(?:;|,)\s*/)
-                  .map(part => part.trim())
-                  .filter(Boolean);
+                const hintItems = splitHintDisplayItems(item.text);
                 const showHintChips = hintItems.length > 1 &&
                   hintItems.every(part => part.length <= 72) &&
                   !hintItems.some(part => /:\s*/.test(part));
@@ -3425,7 +3469,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                         color="rgba(255,204,102,0.72)"
                       />
                       <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
-                        {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                        {displayHintLabel(item.label, hintItems.length)}
                       </ThemedText>
                     </View>
                     {showHintChips ? (
@@ -3638,10 +3682,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                   return renderLineMeaningBlock(item, `wisdom-item-${blockIndex}-${idx}-line-meaning`);
                                 }
                                 if (item.type === 'hint') {
-                                  const hintItems = item.text
-                                    .split(/\s*(?:;|,)\s*/)
-                                    .map(part => part.trim())
-                                    .filter(Boolean);
+                                  const hintItems = splitHintDisplayItems(item.text);
                                   const showHintChips = hintItems.length > 1 &&
                                     hintItems.every(part => part.length <= 72) &&
                                     !hintItems.some(part => /:\s*/.test(part));
@@ -3654,7 +3695,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                           color="rgba(255,204,102,0.72)"
                                         />
                                         <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
-                                          {/examples/i.test(item.label || '') ? 'Suggestions' : item.label || 'Suggestions'}
+                                          {displayHintLabel(item.label, hintItems.length)}
                                         </ThemedText>
                                       </View>
                                       {showHintChips ? (
