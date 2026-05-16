@@ -1553,42 +1553,42 @@ const HowToModal: React.FC<HowToModalProps> = ({
           {/* FAB Buttons - Fixed at bottom */}
           {result && hasWisdom && (
             <View style={[styles.fabContainer, { bottom: insets.bottom + 16 }]}>
-              <View style={styles.fabRow}>
-                {/* Journal expanded icons */}
-                <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
-                  {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
-                    <Animated.View
-                      key={type}
-                      style={{
-                        opacity: iconAnims[idx],
-                        transform: [{ scale: iconAnims[idx] }],
-                        alignItems: 'center',
+              {/* Journal expanded icons */}
+              <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
+                {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
+                  <Animated.View
+                    key={type}
+                    style={{
+                      opacity: iconAnims[idx],
+                      transform: [{ scale: iconAnims[idx] }],
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={styles.journalIconButton}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        preserveDraftOnCloseRef.current = false;
+                        setJournalExpanded(false);
+                        onJournalPress?.({
+                          question: resultQuestion || question.trim(),
+                          wisdom: result?.wisdom?.trim() || '',
+                          actionTitle,
+                          type,
+                        });
                       }}
+                      activeOpacity={0.75}
                     >
-                      <TouchableOpacity
-                        style={styles.journalIconButton}
-                        onPress={() => {
-                          triggerLightHaptic();
-                          preserveDraftOnCloseRef.current = false;
-                          setJournalExpanded(false);
-                          onJournalPress?.({
-                            question: resultQuestion || question.trim(),
-                            wisdom: result?.wisdom?.trim() || '',
-                            actionTitle,
-                            type,
-                          });
-                        }}
-                        activeOpacity={0.75}
-                      >
-                        <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
-                          <MaterialCommunityIcons name={icon as any} size={20} color={color} />
-                        </View>
-                        <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
-                      </TouchableOpacity>
-                    </Animated.View>
-                  ))}
-                </Animated.View>
+                      <View style={[styles.journalIconCircle, { backgroundColor: color + '28', borderColor: color + '20' }]}>
+                        <MaterialCommunityIcons name={icon as any} size={20} color={color} />
+                      </View>
+                      <ThemedText style={[styles.journalIconLabel, { color }]}>{label}</ThemedText>
+                    </TouchableOpacity>
+                  </Animated.View>
+                ))}
+              </Animated.View>
 
+              <View style={styles.fabRow}>
                 <View style={styles.fabLeftGroup}>
                   {onJournalPress ? (
                     <TouchableOpacity
@@ -1965,11 +1965,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   journalExpandedRow: {
+    position: 'absolute',
+    bottom: 60,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     overflow: 'hidden',
-    marginBottom: 4,
   },
   journalIconButton: {
     alignItems: 'center',
