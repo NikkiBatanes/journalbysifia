@@ -215,6 +215,7 @@ function displayHintLabel(label: string | undefined, itemCount = 2): string {
 
 function splitHintDisplayItems(text: string): string[] {
   return String(text || '')
+    .replace(/,\s*([.!?])/g, '$1')
     .split(/\s*(?:;|,)\s*/)
     .map(part => part.trim())
     .filter(Boolean);
