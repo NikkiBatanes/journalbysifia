@@ -645,11 +645,44 @@ serve(async (req: Request) => {
       }
     }
 
-    let finalPrompt = prompt;
+    // If scripture was fetched, return it directly without OpenAI action guidance format
+    if (scriptureText) {
+      console.log('[Get-Action-Guidance] Scripture fetched, returning directly');
+      
+      // If explanation is requested, get it from OpenAI and append
+      if (!isPureScriptureRequest) {
+        console.log('[Get-Action-Guidance] Explanation requested, getting from OpenAI');
+        const explanationPrompt = `Here is the full text of ${scriptureRequest.reference}:\n\n${scriptureText}\n\nUser asks: ${userQuestion}\n\nProvide a clear, helpful explanation. Do not use JSON format. Just give the explanation in plain text.`;
+        
+        const explanationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful Bible teacher. Explain Scripture clearly and faithfully.',
+              },
+              {
+                role: 'user',
+                content: explanationPrompt,
+              },
+            ],
+            temperature: 0.50,
+            max_completion_tokens: 1000,
+          }),
+        });
 
-    // If pure scripture request (no explanation), return scripture and save to wisdom thread without charging
-    if (isPureScriptureRequest && scriptureText) {
-      console.log('[Get-Action-Guidance] Pure scripture request, returning scripture without charging wisdom');
+        if (explanationResponse.ok) {
+          const explanationData = await explanationResponse.json();
+          const explanation = explanationData.choices?.[0]?.message?.content || '';
+          scriptureText = `${scriptureText}\n\n---\n\nExplanation:\n${explanation}`;
+        }
+      }
       
       // Save to wisdom thread
       const { error: saveError } = await supabase
@@ -672,13 +705,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // If scripture was fetched and explanation is requested, prepend it to the prompt
-    if (scriptureText) {
-      console.log('[Get-Action-Guidance] Scripture fetched, including in prompt for explanation');
-      finalPrompt = `=== SCRIPTURE TEXT ===\n${scriptureText}\n\n${prompt}`;
-    }
-
-    console.log('[Get-Action-Guidance] Prompt:', finalPrompt.substring(0, 500) + '...');
+    console.log('[Get-Action-Guidance] Prompt:', prompt.substring(0, 500) + '...');
 
     // Call OpenAI
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
@@ -713,7 +740,7 @@ serve(async (req: Request) => {
       }),
     });
 
-    const openAIResponse = await createWisdomCompletion(finalPrompt);
+    const openAIResponse = await createWisdomCompletion(prompt);
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
