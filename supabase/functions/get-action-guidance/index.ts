@@ -626,30 +626,59 @@ serve(async (req: Request) => {
 
     // Check if user is asking for scripture text before charging wisdom
     const scriptureRequest = detectScriptureRequest(userQuestion, actionContext);
+    let scriptureText = '';
+    let isPureScriptureRequest = false;
+    
     if (scriptureRequest.isScripture && scriptureRequest.reference) {
       console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
       
+      // Check if it's a pure scripture request (no explanation asked)
+      isPureScriptureRequest = !/\b(explain|explain.*line|line by line|break down|meaning|what does|commentary)\b/i.test(userQuestion);
+      
       try {
-        const scriptureText = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
-        
-        // Return scripture without charging wisdom count
-        return new Response(JSON.stringify({
-          success: true,
-          wisdom: scriptureText,
-          isScripture: true,
-          reference: scriptureRequest.reference,
-          wisdomCount: usedWisdom,
-          wisdomLimit,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        scriptureText = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
+        console.log('[Get-Action-Guidance] Scripture fetched successfully, length:', scriptureText.length);
       } catch (error) {
         console.error('[Get-Action-Guidance] Failed to fetch scripture, falling back to OpenAI:', error);
         // Fall through to OpenAI if scripture fetch fails
+        scriptureText = '';
       }
     }
 
-    console.log('[Get-Action-Guidance] Prompt:', prompt.substring(0, 500) + '...');
+    let finalPrompt = prompt;
+
+    // If pure scripture request (no explanation), return scripture and save to wisdom thread without charging
+    if (isPureScriptureRequest && scriptureText) {
+      console.log('[Get-Action-Guidance] Pure scripture request, returning scripture without charging wisdom');
+      
+      // Save to wisdom thread
+      const { error: saveError } = await supabase
+        .from('playbook_action_steps')
+        .update({ wisdom_text: scriptureText })
+        .eq('id', actionId)
+        .eq('playbook_id', playbookId);
+
+      if (saveError) {
+        console.error('[Get-Action-Guidance] Failed to save scripture to wisdom thread:', saveError);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        wisdom: scriptureText,
+        wisdomCount: usedWisdom,
+        wisdomLimit,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // If scripture was fetched and explanation is requested, prepend it to the prompt
+    if (scriptureText) {
+      console.log('[Get-Action-Guidance] Scripture fetched, including in prompt for explanation');
+      finalPrompt = `=== SCRIPTURE TEXT ===\n${scriptureText}\n\n${prompt}`;
+    }
+
+    console.log('[Get-Action-Guidance] Prompt:', finalPrompt.substring(0, 500) + '...');
 
     // Call OpenAI
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
@@ -677,14 +706,14 @@ serve(async (req: Request) => {
         ],
         temperature: 0.30,
         top_p: 1,
-        max_completion_tokens: 550,
+        max_completion_tokens: 1000, // Increase for line-by-line explanations
         frequency_penalty: 0.20,
         presence_penalty: 0,
         response_format: { type: 'json_object' },
       }),
     });
 
-    const openAIResponse = await createWisdomCompletion(prompt);
+    const openAIResponse = await createWisdomCompletion(finalPrompt);
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
