@@ -641,7 +641,8 @@ function normalizeActionMarkup(text: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p\s*>/gi, '\n')
     .replace(/<p\s*>/gi, '')
-    .replace(/<\/?.[^>]+>/g, '');
+    .replace(/<\/?.[^>]+>/g, '')
+    .replace(/,\s*([.!?])/g, '$1');
 }
 
 function normalizeActionBulletMarkers(text: string): string {
@@ -666,6 +667,7 @@ function cleanWisdomDisplayText(value: string): string {
   return value
     .replace(/\*\*/g, '')
     .replace(/__([^_]+)__/g, '$1')
+    .replace(/,\s*([.!?])/g, '$1')
     .trim();
 }
 
