@@ -1092,16 +1092,19 @@ function stripBalancedActionQuotes(text: string): string {
   ];
 
   let changed = true;
-  while (changed && out.length >= 2) {
+  while (changed) {
     changed = false;
     for (const [open, close] of quotePairs) {
       if (out.startsWith(open) && out.endsWith(close)) {
-        out = out.slice(open.length, out.length - close.length).trim();
+        out = out.slice(1, -1).trim();
         changed = true;
         break;
       }
     }
   }
+
+  // Strip commas before periods, exclamation marks, or question marks
+  out = out.replace(/,\s*([.!?])/g, '$1');
 
   return out;
 }

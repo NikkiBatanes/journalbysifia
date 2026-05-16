@@ -225,6 +225,7 @@ function splitListHintItems(value: string): string[] {
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
+    .replace(/,\s*([.!?])/g, '$1')
     .split(/\s*,\s*/)
     .map(part => {
       const cleaned = part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '');
