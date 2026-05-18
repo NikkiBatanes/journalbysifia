@@ -3,7 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
+import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing, Platform } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme';
@@ -69,6 +69,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   onDevotionalCreated,
   isOnboarding = false,
 }) => {
+  const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const theme = useTheme();
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
@@ -1137,7 +1138,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   ) : (
     !isOnboarding && (
-    <View style={styles.optionsContainer}>
+    <View style={[styles.optionsContainer, IS_IPAD && styles.optionsContainerPad]}>
                 {DURATION_OPTIONS.map((option) => {
                   const accessCheck = devotionalGating.checkAccess(option.days, isOnboarding ? 'onboarding' : 'inApp');
                   const isLocked = accessCheck.isLocked;
@@ -1521,6 +1522,9 @@ const styles = StyleSheet.create({
   optionsContainer: {
     gap: 12,
     width: '100%',
+  },
+  optionsContainerPad: {
+    paddingHorizontal: 48,
   },
   optionButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
