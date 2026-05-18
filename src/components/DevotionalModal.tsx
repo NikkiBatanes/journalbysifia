@@ -881,6 +881,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           ref={contentRef}
           style={[
             styles.modalContainer,
+            IS_IPAD && styles.modalContainerPad,
             // On small phones, allow the modal to occupy slightly more vertical space so the footer stays visible
             isSmallPhone && styles.modalContainerSmallPhone,
             { transform: [{ translateY }] },
@@ -897,7 +898,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.contentWrapper, IS_IPAD && styles.contentWrapperPad]}>
+          <View style={styles.contentWrapper}>
             {/* Logo at very top of modal during generation */}
             {(isCreating || isOnboardingCreating || isClosing) && (
               <Animated.Image
@@ -919,7 +920,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             )}
 
             {!isCreating && !isOnboardingCreating && !isSuccess && !isClosing && (
-              <View style={[styles.fixedContent, IS_IPAD && styles.fixedContentPad]}>
+              <View style={styles.fixedContent}>
                 <ThemedText weight="semiBold" style={styles.title}>Turn this into a devotional</ThemedText>
                 <View style={styles.subtitleContainer}>
                   <ThemedText weight="regular" style={styles.subtitle}>
@@ -929,7 +930,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               </View>
             )}
 
-            <View style={[styles.scrollableContent, IS_IPAD && styles.scrollableContentPad]}>
+            <View style={styles.scrollableContent}>
 
               {(playbookInfo || userInput) && (
                 <Animated.View style={[
@@ -961,8 +962,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
                   <View style={[
                     styles.playbookInfoContent,
+                    !IS_IPAD && styles.playbookInfoContentPhone,
                     showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
-                    IS_IPAD && styles.playbookInfoContentPad,
                   ]}>
                     <ThemedText weight="regular" style={styles.playbookInfoText}>{userInput || playbookInfo}</ThemedText>
                   </View>
@@ -1463,6 +1464,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  modalContainerPad: {
+    paddingHorizontal: 48,
+    paddingVertical: 20,
+  },
   modalContainerSmallPhone: {
     maxHeight: '92%',
   },
@@ -1671,11 +1676,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   playbookInfoContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     overflow: 'hidden',
   },
-  playbookInfoContentPad: {
-    paddingHorizontal: 0,
+  playbookInfoContentPhone: {
+    paddingHorizontal: 12,
   },
   playbookInfoContentExpanded: {
     height: 'auto',
