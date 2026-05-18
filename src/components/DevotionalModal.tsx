@@ -946,7 +946,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   } : {},
                 ]}>
                   <TouchableOpacity
-                    style={styles.playbookInfoHeader}
+                    style={[styles.playbookInfoHeader, IS_IPAD && styles.playbookInfoHeaderPad]}
                     onPress={() => { triggerLightHaptic(); togglePlaybookInfo(); }}
                     activeOpacity={0.8}
                   >
@@ -1648,6 +1648,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 12,
+  },
+  playbookInfoHeaderPad: {
+    paddingHorizontal: 0,
   },
   playbookInfoLabel: {
     color: Colors.hopeWhite,
