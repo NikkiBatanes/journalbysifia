@@ -17,6 +17,8 @@ import {
   Animated,
 } from 'react-native';
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 import { Colors, Fonts } from '../../theme';
 // import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -169,6 +171,9 @@ const createDefaultStyles = (_fonts: any) => ({
     width: 320,
     alignSelf: 'center',
     overflow: 'visible',
+  },
+  formContainerPad: {
+    width: 600,
   },
   inputLabel: {
     color: Colors.hopeWhite,
@@ -1234,7 +1239,7 @@ function TimeBlockLogEditorInner(
             </View>
 
             {/* Form content based on active tab */}
-            <View style={s.formContainer}>
+            <View style={[s.formContainer, IS_IPAD && s.formContainerPad]}>
               {/* Date Picker - Only for faithful actions context */}
               {context === 'faithful-actions' && (
                 <TouchableOpacity
