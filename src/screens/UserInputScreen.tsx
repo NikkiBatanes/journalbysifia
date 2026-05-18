@@ -1304,7 +1304,7 @@ const UserInputScreen: React.FC = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
           style={{ flex: 1 }}
-          enabled={true}
+          enabled={isPad}
         >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}

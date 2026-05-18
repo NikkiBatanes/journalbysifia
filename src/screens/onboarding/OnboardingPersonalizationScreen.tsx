@@ -1953,7 +1953,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         style={OnboardingStyles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
-        enabled={true}
+        enabled={isPad}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={{ flex: 1, width: contentWidth }}>
