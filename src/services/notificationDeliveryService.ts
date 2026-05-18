@@ -346,16 +346,20 @@ class NotificationDeliveryService {
   private async deliverPushNotification(notification: any): Promise<void> {
     try {
       // Get the user's device token from the database
-      const { data: deviceToken, error: tokenError } = await supabase
+      // Use limit(1) instead of single() to handle users with multiple active tokens
+      const { data: deviceTokens, error: tokenError } = await supabase
         .from('device_tokens')
         .select('token')
         .eq('user_id', notification.user_id)
         .eq('is_active', true)
-        .single();
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (tokenError || !deviceToken?.token) {
+      if (tokenError || !deviceTokens || deviceTokens.length === 0 || !deviceTokens[0]?.token) {
         throw new Error(`No device token found for user ${notification.user_id}`);
       }
+
+      const deviceToken = deviceTokens[0].token;
 
       // Since PushNotificationService only supports local notifications,
       // we'll deliver as local notification but with push-like behavior
