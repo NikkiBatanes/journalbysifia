@@ -1,4 +1,5 @@
 import { Logger } from '../utils/ProductionLogger';
+import { getEnvironmentConfig } from './environment';
 /**
  * Enterprise Authentication Configuration
  * Contains all authentication provider settings for production deployment
@@ -20,6 +21,8 @@ export interface AuthConfig {
   };
 }
 
+const env = getEnvironmentConfig();
+
 export const authConfig: AuthConfig = {
   apple: {
     // Your app's bundle identifier
@@ -34,8 +37,8 @@ export const authConfig: AuthConfig = {
     androidClientId: 'your-google-android-client-id.googleusercontent.com',
   },
   supabase: {
-    url: 'https://aesmrjinczhknchlrsmt.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM',
+    url: env.SUPABASE_URL ?? '',
+    anonKey: env.SUPABASE_ANON_KEY ?? '',
   },
 };
 

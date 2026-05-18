@@ -46,8 +46,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,8 +63,6 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
-          head: HEAD
           extra_args: --only-verified
 
   # Sentry Release Tracking
@@ -282,33 +278,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Bundle size analysis
+      - name: Check Android bundle size
         run: |
-          npx react-native-bundle-visualizer
-          
-      - name: Check bundle size
-        run: |
-          # Check if bundle size is reasonable (< 10MB)
-          BUNDLE_SIZE=$(npx react-native bundle \
+          ulimit -n 4096
+          mkdir -p /tmp/rn-assets
+          npx react-native bundle \
             --platform android \
             --dev false \
             --entry-file index.js \
             --bundle-output /tmp/bundle.js \
-            --assets-dest /tmp/assets | \
-            grep -o 'total size: [0-9]*' | \
-            grep -o '[0-9]*')
+            --assets-dest /tmp/rn-assets \
+            --reset-cache
+
+          BUNDLE_SIZE=$(wc -c < /tmp/bundle.js | tr -d ' ')
+          MAX_BUNDLE_SIZE=10485760
+
+          echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle size: ${BUNDLE_SIZE} bytes" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: < ${MAX_BUNDLE_SIZE} bytes" >> $GITHUB_STEP_SUMMARY
           
-          if [ "$BUNDLE_SIZE" -gt 10485760 ]; then
+          if [ "$BUNDLE_SIZE" -gt "$MAX_BUNDLE_SIZE" ]; then
+            echo "- Status: FAIL" >> $GITHUB_STEP_SUMMARY
             echo "Bundle size too large: ${BUNDLE_SIZE} bytes"
             exit 1
           fi
-          
-      - name: Performance budget report
-        run: |
-          echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
-          echo "- Bundle size: ${BUNDLE_SIZE} bytes" >> $GITHUB_STEP_SUMMARY
-          echo "- Target: < 10MB" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: $([ "$BUNDLE_SIZE" -le 10485760 ] && echo '✅ PASS' || echo '❌ FAIL')" >> $GITHUB_STEP_SUMMARY
+
+          echo "- Status: PASS" >> $GITHUB_STEP_SUMMARY
 
   # Notification
   notify:
