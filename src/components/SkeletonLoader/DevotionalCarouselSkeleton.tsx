@@ -2,13 +2,13 @@ import React from 'react';
 import { View, StyleSheet, Animated, Dimensions, Platform } from 'react-native';
 import { Colors } from '../../theme';
 
-const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 const { width } = Dimensions.get('window');
-const CARD_HORIZONTAL_PADDING = IS_IPAD ? 24 : 16;
+const isTablet = width >= 768;
+const CARD_HORIZONTAL_PADDING = isTablet ? 24 : 16;
 const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
-const ITEM_WIDTH = VISIBLE_WIDTH * 0.8;
+const ITEM_WIDTH = isTablet ? 384 : Math.round(VISIBLE_WIDTH * 0.8);
 const ITEM_SPACING = 8;
-const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
+const SIDE_INSET = Math.max(0, isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2));
 
 const DevotionalCarouselSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
