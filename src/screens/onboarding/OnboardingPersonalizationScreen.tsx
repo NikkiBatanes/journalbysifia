@@ -2687,8 +2687,11 @@ const styles = StyleSheet.create({
   },
   birthdayPickerOverlayPad: {
     alignSelf: 'center',
-    left: undefined,
-    right: undefined,
+    left: 0,
+    right: 0,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: 400,
   },
   birthdayPickerRow: {
     flexDirection: 'row',
