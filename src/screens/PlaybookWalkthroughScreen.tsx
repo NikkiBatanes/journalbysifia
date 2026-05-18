@@ -698,7 +698,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
           useNativeDriver: true,
         })
       ).start();
-      
+
       dotAnim.addListener(({ value }) => {
         setDotIndex(Math.floor(value * 3) % 3);
       });
@@ -1870,7 +1870,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|explain|add|practice\s+saying(?:\s+calmly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
   if (unquotedSpokenLine) {
     const statement = unquotedSpokenLine[2].trim();
     return [
@@ -1961,11 +1961,26 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
+  if (/^(?:say|explain|add|practice\s+saying(?:\s+calmly)?)\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
   return /^(?:(?:say|send|text|message|write|ask|pray|request|reply)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words)\b)[^:]{0,100}:\s*$/i.test(trimmed)
     && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/^explain\s*:/i.test(line.trim())) {
+    return 'Explain';
+  }
+  if (/^add\s*:/i.test(line.trim())) {
+    return 'Add this point';
+  }
+  if (/^practice\s+saying\s+calmly\s*:/i.test(line.trim())) {
+    return 'Practice saying calmly';
+  }
+  if (/^say\s*:/i.test(line.trim())) {
+    return 'Say';
+  }
   if (/\brequest\b/i.test(line)) {
     return 'Request to add';
   }
