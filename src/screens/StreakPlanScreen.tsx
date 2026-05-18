@@ -442,7 +442,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 28,
     marginTop: 'auto',
-    width: '100%',
   },
   primaryButtonPad: {
     maxWidth: 800,
@@ -463,7 +462,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 28,
     marginTop: 12,
-    width: '100%',
   },
   secondaryButtonPad: {
     maxWidth: 800,
