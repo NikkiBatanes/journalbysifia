@@ -44,6 +44,9 @@ const SIDE_INSET = Math.max(
   0,
   isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
+const DROPDOWN_MENU_WIDTH = 220;
+const DROPDOWN_MENU_ESTIMATED_HEIGHT = 216;
+const DROPDOWN_EDGE_PADDING = isTablet ? 40 : 16;
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from 'react-native';
@@ -327,10 +330,12 @@ interface CarouselCardProps {
   cardStyles: any;
   sessionStates: Record<string, { hasPrayed: boolean; hasRead: boolean }>;
   onPress: (item: Playbook) => void; onLongPress: (item: Playbook) => void;
-  onMenuToggle: (id: string | null) => void; onDelete: (id: string) => void;
+  onMenuToggle: (id: string | null, anchor?: MenuAnchor) => void; onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
   onDevotionalPress: (item: Playbook) => void; onExportPdfPress: (item: Playbook) => void; triggerHaptic: () => void;
 }
+type MenuAnchor = { pageX: number; pageY: number };
+type MenuPosition = { top: number; left: number };
 const CURRENT_YEAR = new Date().getFullYear();
 const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
@@ -366,7 +371,20 @@ const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, 
       <Animated.View style={[st.carouselCard, { transform: [{ scale }, { translateY }], opacity }]}>
         <View style={st.gradientContainer}>
           <View style={st.categoryLabel}><ThemedText weight="bold" style={st.categoryLabelText}>{category}</ThemedText></View>
-          <TouchableOpacity style={st.menuButton} onPress={() => { try { _triggerHaptic(); } catch {} _onMenuToggle(isMenuOpen ? null : item.id); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity
+            style={st.menuButton}
+            onPress={(event) => {
+              try { _triggerHaptic(); } catch {}
+              _onMenuToggle(
+                isMenuOpen ? null : item.id,
+                isMenuOpen ? undefined : {
+                  pageX: event.nativeEvent.pageX,
+                  pageY: event.nativeEvent.pageY,
+                }
+              );
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
           </TouchableOpacity>
         </View>
@@ -434,7 +452,7 @@ interface CategoryCarouselRowProps {
   menuVisible: string | null;
   onPress: (item: Playbook) => void;
   onLongPress: (item: Playbook) => void;
-  onMenuToggle: (id: string | null) => void;
+  onMenuToggle: (id: string | null, anchor?: MenuAnchor) => void;
   onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void;
   onTagPress: (item: Playbook) => void;
@@ -1193,6 +1211,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [selectedPlaybookForMenu, setSelectedPlaybookForMenu] = useState<Playbook | null>(null);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const menuVisibleRef = useRef<string | null>(null);
   useEffect(() => { menuVisibleRef.current = menuVisible; }, [menuVisible]);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
@@ -1202,6 +1221,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
     useCallback(() => {
       return () => {
         setMenuVisible(null);
+        setMenuPosition(null);
       };
     }, [])
   );
@@ -1698,6 +1718,41 @@ const PlaybookListScreen = ({ navigation }: any) => {
     setDevotionalModalVisible(true);
   }, [triggerLightHaptic]);
 
+  const handleMenuToggle = useCallback((id: string | null, anchor?: MenuAnchor) => {
+    if (!id) {
+      setSelectedPlaybookForMenu(null);
+      setMenuPosition(null);
+      setMenuVisible(null);
+      return;
+    }
+
+    const playbook = playbooks.find(p => p.id === id);
+    setSelectedPlaybookForMenu(playbook || null);
+
+    if (anchor) {
+      const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+      const maxLeft = Math.max(
+        DROPDOWN_EDGE_PADDING,
+        screenWidth - DROPDOWN_MENU_WIDTH - DROPDOWN_EDGE_PADDING
+      );
+      const preferredLeft = anchor.pageX - DROPDOWN_MENU_WIDTH + 18;
+      const preferredTop = anchor.pageY + 14;
+      const maxTop = Math.max(
+        insets.top + 12,
+        screenHeight - DROPDOWN_MENU_ESTIMATED_HEIGHT - 16
+      );
+
+      setMenuPosition({
+        left: Math.min(Math.max(preferredLeft, DROPDOWN_EDGE_PADDING), maxLeft),
+        top: Math.min(Math.max(preferredTop, insets.top + 12), maxTop),
+      });
+    } else {
+      setMenuPosition(null);
+    }
+
+    setMenuVisible(id);
+  }, [insets.top, playbooks]);
+
   const handleRenamePress = useCallback((item: Playbook) => {
     setMenuVisible(null); setSelectedPlaybookForRename(item); setRenameModalVisible(true);
   }, []);
@@ -1874,15 +1929,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           menuVisible={menuVisible}
           onPress={handleCardPress}
           onLongPress={handleCardLongPress}
-          onMenuToggle={(id) => {
-            if (id) {
-              const playbook = playbooks.find(p => p.id === id);
-              setSelectedPlaybookForMenu(playbook || null);
-            } else {
-              setSelectedPlaybookForMenu(null);
-            }
-            setMenuVisible(id);
-          }}
+          onMenuToggle={handleMenuToggle}
           onDelete={handleDelete}
           onRenamePress={handleRenamePress}
           onTagPress={handleTagPress}
@@ -1892,7 +1939,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         />
       </View>
     );
-  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic, playbooks]);
+  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleMenuToggle, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic]);
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
@@ -2111,15 +2158,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   menuVisible={menuVisible}
                   onPress={handleCardPress}
                   onLongPress={handleCardLongPress}
-                  onMenuToggle={(id) => {
-            if (id) {
-              const playbook = playbooks.find(p => p.id === id);
-              setSelectedPlaybookForMenu(playbook || null);
-            } else {
-              setSelectedPlaybookForMenu(null);
-            }
-            setMenuVisible(id);
-          }}
+                  onMenuToggle={handleMenuToggle}
                   onDelete={handleDelete}
                   onRenamePress={handleRenamePress}
                   onTagPress={handleTagPress}
@@ -2213,15 +2252,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
-                      onMenuToggle={(id) => {
-            if (id) {
-              const playbook = playbooks.find(p => p.id === id);
-              setSelectedPlaybookForMenu(playbook || null);
-            } else {
-              setSelectedPlaybookForMenu(null);
-            }
-            setMenuVisible(id);
-          }}
+                      onMenuToggle={handleMenuToggle}
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
@@ -2286,15 +2317,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
-                      onMenuToggle={(id) => {
-            if (id) {
-              const playbook = playbooks.find(p => p.id === id);
-              setSelectedPlaybookForMenu(playbook || null);
-            } else {
-              setSelectedPlaybookForMenu(null);
-            }
-            setMenuVisible(id);
-          }}
+                      onMenuToggle={handleMenuToggle}
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
@@ -2431,15 +2454,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
-                      onMenuToggle={(id) => {
-            if (id) {
-              const playbook = playbooks.find(p => p.id === id);
-              setSelectedPlaybookForMenu(playbook || null);
-            } else {
-              setSelectedPlaybookForMenu(null);
-            }
-            setMenuVisible(id);
-          }}
+                      onMenuToggle={handleMenuToggle}
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
@@ -2614,15 +2629,22 @@ const PlaybookListScreen = ({ navigation }: any) => {
         visible={menuVisible !== null}
         transparent
         animationType="none"
-        onRequestClose={() => setMenuVisible(null)}
+        onRequestClose={() => handleMenuToggle(null)}
       >
         <TouchableOpacity
           style={styles.menuModalOverlay}
           activeOpacity={1}
-          onPress={() => setMenuVisible(null)}
+          onPress={() => handleMenuToggle(null)}
         >
           {selectedPlaybookForMenu && (
-            <View style={styles.modalDropdownMenu}>
+            <View
+              style={[
+                styles.modalDropdownMenu,
+                menuPosition
+                  ? { top: menuPosition.top, left: menuPosition.left }
+                  : styles.modalDropdownMenuFallback,
+              ]}
+            >
               <TouchableOpacity
                 style={styles.modalDropdownItem}
                 onPress={() => {
@@ -3325,17 +3347,19 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   modalDropdownMenu: {
     position: 'absolute',
-    top: 210,
-    right:40,
+    width: DROPDOWN_MENU_WIDTH,
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
     borderRadius: 18,
-    minWidth: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
     paddingVertical: 8,
+  },
+  modalDropdownMenuFallback: {
+    top: 210,
+    right: 40,
   },
   modalDropdownItem: {
     paddingHorizontal: 16,
