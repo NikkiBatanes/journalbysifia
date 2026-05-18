@@ -130,6 +130,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                   autoCorrect={false}
                   returnKeyType="send"
                   onSubmitEditing={handleResetPassword}
+                  keyboardAppearance="dark"
                 />
               </View>
               {emailError ? <ThemedText style={styles.errorText}>{emailError}</ThemedText> : null}
