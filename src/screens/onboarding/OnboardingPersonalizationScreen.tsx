@@ -2041,51 +2041,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     <Ionicons name="chevron-down" size={20} color={Colors.white} />
                   </TouchableOpacity>
 
-                  {showInlineYearPicker && currentStep === 1 && !useBirthdayPickerModal && (
-                    <Animated.View style={[
-                      styles.birthdayPickerInline,
-                      {
-                        opacity: pickerEntryAnim,
-                        transform: [{
-                          translateY: pickerEntryAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [20, 0],
-                          }),
-                        }],
-                      },
-                    ]}>
-                      <DateTimePicker
-                        value={tempBirthDate}
-                        mode="date"
-                        display="spinner"
-                        minimumDate={new Date(1900, 0, 1)}
-                        maximumDate={new Date()}
-                        textColor={Colors.white}
-                        themeVariant="dark"
-                        style={styles.birthdayDatePicker}
-                        onChange={(_event, selectedDate) => {
-                          if (selectedDate) {
-                            setTempBirthDate(selectedDate);
-                          }
-                        }}
-                      />
-                      <View style={styles.birthdayPickerRow}>
-                        <TouchableOpacity
-                          onPress={closeBirthdayPicker}
-                          style={styles.birthdayPickerCancelButton}
-                        >
-                          <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={confirmBirthdayPicker}
-                          style={styles.birthdayPickerDoneButton}
-                        >
-                          <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Animated.View>
-                  )}
-
                 </View>
               </>
             ) : (
@@ -2254,6 +2209,53 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </Animated.View>
       )}
       </View>{/* end styles.content — header / generating area */}
+
+      {/* Phone picker overlay: absolute so compact iPhone layouts don't get pushed/cut off. */}
+      {showInlineYearPicker && currentStep === 1 && !useBirthdayPickerModal && (
+        <Animated.View style={[
+          styles.birthdayPickerOverlay,
+          { top: screenSize.height * 0.44 },
+          {
+            opacity: pickerEntryAnim,
+            transform: [{
+              translateY: pickerEntryAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [40, 0],
+              }),
+            }],
+          },
+        ]}>
+          <DateTimePicker
+            value={tempBirthDate}
+            mode="date"
+            display="spinner"
+            minimumDate={new Date(1900, 0, 1)}
+            maximumDate={new Date()}
+            textColor={Colors.white}
+            themeVariant="dark"
+            style={styles.birthdayDatePicker}
+            onChange={(_event, selectedDate) => {
+              if (selectedDate) {
+                setTempBirthDate(selectedDate);
+              }
+            }}
+          />
+          <View style={styles.birthdayPickerRow}>
+            <TouchableOpacity
+              onPress={closeBirthdayPicker}
+              style={styles.birthdayPickerCancelButton}
+            >
+              <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={confirmBirthdayPicker}
+              style={styles.birthdayPickerDoneButton}
+            >
+              <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
 
       {/* ── Step content: sibling of styles.content ──────────────────────── */}
       {!isGenerating && (
@@ -2737,15 +2739,16 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginRight: 8,
   },
-  birthdayPickerInline: {
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 420,
-    marginTop: 18,
+  birthdayPickerOverlay: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 999,
+    backgroundColor: 'transparent',
   },
   birthdayDatePicker: {
     alignSelf: 'center',
-    width: 340,
+    width: '100%',
     height: 216,
   },
   birthdayDatePickerTablet: {

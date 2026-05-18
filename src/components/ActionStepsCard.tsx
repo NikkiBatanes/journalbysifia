@@ -1429,6 +1429,7 @@ export default function ActionStepsCard({
         }}
         wisdomCount={wisdomCount}
         wisdomLimit={wisdomLimit}
+        hideUsageCounter={isOnboarding}
       />
     </>
   );

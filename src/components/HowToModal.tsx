@@ -33,6 +33,7 @@ interface HowToModalProps {
   onJournalPress?: (context: { question: string; wisdom: string; actionTitle: string; type: 'reflection' | 'prayer' | 'gratitude' | 'timeblock' }) => void;
   wisdomCount: number;
   wisdomLimit: number;
+  hideUsageCounter?: boolean;
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
@@ -1160,6 +1161,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
   onJournalPress,
   wisdomCount,
   wisdomLimit,
+  hideUsageCounter = false,
 }) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -1803,7 +1805,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                   )}
                 </TouchableOpacity>
 
-                {wisdomLimit > 0 && (
+                {!hideUsageCounter && wisdomLimit > 0 && (
                   <ThemedText style={styles.limitInfo}>
                     {wisdomCount}/{wisdomLimit} wisdom used this month
                   </ThemedText>

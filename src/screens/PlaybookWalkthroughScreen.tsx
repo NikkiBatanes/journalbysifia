@@ -4513,6 +4513,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         }}
         wisdomCount={wisdomCount}
         wisdomLimit={wisdomLimit}
+        hideUsageCounter={isOnboarding}
       />
 
     </>
