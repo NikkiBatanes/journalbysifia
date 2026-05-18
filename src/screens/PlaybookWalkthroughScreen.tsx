@@ -1229,6 +1229,13 @@ function normalizeSingleQuotedActionScripts(text: string): string {
   );
 }
 
+function unwrapQuotedMultilineActionScript(text: string): string {
+  return String(text || '').replace(
+    /['‘]\s*((?:Message|Text|Send|Write|Ask|Pray)[^:\n]{0,100}:\s*\n[\s\S]*?)\s*['’](?=\s*(?:\n|$))/gi,
+    (_match, script) => String(script).trim()
+  );
+}
+
 function normalizeActionInlineStructure(text: string): string {
   return String(text || '')
     .replace(/\s+(?=(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice):\s*)/gi, '\n')
@@ -1840,6 +1847,14 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say\s+aloud(?:\s+slowly\s+and\s+clearly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  if (unquotedSpokenLine) {
+    const statement = unquotedSpokenLine[2].trim();
+    return [
+      unquotedSpokenLine[1].trim(),
+      `"${statement.replace(/[.!?]$/g, '')}."`,
+    ];
+  }
   const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
@@ -2193,7 +2208,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       continue;
     }
 
-    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Declaration|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
     if (fieldMatch) {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
@@ -2414,6 +2429,7 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
     };
   }
 
+  const isDeclarationList = /(?:^|\n)\s*(?:here\s+(?:are|is)\s+)?\d+\s+(?:specific\s+)?(?:trust\s+)?declarations?\b/i.test(text);
   const lines = text
     .split(/\n+/)
     .map(line => cleanWisdomDisplayText(line))
@@ -2471,12 +2487,13 @@ function parseWisdomText(text?: string): { intro: string; items: string[]; block
       currentOutroLines.push(item);
       return;
     }
-    if (currentItems.length >= 3 && !splitWisdomItemTitle(item)) {
+    if (!isDeclarationList && currentItems.length >= 3 && !splitWisdomItemTitle(item)) {
       currentOutroLines.push(item);
       return;
     }
-    currentItems.push(item);
-    items.push(item);
+    const parsedItem = isDeclarationList ? `Declaration: ${item}` : item;
+    currentItems.push(parsedItem);
+    items.push(parsedItem);
   });
   pushCurrentBlock();
 
@@ -3091,7 +3108,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       if (/^(?:\*|-|•) /.test(trimmed)) {
         return [trimmed.replace(/^(?:-|•) /, '* ').replace(/\*\*/g, '').replace(/__/g, '')];
       }
-      return splitReadableActionLine(stripMd(trimmed));
+      return unwrapQuotedMultilineActionScript(stripMd(trimmed))
+        .split('\n')
+        .flatMap(line => splitReadableActionLine(line.trim()))
+        .filter(Boolean);
     })
     .filter(Boolean);
 
@@ -6603,11 +6623,14 @@ const styles = StyleSheet.create({
   },
   bodyScriptRail: {
     position: 'absolute',
-    left: 2,
+    left: 3,
     top: 12,
     bottom: 12,
-    width: 6,
-    borderRadius: 999,
+    width: 3,
+    borderTopLeftRadius: 999,
+    borderTopRightRadius: 999,
+    borderBottomLeftRadius: 999,
+    borderBottomRightRadius: 999,
     overflow: 'hidden',
     backgroundColor: Colors.faithGold,
   },

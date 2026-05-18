@@ -617,6 +617,14 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say\s+aloud(?:\s+slowly\s+and\s+clearly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  if (unquotedSpokenLine) {
+    const statement = unquotedSpokenLine[2].trim();
+    return [
+      unquotedSpokenLine[1].trim(),
+      `"${statement.replace(/[.!?]$/g, '')}."`,
+    ];
+  }
   const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
@@ -741,7 +749,7 @@ function renderResourceListBlock(item: BodyLine, key: string | number): React.Re
       ) : null}
       <View style={styles.bodyResourceHeader}>
         <Ionicons name="library-outline" size={13} color="rgba(255,204,102,0.78)" />
-        <ThemedText weight="semiBold" style={styles.bodyResourceLabel}>
+        <ThemedText weight="semiBold" style={styles.bodyResourceLabel} selectable={true}>
           {item.label || 'Resources to consider'}
         </ThemedText>
       </View>
@@ -774,7 +782,7 @@ function renderComparisonColumnsBlock(item: BodyLine, key: string | number): Rea
       {columns.map(column => (
         <View key={column.title} style={styles.bodyColumnCard}>
           <View style={styles.bodyColumnHeader}>
-            <ThemedText weight="semiBold" style={styles.bodyColumnHeaderText}>
+            <ThemedText weight="semiBold" style={styles.bodyColumnHeaderText} selectable={true}>
               {column.title}
             </ThemedText>
           </View>
@@ -782,7 +790,7 @@ function renderComparisonColumnsBlock(item: BodyLine, key: string | number): Rea
             {column.items.map((columnItem, itemIndex) => (
               <View key={`${column.title}-${itemIndex}`} style={styles.bodyColumnItemRow}>
                 <View style={styles.bodyColumnItemNumber}>
-                  <ThemedText weight="semiBold" style={styles.bodyColumnItemNumberText}>
+                  <ThemedText weight="semiBold" style={styles.bodyColumnItemNumberText} selectable={true}>
                     {itemIndex + 1}
                   </ThemedText>
                 </View>
@@ -803,7 +811,7 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
     <View key={key} style={styles.bodyScriptureReadBlock}>
       <View style={styles.bodyScriptureReadHeader}>
         <MaterialCommunityIcons name="script-text" size={14} color={Colors.faithGold} />
-        <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference}>
+        <ThemedText weight="semiBold" style={styles.bodyScriptureReadReference} selectable={true}>
           {item.reference}
         </ThemedText>
       </View>
@@ -815,7 +823,7 @@ function renderScriptureReadBlock(item: BodyLine, key: string | number): React.R
       </View>
       {item.summary ? (
         <View style={styles.bodyScriptureReadSummary}>
-          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel} selectable={true}>
             Write
           </ThemedText>
           <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
@@ -838,7 +846,7 @@ function renderLineMeaningBlock(item: BodyLine, key: string | number): React.Rea
       </View>
       {item.summary ? (
         <View style={styles.bodyLineMeaningSummary}>
-          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel}>
+          <ThemedText weight="semiBold" style={styles.bodyScriptureReadSummaryLabel} selectable={true}>
             Meaning
           </ThemedText>
           <ThemedText style={styles.bodyScriptureReadSummaryText} selectable={true}>
@@ -999,7 +1007,7 @@ function detectBodyLines(lines: string[]): BodyLine[] {
       continue;
     }
 
-    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Declaration|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
     if (fieldMatch) {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
@@ -1251,9 +1259,17 @@ const HowToModal: React.FC<HowToModalProps> = ({
       return [];
     }
 
+    const isDeclarationList = /(?:^|\n)\s*(?:here\s+(?:are|is)\s+)?\d+\s+(?:specific\s+)?(?:trust\s+)?declarations?\b/i.test(result.wisdom);
     const lines = normalizeActionBulletMarkers(normalizeActionMarkup(result.wisdom))
       .split(/\n+/)
-      .flatMap(line => splitReadableActionLine(line.replace(/^(?:\d+(?:\.\d+)?[.)])\s+/, '')))
+      .flatMap(line => {
+        const numbered = /^(?:\d+(?:\.\d+)?[.)])\s+/.test(line.trim());
+        const cleanedLine = line.replace(/^(?:\d+(?:\.\d+)?[.)])\s+/, '');
+        const parts = splitReadableActionLine(cleanedLine);
+        return isDeclarationList && numbered
+          ? parts.map(part => `Declaration: ${part}`)
+          : parts;
+      })
       .filter((line): line is string => Boolean(line))
       .map(line => cleanWisdomDisplayText(line))
       .filter(Boolean);
@@ -1331,20 +1347,20 @@ const HowToModal: React.FC<HowToModalProps> = ({
           >
             <View style={styles.labelRow}>
               <Ionicons name="help-circle-outline" size={16} color={Colors.alertCoral} />
-              <ThemedText weight="semiBold" style={styles.label}>HOW TO</ThemedText>
+              <ThemedText weight="semiBold" style={styles.label} selectable={true}>HOW TO</ThemedText>
             </View>
             <View style={styles.titleRow}>
-              <ThemedText weight="semiBold" style={styles.prompt}>
+              <ThemedText weight="semiBold" style={styles.prompt} selectable={true}>
                 {hasWisdom ? "Here's some wisdom" : 'What do you need help\nwith for this action?'}
               </ThemedText>
             </View>
             <View style={styles.subtextRow}>
               {actionNumber !== undefined && (
                 <View style={styles.stepCircle}>
-                  <ThemedText weight="bold" style={styles.stepNumber}>{actionNumber}</ThemedText>
+                  <ThemedText weight="bold" style={styles.stepNumber} selectable={true}>{actionNumber}</ThemedText>
                 </View>
               )}
-              <ThemedText style={styles.subtext}>{actionTitle}</ThemedText>
+              <ThemedText style={styles.subtext} selectable={true}>{actionTitle}</ThemedText>
             </View>
 
             {result ? (
@@ -1382,7 +1398,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                               <View style={styles.bodyScriptRail} />
                               <View style={styles.bodyScriptHeader}>
                                 <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
-                                <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
+                                <ThemedText weight="semiBold" style={styles.bodyScriptLabel} selectable={true}>
                                   {item.label || 'Words to say'}
                                 </ThemedText>
                               </View>
@@ -1396,7 +1412,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           return (
                             <View key={idx} style={styles.bodyAskHeader}>
                               <Ionicons name="help-circle-outline" size={14} color="rgba(255,204,102,0.78)" />
-                              <ThemedText weight="semiBold" style={styles.bodyAskLabel}>
+                              <ThemedText weight="semiBold" style={styles.bodyAskLabel} selectable={true}>
                                 {item.label || 'Ask yourself'}
                               </ThemedText>
                             </View>
@@ -1405,7 +1421,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         if (item.type === 'question') {
                           return (
                             <View key={idx} style={styles.bodyQuestionRow}>
-                              <ThemedText style={styles.bodyQuestionMark}>?</ThemedText>
+                              <ThemedText style={styles.bodyQuestionMark} selectable={true}>?</ThemedText>
                               <ThemedText style={styles.bodyQuestionText} selectable={true}>
                                 {item.text}
                               </ThemedText>
@@ -1416,7 +1432,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           return (
                             <View key={idx} style={styles.bodyChecklistHeader}>
                               <FontAwesome6 name="list-check" size={13} color="rgba(255,204,102,0.78)" />
-                              <ThemedText weight="semiBold" style={styles.bodyChecklistLabel}>
+                              <ThemedText weight="semiBold" style={styles.bodyChecklistLabel} selectable={true}>
                                 {item.label || 'Do this'}
                               </ThemedText>
                             </View>
@@ -1441,14 +1457,14 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                         size={13}
                                         color="rgba(255,204,102,0.72)"
                                       />
-                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel} selectable={true}>
                                         {bulletHint.label}
                                       </ThemedText>
                                     </View>
                                     <View style={styles.bodyLineBulletHintRow}>
                                       {bulletHint.hints.map(hint => (
                                         <View key={hint} style={styles.bodyLineBulletHintChip}>
-                                          <ThemedText style={styles.bodyLineBulletHintText}>
+                                          <ThemedText style={styles.bodyLineBulletHintText} selectable={true}>
                                             {hint}
                                           </ThemedText>
                                         </View>
@@ -1477,14 +1493,14 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                         size={13}
                                         color="rgba(255,204,102,0.72)"
                                       />
-                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                      <ThemedText weight="semiBold" style={styles.bodyHintLabel} selectable={true}>
                                         {bulletHint.label}
                                       </ThemedText>
                                     </View>
                                     <View style={styles.bodyLineBulletHintRow}>
                                       {bulletHint.hints.map(hint => (
                                         <View key={hint} style={styles.bodyLineBulletHintChip}>
-                                          <ThemedText style={styles.bodyLineBulletHintText}>
+                                          <ThemedText style={styles.bodyLineBulletHintText} selectable={true}>
                                             {hint}
                                           </ThemedText>
                                         </View>
@@ -1500,12 +1516,12 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           const isYesNo = /^yes\s*\/\s*no$/i.test(item.text);
                           return (
                             <View key={idx} style={styles.bodyCheckRow}>
-                              <ThemedText weight="semiBold" style={styles.bodyCheckLabel}>
+                              <ThemedText weight="semiBold" style={styles.bodyCheckLabel} selectable={true}>
                                 {item.label}
                               </ThemedText>
                               {isYesNo ? (
                                 <View style={styles.bodyCheckValuePill}>
-                                  <ThemedText weight="semiBold" style={styles.bodyCheckValuePillText}>
+                                  <ThemedText weight="semiBold" style={styles.bodyCheckValuePillText} selectable={true}>
                                     Yes / No
                                   </ThemedText>
                                 </View>
@@ -1542,7 +1558,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                   size={13}
                                   color="rgba(255,204,102,0.72)"
                                 />
-                                <ThemedText weight="semiBold" style={styles.bodyHintLabel}>
+                                <ThemedText weight="semiBold" style={styles.bodyHintLabel} selectable={true}>
                                   {displayHintLabel(item.label, hintItems.length)}
                                 </ThemedText>
                               </View>
@@ -1550,7 +1566,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                                 <View style={styles.bodyHintChipRow}>
                                   {hintItems.map(part => (
                                     <View key={part} style={styles.bodyHintChip}>
-                                      <ThemedText style={styles.bodyHintChipText}>
+                                      <ThemedText style={styles.bodyHintChipText} selectable={true}>
                                         {part}
                                       </ThemedText>
                                     </View>
@@ -1569,7 +1585,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                             <View key={idx} style={styles.bodyFieldRow}>
                               <View style={styles.bodyFieldRail} />
                               <View style={styles.bodyFieldLabel}>
-                                <ThemedText weight="semiBold" style={styles.bodyFieldLabelText}>
+                                <ThemedText weight="semiBold" style={styles.bodyFieldLabelText} selectable={true}>
                                   {item.label}
                                 </ThemedText>
                               </View>
@@ -1612,12 +1628,12 @@ const HowToModal: React.FC<HowToModalProps> = ({
                   </>
                 ) : result.success === false ? (
                   <>
-                    <ThemedText style={styles.errorTitle}>
+                    <ThemedText style={styles.errorTitle} selectable={true}>
                       Unable to Provide Wisdom
                     </ThemedText>
-                    <ThemedText style={styles.errorMessage}>{result.message}</ThemedText>
+                    <ThemedText style={styles.errorMessage} selectable={true}>{result.message}</ThemedText>
                     <TouchableOpacity style={styles.retryButton} onPress={() => setResult(null)}>
-                      <ThemedText weight="semiBold" style={styles.retryButtonText}>Try Again</ThemedText>
+                      <ThemedText weight="semiBold" style={styles.retryButtonText} selectable={true}>Try Again</ThemedText>
                     </TouchableOpacity>
                   </>
                 ) : null}
@@ -2191,11 +2207,14 @@ const styles = StyleSheet.create({
   },
   bodyScriptRail: {
     position: 'absolute',
-    left: 2,
+    left: 3,
     top: 12,
     bottom: 12,
-    width: 6,
-    borderRadius: 999,
+    width: 3,
+    borderTopLeftRadius: 999,
+    borderTopRightRadius: 999,
+    borderBottomLeftRadius: 999,
+    borderBottomRightRadius: 999,
     overflow: 'hidden',
     backgroundColor: Colors.faithGold,
   },
