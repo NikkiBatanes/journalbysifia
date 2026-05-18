@@ -321,9 +321,9 @@ const StreakPlanScreen: React.FC = () => {
         </Animated.View>
 
         {/* Action buttons */}
-        <Animated.View style={[styles.buttonsContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+        <Animated.View style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
           <TouchableOpacity
-            style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad]}
+            style={[styles.primaryButton]}
             onPress={handleContinue}
             activeOpacity={0.85}
           >
@@ -334,7 +334,7 @@ const StreakPlanScreen: React.FC = () => {
 
           {(params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud' || params.source === 'playbook_walkthrough') && (
             <TouchableOpacity
-              style={[styles.secondaryButton, IS_IPAD && styles.secondaryButtonPad]}
+              style={[styles.secondaryButton]}
               onPress={handleProcessAnotherMoment}
               activeOpacity={0.85}
             >
@@ -430,6 +430,8 @@ const styles = StyleSheet.create({
   },
   buttonsContainerPad: {
     paddingHorizontal: 48,
+    maxWidth: 800,
+    alignSelf: 'center',
   },
   primaryButton: {
     flexDirection: 'row',
