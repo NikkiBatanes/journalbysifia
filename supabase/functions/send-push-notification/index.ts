@@ -51,10 +51,7 @@ serve(async (req) => {
       'trial_converted',
     ];
 
-    // Skip rate limiting for test users
-    const isTestUser = user_id === '9f85144e-f565-4121-811c-32c0df348e9b';
-
-    if (!rateLimitExemptTypes.includes(type) && !isTestUser) {
+    if (!rateLimitExemptTypes.includes(type)) {
       // Rate limiting: Check how many notifications sent in last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: recentNotifications, error: rateLimitError } = await supabase
@@ -248,8 +245,8 @@ serve(async (req) => {
 
 async function generateAPNSToken(): Promise<string> {
   const privateKey = Deno.env.get('APNS_PRIVATE_KEY');
-  const keyId = Deno.env.get('APNS_KEY_ID') || Deno.env.get('APPLE_KEY_ID') || 'B99S3W8K2W';
-  const teamId = Deno.env.get('APNS_TEAM_ID') || Deno.env.get('APPLE_TEAM_ID') || 'L2AT73KSY8';
+  const keyId = Deno.env.get('APNS_KEY_ID');
+  const teamId = Deno.env.get('APNS_TEAM_ID') || Deno.env.get('APPLE_TEAM_ID');
 
   if (!privateKey) {
     throw new Error('APNS_PRIVATE_KEY not set in environment variables');
@@ -260,7 +257,7 @@ async function generateAPNSToken(): Promise<string> {
   }
 
   if (!teamId) {
-    throw new Error('APNS_TEAM_ID not set in environment variables');
+    throw new Error('APNS_TEAM_ID or APPLE_TEAM_ID not set in environment variables');
   }
 
   // Strip PEM headers and decode base64
@@ -311,12 +308,12 @@ async function sendPushNotification(message: PushMessage, platform: string) {
 
 async function sendAPNS(message: PushMessage) {
   // Apple Push Notification Service
-  // Using production host for live notifications
-  // Switch to sandbox (api.sandbox.push.apple.com) for development/testing
-  const apnsEnvironment = Deno.env.get('APNS_ENVIRONMENT');
-  const isProduction = apnsEnvironment
-    ? apnsEnvironment === 'production'
-    : Deno.env.get('APP_ENV') === 'production';
+  // Default to production for TestFlight/App Store. Use APNS_ENVIRONMENT=sandbox
+  // or APP_ENV=development/sandbox only for development builds.
+  const apnsEnvironment = (Deno.env.get('APNS_ENVIRONMENT') || '').toLowerCase();
+  const appEnvironment = (Deno.env.get('APP_ENV') || '').toLowerCase();
+  const effectiveEnvironment = apnsEnvironment || appEnvironment || 'production';
+  const isProduction = !['sandbox', 'development', 'dev'].includes(effectiveEnvironment);
   const apnsHost = isProduction
     ? 'https://api.push.apple.com/3/device/' 
     : 'https://api.sandbox.push.apple.com/3/device/';
@@ -346,6 +343,7 @@ async function sendAPNS(message: PushMessage) {
       'Content-Type': 'application/json',
       'apns-topic': Deno.env.get('APNS_BUNDLE_ID') || 'app.sifia.com',
       'apns-priority': message.priority === 'high' ? '10' : '5',
+      'apns-push-type': 'alert',
     },
     body: JSON.stringify(payload),
   });

@@ -81,11 +81,8 @@ serve(async (req) => {
           continue;
         }
         
-        // Skip rate limiting for test users
-        const isTestUser = userId === '77f2cbe1-6c2e-48a9-9525-a32c96ece269' || userId === 'f8ebc21f-904a-4428-81ab-325c33e1019e' || userId === '9f85144e-f565-4121-811c-32c0df348e9b';
-        
         // Check if we already sent a notification to this user in THIS batch
-        if (!isTestUser && usersProcessedInThisBatch.has(userId)) {
+        if (usersProcessedInThisBatch.has(userId)) {
           console.log(`Skipping notification ${notification.id} - user ${userId} already received one in this batch`);
           
           // Reschedule for later (30 minutes from now)
@@ -115,7 +112,7 @@ serve(async (req) => {
           .limit(1)
           .single();
         
-        if (!isTestUser && recentNotif) {
+        if (recentNotif) {
           console.log(`Skipping notification ${notification.id} - user ${userId} received one recently`);
           
           // Reschedule for later (30 minutes from now)
