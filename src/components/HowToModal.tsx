@@ -718,6 +718,7 @@ function normalizeActionMarkup(text: string): string {
     .replace(/<\/p\s*>/gi, '\n')
     .replace(/<p\s*>/gi, '')
     .replace(/<\/?.[^>]+>/g, '')
+    .replace(/\s+(?=\d+(?:\.\d+)?[.)]\s+(?:Say|Explain|Add|Practice|Write|Read|Ask|Use|Share|Tell|Send|Text|List|Choose|Start|Stop|Notice|Remember|Then|Next|If|When|After)\b)/gi, '\n')
     .replace(/,\s*([.!?])/g, '$1');
 }
 
@@ -1017,11 +1018,12 @@ function detectBodyLines(lines: string[]): BodyLine[] {
       continue;
     }
 
-    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Declaration|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice(?: saying calmly)?|Say|Explain|Add|Stop|Start|Declaration|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
     if (fieldMatch) {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
-        .replace(/^Replacement(?: Response)?$/i, 'Response');
+        .replace(/^Replacement(?: Response)?$/i, 'Response')
+        .replace(/^Practice Saying Calmly$/i, 'Practice calmly');
       out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
       expectingPromptQuestion = false;
       inChecklist = false;
