@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { NewSubscriptionService } from './NewSubscriptionService';
 import { Logger } from '../utils/ProductionLogger';
 
 // =============================================
@@ -577,6 +578,22 @@ export class OnboardingService {
           userId,
         });
         throw new Error('UPSERT operation returned no result - check RLS policies');
+      }
+
+      try {
+        await NewSubscriptionService.resetOnboardingAssistCounters(userId);
+        Logger.debug('[OnboardingService] Replenished onboarding assist counters', {
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
+      } catch (assistResetError) {
+        Logger.warn('[OnboardingService] Could not replenish onboarding assist counters', {
+          errorMessage: (assistResetError as Error)?.message || 'Unknown assist reset error',
+          component: 'onboardingService',
+          action: 'complete_onboarding',
+          userId,
+        });
       }
 
       Logger.debug('[OnboardingService] Onboarding completed successfully for user', {

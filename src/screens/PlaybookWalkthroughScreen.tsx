@@ -2648,6 +2648,7 @@ interface FaithfulActionsStepProps {
   truthInLove?: string;
   dateOfBirth?: string;
   preferredBibleTranslation?: string;
+  isOnboarding?: boolean;
   userId: string;
   onNext: () => void;
   onGoBack?: () => void;
@@ -2769,6 +2770,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   truthInLove,
   dateOfBirth,
   preferredBibleTranslation,
+  isOnboarding = false,
   userId,
   onNext,
   onGoBack,
@@ -4451,6 +4453,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               previousWisdom: wisdomContext,
               dateOfBirth,
               preferredBibleTranslation,
+              isOnboarding,
             });
 
             if (response.success && response.wisdom) {
@@ -5622,6 +5625,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         correctionType,
         clarification,
         dateOfBirth,
+        isOnboarding: source === 'onboarding',
       });
 
       setRefinedPlaybookOverride(result.playbook as any);
@@ -5656,7 +5660,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setIsRefining(false);
     }
-  }, [playbook, userId, user, userName, queryClient]);
+  }, [playbook, userId, user, userName, queryClient, source]);
 
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
@@ -5669,6 +5673,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasPrayed = false;
     persistedHasRead = false;
     journalNudgeFired = false;
+
+    if (source === 'onboarding' && userId) {
+      try {
+        await NewSubscriptionService.resetOnboardingAssistCounters(userId);
+        queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
+        DeviceEventEmitter.emit('wisdomUsageReset', { wisdomCount: 0 });
+      } catch (error) {
+        console.warn('Failed to replenish onboarding assist counters after walkthrough', error);
+      }
+    }
 
     // Perform async operations in background without blocking navigation
     (async () => {
@@ -5990,6 +6004,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 truthInLove={truthInLoveText}
                 dateOfBirth={dateOfBirth}
                 preferredBibleTranslation={preferredBibleTranslation}
+                isOnboarding={source === 'onboarding'}
                 userId={userId}
                 onNext={goNext}
                 onGoBack={goBackActionStep}

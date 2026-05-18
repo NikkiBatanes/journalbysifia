@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -18,6 +18,7 @@ import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { pushNotificationService } from '../../services/pushNotificationService';
 import { supabase } from '../../services/supabaseClient';
+import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 import ThemedText from '../../components/common/ThemedText';
 
 interface RouteParams {
@@ -41,6 +42,7 @@ const OnboardingNotificationSetupScreen = () => {
   const { user } = useAuth();
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
+  const assistResetDoneRef = useRef(false);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown'); // Used in lines 83-89
@@ -74,10 +76,22 @@ const OnboardingNotificationSetupScreen = () => {
   })();
 
   useEffect(() => {
-    // Refresh subscription data when screen loads
-    if (user?.id) {
-      refreshSubscription();
+    if (!user?.id || assistResetDoneRef.current) {
+      return;
     }
+
+    assistResetDoneRef.current = true;
+
+    NewSubscriptionService.resetOnboardingAssistCounters(user.id)
+      .catch(error => {
+        Logger.warn('Could not replenish onboarding assist counters', {
+          component: 'OnboardingNotificationSetupScreen',
+          errorMessage: (error as Error)?.message || 'Unknown assist reset error',
+        });
+      })
+      .finally(() => {
+        refreshSubscription();
+      });
   }, [user?.id, refreshSubscription]);
 
   // Enterprise-grade permission status checking

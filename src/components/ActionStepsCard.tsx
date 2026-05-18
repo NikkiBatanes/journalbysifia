@@ -60,6 +60,7 @@ type ActionStepsCardProps = {
   showExampleSubtasksInline?: boolean;
   // Onboarding-only: force using prop steps to bypass context if it is out-of-sync
   preferPropSteps?: boolean;
+  isOnboarding?: boolean;
   // Optional overrides for header title and icon
   titleOverride?: string;
   iconOverride?: string;
@@ -139,6 +140,7 @@ export default function ActionStepsCard({
   selectedDate,
   showExampleSubtasksInline = false,
   preferPropSteps = false,
+  isOnboarding = false,
   titleOverride,
   iconOverride,
   expanded = false,
@@ -1408,6 +1410,7 @@ export default function ActionStepsCard({
               userQuestion: question,
               truthSummary: '',
               truthInLove: '',
+              isOnboarding,
             });
 
             if (response.success && response.wisdom) {

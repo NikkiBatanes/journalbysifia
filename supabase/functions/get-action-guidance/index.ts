@@ -21,6 +21,7 @@ interface WisdomRequest {
   previousWisdom?: string;
   dateOfBirth?: string;
   preferredBibleTranslation?: string;
+  isOnboarding?: boolean;
 }
 
 interface WisdomThreadEntry {
@@ -741,6 +742,7 @@ serve(async (req: Request) => {
     const truthInLove = cleanText(body.truthInLove, 700);
     const previousWisdom = cleanText(body.previousWisdom, 1200);
     const preferredBibleTranslation = cleanText(body.preferredBibleTranslation, 20);
+    const isOnboarding = body.isOnboarding === true;
 
     if (!playbookId || !userId || !actionId || userQuestion.length < 5) {
       return new Response(
@@ -806,7 +808,7 @@ serve(async (req: Request) => {
       throw subscriptionError;
     }
 
-    wisdomLimit = wisdomLimitForTier(subscription?.tier, subscription?.trial_chosen_tier);
+    wisdomLimit = isOnboarding ? 1 : wisdomLimitForTier(subscription?.tier, subscription?.trial_chosen_tier);
     usedWisdom = Number(subscription?.wisdom_count || 0);
 
     if (wisdomLimit !== -1 && usedWisdom >= wisdomLimit) {
@@ -814,7 +816,9 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: 'WISDOM_LIMIT_REACHED',
-          message: normalizedTier === 'transformation'
+          message: isOnboarding
+            ? 'You have used your onboarding How To request. You will get your normal How To requests after onboarding.'
+            : normalizedTier === 'transformation'
             ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
             : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`,
           wisdomCount: usedWisdom,

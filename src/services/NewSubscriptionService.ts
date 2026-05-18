@@ -248,6 +248,27 @@ export class NewSubscriptionService {
   }
 
   /**
+   * Replenish onboarding-only assist allowances without touching generated content counters.
+   */
+  static async resetOnboardingAssistCounters(userId: string): Promise<Subscription> {
+    const resetAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('user_subscriptions_new')
+      .update({
+        wisdom_count: 0,
+        refinement_count: 0,
+        updated_at: resetAt,
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new SubscriptionError(`Failed to reset onboarding assist counters: ${error.message}`, 'ONBOARDING_ASSIST_RESET_ERROR', error);
+    }
+
+    return await this.getUserSubscription(userId, true);
+  }
+
+  /**
    * Check and perform monthly usage reset for annual subscriptions
    * MONTHLY: Reset handled by DID_RENEW webhook (Apple charges every 30 days)
    * ANNUAL: Reset handled here (Apple charges yearly, but usage resets monthly)
@@ -987,9 +1008,9 @@ export class NewSubscriptionService {
       case 'export':
         return this.checkExportLimit(subscription, limits);
       case 'wisdom':
-        return this.checkWisdomLimit(subscription, limits);
+        return this.checkWisdomLimit(subscription, limits, isOnboarding);
       case 'refinement':
-        return this.checkRefinementLimit(subscription, limits);
+        return this.checkRefinementLimit(subscription, limits, isOnboarding);
       default:
         throw new SubscriptionError(`Unknown action: ${action}`, 'INVALID_ACTION');
     }
@@ -1026,10 +1047,15 @@ export class NewSubscriptionService {
           const currentSubscription = await this.getUserSubscription(userId, true);
           const currentValue = (currentSubscription as any)?.[updateField] || 0;
           const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
-          const limit = action === 'playbook' ? limits.playbooks_limit :
-                        action === 'devotional' ? limits.devotionals_limit :
-                        action === 'wisdom' ? limits.wisdom_limit :
-                        action === 'refinement' ? limits.refinement_limit : -1;
+          const limit = action === 'playbook'
+            ? (currentSubscription.tier === 'seeker' && isOnboarding ? this.getOnboardingPlaybookLimit(currentSubscription.tier, currentSubscription) : limits.playbooks_limit)
+            : action === 'devotional'
+              ? (currentSubscription.tier === 'seeker' && isOnboarding ? this.getOnboardingDevotionalLimit(currentSubscription.tier, currentSubscription) : limits.devotionals_limit)
+              : action === 'wisdom'
+                ? (isOnboarding ? 1 : limits.wisdom_limit)
+                : action === 'refinement'
+                  ? (isOnboarding ? 1 : limits.refinement_limit)
+                  : -1;
 
           if (limit !== -1 && currentValue >= limit) {
             throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
@@ -1058,11 +1084,13 @@ export class NewSubscriptionService {
         throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
-      // Only skip counting for seeker users during onboarding — their first
-      // playbook/devotional is free and should not consume their quota.
+      // Only skip counting playbook/devotional for seeker users during onboarding —
+      // their first generated content is free and should not consume their quota.
       // free_trial usage MUST be counted so the profile shows accurate progress
       // (e.g. 3/15) and so the trial limit is actually enforced.
-      const skipCount = (isOnboarding && subscription.tier === 'seeker');
+      const skipCount = isOnboarding
+        && subscription.tier === 'seeker'
+        && (action === 'playbook' || action === 'devotional');
       if (!skipCount) {
         await doAtomicIncrement();
       }
@@ -1070,7 +1098,9 @@ export class NewSubscriptionService {
 
     // Also update the legacy usage tracking table where enabled.
     // free_trial is no longer excluded — counts must be recorded there too.
-    const isOnboardingSeeker = (isOnboarding && subscription.tier === 'seeker');
+    const isOnboardingSeeker = isOnboarding
+      && subscription.tier === 'seeker'
+      && (action === 'playbook' || action === 'devotional');
     if (!isOnboardingSeeker) {
       await this.updateUsageTracking(userId, action);
     }
@@ -1438,9 +1468,9 @@ export class NewSubscriptionService {
   /**
    * Check wisdom usage limit
    */
-  private static checkWisdomLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+  private static checkWisdomLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
     const wisdomUsed = (subscription as any).wisdom_count || 0;
-    const wisdomLimit = limits.wisdom_limit || 0;
+    const wisdomLimit = isOnboarding ? 1 : limits.wisdom_limit || 0;
     const isUnlimited = wisdomLimit === -1;
     const canUse = isUnlimited || wisdomUsed < wisdomLimit;
     const normalizedTier = subscription.tier.replace('_annual', '');
@@ -1454,16 +1484,18 @@ export class NewSubscriptionService {
       devotionals_remaining: -1,
       show_upgrade_prompt: !canUse,
       upgrade_message: !canUse
-        ? normalizedTier === 'transformation'
+        ? isOnboarding
+          ? 'You have used your onboarding How To request. You will get your normal How To requests after onboarding.'
+          : normalizedTier === 'transformation'
           ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
           : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`
         : undefined,
     };
   }
 
-  private static checkRefinementLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+  private static checkRefinementLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
     const refinementUsed = (subscription as any).refinement_count || 0;
-    const refinementLimit = limits.refinement_limit || 0;
+    const refinementLimit = isOnboarding ? 1 : limits.refinement_limit || 0;
     const isUnlimited = refinementLimit === -1;
     const canUse = isUnlimited || refinementUsed < refinementLimit;
     const normalizedTier = subscription.tier.replace('_annual', '');
@@ -1477,7 +1509,9 @@ export class NewSubscriptionService {
       devotionals_remaining: -1,
       show_upgrade_prompt: !canUse,
       upgrade_message: !canUse
-        ? normalizedTier === 'transformation'
+        ? isOnboarding
+          ? 'You have used your onboarding playbook refinement. You will get your normal refinements after onboarding.'
+          : normalizedTier === 'transformation'
           ? `You've used all ${refinementLimit} playbook refinements this month. Your refinements will refresh next month.`
           : `You've used all ${refinementLimit} playbook refinements this month. Upgrade for more!`
         : undefined,

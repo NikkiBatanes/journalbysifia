@@ -15,6 +15,7 @@ interface RefineRequest {
   clarification: string;
   bibleVersion?: string;
   dateOfBirth?: string;
+  isOnboarding?: boolean;
 }
 
 function refinementLimitForTier(tier?: string | null, trialChosenTier?: string | null): number {
@@ -295,6 +296,7 @@ serve(async (req: Request) => {
     const userName = cleanText(body.userName, 120) || 'Friend';
     const correctionType = cleanText(body.correctionType, 120) || 'missing_detail';
     const clarification = cleanText(body.clarification, 2000);
+    const isOnboarding = body.isOnboarding === true;
 
     if (!playbookId || !userId || clarification.length < 8) {
       return new Response(
@@ -318,7 +320,7 @@ serve(async (req: Request) => {
       .eq('user_id', userId)
       .maybeSingle();
     const tier = subscription?.tier || 'seeker';
-    const refinementLimit = refinementLimitForTier(tier, subscription?.trial_chosen_tier);
+    const refinementLimit = isOnboarding ? 1 : refinementLimitForTier(tier, subscription?.trial_chosen_tier);
     const usedGlobalRefinements = Number(subscription?.refinement_count || 0);
 
     const { data: playbook, error: playbookError } = await supabase
@@ -335,11 +337,13 @@ serve(async (req: Request) => {
       });
     }
 
-    if (usedGlobalRefinements >= refinementLimit) {
+    if (refinementLimit !== -1 && usedGlobalRefinements >= refinementLimit) {
       return new Response(
         JSON.stringify({
           error: 'REFINEMENT_LIMIT_REACHED',
-          message: `You have used all ${refinementLimit} playbook refinements this month.`,
+          message: isOnboarding
+            ? 'You have used your onboarding playbook refinement. You will get your normal refinements after onboarding.'
+            : `You have used all ${refinementLimit} playbook refinements this month.`,
           refinementCount: usedGlobalRefinements,
           refinementLimit,
         }),
@@ -416,7 +420,7 @@ serve(async (req: Request) => {
           userId,
           bibleVersion: body.bibleVersion || 'NASB',
           userTier: tier,
-          isOnboarding: false,
+          isOnboarding,
           dateOfBirth: body.dateOfBirth,
           promptDetectionInput,
         }),

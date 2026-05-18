@@ -15,6 +15,7 @@ export interface RefinePlaybookRequest {
   clarification: string;
   bibleVersion?: string;
   dateOfBirth?: string;
+  isOnboarding?: boolean;
 }
 
 export interface RefinePlaybookResponse {

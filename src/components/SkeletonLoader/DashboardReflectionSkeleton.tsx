@@ -11,6 +11,8 @@ const DashboardReflectionSkeleton: React.FC = () => {
   // On iPad, use fixed width (~4 inches = 384 points) so adjacent cards are visible; phones use 80%
   const isTablet = screenWidth >= 768;
   const ITEM_WIDTH = isTablet ? 384 : VISIBLE_WIDTH * 0.8;
+  const CARD_SPACING = 8;
+  const SIDE_INSET = Math.max(0, isTablet ? 24 : (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
 
   React.useEffect(() => {
     isMounted.current = true;
@@ -45,17 +47,30 @@ const DashboardReflectionSkeleton: React.FC = () => {
         <Animated.View style={[styles.titleBar, { opacity }]} />
       </View>
 
-      {/* One large reflection card placeholder */}
-      <View style={[styles.placeholderCard, styles.centeredCard, { width: ITEM_WIDTH }]}>
-        <View style={styles.sectionHeader}>
-          <Animated.View style={[styles.sectionIcon, { opacity }]} />
-          <Animated.View style={[styles.sectionLabel, { opacity }]} />
-        </View>
-        <Animated.View style={[styles.questionLineLong, { opacity }]} />
-        <Animated.View style={[styles.questionLineShort, { opacity }]} />
-        <View style={styles.buttonRow}>
-          <Animated.View style={[styles.button, { opacity }]} />
-        </View>
+      {/* Two reflection card placeholders */}
+      <View style={[styles.carouselContainer, { paddingHorizontal: SIDE_INSET }]}>
+        {[1, 2].map((item) => (
+          <View
+            key={item}
+            style={[
+              styles.placeholderCard,
+              {
+                width: ITEM_WIDTH,
+                marginRight: item === 1 ? CARD_SPACING : 0,
+              },
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <Animated.View style={[styles.sectionIcon, { opacity }]} />
+              <Animated.View style={[styles.sectionLabel, { opacity }]} />
+            </View>
+            <Animated.View style={[styles.questionLineLong, { opacity }]} />
+            <Animated.View style={[styles.questionLineShort, { opacity }]} />
+            <View style={styles.buttonRow}>
+              <Animated.View style={[styles.button, { opacity }]} />
+            </View>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -93,8 +108,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  centeredCard: {
-    alignSelf: 'center',
+  carouselContainer: {
+    flexDirection: 'row',
+    overflow: 'visible',
+    marginHorizontal: -16,
   },
   sectionHeader: {
     alignItems: 'center',

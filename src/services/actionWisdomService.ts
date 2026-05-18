@@ -14,6 +14,7 @@ export interface WisdomRequest {
   previousWisdom?: string;
   dateOfBirth?: string;
   preferredBibleTranslation?: string;
+  isOnboarding?: boolean;
 }
 
 export interface WisdomThreadEntry {
@@ -49,10 +50,11 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
     previousWisdom,
     dateOfBirth,
     preferredBibleTranslation,
+    isOnboarding = false,
   } = request;
 
   // Check wisdom limits before making the API call
-  const limitCheck = await NewSubscriptionService.checkUsageLimit(userId, 'wisdom');
+  const limitCheck = await NewSubscriptionService.checkUsageLimit(userId, 'wisdom', isOnboarding);
 
   if (limitCheck.show_upgrade_prompt && limitCheck.upgrade_message) {
     // Limit reached, return upgrade prompt
@@ -63,9 +65,9 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
       error: 'WISDOM_LIMIT_REACHED',
       message: limitCheck.upgrade_message,
       wisdomCount: (subscription as any).wisdom_count || 0,
-      wisdomLimit: subscription.wisdom_limit || 0,
+      wisdomLimit: isOnboarding ? 1 : subscription.wisdom_limit || 0,
       currentTier: subscription.tier,
-      canUpgrade: normalizedTier !== 'transformation',
+      canUpgrade: !isOnboarding && normalizedTier !== 'transformation',
     };
   }
 
@@ -91,6 +93,7 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         previousWisdom,
         dateOfBirth,
         preferredBibleTranslation: resolvedBibleTranslation,
+        isOnboarding,
       },
     });
 

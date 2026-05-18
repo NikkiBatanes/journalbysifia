@@ -531,6 +531,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               navigation={navigation as any}
               showExampleSubtasksInline={false}
               preferPropSteps={false}
+              isOnboarding={true}
             />
           </View>
         ),
