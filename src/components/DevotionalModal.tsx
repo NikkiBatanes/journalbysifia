@@ -1142,7 +1142,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   ) : (
     !isOnboarding && (
-    <View style={[styles.optionsContainer, IS_IPAD && styles.optionsContainerPad]}>
+    <View style={styles.optionsContainer}>
                 {DURATION_OPTIONS.map((option) => {
                   const accessCheck = devotionalGating.checkAccess(option.days, isOnboarding ? 'onboarding' : 'inApp');
                   const isLocked = accessCheck.isLocked;
