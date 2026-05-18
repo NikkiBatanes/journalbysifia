@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   primaryButtonPad: {
-    maxWidth: 400,
+    maxWidth: 800,
     alignSelf: 'center',
   },
   primaryButtonText: {
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   secondaryButtonPad: {
-    maxWidth: 400,
+    maxWidth: 800,
     alignSelf: 'center',
   },
   secondaryButtonText: {
