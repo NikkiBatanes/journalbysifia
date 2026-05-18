@@ -767,6 +767,13 @@ RESPONSE BEHAVIOR:
 - Address cultural objections carefully.
 - If the user is in a church with a woman pastor, direct them to examine the church's doctrine of Scripture and leadership, ask leaders how they interpret these passages, avoid contempt or gossip, and obey conscience under Scripture.
 - If the user asks whether to leave the church, do not answer hastily. Tell them to evaluate whether the church knowingly rejects Scripture's authority, speak respectfully with leaders if appropriate, seek counsel from a pastor or biblical counselor, and avoid gossip while taking church order seriously.
+
+FORBIDDEN OUTPUT FRAMING:
+- Do not say opposition to a woman holding the pastor, elder, or overseer office is gender bias.
+- Do not tell a woman to defend, clarify, stand firm in, or practice explaining her calling as a pastor, elder, or overseer.
+- Do not use Acts 18:26, Deborah, Phoebe, Junia, or Mary Magdalene as support for women holding the governing pastor, elder, or overseer office.
+- Do not write faithful_actions that help the user prove women may be pastors or that train the user to justify a woman-pastor office.
+- If the user believes she is called to be pastor, redirect toward biblically permitted ministry, teaching women/children, discipleship, evangelism, mercy ministry, administration, hospitality, prayer, and service under qualified elder oversight.
 `;
 
 export const MINISTRY_STEWARDSHIP_RULES = `=== MINISTRY STEWARDSHIP RULES MODULE ===
@@ -850,7 +857,7 @@ export function detectMinistryStewardship(input: string): boolean {
 }
 export function detectChurchOrder(input: string): boolean {
   const text = input.toLowerCase();
-  const result = /(woman pastor|women pastor|female pastor|lady pastor|pastor is a woman|pastor woman|woman elder|women elder|female elder|woman overseer|female overseer|women preaching|woman preaching|women preach|woman preach|women in church leadership|female church leader|church leadership|church order|1 timothy 2|1 timothy 3|titus 1|women silent in church|women should be silent|women can't speak in church|women cannot speak in church|woman leading the church|woman leading a church|sole pastor is a woman|sole female pastor|unmarried woman pastor|single woman pastor)/i.test(text);
+  const result = /(woman pastor|women pastor|female pastor|lady pastor|pastor is a woman|pastor woman|woman elder|women elder|female elder|woman overseer|female overseer|women preaching|woman preaching|women preach|woman preach|women in church leadership|female church leader|church leadership|church order|1 timothy 2|1 timothy 3|titus 1|women silent in church|women should be silent|women can't speak in church|women cannot speak in church|woman leading the church|woman leading a church|sole pastor is a woman|sole female pastor|unmarried woman pastor|single woman pastor|women.?s roles in ministry|woman.?s role in ministry|gender bias.*(?:pastor|ministry|church|leadership|calling)|(?:oppose|opposed|opposition|against|criticize|criticism|resist|resistance).{0,120}(?:gender|woman|female).{0,120}(?:pastor|ministry|church|leadership|calling)|(?:called|calling).{0,80}(?:pastor|pastoring|lead church|lead the church|leadership).{0,120}(?:woman|female|gender)|(?:woman|female).{0,120}(?:called|calling).{0,80}(?:pastor|pastoring|lead church|lead the church|leadership))/i.test(text);
   if (result) console.log('[Detection] CHURCH_ORDER module triggered');
   return result;
 }

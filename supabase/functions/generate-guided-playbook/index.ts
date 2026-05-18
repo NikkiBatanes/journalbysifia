@@ -1,6 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { buildGuidedPlaybookPrompt } from './persona.config.ts';
+import { buildGuidedPlaybookPrompt, detectChurchOrder } from './persona.config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { fetchWithRetry, OPENAI_RETRY_CONFIG } from '../_shared/retryLogic.ts';
 import { SimpleRateLimiter, RATE_LIMIT_CONFIGS, createRateLimitError } from '../_shared/simpleRateLimiter.ts';
@@ -584,7 +584,8 @@ const ENABLE_PAID_ARCHITECTURAL_RETRY = false;
 const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce|marital)\b/i;
 const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
 const NEGATED_MARRIAGE_REGEX = /\b(?:not|never|no longer|isn't|is not|wasn't|was not|aren't|are not)\s+(?:married|in a marriage|my husband|my wife|my spouse)\b|\bnot\s+(?:my\s+)?(?:husband|wife|spouse)\b|\bnot\s+about\s+(?:marriage|my marriage)\b/i;
-const CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX = /\b(?:son|daughter|child|kid|boy|girl)\b[\s\S]{0,180}\b(?:relationship|dating|boyfriend|girlfriend|classmate)\b[\s\S]{0,220}\b(?:sister|sisters|family|mother|father|parents|siblings)\b[\s\S]{0,80}\b(?:against|oppose|opposes|opposed|do\s+not\s+want|don't\s+want|does\s+not\s+want|doesn't\s+want)\b[\s\S]{0,120}\b(?:open\s+doors|opens\s+doors|opening\s+doors|too\s+early|early)\b/i;
+const CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX = /\b(?:child|daughter|son|kid|teen)\b[\s\S]{0,160}\b(?:relationship|boyfriend|girlfriend|dating)\b[\s\S]{0,200}\b(?:sisters?|family|parents?|relatives?)\b[\s\S]{0,160}\b(?:against|oppose|opposing|not agree|disagree|concerned)\b[\s\S]{0,160}\b(?:open(?:s|ing)?\s+doors?|doorway|temptation|sin|spiritual attack|enemy)\b/i;
+const CHURCH_ORDER_OUTPUT_VIOLATION_REGEX = /\b(?:gender bias contradicts|regardless of gender|because of my gender|supporting women.?s roles in ministry|defend(?:ing)? (?:my|your) calling to (?:pastor|pastoring)|(?:my|your) role as pastor|called to (?:serve as )?(?:a )?pastor|calling to (?:serve as )?(?:a )?pastor|women(?:'s)? (?:pastoral|pastor|elder|overseer) (?:calling|office|authority|role)|women (?:may|can|should) (?:serve as )?(?:pastors|elders|overseers)|opposition rooted in gender bias)\b/i;
 const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 const INDIRECT_TRUTH_OPENERS = [
   /^it (?:is|can be|may be)\b/i,
@@ -933,6 +934,9 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
 
   // Abstraction drift — flag forbidden phrases
   const allText = JSON.stringify(json).toLowerCase();
+  if (detectChurchOrder(originalInput) && CHURCH_ORDER_OUTPUT_VIOLATION_REGEX.test(allText)) {
+    hardIssues.push('church order violation: output affirmed or defended a woman holding the pastor/elder/overseer office');
+  }
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
   if (driftFound.length > 0) {
     softIssues.push(`Abstraction drift detected — forbidden phrases: ${driftFound.join(', ')}`);
@@ -1787,12 +1791,13 @@ serve(async (req: Request) => {
     }
 
     // Validate the JSON output — two-tier: hard failures + structural soft issues
-    const { hardIssues, softIssues } = validatePlaybook(parsedJson!, effectiveUserInput);
+    const validationInput = [effectiveUserInput, effectivePromptDetectionInput].filter(Boolean).join('\n');
+    const { hardIssues, softIssues } = validatePlaybook(parsedJson!, validationInput);
 
     if (hardIssues.length > 0) {
       console.error('[Generate-Playbook] Hard validation failures:', hardIssues);
       const criticalFails = hardIssues.filter(i =>
-        i.includes('playbook_title') || i.includes('generation failure')
+        i.includes('playbook_title') || i.includes('generation failure') || i.includes('church order violation')
       );
       if (criticalFails.length > 0) {
         throw new Error(`AI failed validation: ${criticalFails.join(', ')}`);
@@ -1818,10 +1823,11 @@ serve(async (req: Request) => {
           console.warn('[Generate-Playbook] Missing content detected; paid retry disabled, injecting local fallbacks:', missingContentIssues);
           injectLocalRequiredFieldFallbacks(parsedJson!);
 
-          const { hardIssues: fallbackHard } = validatePlaybook(parsedJson!, effectiveUserInput);
+          const { hardIssues: fallbackHard } = validatePlaybook(parsedJson!, validationInput);
           const unresolvedFallbackIssues = fallbackHard.filter(i =>
             i.includes('playbook_title') ||
-            i.includes('generation failure')
+            i.includes('generation failure') ||
+            i.includes('church order violation')
           );
           if (unresolvedFallbackIssues.length > 0) {
             throw new Error(`AI failed validation after local fallbacks: ${unresolvedFallbackIssues.join(', ')}`);
@@ -1874,7 +1880,7 @@ serve(async (req: Request) => {
           mergedJson.words_to_speak = retry1Json.words_to_speak;
         }
 
-        const { hardIssues: retryHard } = validatePlaybook(mergedJson, effectiveUserInput);
+        const { hardIssues: retryHard } = validatePlaybook(mergedJson, validationInput);
         const stillMissingContent = retryHard.filter(i =>
           i.startsWith('prayer is too short') ||
           i.startsWith('words_to_speak has') ||
@@ -1942,7 +1948,7 @@ serve(async (req: Request) => {
                     finalJson.completion = { ...finalJson.completion, lines: patchJson.completion.lines };
                   }
 
-                  const { hardIssues: patchHard } = validatePlaybook(finalJson, effectiveUserInput);
+                  const { hardIssues: patchHard } = validatePlaybook(finalJson, validationInput);
                   const patchStillMissing = patchHard.filter(i =>
                     i.startsWith('completion.question is missing') ||
                     i.startsWith('completion.lines has') ||
@@ -2055,8 +2061,8 @@ serve(async (req: Request) => {
         try {
           const retryJson = JSON.parse(retryContent);
           if (!isRefusal(retryJson)) {
-            const { hardIssues: retryHard } = validatePlaybook(retryJson, effectiveUserInput);
-            if (retryHard.filter(i => i.includes('generation failure')).length === 0) {
+            const { hardIssues: retryHard } = validatePlaybook(retryJson, validationInput);
+            if (retryHard.filter(i => i.includes('generation failure') || i.includes('church order violation')).length === 0) {
               console.log('[Generate-Playbook] Architectural retry succeeded');
               parsedJson = retryJson;
             } else {
