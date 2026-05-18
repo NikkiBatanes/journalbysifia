@@ -995,7 +995,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           {/* Step cards */}
           <Animated.View style={[
             styles.stepsContainer,
-            IS_IPAD && styles.stepsContainerPad,
             {
               opacity: genStepsEntryAnim,
               transform: [{
