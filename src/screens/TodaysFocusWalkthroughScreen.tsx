@@ -795,20 +795,25 @@ const CompletionStep: React.FC<{
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
   const iconRotation = React.useRef(new Animated.Value(0)).current;
-  const priorityAnims = React.useRef(validPriorities.map(() => new Animated.Value(0))).current;
+  // Create stable array of Animated.Value refs (max 3 priorities)
+  const priorityAnims = React.useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
 
   React.useEffect(() => {
     // Animate checkmark
-    Animated.spring(checkmarkScale, {
+    const checkmarkAnim = Animated.spring(checkmarkScale, {
       toValue: 1,
       tension: 50,
       friction: 7,
       delay: 400,
       useNativeDriver: true,
-    }).start();
+    });
 
     // Animate icon container with rotation
-    Animated.parallel([
+    const iconAnim = Animated.parallel([
       Animated.spring(iconScale, {
         toValue: 1,
         tension: 80,
@@ -822,17 +827,29 @@ const CompletionStep: React.FC<{
         delay: 200,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
 
-    // Stagger animate priority bullets
-    Animated.stagger(100, priorityAnims.map(anim =>
+    // Stagger animate priority bullets (only animate valid priorities)
+    const priorityAnim = Animated.stagger(100, priorityAnims.slice(0, validPriorities.length).map(anim =>
       Animated.spring(anim, {
         toValue: 1,
         tension: 80,
         friction: 8,
         useNativeDriver: true,
       })
-    )).start();
+    ));
+
+    // Start all animations
+    checkmarkAnim.start();
+    iconAnim.start();
+    priorityAnim.start();
+
+    // Cleanup: stop all animations on unmount
+    return () => {
+      checkmarkAnim.stop();
+      iconAnim.stop();
+      priorityAnim.stop();
+    };
   }, [checkmarkScale, iconScale, iconRotation, priorityAnims]);
 
   const iconRotateInterpolate = iconRotation.interpolate({

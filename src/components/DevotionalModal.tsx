@@ -897,7 +897,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.contentWrapper}>
+          <View style={[styles.contentWrapper, IS_IPAD && styles.contentWrapperPad]}>
             {/* Logo at very top of modal during generation */}
             {(isCreating || isOnboardingCreating || isClosing) && (
               <Animated.Image
@@ -919,7 +919,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             )}
 
             {!isCreating && !isOnboardingCreating && !isSuccess && !isClosing && (
-              <View style={styles.fixedContent}>
+              <View style={[styles.fixedContent, IS_IPAD && styles.fixedContentPad]}>
                 <ThemedText weight="semiBold" style={styles.title}>Turn this into a devotional</ThemedText>
                 <View style={styles.subtitleContainer}>
                   <ThemedText weight="regular" style={styles.subtitle}>
@@ -929,11 +929,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               </View>
             )}
 
-            <View style={styles.scrollableContent}>
+            <View style={[styles.scrollableContent, IS_IPAD && styles.scrollableContentPad]}>
 
               {(playbookInfo || userInput) && (
                 <Animated.View style={[
                   styles.playbookInfoContainer,
+                  IS_IPAD && styles.playbookInfoContainerPad,
                   (isCreating || isOnboardingCreating || isClosing) ? {
                     opacity: genCardEntryAnim,
                     transform: [{
@@ -975,6 +976,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 {(isCreating || isOnboardingCreating || isClosing) ? (
     <Animated.View style={[
       styles.generatingContainer,
+      IS_IPAD && styles.generatingContainerPad,
       {
         opacity: isClosing ? 1 : generatingFadeAnim,
         transform: isClosing ? [{ scale: 1 }] : [{ scale: generatingScaleAnim }],
@@ -992,6 +994,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           {/* Step cards */}
           <Animated.View style={[
             styles.stepsContainer,
+            IS_IPAD && styles.stepsContainerPad,
             {
               opacity: genStepsEntryAnim,
               transform: [{
@@ -1467,6 +1470,9 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  contentWrapperPad: {
+    paddingHorizontal: 48,
+  },
   headerContainer: {
     position: 'relative',
     marginBottom: 12,
@@ -1629,6 +1635,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
+  playbookInfoContainerPad: {
+    paddingHorizontal: 48,
+  },
   playbookInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1650,10 +1659,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 4,
   },
+  fixedContentPad: {
+    paddingHorizontal: 48,
+  },
   scrollableContent: {
     flex: 1,
     paddingHorizontal: 4,
     paddingBottom: 20,
+  },
+  scrollableContentPad: {
+    paddingHorizontal: 48,
   },
   playbookInfoContent: {
     paddingHorizontal: 12,
@@ -1699,6 +1714,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     marginVertical: 10,
     width: '100%',
+  },
+  generatingContainerPad: {
+    paddingHorizontal: 48,
   },
   loadingText: {
     color: Colors.hopeWhite,
@@ -1863,6 +1881,9 @@ const styles = StyleSheet.create({
   stepsContainer: {
     marginBottom: 32,
     width: '100%',
+  },
+  stepsContainerPad: {
+    paddingHorizontal: 48,
   },
   stepCard: {
     borderRadius: 16,

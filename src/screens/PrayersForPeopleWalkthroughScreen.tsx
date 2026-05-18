@@ -984,16 +984,16 @@ const CompletionStep: React.FC<{
 
   React.useEffect(() => {
     // Animate checkmark
-    Animated.spring(checkmarkScale, {
+    const checkmarkAnim = Animated.spring(checkmarkScale, {
       toValue: 1,
       tension: 50,
       friction: 7,
       delay: 400,
       useNativeDriver: true,
-    }).start();
+    });
 
     // Animate icon container with rotation
-    Animated.parallel([
+    const iconAnim = Animated.parallel([
       Animated.spring(iconScale, {
         toValue: 1,
         tension: 80,
@@ -1007,7 +1007,15 @@ const CompletionStep: React.FC<{
         delay: 200,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+
+    checkmarkAnim.start();
+    iconAnim.start();
+
+    return () => {
+      checkmarkAnim.stop();
+      iconAnim.stop();
+    };
   }, [checkmarkScale, iconRotation, iconScale]);
 
   const iconRotateInterpolate = iconRotation.interpolate({

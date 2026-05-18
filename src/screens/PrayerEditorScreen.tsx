@@ -92,16 +92,16 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   useEffect(() => {
     if (currentStep === 3) {
       // Animate checkmark
-      Animated.spring(checkmarkScale, {
+      const checkmarkAnim = Animated.spring(checkmarkScale, {
         toValue: 1,
         tension: 50,
         friction: 7,
         delay: 400,
         useNativeDriver: true,
-      }).start();
+      });
 
       // Animate icon container with rotation
-      Animated.parallel([
+      const iconAnim = Animated.parallel([
         Animated.spring(iconScale, {
           toValue: 1,
           tension: 80,
@@ -115,7 +115,15 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
           delay: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]);
+
+      checkmarkAnim.start();
+      iconAnim.start();
+
+      return () => {
+        checkmarkAnim.stop();
+        iconAnim.stop();
+      };
     }
   }, [currentStep, checkmarkScale, iconRotation, iconScale]);
 
