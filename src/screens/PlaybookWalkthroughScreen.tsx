@@ -1806,7 +1806,7 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1816,7 +1816,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -1894,7 +1894,7 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:(?:say|send|text|message|write|ask|pray|request)\b|.*\b(?:with this message|add this request|this request|say aloud|pause and say aloud|say plainly|say this(?: clearly| plainly)?)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+  return /^(?:(?:say|send|text|message|write|ask|pray|request)\b|.*\b(?:with this message|add this request|this request|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words)\b)[^:]{0,80}:\s*$/i.test(trimmed)
     && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
 }
 
@@ -1902,8 +1902,17 @@ function scriptLabelForIntro(line: string): string {
   if (/\brequest\b/i.test(line)) {
     return 'Request to add';
   }
+  if (/\bpray\b/i.test(line) && /\bbriefly\b/i.test(line)) {
+    return 'Brief prayer';
+  }
   if (/\bsay\s+plainly\b/i.test(line)) {
     return 'Say plainly';
+  }
+  if (/\bsay\s+(?:out\s+loud|aloud)\s+with\s+conviction\b/i.test(line)) {
+    return 'Say with conviction';
+  }
+  if (/\bsay\s+aloud\s+clearly\b/i.test(line)) {
+    return 'Say aloud clearly';
   }
   if (/\beach\s+morning\b/i.test(line) && /\bsay\s+aloud\b/i.test(line)) {
     return 'Each morning say aloud';
@@ -1982,10 +1991,17 @@ function isCheckInLabelValueLine(line: string): { label: string; text: string } 
   return looksLikeCheckIn ? { label, text } : null;
 }
 
+function getWriteDownActionText(line: string): string | null {
+  const match = String(line || '').trim().match(/^(?:write\s+(?:this\s+)?down|jot\s+(?:this\s+)?down|note\s+this):\s*(.+)$/i);
+  const text = match?.[1]?.trim();
+  return text || null;
+}
+
 function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   const out: BodyLine[] = [];
   let expectingPromptQuestion = false;
   let inChecklist = false;
+  let inWriteDownList = false;
 
   for (let idx = 0; idx < lines.length; idx++) {
     const raw = lines[idx];
@@ -2000,6 +2016,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push(scriptureRead);
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2007,6 +2024,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push(lineMeaning);
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2030,6 +2048,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       idx = cursor - 1;
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2037,6 +2056,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push(resourceList);
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2048,6 +2068,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       });
       idx++;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2058,6 +2079,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
         type: inChecklist ? 'checklistItem' : 'bullet',
       });
       expectingPromptQuestion = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2065,12 +2087,14 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ label: askPromptLabel(line), text: '', type: 'ask' });
       expectingPromptQuestion = true;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
     if (expectingPromptQuestion && line.endsWith('?')) {
       out.push({ text: line, type: 'question' });
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2078,6 +2102,19 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ label: 'Do this', text: '', type: 'checklist' });
       expectingPromptQuestion = false;
       inChecklist = true;
+      inWriteDownList = false;
+      continue;
+    }
+
+    const writeDownText = getWriteDownActionText(line);
+    if (writeDownText) {
+      if (!inWriteDownList) {
+        out.push({ label: 'Write this down', text: '', type: 'checklist' });
+      }
+      out.push({ text: writeDownText, type: 'checklistItem' });
+      expectingPromptQuestion = false;
+      inChecklist = true;
+      inWriteDownList = true;
       continue;
     }
 
@@ -2087,6 +2124,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ text: line, type: 'intro' });
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2096,6 +2134,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ text: line, type: 'quote' });
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2109,6 +2148,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       }
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2120,6 +2160,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ label, text: fieldMatch[2].trim(), type: 'field' });
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2128,6 +2169,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ label: checkInLine.label, text: checkInLine.text, type: 'check' });
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
@@ -2143,12 +2185,14 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       out.push({ text: line, type: 'choice' });
       expectingPromptQuestion = false;
       inChecklist = false;
+      inWriteDownList = false;
       continue;
     }
 
     out.push({ text: line, type: 'body' });
     expectingPromptQuestion = false;
     inChecklist = false;
+    inWriteDownList = false;
   }
 
   return out;
