@@ -604,7 +604,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
               return (
                 <React.Fragment key={path.id}>
                   <TouchableOpacity
-                    style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                    style={[styles.categoryCard, IS_IPAD && styles.categoryCardPad, isSelected && styles.categoryCardSelected]}
                     onPress={() => {
                       triggerLightHaptic();
                       handleSelect(path);
@@ -772,8 +772,9 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
+  },
+  categoryCardPad: {
+    maxWidth: '100%',
   },
   categoryCardSelected: {
     backgroundColor: 'rgba(255, 107, 107, 0.18)',

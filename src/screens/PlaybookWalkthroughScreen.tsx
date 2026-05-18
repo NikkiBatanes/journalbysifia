@@ -1927,7 +1927,7 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1937,7 +1937,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|explain|add|practice\s+saying(?:\s+calmly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|explain|add|pray\s+quietly|practice\s+saying(?:\s+calmly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
   if (unquotedSpokenLine) {
     const statement = unquotedSpokenLine[2].trim();
     return [
@@ -1945,12 +1945,12 @@ function splitReadableActionLine(line: string): string[] {
       `"${statement.replace(/[.!?]$/g, '')}."`,
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
   }
-  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedQuestionPrompt = trimmed.match(/^(.+?[.!?])\s+((?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedQuestionPrompt) {
     return [
       embeddedQuestionPrompt[1].trim(),
@@ -1958,7 +1958,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedQuestionPrompt[3]),
     ];
   }
-  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const embeddedLooseQuestionPrompt = trimmed.match(/^(.+?)\s+((?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (embeddedLooseQuestionPrompt && embeddedLooseQuestionPrompt[1].trim().length > 8) {
     return [
       ...splitReadableActionLine(embeddedLooseQuestionPrompt[1].trim()),
@@ -1966,7 +1966,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitQuestionPromptText(embeddedLooseQuestionPrompt[3]),
     ];
   }
-  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
+  const questionPrompt = trimmed.match(/^((?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad)\s+slow(?:ly|ely)\s+and\s+ask|pause\s+and\s+ask|then\s+ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|test|check)\s*:\s*)(.+)$/i);
   if (questionPrompt) {
     return [
       capitalizeFirstLetter(questionPrompt[1].trim()),
@@ -2045,11 +2045,20 @@ function isScriptIntroLine(line: string): boolean {
   if (/^(?:say|explain|add|practice\s+saying(?:\s+calmly)?)\s*:\s*$/i.test(trimmed)) {
     return true;
   }
-  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words)\b)[^:]{0,100}:\s*$/i.test(trimmed)
-    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
+  if (/^(?:add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|write\s+this\s+sentence|pray\s+quietly):\s*$/i.test(trimmed)) {
+    return true;
+  }
+  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words|pray quietly)\b)[^:]{0,100}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|pray|ask|request|reason)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/^write\s+this\s+sentence\b/i.test(line.trim())) {
+    return 'Write this sentence';
+  }
+  if (/^add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?\b/i.test(line.trim())) {
+    return 'Another reason';
+  }
   if (/^explain\s*:/i.test(line.trim())) {
     return 'Explain';
   }
@@ -2079,6 +2088,9 @@ function scriptLabelForIntro(line: string): string {
   }
   if (/\bpray\b/i.test(line) && /\bbriefly\b/i.test(line)) {
     return 'Brief prayer';
+  }
+  if (/\bpray\s+quietly\b/i.test(line)) {
+    return 'Quiet prayer';
   }
   if (/\bsay\s+plainly\b/i.test(line)) {
     return 'Say plainly';
@@ -2115,11 +2127,14 @@ function isChecklistIntroLine(line: string): boolean {
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
   const trimmed = line.trim();
+  if (/^(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask/i.test(trimmed)) {
+    return 'Ask yourself';
+  }
   if (/\bask\s+these\s+questions\b/i.test(trimmed)) {
     return 'Ask these questions';
   }
