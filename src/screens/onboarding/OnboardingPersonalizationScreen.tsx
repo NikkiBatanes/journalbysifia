@@ -1952,8 +1952,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <KeyboardAvoidingView
         style={OnboardingStyles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
-        enabled={false}
+        keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
+        enabled={true}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={{ flex: 1, width: contentWidth }}>

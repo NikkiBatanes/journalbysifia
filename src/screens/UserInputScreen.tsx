@@ -1302,9 +1302,9 @@ const UserInputScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
+          keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
           style={{ flex: 1 }}
-          enabled={false}
+          enabled={true}
         >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
