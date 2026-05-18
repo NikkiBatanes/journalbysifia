@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
@@ -25,6 +25,7 @@ interface RouteParams {
 }
 
 const StreakPlanScreen: React.FC = () => {
+  const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const route = useRoute();
   const navigation = useNavigation();
   const theme = useTheme();
@@ -320,7 +321,7 @@ const StreakPlanScreen: React.FC = () => {
         </Animated.View>
 
         {/* Action buttons */}
-        <Animated.View style={[styles.buttonsContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+        <Animated.View style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
           <TouchableOpacity
             style={[styles.primaryButton]}
             onPress={handleContinue}
@@ -426,6 +427,9 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     width: '100%',
     gap: 0,
+  },
+  buttonsContainerPad: {
+    paddingHorizontal: 48,
   },
   primaryButton: {
     flexDirection: 'row',
