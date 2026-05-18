@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   completionButtonContainerPad: {
-    paddingHorizontal: 48,
+    paddingHorizontal: 160,
   },
   completionButton: {
     flexDirection: 'row',
