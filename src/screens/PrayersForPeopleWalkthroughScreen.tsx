@@ -1318,6 +1318,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       if (shouldCheckPeopleStreak && user?.id) {
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_saved');
         if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
           if (fromPlaybook) {
             navigation.pop(2);
             setTimeout(() => {

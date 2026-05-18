@@ -403,15 +403,12 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // Scroll to bottom (prayer section) when scrollToPrayer parameter is true
   const handleScrollViewLayout = useCallback((index: number) => {
-    console.log('🔔 ScrollView layout:', { index, currentDayIndex, scrollToPrayer, hasScrolled: hasScrolledToPrayerRef.current });
     if (scrollToPrayer && index === currentDayIndex && !hasScrolledToPrayerRef.current) {
       hasScrolledToPrayerRef.current = true;
       const targetScrollView = scrollViewRefs.current[index];
-      console.log('🔔 Attempting scroll to prayer, ScrollView exists:', !!targetScrollView);
       if (targetScrollView) {
         // Much longer delay to ensure content is fully rendered and measured
         setTimeout(() => {
-          console.log('🔔 Executing scrollToEnd');
           targetScrollView.scrollToEnd({ animated: true });
         }, 1000);
       }

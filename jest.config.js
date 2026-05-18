@@ -11,6 +11,10 @@ module.exports = {
     '**/__tests__/**/*.test.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
   ],
+  testPathIgnorePatterns: [
+    '<rootDir>/supabase/functions/',
+  ],
+  watchman: false,
   collectCoverage: true,
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

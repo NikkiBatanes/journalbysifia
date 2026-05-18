@@ -144,12 +144,12 @@ For each product:
 ### Check Shared Secret (for receipt validation)
 1. Go to: **My Apps** → **siFia** → **General** → **App Information**
 2. Scroll to **App-Specific Shared Secret**
-3. Current value: `0ba77305d45f4eb69149fc83a6f4538d`
+3. Current value: stored in your local `.env` and Supabase secrets only.
 4. Verify this matches your .env:
 
 ```bash
 # In .env file
-APPLE_SHARED_SECRET=0ba77305d45f4eb69149fc83a6f4538d
+APPLE_SHARED_SECRET=your_app_store_shared_secret
 ```
 
 ---

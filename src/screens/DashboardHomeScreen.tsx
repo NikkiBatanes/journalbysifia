@@ -946,9 +946,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Handle deep link params for guided reflection
   useEffect(() => {
     const params = route.params as any;
-    console.log('🔔 DashboardHome route.params:', params);
     if (params?.openGuidedReflection && params?.guidedReflectionQuestion) {
-      console.log('🔔 Opening guided reflection modal with question:', params.guidedReflectionQuestion);
       setSelectedReflection({
         question: params.guidedReflectionQuestion,
         source: 'Guided Prompt',

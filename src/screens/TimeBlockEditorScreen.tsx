@@ -90,7 +90,6 @@ const TimeBlockEditorScreen: React.FC = () => {
         // Solution: emit an event for JournalScreen to handle AFTER this screen is
         // dismissed (JournalScreen regains focus with no competing native modal).
         // returnParams lets OnboardingSalesOfferScreen re-open this editor on close.
-        console.log('[TimeBlockEditorScreen] Gated feature detected, emitting event and going back');
         DeviceEventEmitter.emit('open_sales_offer_after_dismiss', {
           source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
           feature: lockedByRepeat ? 'repeat_options' : 'future_planning',

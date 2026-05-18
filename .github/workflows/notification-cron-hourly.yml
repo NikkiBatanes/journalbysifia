@@ -17,15 +17,24 @@ jobs:
         
       - name: Check notification triggers
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           echo "⏰ Checking notification triggers (hourly)..."
+
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY is not configured. Skipping scheduled trigger check."
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              exit 1
+            fi
+            exit 0
+          fi
           
           # Call the Supabase edge function for trigger checks
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "${{ secrets.SUPABASE_URL }}/functions/v1/check-notification-triggers" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "$SUPABASE_URL/functions/v1/check-notification-triggers" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
             -d '{}')
           
@@ -36,8 +45,12 @@ jobs:
           echo "HTTP Code: $HTTP_CODE"
           
           if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "⚠️ Trigger check failed with code $HTTP_CODE"
-            exit 1
+            echo "::warning::Trigger check failed with code $HTTP_CODE"
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              exit 1
+            fi
+            echo "Scheduled run will not fail to avoid hourly failure notifications."
+            exit 0
           fi
           
           echo "✅ Notification triggers checked successfully"

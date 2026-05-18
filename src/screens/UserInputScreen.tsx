@@ -592,8 +592,9 @@ const UserInputScreen: React.FC = () => {
   // Keyboard animation - sync input box with keyboard slide
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
+      const liftOffset = isPad ? 20 : 70;
       Animated.spring(keyboardTranslateY, {
-        toValue: -e.endCoordinates.height + 70, // Adjust to match keyboardVerticalOffset of -70
+        toValue: -e.endCoordinates.height + liftOffset,
         tension: 50,
         friction: 12,
         useNativeDriver: true,
@@ -613,7 +614,7 @@ const UserInputScreen: React.FC = () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [keyboardTranslateY]);
+  }, [isPad, keyboardTranslateY]);
 
   // Simple chat input - no complex height calculations needed
 

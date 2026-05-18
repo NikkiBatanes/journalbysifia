@@ -970,22 +970,17 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Auto-focus appropriate input for new entries
   useEffect(() => {
-    console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect fired — isEditing=${isEditing} source=${source} isClosing=${isClosingRef.current} title="${newEntry.title.slice(0, 20)}"`);
     // Never schedule focus while the component is closing — source prop changes
     // during the cancel/done teardown can re-trigger this effect.
     if (isClosingRef.current) {
-      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: BLOCKED (isClosingRef=true)`);
       return;
     }
     // For dashboard smart journaling (thoughts source), always focus content input
     if (!isEditing && source === 'thoughts' && contentInputRef.current) {
-      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: scheduling content focus in 300ms`);
       createManagedTimeout(() => {
         if (isClosingRef.current) {
-          console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms ABORTED (isClosingRef=true)`);
           return;
         }
-        console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms fired — focusing content`);
         if (contentInputRef.current) {
           logFocus('auto-focus effect', 'content');
           contentInputRef.current.focus();
@@ -994,20 +989,15 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
     // For freeform mode with unlocked title, focus title input only if title is empty
     else if (!isEditing && !lockTitle && titleInputRef.current && !newEntry.title.trim()) {
-      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: scheduling title focus in 300ms`);
       createManagedTimeout(() => {
         if (isClosingRef.current) {
-          console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms ABORTED (isClosingRef=true)`);
           return;
         }
-        console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: 300ms fired — focusing title (empty=${!newEntry.title.trim()})`);
         if (titleInputRef.current && !newEntry.title.trim()) {
           logFocus('auto-focus effect', 'title');
           titleInputRef.current.focus();
         }
       }, 300);
-    } else {
-      console.log(`[KB_DEBUG ${Date.now()}] auto-focus effect: no branch taken`);
     }
   }, [isEditing, lockTitle, source, newEntry.title]);
 
@@ -1115,7 +1105,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     // flipping from guided→thoughts after onCancel resets parent state) will
     // check this flag and abort instead of re-opening the keyboard.
     isClosingRef.current = true;
-    console.log(`[KB_DEBUG ${Date.now()}] handleCancel START — isClosingRef=true`);
 
     // Haptic feedback for cancel/close
     triggerLightHaptic();

@@ -2,15 +2,10 @@
 import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.8/mod.ts';
 import { crypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts';
 
-// Test credentials
-const appleKeyId = '6RM663SF26';
-const appleIssuerId = '364a1398-a4cc-4488-888c-c9dbf1709855';
-const applePrivateKey = `-----BEGIN PRIVATE KEY-----
-MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgm5V9Oqw5K/p4zPMv
-iBuTZdFnUkanYU1LN3QUkLUXA1WgCgYIKoZIzj0DAQehRANCAAQhNHiERSp6In0C
-h8vMF6dZrOBPSU64oH2AqchWKFF1TapbbkirqzCCbsU2zO8vA4Y/yAPSZdRxGEHm
-DKEjJtLy
------END PRIVATE KEY-----`;
+// Test credentials come from local environment variables only.
+const appleKeyId = Deno.env.get('APPLE_KEY_ID') ?? '';
+const appleIssuerId = Deno.env.get('APPLE_ISSUER_ID') ?? '';
+const applePrivateKey = Deno.env.get('APPLE_PRIVATE_KEY') ?? '';
 
 async function testAppleAPI() {
   try {

@@ -239,6 +239,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       if (!existingEntry && user?.id && devotionalDayCompleted) {
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
         if (shouldShowStreak) {
+          await visibleStreakService.markShownToday(user.id);
           onCancel(); // close the ponder modal
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,

@@ -285,11 +285,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   };
 
   const handleExportPdfPress = async (playbook: PlaybookContent) => {
-    console.log('[PDF Export] handleExportPdfPress called for playbook:', playbook.id);
     setMenuVisible(null);
 
     // Check feature access
-    console.log('[PDF Export] Checking feature access:', pdfExportAccess.hasAccess);
     if (!pdfExportAccess.hasAccess) {
       const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
       const upgradeMessage = typeof upgradePrompt?.message === 'string'
@@ -325,19 +323,15 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     try {
       triggerLightHaptic();
-      console.log('[PDF Export] Haptic triggered, fetching playbook data...');
 
       // Fetch the full playbook before exporting
       if (!user?.id) {
-        console.log('[PDF Export] No user ID found');
         Alert.alert('Error', 'Unable to export this playbook right now.');
         return;
       }
 
       const { getPlaybook } = await import('../../services/apiIntegration');
-      console.log('[PDF Export] Calling getPlaybook...');
       const fullPlaybook = await getPlaybook(user.id, playbook.id);
-      console.log('[PDF Export] Full playbook received:', fullPlaybook ? 'yes' : 'no');
       if (!fullPlaybook) {
         Alert.alert('Error', 'Could not load the full playbook for export.');
         return;
@@ -434,11 +428,9 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   };
 
   const handleExportDevotionalPdf = async (devotional: DevotionalContent) => {
-    console.log('[PDF Export] handleExportDevotionalPdf called for devotional:', devotional.id);
     setMenuVisible(null);
 
     // Check feature access
-    console.log('[PDF Export] Checking devotional feature access:', devotionalPdfExportAccess.hasAccess);
     if (!devotionalPdfExportAccess.hasAccess) {
       const upgradePrompt = devotionalPdfExportAccess.accessResult?.upgradePrompt;
       const upgradeMessage = typeof upgradePrompt?.message === 'string'
@@ -474,7 +466,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
 
     try {
       triggerLightHaptic();
-      console.log('[PDF Export] Exporting devotional PDF...');
 
       // Get bible version from user preferences or default to NASB
       const bibleVersion = user?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
@@ -1087,7 +1078,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             <TouchableOpacity
               style={styles.menuButton}
               onPress={() => {
-                console.log('[Menu Button] Pressed for playbook:', playbook.id);
                 try { triggerLightHaptic(); } catch {}
                 setMenuVisible(menuVisible === playbook.id ? null : playbook.id);
               }}
@@ -1309,7 +1299,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={() => {
-                  console.log('[Menu Button] Pressed for devotional:', devotional.id);
                   try { triggerLightHaptic(); } catch {}
                   setMenuVisible(menuVisible === devotional.id ? null : devotional.id);
                 }}

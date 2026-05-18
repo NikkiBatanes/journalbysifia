@@ -359,6 +359,7 @@ export default function ActionStepsCard({
               if (isPlaybookCompleted) {
                 const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'action_step_completed');
                 if (shouldShowStreak) {
+                  await visibleStreakService.markShownToday(user.id);
                   (nav as any).navigate('StreakPlan', {
                     userId: user.id,
                     source: 'action_step_completed',

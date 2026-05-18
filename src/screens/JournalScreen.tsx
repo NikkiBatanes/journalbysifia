@@ -108,9 +108,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       if (pendingSalesOfferRef.current) {
         const params = pendingSalesOfferRef.current;
         pendingSalesOfferRef.current = null;
-        console.log('[JournalScreen] Pending sales offer detected, waiting 600ms for dismiss animation to complete');
         setTimeout(() => {
-          console.log('[JournalScreen] Navigating to OnboardingSalesOffer now');
           notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params);
         }, 600);
       }
@@ -243,8 +241,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     const selectedDateParam = params?.selectedDate;
     const deepLinkKey = JSON.stringify({ targetSection, selectedDateParam });
 
-    console.log('🔔 JournalScreen deep link check:', { targetSection, selectedDateParam, params });
-
     if (!targetSection || handledDeepLinkKeyRef.current === deepLinkKey) {
       return;
     }
@@ -271,7 +267,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     lastSelectedDate.current = safeTargetDate;
 
     if (targetSection === 'gratitude') {
-      console.log('🔔 Opening gratitude modal for deep link');
       setSelectedDateForModal(safeTargetDate);
       setExistingGratitudeEntry(undefined);
       // Show modal immediately without relying on carousel index

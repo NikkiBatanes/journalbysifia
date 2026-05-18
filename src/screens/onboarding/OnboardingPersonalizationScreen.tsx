@@ -175,6 +175,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const win = Dimensions.get('window');
   const [screenSize, setScreenSize] = useState({ width: win.width, height: win.height });
   const isLandscape = screenSize.width > screenSize.height;
+  const isPad = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const isTablet = screenSize.width >= 768;
   const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
   const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
@@ -1354,9 +1355,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
       const kbHeight = e.endCoordinates.height;
+      const liftOffset = isPad ? 20 : 70;
       const animations: Animated.CompositeAnimation[] = [
         Animated.spring(keyboardTranslateY, {
-          toValue: -kbHeight + 70,
+          toValue: -kbHeight + liftOffset,
           tension: 50,
           friction: 12,
           useNativeDriver: true,
@@ -1406,7 +1408,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [keyboardTranslateY, headerTranslateY, isWhatHappenedStep, isSmallPhone, isVerySmallPhone]);
+  }, [keyboardTranslateY, headerTranslateY, isWhatHappenedStep, isSmallPhone, isVerySmallPhone, isPad]);
 
   // Intro animation when screen first opens
   useEffect(() => {
