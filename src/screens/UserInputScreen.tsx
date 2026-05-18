@@ -2092,7 +2092,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    paddingHorizontal: 160,
   },
   usageCounter: {
     flexDirection: 'row',
