@@ -2194,12 +2194,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* ── Birthday picker overlay: absolute so header layout never shifts ── */}
       {showInlineYearPicker && currentStep === 1 && (
         <Animated.View style={[
-          styles.birthdayPickerOverlay,
+          isPad ? styles.birthdayPickerOverlayPad : styles.birthdayPickerOverlay,
           { 
-            top: isPad ? undefined : screenSize.height * 0.44,
-            ...(isPad && {
-              top: (screenSize.height / 2) - 150,
-            })
+            top: isPad ? (screenSize.height / 2) - 150 : screenSize.height * 0.44,
           },
           {
             opacity: pickerEntryAnim,
@@ -2687,6 +2684,11 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 999,
     backgroundColor: 'transparent',
+  },
+  birthdayPickerOverlayPad: {
+    alignSelf: 'center',
+    left: undefined,
+    right: undefined,
   },
   birthdayPickerRow: {
     flexDirection: 'row',
