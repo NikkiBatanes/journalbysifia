@@ -41,6 +41,8 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TomorrowInHisHandsWalkthrough'>;
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
@@ -314,7 +316,7 @@ const EmotionSelectionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -428,7 +430,7 @@ const EmotionSelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedEmotion && (!isOtherSelected || customEmotion.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -548,7 +550,7 @@ const LookingAheadInputStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -606,7 +608,7 @@ const LookingAheadInputStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -721,7 +723,7 @@ const CompletionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -773,7 +775,7 @@ const CompletionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -1047,6 +1049,9 @@ const styles = StyleSheet.create({
   stepContent: {
     paddingHorizontal: 24,
   },
+  stepContentPad: {
+    paddingHorizontal: 160,
+  },
   stepTitle: {
     fontSize: 24,
     color: Colors.hopeWhite,
@@ -1293,6 +1298,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    zIndex: 100,
+  },
+  completionButtonContainerPad: {
+    paddingHorizontal: 160,
   },
   completionButton: {
     flexDirection: 'row',
@@ -1340,6 +1350,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 100,
+  },
+  primaryButtonPad: {
+    right: 48,
   },
 });
 

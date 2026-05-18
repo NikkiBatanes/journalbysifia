@@ -66,6 +66,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
@@ -309,7 +310,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   return (
     <ScrollView
       style={styles.stepScroll}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Centered PLAYBOOK label + animated chevron */}
@@ -491,7 +492,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
   const personalized = removeUserNameReferences(text, userName);
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
-  const hasMore = paragraphs.length > TRUTH_PREVIEW_COUNT;
+  const hasMore = !IS_IPAD && paragraphs.length > TRUTH_PREVIEW_COUNT;
 
   // Truncate paragraphs when collapsed to prevent overlap with buttons
   const visible = expanded || !hasMore ? paragraphs : paragraphs.slice(0, TRUTH_PREVIEW_COUNT).map((para, index) => {
@@ -521,7 +522,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
     <>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 80 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 80 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -968,7 +969,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
   const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
   return (
-    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.stepScroll, styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}>
       <StepFadeIn delay={0} style={styles.stepLabelRow}>
         <MaterialCommunityIcons name="script-text" size={18} color={Colors.alertCoral} />
         <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -3189,7 +3190,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   if (!currentStep) {
     return (
-      <View style={[styles.stepScroll, styles.stepContent]}>
+      <View style={[styles.stepScroll, styles.stepContent, IS_IPAD && styles.stepContentPad]}>
         <TouchableOpacity style={styles.primaryButton} onPress={onNext} activeOpacity={0.85}>
           <ThemedText weight="semiBold" style={styles.primaryButtonText}>Next</ThemedText>
           <Ionicons name="arrow-forward" size={18} color={Colors.hopeWhite} />
@@ -3327,7 +3328,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       style={styles.stepScroll}
       onScroll={handleActionScroll}
       scrollEventThrottle={16}
-      contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 180 }]}
+      contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 180 }]}
       scrollEnabled={true}
       showsVerticalScrollIndicator={false}
       removeClippedSubviews={false}
@@ -4240,7 +4241,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     </ScrollView>
 
       {/* Floating action bar — collapses to circle on scroll, matches bottom nav behavior */}
-      <Animated.View style={[styles.actionFABContainer, { bottom: insets.bottom + 16 }]}>
+      <Animated.View style={[styles.actionFABContainer, IS_IPAD && styles.actionFABContainerPad, { bottom: insets.bottom + 16 }]}>
         {/* Journal expanded icons — float above FAB row */}
         <Animated.View style={[styles.journalExpandedRow, { height: rowHeight, opacity: rowOpacity }]}>
           {JOURNAL_ICONS.map(({ type, icon, color, label }, idx) => (
@@ -4594,7 +4595,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
 
   return (
     <>
-      <View style={[styles.stepScroll, styles.prayerStepOuter, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.stepScroll, styles.prayerStepOuter, IS_IPAD && styles.prayerStepOuterPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}>
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -4739,7 +4740,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
 
   return (
     <>
-      <View style={[styles.stepScroll, styles.prayerStepOuter, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.stepScroll, styles.prayerStepOuter, IS_IPAD && styles.prayerStepOuterPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}>
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.alertCoral} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
@@ -4928,7 +4929,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   const { contextLine, questionLine, actionLines, isChoicePills } = parseCompletionText(closingText);
 
   return (
-    <View style={[styles.stepScroll, styles.stepContent, { paddingTop: insets.top }]}>
+    <View style={[styles.stepScroll, styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 20 : 0) }]}>
       <StepFadeIn delay={0}>
         <Animated.View style={{ transform: [{ translateY: headerAnim }] }}>
           <View style={styles.completionHeaderContainer}>
@@ -6325,6 +6326,9 @@ const styles = StyleSheet.create({
     minHeight: SCREEN_HEIGHT * 0.7,
     justifyContent: 'flex-start',
   },
+  stepContentPad: {
+    paddingHorizontal: 96,
+  },
 
   // Enter the Moment
   playbookLabelContainer: {
@@ -7576,12 +7580,18 @@ const styles = StyleSheet.create({
     zIndex: 100,
     elevation: 10,
   },
+  actionFABContainerPad: {
+    left: 160,
+    right: 160,
+  },
   actionFABRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 4,
     paddingVertical: 4,
+    maxWidth: 800,
+    alignSelf: 'center',
   },
   actionFABCollapsedCircle: {
     position: 'absolute',
@@ -7717,6 +7727,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 12,
     paddingBottom: 0,
+  },
+  prayerStepOuterPad: {
+    paddingHorizontal: 160,
   },
 
   // Prayer

@@ -926,6 +926,7 @@ const PickerModal = React.memo(({
 });
 
 const PlaybookListScreen = ({ navigation }: any) => {
+  const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const { user, session, isAuthenticated } = useAuth();
   const userId = user?.id || session?.user?.id;
   const theme = useTheme();
@@ -1916,8 +1917,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right']}>
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
-          <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
-            <View style={styles.pageInner}>
+          <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
+            <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
               {/* Hide header when empty; keep layout with spacer (match Devotionals) */}
               <View style={styles.headerSpacer} />
             </View>
@@ -1986,8 +1987,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safeArea} edges={['left','right']}>
       <View style={styles.container}>
         {/* ── WHITE HEADER ─────────────────────────────────────── */}
-        <View style={[styles.headerBar, { paddingTop: insets.top }]}>
-          <View style={styles.pageInner}>
+        <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top }]}>
+          <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
 
             {/* Row 1: Title left, actions right */}
             <View style={styles.headerTopRow}>
@@ -3610,6 +3611,10 @@ const createStyles = (_theme: any) => StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 16, // Add responsive padding
   },
+  pageInnerPad: {
+    maxWidth: '100%',
+    paddingHorizontal: 0,
+  },
   containerEmpty: {
     // Remove default container padding so heroCard width matches Devotionals (90% of screen)
     paddingHorizontal: 0,
@@ -3623,6 +3628,9 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 0,
     paddingBottom: 0,
     backgroundColor: Colors.hopeWhite,
+  },
+  headerBarPad: {
+    paddingHorizontal: 48,
   },
   // ── Header layout ────────────────────────────────────────────
   headerTopRow: {

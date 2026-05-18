@@ -26,6 +26,8 @@ type RootStackParamList = {
 
 type PrayerEditorScreenProps = NativeStackScreenProps<RootStackParamList, 'PrayerEditor'>;
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 // StepFadeIn component
 interface StepFadeInProps {
   delay?: number;
@@ -244,7 +246,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
   // Step 1: Prayer Input
   const renderStep1 = () => (
-    <View style={styles.fullScreenPrayerModalContainer}>
+    <View style={[styles.fullScreenPrayerModalContainer, IS_IPAD && styles.fullScreenPrayerModalContainerPad]}>
       <TouchableOpacity
         style={[styles.prayerModalCancelButton, { top: insets.top + 8 }]}
         onPress={handleCancel}
@@ -253,7 +255,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
       </TouchableOpacity>
 
-      <View style={styles.prayerModalHeader}>
+      <View style={[styles.prayerModalHeader, IS_IPAD && styles.prayerModalContentWidth]}>
         <View style={styles.prayerModalHeaderLeft}>
           <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
           <ThemedText weight="bold" style={styles.prayerModalTitle}>
@@ -262,13 +264,13 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         </View>
       </View>
 
-      <ThemedText weight="semiBold" style={styles.prayerModalSubtitle}>
+      <ThemedText weight="semiBold" style={[styles.prayerModalSubtitle, IS_IPAD && styles.prayerModalContentWidth]}>
         Lift up a prayer for {prayerRequest.person_name || 'them'}
       </ThemedText>
 
       {/* Name field - pre-filled and non-editable */}
       <TextInput
-        style={[styles.prayerModalNameInput, { fontFamily: Fonts.regular }]}
+        style={[styles.prayerModalNameInput, IS_IPAD && styles.prayerModalContentWidth, { fontFamily: Fonts.regular }]}
         value={prayerRequest.person_name}
         placeholder="Name (optional)"
         placeholderTextColor={Colors.placeholderText}
@@ -277,7 +279,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
       />
 
       {/* Combined field: Prayer input + Prayer Request inside same card */}
-      <View style={styles.combinedPrayerField}>
+      <View style={[styles.combinedPrayerField, IS_IPAD && styles.prayerModalContentWidth]}>
         <TextInput
           style={[styles.combinedPrayerInput, { fontFamily: Fonts.regular }]}
           placeholder={`Write a prayer for ${prayerRequest.person_name || 'them'}…`}
@@ -298,7 +300,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
       </View>
 
       <TouchableOpacity
-        style={[styles.prayerModalSaveButton, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
+        style={[styles.prayerModalSaveButton, IS_IPAD && styles.prayerModalSaveButtonPad, { bottom: insets.bottom - 10, opacity: modalPrayerRequest.trim() ? 1 : 0 }]}
         onPress={handleSavePrayer}
         disabled={savingModalPrayer || !modalPrayerRequest.trim()}
       >
@@ -312,7 +314,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -364,7 +366,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         </StepFadeIn>
       </ScrollView>
 
-      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={handleTrackingNext}
           activeOpacity={0.7}
@@ -396,7 +398,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
       <StatusBar hidden />
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -465,7 +467,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={handleCompletionDone}
           activeOpacity={0.85}
@@ -503,6 +505,9 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
   },
+  fullScreenPrayerModalContainerPad: {
+    paddingHorizontal: 160,
+  },
   prayerModalCancelButton: {
     position: 'absolute',
     right: 20,
@@ -518,6 +523,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  prayerModalContentWidth: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   prayerModalHeaderLeft: {
     flexDirection: 'row',
@@ -600,6 +610,9 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 100,
   },
+  prayerModalSaveButtonPad: {
+    right: 160,
+  },
   // Walkthrough styles
   stepContainer: {
     flex: 1,
@@ -610,6 +623,9 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     paddingHorizontal: 24,
+  },
+  stepContentPad: {
+    paddingHorizontal: 160,
   },
   focusLabelContainer: {
     flexDirection: 'row',
@@ -679,6 +695,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+  },
+  primaryButtonPad: {
+    right: 48,
   },
   closeButton: {
     position: 'absolute',
@@ -801,11 +820,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     left: 20,
+    paddingTop: 16,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  completionButtonContainerPad: {
+    left: 160,
+    right: 160,
   },
   completionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: Colors.alertCoral,
     borderRadius: 20,
     paddingVertical: 15,
@@ -813,11 +838,14 @@ const styles = StyleSheet.create({
     gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     width: '100%',
   },
   completionButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
+    textAlign: 'center',
   },
 });
 

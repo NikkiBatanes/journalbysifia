@@ -40,6 +40,8 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TodaysWinWalkthrough'>;
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
 // Helper to compute date context from selected date
@@ -427,7 +429,7 @@ const WinTypeSelectionStep: React.FC<{
     <View style={styles.stepContainer}>
       <GestureScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -610,7 +612,7 @@ const WinTypeSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedWinType && (!isOtherSelected || customWin.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -721,7 +723,7 @@ const QuietWinStep: React.FC<{
     <View style={styles.stepContainer}>
       <GestureScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -776,7 +778,7 @@ const QuietWinStep: React.FC<{
         <View style={{ height: 100 }} />
       </GestureScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -904,7 +906,7 @@ const CompletionStep: React.FC<{
     <View style={styles.stepContainer}>
       <GestureScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -957,7 +959,7 @@ const CompletionStep: React.FC<{
         <View style={{ height: 100 }} />
       </GestureScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -1220,6 +1222,9 @@ const styles = StyleSheet.create({
   stepContent: {
     paddingHorizontal: 24,
   },
+  stepContentPad: {
+    paddingHorizontal: 160,
+  },
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1374,6 +1379,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    zIndex: 100,
+  },
+  completionButtonContainerPad: {
+    paddingHorizontal: 160,
   },
   completionButton: {
     flexDirection: 'row',
@@ -1558,13 +1568,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.alertCoral,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderRadius: 999,
     elevation: 8,
     zIndex: 100,
+  },
+  primaryButtonPad: {
+    right: 48,
   },
   doneButton: {
     position: 'absolute',

@@ -66,6 +66,7 @@ const SIDE_INSET = Math.max(
 );
 
 const DevotionalsScreen = () => {
+  const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { user } = useAuth();
   const userId = user?.id;
@@ -1074,8 +1075,8 @@ const DevotionalsScreen = () => {
       <SafeAreaView style={[styles.container, styles.containerBlue]} edges={['left','right']}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
-          <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
-            <View style={styles.pageInner}>
+          <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
+            <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
               {/* Hide header when empty; keep layout with spacer (match PlaybookListScreen) */}
               <View style={styles.headerSpacer} />
             </View>
@@ -1249,8 +1250,8 @@ const DevotionalsScreen = () => {
 
       {/* Header */}
       {/* Header on white background - matching PlaybookListScreen structure */}
-      <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
-        <View style={styles.pageInner}>
+      <View pointerEvents="box-none" style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top }]}>
+        <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
           ) : (
@@ -1519,6 +1520,9 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: Colors.hopeWhite,
   },
+  headerBarPad: {
+    paddingHorizontal: 48,
+  },
   // ── Header layout ────────────────────────────────────────────
   headerTopRow: {
     flexDirection: 'row',
@@ -1701,6 +1705,10 @@ const styles = StyleSheet.create({
     maxWidth: 720,
     alignSelf: 'center',
     paddingHorizontal: 16,
+  },
+  pageInnerPad: {
+    maxWidth: '100%',
+    paddingHorizontal: 0,
   },
   contentSheet: {
     flex: 1,

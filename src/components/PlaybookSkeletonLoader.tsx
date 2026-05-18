@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
+import { View, StyleSheet, ViewStyle, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
+
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 interface SkeletonBoxProps {
   width: number | string;
@@ -74,7 +76,7 @@ const PlaybookSkeletonLoader = () => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.contentContainer, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.contentContainer, IS_IPAD && styles.contentContainerPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}>
         {/* PLAYBOOK Label with Chevron - matches PlaybookWalkthroughScreen */}
         <View style={styles.playbookLabelContainer}>
           <SkeletonBox width="25%" height={12} backgroundColor={'rgba(255,255,255,0.22)'} />
@@ -121,6 +123,9 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 16,
+  },
+  contentContainerPad: {
+    paddingHorizontal: 48,
   },
   playbookLabelContainer: {
     flexDirection: 'row',

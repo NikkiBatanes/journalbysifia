@@ -9,6 +9,7 @@ import {
   Keyboard,
   StatusBar,
   Alert,
+  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -28,6 +29,8 @@ import { isToday, isYesterday, startOfDay } from 'date-fns';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TodosWalkthrough'>;
+
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
@@ -363,7 +366,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView
         ref={scrollViewRef}
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: isKeyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: isKeyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         bounces={true}
@@ -427,7 +430,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.buttonContainer, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.buttonContainer, IS_IPAD && styles.buttonContainerPad, { bottom: buttonPosition }]}>
         <Animated.View
           style={{
             opacity: saveButtonOpacity,
@@ -487,6 +490,9 @@ const styles = StyleSheet.create({
   stepContent: {
     paddingHorizontal: 20,
     paddingBottom: 320,
+  },
+  stepContentPad: {
+    paddingHorizontal: 160,
   },
   focusLabelContainer: {
     flexDirection: 'row',
@@ -605,6 +611,9 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     gap: 12,
+  },
+  buttonContainerPad: {
+    right: 48,
   },
   addButton: {
     width: 42,

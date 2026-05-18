@@ -7,6 +7,7 @@ import {
   ScrollView,
   Animated,
   PanResponder,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +22,8 @@ import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'UnifiedPrayerSelection'>;
+
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 // Prayer Path Data
 interface PrayerPath {
@@ -164,7 +167,7 @@ const CASTDescriptionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -244,7 +247,7 @@ const CASTDescriptionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -327,7 +330,7 @@ const OpenPrayerDescriptionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -398,7 +401,7 @@ const OpenPrayerDescriptionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -577,7 +580,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
       {currentStep === 0 && (
         <ScrollView
           style={styles.stepScroll}
-          contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+          contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
           showsVerticalScrollIndicator={false}
         >
           <StepFadeIn delay={0}>
@@ -723,6 +726,9 @@ const styles = StyleSheet.create({
   stepContent: {
     paddingHorizontal: 24,
   },
+  stepContentPad: {
+    paddingHorizontal: 160,
+  },
   focusLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,6 +773,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   categoryCardSelected: {
     backgroundColor: 'rgba(255, 107, 107, 0.18)',
@@ -933,6 +940,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    zIndex: 100,
+  },
+  completionButtonContainerPad: {
+    paddingHorizontal: 48,
   },
   completionButton: {
     flexDirection: 'row',

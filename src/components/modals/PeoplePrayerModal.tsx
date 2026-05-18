@@ -6,6 +6,8 @@ import { triggerSelectionHaptic } from '../../utils/haptics';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 interface PeoplePrayerModalProps {
   visible: boolean;
   selectedPrayerType: string;
@@ -129,7 +131,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, IS_IPAD && styles.headerPad]}>
           <TouchableOpacity
             onPress={onCancel}
             accessibilityRole="button"
@@ -158,7 +160,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
           keyboardVerticalOffset={0}
         >
           <ScrollView
-            style={styles.content}
+            style={[styles.content, IS_IPAD && styles.contentPad]}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -272,6 +274,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
   },
+  headerPad: {
+    paddingHorizontal: 160,
+  },
   headerButtonText: {
     fontSize: 16,
     color: Colors.hopeWhite,
@@ -290,6 +295,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 24,
+  },
+  contentPad: {
+    paddingHorizontal: 160,
   },
   tabContainer: {
     flexDirection: 'row',

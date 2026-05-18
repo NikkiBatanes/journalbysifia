@@ -13,6 +13,7 @@ import {
   PanResponder,
   useWindowDimensions,
   DeviceEventEmitter,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -51,6 +52,8 @@ const getDateContext = (selectedDate: Date): DateContext => {
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayerJournalWalkthrough'>;
+
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 // Prayer Path Data
 interface PrayerPath {
@@ -157,7 +160,7 @@ const PrayerPathSelectionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -318,7 +321,7 @@ const CASTDescriptionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -398,7 +401,7 @@ const CASTDescriptionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -481,7 +484,7 @@ const OpenPrayerDescriptionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0}>
@@ -552,7 +555,7 @@ const OpenPrayerDescriptionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -790,7 +793,7 @@ const ACTSPrayerSlidesStep: React.FC<{
     <View style={styles.stepContainer} {...panResponder.panHandlers}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -904,7 +907,7 @@ const ACTSPrayerSlidesStep: React.FC<{
       )}
 
       {actionLabel ? (
-        <Animated.View style={[styles.completionButtonContainer, { bottom: buttonPosition }]}>
+        <Animated.View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: buttonPosition }]}>
           <Animated.View style={[
             styles.primaryButtonPill,
             { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
@@ -1043,7 +1046,7 @@ const OpenPrayerStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: keyboardVisible ? 320 : 30 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -1112,7 +1115,7 @@ const OpenPrayerStep: React.FC<{
       )}
 
       {actionLabel ? (
-        <Animated.View style={[styles.completionButtonContainer, { bottom: buttonPosition }]}>
+        <Animated.View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: buttonPosition }]}>
           <Animated.View style={[
             styles.primaryButtonPill,
             { opacity: prayerText?.trim() ? 1 : 0 },
@@ -1304,7 +1307,7 @@ const CompletionStep: React.FC<{
     <View style={styles.stepContainer}>
       <ScrollView
         style={styles.stepScroll}
-        contentContainerStyle={[styles.stepContent, { paddingTop: insets.top + 8, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
@@ -1350,7 +1353,7 @@ const CompletionStep: React.FC<{
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -1860,6 +1863,9 @@ const styles = StyleSheet.create({
   stepContent: {
     paddingHorizontal: 24,
   },
+  stepContentPad: {
+    paddingHorizontal: 160,
+  },
   stepTitle: {
     fontSize: 24,
     color: Colors.hopeWhite,
@@ -1958,7 +1964,6 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '100%',
-    maxWidth: 400,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 20,
     padding: 16,
@@ -1968,6 +1973,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   categoryCardSelected: {
     backgroundColor: 'rgba(255, 107, 107, 0.18)',
@@ -2091,6 +2097,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    zIndex: 100,
+  },
+  completionButtonContainerPad: {
+    paddingHorizontal: 160,
   },
   completionButton: {
     flexDirection: 'row',
@@ -2149,6 +2160,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   actsCard: {
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
     backgroundColor: 'transparent',
     borderRadius: 16,
     padding: 20,
@@ -2280,6 +2294,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   completionCard: {
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
     borderRadius: 50,
     padding: 24,
     borderWidth: 1.5,

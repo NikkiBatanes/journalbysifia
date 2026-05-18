@@ -38,6 +38,8 @@ interface HowToModalProps {
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
 const JOURNAL_ICON_ROW_HEIGHT = 78;
 
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+
 const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; color: string; label: string }[] = [
   { type: 'reflection', icon: 'feather', color: Colors.faithGold, label: 'Journal' },
   { type: 'prayer', icon: 'hands-pray', color: '#87CEEB', label: 'Pray' },
@@ -1432,10 +1434,10 @@ const HowToModal: React.FC<HowToModalProps> = ({
 
           <ScrollView
             ref={scrollViewRef}
-            style={styles.content}
+            style={[styles.content, IS_IPAD && styles.contentPad]}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{
-              paddingTop: insets.top + 8,
+              paddingTop: insets.top + (IS_IPAD ? 28 : 8),
               paddingBottom: insets.bottom + (hasWisdom ? 170 : 100),
             }}
             showsVerticalScrollIndicator={false}
@@ -1955,6 +1957,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  contentPad: {
+    paddingHorizontal: 160,
   },
   actionTitle: {
     fontSize: 16,

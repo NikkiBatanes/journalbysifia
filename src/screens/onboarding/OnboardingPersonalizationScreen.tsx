@@ -180,6 +180,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const isVerySmallPhone = !isTablet && screenSize.height <= 700; // iPhone SE 2nd/3rd gen (667)
   const isSmallPhone = !isTablet && screenSize.height > 700 && screenSize.height <= 850; // iPhone 14 Pro (844) and similar
   const contentWidth = Math.min(isLandscape ? screenSize.width * 0.68 : screenSize.width * 0.92, 720);
+  const useBirthdayPickerModal = Platform.OS === 'ios' && (isPad || isTablet);
+  const birthdaySelectorWidth = Math.min(contentWidth, screenSize.width - 40);
 
   // Track registration method for analytics only
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
@@ -270,6 +272,40 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       year: 'numeric',
     });
   };
+
+  const openBirthdayPicker = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
+    if (birthDate) {
+      const bparts = birthDate.split('-').map(Number);
+      const bdate = bparts.length === 3 ? new Date(bparts[0], bparts[1] - 1, bparts[2]) : null;
+      if (bdate && !isNaN(bdate.getTime())) {
+        setTempBirthDate(bdate);
+      } else {
+        const defaultDate = new Date();
+        defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+        setTempBirthDate(defaultDate);
+      }
+    } else {
+      const defaultDate = new Date();
+      defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+      setTempBirthDate(defaultDate);
+    }
+    setShowInlineYearPicker(true);
+  }, [birthDate]);
+
+  const closeBirthdayPicker = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
+    setShowInlineYearPicker(false);
+  }, []);
+
+  const confirmBirthdayPicker = useCallback(() => {
+    try { triggerSuccessHaptic(); } catch {}
+    const dy = tempBirthDate.getFullYear();
+    const dm = String(tempBirthDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(tempBirthDate.getDate()).padStart(2, '0');
+    setBirthDate(`${dy}-${dm}-${dd}`);
+    setShowInlineYearPicker(false);
+  }, [tempBirthDate]);
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -593,7 +629,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // Keyboard handling state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const activeInputMaxHeight = keyboardVisible && isWhatHappenedStep
-    ? (isVerySmallPhone ? 96 : (isSmallPhone ? 120 : MAX_INPUT_HEIGHT))
+    ? (isTablet ? (isLandscape ? 108 : 132) : (isVerySmallPhone ? 96 : (isSmallPhone ? 120 : MAX_INPUT_HEIGHT)))
     : MAX_INPUT_HEIGHT;
 
   const headerIntroOpacity = useRef(new Animated.Value(1)).current;
@@ -1355,10 +1391,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
       const kbHeight = e.endCoordinates.height;
-      const liftOffset = isPad && isLandscape ? 80 : (isPad ? 50 : 70);
+      const keyboardClearance = (isPad || isTablet) ? (isLandscape ? 16 : 24) : 70;
+      const keyboardLift = Math.max(0, kbHeight - keyboardClearance);
       const animations: Animated.CompositeAnimation[] = [
         Animated.spring(keyboardTranslateY, {
-          toValue: -kbHeight + liftOffset,
+          toValue: -keyboardLift,
           tension: 50,
           friction: 12,
           useNativeDriver: true,
@@ -1408,7 +1445,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [keyboardTranslateY, headerTranslateY, isWhatHappenedStep, isSmallPhone, isVerySmallPhone, isPad]);
+  }, [keyboardTranslateY, headerTranslateY, isWhatHappenedStep, isSmallPhone, isVerySmallPhone, isPad, isTablet, isLandscape]);
 
   // Intro animation when screen first opens
   useEffect(() => {
@@ -1807,7 +1844,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           },
         ]}
       >
-        <Animated.View style={[styles.inputContainer]}>
+        <Animated.View style={[styles.inputContainer, isTablet && styles.inputContainerTablet]}>
         <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
           <View style={styles.askWrapper}>
             <Animated.View
@@ -1993,28 +2030,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 <ThemedText style={OnboardingStyles.subtitle}>
                   {'This helps siFia shape guidance that feels more appropriate to your stage of life.'}
                 </ThemedText>
-                <View style={[styles.birthdayContainer, { width: screenSize.width - 40 }]}>
+                <View style={[styles.birthdayContainer, { width: birthdaySelectorWidth }]}>
                   <TouchableOpacity
                     style={styles.birthdaySelector}
-                    onPress={() => {
-                      try { triggerLightHaptic(); } catch {}
-                      if (birthDate) {
-                        const bparts = birthDate.split('-').map(Number);
-                        const bdate = bparts.length === 3 ? new Date(bparts[0], bparts[1] - 1, bparts[2]) : null;
-                        if (bdate && !isNaN(bdate.getTime())) {
-                          setTempBirthDate(bdate);
-                        } else {
-                          const defaultDate = new Date();
-                          defaultDate.setFullYear(defaultDate.getFullYear() - 25);
-                          setTempBirthDate(defaultDate);
-                        }
-                      } else {
-                        const defaultDate = new Date();
-                        defaultDate.setFullYear(defaultDate.getFullYear() - 25);
-                        setTempBirthDate(defaultDate);
-                      }
-                      setShowInlineYearPicker((prev) => !prev);
-                    }}
+                    onPress={showInlineYearPicker ? closeBirthdayPicker : openBirthdayPicker}
                   >
                     <Text style={[styles.birthdaySelectorText, { fontFamily: theme.fontFamily }]}>
                       {birthDate ? formatBirthDate(birthDate) : 'Select your birthday'}
@@ -2022,7 +2041,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                     <Ionicons name="chevron-down" size={20} color={Colors.white} />
                   </TouchableOpacity>
 
-                  {showInlineYearPicker && currentStep === 1 && (
+                  {showInlineYearPicker && currentStep === 1 && !useBirthdayPickerModal && (
                     <Animated.View style={[
                       styles.birthdayPickerInline,
                       {
@@ -2043,6 +2062,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                         maximumDate={new Date()}
                         textColor={Colors.white}
                         themeVariant="dark"
+                        style={styles.birthdayDatePicker}
                         onChange={(_event, selectedDate) => {
                           if (selectedDate) {
                             setTempBirthDate(selectedDate);
@@ -2051,23 +2071,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                       />
                       <View style={styles.birthdayPickerRow}>
                         <TouchableOpacity
-                          onPress={() => {
-                            try { triggerLightHaptic(); } catch {}
-                            setShowInlineYearPicker(false);
-                          }}
+                          onPress={closeBirthdayPicker}
                           style={styles.birthdayPickerCancelButton}
                         >
                           <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          onPress={() => {
-                            try { triggerSuccessHaptic(); } catch {}
-                            const dy = tempBirthDate.getFullYear();
-                            const dm = String(tempBirthDate.getMonth() + 1).padStart(2, '0');
-                            const dd = String(tempBirthDate.getDate()).padStart(2, '0');
-                            setBirthDate(`${dy}-${dm}-${dd}`);
-                            setShowInlineYearPicker(false);
-                          }}
+                          onPress={confirmBirthdayPicker}
                           style={styles.birthdayPickerDoneButton}
                         >
                           <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
@@ -2286,7 +2296,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* ── Footer: outside contentWidth wrapper → full KAV width, matches UserInputScreen ── */}
       {!isGenerating && (detailsOnlyFlow || currentStep === 2) && renderDetailsInputFooter()}
 
-      {!isGenerating && !detailsOnlyFlow && currentStep === 1 && birthDate && (
+      {!isGenerating && !detailsOnlyFlow && currentStep === 1 && birthDate && !showInlineYearPicker && (
         <Animated.View
           style={[
             styles.onboardingNextButton,
@@ -2312,6 +2322,59 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
         </Animated.View>
+      )}
+
+      {!isGenerating && currentStep === 1 && useBirthdayPickerModal && (
+        <Modal
+          visible={showInlineYearPicker}
+          transparent
+          animationType="fade"
+          presentationStyle="overFullScreen"
+          onRequestClose={closeBirthdayPicker}
+        >
+          <View style={[
+            styles.birthdayPickerModalBackdrop,
+            {
+              paddingTop: (insets?.top ?? 0) + 24,
+              paddingBottom: (insets?.bottom ?? 0) + 24,
+            },
+          ]}>
+            <View style={[styles.birthdayPickerModalCard, { width: Math.min(screenSize.width - 80, 460) }]}>
+              <Text style={[styles.birthdayPickerModalTitle, { fontFamily: theme.fontFamily }]}>
+                Select your birthday
+              </Text>
+              <DateTimePicker
+                value={tempBirthDate}
+                mode="date"
+                display="spinner"
+                minimumDate={new Date(1900, 0, 1)}
+                maximumDate={new Date()}
+                textColor={Colors.white}
+                themeVariant="dark"
+                style={styles.birthdayDatePickerTablet}
+                onChange={(_event, selectedDate) => {
+                  if (selectedDate) {
+                    setTempBirthDate(selectedDate);
+                  }
+                }}
+              />
+              <View style={[styles.birthdayPickerRow, styles.birthdayPickerModalRow]}>
+                <TouchableOpacity
+                  onPress={closeBirthdayPicker}
+                  style={styles.birthdayPickerCancelButton}
+                >
+                  <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={confirmBirthdayPicker}
+                  style={styles.birthdayPickerDoneButton}
+                >
+                  <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
 
         <Modal
@@ -2680,10 +2743,53 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     marginTop: 18,
   },
+  birthdayDatePicker: {
+    alignSelf: 'center',
+    width: 340,
+    height: 216,
+  },
+  birthdayDatePickerTablet: {
+    alignSelf: 'center',
+    width: '100%',
+    height: 216,
+  },
   birthdayPickerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 8,
+  },
+  birthdayPickerModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(3, 20, 44, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  birthdayPickerModalCard: {
+    maxWidth: 460,
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 18,
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.32,
+    shadowRadius: 28,
+    elevation: 16,
+  },
+  birthdayPickerModalTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  birthdayPickerModalRow: {
+    marginTop: 14,
   },
   birthdayPickerCancelButton: {
     flexDirection: 'row',
@@ -2960,6 +3066,11 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20,
     paddingHorizontal: 0,
+  },
+  inputContainerTablet: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   optionalHelperContainer: {
     width: '100%',

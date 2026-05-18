@@ -71,6 +71,8 @@ const UserInputScreen: React.FC = () => {
   const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const isLandscape = width > height;
   const isPad = Platform.OS === 'ios' && (Platform as any).isPad === true;
+  const isTablet = width >= 768;
+  const isTabletLayout = isPad || isTablet;
 
   useScreenStatusBar('light', Colors.anchorBlue);
 
@@ -94,6 +96,10 @@ const UserInputScreen: React.FC = () => {
   const MIN_INPUT_HEIGHT = 44;
   const MAX_INPUT_HEIGHT = 150;
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const activeInputMaxHeight = keyboardVisible && isTabletLayout
+    ? (isLandscape ? 108 : 132)
+    : MAX_INPUT_HEIGHT;
   // Typing, cycling placeholder for guided, non-chat input
   const [placeholderText, setPlaceholderText] = useState('What happened?');
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -592,9 +598,12 @@ const UserInputScreen: React.FC = () => {
   // Keyboard animation - sync input box with keyboard slide
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
-      const liftOffset = isPad && isLandscape ? 80 : (isPad ? 50 : 70);
+      setKeyboardVisible(true);
+      const kbHeight = e.endCoordinates.height;
+      const keyboardClearance = isTabletLayout ? (isLandscape ? 16 : 24) : 70;
+      const keyboardLift = Math.max(0, kbHeight - keyboardClearance);
       Animated.spring(keyboardTranslateY, {
-        toValue: -e.endCoordinates.height + liftOffset,
+        toValue: -keyboardLift,
         tension: 50,
         friction: 12,
         useNativeDriver: true,
@@ -602,6 +611,7 @@ const UserInputScreen: React.FC = () => {
     });
 
     const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardVisible(false);
       Animated.spring(keyboardTranslateY, {
         toValue: 0,
         tension: 50,
@@ -614,7 +624,7 @@ const UserInputScreen: React.FC = () => {
       keyboardShowListener.remove();
       keyboardHideListener.remove();
     };
-  }, [isPad, keyboardTranslateY]);
+  }, [isLandscape, isTabletLayout, keyboardTranslateY]);
 
   // Simple chat input - no complex height calculations needed
 
@@ -1630,7 +1640,7 @@ const UserInputScreen: React.FC = () => {
 
         {/* Fixed footer input anchored to safe area */}
         <Animated.View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 20, opacity: inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ translateY: Animated.add(keyboardTranslateY, inputCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] })) }, { scale: inputScaleAnim }] }]}>
-          <View style={styles.inputContainer}>
+          <View style={[styles.inputContainer, isTabletLayout && styles.inputContainerTablet]}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <View style={styles.askWrapper}>
                 <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]}>
@@ -1638,8 +1648,8 @@ const UserInputScreen: React.FC = () => {
                     ref={inputRef}
                     style={[
                       styles.askInput,
-                      inputHeight >= MAX_INPUT_HEIGHT
-                        ? { height: MAX_INPUT_HEIGHT }   // locked — scroll kicks in
+                      inputHeight >= activeInputMaxHeight
+                        ? { height: activeInputMaxHeight }   // locked — scroll kicks in
                         : { minHeight: MIN_INPUT_HEIGHT }, // growing — let iOS size it
                       font,
                     ]}
@@ -1650,7 +1660,7 @@ const UserInputScreen: React.FC = () => {
                     onContentSizeChange={handleContentSizeChange}
                     multiline
                     textAlignVertical="top"
-                    scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                    scrollEnabled={inputHeight >= activeInputMaxHeight}
                     autoCapitalize="sentences"
                     keyboardAppearance="dark"
                     underlineColorAndroid="transparent"
@@ -2077,6 +2087,11 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
     paddingHorizontal: 0,
+  },
+  inputContainerTablet: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   usageCounter: {
     flexDirection: 'row',
