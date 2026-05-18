@@ -689,20 +689,29 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   }, [isRefining, refiningAnim]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
+    const dotAnim = useRef(new Animated.Value(0)).current;
 
     if (isRefining) {
-      interval = setInterval(() => {
-        setDotIndex(prev => (prev + 1) % 3);
-      }, 500);
+      Animated.loop(
+        Animated.timing(dotAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        })
+      ).start();
+      
+      dotAnim.addListener(({ value }) => {
+        setDotIndex(Math.floor(value * 3) % 3);
+      });
     } else {
+      dotAnim.stopAnimation();
+      dotAnim.setValue(0);
       setDotIndex(0);
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      dotAnim.stopAnimation();
+      dotAnim.removeAllListeners();
     };
   }, [isRefining]);
 

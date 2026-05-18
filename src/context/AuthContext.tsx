@@ -39,6 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [retryIntervalId, setRetryIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [refreshRetrying, setRefreshRetrying] = useState(false);
   const [refreshRetryIntervalId, setRefreshRetryIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [refreshRetryCount, setRefreshRetryCount] = useState(0);
+  const MAX_REFRESH_RETRIES = 5;
 
   // Keys for AsyncStorage
   const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
@@ -232,27 +234,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAccessToken(newToken);
       setIsAuthenticated(true);
       setRefreshRetrying(false);
+      setRefreshRetryCount(0);
       if (refreshRetryIntervalId) {
         clearInterval(refreshRetryIntervalId);
         setRefreshRetryIntervalId(null);
       }
       return true;
     } catch (e: any) {
-      // If error is network-related, set refreshRetrying and retry every 10s
+      // If error is network-related, set refreshRetrying and retry with exponential backoff
       setError('Network error during token refresh. Retrying...');
       setRefreshRetrying(true);
-      if (!refreshRetryIntervalId) {
+      if (!refreshRetryIntervalId && refreshRetryCount < MAX_REFRESH_RETRIES) {
+        const backoffDelay = 10000 * Math.pow(2, refreshRetryCount); // Exponential backoff: 10s, 20s, 40s, 80s, 160s
         const id = setInterval(() => {
+          setRefreshRetryCount(prev => prev + 1);
           refreshAuthToken();
-        }, 10000);
+        }, backoffDelay);
         setRefreshRetryIntervalId(id);
+      } else if (refreshRetryCount >= MAX_REFRESH_RETRIES) {
+        // Stop retrying after max attempts
+        setError('Max retry attempts reached. Please log in again.');
+        setRefreshRetrying(false);
       }
       // Do NOT log out for transient errors
       return false;
     } finally {
       setLoading(false);
     }
-  }, [refreshToken, refreshRetryIntervalId]);
+  }, [refreshToken, refreshRetryIntervalId, refreshRetryCount]);
 
   // Check auth validity (replace with real API call or JWT check)
   const checkAuth = useCallback(async () => {

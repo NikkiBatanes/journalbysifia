@@ -72,7 +72,10 @@ export class PerformanceMonitoringService {
   ];
 
   constructor() {
-    this.startMetricsFlush();
+    // Only start metrics flush in development to prevent phone heating in production
+    if (__DEV__) {
+      this.startMetricsFlush();
+    }
   }
 
   /**
