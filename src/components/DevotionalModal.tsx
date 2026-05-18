@@ -1466,6 +1466,7 @@ const styles = StyleSheet.create({
   },
   modalContainerPad: {
     paddingHorizontal: 48,
+    paddingVertical: 20,
   },
   modalContainerSmallPhone: {
     maxHeight: '92%',
