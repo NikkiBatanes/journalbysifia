@@ -321,7 +321,7 @@ const StreakPlanScreen: React.FC = () => {
         </Animated.View>
 
         {/* Action buttons */}
-        <Animated.View style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+        <Animated.View style={[styles.buttonsContainer, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
           <TouchableOpacity
             style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad]}
             onPress={handleContinue}
