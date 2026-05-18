@@ -234,7 +234,8 @@ const StreakPlanScreen: React.FC = () => {
         navigation.goBack();
       } else if (params.source === 'playbook_walkthrough') {
         // For playbook_walkthrough, the user already tapped Save and Finish
-        // So just go back once to dismiss StreakPlan and return to where they were before playbook
+        // Go back twice to dismiss both StreakPlan and PlaybookWalkthrough
+        navigation.goBack();
         navigation.goBack();
       } else {
         // For other sources, just go back once
