@@ -1641,6 +1641,30 @@ function splitSuchAsActionHint(line: string): string[] | null {
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...splitReadableActionLine(trailingText)];
 }
 
+function splitInlineQuotedExamples(line: string): string[] | null {
+  const trimmed = String(line || '').trim();
+  const likeMatch = trimmed.match(/^(.+?)\s+(?:like|such as)\s+["'“‘](.+?)["'”’]\s+(?:or|and)\s+["'“‘](.+?)["'”’]([.!?])?$/i);
+  if (likeMatch) {
+    const main = likeMatch[1].trim();
+    return [
+      /[.!?]$/.test(main) ? main : `${main}${likeMatch[4] || '.'}`,
+      `Suggestions: ${likeMatch[2].trim()}; ${likeMatch[3].trim()}`,
+    ];
+  }
+
+  const insteadMatch = trimmed.match(/^(.+?)\s+for example,\s+["'“‘](.+?)["'”’]\s+instead of\s+["'“‘](.+?)["'”’]([.!?])?$/i);
+  if (insteadMatch) {
+    const main = insteadMatch[1].trim();
+    return [
+      /[.!?]$/.test(main) ? main : `${main}${insteadMatch[4] || '.'}`,
+      `Use this kind of goal: ${insteadMatch[2].trim()}`,
+      `Avoid outcome pressure: ${insteadMatch[3].trim()}`,
+    ];
+  }
+
+  return null;
+}
+
 function stripLeakedActionFieldFragments(value: string): string {
   let out = String(value || '');
   const leakedFieldIndex = out.search(/(?:^|[\s,}"'`])\\?["']?\s*(?:primary_button|secondary_button|primaryButton|secondaryButton)\s*\\?["']?\s*:/i);
@@ -1806,7 +1830,7 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,120}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1816,7 +1840,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,150}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,60}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -1883,6 +1907,11 @@ function splitReadableActionLine(line: string): string[] {
     return suchAsHint;
   }
 
+  const inlineExamples = splitInlineQuotedExamples(trimmed);
+  if (inlineExamples) {
+    return inlineExamples;
+  }
+
   if (trimmed.length < 145) { return [trimmed]; }
 
   return sentenceParts.length >= 2 ? sentenceParts : [trimmed];
@@ -1894,13 +1923,25 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  return /^(?:(?:say|send|text|message|write|ask|pray|request)\b|.*\b(?:with this message|add this request|this request|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words)\b)[^:]{0,80}:\s*$/i.test(trimmed)
+  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words)\b)[^:]{0,100}:\s*$/i.test(trimmed)
     && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|ask|request)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
   if (/\brequest\b/i.test(line)) {
     return 'Request to add';
+  }
+  if (/\banswer\s+honestly\b/i.test(line)) {
+    return 'Honest answer';
+  }
+  if (/\bfor\s+example\b/i.test(line) && /\bwrite\b/i.test(line)) {
+    return 'Example to write';
+  }
+  if (/\bsay\s+to\s+yourself\b/i.test(line)) {
+    return 'Say to yourself';
+  }
+  if (/\breply\b/i.test(line)) {
+    return 'Reply';
   }
   if (/\bpray\b/i.test(line) && /\bbriefly\b/i.test(line)) {
     return 'Brief prayer';
@@ -2152,7 +2193,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       continue;
     }
 
-    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s*(.+)$/i);
+    const fieldMatch = line.match(/^(Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start|Use this kind of goal|Avoid outcome pressure):\s*(.+)$/i);
     if (fieldMatch) {
       const label = fieldMatch[1]
         .replace(/\b\w/g, char => char.toUpperCase())
@@ -6554,7 +6595,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginTop: 6,
     marginBottom: 6,
-    paddingLeft: 16,
+    paddingLeft: 18,
     paddingVertical: 10,
     paddingRight: 10,
     borderRadius: 8,
@@ -6562,11 +6603,12 @@ const styles = StyleSheet.create({
   },
   bodyScriptRail: {
     position: 'absolute',
-    left: 0,
-    top: 8,
-    bottom: 8,
-    width: 3,
+    left: 2,
+    top: 12,
+    bottom: 12,
+    width: 6,
     borderRadius: 999,
+    overflow: 'hidden',
     backgroundColor: Colors.faithGold,
   },
   bodyScriptHeader: {
