@@ -759,6 +759,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       content_refresh_wait: 'hourglass',
       upgrade_room: 'sparkles',
       trial_notification: 'time',
+      account_replenished: 'sparkles',
       weekly_summary: 'stats-chart',
     };
     return iconMap[type] || 'notifications';

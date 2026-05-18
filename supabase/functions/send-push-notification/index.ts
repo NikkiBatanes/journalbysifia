@@ -403,6 +403,7 @@ function isNotificationTypeEnabled(type: string, preferences: any): boolean {
     'streak_alert': 'streak_alerts',
     'milestone_celebration': 'milestone_celebrations',
     'trial_notification': 'trial_notifications',
+    'account_replenished': 'trial_notifications',
   };
 
   const prefKey = typeMap[type];
