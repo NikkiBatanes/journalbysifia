@@ -201,9 +201,10 @@ const CASTDescriptionStep: React.FC<{
           <View style={styles.timelineContainer}>
             <Animated.View style={[
               styles.timelineThickBar,
+              IS_IPAD && styles.timelineThickBarPad,
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 380],
+                outputRange: IS_IPAD ? [0, 280] : [0, 380],
               }) },
             ]} />
 
@@ -896,6 +897,9 @@ const styles = StyleSheet.create({
     width: 5,
     backgroundColor: Colors.alertCoral,
     borderRadius: 2.5,
+  },
+  timelineThickBarPad: {
+    height: 280,
   },
   timelineStep: {
     flexDirection: 'row',
