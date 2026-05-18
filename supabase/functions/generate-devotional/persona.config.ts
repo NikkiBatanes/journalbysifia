@@ -486,6 +486,9 @@ In Jesus' Name, Amen
 - Example good choices: Zephaniah 3:17, Haggai 2:4, Malachi 3:6, Nahum 1:7, Micah 6:8, Joel 2:25
 
 # PRAYER FORMATTING REQUIREMENTS:
+- EVERY day must include its own PRAYER section. Do not provide one shared series prayer.
+- Prayer content must not be blank. Write at least two specific prayer sentences between "Heavenly Father," and "In Jesus' Name, Amen".
+- Never use placeholders like "[Prayer content]" or leave only the greeting and closing.
 - ALWAYS end prayers with exactly: "In Jesus' Name, Amen"
 - Use capital "N" in "Name" - this is the proper reverent format
 - Include the apostrophe in "Jesus'" 
@@ -584,12 +587,9 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
   }
 
   // Ensure prayer format is correct
-  const prayerRegex = /PRAYER:[\s\S]*?In Jesus' Name, Amen/i;
+  const prayerRegex = /PRAYER:[\s\S]*?In Jesus['’] Name, Amen/i;
   if (!prayerRegex.test(enforcedResponse)) {
-    enforcedResponse = enforcedResponse.replace(
-      /PRAYER:.*?(?=\n\n\w|$)/is,
-      'PRAYER:\nHeavenly Father,\n\nIn Jesus\' Name, Amen'
-    );
+    throw new Error('AI failed to provide a properly formatted prayer - no blank prayer fallback allowed');
   }
 
   return enforcedResponse;

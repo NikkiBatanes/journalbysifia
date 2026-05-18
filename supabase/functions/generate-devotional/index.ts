@@ -209,6 +209,53 @@ function sanitizeDevotionalLanguage(devotional: Devotional): void {
   }));
 }
 
+function getMeaningfulPrayerBody(prayer: unknown): string {
+  return cleanMarkdown(prayer)
+    .replace(/^PRAYER:\s*/i, '')
+    .replace(/^Heavenly Father[,\s]*/i, '')
+    .replace(/In Jesus['’]?\s+Name,?\s*Amen\.?$/i, '')
+    .replace(/\[(?:your\s+)?prayer content(?: here)?\]/gi, '')
+    .replace(/\[this section is missing[^\]]*\]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasMeaningfulPrayer(prayer: unknown): boolean {
+  const body = getMeaningfulPrayerBody(prayer);
+  return body.length >= 30 && /[A-Za-z]/.test(body);
+}
+
+function validateCompleteDevotional(devotional: Devotional, requestedDuration: number): void {
+  if (!Array.isArray(devotional.days) || devotional.days.length !== requestedDuration) {
+    throw new Error(`Expected exactly ${requestedDuration} devotional day${requestedDuration === 1 ? '' : 's'}, received ${devotional.days?.length || 0}.`);
+  }
+
+  const seenDays = new Set<number>();
+  for (let expectedDay = 1; expectedDay <= requestedDuration; expectedDay++) {
+    const day = devotional.days.find(candidate => candidate.dayNumber === expectedDay);
+    if (!day) {
+      throw new Error(`Missing Day ${expectedDay}.`);
+    }
+    if (seenDays.has(day.dayNumber)) {
+      throw new Error(`Duplicate Day ${day.dayNumber}.`);
+    }
+    seenDays.add(day.dayNumber);
+
+    if (!day.scripture?.text || !day.scripture?.reference) {
+      throw new Error(`Day ${day.dayNumber} is missing scripture.`);
+    }
+    if (!day.reflection || day.reflection.trim().length === 0) {
+      throw new Error(`Day ${day.dayNumber} is missing reflection.`);
+    }
+    if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length !== 3) {
+      throw new Error(`Day ${day.dayNumber} must include exactly 3 reflection questions.`);
+    }
+    if (!hasMeaningfulPrayer(day.prayer)) {
+      throw new Error(`Day ${day.dayNumber} is missing a meaningful prayer body.`);
+    }
+  }
+}
+
 /**
  * Safely cleans scripture text while preserving ALL authentic translation elements
  * @param text - Scripture text that might contain markdown
@@ -575,7 +622,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     let dayMatches: Array<[unknown, string, string]> = [];
 
     // Pattern 1: **DAY X:** format (bold markdown)
-    const dayRegex1 = /\*\*DAY\s*(\d+):\*\*\s*([^*]*?)(?=\*\*DAY\s*\d+:|$)/gi;
+    const dayRegex1 = /\*\*DAY\s*(\d+):\*\*\s*([\s\S]*?)(?=\*\*DAY\s*\d+:|$)/gi;
     let match1;
     while ((match1 = dayRegex1.exec(content)) !== null) {
       console.log(`[DEVOTIONAL PARSER] Found day ${match1[1]} (bold format) with content length:`, match1[2].length);
@@ -993,12 +1040,16 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // This ensures consistent spacing regardless of AI output format
           prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
 
+          if (!hasMeaningfulPrayer(prayerBody)) {
+            throw new Error(`Prayer for Day ${dayNum} is blank or only contains a template.`);
+          }
+
           // Format prayer with proper spacing - single newline after "Heavenly Father," and before "In Jesus' Name, Amen"
           prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
         } else {
           // Try to find series-level prayer (after all days)
           const seriesPrayerMatch = content.match(/#{0,3}\s*PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus[''']?\s*[Nn]ame)/i);
-          if (seriesPrayerMatch && seriesPrayerMatch[1]) {
+          if (duration === 1 && seriesPrayerMatch && seriesPrayerMatch[1]) {
             let prayerBody = cleanMarkdown(seriesPrayerMatch[1])
               .trim()
               .replace(/^[\s\d\-*•.]+/, '')
@@ -1006,6 +1057,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
               .trim();
             prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
             prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
+            if (!hasMeaningfulPrayer(prayerBody)) {
+              throw new Error(`Prayer for Day ${dayNum} is blank or only contains a template.`);
+            }
             prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
             console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Using series-level prayer`);
           } else {
@@ -1067,18 +1121,19 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         throw new Error(`Day ${day.dayNumber} is missing reflection. AI must provide meaningful reflection content.`);
       }
 
-      if (!day.prayer || day.prayer.trim().length === 0) {
-        throw new Error(`Day ${day.dayNumber} is missing prayer. AI must provide properly formatted prayer.`);
+      if (!hasMeaningfulPrayer(day.prayer)) {
+        throw new Error(`Day ${day.dayNumber} is missing a meaningful prayer. AI must provide properly formatted prayer content.`);
       }
 
-      if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length === 0) {
-        throw new Error(`Day ${day.dayNumber} is missing reflection questions. AI must provide at least 3 reflection questions.`);
+      if (!Array.isArray(day.reflectionQuestions) || day.reflectionQuestions.length !== 3) {
+        throw new Error(`Day ${day.dayNumber} must include exactly 3 reflection questions.`);
       }
     });
 
     // Sort days and finalize
     devotional.days.sort((a, b) => a.dayNumber - b.dayNumber);
-    devotional.totalDays = Math.max(devotional.days.length, duration);
+    devotional.totalDays = devotional.days.length;
+    validateCompleteDevotional(devotional, duration);
 
     console.log('[DEVOTIONAL PARSER] Successfully parsed devotional:', {
       title: devotional.title,
@@ -1487,7 +1542,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
                 ],
                 temperature: 0.45,
                 top_p: 1,
-                max_completion_tokens: duration === 7 ? 7000 : (duration === 5 ? 5000 : 4000),
+                max_completion_tokens: duration === 7 ? 10000 : (duration === 5 ? 8000 : (duration === 3 ? 5500 : 4000)),
                 frequency_penalty: 0.25,
                 presence_penalty: 0,
               }),
@@ -1534,6 +1589,7 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
     let aiData: Record<string, unknown> | null = null;
     let rawContent = '';
     let lastCompletionIssue = '';
+    let parsedDevotional: Devotional | null = null;
 
     const maxCompletionAttempts = 3;
     for (let completionAttempt = 1; completionAttempt <= maxCompletionAttempts; completionAttempt++) {
@@ -1610,8 +1666,50 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
         break;
       }
 
-      lastCompletionIssue = '';
-      break;
+      try {
+        const enforcedContent = enforcePersona(rawContent, devotionalAdvisorPersona);
+        const candidateDevotional = parseOpenAIResponse(
+          { choices: [{ message: { content: enforcedContent } }] },
+          duration,
+          playbookId,
+          userInput,
+          bibleVersion
+        );
+        validateCompleteDevotional(candidateDevotional, duration);
+        parsedDevotional = candidateDevotional;
+        rawContent = enforcedContent;
+        lastCompletionIssue = '';
+        break;
+      } catch (parseError) {
+        const issueMessage = parseError instanceof Error ? parseError.message : 'Unknown devotional format issue';
+        lastCompletionIssue = `AI returned incomplete devotional content on attempt ${completionAttempt}: ${issueMessage}`;
+        console.warn('[Generate-Devotional] Devotional content validation failed, retrying if possible', {
+          completionAttempt,
+          maxCompletionAttempts,
+          issueMessage,
+          contentPreview: rawContent.substring(0, 500),
+        });
+
+        if (completionAttempt < maxCompletionAttempts) {
+          const baseRetryInput = usedParaphrasing ? effectiveUserInput : paraphraseInput(userInput);
+          effectiveUserInput = [
+            baseRetryInput,
+            '',
+            'FORMAT FIX REQUIRED:',
+            `The previous devotional was rejected because: ${issueMessage}`,
+            `Regenerate the full ${duration}-day devotional from scratch.`,
+            `Include every day from DAY 1 through DAY ${duration}.`,
+            'Every day must include SCRIPTURE, REFLECTION, exactly 3 REFLECTION QUESTIONS, and a PRAYER.',
+            'Each PRAYER must have at least two specific prayer sentences between "Heavenly Father," and "In Jesus\' Name, Amen".',
+            'Never leave a PRAYER blank or use placeholder prayer text.',
+          ].join('\n');
+          usedParaphrasing = true;
+          await new Promise(resolve => setTimeout(resolve, 500 * completionAttempt));
+          continue;
+        }
+
+        break;
+      }
     }
 
     if (usedParaphrasing) {
@@ -1631,25 +1729,12 @@ ${personalizationContext ? `\nPERSONALIZATION CONTEXT: Use this lightly to shape
     console.log(JSON.stringify(aiData, null, 2));
     console.log('==========================');
 
-    let content = aiData.choices?.[0]?.message?.content || '';
-    
-    // Check if AI provided any content at all
-    if (!content || content.trim().length === 0) {
-      console.error('[DEVOTIONAL] AI returned empty response');
-      throw new Error('AI returned empty response - no devotional content generated');
-    }
-    
-    if (content) {
-      content = enforcePersona(content, devotionalAdvisorPersona);
+    if (!parsedDevotional) {
+      console.error('[DEVOTIONAL] AI returned no valid devotional after retries');
+      throw new Error('AI returned incomplete devotional content after retries.');
     }
 
-    const devotional = parseOpenAIResponse(
-      { choices: [{ message: { content } }] },
-      duration,
-      playbookId,
-      userInput,
-      bibleVersion
-    );
+    const devotional = parsedDevotional;
 
     // Enforce exact scriptures using BibleGateway scraper for problematic translations (NASB now included)
     // Wrap in timeout to prevent function from crashing if scraping takes too long

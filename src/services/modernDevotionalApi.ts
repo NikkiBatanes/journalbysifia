@@ -27,6 +27,44 @@ interface DevotionalGenerationParams {
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
 
+function getMeaningfulPrayerBody(prayer: unknown): string {
+  if (typeof prayer !== 'string') {
+    return '';
+  }
+
+  return prayer
+    .replace(/\*\*|__/g, '')
+    .replace(/^PRAYER:\s*/i, '')
+    .replace(/^Heavenly Father[,\s]*/i, '')
+    .replace(/In Jesus['’]?\s+Name,?\s*Amen\.?$/i, '')
+    .replace(/\[(?:your\s+)?prayer content(?: here)?\]/gi, '')
+    .replace(/\[this section is missing[^\]]*\]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function validateGeneratedDevotional(result: any, expectedDuration: number): void {
+  if (!result || !Array.isArray(result.days) || result.days.length === 0) {
+    throw new Error('Invalid devotional response: missing or empty days array');
+  }
+
+  if (result.days.length !== expectedDuration) {
+    throw new Error(`Invalid devotional response: expected ${expectedDuration} days, received ${result.days.length}`);
+  }
+
+  for (let expectedDay = 1; expectedDay <= expectedDuration; expectedDay++) {
+    const day = result.days.find((candidate: any) => candidate?.dayNumber === expectedDay);
+    if (!day) {
+      throw new Error(`Invalid devotional response: missing day ${expectedDay}`);
+    }
+
+    const prayerBody = getMeaningfulPrayerBody(day.prayer);
+    if (prayerBody.length < 30 || !/[A-Za-z]/.test(prayerBody)) {
+      throw new Error(`Invalid devotional response: day ${expectedDay} is missing prayer content`);
+    }
+  }
+}
+
 function extractFunctionErrorMessage(error: any): string | null {
   const candidates = [
     error?.message,
@@ -320,10 +358,7 @@ async function generateDevotionalInternal(
         result = await response.json();
       }
 
-      // Validate the response structure
-      if (!result || !Array.isArray(result.days) || result.days.length === 0) {
-        throw new Error('Invalid devotional response: missing or empty days array');
-      }
+      validateGeneratedDevotional(result, finalDuration);
 
       const deriveCategory = (devotionalResult: any): DevotionalCategory => {
         try {
