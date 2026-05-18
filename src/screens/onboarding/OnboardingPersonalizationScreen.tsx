@@ -1355,7 +1355,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
       const kbHeight = e.endCoordinates.height;
-      const liftOffset = isPad ? 20 : 70;
+      const liftOffset = isPad && isLandscape ? 80 : (isPad ? 50 : 70);
       const animations: Animated.CompositeAnimation[] = [
         Animated.spring(keyboardTranslateY, {
           toValue: -kbHeight + liftOffset,
@@ -1952,8 +1952,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <KeyboardAvoidingView
         style={OnboardingStyles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
-        enabled={isPad}
+        keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
+        enabled={false}
       >
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={{ flex: 1, width: contentWidth }}>

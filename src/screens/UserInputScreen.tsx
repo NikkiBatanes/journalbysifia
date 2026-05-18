@@ -592,7 +592,7 @@ const UserInputScreen: React.FC = () => {
   // Keyboard animation - sync input box with keyboard slide
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
-      const liftOffset = isPad ? 20 : 70;
+      const liftOffset = isPad && isLandscape ? 80 : (isPad ? 50 : 70);
       Animated.spring(keyboardTranslateY, {
         toValue: -e.endCoordinates.height + liftOffset,
         tension: 50,
@@ -1302,9 +1302,9 @@ const UserInputScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.select({ ios: isPad ? -40 : -70, android: 0 })}
+          keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
           style={{ flex: 1 }}
-          enabled={isPad}
+          enabled={false}
         >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
