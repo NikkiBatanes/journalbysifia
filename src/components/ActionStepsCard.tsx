@@ -241,10 +241,10 @@ export default function ActionStepsCard({
       NewSubscriptionService.getUserSubscription(user.id).then(subscription => {
         const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
         setWisdomCount((subscription as any).wisdom_count || 0);
-        setWisdomLimit(limits.wisdom_limit || 0);
+        setWisdomLimit(isOnboarding ? 1 : limits.wisdom_limit || 0);
       });
     }
-  }, [user?.id]);
+  }, [isOnboarding, user?.id]);
 
   // Load wisdom counts
   React.useEffect(() => {

@@ -115,6 +115,10 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         success: false,
         error: parsed?.error || 'WISDOM_FAILED',
         message: parsed?.message || 'siFia could not provide wisdom right now. Please try again in a moment.',
+        wisdomCount: typeof parsed?.wisdomCount === 'number' ? parsed.wisdomCount : undefined,
+        wisdomLimit: typeof parsed?.wisdomLimit === 'number' ? parsed.wisdomLimit : undefined,
+        currentTier: parsed?.currentTier,
+        canUpgrade: isOnboarding ? false : parsed?.canUpgrade,
       };
     }
 
@@ -123,6 +127,10 @@ export async function getActionWisdom(request: WisdomRequest): Promise<WisdomRes
         success: false,
         error: data?.error || 'WISDOM_FAILED',
         message: data?.message || 'siFia could not provide wisdom right now. Please try again in a moment.',
+        wisdomCount: typeof data?.wisdomCount === 'number' ? data.wisdomCount : undefined,
+        wisdomLimit: typeof data?.wisdomLimit === 'number' ? data.wisdomLimit : undefined,
+        currentTier: data?.currentTier,
+        canUpgrade: isOnboarding ? false : data?.canUpgrade,
       };
     }
 

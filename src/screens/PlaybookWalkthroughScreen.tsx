@@ -2835,10 +2835,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
       NewSubscriptionService.getUserSubscription(user.id).then(subscription => {
         const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
         setWisdomCount((subscription as any).wisdom_count || 0);
-        setWisdomLimit(limits.wisdom_limit ?? 0);
+        setWisdomLimit(isOnboarding ? 1 : limits.wisdom_limit ?? 0);
       });
     }
-  }, [user?.id]);
+  }, [isOnboarding, user?.id]);
 
   // Load wisdom counts
   React.useEffect(() => {
@@ -5266,13 +5266,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       .then(subscription => {
         const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
         setRefinementCount((subscription as any).refinement_count || 0);
-        setRefinementLimit(limits.refinement_limit ?? 0);
+        setRefinementLimit(source === 'onboarding' ? 1 : limits.refinement_limit ?? 0);
       })
       .catch(() => {
         setRefinementCount(0);
         setRefinementLimit(0);
       });
-  }, [userId]);
+  }, [source, userId]);
 
   useEffect(() => {
     loadRefinementUsage();
