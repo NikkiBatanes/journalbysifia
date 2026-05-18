@@ -1,7 +1,7 @@
 {
   "name": "siFia",
   "displayName": "siFia",
-  "version": "1.3.5",
+  "version": "1.4.0",
   "orientation": "portrait",
   "icon": "./assets/images/siFiaAppIcon.png",
   "splash": {
@@ -20,7 +20,7 @@
       "backgroundColor": "#1A3C6D"
     },
     "package": "app.sifia.com",
-    "versionCode": 6
+    "versionCode": 7
   },
   "extra": {
     "eas": {
