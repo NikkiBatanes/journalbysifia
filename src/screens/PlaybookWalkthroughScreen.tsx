@@ -1081,6 +1081,16 @@ interface BodyLine {
   summary?: string;
 }
 
+function ScriptRail(): React.ReactElement {
+  return (
+    <View style={styles.bodyScriptRail} pointerEvents="none">
+      <View style={styles.bodyScriptRailCap} />
+      <View style={styles.bodyScriptRailLine} />
+      <View style={styles.bodyScriptRailCap} />
+    </View>
+  );
+}
+
 function stripBalancedActionQuotes(text: string): string {
   let out = String(text || '').trim();
   const quotePairs: Array<[string, string]> = [
@@ -1230,10 +1240,15 @@ function normalizeSingleQuotedActionScripts(text: string): string {
 }
 
 function unwrapQuotedMultilineActionScript(text: string): string {
-  return String(text || '').replace(
+  let out = String(text || '').replace(
     /['‘]\s*((?:Message|Text|Send|Write|Ask|Pray)[^:\n]{0,100}:\s*\n[\s\S]*?)\s*['’](?=\s*(?:\n|$))/gi,
     (_match, script) => String(script).trim()
   );
+  out = out.replace(
+    /((?:Message|Text|Send|Write|Ask|Pray)[^:\n]{0,100}:\s*\n)(["“][\s\S]*?["”])(?=\s*(?:Example|$))/gi,
+    (_match, intro, script) => `${intro}${String(script).trim().replace(/\n+/g, '\n')}`
+  );
+  return out;
 }
 
 function normalizeActionInlineStructure(text: string): string {
@@ -1847,7 +1862,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say\s+aloud(?:\s+slowly\s+and\s+clearly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
   if (unquotedSpokenLine) {
     const statement = unquotedSpokenLine[2].trim();
     return [
@@ -3099,7 +3114,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const exampleFieldLines = exampleText ? parseExampleFieldLines(exampleText) : [];
 
   // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
-  const rawBodyLines: string[] = rawMainBody
+  const normalizedMainBody = unwrapQuotedMultilineActionScript(rawMainBody);
+  const rawBodyLines: string[] = normalizedMainBody
     .split('\n')
     .flatMap(l => {
       const trimmed = l.trim();
@@ -3339,7 +3355,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
               if (item.type === 'script') {
                 return (
                   <View key={idx} style={styles.bodyScriptBlock}>
-                    <View style={styles.bodyScriptRail} />
+                    <ScriptRail />
                     <View style={styles.bodyScriptHeader}>
                       <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
                       <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
@@ -3824,7 +3840,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 if (item.type === 'script') {
                                   return (
                                     <View key={`wisdom-item-${blockIndex}-${idx}-script`} style={styles.bodyScriptBlock}>
-                                      <View style={styles.bodyScriptRail} />
+                                      <ScriptRail />
                                       <View style={styles.bodyScriptHeader}>
                                         <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
                                         <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
@@ -6613,8 +6629,8 @@ const styles = StyleSheet.create({
   },
   bodyScriptBlock: {
     position: 'relative',
-    marginTop: 6,
-    marginBottom: 6,
+    marginTop: 12,
+    marginBottom: 14,
     paddingLeft: 18,
     paddingVertical: 10,
     paddingRight: 10,
@@ -6626,12 +6642,18 @@ const styles = StyleSheet.create({
     left: 3,
     top: 12,
     bottom: 12,
-    width: 3,
-    borderTopLeftRadius: 999,
-    borderTopRightRadius: 999,
-    borderBottomLeftRadius: 999,
-    borderBottomRightRadius: 999,
-    overflow: 'hidden',
+    width: 4,
+    alignItems: 'center',
+  },
+  bodyScriptRailCap: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.faithGold,
+  },
+  bodyScriptRailLine: {
+    flex: 1,
+    width: 2,
     backgroundColor: Colors.faithGold,
   },
   bodyScriptHeader: {

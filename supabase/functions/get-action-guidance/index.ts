@@ -558,6 +558,8 @@ function buildWisdomPrompt(args: {
     'For Christian witness or faith-sharing greetings, give warm natural openers that can gently lead to God/Jesus/faith, not generic lines like "Hi, how are you?"',
     'If the action involves a decision: give the clear choice and why.',
     'If the action involves a behavior change: give the precise first micro-step to start.',
+    'If the action involves journaling, writing reflection, tracking thoughts, listing blessings, or recording progress, gently suggest using the in-app journal or reflection space. Do not tell the user to open a separate notes app unless they specifically ask for outside-app options.',
+    'For in-app journal suggestions, be non-pushy and awareness-based. Prefer wording like: "You can use the journal space in the app for this if that feels helpful," or "When you notice it, capture it in your journal here."',
     'If the user is confused about meaning: explain it clearly and concisely.',
     'If the user asks about differences: explain the actual differences with specifics.',
     'If the user asks for a short Scripture verse and the text is available in the action context, quote it exactly. If the user asks for a full chapter or long passage, do not invent or paraphrase the full text. Give the reference, explain that the user should open it in their Bible or the app Scripture screen, then give specific study steps for that passage.',

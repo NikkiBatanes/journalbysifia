@@ -57,6 +57,16 @@ interface BodyLine {
   summary?: string;
 }
 
+function ScriptRail(): React.ReactElement {
+  return (
+    <View style={styles.bodyScriptRail} pointerEvents="none">
+      <View style={styles.bodyScriptRailCap} />
+      <View style={styles.bodyScriptRailLine} />
+      <View style={styles.bodyScriptRailCap} />
+    </View>
+  );
+}
+
 function capitalizeFirstLetter(text: string): string {
   const trimmed = String(text || '').trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() + trimmed.slice(1) : '';
@@ -617,7 +627,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say\s+aloud(?:\s+slowly\s+and\s+clearly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
   if (unquotedSpokenLine) {
     const statement = unquotedSpokenLine[2].trim();
     return [
@@ -1395,7 +1405,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                           const isPrayerScript = /\bpray\b/i.test(item.label || '');
                           return (
                             <View key={idx} style={[styles.bodyScriptBlock, isPrayerScript && styles.bodyScriptBlockPrayer]}>
-                              <View style={styles.bodyScriptRail} />
+                              <ScriptRail />
                               <View style={styles.bodyScriptHeader}>
                                 <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
                                 <ThemedText weight="semiBold" style={styles.bodyScriptLabel} selectable={true}>
@@ -2194,8 +2204,8 @@ const styles = StyleSheet.create({
   },
   bodyScriptBlock: {
     position: 'relative',
-    marginTop: 6,
-    marginBottom: 6,
+    marginTop: 12,
+    marginBottom: 14,
     paddingLeft: 18,
     paddingVertical: 10,
     paddingRight: 10,
@@ -2210,12 +2220,18 @@ const styles = StyleSheet.create({
     left: 3,
     top: 12,
     bottom: 12,
-    width: 3,
-    borderTopLeftRadius: 999,
-    borderTopRightRadius: 999,
-    borderBottomLeftRadius: 999,
-    borderBottomRightRadius: 999,
-    overflow: 'hidden',
+    width: 4,
+    alignItems: 'center',
+  },
+  bodyScriptRailCap: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.faithGold,
+  },
+  bodyScriptRailLine: {
+    flex: 1,
+    width: 2,
     backgroundColor: Colors.faithGold,
   },
   bodyScriptHeader: {
