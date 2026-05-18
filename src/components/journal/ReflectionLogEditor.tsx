@@ -1171,7 +1171,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             // Haptic on confirmed delete
             triggerLightHaptic();
             onDelete(entryId);
-            onCancel(); // Close the modal after deletion
           },
         },
       ],

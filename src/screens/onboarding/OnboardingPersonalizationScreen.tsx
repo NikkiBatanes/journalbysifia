@@ -2195,8 +2195,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {showInlineYearPicker && currentStep === 1 && (
         <Animated.View style={[
           isPad ? styles.birthdayPickerOverlayPad : styles.birthdayPickerOverlay,
-          { 
-            top: isPad ? (screenSize.height / 2) - 150 : screenSize.height * 0.44,
+          {
+            ...(isPad ? {} : { top: screenSize.height * 0.44 }),
           },
           {
             opacity: pickerEntryAnim,
@@ -2686,12 +2686,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   birthdayPickerOverlayPad: {
-    alignSelf: 'center',
+    position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: 400,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   birthdayPickerRow: {
     flexDirection: 'row',
