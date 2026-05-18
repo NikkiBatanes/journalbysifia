@@ -1651,7 +1651,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   playbookInfoHeaderPad: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 12,
   },
   playbookInfoLabel: {
     color: Colors.hopeWhite,
