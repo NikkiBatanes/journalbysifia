@@ -26,6 +26,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
 export const MomentsScreen: React.FC = () => {
+  const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -139,8 +140,8 @@ export const MomentsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={[styles.headerBar, { backgroundColor: Colors.anchorBlue }]}>
-        <View style={styles.pageInner}>
+      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.anchorBlue }]}>
+        <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftRow}>
@@ -287,11 +288,18 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: Colors.anchorBlue,
   },
+  headerBarPad: {
+    paddingHorizontal: 48,
+  },
   pageInner: {
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
     paddingHorizontal: 16,
+  },
+  pageInnerPad: {
+    maxWidth: '100%',
+    paddingHorizontal: 0,
   },
   headerTopRow: {
     flexDirection: 'row',
