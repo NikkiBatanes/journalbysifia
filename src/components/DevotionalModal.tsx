@@ -934,7 +934,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               {(playbookInfo || userInput) && (
                 <Animated.View style={[
                   styles.playbookInfoContainer,
-                  IS_IPAD && styles.playbookInfoContainerPad,
                   (isCreating || isOnboardingCreating || isClosing) ? {
                     opacity: genCardEntryAnim,
                     transform: [{
@@ -962,8 +961,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
                   <View style={[
                     styles.playbookInfoContent,
-                    IS_IPAD && styles.playbookInfoContentPad,
                     showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
+                    IS_IPAD && styles.playbookInfoContentPad,
                   ]}>
                     <ThemedText weight="regular" style={styles.playbookInfoText}>{userInput || playbookInfo}</ThemedText>
                   </View>
