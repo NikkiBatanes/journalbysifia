@@ -212,6 +212,13 @@ function removeOverusedNavigationLanguage(text: string): string {
 
 function normalizeAwkwardActionPhrases(text: string): string {
   return String(text || '')
+    .replace(/\b[Bb]e brutally honest\b/g, (match) =>
+      match[0] === 'B' ? 'Be honest before God' : 'be honest before God')
+    .replace(/\b[Aa] brutally honest\b/g, (match) =>
+      match[0] === 'A' ? 'An honest-before-God' : 'an honest-before-God')
+    .replace(/\bbrutally honest\b/gi, 'honest before God')
+    .replace(/\b[Bb]rutal honesty\b/g, (match) =>
+      match[0] === 'B' ? 'Honesty before God' : 'honesty before God')
     .replace(/\b[Ss]top walking outside while praying\b/g, (match) =>
       match[0] === 'S' ? 'Step outside and pray' : 'step outside and pray')
     .replace(/\b[Ss]top walking outside and pray\b/g, (match) =>
@@ -568,6 +575,9 @@ const DRIFT_PHRASES = [
   'who you truly are',
   'true to yourself',
   'be honest with yourself',
+  'be brutally honest',
+  'brutally honest',
+  'brutal honesty',
   'honor your feelings',
   'sit with the discomfort',
   'lean into',
@@ -934,7 +944,7 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
 
   // Abstraction drift — flag forbidden phrases
   const allText = JSON.stringify(json).toLowerCase();
-  if (detectChurchOrder(originalInput) && CHURCH_ORDER_OUTPUT_VIOLATION_REGEX.test(allText)) {
+  if (CHURCH_ORDER_OUTPUT_VIOLATION_REGEX.test(allText)) {
     hardIssues.push('church order violation: output affirmed or defended a woman holding the pastor/elder/overseer office');
   }
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
@@ -1795,7 +1805,49 @@ serve(async (req: Request) => {
 
     // Validate the JSON output — two-tier: hard failures + structural soft issues
     const validationInput = [effectiveUserInput, effectivePromptDetectionInput].filter(Boolean).join('\n');
-    const { hardIssues, softIssues } = validatePlaybook(parsedJson!, validationInput);
+    let { hardIssues, softIssues } = validatePlaybook(parsedJson!, validationInput);
+
+    if (hardIssues.length > 0) {
+      const churchOrderFails = hardIssues.filter(i => i.includes('church order violation'));
+      if (churchOrderFails.length > 0) {
+        console.warn('[Generate-Playbook] Church-order violation detected — retrying with church-order module forced:', churchOrderFails);
+
+        const previousDeveloperPrompt = developerPrompt;
+        const forcedChurchOrderPromptInput = [
+          effectivePromptDetectionInput,
+          'church order women pastor female pastor woman elder female elder women overseer pastor elder overseer 1 Timothy 2 1 Timothy 3 Titus 1',
+        ].filter(Boolean).join('\n');
+        const forcedChurchOrder = buildUserMessage(effectiveUserInput, forcedChurchOrderPromptInput);
+        developerPrompt = forcedChurchOrder.developerPrompt;
+
+        try {
+          const churchOrderRetryRes = await callOpenAI('gpt-4.1-mini', forcedChurchOrder.message);
+          if (churchOrderRetryRes.ok) {
+            const retryData = await churchOrderRetryRes.json();
+            const retryContent: string = retryData.choices?.[0]?.message?.content || '';
+            const retryJson = JSON.parse(retryContent);
+            if (!isRefusal(retryJson)) {
+              const retryValidationInput = [effectiveUserInput, forcedChurchOrderPromptInput].filter(Boolean).join('\n');
+              const retryValidation = validatePlaybook(retryJson, retryValidationInput);
+              if (retryValidation.hardIssues.filter(i => i.includes('generation failure') || i.includes('church order violation')).length === 0) {
+                console.log('[Generate-Playbook] Church-order retry succeeded');
+                parsedJson = retryJson;
+                hardIssues = retryValidation.hardIssues;
+                softIssues = retryValidation.softIssues;
+              } else {
+                console.warn('[Generate-Playbook] Church-order retry still failed:', retryValidation.hardIssues);
+              }
+            }
+          } else {
+            console.warn('[Generate-Playbook] Church-order retry request failed:', churchOrderRetryRes.status);
+          }
+        } catch (retryError) {
+          console.warn('[Generate-Playbook] Church-order retry failed:', retryError);
+        } finally {
+          developerPrompt = previousDeveloperPrompt;
+        }
+      }
+    }
 
     if (hardIssues.length > 0) {
       console.error('[Generate-Playbook] Hard validation failures:', hardIssues);

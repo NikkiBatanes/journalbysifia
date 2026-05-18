@@ -167,6 +167,109 @@ function formatWisdomText(wisdom: { intro: string; steps: string[] }): string {
   ].filter(Boolean).join('\n\n');
 }
 
+function needsTwoColumnWisdom(actionBody: string, userQuestion: string): boolean {
+  const actionText = String(actionBody || '').toLowerCase();
+  const questionText = String(userQuestion || '').toLowerCase();
+  const actionHasColumns = /\b(?:two|2)\s+columns?\b/.test(actionText)
+    || /\bside[-\s]?by[-\s]?side\b/.test(actionText)
+    || /\bone\s+listing\b[\s\S]*\banother\s+listing\b/i.test(actionText);
+  const questionAsksColumns = /\b(?:two|2)\s+columns?\b/.test(questionText)
+    || /\bside[-\s]?by[-\s]?side\b/.test(questionText)
+    || /\b(?:make|show|turn|put|format)\b[\s\S]*\bcolumns?\b/.test(questionText);
+  const broadExecutionQuestion = /\b(?:help|how|start|begin|what\s+(?:do|should)\s+i\s+(?:write|put|do)|i\s+don'?t\s+know)\b/.test(questionText);
+
+  return questionAsksColumns || (actionHasColumns && broadExecutionQuestion);
+}
+
+function titleFromColumnPhrase(phrase: string, fallback: string): string {
+  const cleaned = cleanOutputText(phrase, 120).replace(/[.!?]+$/g, '').trim();
+  const lower = cleaned.toLowerCase();
+
+  if (/\b(?:speak|talk|say|voice)\b/.test(lower) && !/\b(?:silence|silent|quiet)\b/.test(lower)) {
+    return 'Speak because';
+  }
+  if (/\b(?:silence|silent|quiet|hold back|stay silent)\b/.test(lower)) {
+    return 'Stay silent because';
+  }
+
+  const title = cleaned
+    .replace(/^(?:reasons?\s+(?:you\s+)?(?:feel\s+)?(?:compelled\s+to\s+)?|things?\s+that\s+|why\s+|for\s+)/i, '')
+    .trim();
+  return title ? title.charAt(0).toUpperCase() + title.slice(1) : fallback;
+}
+
+function inferTwoColumnTitles(actionBody: string): [string, string] {
+  const body = cleanActionBody(actionBody, 1500);
+  const naturalColumns = body.match(/(?:write|make|create|draw|fill(?:\s+out)?)\s+(?:two|2)\s+columns?\s*:\s*(?:one|first)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)\s*;\s*(?:another|second)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)(?:[.!?]|$)/i);
+  if (naturalColumns) {
+    return [
+      titleFromColumnPhrase(naturalColumns[1], 'Column 1'),
+      titleFromColumnPhrase(naturalColumns[2], 'Column 2'),
+    ];
+  }
+
+  if (/\b(?:speak|talk|voice)\b/i.test(body) && /\b(?:silent|silence|quiet)\b/i.test(body)) {
+    return ['Speak because', 'Stay silent because'];
+  }
+
+  return ['Column 1', 'Column 2'];
+}
+
+function exampleItemsForColumn(title: string): string[] {
+  const lower = title.toLowerCase();
+  if (/\b(?:speak|talk|voice)\b/.test(lower)) {
+    return [
+      'I want peace restored',
+      'I need to correct a misunderstanding',
+      'I want truth to be clear without attacking',
+    ];
+  }
+  if (/\b(?:silent|silence|quiet)\b/.test(lower)) {
+    return [
+      'I am afraid of rejection',
+      'I am avoiding discomfort',
+      'Waiting may help me speak calmly later',
+    ];
+  }
+  return [
+    'Write one specific reason',
+    'Add one honest motive',
+    'Mark whether it is love, fear, pride, or control',
+  ];
+}
+
+function ensureTwoColumnWisdom(
+  wisdom: { intro: string; steps: string[] },
+  actionBody: string,
+  userQuestion: string,
+): { intro: string; steps: string[] } {
+  if (!needsTwoColumnWisdom(actionBody, userQuestion)) {
+    return wisdom;
+  }
+
+  const hasColumnSteps = wisdom.steps.some(step => /^Under\s+["'“‘]?[^"'”’]+["'”’]?,?\s+list\s+/i.test(step));
+  if (hasColumnSteps) {
+    return wisdom;
+  }
+
+  const [leftTitle, rightTitle] = inferTwoColumnTitles(actionBody);
+  const makeColumnStep = (title: string) => {
+    const items = exampleItemsForColumn(title)
+      .map((item, index) => `${index + 1}) ${item}`)
+      .join('; ');
+    return `Under "${title}," list these points: ${items}.`;
+  };
+
+  return {
+    intro: wisdom.intro || 'Use the two columns to separate what is pulling you toward one response from what is pulling you toward the other.',
+    steps: [
+      makeColumnStep(leftTitle),
+      makeColumnStep(rightTitle),
+      'After both columns are written, circle the reasons that are honest before God and rooted in love, then choose the next obedient step from those motives.',
+    ],
+  };
+}
+
 function titleCaseScriptureReference(reference: string): string {
   return String(reference || '')
     .replace(/\s+/g, ' ')
@@ -587,7 +690,7 @@ function buildWisdomPrompt(args: {
     'When presenting a script from the action description, each distinct line or instruction becomes one clean step in the JSON steps array.',
     'Do not combine a message/script and a follow-up instruction in the same steps item. Example: one step is "Send this message: ..."; the next separate step is "If they respond positively, ask: ...".',
     'Never put comma-joined quoted scripts like "\'message\',\'If they respond..." inside one step.',
-    'If the user asks for a two-column list, comparison table, or side-by-side columns, put each column in its own step using this exact shape: "Under \"Column A,\" list these points: 1) point one; 2) point two; 3) point three." and "Under \"Column B,\" list these points: 1) point one; 2) point two; 3) point three."',
+    'If the action description or user question asks for a two-column list, comparison table, or side-by-side columns, preserve that format even if the user only says "help me." Put each column in its own step using this exact shape: "Under \"Column A,\" list these points: 1) point one; 2) point two; 3) point three." and "Under \"Column B,\" list these points: 1) point one; 2) point two; 3) point three."',
     'For two-column answers, do not flatten both columns into ordinary numbered steps only. The app renders "Under ..." column steps as a side-by-side table.',
     'If the user asks for a list of resources, materials, books, curricula, or studies, put the whole resource list in ONE step using this exact shape: "Make a list including these materials: item one, item two, item three, item four, item five."',
     'For resource/material lists, do not put all resources in the intro and do not split one resource list across separate unrelated prose steps.',
@@ -1045,6 +1148,8 @@ serve(async (req: Request) => {
         }
       }
     }
+
+    parsedWisdom = ensureTwoColumnWisdom(parsedWisdom, actionBody, userQuestion);
 
     const wisdom = formatWisdomText(parsedWisdom);
     console.log('[Get-Action-Guidance] Formatted Wisdom:', wisdom);

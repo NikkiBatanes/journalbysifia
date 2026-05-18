@@ -6,6 +6,7 @@
 import { QueryClient, DefaultOptions } from '@tanstack/react-query';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import { Logger } from '../utils/ProductionLogger';
+import { ReflectionApi } from '../services/api/reflectionApi';
 
 // Performance-optimized default options for React Query v5
 const defaultOptions: DefaultOptions = {
@@ -73,6 +74,18 @@ const defaultOptions: DefaultOptions = {
 export const createOptimizedQueryClient = (): QueryClient => {
   const queryClient = new QueryClient({
     defaultOptions,
+  });
+
+  queryClient.setQueryDefaults(['reflections', 'byDate'], {
+    queryFn: ({ queryKey }) => {
+      const [, , userId, date] = queryKey;
+
+      if (typeof userId !== 'string' || !userId || typeof date !== 'string' || !date) {
+        return Promise.resolve([]);
+      }
+
+      return ReflectionApi.getReflectionEntries(userId, date);
+    },
   });
 
   // Add global error handling

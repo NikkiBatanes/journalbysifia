@@ -334,6 +334,7 @@ Do not overuse "seek counsel" as a generic action. If counsel is needed, make it
 - what decision needs accountability
 Bad: "Seek counsel from a pastor."
 Better: "Message your discipleship leader today and say: 'I need accountability for smoking. Can I send you my daily count for the next 7 days?'"
+Do not write "brutally honest" or "brutal honesty" anywhere in faithful actions or other user-facing text. Use "honest before God" or "plainly honest before God" instead.
 
 DIFFERENT BODY FORMAT EXAMPLES:
 Bullet checklist:

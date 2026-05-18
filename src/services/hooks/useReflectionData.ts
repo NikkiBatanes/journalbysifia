@@ -11,9 +11,9 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 // Hook for getting reflection entries for a specific date
 export const useReflectionData = (userId: string, date: string) => {
   return useQuery({
+    ...queryOptionsPresets.critical, // Use critical instead of realtime for better caching
     queryKey: queryKeys.reflections.byDate(userId, date),
     queryFn: () => ReflectionApi.getReflectionEntries(userId, date),
-    ...queryOptionsPresets.critical, // Use critical instead of realtime for better caching
     enabled: !!userId && !!date,
     initialData: [], // Provide empty array as initial data
     refetchOnMount: true, // Always refetch on mount to ensure fresh data

@@ -60,9 +60,7 @@ interface BodyLine {
 function ScriptRail(): React.ReactElement {
   return (
     <View style={styles.bodyScriptRail} pointerEvents="none">
-      <View style={styles.bodyScriptRailCap} />
       <View style={styles.bodyScriptRailLine} />
-      <View style={styles.bodyScriptRailCap} />
     </View>
   );
 }
@@ -418,6 +416,74 @@ function parseComparisonColumnLine(line: string): { title: string; items: string
   return title && items.length > 0 ? { title, items } : null;
 }
 
+function titleForTwoColumnPhrase(phrase: string, fallback: string): string {
+  const cleaned = stripBalancedActionQuotes(String(phrase || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?]+$/g, '')
+    .trim());
+  const lower = cleaned.toLowerCase();
+
+  if (/\b(?:speak|talk|say|voice)\b/.test(lower) && !/\b(?:silence|silent|quiet)\b/.test(lower)) {
+    return 'Speak because';
+  }
+  if (/\b(?:silence|silent|quiet|hold back|stay silent)\b/.test(lower)) {
+    return 'Stay silent because';
+  }
+
+  const title = cleaned
+    .replace(/^(?:reasons?\s+(?:you\s+)?(?:feel\s+)?(?:compelled\s+to\s+)?|things?\s+that\s+|why\s+|for\s+)/i, '')
+    .trim();
+  return capitalizeFirstLetter(title || fallback);
+}
+
+function itemsForTwoColumnTitle(title: string, phrase: string): string[] {
+  const lower = `${title} ${phrase}`.toLowerCase();
+  if (/\b(?:speak|talk|say|voice)\b/.test(lower) && !/\b(?:silence|silent|quiet)\b/.test(lower)) {
+    return [
+      'I want peace restored',
+      'I need to correct a misunderstanding',
+      'I want truth to be clear without attacking',
+    ];
+  }
+  if (/\b(?:silence|silent|quiet|hold back|stay silent)\b/.test(lower)) {
+    return [
+      'I am afraid of rejection',
+      'I am avoiding discomfort',
+      'Waiting may help me speak calmly later',
+    ];
+  }
+  return [
+    'Write one specific reason',
+    'Add one honest motive',
+    'Mark whether it is love, fear, pride, or control',
+  ];
+}
+
+function splitTwoColumnInstructionLine(line: string): string[] | null {
+  const match = String(line || '').trim().match(/^(.*?\b(?:write|make|create|draw|fill(?:\s+out)?)\s+(?:two|2)\s+columns?\s*:\s*)(?:one|first)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)\s*;\s*(?:another|second)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)(?:[.!?]\s*(.*)|$)/i);
+  if (!match) {
+    return null;
+  }
+
+  const leftPhrase = match[2].trim();
+  const rightPhrase = match[3].trim();
+  const leftTitle = titleForTwoColumnPhrase(leftPhrase, 'Column 1');
+  const rightTitle = titleForTwoColumnPhrase(rightPhrase, 'Column 2');
+  const makeColumnLine = (title: string, phrase: string) => {
+    const items = itemsForTwoColumnTitle(title, phrase)
+      .map((item, index) => `${index + 1}) ${item}`)
+      .join('; ');
+    return `Under "${title}," list these points: ${items}.`;
+  };
+  const trailingText = match[4]?.trim();
+
+  return [
+    makeColumnLine(leftTitle, leftPhrase),
+    makeColumnLine(rightTitle, rightPhrase),
+    ...(trailingText ? splitReadableActionLine(trailingText) : []),
+  ];
+}
+
 function parseScriptureReadLine(line: string): BodyLine | null {
   const trimmed = String(line || '').trim();
   const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*["'“‘](.+)["'”’]?$/i)
@@ -632,6 +698,8 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
+  const twoColumnInstruction = splitTwoColumnInstructionLine(trimmed);
+  if (twoColumnInstruction) { return twoColumnInstruction; }
   const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+briefly)?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
@@ -2240,15 +2308,10 @@ const styles = StyleSheet.create({
     width: 4,
     alignItems: 'center',
   },
-  bodyScriptRailCap: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.faithGold,
-  },
   bodyScriptRailLine: {
-    flex: 1,
     width: 2,
+    height: '100%',
+    borderRadius: 999,
     backgroundColor: Colors.faithGold,
   },
   bodyScriptHeader: {

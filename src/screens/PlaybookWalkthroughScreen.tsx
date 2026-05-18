@@ -1092,9 +1092,7 @@ interface BodyLine {
 function ScriptRail(): React.ReactElement {
   return (
     <View style={styles.bodyScriptRail} pointerEvents="none">
-      <View style={styles.bodyScriptRailCap} />
       <View style={styles.bodyScriptRailLine} />
-      <View style={styles.bodyScriptRailCap} />
     </View>
   );
 }
@@ -1571,6 +1569,74 @@ function parseComparisonColumnLine(line: string): { title: string; items: string
   return title && items.length > 0 ? { title, items } : null;
 }
 
+function titleForTwoColumnPhrase(phrase: string, fallback: string): string {
+  const cleaned = stripBalancedActionQuotes(String(phrase || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?]+$/g, '')
+    .trim());
+  const lower = cleaned.toLowerCase();
+
+  if (/\b(?:speak|talk|say|voice)\b/.test(lower) && !/\b(?:silence|silent|quiet)\b/.test(lower)) {
+    return 'Speak because';
+  }
+  if (/\b(?:silence|silent|quiet|hold back|stay silent)\b/.test(lower)) {
+    return 'Stay silent because';
+  }
+
+  const title = cleaned
+    .replace(/^(?:reasons?\s+(?:you\s+)?(?:feel\s+)?(?:compelled\s+to\s+)?|things?\s+that\s+|why\s+|for\s+)/i, '')
+    .trim();
+  return capitalizeFirstLetter(title || fallback);
+}
+
+function itemsForTwoColumnTitle(title: string, phrase: string): string[] {
+  const lower = `${title} ${phrase}`.toLowerCase();
+  if (/\b(?:speak|talk|say|voice)\b/.test(lower) && !/\b(?:silence|silent|quiet)\b/.test(lower)) {
+    return [
+      'I want peace restored',
+      'I need to correct a misunderstanding',
+      'I want truth to be clear without attacking',
+    ];
+  }
+  if (/\b(?:silence|silent|quiet|hold back|stay silent)\b/.test(lower)) {
+    return [
+      'I am afraid of rejection',
+      'I am avoiding discomfort',
+      'Waiting may help me speak calmly later',
+    ];
+  }
+  return [
+    'Write one specific reason',
+    'Add one honest motive',
+    'Mark whether it is love, fear, pride, or control',
+  ];
+}
+
+function splitTwoColumnInstructionLine(line: string): string[] | null {
+  const match = String(line || '').trim().match(/^(.*?\b(?:write|make|create|draw|fill(?:\s+out)?)\s+(?:two|2)\s+columns?\s*:\s*)(?:one|first)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)\s*;\s*(?:another|second)\s+(?:column\s+)?(?:listing|for|called|with)?\s*(.+?)(?:[.!?]\s*(.*)|$)/i);
+  if (!match) {
+    return null;
+  }
+
+  const leftPhrase = match[2].trim();
+  const rightPhrase = match[3].trim();
+  const leftTitle = titleForTwoColumnPhrase(leftPhrase, 'Column 1');
+  const rightTitle = titleForTwoColumnPhrase(rightPhrase, 'Column 2');
+  const makeColumnLine = (title: string, phrase: string) => {
+    const items = itemsForTwoColumnTitle(title, phrase)
+      .map((item, index) => `${index + 1}) ${item}`)
+      .join('; ');
+    return `Under "${title}," list these points: ${items}.`;
+  };
+  const trailingText = match[4]?.trim();
+
+  return [
+    makeColumnLine(leftTitle, leftPhrase),
+    makeColumnLine(rightTitle, rightPhrase),
+    ...(trailingText ? splitReadableActionLine(trailingText) : []),
+  ];
+}
+
 function parseScriptureReadLine(line: string): BodyLine | null {
   const trimmed = String(line || '').trim();
   const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*["'“‘](.+)["'”’]?$/i)
@@ -1953,6 +2019,20 @@ function splitReadableActionLine(line: string): string[] {
   if (trimmed.length < 145) { return [trimmed]; }
 
   return sentenceParts.length >= 2 ? sentenceParts : [trimmed];
+}
+
+function splitReadableWisdomLine(line: string): string[] {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const twoColumnInstruction = splitTwoColumnInstructionLine(trimmed);
+  if (twoColumnInstruction) {
+    return twoColumnInstruction;
+  }
+
+  return splitReadableActionLine(trimmed);
 }
 
 function isQuotedActionLine(line: string): boolean {
@@ -2701,8 +2781,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [currentActionWisdom, setCurrentActionWisdom] = useState('');
   const [wisdomThread, setWisdomThread] = useState<WisdomThreadEntry[]>([]);
   const [wisdomExpanded, setWisdomExpanded] = useState(true);
-  const createPrayerMutation = useCreateDevotionalPrayer();
-
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
   const triggerRotation = useRef(new Animated.Value(0)).current;
@@ -3191,11 +3269,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   // Detect special step types — check label, title, AND body content so old playbooks
   // without AI-generated primary_button still work correctly
   const stepTitle = (currentStep.title || '').toLowerCase();
-  const bodyStart = mainBodyText.trim().slice(0, 60).toLowerCase();
-  const isPrayerStep =
-    /pray/i.test(primaryLabel) ||
-    /\bpray(er|ing)?\b/.test(stepTitle) ||
-    /^(lord|father|heavenly father|dear (lord|god|father)|god,|jesus)/.test(bodyStart);
   const isReadAloudStep =
     /aloud|read.*aloud/i.test(primaryLabel) ||
     /\b(speak|declare|say.*aloud|read.*aloud)\b/.test(stepTitle);
@@ -3210,19 +3283,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     if (nowCommitted) {
       // Persist action step completion to DB so the list card reflects the count
       onStepCommit?.(actionStepIndex);
-      // Prayer step → save to prayers table
-      if (isPrayerStep) {
-        createPrayerMutation.mutate({
-          content: mainBodyText,
-          userId,
-          dateStr: toLocalDateString(new Date()),
-          devotionalTitle: playbookTitle ?? '',
-          dayNumber: actionStepIndex + 1,
-          dayTitle: currentStep.title ?? '',
-          totalDays: steps.length,
-          prayer_type: 'guided_playbook',
-        });
-      }
 
       // Read aloud step → award affirmation faith points
       if (isReadAloudStep) {
@@ -3808,7 +3868,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                   block.items.flatMap(item =>
                                     normalizeActionBulletMarkers(normalizeActionMarkup(item))
                                       .split(/\n+/)
-                                      .flatMap(line => splitReadableActionLine(line))
+                                      .flatMap(line => splitReadableWisdomLine(line))
                                   ),
                                   'done_skip'
                                 );
@@ -6668,15 +6728,10 @@ const styles = StyleSheet.create({
     width: 4,
     alignItems: 'center',
   },
-  bodyScriptRailCap: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.faithGold,
-  },
   bodyScriptRailLine: {
-    flex: 1,
     width: 2,
+    height: '100%',
+    borderRadius: 999,
     backgroundColor: Colors.faithGold,
   },
   bodyScriptHeader: {
