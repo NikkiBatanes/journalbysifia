@@ -444,6 +444,13 @@ function detectScriptureRequest(question: string, actionContext?: string): { isS
   console.log('[Get-Action-Guidance] Detecting scripture request in:', q);
   console.log('[Get-Action-Guidance] Action context:', context);
   
+  // Exclude context/explanation requests - these should be handled by AI wisdom, not verse fetching
+  const isContextRequest = /\b(context|background|meaning|explain|explanation|interpret|commentary|what does.*mean|why|how.*understand)\b/i.test(q);
+  if (isContextRequest) {
+    console.log('[Get-Action-Guidance] Context/explanation request detected, skipping verse fetch');
+    return { isScripture: false, isFullChapter: false };
+  }
+  
   // Detect if asking for scripture - more flexible keywords
   const scriptureKeywords = /\b(scripture|bible|verse|verses|chapter|passage|read|text|full|entire|whole|complete|show|give|what|what's|whats)\b/i.test(q);
   
