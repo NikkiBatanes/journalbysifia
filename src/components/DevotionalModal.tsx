@@ -962,7 +962,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
                   <View style={[
                     styles.playbookInfoContent,
-                    !IS_IPAD && styles.playbookInfoContentPhone,
                     showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
                   ]}>
                     <ThemedText weight="regular" style={styles.playbookInfoText}>{userInput || playbookInfo}</ThemedText>
@@ -1678,10 +1677,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   playbookInfoContent: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 12,
     overflow: 'hidden',
   },
-  playbookInfoContentPhone: {
+  playbookInfoContentPad: {
     paddingHorizontal: 12,
   },
   playbookInfoContentExpanded: {
