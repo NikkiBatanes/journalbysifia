@@ -850,7 +850,7 @@ const CompletionStep: React.FC<{
       iconAnim.stop();
       priorityAnim.stop();
     };
-  }, [checkmarkScale, iconScale, iconRotation, priorityAnims]);
+  }, [checkmarkScale, iconScale, iconRotation, priorityAnims, validPriorities.length]);
 
   const iconRotateInterpolate = iconRotation.interpolate({
     inputRange: [0, 1],

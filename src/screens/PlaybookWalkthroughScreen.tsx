@@ -713,7 +713,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
       dotAnim.stopAnimation();
       dotAnim.removeAllListeners();
     };
-  }, [isRefining]);
+  }, [isRefining, dotAnim]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
