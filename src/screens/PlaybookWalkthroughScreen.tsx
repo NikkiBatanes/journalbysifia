@@ -619,6 +619,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const revealAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
   const refiningAnim = useRef(new Animated.Value(1)).current;
+  const dotAnim = useRef(new Animated.Value(0)).current;
   const [dotIndex, setDotIndex] = useState(0);
   const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
   const canShowButton = active;
@@ -689,8 +690,6 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   }, [isRefining, refiningAnim]);
 
   useEffect(() => {
-    const dotAnim = useRef(new Animated.Value(0)).current;
-
     if (isRefining) {
       Animated.loop(
         Animated.timing(dotAnim, {
