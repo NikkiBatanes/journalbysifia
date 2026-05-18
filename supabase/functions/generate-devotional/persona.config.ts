@@ -588,7 +588,7 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
   if (!prayerRegex.test(enforcedResponse)) {
     enforcedResponse = enforcedResponse.replace(
       /PRAYER:.*?(?=\n\n\w|$)/is,
-      'PRAYER:\nHeavenly Father,\n\n[Your prayer content here - be specific and personal]\n\nIn Jesus\' Name, Amen'
+      'PRAYER:\nHeavenly Father,\n\nIn Jesus\' Name, Amen'
     );
   }
 
