@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput, TextInputProps, StyleProp, TextStyle } from 'react-native';
+import { Platform, TextInput, TextInputProps, StyleProp, TextStyle } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 
@@ -14,10 +14,13 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, weight);
+  const themedFontStyle: TextStyle = Platform.OS === 'android'
+    ? { fontFamily, fontWeight: 'normal' }
+    : { fontFamily };
 
   const combinedStyle = [
     style,
-    { fontFamily },
+    themedFontStyle,
   ];
 
   return <TextInput ref={ref} {...rest} style={combinedStyle} />;

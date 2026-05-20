@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextProps, StyleProp, TextStyle } from 'react-native';
+import { Platform, Text, TextProps, StyleProp, TextStyle } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 
@@ -15,10 +15,16 @@ const ThemedText: React.FC<ThemedTextProps> = ({ weight = 'regular', style, chil
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, weight);
 
+  // Android custom font files should provide weight; legacy fontWeight styles can
+  // make Android fall back or synthesize a different face.
+  const themedFontStyle: TextStyle = Platform.OS === 'android'
+    ? { fontFamily, fontWeight: 'normal' }
+    : { fontFamily };
+
   // Ensure our themed fontFamily is applied; keep other styles passed in
   const combinedStyle = Array.isArray(style)
-    ? [...style, { fontFamily }]
-    : [style as TextStyle, { fontFamily }];
+    ? [...style, themedFontStyle]
+    : [style as TextStyle, themedFontStyle];
 
   return (
     <Text {...rest} style={combinedStyle}>

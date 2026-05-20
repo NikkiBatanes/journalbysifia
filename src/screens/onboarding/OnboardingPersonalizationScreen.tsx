@@ -298,14 +298,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     setShowInlineYearPicker(false);
   }, []);
 
+  const setConfirmedBirthDate = useCallback((date: Date) => {
+    const dy = date.getFullYear();
+    const dm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    setTempBirthDate(date);
+    setBirthDate(`${dy}-${dm}-${dd}`);
+  }, []);
+
   const confirmBirthdayPicker = useCallback(() => {
     try { triggerSuccessHaptic(); } catch {}
-    const dy = tempBirthDate.getFullYear();
-    const dm = String(tempBirthDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(tempBirthDate.getDate()).padStart(2, '0');
-    setBirthDate(`${dy}-${dm}-${dd}`);
+    setConfirmedBirthDate(tempBirthDate);
     setShowInlineYearPicker(false);
-  }, [tempBirthDate]);
+  }, [setConfirmedBirthDate, tempBirthDate]);
 
   // Check for force navigation flag after successful auth
   React.useEffect(() => {
@@ -2234,26 +2239,37 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             textColor={Colors.white}
             themeVariant="dark"
             style={styles.birthdayDatePicker}
-            onChange={(_event, selectedDate) => {
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowInlineYearPicker(false);
+                if (event.type === 'set' && selectedDate) {
+                  try { triggerSuccessHaptic(); } catch {}
+                  setConfirmedBirthDate(selectedDate);
+                }
+                return;
+              }
+
               if (selectedDate) {
                 setTempBirthDate(selectedDate);
               }
             }}
           />
-          <View style={styles.birthdayPickerRow}>
-            <TouchableOpacity
-              onPress={closeBirthdayPicker}
-              style={styles.birthdayPickerCancelButton}
-            >
-              <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={confirmBirthdayPicker}
-              style={styles.birthdayPickerDoneButton}
-            >
-              <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          {Platform.OS !== 'android' && (
+            <View style={styles.birthdayPickerRow}>
+              <TouchableOpacity
+                onPress={closeBirthdayPicker}
+                style={styles.birthdayPickerCancelButton}
+              >
+                <Text style={[styles.cancelButtonText, { fontFamily: theme.fontFamily }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmBirthdayPicker}
+                style={styles.birthdayPickerDoneButton}
+              >
+                <Text style={[styles.doneButtonText, { fontFamily: theme.fontFamily }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       )}
 
