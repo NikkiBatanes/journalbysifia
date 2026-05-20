@@ -520,7 +520,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         });
       }
 
-      const rows = ((subscriptionResult.data as SubscriptionRow[]) || []).map(row => {
+      const subscriptionRows = ((subscriptionResult.data as SubscriptionRow[]) || []).map(row => {
         const payment = latestPaymentByUser.get(row.user_id);
         return {
           ...row,
@@ -529,7 +529,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         };
       });
 
-      setAnalyticsRows(rows);
+      setAnalyticsRows(subscriptionRows);
     }
     if (!eventsResult.error) {
       setActivityEvents((eventsResult.data as ActivityEvent[]) || []);

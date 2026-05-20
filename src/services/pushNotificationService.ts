@@ -1,4 +1,4 @@
-import { Alert, DeviceEventEmitter, Linking, Platform } from 'react-native';
+import { Alert, DeviceEventEmitter, Linking, PermissionsAndroid, Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
@@ -247,7 +247,10 @@ class PushNotificationService {
         sound: true,
       },
       popInitialNotification: true,
-      requestPermissions: true,
+      // Android requestPermissions in this library requests an FCM token.
+      // siFia uses Supabase/local notifications on Android, so request OS
+      // notification permission ourselves and avoid requiring Firebase setup.
+      requestPermissions: false,
     });
 
     // Create notification channels
@@ -327,7 +330,18 @@ class PushNotificationService {
         return granted;
       }
 
-      // Android - permissions handled by PushNotification library
+      if (Platform.OS === 'android') {
+        const androidVersion = Number(Platform.Version);
+        if (androidVersion >= 33) {
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+          );
+          return result === PermissionsAndroid.RESULTS.GRANTED;
+        }
+
+        return true;
+      }
+
       return true;
     } catch (error) {
       Logger.error('[PushNotification] Permission request error', error as Error, {

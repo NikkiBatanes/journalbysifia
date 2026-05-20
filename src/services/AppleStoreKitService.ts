@@ -1766,7 +1766,7 @@ export class AppleStoreKitService {
         Logger.warn('[StoreKit] Server receipt sync failed during status check; falling back to local purchase inference', {
           component: 'AppleStoreKitService',
           productId: latestPurchase.productId,
-          error: validationResult.error,
+          error: validationResult.error ? new Error(validationResult.error) : undefined,
         });
       }
 
