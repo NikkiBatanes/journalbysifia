@@ -626,14 +626,14 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     .sort((a, b) => new Date(a.subscription_end_date || 0).getTime() - new Date(b.subscription_end_date || 0).getTime());
   const upcomingRenewals = allUpcomingRenewals.slice(0, 8);
 
-  // Trials expiring in next 7 days (for the Active Trials card)
-  const now7 = new Date();
-  now7.setDate(now7.getDate() + 7);
+  // Trials expiring in the 3-day trial window (for the Active Trials card)
+  const now3 = new Date();
+  now3.setDate(now3.getDate() + 3);
   const trialsExpiringSoon = analyticsRows.filter(row =>
     row.tier === 'free_trial' &&
     row.trial_end_date &&
     new Date(row.trial_end_date) > new Date() &&
-    new Date(row.trial_end_date) <= now7
+    new Date(row.trial_end_date) <= now3
   );
 
   // New paid subscribers this week (for hero card trend)
@@ -1165,7 +1165,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <View style={styles.healthCardTrend}>
               <Ionicons name="time" size={13} color="#FFC107" />
               <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#FFC107' }]}>
-                {trialsExpiringSoon.length > 0 ? `${trialsExpiringSoon.length} expiring in 7d` : 'none expiring soon'}
+                {trialsExpiringSoon.length > 0 ? `${trialsExpiringSoon.length} expiring in 3d` : 'none expiring soon'}
               </ThemedText>
             </View>
           </View>

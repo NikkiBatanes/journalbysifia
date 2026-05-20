@@ -21,6 +21,7 @@ export interface ScheduleOptions {
 class NotificationSchedulerService {
   private readonly MAX_NOTIFICATIONS_PER_DAY = 20;
   private appState: AppStateStatus = 'active';
+  private pendingPaymentSuccessKeys = new Set<string>();
 
   constructor() {
     // Listen to app state changes for smart suppression
@@ -361,56 +362,81 @@ class NotificationSchedulerService {
    * Schedule payment success notification
    */
   async schedulePaymentSuccessNotification(userId: string, newTier: string, amount: number): Promise<boolean> {
-    // Deduplication: Check if a similar payment success notification was recently sent
-    const fiveMinutesAgo = new Date();
-    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+    const normalizedTier = String(newTier || 'your plan').trim();
+    const dedupKey = `payment_successful:${userId}:${normalizedTier.toLowerCase()}`;
 
-    const { data: recentNotifications, error: checkError } = await supabase
-      .from('notification_queue')
-      .select('id, type, data')
-      .eq('user_id', userId)
-      .eq('type', 'payment_successful')
-      .gte('created_at', fiveMinutesAgo.toISOString())
-      .in('status', ['pending', 'sent', 'processing']);
-
-    if (!checkError && recentNotifications && recentNotifications.length > 0) {
-      // Check if any recent notification is for the same tier
-      const hasRecentTierNotification = recentNotifications.some((notif: any) => {
-        return notif.data?.new_tier === newTier;
+    if (this.pendingPaymentSuccessKeys.has(dedupKey)) {
+      Logger.info('Payment success notification already being scheduled - skipping duplicate', {
+        component: 'notificationSchedulerService',
+        userId,
+        newTier: normalizedTier,
       });
-
-      if (hasRecentTierNotification) {
-        Logger.info('Payment success notification already sent recently for this tier - skipping duplicate', {
-          component: 'notificationSchedulerService',
-          userId,
-          newTier,
-          recentCount: recentNotifications.length,
-        });
-        return false; // Skip duplicate notification
-      }
+      return false;
     }
 
-    const scheduledFor = new Date();
-    scheduledFor.setMinutes(scheduledFor.getMinutes() + 5); // 5 minutes from now
+    this.pendingPaymentSuccessKeys.add(dedupKey);
 
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'payment_successful',
-      title: `Welcome to ${newTier}! 🩵`,
-      message: 'Your payment was successful. You now have more room for reflection, playbooks, and devotionals.',
-      data: {
-        deep_link: 'sifia://dashboard',
-        new_tier: newTier,
-        amount,
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'normal',
-    };
+    try {
+      // Deduplication: Check if a similar payment success notification was recently sent or queued.
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    return await this.scheduleNotification(notification, {
-      priority: 'normal',
-      batchWithOthers: true,
-    });
+      const { data: recentNotifications, error: checkError } = await supabase
+        .from('notification_queue')
+        .select('id, type, title, data')
+        .eq('user_id', userId)
+        .eq('type', 'payment_successful')
+        .gte('created_at', oneDayAgo.toISOString())
+        .in('status', ['pending', 'sent', 'processing']);
+
+      if (!checkError && recentNotifications && recentNotifications.length > 0) {
+        // Check if any recent notification is for the same tier
+        const hasRecentTierNotification = recentNotifications.some((notif: any) => {
+          const existingTier = String(notif.data?.new_tier || '').trim().toLowerCase();
+          const existingDedupKey = String(notif.data?.dedup_key || '');
+          const existingTitle = String(notif.title || '').trim().toLowerCase();
+
+          return existingDedupKey === dedupKey ||
+            existingTier === normalizedTier.toLowerCase() ||
+            existingTitle === `welcome to ${normalizedTier}! 🩵`.toLowerCase();
+        });
+
+        if (hasRecentTierNotification) {
+          Logger.info('Payment success notification already sent recently for this tier - skipping duplicate', {
+            component: 'notificationSchedulerService',
+            userId,
+            newTier: normalizedTier,
+            recentCount: recentNotifications.length,
+          });
+          return false; // Skip duplicate notification
+        }
+      }
+
+      const scheduledFor = new Date();
+      scheduledFor.setMinutes(scheduledFor.getMinutes() + 5); // 5 minutes from now
+
+      const notification: NotificationQueueItem = {
+        user_id: userId,
+        type: 'payment_successful',
+        title: `Welcome to ${normalizedTier}! 🩵`,
+        message: 'Your payment was successful. You now have more room for reflection, playbooks, and devotionals.',
+        data: {
+          deep_link: 'sifia://dashboard',
+          new_tier: normalizedTier,
+          amount,
+          dedup_key: dedupKey,
+        },
+        scheduled_for: scheduledFor.toISOString(),
+        priority: 'normal',
+      };
+
+      return await this.scheduleNotification(notification, {
+        priority: 'normal',
+        batchWithOthers: true,
+      });
+    } finally {
+      this.pendingPaymentSuccessKeys.delete(dedupKey);
+    }
   }
 
   /**

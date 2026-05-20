@@ -314,6 +314,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const [purchaseValidated, setPurchaseValidated] = useState(false);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
   const [lastPurchasedTier, setLastPurchasedTier] = useState<string | null>(null);
+  const [lastPurchaseWasTrial, setLastPurchaseWasTrial] = useState(false);
   const requestedDuration = routeParams?.requestedDuration;
   const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
   const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
@@ -449,6 +450,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     logger.info('Success modal continue button pressed');
     setShowSuccessModal(false);
     setLastPurchasedTier(null);
+    setLastPurchaseWasTrial(false);
 
     // Re-enable faith points notifications after modal is hidden
     notificationService.suppressPointsNotifications(false);
@@ -950,6 +952,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       setIsPurchasing(true);
       setShowSuccessModal(false);
       setPurchaseValidated(false);
+      setLastPurchaseWasTrial(false);
       setLoadingStep('processing');
 
       logger.debug('handleUnlockPlan called', {
@@ -1095,6 +1098,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             success: result.success,
             hasTransactionId: !!result.transactionId,
             transactionId: result.transactionId?.substring(0, 10) + '...',
+            validated: result.validated,
+            validationIsTrialPeriod: result.validation?.isTrialPeriod,
+            validationEnvironment: result.validation?.environment,
             error: result.error ? { message: result.error, name: 'PurchaseError' } : undefined,
             timestamp: new Date().toISOString(),
           });
@@ -1113,13 +1119,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               timestamp: new Date().toISOString(),
             });
 
-            // PHASE 3A: Create trial if user is trial-eligible (UPGRADE MODE)
-            if (shouldUseTrialProduct && result.transactionId) {
+            const validationIsTrial = result.validation?.isTrialPeriod === true;
+            const validationIsPaid = result.validation?.isTrialPeriod === false;
+            let updatedSubscription: any = await NewSubscriptionService.getUserSubscription(user?.id || '', true).catch(() => null);
+            let purchaseWasTrial = validationIsTrial || (!validationIsPaid && updatedSubscription?.tier === 'free_trial');
+
+            // PHASE 3A: Create trial only when Apple's receipt says this transaction is in a trial period.
+            if (shouldUseTrialProduct && result.transactionId && validationIsTrial && updatedSubscription?.tier !== 'free_trial') {
               logger.info('🎯 Creating free trial subscription (UPGRADE MODE)', {
                 userId: user?.id,
                 chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
+                validationIsTrialPeriod: result.validation?.isTrialPeriod,
               });
 
               await NewSubscriptionService.startFreeTrial({
@@ -1127,14 +1139,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 duration_days: 3,
                 trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
-                platform_transaction_id: result.transactionId,
-                original_transaction_id: result.transactionId,
-                platform_subscription_id: result.transactionId,
+                platform_transaction_id: result.validation?.transactionId || result.transactionId,
+                original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
+                platform_subscription_id: result.validation?.transactionId || result.transactionId,
               });
+
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);
+              purchaseWasTrial = updatedSubscription?.tier === 'free_trial';
 
               logger.info('✅ Trial created successfully (UPGRADE MODE)', {
                 tier: 'free_trial',
                 chosenTier: selectedPlanTier,
+              });
+            } else if (shouldUseTrialProduct && validationIsPaid) {
+              logger.info('💳 Apple receipt is paid, skipping local trial creation (UPGRADE MODE)', {
+                userId: user?.id,
+                transactionId: result.transactionId?.substring(0, 10) + '...',
+                originalTransactionId: result.validation?.originalTransactionId?.substring(0, 10) + '...',
+                currentTier: updatedSubscription?.tier,
+              });
+            } else if (shouldUseTrialProduct && !result.validation) {
+              logger.warn('Purchase succeeded without receipt trial metadata; not creating a local trial (UPGRADE MODE)', {
+                userId: user?.id,
+                currentTier: updatedSubscription?.tier,
               });
             }
 
@@ -1147,11 +1174,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             });
 
             // Retry logic to handle race conditions with database updates
-            const expectedTier = shouldUseTrialProduct
+            const expectedTier = purchaseWasTrial
               ? 'free_trial'
               : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
-            let updatedSubscription;
             let retryCount = 0;
             const maxRetries = 10;
 
@@ -1191,7 +1217,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('✅ Subscription verified in database (UPGRADE MODE)', {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
-              isTrial: shouldUseTrialProduct,
+              isTrial: purchaseWasTrial,
+              purchaseWasTrial,
               isAnnual,
             });
 
@@ -1220,8 +1247,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             // Show success modal immediately after validation
             setLoadingStep('completing');
-            setPurchaseValidated(true);
+            setPurchaseValidated(result.validated !== false);
             setLastPurchasedTier(purchaseTier);
+            setLastPurchaseWasTrial(purchaseWasTrial);
             setIsPurchasing(false); // Hide loading modal
             await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
 
@@ -1308,6 +1336,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             success: result.success,
             error: result.error ? { message: result.error, name: 'PurchaseError' } : undefined,
             hasResult: !!result,
+            validated: result.validated,
+            validationIsTrialPeriod: result.validation?.isTrialPeriod,
+            validationEnvironment: result.validation?.environment,
           });
 
           if (result.success) {
@@ -1337,13 +1368,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Give the service a moment to complete validation
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // PHASE 3B: Create trial if user is trial-eligible (ONBOARDING MODE)
-            if (shouldUseTrialProduct && result.transactionId) {
+            const validationIsTrial = result.validation?.isTrialPeriod === true;
+            const validationIsPaid = result.validation?.isTrialPeriod === false;
+            let updatedSubscription: any = await NewSubscriptionService.getUserSubscription(user?.id || '', true).catch(() => null);
+            let purchaseWasTrial = validationIsTrial || (!validationIsPaid && updatedSubscription?.tier === 'free_trial');
+
+            // PHASE 3B: Create trial only when Apple's receipt says this transaction is in a trial period.
+            if (shouldUseTrialProduct && result.transactionId && validationIsTrial && updatedSubscription?.tier !== 'free_trial') {
               logger.info('🎯 Creating free trial subscription (ONBOARDING MODE)', {
                 userId: user?.id,
                 chosenTier: selectedPlanTier,
                 transactionId: result.transactionId,
                 billingCycle: isAnnual ? 'annual' : 'monthly',
+                validationIsTrialPeriod: result.validation?.isTrialPeriod,
               });
 
               await NewSubscriptionService.startFreeTrial({
@@ -1351,14 +1388,29 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 duration_days: 3,
                 trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
-                platform_transaction_id: result.transactionId,
-                original_transaction_id: result.transactionId,
-                platform_subscription_id: result.transactionId,
+                platform_transaction_id: result.validation?.transactionId || result.transactionId,
+                original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
+                platform_subscription_id: result.validation?.transactionId || result.transactionId,
               });
+
+              updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);
+              purchaseWasTrial = updatedSubscription?.tier === 'free_trial';
 
               logger.info('✅ Trial created successfully (ONBOARDING MODE)', {
                 tier: 'free_trial',
                 chosenTier: selectedPlanTier,
+              });
+            } else if (shouldUseTrialProduct && validationIsPaid) {
+              logger.info('💳 Apple receipt is paid, skipping local trial creation (ONBOARDING MODE)', {
+                userId: user?.id,
+                transactionId: result.transactionId?.substring(0, 10) + '...',
+                originalTransactionId: result.validation?.originalTransactionId?.substring(0, 10) + '...',
+                currentTier: updatedSubscription?.tier,
+              });
+            } else if (shouldUseTrialProduct && !result.validation) {
+              logger.warn('Purchase succeeded without receipt trial metadata; not creating a local trial (ONBOARDING MODE)', {
+                userId: user?.id,
+                currentTier: updatedSubscription?.tier,
               });
             }
 
@@ -1370,11 +1422,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             });
 
             // Retry logic to handle race conditions with database updates
-            const expectedTier = shouldUseTrialProduct
+            const expectedTier = purchaseWasTrial
               ? 'free_trial'
               : isAnnual ? `${selectedPlanTier}_annual` : selectedPlanTier;
 
-            let updatedSubscription;
             let retryCount = 0;
             const maxRetries = 10;
 
@@ -1414,7 +1465,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             logger.info('✅ Subscription verified in database (ONBOARDING MODE)', {
               tier: updatedSubscription.tier,
               status: updatedSubscription.status,
-              isTrial: shouldUseTrialProduct,
+              isTrial: purchaseWasTrial,
+              purchaseWasTrial,
               isAnnual,
             });
 
@@ -1443,8 +1495,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             }
 
           setLoadingStep('completing');
-          setPurchaseValidated(true);
+          setPurchaseValidated(result.validated !== false);
           setLastPurchasedTier(purchaseTier);
+          setLastPurchaseWasTrial(purchaseWasTrial);
           setIsPurchasing(false); // Hide loading modal
           await new Promise(resolve => setTimeout(resolve, 200)); // Minimal wait for loading modal to hide
 
@@ -1762,7 +1815,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       <PurchaseSuccessModal
         visible={showSuccessModal}
         tier={lastPurchasedTier || selectedTier}
-        isTrial={shouldUseTrialProduct}
+        isTrial={lastPurchaseWasTrial}
         isAnnual={isAnnual}
         isValidated={purchaseValidated}
         isOnboarding={!!routeParams?.onboardingFlow}

@@ -119,6 +119,7 @@ const OnboardingTrialOfferScreen = () => {
   // const [autoDismissScheduled, setAutoDismissScheduled] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
+  const [lastPurchaseWasTrial, setLastPurchaseWasTrial] = useState(true);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
   const [isClosing, setIsClosing] = useState(false);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
@@ -291,6 +292,7 @@ const OnboardingTrialOfferScreen = () => {
     try {
       triggerLightHaptic();
       setIsStartingTrial(true);
+      setLastPurchaseWasTrial(true);
     } catch {}
 
     try {
@@ -306,6 +308,7 @@ const OnboardingTrialOfferScreen = () => {
         if (currentSubscription.tier === 'free_trial') {
           // Trial already active — show success and stop; don't attempt another purchase
           setIsStartingTrial(false);
+          setLastPurchaseWasTrial(true);
           setShowSuccessModal(true);
           return;
         }
@@ -506,7 +509,11 @@ const OnboardingTrialOfferScreen = () => {
           try {
             const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
             const storeKit = AppleStoreKitService.getInstance();
-            storeKit.setPurchaseEligibility(true); // TrialOfferScreen is always for eligible users
+            const isLocallyTrialEligible =
+              routeParams?.isTrialEligible !== false &&
+              !isAlreadyOnTrial &&
+              !currentSubscription?.trial_start_date;
+            storeKit.setPurchaseEligibility(isLocallyTrialEligible);
           } catch (error) {
             logger.warn('Failed to set purchase eligibility before iOS purchase', { error: error as Error });
           }
@@ -527,6 +534,9 @@ const OnboardingTrialOfferScreen = () => {
           success: result.success,
           hasTransactionId: !!result.transactionId,
           transactionId: result.transactionId?.substring(0, 10) + '...',
+          validated: result.validated,
+          validationIsTrialPeriod: result.validation?.isTrialPeriod,
+          validationEnvironment: result.validation?.environment,
           error: result.error,
           timestamp: new Date().toISOString(),
         });
@@ -572,37 +582,53 @@ const OnboardingTrialOfferScreen = () => {
         // const transactionTime = Date.now();
         // const fiveMinutesAgo = transactionTime - (5 * 60 * 1000); // Unused
 
-        // CRITICAL: Now that Apple has authorized, set up the trial in database
-        // This activates the trial with tier-specific limits (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
+        // Apple is the authority on whether this transaction actually started a trial.
+        // The product id can contain ".freetrial" even when Apple charges immediately.
+        let purchaseWasTrial = result.validation?.isTrialPeriod === true;
+        setLastPurchaseWasTrial(purchaseWasTrial);
         try {
-          logger.info('🔄 TRIAL STEP 3: Starting trial setup in database', {
+          logger.info('🔄 TRIAL STEP 3: Reconciling validated purchase in database', {
             userId: user.id,
-            durationDays: 3,
             chosenTier: selectedTierId,
             billingCycle: isAnnual ? 'annual' : 'monthly',
+            validationIsTrialPeriod: result.validation?.isTrialPeriod,
+            validated: result.validated,
             timestamp: new Date().toISOString(),
           });
 
           const trialSetupStartTime = Date.now();
           const { NewSubscriptionService } = await import('../../services/NewSubscriptionService');
+          let refreshedSubscription = await NewSubscriptionService.getUserSubscription(user.id, true);
 
-          // Start the trial in database - this creates the subscription record with:
-          // - tier: 'free_trial'
-          // - trial_start_date: now
-          // - trial_end_date: now + 3 days
-          // - trial_chosen_tier: selectedTierId (e.g., 'transformation', 'growth', etc.)
-          // - playbooks_limit/devotionals_limit based on the selected trial tier
-          await NewSubscriptionService.startFreeTrial({
-            user_id: user.id,
-            duration_days: 3,
-            trial_chosen_tier: selectedTierId as any, // Remember which tier they want after trial
-            billing_cycle: isAnnual ? 'annual' : 'monthly',
-            platform_transaction_id: result.transactionId,
-            original_transaction_id: result.transactionId,
-            platform_subscription_id: result.transactionId,
-          });
+          if (purchaseWasTrial && refreshedSubscription?.tier !== 'free_trial') {
+            await NewSubscriptionService.startFreeTrial({
+              user_id: user.id,
+              duration_days: 3,
+              trial_chosen_tier: selectedTierId as any,
+              billing_cycle: isAnnual ? 'annual' : 'monthly',
+              platform_transaction_id: result.validation?.transactionId || result.transactionId,
+              original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
+              platform_subscription_id: result.validation?.transactionId || result.transactionId,
+            });
 
-          const refreshedSubscription = await NewSubscriptionService.resetUsageCounters(user.id);
+            refreshedSubscription = await NewSubscriptionService.getUserSubscription(user.id, true);
+          } else if (result.validation?.isTrialPeriod === false) {
+            logger.info('💳 Apple receipt is paid, skipping local free-trial creation', {
+              userId: user.id,
+              transactionId: result.transactionId?.substring(0, 10) + '...',
+              originalTransactionId: result.validation?.originalTransactionId?.substring(0, 10) + '...',
+              tier: refreshedSubscription?.tier,
+            });
+          } else if (!result.validation) {
+            logger.warn('Purchase succeeded without receipt trial metadata; leaving subscription state from server validation only', {
+              userId: user.id,
+              currentTier: refreshedSubscription?.tier,
+            });
+          }
+
+          refreshedSubscription = await NewSubscriptionService.resetUsageCounters(user.id);
+          purchaseWasTrial = refreshedSubscription.tier === 'free_trial';
+          setLastPurchaseWasTrial(purchaseWasTrial);
           DeviceEventEmitter.emit('wisdomUsageReset', {
             wisdomCount: 0,
             wisdomLimit: refreshedSubscription.wisdom_limit,
@@ -610,9 +636,11 @@ const OnboardingTrialOfferScreen = () => {
           });
 
           const trialSetupDuration = Date.now() - trialSetupStartTime;
-          logger.info(`✅ TRIAL STEP 4: Trial setup completed successfully (${trialSetupDuration}ms)`, {
+          logger.info(`✅ TRIAL STEP 4: Purchase reconciliation completed successfully (${trialSetupDuration}ms)`, {
             userId: user.id,
             duration: trialSetupDuration,
+            tier: refreshedSubscription.tier,
+            purchaseWasTrial,
             timestamp: new Date().toISOString(),
           });
 
@@ -654,8 +682,9 @@ const OnboardingTrialOfferScreen = () => {
         logger.info('Trial purchase successful - showing success modal', {
           transactionId: result.transactionId,
           selectedTier: selectedTierId,
+          isTrial: purchaseWasTrial,
         });
-        setPurchaseValidated(true); // Always show as validated for successful purchases
+        setPurchaseValidated(result.validated !== false);
         setIsStartingTrial(false); // Hide loading modal
 
         // Minimal wait for loading modal to hide before showing success modal
@@ -1040,7 +1069,7 @@ const OnboardingTrialOfferScreen = () => {
       <PurchaseSuccessModal
         visible={showSuccessModal}
         tier={selectedTierId}
-        isTrial={true}
+        isTrial={lastPurchaseWasTrial}
         isValidated={purchaseValidated}
         isOnboarding={routeParams?.onboardingFlow === true}
         onContinue={handleSuccessModalDismiss}

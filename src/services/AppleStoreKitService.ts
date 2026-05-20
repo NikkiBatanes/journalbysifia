@@ -51,6 +51,19 @@ export interface PromotionalOffer {
   numberOfPeriods: number;
 }
 
+export interface ReceiptValidationData {
+  receiptId?: string;
+  transactionId?: string;
+  originalTransactionId?: string;
+  expiresAt?: string | null;
+  productId?: string;
+  isTrialPeriod?: boolean;
+  isActive?: boolean;
+  isExpired?: boolean;
+  environment?: string;
+  isValid?: boolean;
+}
+
 export interface PurchaseResult {
   success: boolean;
   transactionId?: string;
@@ -59,11 +72,12 @@ export interface PurchaseResult {
   errorCode?: string;
   validated?: boolean;
   receiptId?: string;
+  validation?: ReceiptValidationData;
 }
 
 export interface ServerValidationResult {
   success: boolean;
-  data?: any;
+  data?: ReceiptValidationData;
   error?: string;
 }
 
@@ -798,7 +812,7 @@ export class AppleStoreKitService {
       // ENTERPRISE IMPROVEMENT: Server-side validation FIRST
       let serverValidation: ServerValidationResult = { success: false };
       try {
-        const receiptData = await this.getReceiptData(purchase);
+        const receiptData = await this.getReceiptData(purchase, true);
         const validationUserId = this.currentUserId || await this.getCurrentUserId();
 
         if (!receiptData || !validationUserId) {
@@ -876,7 +890,7 @@ export class AppleStoreKitService {
               status: 'failed',
               failure_reason: 'Receipt validation failed',
               platform: 'ios',
-              is_trial: purchase.productId.includes('freetrial'),
+              is_trial: serverValidation.data?.isTrialPeriod === true,
             });
           }
 
@@ -908,7 +922,7 @@ export class AppleStoreKitService {
             amount: 0, // Amount will be updated from subscription service
             status: 'success',
             platform: 'ios',
-            is_trial: purchase.productId.includes('freetrial'),
+            is_trial: serverValidation.data?.isTrialPeriod === true,
             receipt_data: { transactionDate: purchase.transactionDate },
           });
         }
@@ -945,10 +959,16 @@ export class AppleStoreKitService {
           .single();
 
         const currentTier = currentSub?.tier || 'seeker';
-        const isEligibleTrialStart = currentTier === 'seeker' && this.currentPurchaseEligibility === true;
-        const isExistingTrialWithoutUpgrade = currentTier === 'free_trial' && this.currentPurchaseEligibility !== false;
+        const validationSaysTrial = serverValidation.data?.isTrialPeriod === true;
+        const validationSaysPaid = serverValidation.data?.isTrialPeriod === false;
+        const isEligibleTrialStart =
+          currentTier === 'seeker' &&
+          (validationSaysTrial || (!serverValidation.success && this.currentPurchaseEligibility === true));
+        const isExistingTrialWithoutUpgrade =
+          currentTier === 'free_trial' &&
+          (validationSaysTrial || (!serverValidation.success && this.currentPurchaseEligibility !== false));
 
-        if (isEligibleTrialStart || isExistingTrialWithoutUpgrade) {
+        if (!validationSaysPaid && (isEligibleTrialStart || isExistingTrialWithoutUpgrade)) {
           Logger.info(`[StoreKit][${debugId}] 🎯 STEP 5: Trial purchase - skipping paid database update`, {
             component: 'AppleStoreKitService',
             userId: this.currentUserId || 'unknown',
@@ -957,19 +977,23 @@ export class AppleStoreKitService {
             tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
             isEligibleForTrial: this.currentPurchaseEligibility,
+            validationIsTrialPeriod: serverValidation.data?.isTrialPeriod,
             message: isEligibleTrialStart
               ? 'New trial - will be handled by createTrial()'
               : 'Existing trial transaction - leaving trial state unchanged',
             timestamp: new Date().toISOString(),
           });
 
+          const originalTransactionId = serverValidation.data?.originalTransactionId || purchase.transactionId;
+          const validationTransactionId = serverValidation.data?.transactionId || purchase.transactionId;
+
           try {
             await supabase
               .from('user_subscriptions_new')
               .update({
-                original_transaction_id: purchase.transactionId,
-                platform_transaction_id: purchase.transactionId,
-                platform_subscription_id: purchase.transactionId,
+                original_transaction_id: originalTransactionId,
+                platform_transaction_id: validationTransactionId,
+                platform_subscription_id: validationTransactionId,
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', this.currentUserId);
@@ -992,12 +1016,13 @@ export class AppleStoreKitService {
             targetTier: tier,
             transactionId: purchase.transactionId?.substring(0, 10) + '...',
             isEligibleForTrial: this.currentPurchaseEligibility,
+            validationIsTrialPeriod: serverValidation.data?.isTrialPeriod,
             message: 'Using .freetrial SKU as paid purchase because user is not trial-eligible',
             timestamp: new Date().toISOString(),
           });
 
           const dbUpdateStartTime = Date.now();
-          await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+          await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined, serverValidation.data);
           const dbUpdateDuration = Date.now() - dbUpdateStartTime;
 
           Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Paid purchase/upgrade completed successfully`, {
@@ -1019,7 +1044,7 @@ export class AppleStoreKitService {
         });
 
         const dbUpdateStartTime = Date.now();
-        await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined);
+        await this.updateUserSubscription(purchase, tier, this.currentUserId || undefined, serverValidation.data);
         const dbUpdateDuration = Date.now() - dbUpdateStartTime;
 
         Logger.info(`[StoreKit][${debugId}] ✅ STEP 6: Database update completed successfully`, {
@@ -1073,6 +1098,9 @@ export class AppleStoreKitService {
           success: true,
           transactionId: purchase.transactionId,
           receipt: purchase.transactionReceipt,
+          validated: serverValidation.success,
+          receiptId: serverValidation.data?.receiptId,
+          validation: serverValidation.data,
         });
         this.pendingPurchaseResolvers.delete(purchase.productId);
       } else {
@@ -1083,6 +1111,9 @@ export class AppleStoreKitService {
             success: true,
             transactionId: purchase.transactionId,
             receipt: purchase.transactionReceipt,
+            validated: serverValidation.success,
+            receiptId: serverValidation.data?.receiptId,
+            validation: serverValidation.data,
           });
           this.pendingPurchaseResolvers.clear();
         }
@@ -1105,7 +1136,7 @@ export class AppleStoreKitService {
     this.currentPurchaseEligibility = isEligibleForTrial;
   }
 
-  private async getReceiptData(purchase: ProductPurchase): Promise<string> {
+  private async getReceiptData(purchase: ProductPurchase, forceRefresh = false): Promise<string> {
     if (purchase.transactionReceipt) {
       return purchase.transactionReceipt;
     }
@@ -1115,11 +1146,12 @@ export class AppleStoreKitService {
     }
 
     try {
-      const receipt = await getReceiptIOS({ forceRefresh: false });
+      const receipt = await getReceiptIOS({ forceRefresh });
       if (receipt) {
         Logger.info('[StoreKit] Loaded iOS app receipt because purchase transaction receipt was empty', {
           component: 'AppleStoreKitService',
           productId: purchase.productId,
+          forceRefresh,
           receiptLength: receipt.length,
         });
         return receipt;
@@ -1143,7 +1175,7 @@ export class AppleStoreKitService {
       if (Platform.OS === 'ios') {
         // ENHANCED: Enable receipt validation with proper error handling
         // This ensures purchases are properly validated even in TestFlight
-        const receiptData = await this.getReceiptData(purchase);
+        const receiptData = await this.getReceiptData(purchase, true);
 
         const receiptBody = {
           'receipt-data': receiptData,
@@ -1203,7 +1235,8 @@ export class AppleStoreKitService {
   private async updateUserSubscription(
     purchase: ProductPurchase,
     tier: string,
-    userId?: string
+    userId?: string,
+    validationData?: ReceiptValidationData
   ): Promise<void> {
     try {
       // Use provided userId or fall back to stored currentUserId for purchase flows
@@ -1230,20 +1263,25 @@ export class AppleStoreKitService {
         throw new Error('User account not found - subscription update skipped');
       }
 
+      const transactionId = validationData?.transactionId || purchase.transactionId || purchase.productId;
+      const originalTransactionId = validationData?.originalTransactionId || purchase.transactionId;
+
       // Always upgrade subscription when user makes a purchase
       // This handles both new subscriptions and upgrades from trial/existing tiers
       await NewSubscriptionService.upgradeSubscription(finalUserId, {
         target_tier: tier as SubscriptionTier,
         platform: 'apple',
-        platform_subscription_id: purchase.transactionId || purchase.productId,
+        platform_subscription_id: transactionId,
+        platform_transaction_id: transactionId,
       });
 
       // ADD THIS BLOCK
       await supabase
         .from('user_subscriptions_new')
         .update({
-          original_transaction_id: purchase.transactionId,
-          platform_transaction_id: purchase.transactionId,
+          original_transaction_id: originalTransactionId,
+          platform_transaction_id: transactionId,
+          platform_subscription_id: transactionId,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', finalUserId);
@@ -1691,6 +1729,45 @@ export class AppleStoreKitService {
         productId: latestPurchase.productId,
         transactionDate: latestPurchase.transactionDate,
       });
+
+      const receiptData = await this.getReceiptData(latestPurchase, true);
+      if (receiptData) {
+        const isTrialProduct = latestPurchase.productId.includes('freetrial');
+        let isEligibleForTrial = false;
+
+        if (isTrialProduct) {
+          const { data: currentSub } = await supabase
+            .from('user_subscriptions_new')
+            .select('tier, trial_start_date')
+            .eq('user_id', userId)
+            .single();
+
+          isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !currentSub.trial_start_date);
+        }
+
+        const validationResult = await this.validateReceiptServerSide(
+          receiptData,
+          userId,
+          latestPurchase.productId,
+          isEligibleForTrial
+        );
+
+        if (validationResult.success) {
+          Logger.info('[StoreKit] Server receipt sync completed during subscription status check', {
+            component: 'AppleStoreKitService',
+            productId: latestPurchase.productId,
+            isTrialPeriod: validationResult.data?.isTrialPeriod,
+            validatedProductId: validationResult.data?.productId,
+          });
+          return;
+        }
+
+        Logger.warn('[StoreKit] Server receipt sync failed during status check; falling back to local purchase inference', {
+          component: 'AppleStoreKitService',
+          productId: latestPurchase.productId,
+          error: validationResult.error,
+        });
+      }
 
       // Determine subscription status
       const status = await this.determineSubscriptionStatus(latestPurchase);
@@ -2141,12 +2218,12 @@ export class AppleStoreKitService {
               .eq('user_id', userId)
               .single();
 
-            isEligibleForTrial = !currentSub || currentSub.tier === 'seeker';
+            isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !currentSub.trial_start_date);
           }
 
           const validationResult = await Promise.race([
             this.validateReceiptServerSide(
-              await this.getReceiptData(purchase),
+              await this.getReceiptData(purchase, true),
               userId,
               purchase.productId,
               isEligibleForTrial

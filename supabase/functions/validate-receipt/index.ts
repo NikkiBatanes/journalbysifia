@@ -75,6 +75,8 @@ interface ValidationData {
   purchaseDate: Date | null;
   expiresAt: Date | null;
   isTrialPeriod: boolean;
+  isActive: boolean;
+  isExpired: boolean;
   environment: string;
   rawResponse: AppleReceiptResponse;
 }
@@ -324,10 +326,19 @@ serve(async (req) => {
     // - free_trial + not eligible = PAID UPGRADE/CONVERSION
     // - paid tier + any purchase = TIER UPGRADE (upgrade to new tier)
 
-    // isAppleTrialPeriod is unreliable in sandbox — Apple sometimes returns false even for
-    // the first charge on a .freetrial product. Use the product ID as the authoritative signal.
+    // All live iOS products carry the `.freetrial` suffix, even when Apple charges
+    // an ineligible user immediately. In production, Apple's receipt flag is the
+    // source of truth. Keep the product-id fallback only for sandbox instability.
     const isFreeTrial = (validationResult.data?.productId || '').includes('freetrial');
-    if (currentTier === 'seeker' && !currentSub?.trial_start_date && isEligibleForTrial === true && (isAppleTrialPeriod || isFreeTrial)) {
+    const canUseProductIdTrialFallback =
+      validationResult.data?.environment === 'Sandbox' && isFreeTrial;
+    const shouldCreateNewTrial =
+      currentTier === 'seeker' &&
+      !currentSub?.trial_start_date &&
+      isEligibleForTrial === true &&
+      (isAppleTrialPeriod || canUseProductIdTrialFallback);
+
+    if (shouldCreateNewTrial) {
       // NEW TRIAL: Eligible user starting trial - create trial with tier-specific limits
       console.log('[ValidateReceipt] NEW TRIAL detected - creating trial', {
         currentTier,
@@ -364,8 +375,12 @@ serve(async (req) => {
       // Check if trial is still active
       const trialEndDate = currentSub?.trial_end_date ? new Date(currentSub.trial_end_date) : null;
       const isTrialStillActive = trialEndDate && trialEndDate > new Date();
+      const shouldKeepStoredTrial = Boolean(
+        isTrialStillActive &&
+        (isAppleTrialPeriod || (validationResult.data?.environment === 'Sandbox' && isEligibleForTrial !== false))
+      );
       
-      if (isTrialStillActive && isEligibleForTrial !== false) {
+      if (shouldKeepStoredTrial) {
         // Trial is still active - do NOT convert to paid, just validate
         console.log('[ValidateReceipt] TRIAL STILL ACTIVE - keeping as trial', {
           currentTier,
@@ -373,6 +388,7 @@ serve(async (req) => {
           trialEndDate: trialEndDate?.toISOString(),
           productId: validationResult.data?.productId,
           isEligibleForTrial,
+          isAppleTrialPeriod,
           reason: 'Trial period has not ended yet',
         });
 
@@ -453,8 +469,13 @@ serve(async (req) => {
         data: {
           receiptId: receiptRecord.id,
           transactionId: validationResult.data?.transactionId,
+          originalTransactionId: validationResult.data?.originalTransactionId,
           expiresAt: validationResult.data?.expiresAt,
           productId: validationResult.data?.productId,
+          isTrialPeriod: validationResult.data?.isTrialPeriod,
+          isActive: validationResult.data?.isActive,
+          isExpired: validationResult.data?.isExpired,
+          environment: validationResult.data?.environment,
           isValid: true,
         },
       }),
@@ -533,8 +554,8 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
   const isTrialPeriod = latestReceipt.is_trial_period === 'true';
   
   // Determine subscription state
-  const isActive = expiresAt && expiresAt > now;
-  const isExpired = expiresAt && expiresAt <= now;
+  const isActive = Boolean(expiresAt && expiresAt > now);
+  const isExpired = Boolean(expiresAt && expiresAt <= now);
   
   console.log('[ValidateReceipt] Subscription state check:', {
     expiresAt: expiresAt?.toISOString(),
@@ -638,6 +659,7 @@ async function updateUserSubscription(
       platform: string;
       platform_subscription_id: string;
       platform_transaction_id: string;
+      original_transaction_id: string;
       subscription_display_name: string;
       billing_cycle: string;
       trial_start_date: string | null;
@@ -662,6 +684,7 @@ async function updateUserSubscription(
       platform: 'apple',
       platform_subscription_id: validationData.transactionId,
       platform_transaction_id: validationData.transactionId,
+      original_transaction_id: validationData.originalTransactionId,
       subscription_display_name: getTierDisplayName(tier),
       billing_cycle: tier.includes('_annual') ? 'annual' : 'monthly',
       trial_start_date: null, // Clear trial dates when converting to paid

@@ -30,6 +30,9 @@ export interface GooglePlayPurchaseResult {
   receipt?: string;
   error?: string;
   errorCode?: string;
+  validated?: boolean;
+  receiptId?: string;
+  validation?: any;
 }
 
 export class GooglePlayBillingService {

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
-import { AppleStoreKitService, StoreProduct, PurchaseResult } from './AppleStoreKitService';
+import { AppleStoreKitService, StoreProduct, PurchaseResult, ReceiptValidationData } from './AppleStoreKitService';
 import { GooglePlayBillingService, GooglePlayProduct, GooglePlayPurchaseResult } from './GooglePlayBillingService';
 import { NewSubscriptionService } from './NewSubscriptionService';
 
@@ -20,6 +20,9 @@ export interface UnifiedPurchaseResult {
   receipt?: string;
   error?: string;
   errorCode?: string;
+  validated?: boolean;
+  receiptId?: string;
+  validation?: ReceiptValidationData;
 }
 
 export interface SubscriptionStatus {
@@ -242,6 +245,9 @@ export class PlatformPaymentService {
         receipt: result.receipt,
         error: result.error,
         errorCode: result.errorCode,
+        validated: result.validated,
+        receiptId: result.receiptId,
+        validation: result.validation,
       };
     } catch (error) {
       Logger.error('[PlatformPayment] Purchase failed', error as Error, {
