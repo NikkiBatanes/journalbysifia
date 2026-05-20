@@ -91,6 +91,8 @@ interface SubscriptionRow {
   updated_at: string | null;
   days_remaining: number | null;
   locale: string | null;
+  payment_amount?: number | null;
+  payment_currency?: string | null;
   onboarding_completed: boolean | null;
   account_created_at: string | null;
 }
@@ -276,6 +278,15 @@ function tierLabel(row: SubscriptionRow): string {
 }
 
 function getMarket(row: SubscriptionRow): 'PH' | 'GLOBAL' {
+  // Actual payment currency is the strongest market signal when available.
+  const paymentCurrency = row.payment_currency?.toUpperCase();
+  if (paymentCurrency === 'PHP') {
+    return 'PH';
+  }
+  if (paymentCurrency === 'USD') {
+    return 'GLOBAL';
+  }
+
   // Check locale field if available (primary method)
   if (row.locale) {
     const localeLower = row.locale.toLowerCase();
@@ -315,8 +326,8 @@ function isPaidSubscriptionRow(row: SubscriptionRow): boolean {
 // Monthly prices per tier. Annual MRR = annual_price / 12.
 const PHP_PRICES: Record<string, { monthly: number; annual: number }> = {
   spark:          { monthly: 199,  annual: 1990  },
-  growth:         { monthly: 299,  annual: 2990  },
-  transformation: { monthly: 399,  annual: 3990  },
+  growth:         { monthly: 399,  annual: 3990  },
+  transformation: { monthly: 599,  annual: 5990  },
 };
 const USD_PRICES: Record<string, { monthly: number; annual: number }> = {
   spark:          { monthly: 4.99,  annual: 49.99  },
@@ -471,7 +482,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const metrics = await adminDashboardService.getAllDashboardMetrics(startDate, endDate);
     setDashboardMetrics(metrics);
 
-    const [subscriptionResult, eventsResult, activityResult, contentStatsResult] = await Promise.all([
+    const [subscriptionResult, eventsResult, activityResult, contentStatsResult, paymentResult] = await Promise.all([
       supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
       supabase
         .from('analytics_events')
@@ -488,10 +499,37 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         .order('date', { ascending: false })
         .limit(500),
       supabase.rpc('admin_get_user_content_stats'),
+      supabase
+        .from('payment_analytics')
+        .select('user_id,amount,currency,created_at')
+        .eq('status', 'success')
+        .order('created_at', { ascending: false })
+        .limit(1000),
     ]);
 
     if (!subscriptionResult.error) {
-      setAnalyticsRows((subscriptionResult.data as SubscriptionRow[]) || []);
+      const latestPaymentByUser = new Map<string, { amount: number | null; currency: string | null }>();
+      if (!paymentResult.error) {
+        (paymentResult.data || []).forEach((payment: any) => {
+          if (!latestPaymentByUser.has(payment.user_id)) {
+            latestPaymentByUser.set(payment.user_id, {
+              amount: payment.amount ?? null,
+              currency: payment.currency ?? null,
+            });
+          }
+        });
+      }
+
+      const rows = ((subscriptionResult.data as SubscriptionRow[]) || []).map(row => {
+        const payment = latestPaymentByUser.get(row.user_id);
+        return {
+          ...row,
+          payment_amount: payment?.amount ?? null,
+          payment_currency: payment?.currency ?? null,
+        };
+      });
+
+      setAnalyticsRows(rows);
     }
     if (!eventsResult.error) {
       setActivityEvents((eventsResult.data as ActivityEvent[]) || []);
@@ -813,6 +851,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           updated_at: null,
           days_remaining: null,
           locale: null,
+          payment_amount: null,
+          payment_currency: null,
           onboarding_completed: null,
           account_created_at: null,
         });
@@ -1188,7 +1228,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               </View>
             )}
             {phpMRR === 0 && usdMRR === 0 && (
-              <ThemedText weight="regular" style={styles.marketRevenueLabel}>Set locale to see MRR</ThemedText>
+              <ThemedText weight="regular" style={styles.marketRevenueLabel}>No paid MRR yet</ThemedText>
             )}
           </View>
           <View style={[styles.healthCard, { flex: 1, backgroundColor: (overview?.billing_issues || 0) > 0 ? 'rgba(255,59,48,0.12)' : 'rgba(255,255,255,0.04)' }]}>

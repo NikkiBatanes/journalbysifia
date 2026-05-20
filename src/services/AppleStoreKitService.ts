@@ -919,7 +919,8 @@ export class AppleStoreKitService {
             user_id: this.currentUserId,
             transaction_id: purchase.transactionId || 'unknown',
             product_id: purchase.productId,
-            amount: 0, // Amount will be updated from subscription service
+            amount: this.getAmountFromProductId(purchase.productId),
+            currency: 'PHP',
             status: 'success',
             platform: 'ios',
             is_trial: serverValidation.data?.isTrialPeriod === true,
@@ -2329,8 +2330,8 @@ export class AppleStoreKitService {
     // Return standard pricing amounts (in PHP)
     const pricing: Record<string, Record<string, number>> = {
       spark: { monthly: 199, annual: 1990 },
-      growth: { monthly: 499, annual: 4990 },
-      transformation: { monthly: 999, annual: 9990 },
+      growth: { monthly: 399, annual: 3990 },
+      transformation: { monthly: 599, annual: 5990 },
     };
 
     return pricing[tier]?.[billing] || 0;
