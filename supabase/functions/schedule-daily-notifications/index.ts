@@ -70,7 +70,7 @@ serve(async (req) => {
     // Allow passing a specific user_id for testing
     const { data: { test_user_id } = {} } = await req.json();
     
-    let activeUsers;
+    let activeUsers: SchedulableUser[];
     
     if (test_user_id) {
       console.log(`  → Testing for specific user: ${test_user_id}`);
@@ -88,16 +88,7 @@ serve(async (req) => {
       }
       activeUsers = [testUser];
     } else {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-      const { data: fetchedUsers, error: userError } = await supabase
-        .from('user_profiles')
-        .select('id, first_name')
-        .gte('created_at', thirtyDaysAgo)
-        .eq('onboarding_completed', true);
-
-      if (userError) throw new Error(`Failed to fetch active users: ${userError.message}`);
-      activeUsers = fetchedUsers;
+      activeUsers = await getSchedulableUsers(supabase);
     }
 
     if (!activeUsers || activeUsers.length === 0) {
@@ -141,6 +132,53 @@ serve(async (req) => {
     );
   }
 });
+
+interface SchedulableUser {
+  id: string;
+  first_name?: string | null;
+}
+
+async function getSchedulableUsers(supabase: SupabaseClient): Promise<SchedulableUser[]> {
+  const { data: tokenRows, error: tokenError } = await supabase
+    .from('device_tokens')
+    .select('user_id')
+    .eq('is_active', true)
+    .eq('platform', 'ios');
+
+  if (tokenError) {
+    throw new Error(`Failed to fetch active iOS device tokens: ${tokenError.message}`);
+  }
+
+  const userIds = Array.from(new Set(
+    (tokenRows || [])
+      .map((row: { user_id?: string | null }) => row.user_id)
+      .filter((userId: string | null | undefined): userId is string => !!userId)
+  ));
+
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const users: SchedulableUser[] = [];
+  const chunkSize = 100;
+
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const ids = userIds.slice(i, i + chunkSize);
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, first_name')
+      .eq('onboarding_completed', true)
+      .in('id', ids);
+
+    if (error) {
+      throw new Error(`Failed to fetch onboarded users with iOS tokens: ${error.message}`);
+    }
+
+    users.push(...(data || []));
+  }
+
+  return users;
+}
 
 // ─── Candidate shape ──────────────────────────────────────────────────────────
 
