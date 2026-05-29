@@ -59,6 +59,8 @@
 	<string>This app needs access to your photo library to let you choose a profile picture.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>siFia sends you helpful reminders for your daily devotionals, prayer requests, and spiritual practices to support your faith journey.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This allows us to serve you more relevant ads and measure advertising effectiveness. You can change this choice at any time in Settings.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Lexend-Regular.ttf</string>
@@ -167,7 +169,7 @@
 	<key>FacebookAutoLogAppEventsEnabled</key>
 	<true/>
 	<key>FacebookAdvertiserIDCollectionEnabled</key>
-	<false/>
+	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>
