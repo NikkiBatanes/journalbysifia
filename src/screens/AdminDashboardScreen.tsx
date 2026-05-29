@@ -24,7 +24,7 @@ import ThemedText from '../components/common/ThemedText';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
 
-type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks';
+type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks' | 'feedback';
 type AnalyticsRange = 'daily' | 'weekly' | 'monthly' | 'custom';
 type MonthRange = 'jan' | 'feb' | 'mar' | 'apr' | 'may' | 'jun' | 'jul' | 'aug' | 'sep' | 'oct' | 'nov' | 'dec' | 'all';
 type DrilldownKey =
@@ -355,6 +355,7 @@ const FILTER_TABS: { key: FilterTab; label: string; icon: string; subtitle: stri
   { key: 'paid', label: 'Paid', icon: 'card', subtitle: 'Subscribed members' },
   { key: 'issues', label: 'Issues', icon: 'warning', subtitle: 'Needs attention' },
   { key: 'webhooks', label: 'Webhooks', icon: 'webhook', subtitle: 'Incoming events' },
+  { key: 'feedback', label: 'Feedback', icon: 'chatbubbles', subtitle: 'Bug reports & feature requests' },
 ];
 
 // Enable LayoutAnimation for Android
@@ -410,6 +411,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [rows, setRows] = useState<SubscriptionRow[]>([]);
   const [webhooks, setWebhooks] = useState<WebhookRow[]>([]);
+  const [bugReports, setBugReports] = useState<any[]>([]);
+  const [featureRequests, setFeatureRequests] = useState<any[]>([]);
+  const [feedbackSubTab, setFeedbackSubTab] = useState<'bugs' | 'features'>('bugs');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -447,6 +451,24 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const loadWebhooks = useCallback(async () => {
     const { data, error } = await supabase.rpc('admin_get_webhook_events', { p_limit: 100 });
     if (!error) { setWebhooks((data as WebhookRow[]) || []); }
+  }, []);
+
+  const loadBugReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('bug_reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (!error) { setBugReports((data as any[]) || []); }
+  }, []);
+
+  const loadFeatureRequests = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('feature_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (!error) { setFeatureRequests((data as any[]) || []); }
   }, []);
 
   const getAnalyticsWindow = useCallback(() => {
@@ -559,6 +581,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       await loadAnalytics();
       if (tab === 'webhooks') {
         await loadWebhooks();
+      } else if (tab === 'feedback') {
+        await loadBugReports();
+        await loadFeatureRequests();
       } else if (tab !== 'overview') {
         await loadRows(tab);
       }
@@ -567,7 +592,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab, loadAnalytics, loadOverview, loadRows, loadWebhooks]);
+  }, [activeTab, loadAnalytics, loadOverview, loadRows, loadWebhooks, loadBugReports, loadFeatureRequests]);
 
   useEffect(() => {
     if (isAdmin) { refresh(activeTab); }
@@ -1796,6 +1821,38 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     );
   };
 
+  const renderBugReportRow = ({ item }: { item: any }) => {
+    return (
+      <View style={styles.feedbackRow}>
+        <View style={styles.feedbackLeft}>
+          <ThemedText weight="semiBold" style={styles.feedbackMessage}>{item.message || '—'}</ThemedText>
+          <ThemedText weight="regular" style={styles.feedbackMeta}>
+            {item.platform} · {item.os_version} · {item.screen}
+          </ThemedText>
+        </View>
+        <View style={styles.feedbackRight}>
+          <ThemedText weight="regular" style={styles.feedbackDate}>{formatDate(item.created_at)}</ThemedText>
+        </View>
+      </View>
+    );
+  };
+
+  const renderFeatureRequestRow = ({ item }: { item: any }) => {
+    return (
+      <View style={styles.feedbackRow}>
+        <View style={styles.feedbackLeft}>
+          <ThemedText weight="semiBold" style={styles.feedbackMessage}>{item.message || '—'}</ThemedText>
+          <ThemedText weight="regular" style={styles.feedbackMeta}>
+            {item.category} · {item.platform} · {item.os_version}
+          </ThemedText>
+        </View>
+        <View style={styles.feedbackRight}>
+          <ThemedText weight="regular" style={styles.feedbackDate}>{formatDate(item.created_at)}</ThemedText>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
@@ -1935,6 +1992,49 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             </View>
           }
         />
+      )}
+
+      {activeTab === 'feedback' && (
+        <View style={styles.feedbackContainer}>
+          {renderTabChoices()}
+          <View style={styles.feedbackTabs}>
+            <TouchableOpacity
+              style={[styles.feedbackTab, feedbackSubTab === 'bugs' && styles.feedbackTabActive]}
+              onPress={() => { try { triggerLightHaptic(); } catch {} setFeedbackSubTab('bugs'); }}
+            >
+              <ThemedText weight="semiBold" style={[styles.feedbackTabText, feedbackSubTab === 'bugs' && styles.feedbackTabTextActive]}>Bug Reports ({bugReports.length})</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.feedbackTab, feedbackSubTab === 'features' && styles.feedbackTabActive]}
+              onPress={() => { try { triggerLightHaptic(); } catch {} setFeedbackSubTab('features'); }}
+            >
+              <ThemedText weight="semiBold" style={[styles.feedbackTabText, feedbackSubTab === 'features' && styles.feedbackTabTextActive]}>Feature Requests ({featureRequests.length})</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={feedbackSubTab === 'bugs' ? bugReports : featureRequests}
+            keyExtractor={item => String(item.id)}
+            renderItem={feedbackSubTab === 'bugs' ? renderBugReportRow : renderFeatureRequestRow}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => { setRefreshing(true); refresh('feedback'); }}
+                tintColor={Colors.hopeWhite}
+              />
+            }
+            ListEmptyComponent={
+              loading ? null : (
+                <View style={styles.center}>
+                  <ThemedText weight="regular" style={styles.emptyText}>
+                    {feedbackSubTab === 'bugs' ? 'No bug reports' : 'No feature requests'}
+                  </ThemedText>
+                </View>
+              )
+            }
+          />
+        </View>
       )}
     </View>
   );
@@ -2521,6 +2621,44 @@ const styles = StyleSheet.create({
   webhookRight: { alignItems: 'flex-end' },
   webhookDate: { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
   webhookDetail: { fontSize: 11, marginTop: 4 },
+
+  // Feedback styles
+  feedbackContainer: { flex: 1 },
+  feedbackTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  feedbackTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+  },
+  feedbackTabActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  feedbackTabText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  feedbackTabTextActive: {
+    color: Colors.hopeWhite,
+  },
+  feedbackRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingVertical: 12, paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  feedbackLeft: { flex: 1 },
+  feedbackMessage: { fontSize: 14, color: Colors.hopeWhite, marginBottom: 4 },
+  feedbackMeta: { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
+  feedbackRight: { alignItems: 'flex-end' },
+  feedbackDate: { fontSize: 12, color: 'rgba(255,255,255,0.45)' },
 
   emptyText: { color: 'rgba(255,255,255,0.35)', fontSize: 14 },
 
