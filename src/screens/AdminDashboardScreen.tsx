@@ -23,6 +23,7 @@ import { adminDashboardService, DashboardMetrics } from '../services/adminDashbo
 import ThemedText from '../components/common/ThemedText';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
+const ADMIN_USER_IDS = ['f683eb02-c824-4c24-991c-69b8b5397ca3'];
 
 type FilterTab = 'overview' | 'trials' | 'paid' | 'issues' | 'webhooks' | 'feedback';
 type AnalyticsRange = 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -432,7 +433,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>>(new Map());
 
   const userEmail = (user as any)?.email || '';
-  const isAdmin = ADMIN_EMAILS.includes(userEmail);
+  const isAdmin = ADMIN_EMAILS.includes(userEmail) || ADMIN_USER_IDS.includes(user?.id ?? '');
 
   const loadOverview = useCallback(async () => {
     const { data, error } = await supabase.rpc('admin_subscription_overview');

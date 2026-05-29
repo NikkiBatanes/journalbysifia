@@ -1812,7 +1812,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Function preserved in feature/family-subscription branch
 
   const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
-  const isAdmin = ADMIN_EMAILS.includes((user as any)?.email ?? '');
+  const ADMIN_USER_IDS = ['f683eb02-c824-4c24-991c-69b8b5397ca3'];
+  const isAdmin = ADMIN_EMAILS.includes((user as any)?.email ?? '') || ADMIN_USER_IDS.includes(user?.id ?? '');
 
   const renderAdminSection = () => {
     if (!isAdmin) { return null; }
