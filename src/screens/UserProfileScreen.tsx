@@ -1811,7 +1811,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // POST-LAUNCH: Family Management Section - Removed for MVP launch
   // Function preserved in feature/family-subscription branch
 
-  const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com'];
+  const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com', 'pzgttqh2gh@privaterelay.appleid.com'];
   const ADMIN_USER_IDS = ['f683eb02-c824-4c24-991c-69b8b5397ca3'];
   const isAdmin = ADMIN_EMAILS.includes((user as any)?.email ?? '') || ADMIN_USER_IDS.includes(user?.id ?? '');
 
