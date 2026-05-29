@@ -21,6 +21,7 @@ import { Colors } from '../theme/colors';
 import { triggerLightHaptic } from '../utils/haptics';
 import { adminDashboardService, DashboardMetrics } from '../services/adminDashboardService';
 import ThemedText from '../components/common/ThemedText';
+import { Logger } from '../utils/ProductionLogger';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com', 'pzgttqh2gh@privaterelay.appleid.com'];
 const ADMIN_USER_IDS = ['f683eb02-c824-4c24-991c-69b8b5397ca3'];
@@ -460,7 +461,17 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (!error) { setBugReports((data as any[]) || []); }
+    if (error) {
+      Logger.error('Error loading bug reports', new Error(error.message), {
+        component: 'AdminDashboardScreen',
+      });
+    } else {
+      Logger.info('Loaded bug reports', {
+        component: 'AdminDashboardScreen',
+        count: data?.length || 0,
+      });
+      setBugReports((data as any[]) || []);
+    }
   }, []);
 
   const loadFeatureRequests = useCallback(async () => {
@@ -469,7 +480,17 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (!error) { setFeatureRequests((data as any[]) || []); }
+    if (error) {
+      Logger.error('Error loading feature requests', new Error(error.message), {
+        component: 'AdminDashboardScreen',
+      });
+    } else {
+      Logger.info('Loaded feature requests', {
+        component: 'AdminDashboardScreen',
+        count: data?.length || 0,
+      });
+      setFeatureRequests((data as any[]) || []);
+    }
   }, []);
 
   const getAnalyticsWindow = useCallback(() => {
