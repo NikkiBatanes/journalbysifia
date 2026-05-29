@@ -1,5 +1,6 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
+import { Platform } from 'react-native';
 import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
@@ -344,9 +345,10 @@ export default function RootStackNavigator({
             component={UserProfileScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
               animation: 'slide_from_bottom',
               gestureEnabled: true,
+              contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />
 
@@ -356,9 +358,10 @@ export default function RootStackNavigator({
             component={NotificationsScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
               animation: 'slide_from_bottom',
               gestureEnabled: true,
+              contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />
 
@@ -409,9 +412,10 @@ export default function RootStackNavigator({
             component={DevotionalDetailScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
               animation: 'slide_from_bottom',
               gestureEnabled: true,
+              contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />
           <Stack.Screen

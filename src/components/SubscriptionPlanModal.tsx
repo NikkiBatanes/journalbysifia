@@ -4,7 +4,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { Logger } from '../utils/ProductionLogger';
 import { triggerLightHaptic } from '../utils/haptics';
 import { navigateFromRoot } from '../utils/navigationHelpers';
 import { notificationDeepLinkService } from '../services/notificationDeepLinkService';
+import PlatformPageSheetModal from './common/PlatformPageSheetModal';
 
 type PaidPlanTier = 'spark' | 'growth' | 'transformation';
 
@@ -661,10 +661,11 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   };
 
   return (
-    <Modal
+    <PlatformPageSheetModal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
@@ -814,7 +815,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           </SafeAreaView>
         )}
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 };
 

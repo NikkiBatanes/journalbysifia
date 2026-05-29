@@ -67,8 +67,9 @@ serve(async (req) => {
 
     console.log('🔔 Starting daily notification scheduling...');
 
-    // Allow passing a specific user_id for testing
-    const { data: { test_user_id } = {} } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { test_user_id } = body?.data || body || {};
+    const batchOptions = parseBatchOptions(body?.data || body || {});
     
     let activeUsers: SchedulableUser[];
     
@@ -88,7 +89,7 @@ serve(async (req) => {
       }
       activeUsers = [testUser];
     } else {
-      activeUsers = await getSchedulableUsers(supabase);
+      activeUsers = await getSchedulableUsers(supabase, batchOptions);
     }
 
     if (!activeUsers || activeUsers.length === 0) {
@@ -98,7 +99,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`  → Found ${activeUsers.length} active users to schedule for`);
+    console.log(`  → Found ${activeUsers.length} active users to schedule for`, batchOptions);
 
     const results = [];
     for (const user of activeUsers) {
@@ -120,7 +121,14 @@ serve(async (req) => {
     console.log(`✅ Scheduled for ${successCount} users, ${failureCount} failures`);
 
     return new Response(
-      JSON.stringify({ success: true, total_users: activeUsers.length, successful: successCount, failed: failureCount, results }),
+      JSON.stringify({
+        success: true,
+        total_users: activeUsers.length,
+        successful: successCount,
+        failed: failureCount,
+        batch: batchOptions,
+        results,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -138,7 +146,33 @@ interface SchedulableUser {
   first_name?: string | null;
 }
 
-async function getSchedulableUsers(supabase: SupabaseClient): Promise<SchedulableUser[]> {
+interface SchedulerBatchOptions {
+  batchIndex: number;
+  batchCount: number;
+}
+
+function parseBatchOptions(body: Record<string, unknown>): SchedulerBatchOptions {
+  const rawBatchCount = Number(body.batch_count ?? body.batchCount ?? 1);
+  const batchCount = Number.isFinite(rawBatchCount) && rawBatchCount > 0
+    ? Math.min(Math.floor(rawBatchCount), 50)
+    : 1;
+
+  const hasOneBasedBatchNumber = body.batch_number !== undefined || body.batchNumber !== undefined;
+  const rawBatchIndex = hasOneBasedBatchNumber
+    ? Number(body.batch_number ?? body.batchNumber) - 1
+    : Number(body.batch_index ?? body.batchIndex ?? 0);
+
+  const batchIndex = Number.isFinite(rawBatchIndex)
+    ? Math.min(Math.max(Math.floor(rawBatchIndex), 0), batchCount - 1)
+    : 0;
+
+  return { batchIndex, batchCount };
+}
+
+async function getSchedulableUsers(
+  supabase: SupabaseClient,
+  batchOptions: SchedulerBatchOptions
+): Promise<SchedulableUser[]> {
   const { data: tokenRows, error: tokenError } = await supabase
     .from('device_tokens')
     .select('user_id')
@@ -149,10 +183,14 @@ async function getSchedulableUsers(supabase: SupabaseClient): Promise<Schedulabl
     throw new Error(`Failed to fetch active iOS device tokens: ${tokenError.message}`);
   }
 
-  const userIds = Array.from(new Set(
+  const allUserIds = Array.from(new Set(
     (tokenRows || [])
       .map((row: { user_id?: string | null }) => row.user_id)
       .filter((userId: string | null | undefined): userId is string => !!userId)
+  )).sort();
+
+  const userIds = allUserIds.filter((_, index) => (
+    index % batchOptions.batchCount === batchOptions.batchIndex
   ));
 
   if (userIds.length === 0) {

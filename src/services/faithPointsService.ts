@@ -11,6 +11,7 @@ import { notificationService } from './notificationService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 import { milestoneCelebrationService } from './milestoneCelebrationService';
 import { streakTrackingService, StreakType } from './streakTrackingService';
+import { requestReview } from './reviewPromptService';
 
 export interface FaithPointsProfile {
   userId: string;
@@ -170,6 +171,52 @@ export class FaithPointsService {
     return this.POINTS_SYSTEM[activity];
   }
 
+  private shouldRequestReviewForActivity(activity: keyof typeof this.POINTS_SYSTEM): boolean {
+    return [
+      'playbook_completed',
+      'devotional_full_completed',
+      'prayer_answered',
+      'weekly_goal_met',
+    ].includes(activity);
+  }
+
+  private queueReviewRequestForActivity(
+    userId: string,
+    activity: keyof typeof this.POINTS_SYSTEM,
+    metadata: ({ suppressNotification?: boolean; isOnboarding?: boolean; skipReviewPrompt?: boolean } & any) | undefined,
+    leveledUp: boolean
+  ): void {
+    if (metadata?.isOnboarding || metadata?.skipReviewPrompt) {
+      return;
+    }
+
+    if (!leveledUp && !this.shouldRequestReviewForActivity(activity)) {
+      return;
+    }
+
+    const triggerSource = leveledUp
+      ? `faith_points_level_up_${activity}`
+      : `faith_points_${activity}`;
+
+    const requestAfterInteractions = () => {
+      requestReview({ triggerSource }).catch((reviewError) => {
+        Logger.warn('[FaithPointsService] Review prompt request failed', {
+          component: 'faithPointsService',
+          userId,
+          activity,
+          triggerSource,
+          error: reviewError as Error,
+        });
+      });
+    };
+
+    try {
+      InteractionManager.runAfterInteractions(requestAfterInteractions);
+    } catch {
+      setTimeout(requestAfterInteractions, 500);
+    }
+  }
+
   /**
    * Check if a specific activity already has a transaction for the current day (local device day)
    */
@@ -270,7 +317,7 @@ export class FaithPointsService {
   async awardPoints(
     userId: string,
     activity: keyof typeof this.POINTS_SYSTEM,
-    _metadata?: { suppressNotification?: boolean; isOnboarding?: boolean } & any
+    _metadata?: { suppressNotification?: boolean; isOnboarding?: boolean; skipReviewPrompt?: boolean } & any
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
 
     try {
@@ -547,6 +594,8 @@ export class FaithPointsService {
       Logger.debug('[FaithPointsService] AFTER milestone check', {
         component: 'faithPointsService',
       });
+
+      this.queueReviewRequestForActivity(userId, activity, _metadata, leveledUp);
 
       // CRITICAL: Disable event emissions - they trigger expensive re-renders causing 7.6s freeze
       // Components will refetch data naturally via React Query

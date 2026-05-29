@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
@@ -136,9 +136,13 @@ export const MomentsScreen: React.FC = () => {
     return selectedRange;
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.anchorBlue} />
+  const screenContent = (
+    <>
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue}
+        translucent={Platform.OS === 'android'}
+      />
 
       <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.anchorBlue }]}>
         <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
@@ -265,6 +269,23 @@ export const MomentsScreen: React.FC = () => {
           />
         }
       />
+    </>
+  );
+
+  if (Platform.OS === 'android') {
+    return (
+      <View style={styles.androidModalRoot}>
+        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
+        <SafeAreaView style={[styles.container, styles.androidRouteSheet]} edges={['left', 'right']}>
+          {screenContent}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      {screenContent}
     </SafeAreaView>
   );
 };
@@ -273,6 +294,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  androidModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  androidBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  androidRouteSheet: {
+    flex: 0,
+    height: '92%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,

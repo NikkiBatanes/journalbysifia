@@ -6,6 +6,9 @@ import {
   RefreshControl,
   StyleSheet,
   DeviceEventEmitter,
+  Platform,
+  Pressable,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -795,8 +798,14 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     return date.toLocaleDateString();
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+  const screenContent = (
+    <SafeAreaView
+      style={[styles.container, Platform.OS === 'android' && styles.androidRouteSheet]}
+      edges={['top']}
+    >
+      {Platform.OS === 'android' && (
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      )}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -896,12 +905,41 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       </ScrollView>
     </SafeAreaView>
   );
+
+  if (Platform.OS === 'android') {
+    return (
+      <View style={styles.androidModalRoot}>
+        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
+        {screenContent}
+      </View>
+    );
+  }
+
+  return screenContent;
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  androidModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  androidBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  androidRouteSheet: {
+    flex: 0,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
+    height: '92%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',

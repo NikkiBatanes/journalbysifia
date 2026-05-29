@@ -854,14 +854,29 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional]);
 
+  const renderAndroidRouteSheet = (content: React.ReactElement): React.ReactElement => {
+    if (Platform.OS !== 'android') {
+      return content;
+    }
+
+    return (
+      <View style={styles.androidModalRoot}>
+        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
+        <View style={styles.androidRouteSheet}>
+          {content}
+        </View>
+      </View>
+    );
+  };
+
   // Show loading while user or ID validation is pending, or while fetching data
   if (!userId || loading || (queryEnabled && !devotional && !isError)) {
-    return <DevotionalDetailSkeleton />;
+    return renderAndroidRouteSheet(<DevotionalDetailSkeleton />);
   }
 
   // Only show invalid ID error if we're certain the ID format is wrong
   if (!isValidUUID(cleanDevotionalId)) {
-    return (
+    return renderAndroidRouteSheet(
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Invalid devotional link</ThemedText>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -875,7 +890,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Check isError to ensure we've actually tried to fetch and failed, not just returning cached null
   if (queryEnabled && !loading && !devotional && !devotionalFetching && isError) {
 
-    return (
+    return renderAndroidRouteSheet(
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Devotional not found</ThemedText>
         <TouchableOpacity
@@ -889,7 +904,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
   // At this point, we know devotional exists (TypeScript guard)
   if (!devotional) {
-    return <DevotionalDetailSkeleton />;
+    return renderAndroidRouteSheet(<DevotionalDetailSkeleton />);
   }
 
   // Handle swipe down to dismiss
@@ -917,13 +932,17 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     .minDistance(5) // Small distance to start detecting
     .activeOffsetY([0, 0]); // Allow vertical movement
 
-  return (
+  const screenContent = (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView
         style={styles.container}
         edges={['top']}
       >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+        backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
+        translucent={Platform.OS === 'android'}
+      />
 
       {/* Floating Action Button - only show when scrolled to bottom and day is not completed */}
       {currentDay && !currentDay.completed && showFAB && (
@@ -1425,12 +1444,33 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       </SafeAreaView>
     </GestureHandlerRootView>
   );
+
+  return renderAndroidRouteSheet(screenContent);
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  androidModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  androidBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  androidRouteSheet: {
+    flex: 0,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
+    height: '92%',
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   headerContainer: {
     position: 'absolute',

@@ -5695,6 +5695,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           if (!alreadyAwarded) {
             await faithPointsService.awardPoints(userId, 'playbook_completed', {
               suppressNotification: true,
+              skipReviewPrompt: source === 'onboarding',
               source: 'playbook_completion',
               playbookId,
               playbookTitle: playbook?.title,

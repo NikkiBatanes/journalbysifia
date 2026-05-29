@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { X, Check } from 'lucide-react-native'; // Unused
 import { Colors } from '../../theme/colors';
@@ -7,6 +7,7 @@ import ThemedText from '../common/ThemedText';
 import { triggerSelectionHaptic } from '../../utils/haptics';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
+import PlatformPageSheetModal from '../common/PlatformPageSheetModal';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -176,7 +177,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
   }, [visible]);
 
   return (
-    <Modal
+    <PlatformPageSheetModal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
@@ -336,7 +337,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
           </TouchableWithoutFeedback>
         </ScrollView>
       </KeyboardAvoidingView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 };
 

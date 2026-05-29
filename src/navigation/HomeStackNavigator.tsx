@@ -1,5 +1,6 @@
 // src/navigation/HomeStackNavigator.tsx
 import React from 'react';
+import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DashboardHomeScreen from '../screens/DashboardHomeScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
@@ -24,9 +25,10 @@ export default function HomeStackNavigator() {
         component={UserProfileScreen as React.ComponentType}
         options={{
           headerShown: false,
-          presentation: 'modal',
+          presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
+          contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
         }}
       />
       {/* StreakDetail route removed */}

@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerSelectionHaptic } from '../../utils/haptics';
 import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
+import PlatformPageSheetModal from '../common/PlatformPageSheetModal';
 
 const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
@@ -123,7 +124,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
   }, [visible, selectedPrayerType, onSelectPrayerType]);
 
   return (
-    <Modal
+    <PlatformPageSheetModal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
@@ -257,7 +258,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
         </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 };
 

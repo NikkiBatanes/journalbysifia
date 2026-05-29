@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking, Platform } from 'react-native';
 import InAppReview from 'react-native-in-app-review';
 import { Logger } from '../utils/ProductionLogger';
 
@@ -20,6 +21,9 @@ const LAST_PROMPT_KEY = 'review:lastPromptAt';
 const COUNT_KEY_PREFIX = 'review:promptCount:';
 const MIN_DAYS_BETWEEN = 30; // days
 const MAX_PER_YEAR = 3;
+const APPLE_APP_ID = '6751785713';
+const ANDROID_PACKAGE = 'app.sifia.com';
+let reviewRequestInFlight = false;
 
 interface ReviewPromptOptions {
   /**
@@ -30,6 +34,31 @@ interface ReviewPromptOptions {
    * Whether to force the prompt (bypass gating for testing)
    */
   force?: boolean;
+}
+
+interface StoreReviewOptions {
+  /**
+   * Optional context for logging/analytics
+   */
+  triggerSource?: string;
+}
+
+function getStoreReviewUrls(platform: string): string[] {
+  if (platform === 'ios') {
+    return [
+      `itms-apps://itunes.apple.com/app/id${APPLE_APP_ID}?action=write-review`,
+      `https://apps.apple.com/app/id${APPLE_APP_ID}?action=write-review`,
+    ];
+  }
+
+  if (platform === 'android') {
+    return [
+      `market://details?id=${ANDROID_PACKAGE}`,
+      `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`,
+    ];
+  }
+
+  return ['https://sifia.app'];
 }
 
 /**
@@ -96,33 +125,39 @@ async function recordPrompt(): Promise<void> {
 /**
  * Open the store review page directly (fallback if in-app review unavailable)
  */
-async function openStoreReview(): Promise<void> {
-  try {
-    const APPLE_APP_ID = '6751785713';
-    const ANDROID_PACKAGE = 'com.sifiaopc.app';
+export async function openStoreReview(options?: StoreReviewOptions): Promise<boolean> {
+  const { triggerSource } = options || {};
 
-    const { Linking, Platform } = await import('react-native');
+  const urls = getStoreReviewUrls(Platform.OS);
+  let lastError: unknown;
 
-    if (Platform.OS === 'ios') {
-      if (!APPLE_APP_ID) {
-        Logger.warn('[ReviewPromptService] No Apple App ID configured');
-        return;
-      }
-      const iosDeepLink = `itms-apps://itunes.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
-      const iosWeb = `https://apps.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
-      const supported = await Linking.canOpenURL(iosDeepLink);
-      await Linking.openURL(supported ? iosDeepLink : iosWeb);
-    } else {
-      const marketUrl = `market://details?id=${ANDROID_PACKAGE}`;
-      const webUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
-      const supported = await Linking.canOpenURL(marketUrl);
-      await Linking.openURL(supported ? marketUrl : webUrl);
+  for (const url of urls) {
+    try {
+      await Linking.openURL(url);
+
+      Logger.info('[ReviewPromptService] Opened store review page', {
+        triggerSource,
+        platform: Platform.OS,
+        url,
+      });
+
+      return true;
+    } catch (error) {
+      lastError = error;
+      Logger.warn('[ReviewPromptService] Store review URL failed, trying fallback', {
+        triggerSource,
+        platform: Platform.OS,
+        url,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    Logger.info('[ReviewPromptService] Opened store review page');
-  } catch (error) {
-    Logger.error('[ReviewPromptService] Error opening store review', error as Error);
   }
+
+  Logger.error('[ReviewPromptService] Error opening store review', lastError as Error, {
+    triggerSource,
+    platform: Platform.OS,
+  });
+  return false;
 }
 
 /**
@@ -142,6 +177,15 @@ async function openStoreReview(): Promise<void> {
 export async function requestReview(options?: ReviewPromptOptions): Promise<boolean> {
   const { triggerSource, force } = options || {};
 
+  if (reviewRequestInFlight) {
+    Logger.info('[ReviewPromptService] Review prompt skipped (request already in flight)', {
+      triggerSource,
+    });
+    return false;
+  }
+
+  reviewRequestInFlight = true;
+
   try {
     Logger.info('[ReviewPromptService] Review requested', { triggerSource });
 
@@ -156,11 +200,16 @@ export async function requestReview(options?: ReviewPromptOptions): Promise<bool
     // Check if in-app review is available
     if (InAppReview.isAvailable()) {
       Logger.info('[ReviewPromptService] Requesting in-app review');
-      await InAppReview.RequestInAppReview();
+      const reviewFlowFinished = await InAppReview.RequestInAppReview();
 
       // Record the attempt regardless of whether dialog actually appears
       // (platform may suppress it based on their own rules)
       await recordPrompt();
+
+      if (!reviewFlowFinished) {
+        Logger.info('[ReviewPromptService] In-app review returned false, using store fallback');
+        return await openStoreReview({ triggerSource });
+      }
 
       Logger.info('[ReviewPromptService] In-app review requested');
       return true;
@@ -168,21 +217,27 @@ export async function requestReview(options?: ReviewPromptOptions): Promise<bool
 
     // Fallback to store page
     Logger.info('[ReviewPromptService] In-app review unavailable, using store fallback');
-    await openStoreReview();
-    await recordPrompt();
+    const didOpenStoreReview = await openStoreReview({ triggerSource });
+    if (didOpenStoreReview) {
+      await recordPrompt();
+    }
 
-    return true;
+    return didOpenStoreReview;
   } catch (error) {
     Logger.error('[ReviewPromptService] Error requesting review', error as Error);
 
     // Try fallback on error
     try {
-      await openStoreReview();
-      await recordPrompt();
-      return true;
+      const didOpenStoreReview = await openStoreReview({ triggerSource });
+      if (didOpenStoreReview) {
+        await recordPrompt();
+      }
+      return didOpenStoreReview;
     } catch {
       return false;
     }
+  } finally {
+    reviewRequestInFlight = false;
   }
 }
 

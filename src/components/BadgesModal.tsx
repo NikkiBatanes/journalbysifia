@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Modal,
   View,
   Text,
   StyleSheet,
@@ -25,6 +24,7 @@ import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { triggerLightHaptic } from '../utils/haptics';
+import PlatformPageSheetModal from './common/PlatformPageSheetModal';
 
 
 interface BadgesModalProps {
@@ -196,7 +196,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
 
   return (
-    <Modal
+    <PlatformPageSheetModal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
@@ -310,7 +310,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
             </ScrollView>
           )}
         </SafeAreaView>
-      </Modal>
+      </PlatformPageSheetModal>
     );
   };
 

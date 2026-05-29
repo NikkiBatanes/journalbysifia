@@ -17,6 +17,7 @@ import {
   Share,
   TextInput,
   Modal,
+  Pressable,
   // Switch removed - using custom toggle
   Image,
   Keyboard,
@@ -36,6 +37,7 @@ import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
 import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
+import PlatformPageSheetModal from '../components/common/PlatformPageSheetModal';
 import { UserProgress, UserPreferences } from '../types/auth';
 import StreakTracker from '../components/dashboard/StreakTracker';
 // Types for subscription - using inline types to avoid import issues
@@ -70,7 +72,7 @@ import { reportFeature } from '../services/featureRequestService';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
-import { requestReview } from '../services/reviewPromptService';
+import { openStoreReview } from '../services/reviewPromptService';
 
 const { width } = Dimensions.get('window');
 
@@ -78,7 +80,7 @@ const { width } = Dimensions.get('window');
 // App Store ID from sifia.app
 const APPLE_APP_ID = '6751785713';
 // Android package is already defined in app.json and native; keep here for clarity
-const ANDROID_PACKAGE = 'com.sifiaopc.app';
+const ANDROID_PACKAGE = 'app.sifia.com';
 
 interface Props {
   navigation: any;
@@ -99,8 +101,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-  // Status bar: dark icons on white header area
-  useScreenStatusBar('dark', Colors.hopeWhite);
+  // Android presents this route as a dimmed sheet, so the status bar sits above
+  // the white profile header. iOS keeps the native page sheet header treatment.
+  useScreenStatusBar(Platform.OS === 'android' ? 'light' : 'dark', Platform.OS === 'android' ? 'transparent' : Colors.hopeWhite);
 
   const navigateToSalesOffer = useCallback((params: Record<string, unknown>) => {
     const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
@@ -699,12 +702,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
-  // Try in-app review first, with gentle app-level gating, then fallback to store page
+  // Explicit review taps should open a visible store page; in-app prompts can be
+  // silently suppressed by the OS and feel like a broken button here.
   const handleLeaveReview = async () => {
     try {
-      await requestReview({ triggerSource: 'manual_profile_button' });
+      const didOpen = await openStoreReview({ triggerSource: 'manual_profile_button' });
+      if (!didOpen) {
+        Alert.alert('Unable to open review page', 'Please try again later.');
+      }
     } catch (error) {
       Logger.error('[UserProfileScreen] Error in handleLeaveReview', error as Error);
+      Alert.alert('Unable to open review page', 'Please try again later.');
     }
   };
 
@@ -824,10 +832,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const FEATURE_CATEGORIES = ['UI/UX','New Content','Performance','Notifications','Integrations','Accessibility','Other'];
 
   const renderFeatureModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={featureModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setFeatureModal(false)}
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -870,14 +879,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   const renderAppearanceModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={appearanceModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setAppearanceModal(false)}
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -949,14 +959,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   const renderReportBugModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={reportBugModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setReportBugModal(false)}
     >
       <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -983,7 +994,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.bugHint, font]}>We'll take your reported issues into account to improve siFia.</Text>
         </View>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   // Reload preferences whenever the settings modal opens
@@ -1843,10 +1854,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderEditProfileModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={editProfileModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setEditProfileModal(false)}
     >
       <SafeAreaView
         edges={['top']}
@@ -2020,7 +2032,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   // Delete Account Confirmation Modal
@@ -2088,10 +2100,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderYearPickerModal = () => null;
 
   const renderWeekStartModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={weekStartModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setWeekStartModal(false)}
     >
       <SafeAreaView
         edges={['top']}
@@ -2150,14 +2163,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   const renderBibleVersionModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={bibleVersionModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setBibleVersionModal(false)}
     >
       <SafeAreaView
         edges={['top','left','right']}
@@ -2237,11 +2251,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={{ height: (insets?.bottom || 0) + 8 }} />
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   const renderSystemPermissionsModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={systemPermissionsModal}
       animationType="slide"
       presentationStyle="pageSheet"
@@ -2324,14 +2338,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   const renderSettingsModal = () => (
-    <Modal
+    <PlatformPageSheetModal
       visible={settingsModal}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={() => setSettingsModal(false)}
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -2527,19 +2542,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </PlatformPageSheetModal>
   );
 
   // Remove loading gate; render UI immediately
 
-  return (
-    <SafeAreaView
-      edges={['top']}
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.hopeWhite },
-      ]}
-    >
+  const profileContent = (
+    <>
       {/* Fixed white header area with extra padding */}
       <View
         style={[
@@ -2598,6 +2607,36 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         }}
         navigation={navigation}
       />
+    </>
+  );
+
+  if (Platform.OS === 'android') {
+    return (
+      <View style={styles.androidModalRoot}>
+        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
+        <SafeAreaView
+          edges={['top']}
+          style={[
+            styles.container,
+            styles.androidRouteSheet,
+            { backgroundColor: theme.colors.hopeWhite },
+          ]}
+        >
+          {profileContent}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView
+      edges={['top']}
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.hopeWhite },
+      ]}
+    >
+      {profileContent}
     </SafeAreaView>
   );
 };
@@ -2606,6 +2645,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+  },
+  androidModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  androidBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  androidRouteSheet: {
+    flex: 0,
+    height: '92%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   loadingContainer: {
     flex: 1,
