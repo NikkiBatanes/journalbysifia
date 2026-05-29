@@ -4,6 +4,7 @@
 
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
+import { metaAppEventsService } from './metaAppEventsService';
 import {
   Subscription,
   SubscriptionTier,
@@ -630,6 +631,14 @@ export class NewSubscriptionService {
 
       // CRITICAL: Force a fresh fetch to ensure we get the correct tier
       const finalSubscription = await this.getUserSubscription(user_id);
+      const trackTrialStarted = () => {
+        metaAppEventsService.trackTrialStarted({
+          tier: chosenTier,
+          billingCycle: billing_cycle || 'monthly',
+          transactionId: platform_transaction_id || original_transaction_id,
+          productId: platform_subscription_id,
+        });
+      };
 
       // Final verification
       if (finalSubscription.tier !== 'free_trial') {
@@ -666,9 +675,12 @@ export class NewSubscriptionService {
           })
           .eq('user_id', user_id);
 
-        return await this.getUserSubscription(user_id);
+        const correctedSubscription = await this.getUserSubscription(user_id);
+        trackTrialStarted();
+        return correctedSubscription;
       }
 
+      trackTrialStarted();
       return finalSubscription;
     } catch (error) {
       throw new SubscriptionError(`Failed to start trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_START_ERROR', error);
@@ -718,7 +730,13 @@ export class NewSubscriptionService {
         throw new SubscriptionError(`Failed to convert trial: ${error.message}`, 'TRIAL_CONVERSION_ERROR', error);
       }
 
-      return await this.getUserSubscription(userId);
+      const convertedSubscription = await this.getUserSubscription(userId);
+      metaAppEventsService.trackSubscriptionConverted({
+        tier: chosenTier,
+        billingCycle: (subscription as any).billing_cycle || 'monthly',
+      });
+
+      return convertedSubscription;
     } catch (error) {
       throw new SubscriptionError(`Failed to convert trial: ${error instanceof Error ? error.message : 'Unknown error'}`, 'TRIAL_CONVERSION_ERROR', error);
     }

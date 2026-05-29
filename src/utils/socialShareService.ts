@@ -6,6 +6,7 @@
 import { Platform, Alert } from 'react-native';
 import Share from 'react-native-share';
 import { Logger } from './ProductionLogger';
+import { ENV } from '../config/environment';
 
 export interface ShareContent {
   type: 'scripture' | 'affirmation';
@@ -63,7 +64,7 @@ class SocialShareService {
         url: Platform.OS === 'ios' ? uri : `file://${uri}`,
         type: 'image/png',
         social: Share.Social.INSTAGRAM_STORIES,
-        appId: 'your-facebook-app-id', // Replace with actual Facebook App ID
+        appId: ENV.FACEBOOK_APP_ID,
       };
 
       await Share.shareSingle(shareOptions);

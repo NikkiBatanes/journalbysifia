@@ -81,12 +81,17 @@ android {
 
     namespace "app.sifia.com"
     defaultConfig {
+        def facebookAppId = project.env.get("FACEBOOK_APP_ID") ?: "966515746211770"
+        def facebookClientToken = project.env.get("FACEBOOK_CLIENT_TOKEN") ?: ""
         applicationId "app.sifia.com"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 9
         versionName "1.4.2"
         resValue "string", "build_config_package", "app.sifia.com"
+        resValue "string", "facebook_app_id", facebookAppId
+        resValue "string", "fb_login_protocol_scheme", "fb${facebookAppId}"
+        resValue "string", "facebook_client_token", facebookClientToken
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }

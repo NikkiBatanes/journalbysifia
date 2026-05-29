@@ -32,6 +32,7 @@ import { ENV } from '../config/environment';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { SubscriptionTier } from '../types/subscription';
 import { adminAnalyticsService } from './adminAnalyticsService';
+import { metaAppEventsService } from './metaAppEventsService';
 
 export interface StoreProduct {
   productId: string;
@@ -915,17 +916,31 @@ export class AppleStoreKitService {
 
         // Track payment success for analytics
         if (this.currentUserId) {
+          const isTrialPurchase = serverValidation.data?.isTrialPeriod === true || purchase.productId.includes('freetrial');
+          const amount = this.getAmountFromProductId(purchase.productId);
+
           await adminAnalyticsService.trackPaymentEvent({
             user_id: this.currentUserId,
             transaction_id: purchase.transactionId || 'unknown',
             product_id: purchase.productId,
-            amount: this.getAmountFromProductId(purchase.productId),
+            amount,
             currency: 'PHP',
             status: 'success',
             platform: 'ios',
-            is_trial: serverValidation.data?.isTrialPeriod === true,
+            is_trial: isTrialPurchase,
             receipt_data: { transactionDate: purchase.transactionDate },
           });
+
+          if (!isTrialPurchase && amount > 0) {
+            metaAppEventsService.trackPurchase({
+              amount,
+              currency: 'PHP',
+              productId: purchase.productId,
+              transactionId: purchase.transactionId,
+              tier: this.getSubscriptionTierFromProductId(purchase.productId),
+              platform: 'ios',
+            });
+          }
         }
       }
 

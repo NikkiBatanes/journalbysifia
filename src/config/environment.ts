@@ -34,6 +34,11 @@ export const ENV = {
   SENTRY_ORG: Config.SENTRY_ORG || '',
   SENTRY_PROJECT: Config.SENTRY_PROJECT || '',
 
+  // Meta App Events / Facebook SDK
+  FACEBOOK_APP_ID: Config.FACEBOOK_APP_ID || '966515746211770',
+  FACEBOOK_CLIENT_TOKEN: Config.FACEBOOK_CLIENT_TOKEN || '',
+  META_ADVERTISER_ID_COLLECTION_ENABLED: Config.META_ADVERTISER_ID_COLLECTION_ENABLED === 'true',
+
   // Feature Flags
   ENABLE_TRIAL_SYSTEM: Config.ENABLE_TRIAL_SYSTEM !== 'false', // Default true
   ENABLE_ANALYTICS: Config.ENABLE_ANALYTICS === 'true', // Default false

@@ -63,6 +63,7 @@ import {queryClient} from './src/config/queryClientConfig';
 import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import {initializeLogger} from './src/config/logging.config';
 import { experiencePreferences } from './src/services/experiencePreferences';
+import { initializeMetaAppEvents } from './src/services/metaAppEventsService';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -81,6 +82,7 @@ function App(): React.JSX.Element {
 
   // Load experience preferences on app startup
   useEffect(() => {
+    initializeMetaAppEvents();
     experiencePreferences.loadOnce();
   }, []);
 

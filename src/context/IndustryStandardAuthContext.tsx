@@ -9,6 +9,8 @@ import { Platform } from 'react-native';
 import Config from 'react-native-config';
 import { Logger } from '../utils/ProductionLogger';
 import { adminAnalyticsService } from '../services/adminAnalyticsService';
+import { metaAppEventsService } from '../services/metaAppEventsService';
+import type { MetaRegistrationMethod } from '../services/metaAppEventsService';
 
 // Industry-standard auth types
 interface AuthState {
@@ -44,6 +46,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Global session refresh coordinator
 let refreshPromise: Promise<any> | null = null;
+
+const getMetaRegistrationMethod = (user: any): MetaRegistrationMethod => {
+  const provider = user?.app_metadata?.provider || user?.identities?.[0]?.provider;
+
+  if (provider === 'email') {
+    return 'email';
+  }
+
+  if (provider === 'google' || provider === 'apple') {
+    return provider;
+  }
+
+  if (provider) {
+    return 'oauth';
+  }
+
+  return 'unknown';
+};
 
 export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -236,6 +256,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             userId: user.id,
           });
         } else {
+          const registrationMethod = getMetaRegistrationMethod(user);
+          if (registrationMethod === 'google' || registrationMethod === 'apple' || registrationMethod === 'oauth') {
+            adminAnalyticsService.trackSignup(user.id, registrationMethod);
+            metaAppEventsService.trackRegistration(registrationMethod);
+          }
 
           // Create default Seeker subscription for new user (skip if already exists)
           try {
@@ -849,6 +874,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // Track user signup for analytics
       if (data.user?.id) {
         adminAnalyticsService.trackSignup(data.user.id, 'email');
+        metaAppEventsService.trackRegistration('email');
       }
 
       return { error: null };

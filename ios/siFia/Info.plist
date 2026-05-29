@@ -128,9 +128,21 @@
 	<array>
 		<string>google</string>
 		<string>com.googleusercontent.apps.158783468776-1at3oeuablle65rvtsjqeqhv6qc40me8</string>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Facebook</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb966515746211770</string>
+			</array>
+		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>GoogleSignIn</string>
@@ -148,6 +160,14 @@
 			</array>
 		</dict>
 	</array>
+	<key>FacebookAppID</key>
+	<string>966515746211770</string>
+	<key>FacebookDisplayName</key>
+	<string>siFia</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<true/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<false/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>

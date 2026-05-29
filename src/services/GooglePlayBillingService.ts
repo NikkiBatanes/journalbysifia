@@ -14,6 +14,7 @@ import RNIap, {
 } from 'react-native-iap';
 import { NewSubscriptionService } from './NewSubscriptionService';
 import { supabase } from './supabaseClient';
+import { metaAppEventsService } from './metaAppEventsService';
 
 export interface GooglePlayProduct {
   productId: string;
@@ -40,6 +41,7 @@ export class GooglePlayBillingService {
   private isInitialized = false;
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
+  private currentUserId: string | null = null;
 
   // Product IDs for Google Play subscription tiers
   private static readonly PRODUCT_IDS = {
@@ -147,7 +149,7 @@ export class GooglePlayBillingService {
    */
   async purchaseSubscription(
     productId: string,
-    _userId: string
+    userId: string
   ): Promise<GooglePlayPurchaseResult> {
     try {
       await this.initialize();
@@ -156,6 +158,7 @@ export class GooglePlayBillingService {
         throw new Error('Google Play Billing is only available on Android');
       }
 
+      this.currentUserId = userId || null;
       await requestSubscription({ sku: productId });
 
       // The actual purchase handling will be done in the listener
@@ -204,6 +207,18 @@ export class GooglePlayBillingService {
       // Acknowledge the purchase (required for subscriptions)
       await finishTransaction({ purchase, isConsumable: false });
 
+      const amount = this.getAmountFromProductId(purchase.productId);
+      if (amount > 0) {
+        metaAppEventsService.trackPurchase({
+          amount,
+          currency: 'PHP',
+          productId: purchase.productId,
+          transactionId: purchase.transactionId,
+          tier,
+          platform: 'android',
+        });
+      }
+
     } catch (error) {
       Logger.error('[GooglePlay] Failed to handle purchase update', error as Error, {
       component: 'GooglePlayBillingService',
@@ -222,7 +237,7 @@ export class GooglePlayBillingService {
 
       // For Google Play, we validate using the purchase token and package name
       const receiptBody = {
-        packageName: 'com.yourcompany.sifia', // Replace with your actual package name
+        packageName: 'app.sifia.com',
         productId: purchase.productId,
         purchaseToken: purchase.purchaseToken,
         subscription: true,
@@ -301,11 +316,40 @@ export class GooglePlayBillingService {
    * Get current user ID (placeholder - implement based on your auth system)
    */
   private async getCurrentUserId(): Promise<string | null> {
-    // TODO: Implement this based on your authentication system
-    Logger.warn('[GooglePlay] getCurrentUserId not implemented - using placeholder', {
-      component: 'GooglePlayBillingService',
-    });
-    return null;
+    if (this.currentUserId) {
+      return this.currentUserId;
+    }
+
+    try {
+      const { data } = await supabase.auth.getUser();
+      return data.user?.id || null;
+    } catch (error) {
+      Logger.warn('[GooglePlay] Unable to read current Supabase user', {
+        component: 'GooglePlayBillingService',
+        action: 'get_current_user_id',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private getAmountFromProductId(productId: string): number {
+    const tier = productId.includes('transformation')
+      ? 'transformation'
+      : productId.includes('growth')
+        ? 'growth'
+        : productId.includes('spark')
+          ? 'spark'
+          : null;
+    const billing = productId.includes('annual') ? 'annual' : 'monthly';
+
+    const pricing: Record<string, Record<string, number>> = {
+      spark: { monthly: 199, annual: 1990 },
+      growth: { monthly: 399, annual: 3990 },
+      transformation: { monthly: 599, annual: 5990 },
+    };
+
+    return tier ? pricing[tier]?.[billing] || 0 : 0;
   }
 
   /**
