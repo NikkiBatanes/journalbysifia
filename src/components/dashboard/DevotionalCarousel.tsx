@@ -21,6 +21,7 @@ import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import DevotionalCarouselSkeleton from '../SkeletonLoader/DevotionalCarouselSkeleton';
 import ThemedText from '../common/ThemedText';
+import WrappingThemedText from '../common/WrappingThemedText';
 import { useFocusEffect } from '@react-navigation/native';
 import { normalizeDevotionalCategory } from '../../utils/devotionalCategories';
 
@@ -506,11 +507,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       ) : devotional.nextDayNumber ? (
         <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.nextLabel}>NEXT</ThemedText>
-          <ThemedText weight="semiBold" style={styles.nextDayTitleText} numberOfLines={0}>
-            {devotional.total_days === 1
+          <WrappingThemedText
+            weight="semiBold"
+            style={styles.nextDayTitleText}
+            text={devotional.total_days === 1
               ? `Day ${devotional.nextDayNumber}`
               : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
-          </ThemedText>
+          />
         </View>
       ) : null}
 
@@ -775,7 +778,11 @@ const styles = StyleSheet.create({
   },
   nextDayTitleText: {
     fontSize: 13,
+    lineHeight: 18,
     color: Colors.hopeWhite,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   completedText: {
     fontSize: 12,

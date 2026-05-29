@@ -22,6 +22,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil } from 'lucide-react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ThemedText from '../common/ThemedText';
+import WrappingThemedText from '../common/WrappingThemedText';
 import { Colors } from '../../theme/colors';
 import { supabase } from '../../services/supabaseClient';
 import { logger } from '../../utils/logger';
@@ -1380,9 +1381,11 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
                 {nextDayInfo && (
                   <View style={styles.nextDayContentContainer}>
                     <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
-                    <ThemedText weight="medium" style={styles.nextDayTitle}>
-                      Day {nextDayInfo.dayNumber}{!nextDayInfo.isOneDay && `: ${nextDayInfo.title}`}
-                    </ThemedText>
+                    <WrappingThemedText
+                      weight="medium"
+                      style={styles.nextDayTitle}
+                      text={`Day ${nextDayInfo.dayNumber}${!nextDayInfo.isOneDay ? `: ${nextDayInfo.title}` : ''}`}
+                    />
                     <View style={styles.nextDayReadTimeContainer}>
                       <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
                       <ThemedText style={styles.nextDayReadTime}>{nextDayInfo.readTime} min read</ThemedText>
@@ -2176,9 +2179,12 @@ const styles = StyleSheet.create({
   nextDayContainer: {
     marginTop: 6,
     alignItems: 'flex-start',
+    width: '100%',
   },
   nextDayContentContainer: {
     gap: 2,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   nextDayLabel: {
     fontSize: 13,
@@ -2187,8 +2193,12 @@ const styles = StyleSheet.create({
   },
   nextDayTitle: {
     fontSize: 13,
+    lineHeight: 18,
     color: Colors.holyGlow,
     fontWeight: '500',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   nextDayReadTimeContainer: {
     flexDirection: 'row',

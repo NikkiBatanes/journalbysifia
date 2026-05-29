@@ -41,6 +41,7 @@ import { Colors, Fonts } from '../theme';
 import DevotionalCarouselSkeleton from '../components/SkeletonLoader/DevotionalCarouselSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
 import ThemedText from '../components/common/ThemedText';
+import WrappingThemedText from '../components/common/WrappingThemedText';
 import PickerModal from '../components/PickerModal';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
@@ -633,9 +634,11 @@ const DevotionalsScreen = () => {
                       return (
                         <View style={styles.nextDayContentContainer}>
                           <ThemedText weight="bold" style={styles.nextDayLabel}>Next</ThemedText>
-                          <ThemedText weight="medium" style={styles.nextDayTitle}>
-                            Day {nextDay.dayNumber}{!isOneDay && `: ${displayTitle}`}
-                          </ThemedText>
+                          <WrappingThemedText
+                            weight="medium"
+                            style={styles.nextDayTitle}
+                            text={`Day ${nextDay.dayNumber}${!isOneDay ? `: ${displayTitle}` : ''}`}
+                          />
                           <View style={styles.nextDayReadTimeContainer}>
                             <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.4)" style={styles.nextDayReadTimeIcon} />
                             <ThemedText style={styles.nextDayReadTime}>{readTime} min read</ThemedText>
@@ -1981,9 +1984,12 @@ const styles = StyleSheet.create({
   nextDayContainer: {
     marginTop: 6,
     alignItems: 'flex-start',
+    width: '100%',
   },
   nextDayContentContainer: {
     gap: 2,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   nextDayLabel: {
     fontSize: 13,
@@ -1992,8 +1998,12 @@ const styles = StyleSheet.create({
   },
   nextDayTitle: {
     fontSize: 13,
+    lineHeight: 18,
     color: Colors.holyGlow,
-    fontWeight: 'medium',
+    fontFamily: Fonts.medium,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   nextDayReadTimeContainer: {
     flexDirection: 'row',

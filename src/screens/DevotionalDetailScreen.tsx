@@ -42,6 +42,7 @@ import { toLocalDateString } from '../utils/date';
 import { updateDevotionalPrayerPrayed } from '../services/supabaseApiNormalized';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
+import WrappingThemedText from '../components/common/WrappingThemedText';
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -1191,19 +1192,17 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
               <ThemedText weight="semiBold" style={styles.dayNumber}>Day {index + 1}</ThemedText>
-              <ThemedText
+              <WrappingThemedText
                 weight="bold"
                 style={styles.dayTitle}
-                numberOfLines={0}
-              >
-                {devotional.totalDays === 1 ? (
+                text={devotional.totalDays === 1 ? (
                   extractCleanTitle(devotional.title, 'Devotional')
                 ) : (
                   day?.title && day.title !== `Day ${index + 1}` ?
                     extractCleanTitle(day.title) :
                     extractCleanTitle(devotional.title, 'Devotional')
                 )}
-              </ThemedText>
+              />
             </View>
             {/* Scripture Card */}
             <DevotionalSectionCard
@@ -1626,6 +1625,8 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     flexWrap: 'wrap',
     flexShrink: 1,
+    minHeight: 28,
+    alignSelf: 'stretch',
     width: '100%', // Ensure full width for proper wrapping
   },
   scrollView: {
