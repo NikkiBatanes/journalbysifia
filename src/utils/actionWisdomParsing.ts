@@ -87,8 +87,8 @@ function isQuotedInstructionIntro(value: string): boolean {
     return true;
   }
 
-  return /\b(?:say|write|send|text|message|ask|reply|respond|pray|explain|add|continue|practice)\b/i.test(intro) &&
-    /\b(?:this|message|text|script|plainly|aloud|quietly|briefly|yourself|example|words?|reply|sentence|prayer|pray|ask|request|reason|with|down|like)\b/i.test(intro);
+  return /\b(?:say|tell|write|send|text|message|ask|reply|respond|pray|explain|add|continue|follow|practice)\b/i.test(intro) &&
+    /\b(?:this|him|her|them|husband|wife|spouse|person|message|text|script|plainly|aloud|quietly|briefly|silently|yourself|example|words?|reply|sentence|question|prayer|pray|ask|request|reason|with|down|like)\b/i.test(intro);
 }
 
 function instructionLabelForIntro(intro: string): string {
@@ -139,6 +139,40 @@ function quotedInstructionParts(intro: string, quote: string): Pick<CanonicalQuo
   }
 
   const normalized = instructionLabelForIntro(intro);
+  if (/^(?:for example,\s*)?(?:you\s+(?:might|can)\s+)?write\b/i.test(normalized)) {
+    return {
+      label: 'Example to write',
+    };
+  }
+
+  if (/^say\s+this\s+prayer\b/i.test(normalized)) {
+    return {
+      label: 'Prayer to say',
+    };
+  }
+
+  if (/^ask(?:\s+(?:him|her|them|your\s+(?:husband|wife|spouse|friend|pastor|leader)))?\b/i.test(normalized)) {
+    return {
+      label: 'Ask',
+    };
+  }
+
+  if (/^follow\s+with(?:\s+this\s+question)?\b/i.test(normalized)) {
+    return {
+      label: 'Ask',
+    };
+  }
+
+  if (/^(?:if|when|after)\b/i.test(normalized) && /\b(?:say|reply|respond|text|message)\b/i.test(normalized)) {
+    if (/^if\s+they\s+ask\b/i.test(normalized)) {
+      return { label: 'If they ask' };
+    }
+    if (/^if\s+they\s+respond\b/i.test(normalized)) {
+      return { label: 'If they respond' };
+    }
+    return { label: 'Possible reply' };
+  }
+
   const sayToYourself = normalized.match(/^(.*?)(?:[,;]\s*)?(?:for example,\s*)?say\s+to\s+yourself$/i);
   if (sayToYourself) {
     return {
@@ -152,6 +186,14 @@ function quotedInstructionParts(intro: string, quote: string): Pick<CanonicalQuo
     return {
       label: 'Call script',
       prefix: sentenceWithPeriod(callScript[1]),
+    };
+  }
+
+  const spokenScript = normalized.match(/^(.+?)\s+(?:and\s+)?say(?:\s+(?:aloud|out\s+loud|calmly|quietly|plainly|clearly|slowly))?$/i);
+  if (spokenScript) {
+    return {
+      label: 'Words to say',
+      prefix: sentenceWithPeriod(spokenScript[1]),
     };
   }
 

@@ -24,6 +24,8 @@ interface DevotionalGenerationParams {
   dateOfBirth?: string;
 }
 
+const MAX_STANDALONE_DEVOTIONAL_USER_INPUT_LENGTH = 2000;
+
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
 
@@ -585,13 +587,13 @@ export async function generateDevotional(
  * Helper function to validate devotional generation parameters
  */
 export function validateDevotionalParams(params: DevotionalGenerationParams): void {
-  const { duration, userInput } = params;
+  const { duration, playbookId, userInput } = params;
 
   if (!duration || duration < 1 || duration > 365) {
     throw new Error('Duration must be between 1 and 365 days');
   }
 
-  if (userInput && userInput.length > 1000) {
-    throw new Error('User input must be less than 1000 characters');
+  if (!playbookId && userInput && userInput.length > MAX_STANDALONE_DEVOTIONAL_USER_INPUT_LENGTH) {
+    throw new Error('There is a little too much text to use all at once. Please shorten what you shared, then try again.');
   }
 }

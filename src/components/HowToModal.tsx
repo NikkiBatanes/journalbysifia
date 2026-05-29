@@ -49,7 +49,7 @@ const JOURNAL_ICONS: { type: Exclude<JournalModalType, null>; icon: string; colo
   { type: 'timeblock', icon: 'clock', color: Colors.growthGreen, label: 'Schedule' },
 ];
 
-type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
+type BodyLineType = 'intro' | 'quote' | 'script' | 'choice' | 'bullet' | 'checklistItem' | 'field' | 'check' | 'schedule' | 'hint' | 'resourceList' | 'columns' | 'scriptureRead' | 'lineMeaning' | 'ask' | 'question' | 'checklist' | 'body';
 
 interface BodyLine {
   text: string;
@@ -67,6 +67,14 @@ function ScriptRail(): React.ReactElement {
       <View style={styles.bodyScriptRailLine} />
     </View>
   );
+}
+
+function scriptIconNameForBodyLine(item: BodyLine): string {
+  const label = item.label || '';
+  const text = stripBalancedActionQuotes(item.text || '');
+  return /\?\s*$/.test(text) || /\b(?:ask|question)\b/i.test(label)
+    ? 'help-circle-outline'
+    : 'chatbubble-ellipses-outline';
 }
 
 function capitalizeFirstLetter(text: string): string {
@@ -117,6 +125,9 @@ function isScriptIntroLine(line: string): boolean {
   if (/^prayer(?:\s+to\s+say)?\s*:\s*$/i.test(trimmed)) {
     return true;
   }
+  if (/^example\s+to\s+write\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
   if (/^call\s+script\s*:\s*$/i.test(trimmed)) {
     return true;
   }
@@ -124,6 +135,18 @@ function isScriptIntroLine(line: string): boolean {
     return true;
   }
   if (/^(?:(?:then|next)\s+)?say(?:\s+(?:aloud\s+)?or\s+write(?:\s+down)?)?\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^ask(?:\s+(?:him|her|them|your\s+(?:husband|wife|spouse|friend|pastor|leader)))?\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^follow\s+with(?:\s+this\s+question)?\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^question\s+to\s+ask\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^tell\b.{0,100}\b(?:plainly|calmly|clearly|gently)?\s*:\s*$/i.test(trimmed)) {
     return true;
   }
   if (/^say\s+to\s+yourself\s*:\s*$/i.test(trimmed)) {
@@ -141,8 +164,8 @@ function isScriptIntroLine(line: string): boolean {
   if (/^(?:add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|write\s+this\s+sentence|pray\s+quietly):\s*$/i.test(trimmed)) {
     return true;
   }
-  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply|continue)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|continue with|then say|next say|finish by saying|finish by praying|finish with|then pray|say to yourself|say or write|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words|pray quietly)\b)[^:]{0,100}:\s*$/i.test(trimmed)
-    && /\b(?:this|message|text|script|plainly|aloud|yourself|example|words?|reply|sentence|prayer|pray|ask|request|reason)\b/i.test(trimmed);
+  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply|continue)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|continue with|then say|next say|finish by saying|finish by praying|finish with|then pray|say to yourself|say or write|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|say this prayer|pray briefly with these words|pray quietly|for example,\s*(?:you\s+(?:might|can)\s+)?write)\b)[^:]{0,100}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|silently|yourself|example|words?|reply|sentence|prayer|pray|ask|request|reason|write)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
@@ -155,8 +178,20 @@ function scriptLabelForIntro(line: string): string {
   if (/^prayer(?:\s+to\s+say)?\s*:/i.test(line.trim())) {
     return 'Prayer to say';
   }
+  if (/^example\s+to\s+write\s*:/i.test(line.trim())) {
+    return 'Example to write';
+  }
   if (/^send(?:\s+this)?\s+message\b/i.test(line.trim())) {
     return 'Message to send';
+  }
+  if (/^ask(?:\s+(?:him|her|them|your\s+(?:husband|wife|spouse|friend|pastor|leader)))?\s*:/i.test(line.trim())) {
+    return 'Ask';
+  }
+  if (/^follow\s+with(?:\s+this\s+question)?\s*:/i.test(line.trim())) {
+    return 'Ask';
+  }
+  if (/^question\s+to\s+ask\s*:/i.test(line.trim())) {
+    return 'Ask';
   }
   if (/^if\s+they\s+respond\b/i.test(line.trim())) {
     return 'If they respond';
@@ -172,6 +207,9 @@ function scriptLabelForIntro(line: string): string {
   }
   if (/\bsay(?:\s+aloud)?\s+or\s+write(?:\s+down)?\b/i.test(line.trim())) {
     return 'Say or write';
+  }
+  if (/^tell\b/i.test(line.trim())) {
+    return 'Tell plainly';
   }
   if (/\bsay\s+to\s+yourself\b/i.test(line.trim())) {
     return 'Say to yourself';
@@ -261,6 +299,54 @@ function scriptLabelForIntro(line: string): string {
     return 'Prayer to say';
   }
   return 'Words to say';
+}
+
+function parseBareSpokenScriptLine(line: string): BodyLine | null {
+  const text = stripBalancedActionQuotes(String(line || '').trim());
+  if (!text || text.length > 260) {
+    return null;
+  }
+
+  const isQuestion = /\?\s*$/.test(text);
+  const startsWithQuestion = /^(?:can|could|would|will|do|does|did|what|how|when|where|why|is|are|should|may)\b/i.test(text);
+  const hasEmbeddedQuestion = /[.!]\s+(?:can|could|would|will|do|does|did|what|how|when|where|why|is|are|should|may)\b.+\?\s*$/i.test(text);
+  const startsWithDirectSpeech = /^(?:i(?:['’]m| am| want| need| feel| felt| was| will| can| understand| regret| apologize| hope| would)|we(?: can| need| should| both| will)|thank you\b|please\b)/i.test(text);
+  const looksLikeApology = /\b(?:sorry|apologize|apology|regret|that was wrong|i was wrong)\b/i.test(text);
+
+  if (isQuestion && (startsWithQuestion || hasEmbeddedQuestion)) {
+    return { label: 'Ask', text, type: 'script' };
+  }
+
+  if (startsWithDirectSpeech) {
+    return {
+      label: looksLikeApology ? 'Apology to say' : 'Words to say',
+      text,
+      type: 'script',
+    };
+  }
+
+  return null;
+}
+
+function parseScheduleLine(line: string): BodyLine | null {
+  const match = String(line || '').trim().match(/^(?:(?:decide\s+on|plan|prepare|choose|set)\s+(?:a\s+)?)?([^:]{3,64}?):\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const rawLabel = match[1].trim();
+  if (!/\b(?:breakfast|lunch|dinner|supper|snack|meal)\b/i.test(rawLabel)) {
+    return null;
+  }
+
+  const label = rawLabel
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+  const text = capitalizeFirstLetter(match[2].trim().replace(/^for example,\s*/i, ''));
+
+  return label && text
+    ? { label, text, type: 'schedule' }
+    : null;
 }
 
 function isChecklistIntroLine(line: string): boolean {
@@ -493,14 +579,48 @@ function splitComparisonColumnItems(value: string): string[] {
     .filter(Boolean);
 }
 
-function parseComparisonColumnLine(line: string): { title: string; items: string[] } | null {
-  const match = String(line || '').trim().match(/^Under\s+["'“‘]?([^"'”’]+?)["'”’]?,?\s+list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:\s*(.+)$/i);
+function parseUnderColumnLine(line: string): { title: string; rest: string } | null {
+  const match = String(line || '').trim().match(/^Under\s+(.+)$/i);
   if (!match) {
     return null;
   }
 
-  const title = stripBalancedActionQuotes(match[1].trim().replace(/,\s*$/, ''));
-  const items = splitComparisonColumnItems(match[2]);
+  const source = match[1].trim();
+  const quotePairs: Record<string, string> = {
+    '"': '"',
+    "'": "'",
+    '“': '”',
+    '‘': '’',
+  };
+  const closeQuote = quotePairs[source[0]];
+  if (closeQuote) {
+    const endIndex = source.indexOf(closeQuote, 1);
+    if (endIndex > 0) {
+      const title = stripBalancedActionQuotes(source.slice(1, endIndex).trim().replace(/,\s*$/, ''));
+      const rest = source.slice(endIndex + 1).replace(/^,\s*/, '').trim();
+      return title && rest ? { title, rest } : null;
+    }
+  }
+
+  const unquoted = source.match(/^([^,]+),?\s+(.+)$/);
+  if (!unquoted) {
+    return null;
+  }
+
+  const title = stripBalancedActionQuotes(unquoted[1].trim().replace(/,\s*$/, ''));
+  const rest = unquoted[2].trim();
+  return title && rest ? { title, rest } : null;
+}
+
+function parseComparisonColumnLine(line: string): { title: string; items: string[] } | null {
+  const parsed = parseUnderColumnLine(line);
+  const match = parsed?.rest.match(/^list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:\s*(.+)$/i);
+  if (!parsed || !match) {
+    return null;
+  }
+
+  const items = splitComparisonColumnItems(match[1]);
+  const title = parsed.title;
   return title && items.length > 0 ? { title, items } : null;
 }
 
@@ -523,13 +643,13 @@ function parseColumnHeaderLine(line: string): { label: string; headers: string[]
 }
 
 function parseColumnDescriptionLine(line: string): { title: string; text: string } | null {
-  const match = String(line || '').trim().match(/^Under\s+["'“‘]?([^"'”’]+?)["'”’]?,?\s+(.+)$/i);
-  if (!match) {
+  const parsed = parseUnderColumnLine(line);
+  if (!parsed) {
     return null;
   }
 
-  const title = stripBalancedActionQuotes(match[1].trim().replace(/,\s*$/g, ''));
-  const text = capitalizeFirstLetter(match[2].trim().replace(/\s+/g, ' '));
+  const title = parsed.title;
+  const text = capitalizeFirstLetter(parsed.rest.trim().replace(/\s+/g, ' '));
   if (/^list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:/i.test(text)) {
     return null;
   }
@@ -934,7 +1054,7 @@ function normalizeActionMarkup(text: string): string {
     .replace(/<\/p\s*>/gi, '\n')
     .replace(/<p\s*>/gi, '')
     .replace(/<\/?.[^>]+>/g, '')
-    .replace(/\s+(?=\d+(?:\.\d+)?[.)]\s+(?:Find|Take|Say|Explain|Add|Continue|Practice|Write|Read|Ask|Use|Share|Tell|Send|Text|List|Choose|Start|Stop|Notice|Remember|Then|Next|If|When|After|Pause)\b)/gi, '\n')
+    .replace(/\s+(?=\d+(?:\.\d+)?[.)]\s+(?:Find|Take|Say|Explain|Add|Continue|Practice|Write|Create|Make|Read|Ask|Use|Share|Tell|Send|Text|Call|Contact|Schedule|List|Choose|Start|Stop|Notice|Remember|Set|Decide|Track|Record|Note|Mark|Fill|Under|Each|Every|Then|Next|If|When|After|Pause)\b)/gi, '\n')
     .replace(/,\s*([.!?])/g, '$1');
 }
 
@@ -1019,7 +1139,14 @@ function renderComparisonColumnsBlock(item: BodyLine, key: string | number): Rea
           {columns.map((column, itemIndex) => (
             <View key={`${column.title}-${itemIndex}`} style={styles.bodyColumnGuideRow}>
               <View style={styles.bodyColumnGuideTitlePill}>
-                <ThemedText weight="semiBold" style={styles.bodyColumnGuideTitleText} selectable={true}>
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.bodyColumnGuideTitleText}
+                  selectable={true}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                >
                   {column.title}
                 </ThemedText>
               </View>
@@ -1130,6 +1257,7 @@ function detectBodyLines(lines: string[]): BodyLine[] {
     const columnDescription = parseColumnDescriptionLine(line);
     const scriptureRead = parseScriptureReadLine(line);
     const lineMeaning = parseLineMeaningLine(line);
+    const scheduleLine = parseScheduleLine(line);
 
     if (scriptureRead) {
       out.push(scriptureRead);
@@ -1141,6 +1269,14 @@ function detectBodyLines(lines: string[]): BodyLine[] {
 
     if (lineMeaning) {
       out.push(lineMeaning);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (scheduleLine) {
+      out.push(scheduleLine);
       expectingPromptQuestion = false;
       inChecklist = false;
       inWriteDownList = false;
@@ -1244,6 +1380,15 @@ function detectBodyLines(lines: string[]): BodyLine[] {
         type: 'script',
       });
       idx++;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    const bareSpokenScript = parseBareSpokenScriptLine(line);
+    if (bareSpokenScript) {
+      out.push(bareSpokenScript);
+      expectingPromptQuestion = false;
       inChecklist = false;
       inWriteDownList = false;
       continue;
@@ -1722,7 +1867,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
                               <ScriptRail />
                               <View style={styles.bodyScriptHeader}>
                                 <Ionicons
-                                  name="chatbubble-ellipses-outline"
+                                  name={scriptIconNameForBodyLine(item)}
                                   size={13}
                                   color={Colors.faithGold}
                                 />
@@ -1843,6 +1988,23 @@ const HowToModal: React.FC<HowToModalProps> = ({
                             </View>
                           );
                         }
+                        if (item.type === 'schedule') {
+                          return (
+                            <View key={idx} style={styles.bodyScheduleRow}>
+                              <View style={styles.bodyScheduleIcon}>
+                                <Ionicons name="time-outline" size={13} color="rgba(255,204,102,0.78)" />
+                              </View>
+                              <View style={styles.bodyScheduleContent}>
+                                <ThemedText weight="semiBold" style={styles.bodyScheduleLabel} selectable={true}>
+                                  {item.label}
+                                </ThemedText>
+                                <ThemedText style={styles.bodyScheduleValue} selectable={true}>
+                                  {item.text}
+                                </ThemedText>
+                              </View>
+                            </View>
+                          );
+                        }
                         if (item.type === 'check') {
                           const isYesNo = /^yes\s*\/\s*no$/i.test(item.text);
                           return (
@@ -1928,9 +2090,11 @@ const HowToModal: React.FC<HowToModalProps> = ({
                         }
                         if (item.type === 'quote') {
                           return (
-                            <ThemedText key={idx} style={styles.bodyLineQuote} selectable={true}>
-                              {item.text}
-                            </ThemedText>
+                            <View key={idx} style={styles.bodyQuoteBubble}>
+                              <ThemedText style={styles.bodyQuoteBubbleText} selectable={true}>
+                                {stripBalancedActionQuotes(item.text)}
+                              </ThemedText>
+                            </View>
                           );
                         }
                         if (item.type === 'intro') {
@@ -2541,7 +2705,7 @@ const styles = StyleSheet.create({
   },
   bodyScriptBlockMessage: {
     marginTop: 6,
-    marginBottom: 8,
+    marginBottom: 6,
     paddingLeft: 16,
     paddingVertical: 8,
     paddingRight: 12,
@@ -2586,6 +2750,23 @@ const styles = StyleSheet.create({
   bodyScriptTextMessage: {
     color: 'rgba(255,255,255,0.88)',
     lineHeight: 23,
+  },
+  bodyQuoteBubble: {
+    marginTop: 4,
+    marginBottom: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.12)',
+  },
+  bodyQuoteBubbleText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 23,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   bodyAskHeader: {
     flexDirection: 'row',
@@ -2718,6 +2899,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.66)',
     lineHeight: 16,
+  },
+  bodyScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.075)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    gap: 9,
+  },
+  bodyScheduleIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,204,102,0.1)',
+    marginTop: 1,
+  },
+  bodyScheduleContent: {
+    flex: 1,
+    gap: 2,
+  },
+  bodyScheduleLabel: {
+    fontSize: 12,
+    color: 'rgba(255,204,102,0.76)',
+    lineHeight: 15,
+    letterSpacing: 0.2,
+  },
+  bodyScheduleValue: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.84)',
+    lineHeight: 21,
   },
   bodyCheckRow: {
     marginTop: 6,
@@ -2867,26 +3084,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   bodyColumnGuideRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 9,
-    gap: 6,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.07)',
   },
   bodyColumnGuideTitlePill: {
-    alignSelf: 'flex-start',
+    width: 126,
+    maxWidth: '42%',
     borderRadius: 999,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: 'rgba(255,204,102,0.11)',
   },
   bodyColumnGuideTitleText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: Colors.faithGold,
     lineHeight: 14,
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   bodyColumnGuideDescription: {
+    flex: 1,
     fontSize: 14,
     color: 'rgba(255,255,255,0.82)',
     lineHeight: 20,

@@ -71,7 +71,7 @@ async function fetchPlaybookData(playbookId: string) {
   try {
     const { data: playbook, error } = await supabase
       .from('playbooks')
-      .select('id, title, truth_in_love, user_input')
+      .select('id, title, truth_in_love, user_input, latest_refinement_note')
       .eq('id', playbookId)
       .single();
 
@@ -1411,6 +1411,10 @@ serve(async (req: Request): Promise<Response> => {
             playbookContext += `\nOriginal User Struggle/Situation:\n${playbookUserInput}\n`;
           }
 
+          if (playbookData.latest_refinement_note) {
+            playbookContext += `\nLatest User Refinement/Clarification:\n${playbookData.latest_refinement_note}\n`;
+          }
+
           if (truthInLove.text) {
             playbookContext += `\nTruth in Love:\n${truthInLove.text}\n`;
           }
@@ -1431,6 +1435,9 @@ serve(async (req: Request): Promise<Response> => {
           // Even without truth_in_love, include the original user_input
           if (playbookUserInput) {
             playbookContext = `\n\n## ORIGINAL USER STRUGGLE:\n${playbookUserInput}\n\nIMPORTANT: Root the devotional in this original struggle and use biblical storytelling to address it.`;
+            if (playbookData.latest_refinement_note) {
+              playbookContext += `\n\nLatest User Refinement/Clarification:\n${playbookData.latest_refinement_note}`;
+            }
           }
         }
       }

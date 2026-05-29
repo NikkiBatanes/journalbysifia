@@ -48,6 +48,27 @@ const DURATION_OPTIONS: DurationOption[] = [
   },
 ];
 
+const getDevotionalCreationErrorMessage = (error?: Error | null): string => {
+  const message = error?.message?.trim();
+  if (!message) {
+    return 'We could not create this devotional right now. Please try again in a moment.';
+  }
+
+  const normalizedMessage = message.toLowerCase();
+  const isLengthError =
+    (normalizedMessage.includes('user input') && normalizedMessage.includes('character')) ||
+    normalizedMessage.includes('less than 1000') ||
+    normalizedMessage.includes('less than 2000') ||
+    normalizedMessage.includes('characters or fewer') ||
+    normalizedMessage.includes('too long');
+
+  if (isLengthError) {
+    return 'There is a little too much text to use all at once. Please shorten what you shared, then try again.';
+  }
+
+  return message;
+};
+
 interface DevotionalModalProps {
   visible: boolean;
   onClose: () => void;
@@ -1102,7 +1123,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </Animated.View>
   ) : creationError ? (
     <View style={styles.errorContainer}>
-      <ThemedText weight="semiBold" style={styles.errorText}>{creationError?.message || 'An error occurred'}</ThemedText>
+      <ThemedText weight="semiBold" style={styles.errorText}>{getDevotionalCreationErrorMessage(creationError)}</ThemedText>
       <TouchableOpacity
         style={styles.retryButton}
         onPress={async () => {

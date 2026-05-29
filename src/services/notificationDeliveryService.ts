@@ -386,7 +386,7 @@ class NotificationDeliveryService {
         userId: notification.user_id,
         notificationId: notification.id,
         type: notification.type,
-        deviceToken: deviceToken.token.substring(0, 10) + '...',
+        deviceToken: deviceToken.substring(0, 10) + '...',
       });
 
     } catch (error) {

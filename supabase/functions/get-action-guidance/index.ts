@@ -74,6 +74,15 @@ function cleanOutputText(value: unknown, max = 800): string {
     .slice(0, max);
 }
 
+function stripModelJsonGarbage(value: string): string {
+  return String(value || '')
+    .replace(/\s*\]\s*\}\s*This keeps[\s\S]*$/i, '')
+    .replace(/\s*This keeps the conversation[\s\S]*$/i, '')
+    .replace(/\s*(?:\]\s*\}\s*){2,}[\s\S]*$/g, '')
+    .replace(/\s*(?:\}\s*){4,}[\s\S]*$/g, '')
+    .trim();
+}
+
 function cleanLongOutputText(value: unknown, max = 6000): string {
   if (typeof value !== 'string') return '';
   return value
@@ -86,7 +95,7 @@ function cleanLongOutputText(value: unknown, max = 6000): string {
 
 function cleanWisdomStep(value: unknown, max = 600): string {
   if (typeof value === 'string') {
-    return cleanOutputText(value, max);
+    return cleanOutputText(stripModelJsonGarbage(value), max);
   }
 
   if (value && typeof value === 'object') {
@@ -111,14 +120,16 @@ function cleanWisdomStep(value: unknown, max = 600): string {
 }
 
 function splitWisdomStepFragments(step: string): string[] {
-  const normalized = cleanOutputText(step, 700)
+  const normalized = cleanOutputText(stripModelJsonGarbage(step), 1800)
     .replace(/([.!?]["'”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1\n')
     .replace(/(["”’])\s*,\s*["'“‘]\s*(?=(?:If|When|After|Then)\b)/gi, '$1\n')
+    .replace(/'\s*,\s*'(?=(?:Ask|Follow|Listen|Share|Agree|Say|Tell|If|When|After|Then|Write|Call|Text|Send|Set)\b)/gi, "'\n")
+    .replace(/"\s*,\s*"(?=(?:Ask|Follow|Listen|Share|Agree|Say|Tell|If|When|After|Then|Write|Call|Text|Send|Set)\b)/gi, '"\n')
     .replace(/\s+(?=(?:If they|When they|After they|Then ask|Then say)\b)/gi, '\n');
 
   return normalized
     .split(/\n+/)
-    .map(part => cleanOutputText(part, 700))
+    .map(part => cleanOutputText(stripModelJsonGarbage(part).replace(/^\s*[,;]+/, ''), 700))
     .filter(Boolean);
 }
 
@@ -140,14 +151,15 @@ function parseWisdomJson(content: string): { intro: string; steps: string[] } {
     // Fall through to plain-text normalization for older/non-compliant model output.
   }
 
-  const lines = content
+  const normalizedContent = stripModelJsonGarbage(content);
+  const lines = normalizedContent
     .split(/\n+/)
     .map(line => cleanOutputText(line, 500))
     .filter(Boolean);
   const listStartIndex = lines.findIndex(line => /^(?:\d+(?:\.\d+)?[\.)]|[-*•])\s+/.test(line));
 
   if (listStartIndex === -1) {
-    return { intro: cleanOutputText(content, 700), steps: [] };
+    return { intro: cleanOutputText(normalizedContent, 700), steps: [] };
   }
 
   return {
@@ -1111,6 +1123,9 @@ serve(async (req: Request) => {
         'If they asked for Scripture: give the actual verse reference.',
         'If this is about sharing faith or Jesus, include the actual gospel clearly: sin separates us from God, Jesus died and rose to forgive/reconcile us, and the person can respond by trusting/turning to Him.',
         'Do NOT add new actions, prayer suggestions, journaling, or general encouragement.',
+        'Each script line or question must be a separate string in the steps array.',
+        'Do not comma-join quoted scripts inside one step.',
+        'Do not add prose after the JSON object.',
         'Return ONLY the same valid JSON shape.',
       ].join('\n');
 
@@ -1138,6 +1153,8 @@ serve(async (req: Request) => {
         'If the last answer gave the opener, now give the bridge and gospel explanation.',
         'If the last answer gave a general example, now give a more specific real-life script.',
         'Use fresh concrete words the user can say next.',
+        'Each script line or question must be a separate string in the steps array.',
+        'Do not add prose after the JSON object.',
         'Return ONLY the same valid JSON shape.',
       ].join('\n');
 
