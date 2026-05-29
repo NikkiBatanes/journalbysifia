@@ -39,6 +39,7 @@ import HowToModal from '../components/HowToModal';
 import { getActionWisdom } from '../services/actionWisdomService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { parseCanonicalQuotedInstructionLine } from '../utils/actionWisdomParsing';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -1180,7 +1181,9 @@ function normalizeActionMarkup(text: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p\s*>/gi, '\n')
     .replace(/<p\s*>/gi, '')
-    .replace(/<\/?[^>]+>/g, '');
+    .replace(/<\/?[^>]+>/g, '')
+    .replace(/\s+(?=\d+(?:\.\d+)?[.)]\s+(?:Find|Take|Say|Explain|Add|Continue|Practice|Write|Read|Ask|Use|Share|Tell|Send|Text|List|Choose|Start|Stop|Notice|Remember|Then|Next|If|When|After|Pause)\b)/gi, '\n')
+    .replace(/,\s*([.!?])/g, '$1');
 }
 
 function closeUnmatchedActionDoubleQuote(text: string): string {
@@ -1570,6 +1573,42 @@ function parseComparisonColumnLine(line: string): { title: string; items: string
   return title && items.length > 0 ? { title, items } : null;
 }
 
+function splitColumnHeaderItems(value: string): string[] {
+  return String(value || '')
+    .replace(/[.!?]+$/g, '')
+    .split(/\s*,\s*|\s+\band\b\s+/i)
+    .map(item => stripBalancedActionQuotes(item.trim().replace(/,\s*$/g, '')))
+    .filter(item => item.length > 0 && item.length <= 48);
+}
+
+function parseColumnHeaderLine(line: string): { label: string; headers: string[] } | null {
+  const match = String(line || '').trim().match(/^(.{0,160}?\b(?:column\s+headers?|headers)\s*:\s*)(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const headers = splitColumnHeaderItems(match[2]);
+  return headers.length >= 2 ? { label: 'Column guide', headers } : null;
+}
+
+function parseColumnDescriptionLine(line: string): { title: string; text: string } | null {
+  const match = String(line || '').trim().match(/^Under\s+["'“‘]?([^"'”’]+?)["'”’]?,?\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const title = stripBalancedActionQuotes(match[1].trim().replace(/,\s*$/g, ''));
+  const text = capitalizeFirstLetter(match[2].trim().replace(/\s+/g, ' '));
+  if (/^list\s+(?:(?:these|this)\s+)?(?:points?|items?|teachings?|truths?|beliefs?)(?:\s+with\s+[^:]+)?\s*:/i.test(text)) {
+    return null;
+  }
+  return title && text ? { title, text } : null;
+}
+
+function normalizeColumnTitle(value: string): string {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
 function titleForTwoColumnPhrase(phrase: string, fallback: string): string {
   const cleaned = stripBalancedActionQuotes(String(phrase || '')
     .replace(/\s+/g, ' ')
@@ -1927,7 +1966,16 @@ function splitReadableActionLine(line: string): string[] {
   if (/^(?:\*|-|•|\+) /.test(trimmed)) { return [trimmed.replace(/^(?:-|•|\+) /, '* ')]; }
   if (/^(?:Trigger|Lie|Temptation|Replacement response|Replacement|Practice|Stop|Start):\s+/i.test(trimmed)) { return [trimmed]; }
   if (parseComparisonColumnLine(trimmed)) { return [trimmed]; }
-  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
+  const canonicalQuotedInstruction = parseCanonicalQuotedInstructionLine(trimmed);
+  if (canonicalQuotedInstruction) {
+    return [
+      ...(canonicalQuotedInstruction.prefix ? splitReadableActionLine(canonicalQuotedInstruction.prefix) : []),
+      `${canonicalQuotedInstruction.label}:`,
+      canonicalQuotedInstruction.quote,
+      ...(canonicalQuotedInstruction.rest ? splitReadableActionLine(canonicalQuotedInstruction.rest) : []),
+    ];
+  }
+  const embeddedScript = trimmed.match(/^(.+?[.!?])\s+(.{0,140}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say(?:\s+(?:aloud\s+)?or\s+write(?:\s+down)?)?|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|continue with|then say(?:\s+or\s+write)?|next say(?:\s+or\s+write)?|finish by saying|finish by praying|finish with|then pray|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (embeddedScript) {
     const { quote, rest } = splitLeadingQuotedActionText(embeddedScript[3]);
     return [
@@ -1937,7 +1985,7 @@ function splitReadableActionLine(line: string): string[] {
       ...splitReadableActionLine(rest),
     ];
   }
-  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+aloud(?:\s+slowly\s+and\s+clearly)?)?|explain|add|pray\s+quietly|practice\s+saying(?:\s+calmly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
+  const unquotedSpokenLine = trimmed.match(/^(.{0,140}?\b(?:say(?:\s+(?:aloud(?:\s+slowly\s+and\s+clearly)?|(?:aloud\s+)?or\s+write(?:\s+down)?))?|explain|add|continue\s+with|then\s+say(?:\s+or\s+write)?|next\s+say(?:\s+or\s+write)?|finish\s+by\s+saying|finish\s+by\s+praying|finish\s+with|then\s+pray|pray\s+quietly|practice\s+saying(?:\s+calmly)?|repeat\s+the\s+next\s+declaration|for example)\b[^:]{0,70}:\s*)([A-Z][^"'\u201C\u2018].+)$/i);
   if (unquotedSpokenLine) {
     const statement = unquotedSpokenLine[2].trim();
     return [
@@ -1945,7 +1993,7 @@ function splitReadableActionLine(line: string): string[] {
       `"${statement.replace(/[.!?]$/g, '')}."`,
     ];
   }
-  const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
+  const inlineScript = trimmed.match(/^(.{0,170}?\b(?:reach out(?: today)? with this message|with this message|add this request|this request|answer honestly like this|for example,\s*write|add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|say to yourself|pause and say aloud|say(?:\s+(?:aloud\s+)?or\s+write(?:\s+down)?)?|say aloud|say out loud|say plainly|say this(?: clearly| plainly)?|continue with|then say(?:\s+or\s+write)?|next say(?:\s+or\s+write)?|finish by saying|finish by praying|finish with|then pray|send(?: this)? message|message|text|write|ask|request|reply|pray(?:\s+(?:briefly|quietly))?(?:\s+with\s+these\s+words)?)\b[^:]{0,70}:\s*)(["'\u201C\u2018].+)$/i);
   if (inlineScript) {
     const { quote, rest } = splitLeadingQuotedActionText(inlineScript[2]);
     return [inlineScript[1].trim(), quote, ...splitReadableActionLine(rest)];
@@ -2042,17 +2090,68 @@ function isQuotedActionLine(line: string): boolean {
 
 function isScriptIntroLine(line: string): boolean {
   const trimmed = line.trim();
-  if (/^(?:say|explain|add|practice\s+saying(?:\s+calmly)?)\s*:\s*$/i.test(trimmed)) {
+  if (/^prayer(?:\s+to\s+say)?\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^call\s+script\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:call|contact|phone)\b.{0,100}\bsay\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:(?:then|next)\s+)?say(?:\s+(?:aloud\s+)?or\s+write(?:\s+down)?)?\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^say\s+to\s+yourself\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:finish|end)\s+(?:by\s+)?(?:saying|praying|with)\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:if|when|after)\b.{0,100}\b(?:say|reply|respond|text|message)\s*:\s*$/i.test(trimmed)) {
+    return true;
+  }
+  if (/^(?:say|explain|add|continue\s+with|then\s+say|then\s+pray|practice\s+saying(?:\s+calmly)?)\s*:\s*$/i.test(trimmed)) {
     return true;
   }
   if (/^(?:add\s+(?:another|any\s+other)\s+(?:honest\s+)?reasons?(?:,\s*(?:such as|for example))?|write\s+this\s+sentence|pray\s+quietly):\s*$/i.test(trimmed)) {
     return true;
   }
-  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words|pray quietly)\b)[^:]{0,100}:\s*$/i.test(trimmed)
-    && /\b(?:this|message|text|script|plainly|aloud|words?|reply|sentence|prayer|pray|ask|request|reason)\b/i.test(trimmed);
+  return /^(?:(?:say|send|text|message|write|ask|pray|request|reply|continue)\b|.*\b(?:with this message|add this request|this request|reply|answer honestly like this|continue with|then say|next say|finish by saying|finish by praying|finish with|then pray|say to yourself|say or write|say aloud|say out loud|pause and say aloud|say plainly|say this(?: clearly| plainly)?|pray briefly with these words|pray quietly)\b)[^:]{0,100}:\s*$/i.test(trimmed)
+    && /\b(?:this|message|text|script|plainly|aloud|yourself|example|words?|reply|sentence|prayer|pray|ask|request|reason)\b/i.test(trimmed);
 }
 
 function scriptLabelForIntro(line: string): string {
+  if (/^call\s+script\s*:/i.test(line.trim())) {
+    return 'Call script';
+  }
+  if (/^(?:call|contact|phone)\b.{0,100}\bsay\s*:/i.test(line.trim())) {
+    return 'Call script';
+  }
+  if (/^prayer(?:\s+to\s+say)?\s*:/i.test(line.trim())) {
+    return 'Prayer to say';
+  }
+  if (/^send(?:\s+this)?\s+message\b/i.test(line.trim())) {
+    return 'Message to send';
+  }
+  if (/^if\s+they\s+respond\b/i.test(line.trim())) {
+    return 'If they respond';
+  }
+  if (/^if\s+they\s+ask\b/i.test(line.trim())) {
+    return 'If they ask';
+  }
+  if (/^(?:if|when|after)\b/i.test(line.trim()) && /\b(?:pray|prayer)\b/i.test(line.trim())) {
+    return 'Prayer to say';
+  }
+  if (/^(?:if|when|after)\b/i.test(line.trim()) && /\b(?:say|reply|respond|text|message)\b/i.test(line.trim())) {
+    return 'Possible reply';
+  }
+  if (/\bsay(?:\s+aloud)?\s+or\s+write(?:\s+down)?\b/i.test(line.trim())) {
+    return 'Say or write';
+  }
+  if (/\bsay\s+to\s+yourself\b/i.test(line.trim())) {
+    return 'Say to yourself';
+  }
   if (/^write\s+this\s+sentence\b/i.test(line.trim())) {
     return 'Write this sentence';
   }
@@ -2065,11 +2164,29 @@ function scriptLabelForIntro(line: string): string {
   if (/^add\s*:/i.test(line.trim())) {
     return 'Add this point';
   }
+  if (/^continue\s+with\s*:/i.test(line.trim())) {
+    return 'Continue with';
+  }
+  if (/^then\s+say\s*:/i.test(line.trim())) {
+    return 'Then say';
+  }
+  if (/^then\s+pray\s*:/i.test(line.trim())) {
+    return 'Then pray';
+  }
+  if (/^(?:finish|end)\s+(?:by\s+)?(?:saying|with)\s*:/i.test(line.trim())) {
+    return 'Finish with';
+  }
+  if (/^(?:finish|end)\s+(?:by\s+)?praying\s*:/i.test(line.trim())) {
+    return 'Finish by praying';
+  }
   if (/^practice\s+saying\s+calmly\s*:/i.test(line.trim())) {
     return 'Practice saying calmly';
   }
   if (/^say\s*:/i.test(line.trim())) {
     return 'Say';
+  }
+  if (/^ask\s*:/i.test(line.trim())) {
+    return 'Ask';
   }
   if (/\brequest\b/i.test(line)) {
     return 'Request to add';
@@ -2114,7 +2231,7 @@ function scriptLabelForIntro(line: string): string {
     return 'Say aloud';
   }
   if (/\b(?:message|text|send|reply)\b/i.test(line)) {
-    return 'Suggested message';
+    return 'Message to send';
   }
   if (/\b(?:pray|prayer)\b/i.test(line)) {
     return 'Prayer to say';
@@ -2198,7 +2315,9 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
     const line = raw.trim();
     const nextLine = lines[idx + 1]?.trim() || '';
     const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
+    const columnHeader = parseColumnHeaderLine(line);
     const comparisonColumn = parseComparisonColumnLine(line);
+    const columnDescription = parseColumnDescriptionLine(line);
     const scriptureRead = parseScriptureReadLine(line);
     const lineMeaning = parseLineMeaningLine(line);
 
@@ -2212,6 +2331,64 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
 
     if (lineMeaning) {
       out.push(lineMeaning);
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (columnHeader) {
+      const columns = columnHeader.headers.map(header => ({
+        title: header,
+        items: ['Fill this in each time you track it.'],
+      }));
+      let cursor = idx + 1;
+      while (cursor < lines.length) {
+        const description = parseColumnDescriptionLine(lines[cursor]?.trim() || '');
+        if (!description) {
+          break;
+        }
+        const matchingColumn = columns.find(column => normalizeColumnTitle(column.title) === normalizeColumnTitle(description.title));
+        if (matchingColumn) {
+          matchingColumn.items = [description.text];
+        } else {
+          columns.push({ title: description.title, items: [description.text] });
+        }
+        cursor++;
+      }
+
+      out.push({
+        label: columnHeader.label,
+        text: 'Use these columns to track the details clearly.',
+        type: 'columns',
+        columns,
+      });
+      idx = cursor - 1;
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (columnDescription) {
+      const columns = [columnDescription];
+      let cursor = idx + 1;
+      while (cursor < lines.length) {
+        const nextColumn = parseColumnDescriptionLine(lines[cursor]?.trim() || '');
+        if (!nextColumn) {
+          break;
+        }
+        columns.push(nextColumn);
+        cursor++;
+      }
+
+      out.push({
+        label: 'Column guide',
+        text: 'Use these columns to track the details clearly.',
+        type: 'columns',
+        columns: columns.map(column => ({ title: column.title, items: [column.text] })),
+      });
+      idx = cursor - 1;
       expectingPromptQuestion = false;
       inChecklist = false;
       inWriteDownList = false;
@@ -2434,12 +2611,41 @@ function renderResourceListBlock(item: BodyLine, key: string | number): React.Re
 }
 
 function renderComparisonColumnsBlock(item: BodyLine, key: string | number): React.ReactElement {
-  const columns = (item.columns || []).slice(0, 3);
+  const allColumns = item.columns || [];
+  const isColumnGuide = item.label === 'Column guide' || allColumns.length > 3;
+  const columns = isColumnGuide ? allColumns : allColumns.slice(0, 3);
   if (columns.length === 0 || columns.every(column => column.items.length === 0)) {
     return (
       <ThemedText key={key} style={styles.actionBodyLine} selectable={true}>
         {item.text}
       </ThemedText>
+    );
+  }
+
+  if (isColumnGuide) {
+    return (
+      <View key={key} style={styles.bodyColumnGuideBlock}>
+        <View style={styles.bodyColumnGuideHeader}>
+          <Ionicons name="grid-outline" size={13} color="rgba(255,204,102,0.78)" />
+          <ThemedText weight="semiBold" style={styles.bodyColumnGuideHeaderText}>
+            {item.label || 'Column guide'}
+          </ThemedText>
+        </View>
+        <View style={styles.bodyColumnGuideList}>
+          {columns.map((column, itemIndex) => (
+            <View key={`${column.title}-${itemIndex}`} style={styles.bodyColumnGuideRow}>
+              <View style={styles.bodyColumnGuideTitlePill}>
+                <ThemedText weight="semiBold" style={styles.bodyColumnGuideTitleText}>
+                  {column.title}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.bodyColumnGuideDescription} selectable={true}>
+                {column.items[0]}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      </View>
     );
   }
 
@@ -3455,15 +3661,19 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             {smartBodyLines.map((item, idx) => {
               if (item.type === 'script') {
                 return (
-                  <View key={idx} style={styles.bodyScriptBlock}>
+                  <View key={idx} style={[styles.bodyScriptBlock, styles.bodyScriptBlockMessage]}>
                     <ScriptRail />
                     <View style={styles.bodyScriptHeader}>
-                      <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
+                      <Ionicons
+                        name="chatbubble-ellipses-outline"
+                        size={13}
+                        color={Colors.faithGold}
+                      />
                       <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
                         {item.label || 'Words to say'}
                       </ThemedText>
                     </View>
-                    <ThemedText style={styles.bodyScriptText} selectable={true}>
+                    <ThemedText style={[styles.bodyScriptText, styles.bodyScriptTextMessage]} selectable={true}>
                       {item.text}
                     </ThemedText>
                   </View>
@@ -3940,15 +4150,25 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                                 }
                                 if (item.type === 'script') {
                                   return (
-                                    <View key={`wisdom-item-${blockIndex}-${idx}-script`} style={styles.bodyScriptBlock}>
+                                    <View
+                                      key={`wisdom-item-${blockIndex}-${idx}-script`}
+                                      style={[styles.bodyScriptBlock, styles.bodyScriptBlockMessage]}
+                                    >
                                       <ScriptRail />
                                       <View style={styles.bodyScriptHeader}>
-                                        <Ionicons name="volume-medium-outline" size={13} color={Colors.faithGold} />
+                                        <Ionicons
+                                          name="chatbubble-ellipses-outline"
+                                          size={13}
+                                          color={Colors.faithGold}
+                                        />
                                         <ThemedText weight="semiBold" style={styles.bodyScriptLabel}>
                                           {item.label || 'Words to say'}
                                         </ThemedText>
                                       </View>
-                                      <ThemedText style={styles.bodyScriptText} selectable={true}>
+                                      <ThemedText
+                                        style={[styles.bodyScriptText, styles.bodyScriptTextMessage]}
+                                        selectable={true}
+                                      >
                                         {item.text}
                                       </ThemedText>
                                     </View>
@@ -6756,6 +6976,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(255,204,102,0.06)',
   },
+  bodyScriptBlockMessage: {
+    marginTop: 6,
+    marginBottom: 8,
+    paddingLeft: 16,
+    paddingVertical: 8,
+    paddingRight: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.12)',
+  },
   bodyScriptRail: {
     position: 'absolute',
     left: 3,
@@ -6788,6 +7019,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  bodyScriptTextMessage: {
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 23,
   },
   bodyAskHeader: {
     flexDirection: 'row' as const,
@@ -7041,6 +7276,57 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 12,
     gap: 12,
+  },
+  bodyColumnGuideBlock: {
+    marginTop: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.14)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    overflow: 'hidden' as const,
+  },
+  bodyColumnGuideHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,204,102,0.10)',
+  },
+  bodyColumnGuideHeaderText: {
+    fontSize: 12,
+    color: Colors.faithGold,
+    lineHeight: 16,
+    letterSpacing: 0.25,
+  },
+  bodyColumnGuideList: {
+    paddingVertical: 6,
+  },
+  bodyColumnGuideRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+  },
+  bodyColumnGuideTitlePill: {
+    alignSelf: 'flex-start' as const,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255,204,102,0.11)',
+  },
+  bodyColumnGuideTitleText: {
+    fontSize: 11,
+    color: Colors.faithGold,
+    lineHeight: 14,
+    letterSpacing: 0.2,
+  },
+  bodyColumnGuideDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 20,
   },
   bodyColumnCard: {
     borderWidth: 1,

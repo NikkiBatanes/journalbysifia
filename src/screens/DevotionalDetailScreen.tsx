@@ -40,6 +40,7 @@ import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
 import { updateDevotionalPrayerPrayed } from '../services/supabaseApiNormalized';
+import { normalizePrayerText } from '../utils/prayerFormatting';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 import WrappingThemedText from '../components/common/WrappingThemedText';
@@ -484,9 +485,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
   const formattedPrayer = useMemo(() =>
-    rawPrayer
-      .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-      .replace(/(\n?)(In Jesus'? Name,)\s*(Amen)/i, '\n\n$2\n$3')
+    normalizePrayerText(rawPrayer)
   , [rawPrayer]);
   useEffect(() => {
     if (rawPrayer) {
