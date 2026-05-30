@@ -19,7 +19,6 @@ import {
   Image,
   AppState,
   AppStateStatus,
-  Platform,
 } from 'react-native';
 
 import {
@@ -65,7 +64,6 @@ import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import {initializeLogger} from './src/config/logging.config';
 import { experiencePreferences } from './src/services/experiencePreferences';
 import { initializeMetaAppEvents } from './src/services/metaAppEventsService';
-import { requestTrackingPermission } from 'react-native-tracking-transparency';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -86,20 +84,6 @@ function App(): React.JSX.Element {
   useEffect(() => {
     initializeMetaAppEvents();
     experiencePreferences.loadOnce();
-
-    // Request ATT permission on iOS for advertising tracking
-    const requestATTPermission = async () => {
-      if (Platform.OS === 'ios') {
-        try {
-          const trackingStatus = await requestTrackingPermission();
-          console.log('[App] ATT tracking status:', trackingStatus);
-        } catch (error) {
-          console.error('[App] ATT permission request failed:', error);
-        }
-      }
-    };
-
-    requestATTPermission();
   }, []);
 
   // Vector icon fonts are automatically bundled by RNVectorIcons pod

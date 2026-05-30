@@ -52,28 +52,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
       launchOptions: launchOptions
     )
 
-    // Register for push notifications
+    // Register as the notification delegate only. Permission is requested later
+    // from the onboarding notification setup screen.
     UNUserNotificationCenter.current().delegate = self
-    registerForPushNotifications(application)
 
     return true
-  }
-
-  // MARK: - Push Notification Registration
-  func registerForPushNotifications(_ application: UIApplication) {
-    UNUserNotificationCenter.current()
-      .requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-        print("Push notification permission granted: \(granted)")
-        
-        guard granted else { 
-          print("Push notification permission denied")
-          return 
-        }
-        
-        DispatchQueue.main.async {
-          application.registerForRemoteNotifications()
-        }
-      }
   }
 
   // Called when APNs successfully registers the device

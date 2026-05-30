@@ -4136,7 +4136,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 <View style={styles.exampleContainer}>
                   <View style={styles.exampleRail} />
                   <View style={styles.exampleHeader}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={14} color="rgba(255,255,255,0.6)" />
+                    <MaterialCommunityIcons name="lightbulb-outline" size={14} color="rgba(255,255,255,0.6)" />
                   </View>
                   {Platform.OS === 'ios' ? (
                     exampleFieldLines.length > 0 ? (
