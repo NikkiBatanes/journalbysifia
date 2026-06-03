@@ -155,6 +155,23 @@ const OnboardingTrialOfferScreen = () => {
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [_trialProductAvailable, setTrialProductAvailable] = useState<boolean | null>(null);
   const [navigationInProgressRef] = [React.useRef(false)];
+  const scrollViewRef = useRef<ScrollView>(null);
+  const wasStartingTrialRef = useRef(false);
+  const [androidSheetRenderKey, setAndroidSheetRenderKey] = useState(0);
+
+  const refreshAndroidSheetSurface = useCallback(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    setAndroidSheetRenderKey(key => key + 1);
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: 1, animated: false });
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      });
+    });
+  }, []);
 
   const isAlreadySubscribedPurchaseError = (error: any) => {
     const code = String(error?.code || error?.errorCode || '').toLowerCase();
@@ -165,6 +182,19 @@ const OnboardingTrialOfferScreen = () => {
       message.includes('currently subscribed') ||
       message.includes('already has an active subscription');
   };
+
+  useEffect(() => {
+    if (
+      Platform.OS === 'android' &&
+      wasStartingTrialRef.current &&
+      !isStartingTrial &&
+      !showSuccessModal
+    ) {
+      refreshAndroidSheetSurface();
+    }
+
+    wasStartingTrialRef.current = isStartingTrial;
+  }, [isStartingTrial, refreshAndroidSheetSurface, showSuccessModal]);
 
   const getCurrentStackBackCount = useCallback(() => {
     try {
@@ -650,8 +680,12 @@ ${Platform.OS === 'android'
               trial_chosen_tier: selectedTierId as any,
               billing_cycle: isAnnual ? 'annual' : 'monthly',
               platform_transaction_id: result.validation?.transactionId || result.transactionId,
-              original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
-              platform_subscription_id: result.validation?.transactionId || result.transactionId,
+              original_transaction_id: Platform.OS === 'ios'
+                ? result.validation?.originalTransactionId || result.transactionId
+                : undefined,
+              platform_subscription_id: Platform.OS === 'android'
+                ? result.validation?.productId || productId
+                : result.validation?.transactionId || result.transactionId,
             });
 
             refreshedSubscription = await NewSubscriptionService.getUserSubscription(user.id, true);
@@ -765,6 +799,7 @@ ${Platform.OS === 'android'
             {
               text: 'Not Now',
               style: 'cancel',
+              onPress: refreshAndroidSheetSurface,
             },
             {
               text: Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases',
@@ -781,6 +816,7 @@ ${Platform.OS === 'android'
         setPurchaseValidated(false);
         setShowSuccessModal(false);
         setLoadingStep('processing');
+        refreshAndroidSheetSurface();
         return;
       }
 
@@ -791,7 +827,14 @@ ${Platform.OS === 'android'
       });
       Alert.alert(
         'Purchase Unavailable',
-        error?.message || `${Platform.OS === 'android' ? 'Google Play' : 'Apple'} could not start the free trial. Please try again in a moment.`
+        error?.message || `${Platform.OS === 'android' ? 'Google Play' : 'Apple'} could not start the free trial. Please try again in a moment.`,
+        [
+          {
+            text: 'OK',
+            onPress: refreshAndroidSheetSurface,
+          },
+        ],
+        { onDismiss: refreshAndroidSheetSurface }
       );
       setIsStartingTrial(false);
     } finally {
@@ -1174,7 +1217,11 @@ ${Platform.OS === 'android'
           disabled={isClosing || isStartingTrial}
         />
       )}
-      <SafeAreaView style={[styles.container, isAndroidSheet && styles.androidSheet]}>
+      <SafeAreaView
+        style={[styles.container, isAndroidSheet && styles.androidSheet]}
+        collapsable={false}
+        renderToHardwareTextureAndroid={isAndroidSheet}
+      >
       <StatusBar
         barStyle="light-content"
         backgroundColor={isAndroidSheet ? 'transparent' : Colors.anchorBlue}
@@ -1206,13 +1253,22 @@ ${Platform.OS === 'android'
         <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
       </TouchableOpacity>
 
-      <View style={styles.scrollContainer}>
+      <View
+        key={`trial-sheet-content-${androidSheetRenderKey}`}
+        style={styles.scrollContainer}
+        collapsable={false}
+        renderToHardwareTextureAndroid={isAndroidSheet}
+        needsOffscreenAlphaCompositing={isAndroidSheet}
+      >
         {/* Main Content (scrollable to avoid cut-off in landscape) */}
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, isLandscape ? styles.scrollContentLandscape : styles.scrollContentPortrait]}
           showsVerticalScrollIndicator={false}
           bounces
+          removeClippedSubviews={false}
+          collapsable={false}
         >
           {/* Header - now inside ScrollView to scroll with content */}
           <View style={styles.header}>

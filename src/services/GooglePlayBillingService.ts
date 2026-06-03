@@ -90,6 +90,7 @@ export class GooglePlayBillingService {
   private productsById = new Map<string, GooglePlayProduct>();
   private pendingPurchases = new Map<string, PendingPurchaseEntry>();
   private handledPurchaseKeys = new Set<string>();
+  private processingPurchaseKeys = new Set<string>();
 
   // Product IDs for Google Play subscription tiers
   private static readonly PRODUCT_IDS = {
@@ -247,13 +248,14 @@ export class GooglePlayBillingService {
       });
 
       const pendingResult = new Promise<GooglePlayPurchaseResult>((resolve, reject) => {
+        let pendingPurchase: PendingPurchaseEntry | undefined;
         const timeout = setTimeout(() => {
-          this.pendingPurchases.delete(productId);
-          this.pendingPurchases.delete(actualProductId);
-          reject(new Error('Purchase timed out. Please try again.'));
+          if (pendingPurchase) {
+            void this.recoverOrRejectPendingPurchase(pendingPurchase);
+          }
         }, 60000);
 
-        const pendingPurchase = {
+        pendingPurchase = {
           resolve,
           reject,
           timeout,
@@ -272,14 +274,17 @@ export class GooglePlayBillingService {
         this.pendingPurchases.set(productId, pendingPurchase);
         this.pendingPurchases.set(actualProductId, pendingPurchase);
       });
+      pendingResult.catch(() => {});
 
-      await requestSubscription({
+      const requestResult = await requestSubscription({
         subscriptionOffers: [{
           sku: actualProductId,
           offerToken: offer.offerToken,
         }],
         obfuscatedAccountIdAndroid: userId,
       } as any);
+
+      await this.handleNativePurchaseResult(requestResult, actualProductId);
 
       return await pendingResult;
     } catch (error) {
@@ -304,15 +309,27 @@ export class GooglePlayBillingService {
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
     const productId = this.getPurchaseProductId(purchase);
-    const pending = this.findPendingPurchase(productId);
+    const pending = this.findPendingPurchase(productId) || this.findOnlyPendingPurchase();
+    const resolutionProductId = productId || pending?.context.actualProductId || pending?.context.selectionId || '';
+    const purchaseKey = this.getPurchaseKey(purchase);
+
+    if (this.handledPurchaseKeys.has(purchaseKey)) {
+      if (pending && resolutionProductId) {
+        this.resolvePendingPurchase(
+          resolutionProductId,
+          this.createPurchaseResult(purchase, true, pending.context)
+        );
+      }
+      return;
+    }
+
+    if (this.processingPurchaseKeys.has(purchaseKey)) {
+      return;
+    }
+
+    this.processingPurchaseKeys.add(purchaseKey);
 
     try {
-      const purchaseKey = this.getPurchaseKey(purchase);
-      if (this.handledPurchaseKeys.has(purchaseKey)) {
-        return;
-      }
-      this.handledPurchaseKeys.add(purchaseKey);
-
       // Validate the purchase with Google Play
       const isValid = await this.validatePurchase(purchase);
 
@@ -321,7 +338,9 @@ export class GooglePlayBillingService {
         Logger.error('[GooglePlay] Purchase validation failed', error, {
       component: 'GooglePlayBillingService',
     });
-        this.resolvePendingPurchase(productId, { success: false, error: error.message });
+        if (resolutionProductId) {
+          this.resolvePendingPurchase(resolutionProductId, { success: false, error: error.message });
+        }
         return;
       }
 
@@ -334,7 +353,9 @@ export class GooglePlayBillingService {
         component: 'GooglePlayBillingService',
         productId,
       });
-        this.resolvePendingPurchase(productId, { success: false, error: error.message });
+        if (resolutionProductId) {
+          this.resolvePendingPurchase(resolutionProductId, { success: false, error: error.message });
+        }
         return;
       }
 
@@ -342,7 +363,7 @@ export class GooglePlayBillingService {
       await this.updateUserSubscription(purchase, tier, pending?.context);
 
       // Acknowledge the purchase (required for subscriptions)
-      await finishTransaction({ purchase, isConsumable: false });
+      await this.finishGooglePlayTransaction(purchase);
 
       const trackingProductId = pending?.context.selectionId || productId;
       const amount = this.getAmountFromProductId(trackingProductId);
@@ -351,21 +372,33 @@ export class GooglePlayBillingService {
           amount,
           currency: 'PHP',
           productId: trackingProductId,
-          transactionId: purchase.transactionId,
+          transactionId: purchase.transactionId || purchase.purchaseToken,
           tier,
           platform: 'android',
         });
       }
 
-      this.resolvePendingPurchase(productId, this.createPurchaseResult(purchase, true, pending?.context));
+      this.handledPurchaseKeys.add(purchaseKey);
+
+      if (resolutionProductId) {
+        this.resolvePendingPurchase(
+          resolutionProductId,
+          this.createPurchaseResult(purchase, true, pending?.context)
+        );
+      }
     } catch (error) {
+      this.handledPurchaseKeys.delete(purchaseKey);
       Logger.error('[GooglePlay] Failed to handle purchase update', error as Error, {
       component: 'GooglePlayBillingService',
     });
-      this.resolvePendingPurchase(productId, {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown purchase error',
-      });
+      if (resolutionProductId) {
+        this.resolvePendingPurchase(resolutionProductId, {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown purchase error',
+        });
+      }
+    } finally {
+      this.processingPurchaseKeys.delete(purchaseKey);
     }
   }
 
@@ -452,7 +485,9 @@ export class GooglePlayBillingService {
           trial_chosen_tier: tier.replace('_annual', '') as any,
           billing_cycle: tier.includes('annual') ? 'annual' : 'monthly',
           platform_transaction_id: transactionId,
-          original_transaction_id: transactionId,
+          // original_transaction_id is Apple-specific. Google Play purchase
+          // tokens are stored in platform_transaction_id.
+          original_transaction_id: undefined,
           platform_subscription_id: context.actualProductId,
         });
       } else {
@@ -788,6 +823,135 @@ export class GooglePlayBillingService {
     };
   }
 
+  private async handleNativePurchaseResult(requestResult: unknown, expectedProductId: string): Promise<void> {
+    const purchases = this.normalizePurchaseResult(requestResult);
+
+    if (purchases.length === 0) {
+      Logger.info('[GooglePlay] Native request returned no purchase payload; waiting for listener', {
+        component: 'GooglePlayBillingService',
+        expectedProductId,
+      });
+      return;
+    }
+
+    const purchase = purchases.find(item => this.purchaseMatchesProductId(item, expectedProductId)) || purchases[0];
+
+    Logger.info('[GooglePlay] Native request returned purchase payload', {
+      component: 'GooglePlayBillingService',
+      expectedProductId,
+      returnedProductId: this.getPurchaseProductId(purchase),
+      hasPurchaseToken: !!purchase.purchaseToken,
+      purchaseStateAndroid: purchase.purchaseStateAndroid,
+    });
+
+    await this.handlePurchaseUpdate(purchase);
+  }
+
+  private normalizePurchaseResult(requestResult: unknown): ProductPurchase[] {
+    if (!requestResult) {
+      return [];
+    }
+
+    return (Array.isArray(requestResult) ? requestResult : [requestResult])
+      .filter(item => item && typeof item === 'object') as ProductPurchase[];
+  }
+
+  private async recoverOrRejectPendingPurchase(pending: PendingPurchaseEntry): Promise<void> {
+    if (!this.isPendingPurchaseActive(pending)) {
+      return;
+    }
+
+    try {
+      Logger.warn('[GooglePlay] Purchase listener timed out; checking available purchases before rejecting', {
+        component: 'GooglePlayBillingService',
+        selectionId: pending.context.selectionId,
+        actualProductId: pending.context.actualProductId,
+      });
+
+      const recoveredPurchase = await this.findAvailablePurchaseForPending(pending);
+
+      if (recoveredPurchase) {
+        Logger.info('[GooglePlay] Recovered completed purchase from Google Play', {
+          component: 'GooglePlayBillingService',
+          productId: this.getPurchaseProductId(recoveredPurchase),
+          hasPurchaseToken: !!recoveredPurchase.purchaseToken,
+          purchaseStateAndroid: recoveredPurchase.purchaseStateAndroid,
+        });
+
+        await this.handlePurchaseUpdate(recoveredPurchase);
+
+        if (!this.isPendingPurchaseActive(pending)) {
+          return;
+        }
+      }
+    } catch (error) {
+      Logger.warn('[GooglePlay] Purchase timeout recovery failed', {
+        component: 'GooglePlayBillingService',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    if (!this.isPendingPurchaseActive(pending)) {
+      return;
+    }
+
+    this.clearPendingPurchase(pending);
+    pending.reject(new Error('Google Play purchase is still processing. Please try Sync Purchases from your profile, or try again in a moment.'));
+  }
+
+  private async findAvailablePurchaseForPending(pending: PendingPurchaseEntry): Promise<ProductPurchase | undefined> {
+    const purchases = await RNIap.getAvailablePurchases() as ProductPurchase[];
+
+    Logger.info('[GooglePlay] Available purchases checked for recovery', {
+      component: 'GooglePlayBillingService',
+      count: purchases.length,
+      productIds: purchases.map(purchase => this.getPurchaseProductId(purchase)).filter(Boolean),
+    });
+
+    const matchingPurchase = purchases.find(purchase =>
+      this.purchaseMatchesPendingContext(purchase, pending.context)
+    );
+
+    if (matchingPurchase) {
+      return matchingPurchase;
+    }
+
+    return this.findOnlyPendingPurchase() === pending && purchases.length === 1
+      ? purchases[0]
+      : undefined;
+  }
+
+  private purchaseMatchesPendingContext(
+    purchase: ProductPurchase,
+    context: PendingPurchaseContext
+  ): boolean {
+    if (this.purchaseMatchesProductId(purchase, context.actualProductId)) {
+      return true;
+    }
+
+    const purchaseProductId = this.getPurchaseProductId(purchase);
+    const expected = this.parsePlanSelection(context.selectionId, context.offer, context.actualProductId);
+    const actual = this.parsePlanSelection(purchaseProductId);
+
+    return Boolean(
+      expected.tier &&
+      actual.tier &&
+      expected.tier === actual.tier &&
+      expected.billing &&
+      actual.billing &&
+      expected.billing === actual.billing
+    );
+  }
+
+  private purchaseMatchesProductId(purchase: ProductPurchase, expectedProductId: string): boolean {
+    const purchaseProductId = this.getPurchaseProductId(purchase);
+    const productIds = Array.isArray((purchase as any)?.productIds)
+      ? (purchase as any).productIds
+      : [];
+
+    return purchaseProductId === expectedProductId || productIds.includes(expectedProductId);
+  }
+
   private findPendingPurchase(productId: string | undefined): PendingPurchaseEntry | undefined {
     if (!productId) {
       return undefined;
@@ -802,6 +966,15 @@ export class GooglePlayBillingService {
       pending.context.actualProductId === productId ||
       pending.context.selectionId === productId
     );
+  }
+
+  private findOnlyPendingPurchase(): PendingPurchaseEntry | undefined {
+    const pendingPurchases = Array.from(new Set(this.pendingPurchases.values()));
+    return pendingPurchases.length === 1 ? pendingPurchases[0] : undefined;
+  }
+
+  private isPendingPurchaseActive(pending: PendingPurchaseEntry): boolean {
+    return Array.from(this.pendingPurchases.values()).includes(pending);
   }
 
   private resolvePendingPurchase(productId: string, result: GooglePlayPurchaseResult): void {
@@ -821,6 +994,34 @@ export class GooglePlayBillingService {
       if (value === pending) {
         this.pendingPurchases.delete(key);
       }
+    }
+  }
+
+  private async finishGooglePlayTransaction(purchase: ProductPurchase): Promise<void> {
+    if ((purchase as any).isAcknowledgedAndroid === true) {
+      Logger.info('[GooglePlay] Purchase already acknowledged; skipping finishTransaction', {
+        component: 'GooglePlayBillingService',
+        productId: this.getPurchaseProductId(purchase),
+      });
+      return;
+    }
+
+    try {
+      await finishTransaction({ purchase, isConsumable: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const alreadyFinished = /already|acknowledged|not suitable/i.test(message);
+
+      if (alreadyFinished) {
+        Logger.warn('[GooglePlay] Purchase finish skipped because it appears already handled', {
+          component: 'GooglePlayBillingService',
+          productId: this.getPurchaseProductId(purchase),
+          errorMessage: message,
+        });
+        return;
+      }
+
+      throw error;
     }
   }
 

@@ -1200,8 +1200,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.validation?.transactionId || result.transactionId,
-                original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
-                platform_subscription_id: result.validation?.transactionId || result.transactionId,
+                original_transaction_id: Platform.OS === 'ios'
+                  ? result.validation?.originalTransactionId || result.transactionId
+                  : undefined,
+                platform_subscription_id: Platform.OS === 'android'
+                  ? result.validation?.productId || productId
+                  : result.validation?.transactionId || result.transactionId,
               });
 
               updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);
@@ -1449,8 +1453,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 trial_chosen_tier: selectedPlanTier as SubscriptionTier,
                 billing_cycle: isAnnual ? 'annual' : 'monthly',
                 platform_transaction_id: result.validation?.transactionId || result.transactionId,
-                original_transaction_id: result.validation?.originalTransactionId || result.transactionId,
-                platform_subscription_id: result.validation?.transactionId || result.transactionId,
+                original_transaction_id: Platform.OS === 'ios'
+                  ? result.validation?.originalTransactionId || result.transactionId
+                  : undefined,
+                platform_subscription_id: Platform.OS === 'android'
+                  ? result.validation?.productId || productId
+                  : result.validation?.transactionId || result.transactionId,
               });
 
               updatedSubscription = await NewSubscriptionService.getUserSubscription(user?.id || '', true);

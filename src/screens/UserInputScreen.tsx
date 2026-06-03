@@ -10,9 +10,10 @@ import {
   TouchableOpacity,
   Animated,
   Keyboard,
-  TouchableWithoutFeedback,
   KeyboardAvoidingView,
+  NativeModules,
   Platform,
+  Pressable,
   StyleSheet,
   useWindowDimensions,
   Image,
@@ -61,6 +62,38 @@ const buildInitialGenerationSteps = () => INITIAL_GENERATION_STEPS.map((step) =>
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const AndroidKeyboard = NativeModules.SifiaKeyboard as
+  | { showSoftKeyboard?: () => void }
+  | undefined;
+
+const androidPlatformConstants = Platform.OS === 'android'
+  ? ((Platform as any).constants ?? {})
+  : {};
+const isAndroidEmulator = Platform.OS === 'android' && [
+  androidPlatformConstants.Brand,
+  androidPlatformConstants.Fingerprint,
+  androidPlatformConstants.Manufacturer,
+  androidPlatformConstants.Model,
+].some((value) => {
+  const normalized = String(value ?? '').toLowerCase();
+  return (
+    normalized.includes('emulator') ||
+    normalized.includes('generic') ||
+    normalized.includes('goldfish') ||
+    normalized.includes('ranchu') ||
+    normalized.includes('sdk_gphone')
+  );
+});
+
+const requestAndroidSoftKeyboard = () => {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  setTimeout(() => AndroidKeyboard?.showSoftKeyboard?.(), 60);
+  setTimeout(() => AndroidKeyboard?.showSoftKeyboard?.(), 180);
+};
+
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList, 'UserInput'>>();
@@ -97,6 +130,7 @@ const UserInputScreen: React.FC = () => {
   const MAX_INPUT_HEIGHT = 150;
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const activeInputMaxHeight = keyboardVisible && isTabletLayout
     ? (isLandscape ? 108 : 132)
     : MAX_INPUT_HEIGHT;
@@ -471,6 +505,10 @@ const UserInputScreen: React.FC = () => {
   }, [route.params?.initialText]);
 
   useEffect(() => {
+    if (Platform.OS === 'android' && !route.params?.autoFocus) {
+      return;
+    }
+
     const focusInput = () => {
       if (inputRef.current) {
         inputRef.current.focus();
@@ -486,7 +524,7 @@ const UserInputScreen: React.FC = () => {
         autoFocusTimer.current = null;
       }
     };
-  }, []);
+  }, [route.params?.autoFocus]);
 
   // Auto-save draft when user types (debounced)
   const saveDraftTimer = useRef<NodeJS.Timeout | null>(null);
@@ -597,7 +635,10 @@ const UserInputScreen: React.FC = () => {
 
   // Keyboard animation - sync input box with keyboard slide
   useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', (e) => {
+    const keyboardShowEvent = Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const keyboardHideEvent = Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+
+    const keyboardShowListener = Keyboard.addListener(keyboardShowEvent, (e) => {
       setKeyboardVisible(true);
       const kbHeight = e.endCoordinates.height;
       const keyboardClearance = isTabletLayout ? (isLandscape ? 16 : 24) : 70;
@@ -610,7 +651,7 @@ const UserInputScreen: React.FC = () => {
       }).start();
     });
 
-    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
+    const keyboardHideListener = Keyboard.addListener(keyboardHideEvent, () => {
       setKeyboardVisible(false);
       Animated.spring(keyboardTranslateY, {
         toValue: 0,
@@ -665,6 +706,8 @@ const UserInputScreen: React.FC = () => {
     ]).start();
   }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerScale, headerTranslateY, route.params?.initialText, navIconEntranceAnim]);
   const handleFocus = () => {
+    setIsInputFocused(true);
+    requestAndroidSoftKeyboard();
     // Animate logo position when keyboard opens
     Animated.parallel([
       Animated.spring(headerTranslateY, {
@@ -713,6 +756,7 @@ const UserInputScreen: React.FC = () => {
     }
   };
   const handleBlur = () => {
+    setIsInputFocused(false);
     // Return logo to original position when keyboard closes
     Animated.parallel([
       Animated.spring(headerTranslateY, {
@@ -1207,19 +1251,25 @@ const UserInputScreen: React.FC = () => {
   };
 
   const handleInputPress = () => {
-    inputRef.current?.focus();
-  };
+    if (Platform.OS === 'android') {
+      if (inputRef.current?.isFocused?.() && !keyboardVisible) {
+        inputRef.current.blur();
+        setTimeout(() => {
+          inputRef.current?.focus();
+          requestAndroidSoftKeyboard();
+        }, 80);
+        return;
+      }
 
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-    if (showTooltip) {
-      setShowTooltip(false);
-      Animated.parallel([
-        Animated.spring(tooltipOpacity, { toValue: 0, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipTranslateY, { toValue: 20, tension: 80, friction: 8, useNativeDriver: true }),
-        Animated.spring(tooltipScale, { toValue: 0.9, tension: 80, friction: 8, useNativeDriver: true }),
-      ]).start();
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          inputRef.current?.focus();
+          requestAndroidSoftKeyboard();
+        }, 0);
+      });
+      return;
     }
+    inputRef.current?.focus();
   };
 
   const handleNavigationToggle = () => {
@@ -1304,18 +1354,15 @@ const UserInputScreen: React.FC = () => {
     });
   };
 
-  // Rely on KeyboardAvoidingView for precise avoidance; no manual listeners
-
   return (
-    <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
-          style={{ flex: 1 }}
-          enabled={false}
-        >
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
+        style={{ flex: 1 }}
+        enabled={false}
+      >
         <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
           {!isGenerating && (
@@ -1662,15 +1709,26 @@ const UserInputScreen: React.FC = () => {
                     textAlignVertical="top"
                     scrollEnabled={inputHeight >= activeInputMaxHeight}
                     autoCapitalize="sentences"
+                    keyboardType={isAndroidEmulator ? 'visible-password' : 'default'}
                     keyboardAppearance="dark"
                     underlineColorAndroid="transparent"
                     autoCorrect={true}
                     autoFocus={false}
-                    onTouchStart={handleInputPress}
+                    showSoftInputOnFocus={true}
+                    onPressIn={handleInputPress}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     blurOnSubmit={false}
                   />
+                  {!isInputFocused && (
+                    <Pressable
+                      style={styles.askBoxFocusOverlay}
+                      onPress={handleInputPress}
+                      android_disableSound
+                      accessible={false}
+                      importantForAccessibility="no"
+                    />
+                  )}
                   {/* Bottom row overlays: buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">
                     <View style={styles.actionsRight}>
@@ -1743,9 +1801,8 @@ const UserInputScreen: React.FC = () => {
             </Animated.View>
           </View>
         </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
-    </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -2138,6 +2195,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden', // Clip content at container edges
   },
+  askBoxFocusOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+    elevation: 1,
+  },
   inputFeedbackText: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13,
@@ -2162,6 +2224,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12 as any,
+    zIndex: 2,
+    elevation: 2,
   },
   actionsRight: {
     flexDirection: 'row',
