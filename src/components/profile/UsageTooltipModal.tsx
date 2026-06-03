@@ -4,6 +4,7 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
@@ -396,6 +397,9 @@ const UsageTooltipModal: React.FC<Props> = ({
       visible={visible}
       transparent
       animationType="fade"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      hardwareAccelerated={Platform.OS === 'android'}
       onRequestClose={onClose}
     >
       <TouchableOpacity

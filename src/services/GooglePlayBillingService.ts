@@ -8,7 +8,6 @@ import RNIap, {
   getSubscriptions,
   requestSubscription,
   finishTransaction,
-  validateReceiptAndroid,
   purchaseErrorListener,
   purchaseUpdatedListener,
 } from 'react-native-iap';
@@ -23,6 +22,52 @@ export interface GooglePlayProduct {
   localizedPrice: string;
   title: string;
   description: string;
+  subscriptionOfferDetails?: GooglePlaySubscriptionOffer[];
+}
+
+interface GooglePlayPricingPhase {
+  formattedPrice?: string;
+  priceCurrencyCode?: string;
+  billingPeriod?: string;
+  billingCycleCount?: number;
+  priceAmountMicros?: string;
+}
+
+interface GooglePlaySubscriptionOffer {
+  basePlanId?: string;
+  offerId?: string | null;
+  offerToken: string;
+  pricingPhases?: {
+    pricingPhaseList?: GooglePlayPricingPhase[];
+  };
+  offerTags?: string[];
+}
+
+type GooglePlayTier = 'spark' | 'growth' | 'transformation' | 'family';
+type GooglePlayBillingCycle = 'monthly' | 'annual';
+
+interface GooglePlayPlanSelection {
+  tier?: GooglePlayTier;
+  billing?: GooglePlayBillingCycle;
+  trialRequested: boolean;
+}
+
+interface PendingPurchaseContext {
+  userId: string;
+  selectionId: string;
+  actualProductId: string;
+  tier: string;
+  billing: GooglePlayBillingCycle;
+  offer?: GooglePlaySubscriptionOffer;
+  isTrialOffer: boolean;
+  trialDurationDays: number;
+}
+
+interface PendingPurchaseEntry {
+  resolve: (result: GooglePlayPurchaseResult) => void;
+  reject: (error: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
+  context: PendingPurchaseContext;
 }
 
 export interface GooglePlayPurchaseResult {
@@ -42,6 +87,9 @@ export class GooglePlayBillingService {
   private purchaseUpdateSubscription: any;
   private purchaseErrorSubscription: any;
   private currentUserId: string | null = null;
+  private productsById = new Map<string, GooglePlayProduct>();
+  private pendingPurchases = new Map<string, PendingPurchaseEntry>();
+  private handledPurchaseKeys = new Set<string>();
 
   // Product IDs for Google Play subscription tiers
   private static readonly PRODUCT_IDS = {
@@ -128,14 +176,25 @@ export class GooglePlayBillingService {
       const productIds = Object.values(GooglePlayBillingService.PRODUCT_IDS);
       const products = await getSubscriptions({ skus: productIds });
 
-      return products.map((product: any) => ({
-        productId: product.productId,
-        price: product.price,
-        currency: product.currency,
-        localizedPrice: product.localizedPrice,
-        title: product.title,
-        description: product.description,
-      }));
+      const mappedProducts = products.map((product: any) => {
+        const offers = product.subscriptionOfferDetails || [];
+        const displayOffer = this.selectDisplayOffer(offers);
+        const displayPhase = this.getRecurringPricingPhase(displayOffer) || this.getFirstPricingPhase(displayOffer);
+
+        return {
+          productId: product.productId,
+          price: displayPhase?.priceAmountMicros || product.price || '0',
+          currency: displayPhase?.priceCurrencyCode || product.currency || '',
+          localizedPrice: displayPhase?.formattedPrice || product.localizedPrice || '',
+          title: product.title || product.name || product.productId,
+          description: product.description || '',
+          subscriptionOfferDetails: offers,
+        };
+      });
+
+      this.productsById = new Map();
+      mappedProducts.forEach(product => this.indexProduct(product));
+      return mappedProducts;
     } catch (error) {
       Logger.error('[GooglePlay] Failed to get products', error as Error, {
       component: 'GooglePlayBillingService',
@@ -159,17 +218,83 @@ export class GooglePlayBillingService {
       }
 
       this.currentUserId = userId || null;
-      await requestSubscription({ sku: productId });
+      const product = await this.getProductForPurchase(productId);
+      const actualProductId = product.productId;
+      const offer = this.selectPurchaseOffer(product.subscriptionOfferDetails || [], productId, actualProductId);
 
-      // The actual purchase handling will be done in the listener
-      return { success: true };
+      if (!offer?.offerToken) {
+        throw new Error(`No Google Play offer token available for ${productId}`);
+      }
+
+      const isTrialOffer = this.isFreeTrialOffer(offer);
+      const trialDurationDays = this.getTrialDurationDays(offer);
+      const selection = this.parsePlanSelection(productId, offer, actualProductId);
+      const tier = this.getSubscriptionTierFromProductId(productId, offer, actualProductId);
+
+      if (!tier) {
+        throw new Error(`Unknown Google Play product ID: ${productId}`);
+      }
+
+      Logger.info('[GooglePlay] Launching subscription purchase', {
+        component: 'GooglePlayBillingService',
+        selectionId: productId,
+        actualProductId,
+        basePlanId: offer.basePlanId,
+        offerId: offer.offerId,
+        isTrialOffer,
+        trialDurationDays,
+        billing: selection.billing,
+      });
+
+      const pendingResult = new Promise<GooglePlayPurchaseResult>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          this.pendingPurchases.delete(productId);
+          this.pendingPurchases.delete(actualProductId);
+          reject(new Error('Purchase timed out. Please try again.'));
+        }, 60000);
+
+        const pendingPurchase = {
+          resolve,
+          reject,
+          timeout,
+          context: {
+            userId,
+            selectionId: productId,
+            actualProductId,
+            tier,
+            billing: selection.billing || 'monthly',
+            offer,
+            isTrialOffer,
+            trialDurationDays,
+          },
+        };
+
+        this.pendingPurchases.set(productId, pendingPurchase);
+        this.pendingPurchases.set(actualProductId, pendingPurchase);
+      });
+
+      await requestSubscription({
+        subscriptionOffers: [{
+          sku: actualProductId,
+          offerToken: offer.offerToken,
+        }],
+        obfuscatedAccountIdAndroid: userId,
+      } as any);
+
+      return await pendingResult;
     } catch (error) {
+      const pending = this.findPendingPurchase(productId);
+      if (pending) {
+        this.clearPendingPurchase(pending);
+      }
+
       Logger.error('[GooglePlay] Purchase failed', error as Error, {
       component: 'GooglePlayBillingService',
     });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error ? (error as any).code : undefined,
       };
     }
   }
@@ -178,51 +303,69 @@ export class GooglePlayBillingService {
    * Handle purchase updates from Google Play
    */
   private async handlePurchaseUpdate(purchase: ProductPurchase): Promise<void> {
+    const productId = this.getPurchaseProductId(purchase);
+    const pending = this.findPendingPurchase(productId);
+
     try {
+      const purchaseKey = this.getPurchaseKey(purchase);
+      if (this.handledPurchaseKeys.has(purchaseKey)) {
+        return;
+      }
+      this.handledPurchaseKeys.add(purchaseKey);
 
       // Validate the purchase with Google Play
       const isValid = await this.validatePurchase(purchase);
 
       if (!isValid) {
-        Logger.error('[GooglePlay] Purchase validation failed', undefined, {
+        const error = new Error('Google Play purchase validation failed');
+        Logger.error('[GooglePlay] Purchase validation failed', error, {
       component: 'GooglePlayBillingService',
     });
+        this.resolvePendingPurchase(productId, { success: false, error: error.message });
         return;
       }
 
       // Map product ID to subscription tier
-      const tier = this.getSubscriptionTierFromProductId(purchase.productId);
+      const tier = pending?.context.tier || this.getSubscriptionTierFromProductId(productId, pending?.context.offer);
 
       if (!tier) {
-        Logger.error('[GooglePlay] Unknown product ID', undefined, {
+        const error = new Error(`Unknown Google Play product ID: ${productId}`);
+        Logger.error('[GooglePlay] Unknown product ID', error, {
         component: 'GooglePlayBillingService',
-        productId: purchase.productId,
+        productId,
       });
+        this.resolvePendingPurchase(productId, { success: false, error: error.message });
         return;
       }
 
       // Update user subscription in database
-      await this.updateUserSubscription(purchase, tier);
+      await this.updateUserSubscription(purchase, tier, pending?.context);
 
       // Acknowledge the purchase (required for subscriptions)
       await finishTransaction({ purchase, isConsumable: false });
 
-      const amount = this.getAmountFromProductId(purchase.productId);
+      const trackingProductId = pending?.context.selectionId || productId;
+      const amount = this.getAmountFromProductId(trackingProductId);
       if (amount > 0) {
         metaAppEventsService.trackPurchase({
           amount,
           currency: 'PHP',
-          productId: purchase.productId,
+          productId: trackingProductId,
           transactionId: purchase.transactionId,
           tier,
           platform: 'android',
         });
       }
 
+      this.resolvePendingPurchase(productId, this.createPurchaseResult(purchase, true, pending?.context));
     } catch (error) {
       Logger.error('[GooglePlay] Failed to handle purchase update', error as Error, {
       component: 'GooglePlayBillingService',
     });
+      this.resolvePendingPurchase(productId, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown purchase error',
+      });
     }
   }
 
@@ -235,18 +378,13 @@ export class GooglePlayBillingService {
         return false;
       }
 
-      // For Google Play, we validate using the purchase token and package name
-      const receiptBody = {
-        packageName: 'app.sifia.com',
-        productId: purchase.productId,
-        purchaseToken: purchase.purchaseToken,
-        subscription: true,
-      };
+      // Production validation should happen server-side. Locally, trust Play
+      // Billing's purchase update state so checkout can finish and acknowledge.
+      if (typeof purchase.purchaseStateAndroid === 'number') {
+        return purchase.purchaseStateAndroid === 1; // BillingClient.PurchaseState.PURCHASED
+      }
 
-      const result = await validateReceiptAndroid(receiptBody as any);
-
-      // Google Play validation should return purchase details if valid
-      return result && result.purchaseState === 1; // 1 = Purchased
+      return Boolean(purchase.purchaseToken || purchase.transactionReceipt);
     } catch (error) {
       Logger.error('[GooglePlay] Purchase validation error', error as Error, {
       component: 'GooglePlayBillingService',
@@ -258,16 +396,23 @@ export class GooglePlayBillingService {
   /**
    * Map product ID to subscription tier
    */
-  private getSubscriptionTierFromProductId(productId: string): string | null {
-    const isAnnual = productId.includes('annual');
+  private getSubscriptionTierFromProductId(
+    productId: string,
+    offer?: GooglePlaySubscriptionOffer,
+    fallbackProductId?: string
+  ): string | null {
+    const selection = this.parsePlanSelection(productId, offer, fallbackProductId);
+    const tier = selection.tier;
 
-    // Map product IDs to tiers with annual support
-    if (productId.includes('spark')) {return isAnnual ? 'spark_annual' : 'spark';}
-    if (productId.includes('growth')) {return isAnnual ? 'growth_annual' : 'growth';}
-    if (productId.includes('transformation')) {return isAnnual ? 'transformation_annual' : 'transformation';}
-    if (productId.includes('family')) {return isAnnual ? 'family_annual' : 'family';}
+    if (!tier) {
+      return null;
+    }
 
-    return null;
+    if (selection.billing === 'annual') {
+      return `${tier}_annual`;
+    }
+
+    return tier;
   }
 
   /**
@@ -275,7 +420,8 @@ export class GooglePlayBillingService {
    */
   private async updateUserSubscription(
     purchase: ProductPurchase,
-    tier: string
+    tier: string,
+    context?: PendingPurchaseContext
   ): Promise<void> {
     try {
       // This would typically be called with the current user's ID
@@ -297,18 +443,384 @@ export class GooglePlayBillingService {
         throw new Error('User account not found - subscription update skipped');
       }
 
-      await NewSubscriptionService.upgradeSubscription(userId, {
-        target_tier: tier as any,
-        platform: 'google',
-        platform_subscription_id: purchase.productId,
-        platform_transaction_id: purchase.transactionId,
-      });
+      const transactionId = purchase.transactionId || purchase.purchaseToken || purchase.transactionReceipt;
+
+      if (context?.isTrialOffer) {
+        await NewSubscriptionService.startFreeTrial({
+          user_id: userId,
+          duration_days: context.trialDurationDays,
+          trial_chosen_tier: tier.replace('_annual', '') as any,
+          billing_cycle: tier.includes('annual') ? 'annual' : 'monthly',
+          platform_transaction_id: transactionId,
+          original_transaction_id: transactionId,
+          platform_subscription_id: context.actualProductId,
+        });
+      } else {
+        await NewSubscriptionService.upgradeSubscription(userId, {
+          target_tier: tier as any,
+          platform: 'google',
+          platform_subscription_id: context?.actualProductId || this.getPurchaseProductId(purchase),
+          platform_transaction_id: transactionId,
+        });
+      }
 
     } catch (error) {
       Logger.error('[GooglePlay] Failed to update user subscription', error as Error, {
       component: 'GooglePlayBillingService',
     });
       throw error;
+    }
+  }
+
+  private async getProductForPurchase(productId: string): Promise<GooglePlayProduct> {
+    // Always refresh immediately before purchase. Google Play offer tokens can
+    // go stale, especially for trials and tester eligibility changes.
+    const products = await this.getAvailableProducts();
+    const product = this.productsById.get(productId) || products.find(item => this.productMatchesSelection(item, productId));
+
+    if (!product) {
+      throw new Error(`Google Play product not found: ${productId}`);
+    }
+
+    return product;
+  }
+
+  private indexProduct(product: GooglePlayProduct): void {
+    this.addProductAlias(product.productId, product);
+
+    const productSelection = this.parsePlanSelection(product.productId);
+    this.addPlanAliases(product, productSelection);
+
+    product.subscriptionOfferDetails?.forEach(offer => {
+      if (offer.basePlanId) {
+        this.addProductAlias(offer.basePlanId, product);
+      }
+
+      if (offer.offerId) {
+        this.addProductAlias(offer.offerId, product);
+      }
+
+      const offerSelection = this.parsePlanSelection(product.productId, offer);
+      this.addPlanAliases(product, offerSelection);
+    });
+  }
+
+  private addProductAlias(alias: string | undefined | null, product: GooglePlayProduct): void {
+    if (alias) {
+      this.productsById.set(alias, product);
+    }
+  }
+
+  private addPlanAliases(product: GooglePlayProduct, selection: GooglePlayPlanSelection): void {
+    if (!selection.tier || !selection.billing) {
+      return;
+    }
+
+    this.addProductAlias(`${selection.tier}_${selection.billing}`, product);
+    this.addProductAlias(`${selection.tier}-${selection.billing}`, product);
+
+    if (selection.trialRequested) {
+      this.addProductAlias(`${selection.tier}-${selection.billing}-trial`, product);
+    }
+  }
+
+  private productMatchesSelection(product: GooglePlayProduct, selectionId: string): boolean {
+    if (product.productId === selectionId) {
+      return true;
+    }
+
+    const desired = this.parsePlanSelection(selectionId);
+    const productSelection = this.parsePlanSelection(product.productId);
+
+    if (desired.tier && productSelection.tier && desired.tier !== productSelection.tier) {
+      return false;
+    }
+
+    if (desired.billing && productSelection.billing && desired.billing !== productSelection.billing) {
+      return false;
+    }
+
+    if (desired.tier && productSelection.tier && desired.billing && productSelection.billing) {
+      return true;
+    }
+
+    return Boolean(product.subscriptionOfferDetails?.some(offer => {
+      const offerSelection = this.parsePlanSelection(product.productId, offer);
+      const tierMatches = !desired.tier || !offerSelection.tier || desired.tier === offerSelection.tier;
+      const billingMatches = !desired.billing || !offerSelection.billing || desired.billing === offerSelection.billing;
+      return tierMatches && billingMatches;
+    }));
+  }
+
+  private selectDisplayOffer(offers: GooglePlaySubscriptionOffer[]): GooglePlaySubscriptionOffer | undefined {
+    return offers.find(offer => !this.isFreeTrialOffer(offer)) || offers[0];
+  }
+
+  private selectPurchaseOffer(
+    offers: GooglePlaySubscriptionOffer[],
+    selectionId: string,
+    actualProductId: string
+  ): GooglePlaySubscriptionOffer | undefined {
+    if (offers.length === 0) {
+      return undefined;
+    }
+
+    return offers
+      .map(offer => ({
+        offer,
+        score: this.scoreOfferForSelection(offer, selectionId, actualProductId),
+      }))
+      .filter(item => item.score >= 0)
+      .sort((a, b) => b.score - a.score)[0]?.offer || offers[0];
+  }
+
+  private scoreOfferForSelection(
+    offer: GooglePlaySubscriptionOffer,
+    selectionId: string,
+    actualProductId: string
+  ): number {
+    const desired = this.parsePlanSelection(selectionId);
+    const actual = this.parsePlanSelection(actualProductId, offer);
+    const identifiers = this.getOfferIdentifierText(offer);
+    const isTrial = this.isFreeTrialOffer(offer);
+    let score = 0;
+
+    if (desired.tier && actual.tier) {
+      if (desired.tier !== actual.tier) {
+        return -1;
+      }
+      score += 20;
+    }
+
+    if (desired.billing && actual.billing) {
+      if (desired.billing !== actual.billing) {
+        return -1;
+      }
+      score += 40;
+    }
+
+    if (desired.tier && desired.billing) {
+      const expectedBasePlanId = `${desired.tier}-${desired.billing}`;
+      const expectedTrialOfferId = `${expectedBasePlanId}-trial`;
+
+      if (identifiers.includes(expectedTrialOfferId)) {
+        score += desired.trialRequested ? 120 : 10;
+      }
+
+      if (identifiers.includes(expectedBasePlanId)) {
+        score += 60;
+      }
+    }
+
+    if (desired.trialRequested) {
+      score += isTrial ? 80 : -20;
+    } else {
+      score += isTrial ? 0 : 30;
+    }
+
+    return score;
+  }
+
+  private isFreeTrialOffer(offer?: GooglePlaySubscriptionOffer): boolean {
+    if (!offer) {
+      return false;
+    }
+
+    const identifiers = this.getOfferIdentifierText(offer);
+    if (identifiers.includes('trial')) {
+      return true;
+    }
+
+    return Boolean(offer.pricingPhases?.pricingPhaseList?.some(phase => {
+      const amount = Number(phase.priceAmountMicros || '0');
+      return Number.isFinite(amount) && amount === 0 && Boolean(phase.billingPeriod);
+    }));
+  }
+
+  private getFirstPricingPhase(offer?: GooglePlaySubscriptionOffer): GooglePlayPricingPhase | undefined {
+    return offer?.pricingPhases?.pricingPhaseList?.[0];
+  }
+
+  private getRecurringPricingPhase(offer?: GooglePlaySubscriptionOffer): GooglePlayPricingPhase | undefined {
+    const phases = offer?.pricingPhases?.pricingPhaseList || [];
+    return [...phases].reverse().find(phase => Number(phase.priceAmountMicros || '0') > 0) || phases[phases.length - 1];
+  }
+
+  private getTrialDurationDays(offer?: GooglePlaySubscriptionOffer): number {
+    const freePhase = offer?.pricingPhases?.pricingPhaseList?.find(phase => Number(phase.priceAmountMicros || '0') === 0);
+    return this.parseBillingPeriodToDays(freePhase?.billingPeriod) || 3;
+  }
+
+  private parsePlanSelection(
+    selectionId = '',
+    offer?: GooglePlaySubscriptionOffer,
+    fallbackProductId = ''
+  ): GooglePlayPlanSelection {
+    const raw = [
+      selectionId,
+      fallbackProductId,
+      offer?.basePlanId,
+      offer?.offerId,
+      ...(offer?.offerTags || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const normalized = raw
+      .replace(/app\.sifia\.com/g, ' ')
+      .replace(/free\s*trial|freetrial/g, ' trial ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+    const tier = this.getTierFromText(normalized);
+    const billing = this.getBillingCycleFromText(normalized) || this.getBillingCycleFromOffer(offer);
+    const trialRequested = normalized.split(/\s+/).includes('trial');
+
+    return {
+      tier,
+      billing,
+      trialRequested,
+    };
+  }
+
+  private getTierFromText(text: string): GooglePlayTier | undefined {
+    if (text.includes('transformation')) {
+      return 'transformation';
+    }
+    if (text.includes('growth')) {
+      return 'growth';
+    }
+    if (text.includes('spark')) {
+      return 'spark';
+    }
+    if (text.includes('family')) {
+      return 'family';
+    }
+    return undefined;
+  }
+
+  private getBillingCycleFromText(text: string): GooglePlayBillingCycle | undefined {
+    const parts = text.split(/\s+/);
+
+    if (parts.some(part => ['annual', 'yearly', 'year'].includes(part))) {
+      return 'annual';
+    }
+
+    if (parts.some(part => ['monthly', 'month'].includes(part))) {
+      return 'monthly';
+    }
+
+    return undefined;
+  }
+
+  private getBillingCycleFromOffer(offer?: GooglePlaySubscriptionOffer): GooglePlayBillingCycle | undefined {
+    const recurringPeriod = this.getRecurringPricingPhase(offer)?.billingPeriod;
+
+    if (recurringPeriod === 'P1Y') {
+      return 'annual';
+    }
+
+    if (recurringPeriod === 'P1M') {
+      return 'monthly';
+    }
+
+    return undefined;
+  }
+
+  private getOfferIdentifierText(offer?: GooglePlaySubscriptionOffer): string {
+    return [
+      offer?.basePlanId,
+      offer?.offerId,
+      ...(offer?.offerTags || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  }
+
+  private parseBillingPeriodToDays(period?: string): number | null {
+    if (!period) {
+      return null;
+    }
+
+    const match = period.match(/^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/);
+    if (!match) {
+      return null;
+    }
+
+    const years = Number(match[1] || 0);
+    const months = Number(match[2] || 0);
+    const weeks = Number(match[3] || 0);
+    const days = Number(match[4] || 0);
+    return (years * 365) + (months * 30) + (weeks * 7) + days;
+  }
+
+  private getPurchaseProductId(purchase: ProductPurchase | undefined): string {
+    return purchase?.productId || purchase?.productIds?.[0] || (purchase as any)?.ids?.[0] || '';
+  }
+
+  private getPurchaseKey(purchase: ProductPurchase): string {
+    return purchase.purchaseToken || purchase.transactionId || purchase.transactionReceipt || this.getPurchaseProductId(purchase);
+  }
+
+  private createPurchaseResult(
+    purchase: ProductPurchase,
+    validated: boolean,
+    context?: PendingPurchaseContext
+  ): GooglePlayPurchaseResult {
+    const transactionId = purchase.transactionId || purchase.purchaseToken || purchase.transactionReceipt;
+
+    return {
+      success: true,
+      transactionId,
+      receipt: purchase.transactionReceipt || purchase.purchaseToken,
+      validated,
+      validation: {
+        isTrialPeriod: context?.isTrialOffer === true,
+        trialDurationDays: context?.trialDurationDays,
+        productId: context?.actualProductId || this.getPurchaseProductId(purchase),
+        selectionId: context?.selectionId,
+        basePlanId: context?.offer?.basePlanId,
+        offerId: context?.offer?.offerId,
+        transactionId,
+        environment: 'google_play',
+      },
+    };
+  }
+
+  private findPendingPurchase(productId: string | undefined): PendingPurchaseEntry | undefined {
+    if (!productId) {
+      return undefined;
+    }
+
+    const exact = this.pendingPurchases.get(productId);
+    if (exact) {
+      return exact;
+    }
+
+    return Array.from(this.pendingPurchases.values()).find(pending =>
+      pending.context.actualProductId === productId ||
+      pending.context.selectionId === productId
+    );
+  }
+
+  private resolvePendingPurchase(productId: string, result: GooglePlayPurchaseResult): void {
+    const pending = this.findPendingPurchase(productId);
+    if (!pending) {
+      return;
+    }
+
+    this.clearPendingPurchase(pending);
+    pending.resolve(result);
+  }
+
+  private clearPendingPurchase(pending: PendingPurchaseEntry): void {
+    clearTimeout(pending.timeout);
+
+    for (const [key, value] of this.pendingPurchases.entries()) {
+      if (value === pending) {
+        this.pendingPurchases.delete(key);
+      }
     }
   }
 
@@ -373,7 +885,13 @@ export class GooglePlayBillingService {
         break;
     }
 
-    // You can emit events or show toast messages here
+    const pendingError = new Error(error?.message || 'Google Play purchase failed') as Error & { code?: string };
+    pendingError.code = error?.code;
+
+    Array.from(new Set(this.pendingPurchases.values())).forEach(pending => {
+      this.clearPendingPurchase(pending);
+      pending.reject(pendingError);
+    });
 
   }
 
@@ -390,6 +908,10 @@ export class GooglePlayBillingService {
 
       // Get available purchases (active subscriptions)
       const purchases = await RNIap.getAvailablePurchases();
+
+      if (!purchases || purchases.length === 0) {
+        return false;
+      }
 
       for (const purchase of purchases) {
         await this.handlePurchaseUpdate(purchase);

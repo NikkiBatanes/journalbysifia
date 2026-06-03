@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import { toLocalDateString } from '../utils/date';
-import { Modal, Alert, DeviceEventEmitter, Keyboard, View, ActivityIndicator } from 'react-native';
+import { Modal, Alert, DeviceEventEmitter, Keyboard, View, ActivityIndicator, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -407,62 +407,71 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     onCancel();
   };
 
+  const modalContent = (
+    <>
+      <ReflectionLogEditor
+        ref={reflectionEditorRef}
+        onSave={saveReflection}
+        onCancel={handleCancel}
+        onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
+        // Note: onDelete prop intentionally omitted - users delete via Reflection Log
+        // Pass subtaskTitle for all modes - freeform can have initial title too
+        initialTitle={preservedSubtaskTitle || ''}
+        lockTitle={isGuidedReflection || !!playbookId}
+        // Source: 'thoughts' for smart journaling, 'guided' for guided prompts, 'freeform' for journal carousel
+        // Guided prompts need their own source to show correct pencil icon
+        source={isJournalCarousel ? 'freeform' : (isGuidedReflection ? 'guided' : 'thoughts')}
+        initialMode="free-form"
+        styles={reflectionLogStyles}
+        dateString={(function() {
+          const year = dateToUse.getFullYear();
+          const currentYear = new Date().getFullYear();
+          const dateString = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+          return year === currentYear ? dateString : dateStringWithYear;
+        })()} // Use the selected date for formatting
+        // Pass metadata from existing reflection or from props
+        // For playbook context, always pass metadata when available
+        playbookTitle={isGuidedReflection ? undefined : (existingReflection?.playbook_title || playbookTitle)}
+        dayNumber={isGuidedReflection ? undefined : (existingReflection?.day_number || actionStepNumber)}
+        dayTitle={isGuidedReflection ? undefined : (existingReflection?.day_title || actionStepTitle)}
+        subtaskId={subtaskId}
+        initialEntry={existingReflection ? {
+          title: existingReflection.title || preservedSubtaskTitle,
+          content: existingReflection.content || '',
+          tags: existingReflection.tags || [],
+          type: 'free-form',
+          source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
+        } : undefined}
+        isLoading={isLoading}
+        hideGuidedPromptButton={hideGuidedPromptButton}
+        hidePencilIcon={hidePencilIcon}
+        stepBody={stepBody}
+        stepExample={stepExample}
+      />
+
+      {/* New success modal system - completely isolated and robust */}
+      <NewSuccessModal
+        visible={successModal.isVisible}
+        config={successModal.config}
+        onDone={successModal.handleDone}
+        onEdit={successModal.handleEdit}
+      />
+    </>
+  );
+
   return (
     <>
       <Modal
         visible={visible}
         animationType="slide"
         transparent={false}
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={handleCancel}
       >
-            <ReflectionLogEditor
-              ref={reflectionEditorRef}
-              onSave={saveReflection}
-              onCancel={handleCancel}
-              onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
-              // Note: onDelete prop intentionally omitted - users delete via Reflection Log
-              // Pass subtaskTitle for all modes - freeform can have initial title too
-              initialTitle={preservedSubtaskTitle || ''}
-              lockTitle={isGuidedReflection || !!playbookId}
-              // Source: 'thoughts' for smart journaling, 'guided' for guided prompts, 'freeform' for journal carousel
-              // Guided prompts need their own source to show correct pencil icon
-              source={isJournalCarousel ? 'freeform' : (isGuidedReflection ? 'guided' : 'thoughts')}
-              initialMode="free-form"
-              styles={reflectionLogStyles}
-              dateString={(function() {
-                const year = dateToUse.getFullYear();
-                const currentYear = new Date().getFullYear();
-                const dateString = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                return year === currentYear ? dateString : dateStringWithYear;
-              })()} // Use the selected date for formatting
-              // Pass metadata from existing reflection or from props
-              // For playbook context, always pass metadata when available
-              playbookTitle={isGuidedReflection ? undefined : (existingReflection?.playbook_title || playbookTitle)}
-              dayNumber={isGuidedReflection ? undefined : (existingReflection?.day_number || actionStepNumber)}
-              dayTitle={isGuidedReflection ? undefined : (existingReflection?.day_title || actionStepTitle)}
-              subtaskId={subtaskId}
-              initialEntry={existingReflection ? {
-                title: existingReflection.title || preservedSubtaskTitle,
-                content: existingReflection.content || '',
-                tags: existingReflection.tags || [],
-                type: 'free-form',
-                source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
-              } : undefined}
-              isLoading={isLoading}
-              hideGuidedPromptButton={hideGuidedPromptButton}
-              hidePencilIcon={hidePencilIcon}
-              stepBody={stepBody}
-              stepExample={stepExample}
-            />
-
-          {/* New success modal system - completely isolated and robust */}
-          <NewSuccessModal
-            visible={successModal.isVisible}
-            config={successModal.config}
-            onDone={successModal.handleDone}
-            onEdit={successModal.handleEdit}
-          />
+        {modalContent}
       </Modal>
 
       {/* Loading overlay for save operations - shows feedback without hiding content */}

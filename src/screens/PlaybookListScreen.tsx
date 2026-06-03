@@ -20,6 +20,7 @@ import {
   Easing,
   LayoutAnimation,
   Platform,
+  StatusBar,
   UIManager,
 } from 'react-native';
 
@@ -676,7 +677,7 @@ const PickerModal = React.memo(({
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.2)',
       justifyContent: 'flex-start',
-      paddingTop: 112,
+      paddingTop: Platform.OS === 'android' ? 112 + (StatusBar.currentHeight || 0) : 112,
       alignItems: 'flex-end',
       paddingRight: 16,
     },
@@ -756,7 +757,14 @@ const PickerModal = React.memo(({
   }), []); // static — only computed once
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleApplyAndClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      onRequestClose={handleApplyAndClose}
+    >
       {/* Backdrop — tap to apply current local state and close */}
       <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
         <Pressable
@@ -2092,7 +2100,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     placeholderTextColor={'rgba(3,32,61,0.35)'}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    textAlignVertical="top"
+                    textAlignVertical="center"
                     autoCapitalize="none"
                     autoCorrect={false}
                     returnKeyType="search"
@@ -2629,6 +2637,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
         visible={menuVisible !== null}
         transparent
         animationType="none"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={() => handleMenuToggle(null)}
       >
         <TouchableOpacity
@@ -3706,6 +3717,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    height: '100%',
     fontSize: 14,
     color: Colors.anchorBlue,
     paddingVertical: 0,

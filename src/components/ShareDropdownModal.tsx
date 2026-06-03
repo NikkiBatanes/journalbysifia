@@ -6,6 +6,7 @@ import {
   Modal,
   Animated,
   Share,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from './common/ThemedText';
@@ -80,7 +81,9 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   const handleShareSiFia = async () => {
     triggerLightHaptic();
 
-    const appUrl = 'https://apps.apple.com/us/app/sifia/id6751785713';
+    const appUrl = Platform.OS === 'android'
+      ? 'https://play.google.com/store/apps/details?id=app.sifia.com'
+      : 'https://apps.apple.com/us/app/sifia/id6751785713';
     const defaultShareText = `I used siFia to process a real-life moment with prayer and Scripture today. Try it here: ${appUrl}`;
 
     let finalShareText = shareText;
@@ -140,6 +143,8 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
       visible={visible}
       transparent
       animationType="none"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={onClose}
     >
       <TouchableOpacity

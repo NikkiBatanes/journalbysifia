@@ -33,6 +33,12 @@ const StreakPlanScreen: React.FC = () => {
   const params = route.params as RouteParams;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const androidScrollInsets = Platform.OS === 'android'
+    ? {
+        paddingTop: 40 + insets.top,
+        paddingBottom: 40 + Math.max(insets.bottom, 16),
+      }
+    : null;
 
   const [streakCount, setStreakCount] = useState(1);
   const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Sunday');
@@ -262,7 +268,11 @@ const StreakPlanScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.anchorBlue }]}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue}
+        translucent={Platform.OS === 'android'}
+      />
       {/* Share button */}
       <Animated.View
         style={[
@@ -292,7 +302,7 @@ const StreakPlanScreen: React.FC = () => {
       </Animated.View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, androidScrollInsets]}
         showsVerticalScrollIndicator={false}
       >
         {/* Streak animation / celebration icon */}

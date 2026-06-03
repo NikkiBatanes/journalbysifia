@@ -296,6 +296,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 const styles = StyleSheet.create({
   headerGradient: {
     backgroundColor: Colors.hopeWhite,
+    overflow: 'visible',
     paddingTop: 0,
     paddingBottom: 40,
   },
@@ -436,6 +437,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+    elevation: 20,
     width: '100%',
     paddingHorizontal: 16,
     flexDirection: 'row',

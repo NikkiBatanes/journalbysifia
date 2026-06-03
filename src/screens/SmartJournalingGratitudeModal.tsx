@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, Alert, Keyboard } from 'react-native';
+import { Modal, Alert, Keyboard, Platform, StyleSheet, View } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
+import { Colors } from '../theme/colors';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -407,12 +408,71 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     // Keep modal open for continued editing
   };
 
+  const gratitudeEditorStyles = Platform.OS === 'android'
+    ? {
+        ...reflectionLogStyles,
+        container: [reflectionLogStyles.container, styles.androidEditorContainer],
+        keyboardAvoidingView: [reflectionLogStyles.keyboardAvoidingView, styles.androidRoundedBlueSheet],
+        contentCard: [reflectionLogStyles.contentCard, styles.androidRoundedBlueSheet],
+        fabWrapper: [reflectionLogStyles.fabWrapper, styles.androidBottomFill],
+      }
+    : reflectionLogStyles;
+
+  const modalContent = (
+    <>
+      <GratitudeLogEditor
+        ref={gratitudeEditorRef}
+        onSave={saveGratitude}
+        onCancel={onClose || (() => {})}
+        onUpgradeRequired={onClose || (() => {})} // Close modal before navigating to upgrade
+        selectedDate={selectedDate}
+        initialItems={(() => {
+          if (currentGratitudeEntry?.content) {
+            try {
+              const parsedContent = typeof currentGratitudeEntry.content === 'string'
+                ? JSON.parse(currentGratitudeEntry.content)
+                : currentGratitudeEntry.content;
+              const items = parsedContent.items || [];
+              return items;
+            } catch (error) {
+              Logger.error('Error parsing gratitude content for initialItems', error as Error, {
+                component: 'SmartJournalingGratitudeModal',
+              });
+              return [];
+            }
+          }
+          return undefined;
+        })()}
+        subtaskTitle={preservedSubtaskTitle}
+        subtaskId={subtaskId}
+        stepId={stepId}
+        playbookTitle={preservedPlaybookTitle}
+        actionStepNumber={preservedActionStepNumber}
+        actionStepTitle={preservedActionStepTitle}
+        isLoading={createMutation.isPending || updateMutation.isPending}
+        styles={gratitudeEditorStyles}
+        stepBody={stepBody}
+        stepExample={stepExample}
+      />
+
+      {/* New success modal system - completely isolated and robust */}
+      <NewSuccessModal
+        visible={successModal.isVisible}
+        config={successModal.config}
+        onDone={successModal.handleDone}
+        onEdit={successModal.handleEdit}
+      />
+    </>
+  );
+
   return (
     <>
       <Modal
         visible={visible}
         animationType="slide"
-        transparent={false}
+        transparent={Platform.OS === 'android'}
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
         onRequestClose={() => {
           Keyboard.dismiss();
           // Small delay to ensure keyboard is fully dismissed before closing
@@ -421,53 +481,47 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           }, 10);
         }}
       >
-          {/* TEST BUTTON - Remove after debugging */}
-
-          <GratitudeLogEditor
-            ref={gratitudeEditorRef}
-            onSave={saveGratitude}
-            onCancel={onClose || (() => {})}
-            onUpgradeRequired={onClose || (() => {})} // Close modal before navigating to upgrade
-            selectedDate={selectedDate}
-            initialItems={(() => {
-              if (currentGratitudeEntry?.content) {
-                try {
-                  const parsedContent = typeof currentGratitudeEntry.content === 'string'
-                    ? JSON.parse(currentGratitudeEntry.content)
-                    : currentGratitudeEntry.content;
-                  const items = parsedContent.items || [];
-                  return items;
-                } catch (error) {
-                  Logger.error('Error parsing gratitude content for initialItems', error as Error, {
-      component: 'SmartJournalingGratitudeModal',
-    });
-                  return [];
-                }
-              }
-              return undefined;
-            })()}
-            subtaskTitle={preservedSubtaskTitle}
-            subtaskId={subtaskId}
-            stepId={stepId}
-            playbookTitle={preservedPlaybookTitle}
-            actionStepNumber={preservedActionStepNumber}
-            actionStepTitle={preservedActionStepTitle}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-            styles={reflectionLogStyles}
-            stepBody={stepBody}
-            stepExample={stepExample}
-          />
-
-          {/* New success modal system - completely isolated and robust */}
-          <NewSuccessModal
-          visible={successModal.isVisible}
-          config={successModal.config}
-          onDone={successModal.handleDone}
-          onEdit={successModal.handleEdit}
-          />
+        {Platform.OS === 'android' ? (
+          <View style={styles.androidModalRoot}>
+            <View style={styles.androidSheet}>
+              {modalContent}
+            </View>
+          </View>
+        ) : modalContent}
       </Modal>
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  androidModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: Colors.hopeWhite,
+  },
+  androidSheet: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+  },
+  androidEditorContainer: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+  },
+  androidRoundedBlueSheet: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+    backgroundColor: Colors.anchorBlue,
+  },
+  androidBottomFill: {
+    backgroundColor: Colors.anchorBlue,
+    bottom: 0,
+  },
+});
 
 export default withErrorBoundary(SmartJournalingGratitudeModal, 'SmartJournalingGratitudeModal');

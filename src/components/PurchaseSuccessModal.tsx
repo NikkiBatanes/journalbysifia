@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
@@ -52,6 +53,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const paymentProvider = Platform.OS === 'android' ? 'Google Play' : 'Apple';
 
   useEffect(() => {
     // Load pricing tiers when component mounts
@@ -213,12 +215,12 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {isValidated ? (
             <View style={styles.validationBadge}>
               <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
-              <ThemedText style={styles.validationText}>Confirmed by Apple</ThemedText>
+              <ThemedText style={styles.validationText}>Confirmed by {paymentProvider}</ThemedText>
             </View>
           ) : (
             <View style={styles.validationBadge}>
               <Ionicons name="hourglass-outline" size={16} color="#FFA500" />
-              <ThemedText style={[styles.validationText, styles.warningText]}>Confirming with Apple...</ThemedText>
+              <ThemedText style={[styles.validationText, styles.warningText]}>Confirming with {paymentProvider}...</ThemedText>
             </View>
           )}
 

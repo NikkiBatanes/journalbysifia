@@ -1896,6 +1896,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 <TouchableOpacity
                   onPress={() => {
                     try { triggerLightHaptic(); } catch {}
+                    Keyboard.dismiss();
                     setShowHelperSelector(true);
                   }}
                   style={styles.inputFooterHelpButton}
@@ -2465,6 +2466,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           visible={showHelperSelector}
           transparent={true}
           animationType="fade"
+          statusBarTranslucent={Platform.OS === 'android'}
+          navigationBarTranslucent={Platform.OS === 'android'}
           onRequestClose={() => setShowHelperSelector(false)}
         >
           <TouchableOpacity

@@ -18,6 +18,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
@@ -42,19 +43,20 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
   onContactSupport,
 }) => {
   const theme = useTheme();
+  const paymentProvider = Platform.OS === 'android' ? 'Google Play' : 'Apple';
 
   const getErrorInfo = () => {
     const errors = {
       network: {
         title: 'Connection Issue',
-        description: 'We couldn\'t connect to Apple\'s servers. Please check your internet connection and try again.',
+        description: `We couldn't connect to ${paymentProvider}. Please check your internet connection and try again.`,
         icon: 'cloud-offline-outline',
         color: '#FF9800',
         showRetry: true,
       },
       validation: {
         title: 'Validation Failed',
-        description: 'We couldn\'t verify your purchase with Apple. This is usually temporary. Please try again in a moment.',
+        description: `We couldn't verify your purchase with ${paymentProvider}. This is usually temporary. Please try again in a moment.`,
         icon: 'alert-circle-outline',
         color: '#F44336',
         showRetry: true,

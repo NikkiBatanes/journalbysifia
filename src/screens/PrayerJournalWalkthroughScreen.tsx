@@ -279,6 +279,9 @@ const CASTDescriptionStep: React.FC<{
   const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
   const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
   const timelineHeight = React.useRef(new Animated.Value(0)).current;
+  const castTimelineTargetHeight = Platform.OS === 'android'
+    ? 410
+    : IS_IPAD ? 300 : 380;
 
   React.useEffect(() => {
     Animated.timing(timelineHeight, {
@@ -358,7 +361,7 @@ const CASTDescriptionStep: React.FC<{
               IS_IPAD && styles.timelineThickBarPad,
               { height: timelineHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: IS_IPAD ? [0, 300] : [0, 380],
+                outputRange: [0, castTimelineTargetHeight],
               }) },
             ]} />
 

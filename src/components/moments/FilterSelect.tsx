@@ -1,5 +1,5 @@
 import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react';
-import { View, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Modal, StyleSheet, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -67,7 +67,14 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
         <Ionicons name="chevron-down" size={compact ? 14 : 16} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        onRequestClose={() => setOpen(false)}
+      >
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>

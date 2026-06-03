@@ -70,6 +70,32 @@ const normalizeBillingCycle = (billingCycle?: string | null): BillingCycle => {
   return normalized === 'annual' || normalized === 'yearly' || normalized === 'year' ? 'annual' : 'monthly';
 };
 
+const getAndroidOfferIdentifierText = (product: any): string => {
+  const offers = product?.subscriptionOfferDetails || [];
+  return offers.map((offer: any) => [
+    offer?.basePlanId,
+    offer?.offerId,
+    ...(offer?.offerTags || []),
+  ].filter(Boolean).join(' ')).join(' ').toLowerCase();
+};
+
+const androidProductMatchesSelection = (
+  product: any,
+  tier: string,
+  billing: BillingCycle,
+  selectionId: string
+): boolean => {
+  const productId = String(product?.productId || '').toLowerCase();
+  const offerText = getAndroidOfferIdentifierText(product);
+  const expectedProductId = `${tier}_${billing}`.toLowerCase();
+  const expectedBasePlanId = `${tier}-${billing}`.toLowerCase();
+
+  return productId === selectionId.toLowerCase()
+    || productId === expectedProductId
+    || offerText.includes(expectedBasePlanId)
+    || offerText.includes(selectionId.toLowerCase());
+};
+
 const getPaidPlanRank = (tier?: string | null): number => {
   const normalized = normalizePaidPlanTier(tier);
   return normalized ? PAID_PLAN_ORDER.indexOf(normalized) : -1;
@@ -863,27 +889,43 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       return;
     }
 
+    const isAndroid = Platform.OS === 'android';
+
     try {
       triggerLightHaptic();
     } catch {}
 
     Alert.alert(
-      'Restore Purchases',
-      'This will restore any previous purchases made with this Apple ID.',
+      isAndroid ? 'Sync Purchases' : 'Restore Purchases',
+      isAndroid
+        ? 'This will sync any active siFia subscriptions from your Google Play account.'
+        : 'This will restore any previous purchases made with this Apple ID.',
       [
         {
           text: 'Cancel',
           style: 'cancel',
         },
         {
-          text: 'Restore',
+          text: isAndroid ? 'Sync' : 'Restore',
           onPress: async () => {
             try {
-              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+              Alert.alert(isAndroid ? 'Syncing...' : 'Restoring...', isAndroid ? 'Please wait while we sync your Google Play purchases.' : 'Please wait while we restore your purchases.');
+
+              if (isAndroid) {
+                const paymentService = PlatformPaymentService.getInstance();
+                const synced = await paymentService.restorePurchases(user.id);
+
+                if (synced) {
+                  await refreshNewSubscription();
+                  Alert.alert('Success', 'Your Google Play purchases were synced.', [{ text: 'OK' }]);
+                } else {
+                  Alert.alert('No Purchases Found', 'No active Google Play purchases were found for this app.', [{ text: 'OK' }]);
+                }
+                return;
+              }
 
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKit = AppleStoreKitService.getInstance();
-
               const result = await storeKit.restorePurchases(user.id);
 
               if (result.success) {
@@ -901,8 +943,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 component: 'OnboardingSalesOfferScreen',
               });
               Alert.alert(
-                'Restore Failed',
-                'Unable to restore purchases. Please try again later or contact support.',
+                isAndroid ? 'Sync Failed' : 'Restore Failed',
+                isAndroid
+                  ? 'Unable to sync Google Play purchases. Please try again later or contact support.'
+                  : 'Unable to restore purchases. Please try again later or contact support.',
                 [{ text: 'OK' }],
               );
             }
@@ -965,9 +1009,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Get payment service instance (already imported at top)
       const paymentService = PlatformPaymentService.getInstance();
 
-      // Determine product ID based on billing period (always uses .freetrial SKUs)
+      // Determine product ID based on billing period.
       let productId: string;
       const billing = isAnnual ? 'annual' : 'monthly';
+      const androidSelectionId = shouldUseTrialProduct
+        ? `${selectedPlanTier}-${billing}-trial`
+        : `${selectedPlanTier}_${billing}`;
 
       logger.debug('Product ID selection:', {
         selectedTier,
@@ -975,6 +1022,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         canOfferTrial,
         isUpgradeMode,
         hasEverStartedTrial,
+        androidSelectionId: Platform.OS === 'android' ? androidSelectionId : undefined,
       });
 
       // Use cached products if available, otherwise fetch
@@ -1023,51 +1071,63 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         })),
       });
 
-      // CRITICAL: Always use .freetrial products (only product type in App Store Connect)
-      // App Store enforces trial eligibility - users already on trial will be charged
-      // validate-receipt will detect upgrade vs new trial based on user's current tier
+      const matchesSelectedStoreProduct = (p: any) => {
+        if (p.tier !== selectedPlanTier) {
+          return false;
+        }
+
+        if (Platform.OS === 'android') {
+          return androidProductMatchesSelection(p, selectedPlanTier, billing, androidSelectionId);
+        }
+
+        // iOS uses .freetrial SKUs and StoreKit enforces trial eligibility.
+        return p.productId.includes(billing) && p.productId.includes('.freetrial');
+      };
+
       let trialProduct = products.find(p =>
-        p.tier === selectedPlanTier &&
-        p.productId.includes(billing) &&
-        p.productId.includes('.freetrial')
+        matchesSelectedStoreProduct(p)
       );
 
       if (!trialProduct) {
-        logger.warn('⚠️ Selected product missing from cached list; forcing fresh App Store product fetch', {
+        logger.warn('⚠️ Selected product missing from cached list; forcing fresh store product fetch', {
           selectedTier: selectedPlanTier,
           billing,
           productCount: products.length,
+          androidSelectionId: Platform.OS === 'android' ? androidSelectionId : undefined,
         });
 
         const refreshedProducts = await paymentService.getAvailableProducts(true);
         if (refreshedProducts.length > 0) {
           products = refreshedProducts;
           trialProduct = products.find(p =>
-            p.tier === selectedPlanTier &&
-            p.productId.includes(billing) &&
-            p.productId.includes('.freetrial')
+            matchesSelectedStoreProduct(p)
           );
         }
       }
 
       if (trialProduct) {
-        productId = trialProduct.productId;
-        logger.debug('✅ Using .freetrial product', {
+        productId = Platform.OS === 'android' ? androidSelectionId : trialProduct.productId;
+        logger.debug('✅ Using selected store product', {
           productId,
+          storeProductId: trialProduct.productId,
+          androidOfferId: Platform.OS === 'android' && shouldUseTrialProduct ? androidSelectionId : undefined,
           shouldUseTrialProduct,
           userTier: subscription?.tier,
           isUpgrade: subscription?.tier === 'free_trial' && !shouldUseTrialProduct,
         });
       } else {
-        const expectedProductId = `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
-        logger.error('❌ App Store product unavailable; aborting before native purchase request', new Error('Product unavailable'), {
+        const expectedProductId = Platform.OS === 'android'
+          ? `${selectedPlanTier}_${billing}`
+          : `app.sifia.com.${selectedPlanTier}.${billing}.freetrial`;
+        logger.error('❌ Store product unavailable; aborting before native purchase request', new Error('Product unavailable'), {
           component: 'OnboardingSalesOfferScreen',
           expectedProductId,
+          expectedOfferId: Platform.OS === 'android' && shouldUseTrialProduct ? androidSelectionId : undefined,
           selectedTier: selectedPlanTier,
           billing,
           availableProductIds: products.map(p => p.productId),
         });
-        throw new Error('This subscription is not available from Apple yet. Please try again in a moment.');
+        throw new Error(`This subscription is not available from ${Platform.OS === 'android' ? 'Google Play' : 'Apple'} yet. Please try again in a moment.`);
       }
 
       if (isUpgradeMode) {
@@ -1302,7 +1362,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
           Alert.alert(
             'Purchase Unavailable',
-            purchaseError?.message || 'Apple could not start the purchase. Please try again in a moment.'
+            purchaseError?.message || `${Platform.OS === 'android' ? 'Google Play' : 'Apple'} could not start the purchase. Please try again in a moment.`
           );
           setIsPurchasing(false);
           setLoadingStep('processing');
@@ -1549,7 +1609,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           logger.error('Purchase error (silent):', purchaseError?.message || 'Unknown error');
           Alert.alert(
             'Purchase Unavailable',
-            purchaseError?.message || 'Apple could not start the purchase. Please try again in a moment.'
+            purchaseError?.message || `${Platform.OS === 'android' ? 'Google Play' : 'Apple'} could not start the purchase. Please try again in a moment.`
           );
           setIsPurchasing(false);
           setLoadingStep('processing');
@@ -1564,6 +1624,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const getCurrentPrice = () => {
     const tier = pricingTiers.find(t => t.id === selectedPlanTier);
     return tier ? (isAnnual ? tier.annualPrice : tier.monthlyPrice) : 0;
+  };
+
+  const getAndroidStoreLocalizedPrice = (tierId: string, billing: BillingCycle): string | null => {
+    if (Platform.OS !== 'android') {
+      return null;
+    }
+
+    const expectedProductId = `${tierId}_${billing}`.toLowerCase();
+    const product = cachedProducts.find((item: any) =>
+      String(item?.productId || '').toLowerCase() === expectedProductId
+    );
+    const localizedPrice = String(product?.localizedPrice || '').trim();
+
+    return localizedPrice ? normalizeLocalizedPriceLabel(localizedPrice) : null;
+  };
+
+  const normalizeLocalizedPriceLabel = (localizedPrice: string): string => {
+    const isPhp = currencyInfo?.currency === 'PHP' || /(?:₱|PHP)/i.test(localizedPrice);
+    return isPhp ? localizedPrice.replace(/(\d[\d,]*)\.00(?!\d)/g, '$1') : localizedPrice;
+  };
+
+  const formatFallbackPriceValue = (value: number): string => {
+    if (currencyInfo?.currency === 'PHP' && value % 1 === 0) {
+      return Math.floor(value).toString();
+    }
+    return value.toFixed(2);
+  };
+
+  const getPlanPriceLabel = (tier: PricingTier, billing: BillingCycle): string => {
+    const storePrice = getAndroidStoreLocalizedPrice(tier.id, billing);
+    const period = billing === 'annual' ? 'year' : 'month';
+
+    if (storePrice) {
+      return `${storePrice}/${period}`;
+    }
+
+    const price = billing === 'annual' ? tier.annualPrice : tier.monthlyPrice;
+    return `${currencyInfo?.symbol || '₱'}${formatFallbackPriceValue(price)}/${period}`;
   };
 
   const getSelectedPlanActionLabel = () => {
@@ -1711,11 +1809,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
         <View style={styles.priceContainer}>
           <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]} numberOfLines={1}>
-            {(() => {
-              const price = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-              const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
-              return `${currencyInfo?.symbol || '$'}${formatted}/${isAnnual ? 'year' : 'month'}`;
-            })()}
+            {getPlanPriceLabel(tier, cardBillingCycle)}
           </ThemedText>
         </View>
 
@@ -2056,7 +2150,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               onPress={handleRestorePurchase}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>{Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases'}</ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -2106,29 +2200,28 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               || pricingTiers[0];
             if (!tier) {return null;}
 
-            const formatValue = (value: number) => {
-              if (currencyInfo?.currency === 'PHP' && value % 1 === 0) {
-                return Math.floor(value).toString();
-              }
-              return value.toFixed(2);
-            };
-
-            const symbol = currencyInfo?.symbol || '$';
+            const symbol = currencyInfo?.symbol || '₱';
 
             if (isAnnual) {
-              const annualPrice = tier.annualPrice;
               const monthlyPrice = tier.monthlyPrice;
               const monthlyYearly = monthlyPrice * 12;
+              const annualStorePrice = getAndroidStoreLocalizedPrice(tier.id, 'annual');
 
               return (
                 <>
                   <ThemedText weight="bold" style={styles.footerPriceMain}>
-                    {`${symbol}${formatValue(annualPrice)}/year`}
+                    {getPlanPriceLabel(tier, 'annual')}
                   </ThemedText>
-                  <ThemedText style={styles.footerPriceSub}>
-                    <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6 }}>{`${symbol}${formatValue(monthlyYearly)}`}</ThemedText>
-                    {' · Save 2 months'}
-                  </ThemedText>
+                  {annualStorePrice ? (
+                    <ThemedText style={styles.footerPriceSub}>
+                      Save with annual billing
+                    </ThemedText>
+                  ) : (
+                    <ThemedText style={styles.footerPriceSub}>
+                      <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6 }}>{`${symbol}${formatFallbackPriceValue(monthlyYearly)}`}</ThemedText>
+                      {' · Save 2 months'}
+                    </ThemedText>
+                  )}
                   <ThemedText style={styles.footerPriceApprox}>
                     Pay once, grow all year.
                   </ThemedText>
@@ -2140,7 +2233,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             return (
               <>
                 <ThemedText weight="bold" style={styles.footerPriceMain}>
-                  {`${symbol}${formatValue(monthlyPrice)}/month`}
+                  {getPlanPriceLabel(tier, 'monthly')}
                 </ThemedText>
               </>
             );

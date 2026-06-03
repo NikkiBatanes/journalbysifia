@@ -3,6 +3,7 @@ import {
   Modal,
   Alert,
   DeviceEventEmitter,
+  Platform,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NewSuccessModal from '../components/NewSuccessModal';
@@ -421,6 +422,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         visible={visible && !temporarilyHiddenForUpgrade}
         animationType="slide"
         transparent={false}
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={handleCancel}
       >
         <GestureHandlerRootView style={{ flex: 1 }}>

@@ -883,6 +883,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       visible={isVisible}
       transparent={true}
       animationType="none"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      hardwareAccelerated={Platform.OS === 'android'}
       onRequestClose={() => handleClose()}
     >
       <View style={styles.modalOverlay}>
@@ -1304,6 +1307,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             visible={showUsageLimitModal}
             transparent
             animationType="none"
+            statusBarTranslucent={Platform.OS === 'android'}
+            navigationBarTranslucent={Platform.OS === 'android'}
+            hardwareAccelerated={Platform.OS === 'android'}
             onRequestClose={() => {
               setShowUsageLimitModal(false);
               setUsageLimitModalData(null);

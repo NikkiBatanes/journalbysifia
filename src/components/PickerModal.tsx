@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, Pressable, StyleSheet, Dimensions, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Dimensions, View, Platform, StatusBar } from 'react-native';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors, Fonts } from '../theme';
@@ -82,7 +82,7 @@ const PickerModal = React.memo(({
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.2)',
       justifyContent: 'flex-start',
-      paddingTop: 112,
+      paddingTop: Platform.OS === 'android' ? 112 + (StatusBar.currentHeight || 0) : 112,
       alignItems: 'flex-end',
       paddingRight: 16,
     },
@@ -163,7 +163,14 @@ const PickerModal = React.memo(({
   }), []); // static — only computed once
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleApplyAndClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      onRequestClose={handleApplyAndClose}
+    >
       {/* Backdrop — tap to apply current local state and close */}
       <Pressable style={pickerStyles.overlay} onPress={handleApplyAndClose}>
         <Pressable

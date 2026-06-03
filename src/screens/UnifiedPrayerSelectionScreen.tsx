@@ -8,6 +8,7 @@ import {
   Animated,
   PanResponder,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -578,6 +579,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
 
   return (
     <View style={styles.stepContainer} {...panResponder.panHandlers}>
+      {Platform.OS === 'android' && <StatusBar hidden />}
       {currentStep === 0 && (
         <ScrollView
           style={styles.stepScroll}

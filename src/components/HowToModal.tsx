@@ -1780,8 +1780,11 @@ const HowToModal: React.FC<HowToModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
+      transparent={Platform.OS === 'android'}
       onRequestClose={onDismiss}
-      statusBarTranslucent
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      hardwareAccelerated={Platform.OS === 'android'}
     >
       <StatusBar hidden />
       <KeyboardAvoidingView

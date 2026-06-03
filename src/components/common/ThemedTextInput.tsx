@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, TextInput, TextInputProps, StyleProp, TextStyle } from 'react-native';
+import { Platform, TextInput, TextInputProps, StyleProp, StyleSheet, TextStyle } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 
@@ -14,8 +14,13 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, weight);
+  const isUnsupportedAndroidItalic = fontKey !== 'system' && StyleSheet.flatten(style)?.fontStyle === 'italic';
   const themedFontStyle: TextStyle = Platform.OS === 'android'
-    ? { fontFamily, fontWeight: 'normal' }
+    ? {
+        fontFamily,
+        fontWeight: 'normal',
+        ...(isUnsupportedAndroidItalic ? { fontStyle: 'normal' as const } : {}),
+      }
     : { fontFamily };
 
   const combinedStyle = [

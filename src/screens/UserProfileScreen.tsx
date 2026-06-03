@@ -34,6 +34,7 @@ import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
+import PlatformPaymentService from '../services/PlatformPaymentService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
 import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
@@ -487,7 +488,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
    * - Switching devices
    * - Losing their subscription status
    *
-   * This is REQUIRED by Apple for all subscription apps.
+   * This is REQUIRED by Apple for all subscription apps. On Android it syncs
+   * active subscriptions from Google Play for the signed-in Play account.
    * Now includes server-side validation for security.
    */
   const handleRestorePurchases = useCallback(async () => {
@@ -500,24 +502,40 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       triggerLightHaptic();
     } catch {}
 
+    const isAndroid = Platform.OS === 'android';
+
     Alert.alert(
-      'Restore Purchases',
-      'This will restore any previous purchases made with this Apple ID.',
+      isAndroid ? 'Sync Purchases' : 'Restore Purchases',
+      isAndroid
+        ? 'This will sync any active siFia subscriptions from your Google Play account.'
+        : 'This will restore any previous purchases made with this Apple ID.',
       [
         {
           text: 'Cancel',
           style: 'cancel',
         },
         {
-          text: 'Restore',
+          text: isAndroid ? 'Sync' : 'Restore',
           onPress: async () => {
             try {
               // Show loading state
-              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+              Alert.alert(isAndroid ? 'Syncing...' : 'Restoring...', isAndroid ? 'Please wait while we sync your Google Play purchases.' : 'Please wait while we restore your purchases.');
+
+              if (isAndroid) {
+                const paymentService = PlatformPaymentService.getInstance();
+                const synced = await paymentService.restorePurchases(user.id);
+
+                if (synced) {
+                  await loadProfileData();
+                  Alert.alert('Success', 'Your Google Play purchases were synced.', [{ text: 'OK' }]);
+                } else {
+                  Alert.alert('No Purchases Found', 'No active Google Play purchases were found for this app.', [{ text: 'OK' }]);
+                }
+                return;
+              }
 
               const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
               const storeKit = AppleStoreKitService.getInstance();
-
               const result = await storeKit.restorePurchases(user.id);
 
               if (result.success) {
@@ -536,8 +554,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       component: 'UserProfileScreen',
     });
               Alert.alert(
-                'Restore Failed',
-                'Unable to restore purchases. Please try again later or contact support.',
+                isAndroid ? 'Sync Failed' : 'Restore Failed',
+                isAndroid
+                  ? 'Unable to sync Google Play purchases. Please try again later or contact support.'
+                  : 'Unable to restore purchases. Please try again later or contact support.',
                 [{ text: 'OK' }]
               );
             }
@@ -686,6 +706,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     try { triggerLightHaptic(); } catch {}
 
     try {
+      if (Platform.OS === 'android' && /^https?:\/\//i.test(url)) {
+        await Linking.openURL(url);
+        return;
+      }
+
       const supported = await Linking.canOpenURL(url);
       if (!supported) {
         Alert.alert('Unable to open link', 'Please try again later.');
@@ -1688,7 +1713,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.menuIconBox}>
               <Ionicons name="refresh" size={18} color={Colors.anchorBlue} />
             </View>
-            <Text style={[styles.menuText, font]}>Restore Purchases</Text>
+            <Text style={[styles.menuText, font]}>{Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases'}</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
         </View>
@@ -2616,7 +2641,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.androidModalRoot}>
         <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
         <SafeAreaView
-          edges={['top']}
+          edges={['left', 'right']}
           style={[
             styles.container,
             styles.androidRouteSheet,
@@ -2671,10 +2696,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 50,
+    paddingTop: 18,
     paddingBottom: 0,
   },
   bodyContainer: {
+    position: 'relative',
+    zIndex: 0,
+    elevation: 0,
     marginTop: 0,
     backgroundColor: Colors.anchorBlue,
     borderTopLeftRadius: 24,
@@ -2690,6 +2718,9 @@ const styles = StyleSheet.create({
   },
   headerWrapper: {
     // extra space so the header isn't cut by the notch
+    position: 'relative',
+    zIndex: 20,
+    overflow: 'visible',
     paddingTop: 18,
   },
   // Settings & Appearance modal chips

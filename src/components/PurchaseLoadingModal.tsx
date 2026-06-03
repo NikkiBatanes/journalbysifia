@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
@@ -38,6 +39,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
   const theme = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const paymentProvider = Platform.OS === 'android' ? 'Google Play' : 'Apple';
 
   useEffect(() => {
     if (visible) {
@@ -73,14 +75,14 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
     const steps = {
       processing: {
         title: 'Processing Payment',
-        description: 'Securely processing your payment with Apple...',
+        description: `Securely processing your payment with ${paymentProvider}...`,
         icon: 'card-outline',
         color: '#4ECDC4',
         progress: 25,
       },
       validating: {
         title: 'Validating Receipt',
-        description: 'Verifying your purchase with Apple servers...',
+        description: `Verifying your purchase with ${paymentProvider}...`,
         icon: 'shield-checkmark-outline',
         color: '#95E1D3',
         progress: 50,
@@ -188,7 +190,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
           <View style={styles.securityNotice}>
             <Ionicons name="lock-closed" size={14} color={Colors.alertCoral} />
             <Text style={[styles.securityText, { fontFamily: securityTextFontFamily }]}>
-              Secure transaction protected by Apple
+              Secure transaction protected by {paymentProvider}
             </Text>
           </View>
         </Animated.View>

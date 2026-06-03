@@ -12,6 +12,7 @@ import {
   Modal,
   Animated,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -487,6 +488,9 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
         visible={sheetVisible}
         transparent
         animationType="none"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={closeSheet}
       >
         <TouchableOpacity activeOpacity={1} style={styles.sheetBackdrop} onPress={closeSheet} />

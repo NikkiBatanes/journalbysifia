@@ -202,7 +202,7 @@ export const MomentsScreen: React.FC = () => {
                   placeholderTextColor={'rgba(255,255,255,0.4)'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  textAlignVertical="top"
+                  textAlignVertical="center"
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"
@@ -398,10 +398,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 8,
+    height: Platform.OS === 'android' ? 42 : undefined,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === 'android' ? 0 : 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
@@ -410,12 +411,18 @@ const styles = StyleSheet.create({
   },
   searchInputWrapper: {
     flex: 1,
+    height: Platform.OS === 'android' ? '100%' : undefined,
+    justifyContent: 'center',
   },
   searchInput: {
+    flex: 1,
+    height: Platform.OS === 'android' ? '100%' : undefined,
     fontSize: 15,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    paddingVertical: 2,
+    paddingVertical: Platform.OS === 'android' ? 0 : 2,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   clearButton: {
     marginLeft: 8,

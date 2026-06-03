@@ -936,7 +936,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView
         style={styles.container}
-        edges={['top']}
+        edges={Platform.OS === 'android' ? ['left', 'right'] : ['top']}
       >
       <StatusBar
         barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}

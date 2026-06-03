@@ -10,6 +10,7 @@ import {
   FlatList,
   ScrollView,
   TouchableOpacity,
+  Modal,
   ActivityIndicator,
   StatusBar,
   NativeModules,
@@ -65,6 +66,12 @@ const SIDE_INSET = Math.max(
   0,
   isTablet ? 24 : Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2),
 );
+const DROPDOWN_MENU_WIDTH = 180;
+const DROPDOWN_MENU_ESTIMATED_HEIGHT = 116;
+const DROPDOWN_EDGE_PADDING = isTablet ? 40 : 16;
+
+type MenuAnchor = { pageX: number; pageY: number };
+type MenuPosition = { top: number; left: number };
 
 const DevotionalsScreen = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
@@ -122,6 +129,8 @@ const DevotionalsScreen = () => {
     useCallback(() => {
       return () => {
         setMenuVisible(null);
+        setSelectedDevotionalForMenu(null);
+        setMenuPosition(null);
       };
     }, [])
   );
@@ -179,6 +188,8 @@ const DevotionalsScreen = () => {
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
   const [selectedPlaybookInfo, setSelectedPlaybookInfo] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [selectedDevotionalForMenu, setSelectedDevotionalForMenu] = useState<Devotional | null>(null);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [processingPlaybookId, setProcessingPlaybookId] = useState<string | null>(null);
   const {
     devotionals,
@@ -189,6 +200,40 @@ const DevotionalsScreen = () => {
 
   // Fetch user's playbooks to suggest creating devotionals
   const { data: playbooks = [], isLoading: isLoadingPlaybooks, refetch: refetchPlaybooks } = usePlaybooksData(userId || '');
+
+  const handleMenuToggle = useCallback((devotional: Devotional | null, anchor?: MenuAnchor) => {
+    if (!devotional) {
+      setMenuVisible(null);
+      setSelectedDevotionalForMenu(null);
+      setMenuPosition(null);
+      return;
+    }
+
+    setSelectedDevotionalForMenu(devotional);
+
+    if (anchor) {
+      const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+      const maxLeft = Math.max(
+        DROPDOWN_EDGE_PADDING,
+        screenWidth - DROPDOWN_MENU_WIDTH - DROPDOWN_EDGE_PADDING
+      );
+      const preferredLeft = anchor.pageX - DROPDOWN_MENU_WIDTH + 18;
+      const preferredTop = anchor.pageY + 14;
+      const maxTop = Math.max(
+        insets.top + 12,
+        screenHeight - DROPDOWN_MENU_ESTIMATED_HEIGHT - 16
+      );
+
+      setMenuPosition({
+        left: Math.min(Math.max(preferredLeft, DROPDOWN_EDGE_PADDING), maxLeft),
+        top: Math.min(Math.max(preferredTop, insets.top + 12), maxTop),
+      });
+    } else {
+      setMenuPosition(null);
+    }
+
+    setMenuVisible(devotional.id);
+  }, [insets.top]);
 
   // PDF export feature access check
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
@@ -509,6 +554,10 @@ const DevotionalsScreen = () => {
         <TouchableOpacity
           style={styles.devotionalCard}
           onPress={() => {
+            if (menuVisible === item.id) {
+              handleMenuToggle(null);
+              return;
+            }
             try { triggerLightHaptic(); } catch {}
             handleDevotionalPress(item);
           }}
@@ -524,48 +573,20 @@ const DevotionalsScreen = () => {
                 </View>
                 <TouchableOpacity
                   style={styles.menuButton}
-                  onPress={() => {
+                  onPress={(event) => {
                     try { triggerLightHaptic(); } catch {}
-                    setMenuVisible(menuVisible === item.id ? null : item.id);
+                    handleMenuToggle(
+                      menuVisible === item.id ? null : item,
+                      menuVisible === item.id ? undefined : {
+                        pageX: event.nativeEvent.pageX,
+                        pageY: event.nativeEvent.pageY,
+                      }
+                    );
                   }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255, 255, 255, 0.7)" />
                 </TouchableOpacity>
-                {menuVisible === item.id && (
-                  <View style={styles.dropdownMenu}>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        try { triggerLightHaptic(); } catch {}
-                        handleExportDevotionalPdf(item);
-                      }}
-                    >
-                      <View style={styles.dropdownItemContent}>
-                        <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
-                      </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.dropdownItem, styles.dropdownItemLast]}
-                      onPress={() => {
-                        try { triggerLightHaptic(); } catch {}
-                        showDeleteConfirm(item.id);
-                      }}
-                    >
-                      <View style={styles.dropdownItemContent}>
-                        <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
-                        <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {menuVisible === item.id && (
-                  <TouchableOpacity
-                    style={styles.menuBackdrop}
-                    onPress={() => setMenuVisible(null)}
-                    activeOpacity={1}
-                  />
-                )}
               </View>
 
               {/* Date */}
@@ -685,7 +706,7 @@ const DevotionalsScreen = () => {
           </TouchableOpacity>
       </View>
     );
-  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, showDeleteConfirm, filter, handleExportDevotionalPdf]);
+  }, [triggerLightHaptic, handleDevotionalPress, handlePlaybookPress, menuVisible, handleMenuToggle, filter]);
 
   // Filter-specific empty state component
   const renderFilterEmptyState = useCallback(() => {
@@ -1242,15 +1263,6 @@ const DevotionalsScreen = () => {
     <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right']}>
       <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
-      {/* Screen-level backdrop for dropdown dismissal */}
-      {menuVisible && (
-        <TouchableOpacity
-          style={styles.screenBackdrop}
-          onPress={() => setMenuVisible(null)}
-          activeOpacity={1}
-        />
-      )}
-
       {/* Header */}
       {/* Header on white background - matching PlaybookListScreen structure */}
       <View pointerEvents="box-none" style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top }]}>
@@ -1312,7 +1324,7 @@ const DevotionalsScreen = () => {
                       placeholderTextColor={'rgba(3,32,61,0.35)'}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
-                      textAlignVertical="top"
+                      textAlignVertical="center"
                       autoCapitalize="none"
                       autoCorrect={false}
                       returnKeyType="search"
@@ -1466,6 +1478,62 @@ const DevotionalsScreen = () => {
           navigation.navigate('DevotionalDetail', { devotionalId });
         }}
       />
+
+      {/* Dropdown menu modal - rendered outside card structure to prevent Android clipping/layering issues */}
+      <Modal
+        visible={menuVisible !== null}
+        transparent
+        animationType="none"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
+        onRequestClose={() => handleMenuToggle(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuModalOverlay}
+          activeOpacity={1}
+          onPress={() => handleMenuToggle(null)}
+        >
+          {selectedDevotionalForMenu && (
+            <View
+              style={[
+                styles.modalDropdownMenu,
+                menuPosition
+                  ? { top: menuPosition.top, left: menuPosition.left }
+                  : styles.modalDropdownMenuFallback,
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.modalDropdownItem}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  const devotional = selectedDevotionalForMenu;
+                  handleMenuToggle(null);
+                  handleExportDevotionalPdf(devotional);
+                }}
+              >
+                <View style={styles.dropdownItemContent}>
+                  <ThemedText weight="medium" style={styles.dropdownItemText}>Export as PDF</ThemedText>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalDropdownItem, styles.dropdownItemLast]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  const devotionalId = selectedDevotionalForMenu.id;
+                  handleMenuToggle(null);
+                  showDeleteConfirm(devotionalId);
+                }}
+              >
+                <View style={styles.dropdownItemContent}>
+                  <Ionicons name="trash-outline" size={16} color={Colors.alertCoral} />
+                  <ThemedText weight="medium" style={[styles.dropdownItemText, styles.dropdownItemTextDelete]}>Delete</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Modal>
 
       {/* Status picker modal */}
       <PickerModal
@@ -1626,6 +1694,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    height: '100%',
     fontSize: 14,
     color: Colors.anchorBlue,
     paddingVertical: 0,
@@ -1822,6 +1891,32 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     paddingVertical: 8,
+  },
+  menuModalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  modalDropdownMenu: {
+    position: 'absolute',
+    width: DROPDOWN_MENU_WIDTH,
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+    paddingVertical: 8,
+  },
+  modalDropdownMenuFallback: {
+    top: 210,
+    right: 40,
+  },
+  modalDropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   dropdownItem: {
     paddingHorizontal: 16,

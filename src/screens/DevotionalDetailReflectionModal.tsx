@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Logger } from '../utils/ProductionLogger';
-import { Modal, View, StyleSheet, Keyboard, Alert, DeviceEventEmitter } from 'react-native';
+import { Modal, View, StyleSheet, Keyboard, Alert, DeviceEventEmitter, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
@@ -290,6 +290,9 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
+      transparent={Platform.OS === 'android'}
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={() => {
         Keyboard.dismiss();
         // Small delay to ensure keyboard is fully dismissed before closing
@@ -300,7 +303,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       }}
       onDismiss={() => {}}
     >
-        <View style={styles.modalView}>
+        <View style={[styles.modalView, Platform.OS === 'android' && styles.androidFullScreenModalView]}>
           <ReflectionLogEditor
             initialTitle={question}
             initialEntry={existingEntry ? {
@@ -378,6 +381,10 @@ const styles = StyleSheet.create({
   modalView: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  androidFullScreenModalView: {
+    width: '100%',
+    height: '100%',
   },
 });
 

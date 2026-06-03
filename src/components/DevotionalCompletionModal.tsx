@@ -11,6 +11,7 @@ import {
   Animated,
   Easing,
   NativeModules,
+  Platform,
 } from 'react-native';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
@@ -366,6 +367,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       animationType="none"
       transparent={true}
       visible={visible}
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
+      hardwareAccelerated={Platform.OS === 'android'}
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>

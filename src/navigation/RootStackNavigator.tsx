@@ -305,11 +305,14 @@ export default function RootStackNavigator({
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={{
               headerShown: false,
-              presentation: 'modal',
+              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
               animation: 'slide_from_bottom',
               animationDuration: 350,
               gestureEnabled: true,
               gestureDirection: 'vertical',
+              contentStyle: {
+                backgroundColor: Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue,
+              },
             }}
           />
           <Stack.Screen

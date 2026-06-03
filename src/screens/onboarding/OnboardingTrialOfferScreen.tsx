@@ -32,6 +32,34 @@ import { notificationService } from '../../services/notificationService';
 import { useQueryClient } from '@tanstack/react-query';
 
 type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
+type AndroidBillingCycle = 'monthly' | 'annual';
+
+const getAndroidOfferIdentifierText = (product: any): string => {
+  const offers = product?.subscriptionOfferDetails || [];
+  return offers.map((offer: any) => [
+    offer?.basePlanId,
+    offer?.offerId,
+    ...(offer?.offerTags || []),
+  ].filter(Boolean).join(' ')).join(' ').toLowerCase();
+};
+
+const androidProductMatchesSelection = (
+  product: any,
+  tier: string,
+  billing: AndroidBillingCycle,
+  selectionId: string
+): boolean => {
+  const productId = String(product?.productId || '').toLowerCase();
+  const offerText = getAndroidOfferIdentifierText(product);
+  const expectedProductId = `${tier}_${billing}`.toLowerCase();
+  const expectedBasePlanId = `${tier}-${billing}`.toLowerCase();
+  const expectedTrialOfferId = `${expectedBasePlanId}-trial`;
+
+  return productId === selectionId.toLowerCase()
+    || productId === expectedProductId
+    || offerText.includes(expectedBasePlanId)
+    || offerText.includes(expectedTrialOfferId);
+};
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -42,6 +70,7 @@ const OnboardingTrialOfferScreen = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isSmallPhone = height <= 850;
+  const isAndroidSheet = Platform.OS === 'android';
 
   const fonts = useMemo(() => {
     const fontKey = currentFont || 'lexend';
@@ -76,6 +105,7 @@ const OnboardingTrialOfferScreen = () => {
   const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const [storeProducts, setStoreProducts] = useState<any[]>([]);
   const monthlyScale = useRef(new Animated.Value(1)).current;
   const annualScale = useRef(new Animated.Value(1)).current;
 
@@ -316,10 +346,8 @@ const OnboardingTrialOfferScreen = () => {
         // Continue with purchase attempt
       }
 
-      // CRITICAL: Trial Offer Screen uses .freetrial product IDs
-      // These are separate products in App Store Connect with 3-day free trial configured
-      // Product ID format: app.sifia.com.{tier}.{billing}.freetrial
-      // Example: app.sifia.com.transformation.annual.freetrial
+      // iOS uses .freetrial product IDs. Android uses Google Play products
+      // with base plans and offer tokens, e.g. spark_monthly -> spark-monthly-trial.
       const paymentService = PlatformPaymentService.getInstance();
 
       // CRITICAL FIX: Check if user is already on trial
@@ -336,10 +364,15 @@ const OnboardingTrialOfferScreen = () => {
         logger.warn('Failed to check current subscription status', { error: error as Error });
       }
 
-      // Use regular product if already on trial, trial product if new user
-      const productId = isAlreadyOnTrial
-        ? `app.sifia.com.${selectedTierId}.${billing}` // Regular product for trial users
-        : `app.sifia.com.${selectedTierId}.${billing}.freetrial`; // Trial product for new users
+      // Android uses Google Play subscription IDs with base plans/offers.
+      // iOS uses separate .freetrial SKUs and StoreKit handles eligibility.
+      const productId = Platform.OS === 'android'
+        ? `${selectedTierId}-${billing}-trial`
+        : isAlreadyOnTrial
+          ? `app.sifia.com.${selectedTierId}.${billing}` // Regular product for trial users
+          : `app.sifia.com.${selectedTierId}.${billing}.freetrial`; // Trial product for new users
+      const expectedAndroidProductId = `${selectedTierId}_${billing}`;
+      const expectedAndroidOfferId = `${selectedTierId}-${billing}-trial`;
 
       logger.info('Product selection logic', {
         selectedTierId,
@@ -357,8 +390,7 @@ const OnboardingTrialOfferScreen = () => {
         isAnnual,
       });
 
-      // ENHANCED: Verify the .freetrial product exists in App Store Connect
-      // Even if configured, it might not be synced to TestFlight yet
+      // Verify the selected store product/offer exists before opening checkout.
       let availableProducts: any[] = [];
       let trialProduct: any = null;
 
@@ -371,137 +403,148 @@ const OnboardingTrialOfferScreen = () => {
         });
       } else {
         try {
-        // Initialize payment service first
-        const initialized = await paymentService.initialize();
-        if (!initialized) {
-          throw new Error('Apple purchases are not available right now.');
-        }
+          // Initialize payment service first
+          const initialized = await paymentService.initialize();
+          if (!initialized) {
+            throw new Error(`${Platform.OS === 'android' ? 'Google Play' : 'Apple'} purchases are not available right now.`);
+          }
 
-        // Get available products with retry logic
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            availableProducts = await paymentService.getAvailableProducts(attempt > 1);
-            if (availableProducts.length > 0) {break;}
+          // Get available products with retry logic
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              availableProducts = await paymentService.getAvailableProducts(attempt > 1);
+              if (availableProducts.length > 0) {break;}
 
-            logger.warn(`Trial product check attempt ${attempt} failed - no products available`, {
-              attempt,
-              totalProducts: availableProducts.length,
-            });
+              logger.warn(`Trial product check attempt ${attempt} failed - no products available`, {
+                attempt,
+                totalProducts: availableProducts.length,
+              });
 
-            if (attempt < 3) {
-              // Wait 1 second before retry
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          } catch (retryError) {
-            logger.warn(`Trial product check attempt ${attempt} failed with error`, {
-              attempt,
-              error: retryError instanceof Error ? retryError.message : 'Unknown error',
-            });
+              if (attempt < 3) {
+                // Wait 1 second before retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            } catch (retryError) {
+              logger.warn(`Trial product check attempt ${attempt} failed with error`, {
+                attempt,
+                error: retryError instanceof Error ? retryError.message : 'Unknown error',
+              });
 
-            if (attempt < 3) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              throw retryError;
+              if (attempt < 3) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } else {
+                throw retryError;
+              }
             }
           }
-        }
 
-        // Find the specific trial product
-        trialProduct = availableProducts.find(p => p.productId === productId);
-
-        if (!trialProduct) {
-          logger.warn('Trial product missing from product list; forcing fresh App Store product fetch', {
-            expectedProductId: productId,
-            selectedTierId,
-            billing,
-            productCount: availableProducts.length,
-          });
-
-          availableProducts = await paymentService.getAvailableProducts(true);
-          trialProduct = availableProducts.find(p => p.productId === productId);
-        }
-
-        // Log all available products for debugging
-        logger.debug('Trial product availability check', {
-          expectedProductId: productId,
-          totalProducts: availableProducts.length,
-          trialProducts: availableProducts.filter(p => p.productId.includes('freetrial')).map(p => p.productId),
-          allProductIds: availableProducts.map(p => p.productId),
-        });
-
-        if (!trialProduct) {
-          setTrialProductAvailable(false);
-
-          // Enhanced error message with actionable guidance
-          const errorMessage = `Free trial product not available.
-
-🔍 DEBUGGING INFO:
-• Expected trial product: ${productId}
-• Available products: ${availableProducts.length}
-• Selected tier: ${selectedTierId}
-• Trial products found: ${availableProducts.filter(p => p.productId.includes('freetrial')).length}
-
-🛠️ POSSIBLE SOLUTIONS:
-1. App Store Connect: Ensure .freetrial products are approved and synced to TestFlight
-2. Sandbox Testing: Use a sandbox tester account (not production Apple ID)
-3. Product Sync: Wait 5-10 minutes for new products to sync to TestFlight
-4. Bundle ID: Verify app bundle ID matches App Store Connect configuration
-
-📱 REQUIRED PRODUCTS:
-• app.sifia.com.spark.monthly.freetrial
-• app.sifia.com.growth.monthly.freetrial  
-• app.sifia.com.transformation.monthly.freetrial
-• app.sifia.com.spark.annual.freetrial
-• app.sifia.com.growth.annual.freetrial
-• app.sifia.com.transformation.annual.freetrial`;
-
-          logger.error(
-            'Trial product not found - blocking purchase',
-            undefined,
-            {
-              expectedProductId: productId,
-              availableProducts: availableProducts.map(p => p.productId),
-              trialProducts: availableProducts.filter(p => p.productId.includes('freetrial')).map(p => p.productId),
-              selectedTierId,
-              isAnnual,
-            }
+          // Find the Google Play product that contains the requested base plan/offer.
+          trialProduct = availableProducts.find(p =>
+            androidProductMatchesSelection(p, selectedTierId, billing, productId)
           );
 
-          throw new Error(errorMessage);
-        }
+          if (!trialProduct) {
+            logger.warn('Trial product missing from product list; forcing fresh store product fetch', {
+              expectedProductId: productId,
+              selectedTierId,
+              billing,
+              productCount: availableProducts.length,
+            });
 
-        // Set UI state to show trial is available
-        setTrialProductAvailable(true);
+            availableProducts = await paymentService.getAvailableProducts(true);
+            trialProduct = availableProducts.find(p =>
+              androidProductMatchesSelection(p, selectedTierId, billing, productId)
+            );
+          }
 
-        logger.info('Trial product verified and available', {
-          productId: trialProduct.productId,
-          localizedPrice: trialProduct.localizedPrice,
-          title: trialProduct.title,
-        });
+          // Log all available products for debugging
+          logger.debug('Trial product availability check', {
+            expectedProductId: productId,
+            totalProducts: availableProducts.length,
+            trialProducts: availableProducts
+              .filter(p => Platform.OS === 'android'
+                ? androidProductMatchesSelection(p, selectedTierId, billing, productId)
+                : p.productId.includes('freetrial'))
+              .map(p => p.productId),
+            allProductIds: availableProducts.map(p => p.productId),
+          });
 
-      } catch (productError) {
-        setTrialProductAvailable(false);
+          if (!trialProduct) {
+            setTrialProductAvailable(false);
 
-        const baseError = productError instanceof Error ? productError.message : 'Unknown error';
-        const enhancedError = `Unable to verify trial availability: ${baseError}
+            // Enhanced error message with actionable guidance
+            const errorMessage = `${Platform.OS === 'android' ? 'Google Play subscription' : 'Free trial product'} not available.
+
+🔍 DEBUGGING INFO:
+• Expected product: ${Platform.OS === 'android' ? expectedAndroidProductId : productId}
+• Expected trial offer: ${Platform.OS === 'android' ? expectedAndroidOfferId : productId}
+• Available products: ${availableProducts.length}
+• Selected tier: ${selectedTierId}
+• Matching products found: ${availableProducts.filter(p => Platform.OS === 'android' ? androidProductMatchesSelection(p, selectedTierId, billing, productId) : p.productId.includes('freetrial')).length}
+
+🛠️ POSSIBLE SOLUTIONS:
+1. ${Platform.OS === 'android' ? 'Play Console: Ensure the subscription, base plan, and offer are active' : 'App Store Connect: Ensure .freetrial products are approved and synced to TestFlight'}
+2. ${Platform.OS === 'android' ? 'Testing: Install from the Play testing link and use an approved tester account' : 'Sandbox Testing: Use a sandbox tester account (not production Apple ID)'}
+3. Product Sync: Wait 5-10 minutes for new products to sync
+4. Bundle ID: Verify app ID matches store configuration
+
+📱 REQUIRED PRODUCTS:
+${Platform.OS === 'android'
+    ? '• products: spark_monthly, growth_monthly, transformation_monthly\n• products: spark_annual, growth_annual, transformation_annual\n• trial offers: spark-monthly-trial, growth-monthly-trial, transformation-monthly-trial\n• trial offers: spark-annual-trial, growth-annual-trial, transformation-annual-trial'
+    : '• app.sifia.com.spark.monthly.freetrial\n• app.sifia.com.growth.monthly.freetrial\n• app.sifia.com.transformation.monthly.freetrial\n• app.sifia.com.spark.annual.freetrial\n• app.sifia.com.growth.annual.freetrial\n• app.sifia.com.transformation.annual.freetrial'}`;
+
+            logger.error(
+              'Trial product not found - blocking purchase',
+              undefined,
+              {
+                expectedProductId: productId,
+                availableProducts: availableProducts.map(p => p.productId),
+                trialProducts: availableProducts
+                  .filter(p => Platform.OS === 'android'
+                    ? androidProductMatchesSelection(p, selectedTierId, billing, productId)
+                    : p.productId.includes('freetrial'))
+                  .map(p => p.productId),
+                selectedTierId,
+                isAnnual,
+              }
+            );
+
+            throw new Error(errorMessage);
+          }
+
+          // Set UI state to show trial is available
+          setTrialProductAvailable(true);
+
+          logger.info('Trial product verified and available', {
+            productId: trialProduct.productId,
+            androidOfferId: Platform.OS === 'android' ? expectedAndroidOfferId : undefined,
+            localizedPrice: trialProduct.localizedPrice,
+            title: trialProduct.title,
+          });
+
+        } catch (productError) {
+          setTrialProductAvailable(false);
+
+          const baseError = productError instanceof Error ? productError.message : 'Unknown error';
+          const enhancedError = `Unable to verify trial availability: ${baseError}
 
 🔄 RETRY SUGGESTIONS:
 • Check internet connection and try again
-• Ensure you're using a sandbox tester account
-• Verify App Store Connect product configuration
+• Ensure you're using ${Platform.OS === 'android' ? 'a Google Play tester account from the testing link' : 'a sandbox tester account'}
+• Verify ${Platform.OS === 'android' ? 'Play Console subscription configuration' : 'App Store Connect product configuration'}
 • Wait a few minutes for product sync to complete`;
 
-        throw new Error(enhancedError);
+          throw new Error(enhancedError);
         }
       }
 
-      // Show Apple's payment sheet - will show "Free for 3 days, then $X.XX" if trial product
+      // Open the platform checkout sheet.
       let result;
       try {
         // Initialize payment service first
         const initialized = await paymentService.initialize();
         if (!initialized) {
-          throw new Error('Apple purchases are not available right now.');
+          throw new Error(`${Platform.OS === 'android' ? 'Google Play' : 'Apple'} purchases are not available right now.`);
         }
 
         // Set trial eligibility before purchase
@@ -552,7 +595,7 @@ const OnboardingTrialOfferScreen = () => {
           } else if (purchaseError.message.includes('cancelled') || purchaseError.message.includes('USER_CANCELLED')) {
             throw new Error('USER_CANCELLED');
           } else if (purchaseError.message.includes('not available')) {
-            throw new Error('This trial offer is not currently available. Please try again later.');
+          throw new Error('This trial offer is not currently available. Please try again later.');
           }
         }
 
@@ -591,7 +634,7 @@ const OnboardingTrialOfferScreen = () => {
             userId: user.id,
             chosenTier: selectedTierId,
             billingCycle: isAnnual ? 'annual' : 'monthly',
-            validationIsTrialPeriod: result.validation?.isTrialPeriod,
+          validationIsTrialPeriod: result.validation?.isTrialPeriod,
             validated: result.validated,
             timestamp: new Date().toISOString(),
           });
@@ -715,14 +758,16 @@ const OnboardingTrialOfferScreen = () => {
         setLoadingStep('processing');
         Alert.alert(
           'Subscription Already Active',
-          'This Apple ID already has an active siFia subscription. Restore purchases to sync access to this account.',
+          Platform.OS === 'android'
+            ? 'This Google Play account already has an active siFia subscription. Sync purchases to connect it to this account.'
+            : 'This Apple ID already has an active siFia subscription. Restore purchases to sync access to this account.',
           [
             {
               text: 'Not Now',
               style: 'cancel',
             },
             {
-              text: 'Restore Purchases',
+              text: Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases',
               onPress: handleRestorePurchase,
             },
           ],
@@ -746,7 +791,7 @@ const OnboardingTrialOfferScreen = () => {
       });
       Alert.alert(
         'Purchase Unavailable',
-        error?.message || 'Apple could not start the free trial. Please try again in a moment.'
+        error?.message || `${Platform.OS === 'android' ? 'Google Play' : 'Apple'} could not start the free trial. Please try again in a moment.`
       );
       setIsStartingTrial(false);
     } finally {
@@ -761,27 +806,46 @@ const OnboardingTrialOfferScreen = () => {
       return;
     }
 
+    const isAndroid = Platform.OS === 'android';
+
     try {
       triggerLightHaptic();
     } catch {}
 
     Alert.alert(
-      'Restore Purchases',
-      'This will restore any previous purchases made with this Apple ID.',
+      isAndroid ? 'Sync Purchases' : 'Restore Purchases',
+      isAndroid
+        ? 'This will sync any active siFia subscriptions from your Google Play account.'
+        : 'This will restore any previous purchases made with this Apple ID.',
       [
         {
           text: 'Cancel',
           style: 'cancel',
         },
         {
-          text: 'Restore',
+          text: isAndroid ? 'Sync' : 'Restore',
           onPress: async () => {
             try {
-              Alert.alert('Restoring...', 'Please wait while we restore your purchases.');
+              Alert.alert(isAndroid ? 'Syncing...' : 'Restoring...', isAndroid ? 'Please wait while we sync your Google Play purchases.' : 'Please wait while we restore your purchases.');
+
+              if (isAndroid) {
+                const paymentService = PlatformPaymentService.getInstance();
+                const synced = await paymentService.restorePurchases(user.id);
+
+                if (synced) {
+                  await queryClient.invalidateQueries({
+                    queryKey: ['subscription', user.id],
+                    refetchType: 'active',
+                  });
+                  Alert.alert('Success', 'Your Google Play purchases were synced.', [{ text: 'OK' }]);
+                } else {
+                  Alert.alert('No Purchases Found', 'No active Google Play purchases were found for this app.', [{ text: 'OK' }]);
+                }
+                return;
+              }
 
               const { AppleStoreKitService } = await import('../../services/AppleStoreKitService');
               const storeKit = AppleStoreKitService.getInstance();
-
               const result = await storeKit.restorePurchases(user.id);
 
               if (result.success) {
@@ -797,8 +861,10 @@ const OnboardingTrialOfferScreen = () => {
                 component: 'OnboardingTrialOfferScreen',
               });
               Alert.alert(
-                'Restore Failed',
-                'Unable to restore purchases. Please try again later or contact support.',
+                isAndroid ? 'Sync Failed' : 'Restore Failed',
+                isAndroid
+                  ? 'Unable to sync Google Play purchases. Please try again later or contact support.'
+                  : 'Unable to restore purchases. Please try again later or contact support.',
                 [{ text: 'OK' }],
               );
             }
@@ -854,9 +920,21 @@ const OnboardingTrialOfferScreen = () => {
         // Load location-based tiers for display
         const tiers = await pricingService.getLocationAdjustedPricing();
         const currency = await pricingService.getCurrencyInfo();
+        let products: any[] = [];
+
+        if (Platform.OS === 'android') {
+          try {
+            const paymentService = PlatformPaymentService.getInstance();
+            await paymentService.initialize();
+            products = await paymentService.getAvailableProducts();
+          } catch (storeError) {
+            logger.warn('Failed to load Google Play pricing for trial display', { error: storeError as Error });
+          }
+        }
 
         if (mounted) {
           setPricingTiers(tiers || []);
+          setStoreProducts(products);
           // setDynamicPricing([]); // Not using dynamic pricing for now - removed unused state
           setCurrencyInfo(currency || null);
         }
@@ -873,16 +951,44 @@ const OnboardingTrialOfferScreen = () => {
 
   // getCurrentPrice removed - defined but never called
 
+  const getAndroidStoreLocalizedPrice = (tierId: string, billing: AndroidBillingCycle): string | null => {
+    if (Platform.OS !== 'android') {
+      return null;
+    }
+
+    const expectedProductId = `${tierId}_${billing}`.toLowerCase();
+    const product = storeProducts.find((item: any) =>
+      String(item?.productId || '').toLowerCase() === expectedProductId
+    );
+    const localizedPrice = String(product?.localizedPrice || '').trim();
+
+    return localizedPrice ? normalizeLocalizedPriceLabel(localizedPrice) : null;
+  };
+
+  const normalizeLocalizedPriceLabel = (localizedPrice: string): string => {
+    const isPhp = currencyInfo?.currency === 'PHP' || /(?:₱|PHP)/i.test(localizedPrice);
+    return isPhp ? localizedPrice.replace(/(\d[\d,]*)\.00(?!\d)/g, '$1') : localizedPrice;
+  };
+
+  const formatFallbackPriceValue = (value: number): string => {
+    if (currencyInfo?.currency === 'PHP' && value % 1 === 0) {
+      return Math.floor(value).toString();
+    }
+    return value.toFixed(2);
+  };
+
   const getLocalizedPrice = () => {
     // Use tier pricing with currency
     const t = getSelectedTier();
     if (!t) {return '₱0';} // Use Philippine peso as fallback in development
-    const price = isAnnual ? t.annualPrice : t.monthlyPrice;
-    // Remove .00 for PHP whole numbers
-    if (currencyInfo?.currency === 'PHP' && price % 1 === 0) {
-      return `${currencyInfo.symbol}${Math.floor(price)}`;
+    const billing: AndroidBillingCycle = isAnnual ? 'annual' : 'monthly';
+    const storePrice = getAndroidStoreLocalizedPrice(selectedTierId, billing);
+    if (storePrice) {
+      return storePrice;
     }
-    return `${currencyInfo?.symbol || '₱'}${price.toFixed(2)}`;
+
+    const price = isAnnual ? t.annualPrice : t.monthlyPrice;
+    return `${currencyInfo?.symbol || '₱'}${formatFallbackPriceValue(price)}`;
   };
 
 
@@ -1059,8 +1165,22 @@ const OnboardingTrialOfferScreen = () => {
   // }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
+    <View style={isAndroidSheet ? styles.androidBackdrop : styles.container}>
+      {isAndroidSheet && (
+        <TouchableOpacity
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={handleClose}
+          disabled={isClosing || isStartingTrial}
+        />
+      )}
+      <SafeAreaView style={[styles.container, isAndroidSheet && styles.androidSheet]}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={isAndroidSheet ? 'transparent' : Colors.anchorBlue}
+        translucent={isAndroidSheet}
+        animated
+      />
       <PurchaseLoadingModal
         visible={isStartingTrial && !showSuccessModal}
         step={loadingStep}
@@ -1147,7 +1267,7 @@ const OnboardingTrialOfferScreen = () => {
               onPress={handleRestorePurchase}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.seeAllPlansText}>Restore Purchases</ThemedText>
+              <ThemedText style={styles.seeAllPlansText}>{Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases'}</ThemedText>
             </TouchableOpacity>
           </View>
           {/* Dev controls removed */}
@@ -1192,11 +1312,17 @@ const OnboardingTrialOfferScreen = () => {
           </ThemedText>
           {isAnnual ? (
             <View style={styles.savingsContainer}>
-              <ThemedText style={styles.annualSavingsText}>
-                <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6, color: Colors.faithGold }}>{`${currencyInfo?.symbol || '$'}${(getSelectedTier()?.monthlyPrice * 12).toFixed(2)}`}</ThemedText>
-                {' · '}
-                <ThemedText style={{ color: Colors.faithGold }}>Save 2 months</ThemedText>
-              </ThemedText>
+              {getAndroidStoreLocalizedPrice(getSelectedTier()?.id || selectedTierId, 'annual') ? (
+                <ThemedText style={[styles.annualSavingsText, { color: Colors.faithGold }]}>
+                  Save with annual billing
+                </ThemedText>
+              ) : (
+                <ThemedText style={styles.annualSavingsText}>
+                  <ThemedText style={{ textDecorationLine: 'line-through', opacity: 0.6, color: Colors.faithGold }}>{`${currencyInfo?.symbol || '₱'}${formatFallbackPriceValue((getSelectedTier()?.monthlyPrice || 0) * 12)}`}</ThemedText>
+                  {' · '}
+                  <ThemedText style={{ color: Colors.faithGold }}>Save 2 months</ThemedText>
+                </ThemedText>
+              )}
               <ThemedText style={styles.footerPriceApprox}>
                 Pay once, grow all year.
               </ThemedText>
@@ -1225,6 +1351,8 @@ const OnboardingTrialOfferScreen = () => {
         visible={showPlanSelector}
         transparent
         animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
         onRequestClose={() => setShowPlanSelector(false)}
       >
         <TouchableOpacity
@@ -1293,9 +1421,14 @@ const OnboardingTrialOfferScreen = () => {
                     >
                       {(() => {
                         // Use tier pricing directly
+                        const billing: AndroidBillingCycle = isAnnual ? 'annual' : 'monthly';
+                        const storePrice = getAndroidStoreLocalizedPrice(tier.id, billing);
+                        if (storePrice) {
+                          return `${storePrice}${isAnnual ? '/yr' : '/mo'}`;
+                        }
+
                         const price = isAnnual ? (tier.annualPrice || 0) : (tier.monthlyPrice || 0);
-                        const formatted = (currencyInfo?.currency === 'PHP' && price % 1 === 0) ? Math.floor(price) : price.toFixed(2);
-                        return `${currencyInfo?.symbol || '₱'}${formatted}${isAnnual ? '/yr' : '/mo'}`;
+                        return `${currencyInfo?.symbol || '₱'}${formatFallbackPriceValue(price)}${isAnnual ? '/yr' : '/mo'}`;
                       })()}
                     </ThemedText>
                   </View>
@@ -1308,7 +1441,8 @@ const OnboardingTrialOfferScreen = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -1316,6 +1450,24 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  androidBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  androidSheet: {
+    flex: 0,
+    height: '92%',
+    width: '100%',
+    alignSelf: 'center',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   header: {
     flexDirection: 'row',

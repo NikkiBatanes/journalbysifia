@@ -861,6 +861,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         visible={showCalendarModal}
         transparent
         animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
         onRequestClose={() => setShowCalendarModal(false)}
       >
         <View style={styles.modalOverlay}>

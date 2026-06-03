@@ -324,8 +324,16 @@ class PricingService {
       isDev: ENV.APP_ENV === 'development',
     });
 
+    // Use explicit PH currency when market is Philippines.
+    if (location === 'PH') {
+      Logger.info('[PricingService] Using PHP currency (detected Philippines)', {
+        component: 'pricingService',
+      });
+      return this.locationPricing.PH;
+    }
+
     // FORCE Philippine currency for development/testing (matches pricing override)
-    if (ENV.APP_ENV === 'development') {
+    if (__DEV__ || ENV.APP_ENV === 'development') {
       Logger.info('[PricingService] Using PHP currency (dev mode)', {
         component: 'pricingService',
       });

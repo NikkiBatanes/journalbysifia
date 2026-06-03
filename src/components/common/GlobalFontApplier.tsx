@@ -58,6 +58,10 @@ const inferWeightFromStyle = (style: StyleProp<TextStyle>): ThemeWeight => {
   return 'regular';
 };
 
+const needsAndroidItalicFallbackGuard = (style: StyleProp<TextStyle>, fontKey: string) => {
+  return fontKey !== 'system' && StyleSheet.flatten(style)?.fontStyle === 'italic';
+};
+
 const getAndroidThemedStyle = (style: StyleProp<TextStyle>, fontKey: string): TextStyle | null => {
   const flattened = StyleSheet.flatten(style);
   const explicitFamily = typeof flattened?.fontFamily === 'string' ? flattened.fontFamily : undefined;
@@ -69,6 +73,7 @@ const getAndroidThemedStyle = (style: StyleProp<TextStyle>, fontKey: string): Te
   return {
     fontFamily: getFontFamily(fontKey, inferWeightFromStyle(style)),
     fontWeight: 'normal',
+    ...(needsAndroidItalicFallbackGuard(style, fontKey) ? { fontStyle: 'normal' as const } : {}),
   };
 };
 

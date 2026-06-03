@@ -801,7 +801,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const screenContent = (
     <SafeAreaView
       style={[styles.container, Platform.OS === 'android' && styles.androidRouteSheet]}
-      edges={['top']}
+      edges={Platform.OS === 'android' ? ['left', 'right'] : ['top']}
     >
       {Platform.OS === 'android' && (
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
