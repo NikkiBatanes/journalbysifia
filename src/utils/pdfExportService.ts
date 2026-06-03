@@ -66,6 +66,40 @@ export interface PlaybookPDFData {
 }
 
 class PDFExportService {
+  private toFileUri(filePath: string): string {
+    return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+  }
+
+  private getPdfOptions(html: string, fileName: string) {
+    const baseOptions = {
+      html,
+      fileName,
+      width: 595, // A4 width in points
+      height: 842, // A4 height in points
+      padding: 20,
+      bgColor: '#FFFFFF',
+    };
+
+    // Android sharing uses react-native-share's FileProvider, which exposes cache paths.
+    // Keeping Android PDFs in cache lets the native share sheet read the generated file.
+    return Platform.OS === 'android'
+      ? baseOptions
+      : {
+          ...baseOptions,
+          directory: 'Documents',
+        };
+  }
+
+  private getPdfFallbackOptions(html: string, fileName: string) {
+    return Platform.OS === 'android'
+      ? { html, fileName }
+      : {
+          html,
+          fileName,
+          directory: 'Documents',
+        };
+  }
+
   /**
    * Clean markdown formatting from text
    */
@@ -1342,7 +1376,7 @@ class PDFExportService {
    * Export devotional as PDF using native iOS/Android PDF generation
    * Uses react-native-html-to-pdf for native rendering
    */
-  async exportDevotionalPDF(data: DevotionalPDFData): Promise<void> {
+  async exportDevotionalPDF(data: DevotionalPDFData): Promise<boolean> {
     try {
       const html = this.generateDevotionalHTML(data);
       const devotionalSlug = data.title
@@ -1358,15 +1392,7 @@ class PDFExportService {
       });
 
       // Use native PDF generation (iOS/Android)
-      const options = {
-        html,
-        fileName,
-        directory: 'Documents',
-        width: 595, // A4 width in points
-        height: 842, // A4 height in points
-        padding: 20,
-        bgColor: '#FFFFFF',
-      };
+      const options = this.getPdfOptions(html, fileName);
 
       let file;
       try {
@@ -1379,11 +1405,7 @@ class PDFExportService {
         });
 
         // Fallback: try without print-specific options that might cause issues
-        const fallbackOptions = {
-          html,
-          fileName,
-          directory: 'Documents',
-        };
+        const fallbackOptions = this.getPdfFallbackOptions(html, fileName);
 
         file = await generatePDF(fallbackOptions);
       }
@@ -1395,10 +1417,12 @@ class PDFExportService {
 
       // Share the PDF file with iPad-safe options
       const shareOptions = {
-        url: `file://${file.filePath}`,
+        url: this.toFileUri(file.filePath),
         type: 'application/pdf',
         title: 'Share Devotional',
         filename: `${fileName}.pdf`,
+        failOnCancel: false,
+        useInternalStorage: Platform.OS === 'android',
         // iPad-specific: exclude print option to prevent crashes
         excludedActivityTypes: Platform.OS === 'ios' && Platform.isPad ? [
           'com.apple.UIKit.Activity.Print',
@@ -1412,17 +1436,19 @@ class PDFExportService {
         component: 'pdfExportService',
         fileName,
       });
+      return true;
     } catch (error) {
       Logger.error('[PDFExportService] Failed to export devotional PDF', error as Error, {
         component: 'pdfExportService',
       });
+      return false;
     }
   }
 
   /**
    * Export playbook as PDF using native iOS/Android PDF generation
    */
-  async exportPlaybookPDF(data: PlaybookPDFData): Promise<void> {
+  async exportPlaybookPDF(data: PlaybookPDFData): Promise<boolean> {
     try {
       const html = this.generatePlaybookHTML(data);
       const playbookSlug = data.title
@@ -1437,15 +1463,7 @@ class PDFExportService {
       });
 
       // Use native PDF generation (iOS/Android)
-      const options = {
-        html,
-        fileName,
-        directory: 'Documents',
-        width: 595, // A4 width in points
-        height: 842, // A4 height in points
-        padding: 20,
-        bgColor: '#FFFFFF',
-      };
+      const options = this.getPdfOptions(html, fileName);
 
       let file;
       try {
@@ -1458,11 +1476,7 @@ class PDFExportService {
         });
 
         // Fallback: try without print-specific options that might cause issues
-        const fallbackOptions = {
-          html,
-          fileName,
-          directory: 'Documents',
-        };
+        const fallbackOptions = this.getPdfFallbackOptions(html, fileName);
 
         file = await generatePDF(fallbackOptions);
       }
@@ -1474,10 +1488,12 @@ class PDFExportService {
 
       // Share the PDF file with iPad-safe options
       const shareOptions = {
-        url: `file://${file.filePath}`,
+        url: this.toFileUri(file.filePath),
         type: 'application/pdf',
         title: 'Share Playbook',
         filename: `${fileName}.pdf`,
+        failOnCancel: false,
+        useInternalStorage: Platform.OS === 'android',
         // iPad-specific: exclude print option to prevent crashes
         excludedActivityTypes: Platform.OS === 'ios' && Platform.isPad ? [
           'com.apple.UIKit.Activity.Print',
@@ -1491,10 +1507,12 @@ class PDFExportService {
         component: 'pdfExportService',
         fileName,
       });
+      return true;
     } catch (error) {
       Logger.error('[PDFExportService] Failed to export playbook PDF', error as Error, {
         component: 'pdfExportService',
       });
+      return false;
     }
   }
 }

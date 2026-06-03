@@ -1834,7 +1834,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
 
       // Use pdfExportService to generate and share PDF
-      pdfExportService.exportPlaybookPDF({
+      const didExport = await pdfExportService.exportPlaybookPDF({
         title: fullPlaybook.title,
         truthInLove: replaceAllNamePlaceholders(
           typeof fullPlaybook.truthInLove === 'string' ? fullPlaybook.truthInLove : fullPlaybook.truthInLove?.text || '',
@@ -1907,6 +1907,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
         ),
         createdAt: fullPlaybook.createdAt,
       });
+
+      if (!didExport) {
+        Alert.alert('Export Unavailable', 'Unable to export this playbook as a PDF right now. Please try again.');
+      }
     } catch (error) {
       console.error('PDF Export Error:', error);
       Alert.alert('Error', 'Failed to export PDF');
@@ -2719,6 +2723,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
         visible={renameModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={() => setRenameModalVisible(false)}
       >
         <TouchableOpacity
@@ -2771,6 +2778,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
         visible={tagModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        hardwareAccelerated={Platform.OS === 'android'}
         onRequestClose={() => setTagModalVisible(false)}
       >
         <TouchableOpacity

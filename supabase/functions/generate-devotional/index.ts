@@ -1035,6 +1035,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
           // Remove any existing 'Heavenly Father' from the prayer body
           prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
+          prayerBody = prayerBody.replace(/\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?\s*$/i, '');
 
           // Normalize multiple newlines to single newlines in the prayer body
           // This ensures consistent spacing regardless of AI output format
@@ -1056,6 +1057,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
               .replace(/[\]["]/g, '')
               .trim();
             prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
+            prayerBody = prayerBody.replace(/\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?\s*$/i, '');
             prayerBody = prayerBody.replace(/\n{2,}/g, '\n');
             if (!hasMeaningfulPrayer(prayerBody)) {
               throw new Error(`Prayer for Day ${dayNum} is blank or only contains a template.`);

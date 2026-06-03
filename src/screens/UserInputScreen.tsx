@@ -479,6 +479,7 @@ const UserInputScreen: React.FC = () => {
           const focusWithCursor = () => {
             if (inputRef.current) {
               inputRef.current.focus();
+              requestAndroidSoftKeyboard();
               // Position cursor at the end
               const textLength = route.params?.initialText?.length || 0;
               inputRef.current.setSelection(textLength, textLength);
@@ -505,23 +506,32 @@ const UserInputScreen: React.FC = () => {
   }, [route.params?.initialText]);
 
   useEffect(() => {
-    if (Platform.OS === 'android' && !route.params?.autoFocus) {
+    if (route.params?.autoFocus === false) {
       return;
     }
+
+    let androidFocusRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const focusInput = () => {
       if (inputRef.current) {
         inputRef.current.focus();
+        requestAndroidSoftKeyboard();
       }
     };
 
     // Delay focus to allow screen animation to complete first
     autoFocusTimer.current = setTimeout(focusInput, 1500);
+    if (Platform.OS === 'android') {
+      androidFocusRetryTimer = setTimeout(focusInput, 2100);
+    }
 
     return () => {
       if (autoFocusTimer.current) {
         clearTimeout(autoFocusTimer.current);
         autoFocusTimer.current = null;
+      }
+      if (androidFocusRetryTimer) {
+        clearTimeout(androidFocusRetryTimer);
       }
     };
   }, [route.params?.autoFocus]);
@@ -641,7 +651,9 @@ const UserInputScreen: React.FC = () => {
     const keyboardShowListener = Keyboard.addListener(keyboardShowEvent, (e) => {
       setKeyboardVisible(true);
       const kbHeight = e.endCoordinates.height;
-      const keyboardClearance = isTabletLayout ? (isLandscape ? 16 : 24) : 70;
+      const keyboardClearance = isTabletLayout
+        ? (isLandscape ? 16 : 24)
+        : (Platform.OS === 'android' ? 48 : 70);
       const keyboardLift = Math.max(0, kbHeight - keyboardClearance);
       Animated.spring(keyboardTranslateY, {
         toValue: -keyboardLift,

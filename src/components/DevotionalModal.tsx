@@ -108,6 +108,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const onboardingAutoStartedRef = React.useRef(false);
   const generationInFlightRef = React.useRef(false);
   const [isVisible, setIsVisible] = useState(false);
+  const isVisibleRef = React.useRef(false);
+  const closeInProgressRef = React.useRef(false);
+  const closeAnimationRef = React.useRef<Animated.CompositeAnimation | null>(null);
+  const closeFallbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generationRequestIdRef = React.useRef(0);
+  const closeRequestedRef = React.useRef(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [_contentHeight, setContentHeight] = useState(0);
   const [_ellipsis, setEllipsis] = useState('');
@@ -180,6 +186,23 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     { key: 'preparing', title: 'Preparing your devotional', status: 'inactive' },
   ]);
 
+  React.useEffect(() => {
+    isVisibleRef.current = isVisible;
+  }, [isVisible]);
+
+  React.useEffect(() => {
+    return () => {
+      if (closeFallbackTimerRef.current) {
+        clearTimeout(closeFallbackTimerRef.current);
+        closeFallbackTimerRef.current = null;
+      }
+      if (closeAnimationRef.current) {
+        closeAnimationRef.current.stop();
+        closeAnimationRef.current = null;
+      }
+    };
+  }, []);
+
   // Animated background colors for step cards
   const stepCardBgAnims = React.useRef(generationSteps.map(() => new Animated.Value(0))).current;
   const stepCardBorderAnims = React.useRef(generationSteps.map(() => new Animated.Value(0))).current;
@@ -235,6 +258,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         handleSelectDuration(3);
       }
     } else {
+      closeRequestedRef.current = true;
+      generationRequestIdRef.current += 1;
       onboardingAutoStartedRef.current = false;
       generationInFlightRef.current = false;
     }
@@ -255,23 +280,23 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && (isCreating || isOnboardingCreating) && !isSuccess) {
+        if (finished && mounted && visible && (isCreating || isOnboardingCreating) && !isSuccess) {
           loop();
         }
       });
     };
-    if ((isCreating || isOnboardingCreating) && !isSuccess) {
+    if (visible && (isCreating || isOnboardingCreating) && !isSuccess) {
       loop();
     }
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();
     };
-  }, [isCreating, isOnboardingCreating, isSuccess, shimmerOpacity]);
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, shimmerOpacity]);
 
   // Shimmer animation for building text
   React.useEffect(() => {
-    if (!(isCreating || isOnboardingCreating) || isSuccess) {
+    if (!visible || !(isCreating || isOnboardingCreating) || isSuccess) {
       setBuildingDots('');
       buildingTextOpacity.setValue(0.55);
       return;
@@ -307,11 +332,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       clearInterval(dotInterval);
       shimmerLoop.stop();
     };
-  }, [isCreating, isOnboardingCreating, isSuccess, buildingTextOpacity]);
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, buildingTextOpacity]);
 
   // Logo entry animation when generation starts
   React.useEffect(() => {
-    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
+    if ((visible && (isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       Animated.spring(genLogoEntryAnim, {
         toValue: 1,
         useNativeDriver: true,
@@ -321,11 +346,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     } else {
       genLogoEntryAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, genLogoEntryAnim]);
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, isClosing, genLogoEntryAnim]);
 
   // Staggered entrance animations for generation elements
   React.useEffect(() => {
-    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
+    if ((visible && (isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       const staggerSequence = Animated.sequence([
         Animated.timing(genCardEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.timing(genHeadingEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -339,11 +364,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       genStepsEntryAnim.setValue(0);
       genProgressEntryAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, isClosing, genCardEntryAnim, genHeadingEntryAnim, genStepsEntryAnim, genProgressEntryAnim]);
 
   // Container bounce animation when generation starts
   React.useEffect(() => {
-    if (((isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
+    if ((visible && (isCreating || isOnboardingCreating) && !isSuccess) || isClosing) {
       Animated.parallel([
         Animated.spring(generatingScaleAnim, {
           toValue: 1,
@@ -361,11 +386,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       generatingScaleAnim.setValue(0.92);
       generatingFadeAnim.setValue(0);
     }
-  }, [isCreating, isOnboardingCreating, isSuccess, isClosing, generatingScaleAnim, generatingFadeAnim]);
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, isClosing, generatingScaleAnim, generatingFadeAnim]);
 
   // Step advancement and progress bar animation while creating (cap at 95%)
   React.useEffect(() => {
-    if (!(isCreating || isOnboardingCreating) || isSuccess) { return; }
+    if (!visible || !(isCreating || isOnboardingCreating) || isSuccess) { return; }
     // Calculate total expected time based on duration and distribute evenly across steps
     // This ensures progress bar moves smoothly without getting stuck at phase 4
     const getTotalDuration = () => {
@@ -507,7 +532,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }, stepDuration);
     return () => clearInterval(stepInterval);
-  }, [isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, isCreating, isOnboardingCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic, selectedDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const measureContent = () => {
     if (contentRef.current) {
@@ -519,7 +544,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Animate the ellipsis
   React.useEffect(() => {
-    if (!(isCreating || isOnboardingCreating)) {return;}
+    if (!visible || !(isCreating || isOnboardingCreating)) {return;}
 
     const timer = setInterval(() => {
       setEllipsis((prev: string) => {
@@ -529,7 +554,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }, 300);
 
     return () => clearInterval(timer);
-  }, [isCreating, isOnboardingCreating]);
+  }, [visible, isCreating, isOnboardingCreating]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -537,6 +562,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     if (visible) {
+      closeRequestedRef.current = false;
+      closeInProgressRef.current = false;
+      isVisibleRef.current = true;
       setIsVisible(true);
       // Only reset progress animation when modal first opens with no active generation
       if (!isCreatingRef.current && !isOnboardingCreatingRef.current && !isSuccessRef.current) {
@@ -563,6 +591,20 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       ]);
       animation.start();
     } else {
+      closeRequestedRef.current = true;
+      generationRequestIdRef.current += 1;
+      generationInFlightRef.current = false;
+
+      if (closeInProgressRef.current || !isVisibleRef.current) {
+        setIsClosing(false);
+        setIsOnboardingCreating(false);
+        fadeAnim.setValue(0);
+        translateY.setValue(SCREEN_HEIGHT);
+        isVisibleRef.current = false;
+        setIsVisible(false);
+        return;
+      }
+
       // Calculate the distance to slide down (full screen height + modal height + some extra)
       const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
 
@@ -583,6 +625,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
       animation.start(({ finished }) => {
         if (finished && isMounted) {
+          setIsClosing(false);
+          setIsOnboardingCreating(false);
+          isVisibleRef.current = false;
           setIsVisible(false);
           // Reset translateY for next open
           translateY.setValue(SCREEN_HEIGHT);
@@ -775,6 +820,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
     // If no onSelectDuration provided, handle devotional creation here
     if (playbookId) {
+      const generationRequestId = generationRequestIdRef.current + 1;
+      generationRequestIdRef.current = generationRequestId;
+      closeRequestedRef.current = false;
       generationInFlightRef.current = true;
 
       // Haptic feedback when generation starts (parity with playbook generation)
@@ -797,6 +845,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
         if (progressTimeout) {
           clearTimeout(progressTimeout);
+        }
+
+        if (closeRequestedRef.current || generationRequestId !== generationRequestIdRef.current) {
+          generationInFlightRef.current = false;
+          return;
         }
 
         if (devotional) {
@@ -834,6 +887,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         if (progressTimeout) {
           clearTimeout(progressTimeout);
         }
+        if (closeRequestedRef.current || generationRequestId !== generationRequestIdRef.current) {
+          generationInFlightRef.current = false;
+          return;
+        }
         generationInFlightRef.current = false;
         setIsOnboardingCreating(false);
         setCreationError(error instanceof Error ? error : new Error('Failed to create devotional'));
@@ -842,11 +899,68 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleClose = (afterClose?: () => void) => {
+    if (closeInProgressRef.current) {
+      return;
+    }
+
+    closeRequestedRef.current = true;
+    generationRequestIdRef.current += 1;
+    generationInFlightRef.current = false;
+    closeInProgressRef.current = true;
+
+    if (closeFallbackTimerRef.current) {
+      clearTimeout(closeFallbackTimerRef.current);
+      closeFallbackTimerRef.current = null;
+    }
+
+    if (closeAnimationRef.current) {
+      closeAnimationRef.current.stop();
+      closeAnimationRef.current = null;
+    }
+
+    fadeAnim.stopAnimation();
+    translateY.stopAnimation();
+    progressAnim.stopAnimation();
+
     // Calculate the distance to slide down (full screen height + modal height + some extra)
     const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
 
+    const finishClose = () => {
+      if (!closeInProgressRef.current) {
+        return;
+      }
+
+      if (closeFallbackTimerRef.current) {
+        clearTimeout(closeFallbackTimerRef.current);
+        closeFallbackTimerRef.current = null;
+      }
+
+      closeAnimationRef.current = null;
+      closeInProgressRef.current = false;
+      isVisibleRef.current = false;
+      setIsVisible(false);
+      setIsClosing(false);
+      setIsOnboardingCreating(false);
+
+      // Reset animations for next open
+      fadeAnim.setValue(0);
+      translateY.setValue(SCREEN_HEIGHT);
+      progressAnim.setValue(0);
+      setCurrentStep(0);
+
+      onClose();
+
+      if (afterClose) {
+        if (Platform.OS === 'android') {
+          setTimeout(afterClose, 80);
+        } else {
+          afterClose();
+        }
+      }
+    };
+
     // Fade out backdrop quickly while sliding down
-    Animated.parallel([
+    closeAnimationRef.current = Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200, // Fade aligned with slide
@@ -858,17 +972,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         useNativeDriver: true,
         easing: Easing.out(Easing.quad),
       }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        onClose();
-        // Reset animations for next open
-        translateY.setValue(SCREEN_HEIGHT);
-        progressAnim.setValue(0); // Reset progress bar to 0
-        setCurrentStep(0); // Reset step counter
-        // Invoke optional callback after close completes
-        if (afterClose) { afterClose(); }
-      }
+    ]);
+
+    closeAnimationRef.current.start(() => {
+      finishClose();
     });
+
+    closeFallbackTimerRef.current = setTimeout(finishClose, Platform.OS === 'android' ? 450 : 650);
   };
 
   const rotate = rotateAnim.interpolate({

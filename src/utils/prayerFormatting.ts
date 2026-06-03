@@ -21,6 +21,7 @@ export function normalizePrayerText(raw: string): string {
     .replace(/\*\*/g, '')
     // Convert CRLF to LF
     .replace(/\r\n/g, '\n')
+    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name, Amen')
     // Collapse 3+ newlines to 2
     .replace(/\n{3,}/g, '\n\n')
     // Remove any spaces/tabs at line starts
@@ -31,9 +32,10 @@ export function normalizePrayerText(raw: string): string {
     .replace(/(Heavenly\s+Father,)\s*/gi, '$1\n\n')
     // Ensure exactly one blank line (two newlines) before the closing phrase
     // Case A: No newline before phrase (e.g., "You.In Jesus'")
-    .replace(/(\S)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
+    .replace(/(\S)\s*((?:In\s+Jesus(?:[''\u2019]s?)?\s*Name)(?:,?\s*Amen)?)/gi, '$1\n\n$2')
     // Case B: Exactly one newline before phrase (e.g., "You.\nIn Jesus'")
-    .replace(/\n(?!\n)\s*((?:In\s+Jesus[''\u2019]?\s*Name)(?:,?\s*Amen)?)/gi, '\n\n$1')
+    .replace(/\n(?!\n)\s*((?:In\s+Jesus(?:[''\u2019]s?)?\s*Name)(?:,?\s*Amen)?)/gi, '\n\n$1')
     // Trim trailing spaces on lines
-    .replace(/[\t ]+$/gm, '');
+    .replace(/[\t ]+$/gm, '')
+    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name, Amen');
 }

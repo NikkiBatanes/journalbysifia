@@ -52,8 +52,62 @@ const StreakPlanScreen: React.FC = () => {
   const shareButtonAnim = useRef(new Animated.Value(0)).current;
   const iconBgAnim = useRef(new Animated.Value(0)).current;
   const iconAnim = useRef(new Animated.Value(0)).current;
+  const entranceStartedRef = useRef(false);
 
   useEffect(() => {
+    let isMounted = true;
+    let entranceFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    entranceStartedRef.current = false;
+    fadeAnim.setValue(0);
+    slideUpAnim.setValue(30);
+    scaleAnim.setValue(0.8);
+    iconBgAnim.setValue(0);
+    iconAnim.setValue(0);
+
+    const startEntranceAnimation = () => {
+      if (!isMounted || entranceStartedRef.current) {
+        return;
+      }
+
+      entranceStartedRef.current = true;
+      if (entranceFallbackTimer) {
+        clearTimeout(entranceFallbackTimer);
+        entranceFallbackTimer = null;
+      }
+
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideUpAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(iconBgAnim, {
+            toValue: 1,
+            duration: 350,
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    };
+
     // Share button and icon animations start immediately (decorative)
     shareButtonAnim.setValue(0);
     Animated.spring(shareButtonAnim, {
@@ -64,19 +118,6 @@ const StreakPlanScreen: React.FC = () => {
       useNativeDriver: true,
     }).start();
 
-    Animated.sequence([
-      Animated.timing(iconBgAnim, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-      Animated.timing(iconAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     // Mark streak as shown today (called here so it only fires when the screen actually renders)
     if (user?.id) {
       visibleStreakService.markShownToday(user.id).catch(() => {});
@@ -84,7 +125,10 @@ const StreakPlanScreen: React.FC = () => {
 
     // Fetch data first, then animate content in — prevents snapping/popping
     const initialize = async () => {
-      if (!user?.id) {return;}
+      if (!user?.id) {
+        startEntranceAnimation();
+        return;
+      }
       try {
         const metadata = (user as any)?.user_metadata;
         const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
@@ -110,28 +154,24 @@ const StreakPlanScreen: React.FC = () => {
         console.error('Failed to fetch streak data:', error);
       }
 
-      // Animate content in after data is ready
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideUpAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 60,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      startEntranceAnimation();
     };
 
+    entranceFallbackTimer = setTimeout(startEntranceAnimation, Platform.OS === 'android' ? 650 : 1000);
     initialize();
+
+    return () => {
+      isMounted = false;
+      if (entranceFallbackTimer) {
+        clearTimeout(entranceFallbackTimer);
+      }
+      fadeAnim.stopAnimation();
+      slideUpAnim.stopAnimation();
+      scaleAnim.stopAnimation();
+      shareButtonAnim.stopAnimation();
+      iconBgAnim.stopAnimation();
+      iconAnim.stopAnimation();
+    };
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
