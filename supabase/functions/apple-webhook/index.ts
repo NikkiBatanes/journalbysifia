@@ -243,6 +243,23 @@ async function logAppleWebhookEvent(
   }
 }
 
+async function updateSubscriptionOrThrow(
+  supabaseClient: any,
+  userId: string,
+  updateData: Record<string, any>,
+  context: string
+) {
+  const { error } = await supabaseClient
+    .from('user_subscriptions_new')
+    .update(updateData)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error(`[AppleWebhook] ${context} update failed`, { userId, error });
+    throw error;
+  }
+}
+
 // Extract tier from product ID (handles annual detection)
 function getTierFromProductId(productId: string): string {
   const isAnnual = productId.includes('annual');
@@ -482,14 +499,11 @@ serve(async (req) => {
       case 'SUBSCRIBED': {
         // Store the original_transaction_id on first subscription — critical for future lookups
         console.log('[AppleWebhook] SUBSCRIBED event — storing original_transaction_id');
-        await supabaseClient
-          .from('user_subscriptions_new')
-          .update({
-            original_transaction_id: originalTransactionId,
-            platform_transaction_id: transactionId,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+        await updateSubscriptionOrThrow(supabaseClient, userId, {
+          original_transaction_id: originalTransactionId,
+          platform_transaction_id: transactionId,
+          updated_at: new Date().toISOString(),
+        }, 'SUBSCRIBED');
         console.log('[AppleWebhook] ✅ Stored original_transaction_id:', originalTransactionId);
         break;
       }
@@ -538,29 +552,26 @@ serve(async (req) => {
           const now = new Date();
           const subscriptionEndDate = getSubscriptionEndDate(productId, transaction, now);
 
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              tier: actualTier,
-              subscription_display_name: getTierDisplayName(actualTier),
-              billing_cycle: billingCycle, // Store billing cycle
-              playbooks_limit: paidLimits.playbooks_limit,
-              devotionals_limit: paidLimits.devotionals_limit,
-              playbooks_used: 0, // Reset usage
-              devotionals_used: 0,
-              last_usage_reset: now.toISOString(), // Track when usage was reset
-              smart_journaling_enabled: paidLimits.smart_journaling_enabled,
-              show_dashboard_counts: true,
-              platform_transaction_id: transactionId,
-              subscription_start_date: now.toISOString(),
-              subscription_end_date: subscriptionEndDate, // Set expiration
-              trial_converted_date: now.toISOString(),
-              billing_issue: false,
-              grace_period_end_date: null,
-              status: 'active', // Ensure status is active
-              updated_at: now.toISOString(),
-            })
-            .eq('user_id', userId);
+          await updateSubscriptionOrThrow(supabaseClient, userId, {
+            tier: actualTier,
+            subscription_display_name: getTierDisplayName(actualTier),
+            billing_cycle: billingCycle, // Store billing cycle
+            playbooks_limit: paidLimits.playbooks_limit,
+            devotionals_limit: paidLimits.devotionals_limit,
+            playbooks_used: 0, // Reset usage
+            devotionals_used: 0,
+            last_usage_reset: now.toISOString(), // Track when usage was reset
+            smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+            show_dashboard_counts: true,
+            platform_transaction_id: transactionId,
+            subscription_start_date: now.toISOString(),
+            subscription_end_date: subscriptionEndDate, // Set expiration
+            trial_converted_date: now.toISOString(),
+            billing_issue: false,
+            grace_period_end_date: null,
+            status: 'active', // Ensure status is active
+            updated_at: now.toISOString(),
+          }, 'trial conversion');
 
           console.log('[AppleWebhook] ✅ Trial converted to', actualTier, billingCycle);
         } else {
@@ -575,27 +586,24 @@ serve(async (req) => {
           const now = new Date();
           const subscriptionEndDate = getSubscriptionEndDate(productId, transaction, now);
 
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              tier: actualTier, // Update tier in case billing cycle changed
-              subscription_display_name: getTierDisplayName(actualTier),
-              billing_cycle: billingCycle, // Update billing cycle in case it changed
-              playbooks_limit: paidLimits.playbooks_limit,
-              devotionals_limit: paidLimits.devotionals_limit,
-              smart_journaling_enabled: paidLimits.smart_journaling_enabled,
-              show_dashboard_counts: true,
-              platform_transaction_id: transactionId,
-              billing_issue: false,
-              grace_period_end_date: null,
-              playbooks_used: 0, // Reset usage on renewal
-              devotionals_used: 0,
-              last_usage_reset: now.toISOString(), // Track when usage was reset
-              subscription_start_date: now.toISOString(),
-              subscription_end_date: subscriptionEndDate, // Set expiration
-              updated_at: now.toISOString(),
-            })
-            .eq('user_id', userId);
+          await updateSubscriptionOrThrow(supabaseClient, userId, {
+            tier: actualTier, // Update tier in case billing cycle changed
+            subscription_display_name: getTierDisplayName(actualTier),
+            billing_cycle: billingCycle, // Update billing cycle in case it changed
+            playbooks_limit: paidLimits.playbooks_limit,
+            devotionals_limit: paidLimits.devotionals_limit,
+            smart_journaling_enabled: paidLimits.smart_journaling_enabled,
+            show_dashboard_counts: true,
+            platform_transaction_id: transactionId,
+            billing_issue: false,
+            grace_period_end_date: null,
+            playbooks_used: 0, // Reset usage on renewal
+            devotionals_used: 0,
+            last_usage_reset: now.toISOString(), // Track when usage was reset
+            subscription_start_date: now.toISOString(),
+            subscription_end_date: subscriptionEndDate, // Set expiration
+            updated_at: now.toISOString(),
+          }, 'renewal');
 
           console.log('[AppleWebhook] ✅ Renewal processed:', actualTier, billingCycle, 'with usage reset');
         }
@@ -607,38 +615,29 @@ serve(async (req) => {
           // User cancelled
           if (subscription.tier === 'free_trial') {
             // Trial cancelled - mark but keep access until trial_end_date
-            await supabaseClient
-              .from('user_subscriptions_new')
-              .update({
-                trial_cancelled_date: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', userId);
+            await updateSubscriptionOrThrow(supabaseClient, userId, {
+              trial_cancelled_date: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }, 'trial cancellation');
 
             console.log('[AppleWebhook] ✅ Trial cancelled (keeps access until trial_end_date)');
           } else {
             // Paid cancelled - keep access until expiration
-            await supabaseClient
-              .from('user_subscriptions_new')
-              .update({
-                auto_renew_enabled: false,
-                cancellation_date: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', userId);
+            await updateSubscriptionOrThrow(supabaseClient, userId, {
+              auto_renew_enabled: false,
+              cancellation_date: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }, 'auto-renew disabled');
 
             console.log('[AppleWebhook] ✅ Auto-renewal disabled (keeps access until expiration)');
           }
         } else if (subtype === 'AUTO_RENEW_ENABLED') {
           // User re-enabled
-          await supabaseClient
-            .from('user_subscriptions_new')
-            .update({
-              auto_renew_enabled: true,
-              cancellation_date: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId);
+          await updateSubscriptionOrThrow(supabaseClient, userId, {
+            auto_renew_enabled: true,
+            cancellation_date: null,
+            updated_at: new Date().toISOString(),
+          }, 'auto-renew enabled');
 
           console.log('[AppleWebhook] ✅ Auto-renewal re-enabled');
         }
@@ -655,14 +654,11 @@ serve(async (req) => {
           appleMillisToIso(renewalInfo?.gracePeriodExpiresDate) ||
           fallbackGracePeriodEnd.toISOString();
 
-        await supabaseClient
-          .from('user_subscriptions_new')
-          .update({
-            billing_issue: true,
-            grace_period_end_date: gracePeriodEndIso,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+        await updateSubscriptionOrThrow(supabaseClient, userId, {
+          billing_issue: true,
+          grace_period_end_date: gracePeriodEndIso,
+          updated_at: new Date().toISOString(),
+        }, 'billing retry');
 
         console.log('[AppleWebhook] ✅ Grace period activated until', gracePeriodEndIso);
         break;
@@ -676,10 +672,12 @@ serve(async (req) => {
         const nowIso = new Date().toISOString();
         const trialExpired = subscription.tier === 'free_trial' && !subscription.trial_converted_date;
 
-        await supabaseClient
-          .from('user_subscriptions_new')
-          .update(getSeekerDowngradeData(subscription, { trialExpired, nowIso }))
-          .eq('user_id', userId);
+        await updateSubscriptionOrThrow(
+          supabaseClient,
+          userId,
+          getSeekerDowngradeData(subscription, { trialExpired, nowIso }),
+          'expiration'
+        );
 
         console.log('[AppleWebhook] ✅ Reverted to seeker');
         break;
@@ -689,14 +687,11 @@ serve(async (req) => {
         // Refund processed - immediate revert to seeker
         console.log('[AppleWebhook] Refund processed - immediate revert');
 
-        await supabaseClient
-          .from('user_subscriptions_new')
-          .update({
-            ...getSeekerDowngradeData(subscription, { trialExpired: false }),
-            refund_date: new Date().toISOString(),
-            status: 'expired',
-          })
-          .eq('user_id', userId);
+        await updateSubscriptionOrThrow(supabaseClient, userId, {
+          ...getSeekerDowngradeData(subscription, { trialExpired: false }),
+          refund_date: new Date().toISOString(),
+          status: 'expired',
+        }, 'refund');
 
         console.log('[AppleWebhook] ✅ Refund processed');
         break;

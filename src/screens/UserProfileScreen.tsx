@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Animated,
+  Easing,
   RefreshControl,
   Alert,
   Linking,
@@ -105,6 +107,64 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Android presents this route as a dimmed sheet, so the status bar sits above
   // the white profile header. iOS keeps the native page sheet header treatment.
   useScreenStatusBar(Platform.OS === 'android' ? 'light' : 'dark', Platform.OS === 'android' ? 'transparent' : Colors.hopeWhite);
+  const androidBackdropOpacity = useRef(new Animated.Value(0)).current;
+  const androidSheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const androidDismissedRef = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    androidDismissedRef.current = false;
+    androidBackdropOpacity.setValue(0);
+    androidSheetTranslateY.setValue(Dimensions.get('window').height);
+
+    Animated.parallel([
+      Animated.timing(androidBackdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidSheetTranslateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [androidBackdropOpacity, androidSheetTranslateY]);
+
+  const dismissAndroidRoute = useCallback(() => {
+    if (Platform.OS !== 'android') {
+      navigation.goBack();
+      return;
+    }
+
+    if (androidDismissedRef.current) {
+      return;
+    }
+
+    androidDismissedRef.current = true;
+
+    Animated.parallel([
+      Animated.timing(androidBackdropOpacity, {
+        toValue: 0,
+        duration: 140,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidSheetTranslateY, {
+        toValue: Dimensions.get('window').height,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      navigation.goBack();
+    });
+  }, [androidBackdropOpacity, androidSheetTranslateY, navigation]);
 
   const navigateToSalesOffer = useCallback((params: Record<string, unknown>) => {
     const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
@@ -1139,18 +1199,23 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         throw new Error(result?.error?.message || 'Failed to update profile');
       }
 
-      // Also sync full birth date to user_profiles.date_of_birth for server-side logic
+      // Also sync name and birth date to user_profiles for server-side logic (notifications, etc.)
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const accessToken = session?.access_token;
-        if (accessToken && birthDateStr) {
-          await userApi.updateProfile(accessToken, { dateOfBirth: birthDateStr } as any);
+        if (accessToken) {
+          await userApi.updateProfile(accessToken, {
+            firstName: first || undefined,
+            lastName: last || undefined,
+            fullName: full || undefined,
+            dateOfBirth: birthDateStr || undefined,
+          } as any);
         }
       } catch (e) {
         // Non-fatal: log but do not block the user from saving profile
-        Logger.warn('[UserProfile] Failed to sync birth date to user_profiles', {
+        Logger.warn('[UserProfile] Failed to sync profile data to user_profiles', {
           component: 'UserProfileScreen',
-          action: 'sync_birth_date_profile',
+          action: 'sync_profile_data',
           details: e instanceof Error ? e.message : String(e),
         } as any);
       }
@@ -2629,7 +2694,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         onOpenSalesOffer={navigateToSalesOffer}
         onContinueWithSiFia={() => {
           setSubscriptionPlanModal(false);
-          navigation.goBack();
+          dismissAndroidRoute();
         }}
         navigation={navigation}
       />
@@ -2639,17 +2704,30 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (Platform.OS === 'android') {
     return (
       <View style={styles.androidModalRoot}>
-        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
-        <SafeAreaView
-          edges={['left', 'right']}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.androidBackdrop, { opacity: androidBackdropOpacity }]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismissAndroidRoute} />
+        <Animated.View
           style={[
-            styles.container,
             styles.androidRouteSheet,
-            { backgroundColor: theme.colors.hopeWhite },
+            {
+              backgroundColor: theme.colors.hopeWhite,
+              transform: [{ translateY: androidSheetTranslateY }],
+            },
           ]}
         >
-          {profileContent}
-        </SafeAreaView>
+          <SafeAreaView
+            edges={['left', 'right']}
+            style={[
+              styles.container,
+              { backgroundColor: theme.colors.hopeWhite },
+            ]}
+          >
+            {profileContent}
+          </SafeAreaView>
+        </Animated.View>
       </View>
     );
   }
@@ -2675,13 +2753,15 @@ const styles = StyleSheet.create({
   androidModalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'transparent',
   },
   androidBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   androidRouteSheet: {
     flex: 0,
+    width: '100%',
     height: '92%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

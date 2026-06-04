@@ -82,6 +82,18 @@ interface ValidatedReceiptRow {
   } | null;
 }
 
+interface CurrentSubscriptionRow {
+  user_id: string;
+  tier: string | null;
+  status: string | null;
+  cancellation_date: string | null;
+  subscription_end_date: string | null;
+  auto_renew_enabled: boolean | null;
+  platform_transaction_id?: string | null;
+  original_transaction_id?: string | null;
+  trial_converted_date?: string | null;
+}
+
 function decodeJWT(token: string): DecodedTransaction | null {
   try {
     const parts = token.split('.');
@@ -137,12 +149,12 @@ serve(async (req) => {
     console.log('[SyncApple] Starting Apple Transaction History sync...');
 
     // Get Apple credentials
-    const appleKeyId = Deno.env.get('APPLE_KEY_ID');
-    const appleIssuerId = Deno.env.get('APPLE_ISSUER_ID');
-    const applePrivateKey = Deno.env.get('APPLE_PRIVATE_KEY');
+    const appleKeyId = Deno.env.get('APP_STORE_CONNECT_KEY_ID') || Deno.env.get('APPLE_KEY_ID');
+    const appleIssuerId = Deno.env.get('APP_STORE_CONNECT_ISSUER_ID') || Deno.env.get('APPLE_ISSUER_ID');
+    const applePrivateKey = Deno.env.get('APP_STORE_CONNECT_PRIVATE_KEY') || Deno.env.get('APPLE_PRIVATE_KEY');
 
     if (!appleKeyId || !appleIssuerId || !applePrivateKey) {
-      throw new Error('Missing Apple API credentials. Set APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_PRIVATE_KEY in environment.');
+      throw new Error('Missing Apple API credentials. Set APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY in environment.');
     }
 
     // Find ALL users with receipts from validated_receipts table
@@ -173,10 +185,12 @@ serve(async (req) => {
     const userIds = [...new Set((receipts as ValidatedReceiptRow[]).map(r => r.user_id))];
     const { data: subscriptions } = await supabaseClient
       .from('user_subscriptions_new')
-      .select('user_id, tier, status, cancellation_date, subscription_end_date, auto_renew_enabled')
+      .select('user_id, tier, status, cancellation_date, subscription_end_date, auto_renew_enabled, platform_transaction_id, original_transaction_id, trial_converted_date')
       .in('user_id', userIds);
 
-    const subMap = new Map((subscriptions || []).map((s: any) => [s.user_id, s]));
+    const subMap = new Map((subscriptions || []).map((s: CurrentSubscriptionRow) => [s.user_id, s]));
+    const soonThreshold = new Date();
+    soonThreshold.setDate(soonThreshold.getDate() + 3);
 
     // Group receipts by user and get their original transaction IDs
     const userTransactions = new Map();
@@ -203,11 +217,24 @@ serve(async (req) => {
         continue;
       }
 
+      const subscriptionEnd = sub?.subscription_end_date ? new Date(sub.subscription_end_date) : null;
+      const shouldCheck =
+        !sub ||
+        sub.status !== 'active' ||
+        sub.tier === 'seeker' ||
+        !subscriptionEnd ||
+        subscriptionEnd <= soonThreshold;
+
+      if (!shouldCheck) {
+        continue;
+      }
+
       if (!userTransactions.has(receipt.user_id)) {
         userTransactions.set(receipt.user_id, {
           user_id: receipt.user_id,
           original_transaction_id: originalTransactionId,
           tier: sub?.tier,
+          subscription: sub,
           receipts: [],
         });
       }
@@ -352,6 +379,8 @@ serve(async (req) => {
         const tier = getTierFromProductId(latestPaid.productId);
         const limits = getTierLimits(tier);
         const billingCycle = latestPaid.productId.includes('annual') ? 'annual' : 'monthly';
+        const currentSubscription = user.subscription as CurrentSubscriptionRow | undefined;
+        const transactionChanged = latestPaid.transactionId !== currentSubscription?.platform_transaction_id;
 
         // Calculate subscription_end_date — prefer Apple's actual expiresDate
         const now = new Date();
@@ -367,29 +396,38 @@ serve(async (req) => {
           }
         }
 
-        // Upgrade user to paid tier
+        const updateData: Record<string, any> = {
+          tier,
+          subscription_display_name: getTierDisplayName(tier),
+          status: 'active',
+          billing_cycle: billingCycle,
+          playbooks_limit: limits.playbooks_limit,
+          devotionals_limit: limits.devotionals_limit,
+          smart_journaling_enabled: limits.smart_journaling_enabled,
+          subscription_end_date: subscriptionEndDate.toISOString(),
+          platform_transaction_id: latestPaid.transactionId,
+          original_transaction_id: latestPaid.originalTransactionId,
+          billing_issue: false,
+          grace_period_end_date: null,
+          auto_renew_enabled: true,
+          updated_at: now.toISOString(),
+        };
+
+        if (transactionChanged) {
+          updateData.playbooks_used = 0;
+          updateData.devotionals_used = 0;
+          updateData.last_usage_reset = new Date(latestPaid.purchaseDate).toISOString();
+          updateData.subscription_start_date = new Date(latestPaid.purchaseDate).toISOString();
+        }
+
+        if (!currentSubscription?.trial_converted_date) {
+          updateData.trial_converted_date = new Date(latestPaid.purchaseDate).toISOString();
+        }
+
+        // Upgrade or repair user to paid tier. Usage resets only for a new Apple transaction.
         const { error: updateError } = await supabaseClient
           .from('user_subscriptions_new')
-          .update({
-            tier,
-            subscription_display_name: getTierDisplayName(tier),
-            status: 'active',
-            billing_cycle: billingCycle,
-            playbooks_limit: limits.playbooks_limit,
-            devotionals_limit: limits.devotionals_limit,
-            playbooks_used: 0,
-            devotionals_used: 0,
-            smart_journaling_enabled: limits.smart_journaling_enabled,
-            subscription_start_date: new Date(latestPaid.purchaseDate).toISOString(),
-            subscription_end_date: subscriptionEndDate.toISOString(),
-            trial_converted_date: new Date(latestPaid.purchaseDate).toISOString(),
-            platform_transaction_id: latestPaid.transactionId,
-            original_transaction_id: latestPaid.originalTransactionId,
-            billing_issue: false,
-            grace_period_end_date: null,
-            auto_renew_enabled: true,
-            updated_at: now.toISOString(),
-          })
+          .update(updateData)
           .eq('user_id', user.user_id);
 
         if (updateError) {

@@ -11,7 +11,6 @@ import {
   Animated,
   Keyboard,
   KeyboardAvoidingView,
-  NativeModules,
   Platform,
   Pressable,
   StyleSheet,
@@ -39,6 +38,7 @@ import { unifiedGenerationService } from '../services/unifiedGenerationService';
 import { faithPointsService } from '../services/faithPointsService';
 import type { Playbook } from '../interfaces/playbook';
 import { validatePlaybookInputQuality } from '../utils/playbookInputValidation';
+import { requestAndroidSoftKeyboard } from '../utils/androidKeyboard';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -62,10 +62,6 @@ const buildInitialGenerationSteps = () => INITIAL_GENERATION_STEPS.map((step) =>
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const AndroidKeyboard = NativeModules.SifiaKeyboard as
-  | { showSoftKeyboard?: () => void }
-  | undefined;
-
 const androidPlatformConstants = Platform.OS === 'android'
   ? ((Platform as any).constants ?? {})
   : {};
@@ -84,15 +80,6 @@ const isAndroidEmulator = Platform.OS === 'android' && [
     normalized.includes('sdk_gphone')
   );
 });
-
-const requestAndroidSoftKeyboard = () => {
-  if (Platform.OS !== 'android') {
-    return;
-  }
-
-  setTimeout(() => AndroidKeyboard?.showSoftKeyboard?.(), 60);
-  setTimeout(() => AndroidKeyboard?.showSoftKeyboard?.(), 180);
-};
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();

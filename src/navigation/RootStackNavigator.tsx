@@ -349,8 +349,8 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: true,
+              animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
+              gestureEnabled: Platform.OS === 'android' ? false : true,
               contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />
@@ -362,7 +362,7 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-              animation: 'slide_from_bottom',
+              animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
               gestureEnabled: true,
               contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
@@ -416,8 +416,8 @@ export default function RootStackNavigator({
             options={{
               headerShown: false,
               presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: true,
+              animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
+              gestureEnabled: Platform.OS === 'android' ? false : true,
               contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />

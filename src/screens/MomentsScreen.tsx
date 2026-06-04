@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Pressable } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Pressable, Animated, Easing, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
@@ -63,6 +63,64 @@ export const MomentsScreen: React.FC = () => {
   const groupingRef = useRef<GroupingSelectHandle>(null);
   const filterRef = useRef<FilterSelectHandle>(null);
   const searchInputRef = useRef<any>(null);
+  const androidBackdropOpacity = useRef(new Animated.Value(0)).current;
+  const androidSheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const androidDismissedRef = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    androidDismissedRef.current = false;
+    androidBackdropOpacity.setValue(0);
+    androidSheetTranslateY.setValue(Dimensions.get('window').height);
+
+    Animated.parallel([
+      Animated.timing(androidBackdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidSheetTranslateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [androidBackdropOpacity, androidSheetTranslateY]);
+
+  const dismissAndroidRoute = React.useCallback(() => {
+    if (Platform.OS !== 'android') {
+      navigation.goBack();
+      return;
+    }
+
+    if (androidDismissedRef.current) {
+      return;
+    }
+
+    androidDismissedRef.current = true;
+
+    Animated.parallel([
+      Animated.timing(androidBackdropOpacity, {
+        toValue: 0,
+        duration: 140,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidSheetTranslateY, {
+        toValue: Dimensions.get('window').height,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      navigation.goBack();
+    });
+  }, [androidBackdropOpacity, androidSheetTranslateY, navigation]);
 
   // Toggle search with animation
   const toggleSearch = () => {
@@ -275,10 +333,21 @@ export const MomentsScreen: React.FC = () => {
   if (Platform.OS === 'android') {
     return (
       <View style={styles.androidModalRoot}>
-        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
-        <SafeAreaView style={[styles.container, styles.androidRouteSheet]} edges={['left', 'right']}>
-          {screenContent}
-        </SafeAreaView>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.androidBackdrop, { opacity: androidBackdropOpacity }]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismissAndroidRoute} />
+        <Animated.View
+          style={[
+            styles.androidRouteSheet,
+            { transform: [{ translateY: androidSheetTranslateY }] },
+          ]}
+        >
+          <SafeAreaView style={styles.container} edges={['left', 'right']}>
+            {screenContent}
+          </SafeAreaView>
+        </Animated.View>
       </View>
     );
   }
@@ -298,14 +367,17 @@ const styles = StyleSheet.create({
   androidModalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'transparent',
   },
   androidBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   androidRouteSheet: {
     flex: 0,
+    width: '100%',
     height: '92%',
+    backgroundColor: Colors.anchorBlue,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',

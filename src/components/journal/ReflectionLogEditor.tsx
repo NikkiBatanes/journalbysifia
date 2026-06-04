@@ -1097,6 +1097,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Always show free-form editor if we have a prompt or source is devotional
   const effectiveViewMode = viewMode;
+  const isGuidedCloseVisible = viewMode === 'guided';
 
   // Cancel handler
   const handleCancel = async () => {
@@ -1407,6 +1408,9 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         )}
         {/* Close button for guided mode - animates in from right beside heart icon */}
         <Animated.View
+          pointerEvents={isGuidedCloseVisible ? 'auto' : 'none'}
+          accessibilityElementsHidden={!isGuidedCloseVisible}
+          importantForAccessibility={isGuidedCloseVisible ? 'auto' : 'no-hide-descendants'}
           style={[
             s.closeButtonContainer,
             {
@@ -1429,6 +1433,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           ]}
         >
           <TouchableOpacity
+            disabled={!isGuidedCloseVisible}
             onPress={() => {
               triggerLightHaptic();
               onCancel();

@@ -49,6 +49,11 @@ const LABELS: Record<string, string> = {
   Journal: 'Journal',
 };
 
+const TAB_ROOT_ROUTES: Record<string, string[]> = {
+  Overview: ['DashboardHome'],
+  Journal: ['JournalMain'],
+};
+
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
 const CustomTabBarComponent = ({
   state,
@@ -63,7 +68,17 @@ const CustomTabBarComponent = ({
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
 
   const currentRouteName = state.routes[state.index].name;
+  const activeTabRoute = state.routes[state.index] as any;
+  const nestedState = activeTabRoute.state;
+  const activeNestedRouteName = nestedState?.routes?.[nestedState.index ?? 0]?.name;
+  const allowedRootRoutes = TAB_ROOT_ROUTES[currentRouteName];
+  const isNestedDetailRoute = Boolean(
+    activeNestedRouteName &&
+    allowedRootRoutes &&
+    !allowedRootRoutes.includes(activeNestedRouteName)
+  );
   const isReflect = currentRouteName === 'Reflect';
+  const shouldHideTabBar = isReflect || isNestedDetailRoute;
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
@@ -202,6 +217,10 @@ const CustomTabBarComponent = ({
   }, [state.index, updateSelectorPosition]);
 
   const { onTabPress } = React.useContext(TabPressContext);
+
+  if (shouldHideTabBar) {
+    return null;
+  }
 
   // pillAnim 0→1 drives: opacity 0→1 + translateY 28→0 (entrance/exit mirror)
   const pillOpacity   = pillAnim;

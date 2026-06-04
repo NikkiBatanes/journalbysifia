@@ -3,7 +3,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet, DeviceEventEmitter } from 'react-native';
+import { View, TouchableOpacity, Alert, Modal, Platform, ScrollView, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { JournalCard } from './JournalCard';
@@ -644,7 +644,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <Modal
         visible={showPromptPicker}
-        animationType="slide"
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
         transparent={true}
         onRequestClose={() => setShowPromptPicker(false)}
       >

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Platform, StyleProp, StyleSheet, Text as RNText, TextInput as RNTextInput, TextStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { FontFamilyMap, getFontFamily } from '../../theme/fonts';
+import { requestAndroidSoftKeyboard, shouldRequestAndroidSoftKeyboard } from '../../utils/androidKeyboard';
 
 type ThemeWeight = 'regular' | 'medium' | 'semiBold' | 'bold';
 type PatchableTextComponent = {
@@ -94,6 +95,36 @@ const patchAndroidTextRender = (component: PatchableTextComponent) => {
   };
 };
 
+const patchAndroidTextInputRender = (component: PatchableTextComponent) => {
+  if (Platform.OS !== 'android' || component.__sifiaOriginalRender || typeof component.render !== 'function') {
+    return;
+  }
+
+  const originalRender = component.render;
+  component.__sifiaOriginalRender = originalRender;
+  component.render = function sifiaThemedTextInputRender(props: any, ref: any) {
+    const themedStyle = getAndroidThemedStyle(props?.style, component.__sifiaFontKey || 'lexend');
+    const shouldShowKeyboard = shouldRequestAndroidSoftKeyboard(props);
+    const originalOnFocus = props?.onFocus;
+    const { sifiaDisableKeyboardForce: _sifiaDisableKeyboardForce, ...nativeProps } = props || {};
+    const nextProps = {
+      ...nativeProps,
+      ...(themedStyle ? { style: [props?.style, themedStyle] } : {}),
+      ...(shouldShowKeyboard
+        ? {
+            showSoftInputOnFocus: props?.showSoftInputOnFocus ?? true,
+            onFocus: (event: any) => {
+              originalOnFocus?.(event);
+              requestAndroidSoftKeyboard();
+            },
+          }
+        : {}),
+    };
+
+    return originalRender.call(this, nextProps, ref);
+  };
+};
+
 const GlobalFontApplier: React.FC = () => {
   const { currentFont } = useTheme();
 
@@ -109,7 +140,7 @@ const GlobalFontApplier: React.FC = () => {
     textComponent.__sifiaFontKey = fontKey;
     textInputComponent.__sifiaFontKey = fontKey;
     patchAndroidTextRender(textComponent);
-    patchAndroidTextRender(textInputComponent);
+    patchAndroidTextInputRender(textInputComponent);
 
     // Ensure defaultProps objects exist
     if ((RNText as any).defaultProps == null) {

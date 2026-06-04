@@ -21,6 +21,10 @@ export function normalizePrayerText(raw: string): string {
     .replace(/\*\*/g, '')
     // Convert CRLF to LF
     .replace(/\r\n/g, '\n')
+    // Remove generated list markers directly before the closing prayer.
+    .replace(/(^|\n)\s*\d+[\.)]?\s*\n\s*(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1')
+    .replace(/(^|\n)\s*(?:\d+[\.)]?|[-*•])\s*(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1')
+    .replace(/([.!?])\s+\d+[\.)]?\s+(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1 ')
     .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name, Amen')
     // Collapse 3+ newlines to 2
     .replace(/\n{3,}/g, '\n\n')

@@ -288,7 +288,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
       presentationStyle="fullScreen"
       transparent={Platform.OS === 'android'}
       statusBarTranslucent={Platform.OS === 'android'}

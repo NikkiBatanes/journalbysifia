@@ -23,6 +23,7 @@ import ThemedText from './common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { parseCanonicalQuotedInstructionLine } from '../utils/actionWisdomParsing';
+import { requestAndroidSoftKeyboard } from '../utils/androidKeyboard';
 
 interface HowToModalProps {
   visible: boolean;
@@ -1529,6 +1530,8 @@ const HowToModal: React.FC<HowToModalProps> = ({
   const stillNeedHelpWidthAnim = React.useRef(new Animated.Value(44)).current;
   const stillNeedHelpTranslateXAnim = React.useRef(new Animated.Value(0)).current;
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const questionInputRef = React.useRef<TextInput>(null);
+  const lastQuestionKeyboardRequestRef = React.useRef(0);
   const [journalExpanded, setJournalExpanded] = useState(false);
   const triggerRotation = React.useRef(new Animated.Value(0)).current;
   const triggerScale = React.useRef(new Animated.Value(1)).current;
@@ -1666,6 +1669,23 @@ const HowToModal: React.FC<HowToModalProps> = ({
     }
   }, [visible, fadeAnim, resultAnim]);
 
+  const requestQuestionInputKeyboard = React.useCallback(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastQuestionKeyboardRequestRef.current < 900) {
+      return;
+    }
+    lastQuestionKeyboardRequestRef.current = now;
+
+    requestAnimationFrame(() => {
+      questionInputRef.current?.focus();
+      requestAndroidSoftKeyboard();
+    });
+  }, []);
+
   React.useEffect(() => {
     if (result?.success && result.wisdom) {
       resultAnim.setValue(0);
@@ -1780,7 +1800,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={Platform.OS === 'android'}
+      transparent={false}
       onRequestClose={onDismiss}
       statusBarTranslucent={Platform.OS === 'android'}
       navigationBarTranslucent={Platform.OS === 'android'}
@@ -1788,7 +1808,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
     >
       <StatusBar hidden />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, backgroundColor: Colors.anchorBlue }}
       >
         <Animated.View style={[styles.fullScreenContainer, { opacity: fadeAnim }]}>
@@ -2140,6 +2160,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
               <>
                 <View style={styles.inputWrapper}>
                   <TextInput
+                    ref={questionInputRef}
                     value={question}
                     onChangeText={setQuestion}
                     placeholder="Type your question here..."
@@ -2149,6 +2170,9 @@ const HowToModal: React.FC<HowToModalProps> = ({
                     textAlignVertical="top"
                     autoFocus
                     keyboardAppearance="dark"
+                    onFocus={requestQuestionInputKeyboard}
+                    onPressIn={requestQuestionInputKeyboard}
+                    {...({ sifiaDisableKeyboardForce: true } as any)}
                   />
                   <View style={styles.charCounterWrapper}>
                     <ThemedText style={[styles.charCounterText, font]}>

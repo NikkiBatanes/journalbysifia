@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Platform,
   ScrollView,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
@@ -233,7 +234,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       <Modal
         visible={showCalendar}
         transparent
-        animationType="slide"
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
         onRequestClose={() => setShowCalendar(false)}
       >
         <View style={styles.modalOverlay}>
@@ -277,7 +278,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       <Modal
         visible={showPresets}
         transparent
-        animationType="slide"
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
         onRequestClose={() => setShowPresets(false)}
       >
         <View style={styles.modalOverlay}>

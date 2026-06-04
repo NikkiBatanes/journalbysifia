@@ -1,3 +1,4 @@
+const path = require('path');
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
 const {withSentryConfig} = require('@sentry/react-native/metro');
@@ -27,6 +28,19 @@ const config = {
   resolver: {
     assetExts: defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
     sourceExts: [...defaultConfig.resolver.sourceExts, 'svg'],
+    resolveRequest: (context, moduleName, platform) => {
+      if (moduleName === 'lucide-react-native') {
+        return {
+          type: 'sourceFile',
+          filePath: path.join(
+            __dirname,
+            'node_modules/lucide-react-native/dist/cjs/lucide-react-native.js',
+          ),
+        };
+      }
+
+      return context.resolveRequest(context, moduleName, platform);
+    },
   },
 };
 

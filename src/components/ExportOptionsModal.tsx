@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Platform,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -142,7 +143,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       <Modal
         visible={visible}
         transparent
-        animationType="slide"
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
         onRequestClose={onClose}
       >
         <View style={styles.overlay}>

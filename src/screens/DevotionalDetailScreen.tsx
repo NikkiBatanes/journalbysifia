@@ -11,6 +11,7 @@ import {
   Pressable,
   View,
   Animated,
+  Easing,
   NativeModules,
   StatusBar,
   Platform,
@@ -189,6 +190,9 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const scrollViewRefs = useRef<{[key: number]: ScrollView | null}>({});
   const hasScrolledToPrayerRef = useRef(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const androidRouteBackdropOpacity = useRef(new Animated.Value(0)).current;
+  const androidRouteSheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const androidRouteDismissedRef = useRef(false);
   // Track last known viewport height for accurate comparisons
   const lastViewportHeightRef = useRef<number>(0);
   const [showFAB, setShowFAB] = useState(false);
@@ -587,7 +591,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     // If marking as prayed, save to database using React Query
     if (isPrayed && currentDay.prayer?.trim() && user) {
-      const cleanPrayer = currentDay.prayer.replace(/\*\*/g, '').trim();
+      const cleanPrayer = normalizePrayerText(currentDay.prayer).trim();
       const currentDate = toLocalDateString(new Date());
 
       // Update prayer_prayed field in user_devotionals table
@@ -854,6 +858,61 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     }
   }, [devotional]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    androidRouteDismissedRef.current = false;
+    androidRouteBackdropOpacity.setValue(0);
+    androidRouteSheetTranslateY.setValue(Dimensions.get('window').height);
+
+    Animated.parallel([
+      Animated.timing(androidRouteBackdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidRouteSheetTranslateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [androidRouteBackdropOpacity, androidRouteSheetTranslateY]);
+
+  const dismissAndroidRoute = useCallback(() => {
+    if (Platform.OS !== 'android') {
+      navigation.goBack();
+      return;
+    }
+
+    if (androidRouteDismissedRef.current) {
+      return;
+    }
+
+    androidRouteDismissedRef.current = true;
+
+    Animated.parallel([
+      Animated.timing(androidRouteBackdropOpacity, {
+        toValue: 0,
+        duration: 140,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(androidRouteSheetTranslateY, {
+        toValue: Dimensions.get('window').height,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      navigation.goBack();
+    });
+  }, [androidRouteBackdropOpacity, androidRouteSheetTranslateY, navigation]);
+
   const renderAndroidRouteSheet = (content: React.ReactElement): React.ReactElement => {
     if (Platform.OS !== 'android') {
       return content;
@@ -861,10 +920,19 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     return (
       <View style={styles.androidModalRoot}>
-        <Pressable style={styles.androidBackdrop} onPress={() => navigation.goBack()} />
-        <View style={styles.androidRouteSheet}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.androidBackdrop, { opacity: androidRouteBackdropOpacity }]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismissAndroidRoute} />
+        <Animated.View
+          style={[
+            styles.androidRouteSheet,
+            { transform: [{ translateY: androidRouteSheetTranslateY }] },
+          ]}
+        >
           {content}
-        </View>
+        </Animated.View>
       </View>
     );
   };
@@ -879,7 +947,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     return renderAndroidRouteSheet(
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Invalid devotional link</ThemedText>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={dismissAndroidRoute}>
           <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
         </TouchableOpacity>
       </SafeAreaView>
@@ -894,7 +962,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Devotional not found</ThemedText>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={dismissAndroidRoute}
         >
           <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
         </TouchableOpacity>
@@ -926,7 +994,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       // 1. User swiped down more than 100px
       // 2. OR swiped down more than 50px quickly (velocity > 1000)
       if (e.translationY > 100 || (e.translationY > 50 && e.velocityY > 1000)) {
-        runOnJS(navigation.goBack)();
+        runOnJS(dismissAndroidRoute)();
       }
     })
     .minDistance(5) // Small distance to start detecting
@@ -1454,10 +1522,11 @@ const styles = StyleSheet.create({
   androidModalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'transparent',
   },
   androidBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   androidRouteSheet: {
     flex: 0,

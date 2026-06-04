@@ -19,7 +19,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-          animation: 'slide_from_bottom',
+          animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
           gestureEnabled: true,
           contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
         }}
