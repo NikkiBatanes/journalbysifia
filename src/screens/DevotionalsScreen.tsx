@@ -1319,7 +1319,7 @@ const DevotionalsScreen = () => {
                   <View style={styles.searchInputWrapper}>
                     <TextInput
                       ref={searchInputRef}
-                      style={[styles.searchInput, { padding: 0, margin: 0 }]}
+                      style={styles.searchInput}
                       placeholder="Search all devotionals..."
                       placeholderTextColor={'rgba(3,32,61,0.35)'}
                       value={searchQuery}
@@ -1693,11 +1693,13 @@ const styles = StyleSheet.create({
     height: 8,
   },
   searchInput: {
-    flex: 1,
-    height: '100%',
+    width: '100%',
+    height: Platform.OS === 'ios' ? 22 : '100%',
     fontSize: 14,
+    lineHeight: Platform.OS === 'ios' ? 18 : undefined,
     color: Colors.anchorBlue,
-    paddingVertical: 0,
+    padding: 0,
+    margin: 0,
     fontFamily: Fonts.regular,
     letterSpacing: 0.1,
     includeFontPadding: false,

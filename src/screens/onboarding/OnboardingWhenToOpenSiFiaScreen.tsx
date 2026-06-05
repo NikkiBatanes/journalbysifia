@@ -47,6 +47,8 @@ const OnboardingWhenToOpenSiFiaScreen: React.FC = () => {
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     const checkImmediateNavigation = async () => {
       if (hasNavigatedRef.current || isNavigatingRef.current) {
         return;

@@ -7,6 +7,7 @@ import React from 'react';
 import { Logger } from '../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useNetworkState } from '../services/network/networkManager';
 import { Colors } from '../theme/colors';
@@ -21,6 +22,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
   showDetails = false,
   style,
 }) => {
+  const insets = useSafeAreaInsets();
   const {
     isOnline,
     isConnected,
@@ -31,6 +33,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
 
   // Don't show offline status immediately - wait a bit to avoid flickering
   const [showOfflineStatus, setShowOfflineStatus] = React.useState(false);
+  const [isDismissed, setIsDismissed] = React.useState(false);
 
   const handleSyncPress = async () => {
     try {
@@ -51,6 +54,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
     } else {
       // Hide offline status immediately when back online
       setShowOfflineStatus(false);
+      setIsDismissed(false);
     }
 
     return () => {
@@ -66,6 +70,10 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
 
   // Don't render if offline but haven't waited long enough
   if (!isOnline && !showOfflineStatus && !showDetails) {
+    return null;
+  }
+
+  if (isDismissed && !showDetails) {
     return null;
   }
 
@@ -90,7 +98,14 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.container,
+        { bottom: Math.max(insets.bottom, 8) + 76 },
+        style,
+      ]}
+    >
       <View style={styles.statusRow}>
         <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
           {syncStatus.syncInProgress ? (
@@ -113,6 +128,18 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
             disabled={!isOnline || syncStatus.syncInProgress}
           >
             <Text style={styles.syncButtonText}>Sync</Text>
+          </TouchableOpacity>
+        )}
+
+        {!showDetails && (
+          <TouchableOpacity
+            accessibilityLabel="Dismiss network status"
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.dismissButton}
+            onPress={() => setIsDismissed(true)}
+          >
+            <Ionicons name="close" size={16} color={Colors.textGray} />
           </TouchableOpacity>
         )}
       </View>
@@ -138,21 +165,26 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 1000,
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 8,
-    marginHorizontal: 16,
-    marginVertical: 4,
+    borderRadius: 26,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.14,
+    shadowRadius: 4,
+    elevation: 12,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 28,
   },
   statusIndicator: {
     width: 24,
@@ -165,6 +197,7 @@ const styles = StyleSheet.create({
   statusText: {
     flex: 1,
     fontSize: 14,
+    lineHeight: 20,
     fontFamily: Fonts.medium,
     color: Colors.darkGray,
   },
@@ -178,6 +211,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
+  },
+  dismissButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+    backgroundColor: 'rgba(3,32,61,0.06)',
   },
   detailsContainer: {
     marginTop: 8,

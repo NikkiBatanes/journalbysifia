@@ -64,6 +64,11 @@ import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 import {initializeLogger} from './src/config/logging.config';
 import { experiencePreferences } from './src/services/experiencePreferences';
 import { initializeMetaAppEvents } from './src/services/metaAppEventsService';
+import { onboardingService } from './src/services/onboardingService';
+import {
+  clearLoginFlowRedirect,
+  getPostAuthRedirect,
+} from './src/utils/postAuthRedirect';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -74,6 +79,39 @@ initializeLogger();
 
 
 // Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
+
+const NEW_AUTH_ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
+
+const INTRO_AUTH_ROUTES = new Set([
+  'Auth',
+  'Login',
+  'EmailLogin',
+  'Register',
+  'EmailRegister',
+  'TransformJourney',
+  'OnboardingWhenToOpenSiFia',
+  'OnboardingPosture',
+  'OnboardingAccountCreation',
+  'OnboardingWelcome',
+]);
+
+const isRecentlyCreatedAuthUser = (createdAt?: string): boolean => {
+  if (!createdAt) {
+    return false;
+  }
+
+  const createdTime = new Date(createdAt).getTime();
+  if (Number.isNaN(createdTime)) {
+    return false;
+  }
+
+  return Date.now() - createdTime < NEW_AUTH_ACCOUNT_WINDOW_MS;
+};
+
+const isOAuthUser = (user: any): boolean => {
+  const provider = user?.app_metadata?.provider || user?.identities?.[0]?.provider;
+  return provider === 'apple' || provider === 'google';
+};
 
 // Main App Component
 function App(): React.JSX.Element {
@@ -123,6 +161,7 @@ function AppWithAuth({
     undefined,
   );
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const lastHandledLoginRedirectRef = React.useRef<string | null>(null);
 
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
@@ -291,6 +330,70 @@ function AppWithAuth({
 
     syncSubscriptionStatus();
   }, [isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || bootstrapping) {
+      lastHandledLoginRedirectRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    const routeAuthenticatedUser = async () => {
+      const navigation = navigationRef.current;
+      if (!navigation?.isReady?.()) {
+        return;
+      }
+
+      const currentRoute = navigation.getCurrentRoute()?.name;
+
+      try {
+        const redirect = await getPostAuthRedirect('App:postAuthRedirect');
+        const target = redirect?.target;
+        const params = redirect?.params || {};
+        const isLoginFlow = redirect?.is_login_flow === true;
+        const redirectKey = `${user.id}:${target || ''}`;
+        const isBrandNewOAuthAccount = isOAuthUser(user) && isRecentlyCreatedAuthUser(user.created_at);
+
+        if (isLoginFlow && target && isBrandNewOAuthAccount) {
+          await clearLoginFlowRedirect('App:postAuthRedirect:newOAuthAccount');
+        } else if (isLoginFlow && target) {
+          if (!cancelled && lastHandledLoginRedirectRef.current !== redirectKey) {
+            lastHandledLoginRedirectRef.current = redirectKey;
+            navigation.reset({
+              index: 0,
+              routes: [{ name: target as never, params: params as never }],
+            });
+          }
+
+          await clearLoginFlowRedirect('App:postAuthRedirect');
+          return;
+        }
+
+        if (currentRoute && INTRO_AUTH_ROUTES.has(currentRoute)) {
+          const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
+          if (!cancelled && hasCompleted) {
+            lastHandledLoginRedirectRef.current = `${user.id}:UserInput`;
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'UserInput' as never }],
+            });
+          }
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.warn('[App] Failed to route authenticated user after login:', error);
+        }
+      }
+    };
+
+    const timeout = setTimeout(routeAuthenticatedUser, 50);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [bootstrapping, isAuthenticated, user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {

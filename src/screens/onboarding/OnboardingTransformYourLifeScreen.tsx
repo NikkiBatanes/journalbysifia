@@ -72,6 +72,8 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   const isNavigatingRef = useRef(false);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     // Check for immediate navigation needs (post-auth redirect, completed onboarding)
     const checkImmediateNavigation = async () => {
       if (hasNavigatedRef.current || isNavigatingRef.current) {

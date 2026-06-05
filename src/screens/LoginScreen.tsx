@@ -17,6 +17,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import { clearLoginFlowRedirect, setUserInputLoginRedirect } from '../utils/postAuthRedirect';
 import ThemedText from '../components/common/ThemedText';
 
 interface Props {
@@ -143,8 +144,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     triggerLightHaptic();
     setError('');
     setActiveProvider('google');
+    try {
+      await setUserInputLoginRedirect();
+    } catch {}
     const { error: googleError } = await signInWithGoogle();
     if (googleError) {
+      try {
+        await clearLoginFlowRedirect('LoginScreen:google');
+      } catch {}
       // Hide cancellation errors
       const msg = googleError.message?.toLowerCase?.() || '';
       if (msg.includes('cancel') || msg.includes('cancelled')) {
@@ -161,8 +168,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     triggerLightHaptic();
     setError('');
     setActiveProvider('apple');
+    try {
+      await setUserInputLoginRedirect();
+    } catch {}
     const { error: appleError } = await signInWithApple();
     if (appleError) {
+      try {
+        await clearLoginFlowRedirect('LoginScreen:apple');
+      } catch {}
       // Hide cancellation errors
       const msg = appleError.message?.toLowerCase?.() || '';
       if (msg.includes('cancel') || msg.includes('cancelled')) {

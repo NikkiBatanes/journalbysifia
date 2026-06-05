@@ -11,6 +11,11 @@ import { Logger } from '../utils/ProductionLogger';
 import { adminAnalyticsService } from '../services/adminAnalyticsService';
 import { metaAppEventsService } from '../services/metaAppEventsService';
 import type { MetaRegistrationMethod } from '../services/metaAppEventsService';
+import {
+  clearLoginFlowRedirect,
+  hasLoginFlowRedirect,
+  setUserInputLoginRedirect,
+} from '../utils/postAuthRedirect';
 
 // Industry-standard auth types
 interface AuthState {
@@ -46,6 +51,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Global session refresh coordinator
 let refreshPromise: Promise<any> | null = null;
+
+const NEW_AUTH_ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
+
+const isRecentlyCreatedAuthUser = (createdAt?: string): boolean => {
+  if (!createdAt) {
+    return false;
+  }
+
+  const createdTime = new Date(createdAt).getTime();
+  if (Number.isNaN(createdTime)) {
+    return false;
+  }
+
+  return Date.now() - createdTime < NEW_AUTH_ACCOUNT_WINDOW_MS;
+};
 
 const getMetaRegistrationMethod = (user: any): MetaRegistrationMethod => {
   const provider = user?.app_metadata?.provider || user?.identities?.[0]?.provider;
@@ -402,12 +422,18 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   });
                   const isLoginFlow = existingRedirect?.is_login_flow === true;
 
-                  if (isLoginFlow) {
+                  const isBrandNewOAuthAccount = isRecentlyCreatedAuthUser(session.user.created_at);
+
+                  if (isLoginFlow && !isBrandNewOAuthAccount) {
                     // This is a login flow - preserve the is_login_flow flag
                     // Don't overwrite the redirect that signInWithGoogle/signInWithApple already set
                     Logger.debug('[AuthContext] Social login flow detected, preserving redirect with is_login_flow flag');
                     // CRITICAL: Return early to prevent overwriting the redirect below
                     return;
+                  }
+
+                  if (isLoginFlow && isBrandNewOAuthAccount) {
+                    Logger.debug('[AuthContext] Social login created a new auth account - continuing onboarding redirect checks');
                   }
 
                   // This is NOT a login flow (probably first-time social signup)
@@ -428,7 +454,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: existingProfile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: existingProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization',
+                    willRouteTo: existingProfile?.onboarding_completed ? 'UserInput' : 'OnboardingPersonalization',
                   });
 
                   if (profileError && profileError.code !== 'PGRST116') {
@@ -444,18 +470,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     // User profile already exists - this means they had an account before
 
                     if (existingProfile.onboarding_completed) {
-                      // User completed onboarding - go to main app
+                      // User completed onboarding - go to the post-login input screen
 
-                      await AsyncStorage.setItem('force_navigate_to_main', 'true');
-                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                        target: 'MainTabs',
-                        params: {},
-                        is_login_flow: true, // Bypass onboarding checks for completed users
-                      }));
+                      await setUserInputLoginRedirect();
 
-                      Logger.debug('[AuthContext] SOCIAL AUTH - Updated redirect to MainTabs for completed user', {
+                      Logger.debug('[AuthContext] SOCIAL AUTH - Updated redirect to UserInput for completed user', {
                         userId: session.user.id,
-                        target: 'MainTabs',
+                        target: 'UserInput',
                         is_login_flow: true,
                       });
                     } else {
@@ -475,14 +496,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     const hasCompletedOnboarding = false; // New user by definition
 
                     if (hasCompletedOnboarding) {
-                      // User completed onboarding - force navigation to main app
+                      // User completed onboarding - force navigation to the post-login input screen
 
-                      await AsyncStorage.setItem('force_navigate_to_main', 'true');
-                      await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                        target: 'MainTabs',
-                        params: {},
-                        is_login_flow: true, // Bypass onboarding checks for completed users
-                      }));
+                      await setUserInputLoginRedirect();
                     } else {
                       // User needs to complete onboarding - continue with personalization
 
@@ -537,7 +553,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: profile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: profile?.onboarding_completed === true ? 'MainTabs' : 'OnboardingPersonalization',
+                    willRouteTo: profile?.onboarding_completed === true ? 'UserInput' : 'OnboardingPersonalization',
                   });
 
                   if (profileError) {
@@ -552,14 +568,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                   const hasCompletedOnboarding = profile?.onboarding_completed === true;
 
                   if (hasCompletedOnboarding) {
-                    // User completed onboarding - force navigation to main app
+                    // User completed onboarding - force navigation to the post-login input screen
 
-                    await AsyncStorage.setItem('force_navigate_to_main', 'true');
-                    await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-                      target: 'MainTabs',
-                      params: {},
-                      is_login_flow: true, // Bypass onboarding checks for completed users
-                    }));
+                    await setUserInputLoginRedirect();
                   } else {
                     // User needs to complete onboarding - continue with personalization
 
@@ -588,7 +599,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
                   if (profileCheck) {
 
-                    const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
+                    const target = profileCheck.onboarding_completed ? 'UserInput' : 'OnboardingPersonalization';
                     // Pass registrationMethod for OAuth users
                     const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                     const isOAuth = provider === 'apple' || provider === 'google';
@@ -598,7 +609,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                         name: '',
                         registrationMethod: isOAuth ? 'oauth' : 'email',
                       } : {},
-                      is_login_flow: target === 'MainTabs', // Add bypass flag for completed users
+                      is_login_flow: target === 'UserInput', // Add bypass flag for completed users
                     }));
                   } else {
                     Logger.warn('No profile found, defaulting to personalization', {
@@ -727,6 +738,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       if (error) {
 
         setAuthState(prev => ({ ...prev, loading: false }));
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:signIn:error');
+        } catch (redirectError) {
+          Logger.warn('[signIn] Failed to clear pending login redirect after auth error', {
+            component: 'AuthContext',
+            action: 'sign_in_clear_redirect_error',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error };
       }
 
@@ -737,6 +757,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // This ensures unregistered users (who have auth but no profile/incomplete onboarding)
       // are routed to personalization, not dashboard
       try {
+        const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:signIn');
+        if (hasPreparedLoginRedirect) {
+          Logger.debug('[signIn] Login flow redirect already prepared - preserving UserInput redirect');
+          return { error: null };
+        }
+
         const userId = data.user?.id;
         if (!userId) {
           Logger.error('No user ID after successful sign in', undefined, {
@@ -762,7 +788,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           onboardingCompleted: profile?.onboarding_completed,
           profileError: profileError?.message,
           profileErrorCode: profileError?.code,
-          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'MainTabs',
+          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'UserInput',
         });
 
         // If profile doesn't exist or onboarding is not completed, route to personalization
@@ -782,14 +808,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to MainTabs with bypass flag
-          Logger.debug('[signIn] User has completed onboarding - routing to MainTabs');
+          // User has completed onboarding - route to UserInput with bypass flag
+          Logger.debug('[signIn] User has completed onboarding - routing to UserInput');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-            target: 'MainTabs',
-            params: {},
-            is_login_flow: true, // Bypass onboarding checks for completed users
-          }));
+          await setUserInputLoginRedirect();
         }
       } catch (checkError) {
         Logger.error('Error checking onboarding status during sign in', checkError as Error, {
@@ -813,6 +835,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         action: 'sign_in',
       });
       setAuthState(prev => ({ ...prev, loading: false }));
+      try {
+        await clearLoginFlowRedirect('IndustryStandardAuthContext:signIn:catch');
+      } catch (redirectError) {
+        Logger.warn('[signIn] Failed to clear pending login redirect after unexpected error', {
+          component: 'AuthContext',
+          action: 'sign_in_clear_redirect_catch',
+          errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+        });
+      }
       return {
         error: {
           message: 'An unexpected error occurred during sign in',
@@ -1216,6 +1247,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // User likely cancelled - don't show error, just return silently
 
         setAuthState(prev => ({ ...prev, loading: false }));
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:google:noToken');
+        } catch (redirectError) {
+          Logger.warn('[Google signIn] Failed to clear pending login redirect after cancellation', {
+            component: 'AuthContext',
+            action: 'google_clear_redirect_no_token',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: null }; // Return success to avoid showing error UI
       }
 
@@ -1305,6 +1345,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           action: 'sign_in_with_google',
         });
         setAuthState(prev => ({ ...prev, loading: false }));
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:google:authError');
+        } catch (redirectError) {
+          Logger.warn('[Google signIn] Failed to clear pending login redirect after auth error', {
+            component: 'AuthContext',
+            action: 'google_clear_redirect_auth_error',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: authError };
       }
 
@@ -1314,6 +1363,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
         if (!currentUser.data.user) {
 
+          try {
+            await clearLoginFlowRedirect('IndustryStandardAuthContext:google:noUser');
+          } catch (redirectError) {
+            Logger.warn('[Google signIn] Failed to clear pending login redirect after missing user', {
+              component: 'AuthContext',
+              action: 'google_clear_redirect_no_user',
+              errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+            });
+          }
           return { error: null };
         }
 
@@ -1391,6 +1449,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // This ensures unregistered Google users are routed to personalization, not dashboard
       try {
         const { data: currentUser } = await supabase.auth.getUser();
+        const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:google');
+        if (hasPreparedLoginRedirect && currentUser.user && !isRecentlyCreatedAuthUser(currentUser.user.created_at)) {
+          Logger.debug('[Google signIn] Login flow redirect already prepared - preserving UserInput redirect');
+          return { error: null };
+        }
+
         const userId = currentUser.user?.id;
 
         if (!userId) {
@@ -1425,14 +1489,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to MainTabs with bypass flag
-          Logger.debug('[Google signIn] User has completed onboarding - routing to MainTabs');
+          // User has completed onboarding - route to UserInput with bypass flag
+          Logger.debug('[Google signIn] User has completed onboarding - routing to UserInput');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-            target: 'MainTabs',
-            params: {},
-            is_login_flow: true, // Bypass onboarding checks for completed users
-          }));
+          await setUserInputLoginRedirect();
         }
       } catch (checkError) {
         Logger.error('Error checking onboarding status during Google sign in', checkError as Error, {
@@ -1460,6 +1520,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           error.message?.includes('canceled') ||
           error.message?.includes('SIGN_IN_CANCELLED')) {
 
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:google:cancelled');
+        } catch (redirectError) {
+          Logger.warn('[Google signIn] Failed to clear pending login redirect after provider cancellation', {
+            component: 'AuthContext',
+            action: 'google_clear_redirect_cancelled',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: null }; // Return success to avoid showing error UI
       }
 
@@ -1467,6 +1536,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         component: 'AuthContext',
         action: 'sign_in_with_google_catch',
       });
+      try {
+        await clearLoginFlowRedirect('IndustryStandardAuthContext:google:catch');
+      } catch (redirectError) {
+        Logger.warn('[Google signIn] Failed to clear pending login redirect after unexpected error', {
+          component: 'AuthContext',
+          action: 'google_clear_redirect_catch',
+          errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+        });
+      }
       return {
         error: {
           message: error.message || 'Google sign-in failed',
@@ -1502,6 +1580,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // Treat as user cancellation or benign failure: do not surface an error
 
         setAuthState(prev => ({ ...prev, loading: false }));
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:apple:noToken');
+        } catch (redirectError) {
+          Logger.warn('[Apple signIn] Failed to clear pending login redirect after cancellation', {
+            component: 'AuthContext',
+            action: 'apple_clear_redirect_no_token',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: null };
       }
 
@@ -1617,6 +1704,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           action: 'sign_in_with_apple',
         });
         setAuthState(prev => ({ ...prev, loading: false }));
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:apple:authError');
+        } catch (redirectError) {
+          Logger.warn('[Apple signIn] Failed to clear pending login redirect after auth error', {
+            component: 'AuthContext',
+            action: 'apple_clear_redirect_auth_error',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: error as SupabaseAuthError };
       }
 
@@ -1638,6 +1734,18 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       // ENTERPRISE-GRADE CHECK: Verify onboarding status before routing
       // This ensures unregistered Apple users are routed to personalization, not dashboard
       try {
+        const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:apple');
+        if (hasPreparedLoginRedirect) {
+          if (finalUser && !isRecentlyCreatedAuthUser(finalUser.created_at)) {
+            Logger.debug('[Apple signIn] Login flow redirect already prepared - preserving UserInput redirect');
+            return { error: null };
+          }
+
+          if (!finalUser) {
+            await clearLoginFlowRedirect('IndustryStandardAuthContext:apple:noUser');
+          }
+        }
+
         const { data: routingUser } = await supabase.auth.getUser();
         const userId = routingUser.user?.id;
 
@@ -1675,14 +1783,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to MainTabs with bypass flag
-          Logger.debug('[Apple signIn] User has completed onboarding - routing to MainTabs');
+          // User has completed onboarding - route to UserInput with bypass flag
+          Logger.debug('[Apple signIn] User has completed onboarding - routing to UserInput');
 
-          await AsyncStorage.setItem('post_auth_redirect', JSON.stringify({
-            target: 'MainTabs',
-            params: {},
-            is_login_flow: true, // Bypass onboarding checks for completed users
-          }));
+          await setUserInputLoginRedirect();
         }
       } catch (checkError) {
         Logger.error('Error checking onboarding status during Apple sign in', checkError as Error, {
@@ -1717,9 +1821,27 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         error?.message?.toLowerCase?.().includes('canceled')
       ) {
 
+        try {
+          await clearLoginFlowRedirect('IndustryStandardAuthContext:apple:cancelled');
+        } catch (redirectError) {
+          Logger.warn('[Apple signIn] Failed to clear pending login redirect after provider cancellation', {
+            component: 'AuthContext',
+            action: 'apple_clear_redirect_cancelled',
+            errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+          });
+        }
         return { error: null };
       }
 
+      try {
+        await clearLoginFlowRedirect('IndustryStandardAuthContext:apple:catch');
+      } catch (redirectError) {
+        Logger.warn('[Apple signIn] Failed to clear pending login redirect after unexpected error', {
+          component: 'AuthContext',
+          action: 'apple_clear_redirect_catch',
+          errorMessage: redirectError instanceof Error ? redirectError.message : String(redirectError),
+        });
+      }
       return {
         error: {
           message: error?.message || 'Apple sign-in failed',

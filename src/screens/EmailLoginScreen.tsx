@@ -20,6 +20,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import { clearLoginFlowRedirect, setUserInputLoginRedirect } from '../utils/postAuthRedirect';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 
@@ -147,8 +148,15 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    try {
+      await setUserInputLoginRedirect();
+    } catch {}
+
     const { error: signInError } = await signIn(emailTrim, password);
     if (signInError) {
+      try {
+        await clearLoginFlowRedirect('EmailLoginScreen:signInError');
+      } catch {}
       // Map common auth errors to a friendly inline message
       const raw = (signInError.message || '').toLowerCase();
 

@@ -255,7 +255,7 @@ export const MomentsScreen: React.FC = () => {
               <View style={styles.searchInputWrapper}>
                 <TextInput
                   ref={searchInputRef}
-                  style={[styles.searchInput, { padding: 0, margin: 0 }]}
+                  style={styles.searchInput}
                   placeholder="Search Moments..."
                   placeholderTextColor={'rgba(255,255,255,0.4)'}
                   value={searchQuery}
@@ -470,11 +470,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 8,
-    height: Platform.OS === 'android' ? 42 : undefined,
+    height: 42,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'android' ? 0 : 8,
+    paddingVertical: 0,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
@@ -483,16 +483,18 @@ const styles = StyleSheet.create({
   },
   searchInputWrapper: {
     flex: 1,
-    height: Platform.OS === 'android' ? '100%' : undefined,
+    height: '100%',
     justifyContent: 'center',
   },
   searchInput: {
-    flex: 1,
-    height: Platform.OS === 'android' ? '100%' : undefined,
+    width: '100%',
+    height: Platform.OS === 'ios' ? 22 : '100%',
     fontSize: 15,
+    lineHeight: Platform.OS === 'ios' ? 20 : undefined,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    paddingVertical: Platform.OS === 'android' ? 0 : 2,
+    padding: 0,
+    margin: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },

@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  TouchableWithoutFeedback,
   StyleSheet,
   useWindowDimensions,
   Image,
@@ -1356,13 +1357,17 @@ const UserInputScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
-        style={{ flex: 1 }}
-        enabled={false}
+      <TouchableWithoutFeedback
+        onPress={Keyboard.dismiss}
+        accessible={false}
       >
-        <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
+          style={{ flex: 1 }}
+          enabled={false}
+        >
+          <View style={[styles.content, isPad && isLandscape && styles.contentLandscape]}>
           {/* Expandable navigation bar - hidden during generation */}
           {!isGenerating && (
             <>
@@ -1799,8 +1804,9 @@ const UserInputScreen: React.FC = () => {
               </View>
             </Animated.View>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </View>
   );
 };

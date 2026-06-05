@@ -115,7 +115,10 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               logger.warn('reset failed, falling back to navigate:', navErr as Error);
               navigation.navigate(target as any, params);
             }
-            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            try {
+              await AsyncStorage.removeItem('post_auth_redirect');
+              await AsyncStorage.removeItem('force_navigate_to_main');
+            } catch {}
             hasNavigatedRef.current = true;
             return true;
           }
@@ -242,7 +245,10 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               logger.warn('reset failed, falling back to navigate:', navErr as Error);
               navigation.navigate(target as any, params);
             }
-            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            try {
+              await AsyncStorage.removeItem('post_auth_redirect');
+              await AsyncStorage.removeItem('force_navigate_to_main');
+            } catch {}
             hasNavigatedRef.current = true;
             return true;
           }
