@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { BaseRendererProps } from './BaseRenderer';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
-import { Fonts } from '../../../theme/fonts';
+import ThemedText from '../../../components/common/ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 2 / 3;
@@ -35,7 +35,7 @@ export const CarouselRenderer: React.FC<CarouselRendererProps> = ({
     <View style={[styles.container, style]}>
       {title && (
         <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
+          <ThemedText weight="semiBold" style={styles.title}>{title}</ThemedText>
         </View>
       )}
 
@@ -110,8 +110,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
   },

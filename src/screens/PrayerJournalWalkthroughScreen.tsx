@@ -1613,9 +1613,19 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, prayerActivityType);
         if (shouldShowStreak) {
           await visibleStreakService.markShownToday(user.id);
+          if (fromPlaybook) {
+            DeviceEventEmitter.emit('playbookPrayerSaved', {
+              playbookId,
+              stepId,
+              subtaskId,
+              actionStepNumber,
+              isEditing: !!editingPrayerId,
+            });
+          }
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: prayerActivityType,
+            dismissRouteCount: 2,
           });
           navigatedToStreak = true;
         }
@@ -1629,7 +1639,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         date: dateStr,
       }, user.id);
 
-      if (fromPlaybook) {
+      if (fromPlaybook && !navigatedToStreak) {
         // Show success modal inside this screen; Done handler will pop + emit
         triggerSuccessHaptic();
         successModal.showSuccess({

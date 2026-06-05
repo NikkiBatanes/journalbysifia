@@ -10,10 +10,37 @@ interface ThemedTextProps extends TextProps {
   style?: StyleProp<TextStyle>;
 }
 
-const ThemedText: React.FC<ThemedTextProps> = ({ weight = 'regular', style, children, ...rest }) => {
+const inferAndroidWeightFromStyle = (style: StyleProp<TextStyle>): ThemedWeight => {
+  const flattened = StyleSheet.flatten(style);
+  const fontWeight = flattened?.fontWeight;
+
+  if (fontWeight === 'bold') {
+    return 'bold';
+  }
+
+  const numericWeight = typeof fontWeight === 'number'
+    ? fontWeight
+    : typeof fontWeight === 'string'
+      ? Number(fontWeight)
+      : 400;
+
+  if (numericWeight >= 700) {
+    return 'bold';
+  }
+  if (numericWeight >= 600) {
+    return 'semiBold';
+  }
+  if (numericWeight >= 500) {
+    return 'medium';
+  }
+  return 'regular';
+};
+
+const ThemedText: React.FC<ThemedTextProps> = ({ weight, style, children, ...rest }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontFamily = getFontFamily(fontKey, weight);
+  const effectiveWeight = Platform.OS === 'android' ? weight ?? inferAndroidWeightFromStyle(style) : weight ?? 'regular';
+  const fontFamily = getFontFamily(fontKey, effectiveWeight);
   const isUnsupportedAndroidItalic = fontKey !== 'system' && StyleSheet.flatten(style)?.fontStyle === 'italic';
 
   // Android custom font files should provide weight; legacy fontWeight styles can
@@ -22,6 +49,7 @@ const ThemedText: React.FC<ThemedTextProps> = ({ weight = 'regular', style, chil
     ? {
         fontFamily,
         fontWeight: 'normal',
+        includeFontPadding: false,
         ...(isUnsupportedAndroidItalic ? { fontStyle: 'normal' as const } : {}),
       }
     : { fontFamily };
@@ -32,7 +60,12 @@ const ThemedText: React.FC<ThemedTextProps> = ({ weight = 'regular', style, chil
     : [style as TextStyle, themedFontStyle];
 
   return (
-    <Text {...rest} style={combinedStyle}>
+    <Text
+      {...rest}
+      allowFontScaling={Platform.OS === 'android' ? rest.allowFontScaling ?? false : rest.allowFontScaling}
+      maxFontSizeMultiplier={Platform.OS === 'android' ? rest.maxFontSizeMultiplier ?? 1 : rest.maxFontSizeMultiplier}
+      style={combinedStyle}
+    >
       {children}
     </Text>
   );

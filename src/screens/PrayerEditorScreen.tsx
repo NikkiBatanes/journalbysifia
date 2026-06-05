@@ -187,6 +187,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: 'prayer_for_now',
+            dismissRouteCount: 2,
           });
           return;
         }

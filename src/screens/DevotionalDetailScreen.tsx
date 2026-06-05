@@ -489,7 +489,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Prepare and debug-format the prayer text for current day
   const rawPrayer = currentDay?.prayer ?? '';
   const formattedPrayer = useMemo(() =>
-    normalizePrayerText(rawPrayer)
+    normalizePrayerText(rawPrayer).trim()
   , [rawPrayer]);
   useEffect(() => {
     if (rawPrayer) {
@@ -590,8 +590,16 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     });
 
     // If marking as prayed, save to database using React Query
-    if (isPrayed && currentDay.prayer?.trim() && user) {
+    if (isPrayed && user) {
       const cleanPrayer = normalizePrayerText(currentDay.prayer).trim();
+      if (!cleanPrayer) {
+        setPrayedDays(prev => ({
+          ...prev,
+          [prayerKey]: false,
+        }));
+        return;
+      }
+
       const currentDate = toLocalDateString(new Date());
 
       // Update prayer_prayed field in user_devotionals table
@@ -749,10 +757,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
 
     if (shouldShowStreak && userId) {
       await visibleStreakService.markShownToday(userId);
-      (navigation as any).navigate('StreakPlan', {
-        userId,
-        source: activityType,
-      });
     }
 
     // Close modal first
@@ -765,7 +769,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
     // Keep timing guard to prevent rapid re-completion
 
     // If streak celebration should show, navigate to StreakPlan
-    if (shouldShowStreak) {
+    if (shouldShowStreak && userId) {
       (navigation as any).navigate('StreakPlan', {
         userId,
         source: activityType,
@@ -1138,7 +1142,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               bibleVerse: currentDay.scripture,
               reflection: currentDay.reflection,
               questionsToPonder: currentDay.reflectionQuestions?.map(q => q.text || '').filter(text => text.trim() !== ''),
-              prayer: currentDay.prayer,
+              prayer: formattedPrayer,
               createdAt: devotional.createdAt,
             });
           }
@@ -1416,7 +1420,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               <View style={styles.prayerContainer}>
                 {Platform.OS === 'ios' ? (
                   <ThemedTextInput
-                    value={rawPrayer && rawPrayer.trim().length > 0
+                    value={formattedPrayer.length > 0
                       ? formattedPrayer
                       : 'No prayer for today.'}
                     editable={false}
@@ -1426,7 +1430,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   />
                 ) : (
                   <ThemedText style={styles.prayerText} selectable={true}>
-                    {rawPrayer && rawPrayer.trim().length > 0
+                    {formattedPrayer.length > 0
                       ? formattedPrayer
                       : 'No prayer for today.'}
                   </ThemedText>
@@ -1558,7 +1562,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingRight: 50, // Add padding to prevent overlap with share button
+    paddingHorizontal: 64,
   },
   exportButton: {
     position: 'absolute',
@@ -1602,6 +1606,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     flexWrap: 'wrap',
     flexShrink: 1,
+    width: '100%',
   },
   dayCounterContainer: {
     flexDirection: 'row',

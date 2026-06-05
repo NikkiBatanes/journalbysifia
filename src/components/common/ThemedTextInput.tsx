@@ -19,6 +19,7 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
     ? {
         fontFamily,
         fontWeight: 'normal',
+        includeFontPadding: false,
         ...(isUnsupportedAndroidItalic ? { fontStyle: 'normal' as const } : {}),
       }
     : { fontFamily };
@@ -28,7 +29,15 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
     themedFontStyle,
   ];
 
-  return <TextInput ref={ref} {...rest} style={combinedStyle} />;
+  return (
+    <TextInput
+      ref={ref}
+      {...rest}
+      allowFontScaling={Platform.OS === 'android' ? rest.allowFontScaling ?? false : rest.allowFontScaling}
+      maxFontSizeMultiplier={Platform.OS === 'android' ? rest.maxFontSizeMultiplier ?? 1 : rest.maxFontSizeMultiplier}
+      style={combinedStyle}
+    />
+  );
 });
 
 export default ThemedTextInput;

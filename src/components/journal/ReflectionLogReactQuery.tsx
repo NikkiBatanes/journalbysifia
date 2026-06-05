@@ -816,6 +816,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           </View>
           <View style={styles.titleContainer}>
             <ThemedText
+              weight="semiBold"
               style={styles.emptyStateTitle}
               accessibilityRole="header"
               numberOfLines={1}

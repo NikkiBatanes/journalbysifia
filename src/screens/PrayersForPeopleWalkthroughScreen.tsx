@@ -1344,6 +1344,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: 'prayer_saved',
+            dismissRouteCount: fromPlaybook ? 1 : 2,
           });
           return;
         }

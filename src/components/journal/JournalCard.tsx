@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
@@ -372,11 +372,10 @@ const styles = StyleSheet.create({
     marginRight: 24, // Match the icon width for balance
   },
   title: {
-    fontFamily: Fonts.bold,
+    ...(Platform.OS === 'ios' ? { fontFamily: Fonts.bold, fontWeight: '700' as const } : {}),
     fontSize: 14,
     color: Colors.hopeWhite + 'e6', // hopeWhite with ~90% opacity
     marginBottom: 2,
-    fontWeight: '700',
     letterSpacing: 0.3,
     textAlign: 'center',
     width: '100%',

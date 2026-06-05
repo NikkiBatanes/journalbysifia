@@ -925,12 +925,15 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
 
       // Check if streak celebration should show for looking forward
       const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_looking_forward_added');
+      let navigatedToStreak = false;
       if (shouldShowStreak) {
         await visibleStreakService.markShownToday(user.id);
         (navigation as any).navigate('StreakPlan', {
           userId: user.id,
           source: 'journal_looking_forward_added',
+          dismissRouteCount: 2,
         });
+        navigatedToStreak = true;
       }
 
       // Increment completion message index for next time
@@ -948,7 +951,9 @@ const TomorrowInHisHandsWalkthroughScreen: React.FC<Props> = ({ route, navigatio
         date: dateStr,
       }, user.id);
 
-      navigation.goBack();
+      if (!navigatedToStreak) {
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to save. Please try again.');
     }

@@ -1130,6 +1130,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         (navigation as any).navigate('StreakPlan', {
           userId: user.id,
           source: 'journal_win_added',
+          dismissRouteCount: 2,
         });
       }
 

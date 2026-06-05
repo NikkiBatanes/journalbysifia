@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { StackActions, useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
@@ -22,6 +22,7 @@ interface RouteParams {
   userId?: string;
   source?: string;
   onboarding?: boolean;
+  dismissRouteCount?: number;
 }
 
 const StreakPlanScreen: React.FC = () => {
@@ -30,7 +31,7 @@ const StreakPlanScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
-  const params = route.params as RouteParams;
+  const params = (route.params || {}) as RouteParams;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const androidScrollInsets = Platform.OS === 'android'
@@ -274,19 +275,18 @@ const StreakPlanScreen: React.FC = () => {
         skipNotificationPreference: false,
       });
     } else {
-      // Done - go back twice to dismiss both StreakPlan and PlaybookWalkthrough
-      // when source is 'playbook', 'action_step_completed', or 'affirmation_read_aloud'
-      if (params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud') {
-        navigation.goBack();
-        navigation.goBack();
-      } else if (params.source === 'playbook_walkthrough') {
-        // For playbook_walkthrough, the user already tapped Save and Finish
-        // Go back twice to dismiss both StreakPlan and PlaybookWalkthrough
-        navigation.goBack();
+      const fallbackDismissCount = params.source === 'playbook_walkthrough' ? 2 : 1;
+      const dismissRouteCount = Math.max(
+        1,
+        Math.floor(params.dismissRouteCount || fallbackDismissCount)
+      );
+
+      if (dismissRouteCount > 1) {
+        navigation.dispatch(StackActions.pop(dismissRouteCount));
+      } else if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
-        // For other sources, just go back once
-        navigation.goBack();
+        (navigation as any).navigate('MainTabs');
       }
     }
   };
@@ -382,7 +382,7 @@ const StreakPlanScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          {(params.source === 'playbook' || params.source === 'action_step_completed' || params.source === 'affirmation_read_aloud' || params.source === 'playbook_walkthrough') && (
+          {params.source === 'playbook_walkthrough' && (
             <TouchableOpacity
               style={[styles.secondaryButton, IS_IPAD && styles.secondaryButtonPad]}
               onPress={handleProcessAnotherMoment}

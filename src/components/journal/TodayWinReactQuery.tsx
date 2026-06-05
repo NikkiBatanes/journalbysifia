@@ -275,6 +275,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           </View>
           <View style={styles.titleContainer}>
             <ThemedText
+              weight="semiBold"
               style={styles.emptyStateTitle}
               accessibilityRole="header"
               numberOfLines={1}

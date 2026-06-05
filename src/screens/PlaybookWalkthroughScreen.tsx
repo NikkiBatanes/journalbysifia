@@ -6120,9 +6120,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       ? await visibleStreakService.shouldShowCelebration(userId, 'playbook_completed')
       : true;
 
-    if (shouldShowStreakPlan && userId) {
-    }
-
     if (!shouldShowStreakPlan) {
       if (source === 'onboarding') {
         (navigation as any).navigate('OnboardingSalesOffer', {
@@ -6145,11 +6142,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         onboarding: true,
       });
     } else {
-      // Normal flow: navigate to StreakPlanScreen, which will goBack() on Done
+      // Normal flow: StreakPlan Done should close both StreakPlan and this completed walkthrough.
       (navigation as any).navigate('StreakPlan', {
         playbookId,
         userId,
-        source,
+        source: 'playbook_walkthrough',
+        dismissRouteCount: 2,
       });
     }
   }, [navigation, playbook?.title, playbookId, userId, queryClient, source]);

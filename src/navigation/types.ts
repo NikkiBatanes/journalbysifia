@@ -215,6 +215,14 @@ export type RootStackParamList = {
     };
   };
 
+  StreakPlan: {
+    playbookId?: string;
+    userId?: string;
+    source?: string;
+    onboarding?: boolean;
+    dismissRouteCount?: number;
+  } | undefined;
+
   // Admin Dashboard
   AdminDashboard: undefined;
 

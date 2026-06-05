@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { Platform, StyleProp, StyleSheet, Text as RNText, TextInput as RNTextInput, TextStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { FontFamilyMap, getFontFamily } from '../../theme/fonts';
@@ -74,6 +74,7 @@ const getAndroidThemedStyle = (style: StyleProp<TextStyle>, fontKey: string): Te
   return {
     fontFamily: getFontFamily(fontKey, inferWeightFromStyle(style)),
     fontWeight: 'normal',
+    includeFontPadding: false,
     ...(needsAndroidItalicFallbackGuard(style, fontKey) ? { fontStyle: 'normal' as const } : {}),
   };
 };
@@ -106,7 +107,8 @@ const patchAndroidTextInputRender = (component: PatchableTextComponent) => {
     const themedStyle = getAndroidThemedStyle(props?.style, component.__sifiaFontKey || 'lexend');
     const shouldShowKeyboard = shouldRequestAndroidSoftKeyboard(props);
     const originalOnFocus = props?.onFocus;
-    const { sifiaDisableKeyboardForce: _sifiaDisableKeyboardForce, ...nativeProps } = props || {};
+    const nativeProps = { ...(props || {}) };
+    delete nativeProps.sifiaDisableKeyboardForce;
     const nextProps = {
       ...nativeProps,
       ...(themedStyle ? { style: [props?.style, themedStyle] } : {}),
@@ -128,11 +130,11 @@ const patchAndroidTextInputRender = (component: PatchableTextComponent) => {
 const GlobalFontApplier: React.FC = () => {
   const { currentFont } = useTheme();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fontKey = currentFont || 'lexend';
     const regularFamily = getFontFamily(fontKey, 'regular');
     const defaultTextStyle = Platform.OS === 'android'
-      ? { fontFamily: regularFamily, fontWeight: 'normal' as const }
+      ? { fontFamily: regularFamily, fontWeight: 'normal' as const, includeFontPadding: false }
       : { fontFamily: regularFamily };
 
     const textComponent = RNText as unknown as PatchableTextComponent;
@@ -154,10 +156,14 @@ const GlobalFontApplier: React.FC = () => {
     (RNText as any).defaultProps.style = [
       defaultTextStyle,
     ];
+    (RNText as any).defaultProps.allowFontScaling = false;
+    (RNText as any).defaultProps.maxFontSizeMultiplier = 1;
 
     (RNTextInput as any).defaultProps.style = [
       defaultTextStyle,
     ];
+    (RNTextInput as any).defaultProps.allowFontScaling = false;
+    (RNTextInput as any).defaultProps.maxFontSizeMultiplier = 1;
   }, [currentFont]);
 
   return null;

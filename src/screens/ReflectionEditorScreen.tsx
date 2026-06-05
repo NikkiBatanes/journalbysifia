@@ -153,6 +153,7 @@ const ReflectionEditorScreen: React.FC = () => {
           (navigation as any).navigate('StreakPlan', {
             userId: user.id,
             source: 'reflection_saved',
+            dismissRouteCount: 2,
           });
           return;
         }

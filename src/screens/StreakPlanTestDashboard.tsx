@@ -13,9 +13,9 @@ const StreakPlanTestDashboard: React.FC = () => {
 
   const testCases = [
     {
-      title: 'Playbook Streak Source',
+      title: 'Playbook Walkthrough Completion',
       description: 'Primary: Done | Secondary: Process Another Moment',
-      params: { source: 'playbook' },
+      params: { source: 'playbook_walkthrough', dismissRouteCount: 2 },
     },
     {
       title: 'Onboarding Flow',
