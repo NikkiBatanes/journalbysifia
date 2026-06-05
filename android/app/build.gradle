@@ -93,7 +93,7 @@ android {
         applicationId "app.sifia.com"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
+        versionCode 1
         versionName "1.4.3"
         resValue "string", "build_config_package", "app.sifia.com"
         resValue "string", "facebook_app_id", facebookAppId
