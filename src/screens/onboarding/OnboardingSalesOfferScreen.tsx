@@ -2237,7 +2237,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               );
             }
 
-            const monthlyPrice = tier.monthlyPrice;
             return (
               <>
                 <ThemedText weight="bold" style={styles.footerPriceMain}>

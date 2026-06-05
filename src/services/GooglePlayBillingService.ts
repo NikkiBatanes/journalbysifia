@@ -251,7 +251,7 @@ export class GooglePlayBillingService {
         let pendingPurchase: PendingPurchaseEntry | undefined;
         const timeout = setTimeout(() => {
           if (pendingPurchase) {
-            void this.recoverOrRejectPendingPurchase(pendingPurchase);
+            this.recoverOrRejectPendingPurchase(pendingPurchase);
           }
         }, 60000);
 
