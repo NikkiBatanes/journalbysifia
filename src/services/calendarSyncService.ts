@@ -4,7 +4,7 @@
  * Features: Sync, repeat handling, location services, feature gating
  */
 
-import { Platform, PermissionsAndroid } from 'react-native';
+import { Alert, Platform, PermissionsAndroid } from 'react-native';
 import { Logger } from '../utils/ProductionLogger';
 import RNCalendarEvents from 'react-native-calendar-events';
 import Geolocation from '@react-native-community/geolocation';
@@ -80,6 +80,30 @@ export interface LocationSearchResult {
     longitude: number;
   };
 }
+
+const showLocationPermissionDisclosure = (): Promise<boolean> => (
+  new Promise(resolve => {
+    Alert.alert(
+      'Use Current Location?',
+      'siFia collects your approximate or precise location only when you tap the current-location button to fill a time block location. Coordinates may be sent to OpenStreetMap Nominatim to show a readable place name. siFia does not use this location for ads, AI guidance, or background tracking. You can type a location manually instead.',
+      [
+        {
+          text: 'Not Now',
+          style: 'cancel',
+          onPress: () => resolve(false),
+        },
+        {
+          text: 'Continue',
+          onPress: () => resolve(true),
+        },
+      ],
+      {
+        cancelable: true,
+        onDismiss: () => resolve(false),
+      },
+    );
+  })
+);
 
 export interface LocationSuggestion {
   id: string;
@@ -198,11 +222,22 @@ export const updateTimeBlockInCalendar = async (
 export const requestLocationPermissions = async (): Promise<boolean> => {
   try {
     if (Platform.OS === 'android') {
+      const permission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+      const alreadyGranted = await PermissionsAndroid.check(permission);
+      if (alreadyGranted) {
+        return true;
+      }
+
+      const acceptedDisclosure = await showLocationPermissionDisclosure();
+      if (!acceptedDisclosure) {
+        return false;
+      }
+
       const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        permission,
         {
-          title: 'Location Permission',
-          message: 'siFia needs access to your location for time block locations',
+          title: 'Use Current Location',
+          message: 'siFia uses your location only when you ask for it to suggest a readable time block location.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
