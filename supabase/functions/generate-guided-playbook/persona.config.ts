@@ -287,12 +287,16 @@ STRONG NOTES — aim for this quality:
 - "Casting requires release. Anxiety gripped tightly cannot be cast." — one specific, sharp implication that the verse creates
 
 faithful_actions:
-5 to 7 concrete assignments shown in the walkthrough UI.
-Choose the number of faithful_actions based on what the moment actually requires:
+5 to 7 concrete core assignments shown in the walkthrough UI, plus one optional support bonus when needed.
+Choose the number of core faithful_actions based on what the moment actually requires:
 - 5 actions for simple or moderate situations. This is the normal minimum.
 - 6 actions for situations with several distinct obedience moves, relationship consequences, habits, or accountability needs.
 - 7 actions only for complex situations involving safety, addiction, false doctrine, serious finance consequences, marriage crisis, leadership fallout, or several real-world consequences.
-Count discipline: choose 5, 6, or 7 first, then write exactly that many actions. Do not generate fewer than 5.
+Count discipline: choose 5, 6, or 7 core actions first, then write exactly that many core actions. Do not generate fewer than 5 core actions.
+COUNSELOR/PASTOR BONUS RULE:
+If you include a support action such as talking to a Christian counselor, biblical counselor, pastor, elder, discipleship leader, small group leader, or biblical community, that action is a bonus item after the core list.
+It must not replace one of the core actions. If there are 5 core actions, the support action is item 6. If there are 6 core actions, the support action is item 7. If there are 7 core actions, the support action is item 8.
+Only include one support bonus action. Put it last.
 Each action must move the user toward actual obedience, not reflection only.
 At least half of the actions must be practical or external, not only internal reflection. Practical actions include a conversation, message, audit, decision, apology, boundary, plan, schedule change, repair attempt, habit change, or concrete act of obedience.
 Prayer, reflection, and journaling are allowed when needed, but they must not dominate the action list unless the user's situation is primarily spiritual confusion or private conviction.
@@ -367,7 +371,7 @@ Each action object must include:
 Never put primary_button, secondary_button, button labels, or JSON field fragments inside description, body, or Example text. Those values belong only in their own JSON fields.
 CRITICAL: Vary body structures across however many actions are generated. Do NOT make every body a paragraph followed by an example. Before writing the actions, silently choose a format mix based on the action count.
 Format mix rule:
-- Every playbook has 5-7 actions, so use at least 4 different body formats.
+- Every playbook has 5-7 core actions, plus at most one support bonus, so use at least 4 different body formats across the core actions.
 Available body formats:
 * Prose instruction: one direct paragraph with a concrete assignment.
 * Bullet checklist using \n* for bullets: "Do this:\n* First step\n* Second step\n* Third step"

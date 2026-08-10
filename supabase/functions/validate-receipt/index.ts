@@ -128,9 +128,12 @@ async function createTrial(params: CreateTrialParams): Promise<CreateTrialResult
         status: 'active',
         playbooks_limit: trialLimits.playbooks_limit,
         devotionals_limit: trialLimits.devotionals_limit,
+        wisdom_limit: trialLimits.wisdom_limit,
+        refinement_limit: trialLimits.refinement_limit,
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
+        refinement_count: 0,
         smart_journaling_enabled: true,
         updated_at: new Date().toISOString(),
       }, {
@@ -263,7 +266,7 @@ serve(async (req) => {
     // Get user's current subscription tier and trial info
     const { data: currentSub } = await supabase
       .from('user_subscriptions_new')
-      .select('tier, trial_start_date, trial_end_date, trial_chosen_tier, billing_cycle, playbooks_limit, devotionals_limit')
+      .select('tier, trial_start_date, trial_end_date, trial_chosen_tier, billing_cycle, playbooks_limit, devotionals_limit, wisdom_limit, refinement_limit')
       .eq('user_id', userId)
       .single();
 
@@ -303,6 +306,12 @@ serve(async (req) => {
           status: 'expired',
           playbooks_limit: 2,
           devotionals_limit: 1,
+          wisdom_limit: 2,
+          refinement_limit: 1,
+          playbooks_used: 0,
+          devotionals_used: 0,
+          wisdom_count: 0,
+          refinement_count: 0,
           smart_journaling_enabled: true,
           auto_renew_enabled: false,
           updated_at: new Date().toISOString(),
@@ -398,13 +407,19 @@ serve(async (req) => {
         console.log('[ValidateReceipt] Checking and fixing trial limits', {
           currentPlaybooksLimit: currentSub?.playbooks_limit,
           currentDevotionalsLimit: currentSub?.devotionals_limit,
+          currentWisdomLimit: currentSub?.wisdom_limit,
+          currentRefinementLimit: currentSub?.refinement_limit,
           expectedPlaybooksLimit: expectedTrialLimits.playbooks_limit,
           expectedDevotionalsLimit: expectedTrialLimits.devotionals_limit,
+          expectedWisdomLimit: expectedTrialLimits.wisdom_limit,
+          expectedRefinementLimit: expectedTrialLimits.refinement_limit,
         });
 
         if (
           currentSub?.playbooks_limit !== expectedTrialLimits.playbooks_limit ||
-          currentSub?.devotionals_limit !== expectedTrialLimits.devotionals_limit
+          currentSub?.devotionals_limit !== expectedTrialLimits.devotionals_limit ||
+          currentSub?.wisdom_limit !== expectedTrialLimits.wisdom_limit ||
+          currentSub?.refinement_limit !== expectedTrialLimits.refinement_limit
         ) {
           console.log('[ValidateReceipt] FIXING: Updating trial limits', expectedTrialLimits);
           const { error: updateError } = await supabase
@@ -412,6 +427,8 @@ serve(async (req) => {
             .update({
               playbooks_limit: expectedTrialLimits.playbooks_limit,
               devotionals_limit: expectedTrialLimits.devotionals_limit,
+              wisdom_limit: expectedTrialLimits.wisdom_limit,
+              refinement_limit: expectedTrialLimits.refinement_limit,
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
@@ -668,6 +685,8 @@ async function updateUserSubscription(
       updated_at: string;
       playbooks_limit: number;
       devotionals_limit: number;
+      wisdom_limit: number;
+      refinement_limit: number;
       smart_journaling_enabled: boolean;
     } = {
       user_id: userId,
@@ -698,6 +717,8 @@ async function updateUserSubscription(
     const tierLimits = getTierLimits(tier);
     subscriptionData.playbooks_limit = tierLimits.playbooks_limit;
     subscriptionData.devotionals_limit = tierLimits.devotionals_limit;
+    subscriptionData.wisdom_limit = tierLimits.wisdom_limit;
+    subscriptionData.refinement_limit = tierLimits.refinement_limit;
     subscriptionData.smart_journaling_enabled = tierLimits.smart_journaling_enabled;
 
     if (existingSub) {
@@ -706,7 +727,7 @@ async function updateUserSubscription(
 
       // Reset usage counters when upgrading from trial to paid OR when upgrading tiers
       const updateData = (isTrialConversion || isTierUpgrade)
-        ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0, wisdom_count: 0 }
+        ? { ...subscriptionData, playbooks_used: 0, devotionals_used: 0, wisdom_count: 0, refinement_count: 0 }
         : subscriptionData;
 
       const { error: updateError } = await supabaseClient
@@ -727,6 +748,7 @@ async function updateUserSubscription(
           playbooks_used: 0,
           devotionals_used: 0,
           wisdom_count: 0,
+          refinement_count: 0,
         });
 
       if (insertError) {
@@ -765,18 +787,20 @@ function mapProductIdToTier(productId: string): string {
 function getTrialLimits(chosenTier: string): {
   playbooks_limit: number;
   devotionals_limit: number;
+  wisdom_limit: number;
+  refinement_limit: number;
 } {
   const baseTier = chosenTier.replace('_annual', '');
 
   switch (baseTier) {
     case 'spark':
-      return { playbooks_limit: 5, devotionals_limit: 5 };
+      return { playbooks_limit: 5, devotionals_limit: 5, wisdom_limit: 2, refinement_limit: 2 };
     case 'growth':
-      return { playbooks_limit: 15, devotionals_limit: 15 };
+      return { playbooks_limit: 15, devotionals_limit: 15, wisdom_limit: 6, refinement_limit: 4 };
     case 'transformation':
-      return { playbooks_limit: 25, devotionals_limit: 25 };
+      return { playbooks_limit: 25, devotionals_limit: 25, wisdom_limit: 10, refinement_limit: 6 };
     default:
-      return { playbooks_limit: 15, devotionals_limit: 15 };
+      return { playbooks_limit: 15, devotionals_limit: 15, wisdom_limit: 6, refinement_limit: 4 };
   }
 }
 
@@ -786,27 +810,29 @@ function getTrialLimits(chosenTier: string): {
 function getTierLimits(tier: string): {
   playbooks_limit: number;
   devotionals_limit: number;
+  wisdom_limit: number;
+  refinement_limit: number;
   smart_journaling_enabled: boolean;
 } {
   switch (tier) {
     case 'seeker':
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
+      return { playbooks_limit: 2, devotionals_limit: 1, wisdom_limit: 2, refinement_limit: 1, smart_journaling_enabled: true };
     case 'free_trial':
-      return { playbooks_limit: 15, devotionals_limit: 15, smart_journaling_enabled: true };
+      return { playbooks_limit: 15, devotionals_limit: 15, wisdom_limit: 6, refinement_limit: 4, smart_journaling_enabled: true };
     case 'spark':
     case 'spark_annual':
-      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
+      return { playbooks_limit: 10, devotionals_limit: 10, wisdom_limit: 5, refinement_limit: 3, smart_journaling_enabled: true };
     case 'growth':
     case 'growth_annual':
-      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
+      return { playbooks_limit: 25, devotionals_limit: 25, wisdom_limit: 12, refinement_limit: 6, smart_journaling_enabled: true };
     case 'transformation':
     case 'transformation_annual':
-      return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
+      return { playbooks_limit: 60, devotionals_limit: 60, wisdom_limit: 25, refinement_limit: 15, smart_journaling_enabled: true };
     case 'family':
     case 'family_annual':
-      return { playbooks_limit: 999999, devotionals_limit: 999999, smart_journaling_enabled: true };
+      return { playbooks_limit: 999999, devotionals_limit: 999999, wisdom_limit: 999999, refinement_limit: 999999, smart_journaling_enabled: true };
     default:
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
+      return { playbooks_limit: 2, devotionals_limit: 1, wisdom_limit: 2, refinement_limit: 1, smart_journaling_enabled: true };
   }
 }
 

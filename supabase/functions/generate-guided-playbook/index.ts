@@ -132,11 +132,11 @@ const PLAYBOOK_JSON_SCHEMA = {
         type: 'array',
         items: { type: 'string' },
       },
-      // 5–7 steps — enforced in validation + prompt
+      // 5–7 core steps, plus one optional counselor/pastor support bonus
       faithful_actions: {
         type: 'array',
         minItems: 5,
-        maxItems: 7,
+        maxItems: 8,
         items: {
           type: 'object',
           properties: {
@@ -588,6 +588,9 @@ const DRIFT_PHRASES = [
 const OVERUSED_NAVIGATION_REGEX = /\bnavigat(?:e|es|ed|ing|ion|ional)\b/i;
 const TRUTH_IN_LOVE_MIN_CHARS = 320;
 const TRUTH_IN_LOVE_LONG_OPENING_WORDS = 55;
+const CORE_FAITHFUL_ACTION_MIN = 5;
+const CORE_FAITHFUL_ACTION_MAX = 7;
+const FAITHFUL_ACTION_MAX_WITH_BONUS = 8;
 const ENABLE_PAID_MODEL_RETRIES = false;
 const ENABLE_PROVIDER_CONTENT_FILTER_RETRY = true;
 const ENABLE_PAID_ARCHITECTURAL_RETRY = false;
@@ -611,6 +614,90 @@ const INDIRECT_TRUTH_OPENERS = [
 // Weak action verbs — if the majority of action titles use these, the sequence is too soft
 const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think', 'meditate', 'embrace', 'allow', 'accept'];
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
+const COUNSELOR_SUPPORT_PERSON_REGEX = /\b(?:trusted\s+)?(?:(?:christian|biblical)\s+)?couns(?:el|ell)(?:or|ors|ing|ling)\b|\b(?:pastors?|elders?|church leaders?|discipleship leaders?|small group leaders?|biblical community|christian mentors?|mature believers?)\b/i;
+const COUNSELOR_SUPPORT_ACTION_REGEX = /\b(?:ask|tell|message|text|call|meet|meeting|bring|involve|share|speak|talk|contact|schedule|sit with|reach out)\b/i;
+
+function faithfulActionText(action: any): string {
+  return [
+    action?.title,
+    action?.description,
+    action?.body,
+  ].map(value => String(value || '')).join(' ');
+}
+
+function isCounselorSupportBonusAction(action: any): boolean {
+  const text = faithfulActionText(action);
+  return COUNSELOR_SUPPORT_PERSON_REGEX.test(text) && COUNSELOR_SUPPORT_ACTION_REGEX.test(text);
+}
+
+function buildCoreFaithfulActionFallback(index: number) {
+  const fallbacks = [
+    {
+      title: 'Write the facts',
+      description: 'Put the facts, fear, and obedience in front of you.',
+      body: [
+        'Write three lines before asking anyone else what to do.',
+        'Fact: What is actually happening?',
+        'Fear: What are you tempted to believe?',
+        'Obedience: What is one step you can take today?',
+        'Example: Fact: This is harder than I expected.\nFear: I am tempted to call delay failure.\nObedience: I will face the next concrete step without rushing or hiding.',
+      ].join('\n'),
+      primary_button: 'I wrote it',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Choose one step',
+      description: 'Turn conviction into one concrete act of obedience.',
+      body: [
+        'Choose one action you can complete today. Keep it small enough to obey and specific enough to measure.',
+        'Step: Write the action.',
+        'Time: Choose when you will do it.',
+        'Limit: Name what you will not do today.',
+        'Example: Step: Review the facts honestly.\nTime: Tonight after dinner.\nLimit: I will not make a fear-driven decision today.',
+      ].join('\n'),
+      primary_button: 'I chose',
+      secondary_button: 'Not yet',
+    },
+  ];
+
+  return fallbacks[index % fallbacks.length];
+}
+
+function splitFaithfulActions(actions: any[]): { core: any[]; support: any[] } {
+  return actions.reduce((acc, action) => {
+    if (isCounselorSupportBonusAction(action)) {
+      acc.support.push(action);
+    } else {
+      acc.core.push(action);
+    }
+    return acc;
+  }, { core: [] as any[], support: [] as any[] });
+}
+
+function normalizeFaithfulActions(actions: any[], options: { addCoreFallbacks?: boolean } = {}): any[] {
+  const nonEmptyActions = actions.filter((action: any) => {
+    const title = String(action?.title || '').trim();
+    const body = String(action?.body || action?.description || '').trim();
+    return title.length > 0 || body.length > 0;
+  });
+  const { core, support } = splitFaithfulActions(nonEmptyActions);
+  const normalizedCore = core.slice(0, CORE_FAITHFUL_ACTION_MAX);
+
+  if (options.addCoreFallbacks && support.length > 0) {
+    while (
+      normalizedCore.length < CORE_FAITHFUL_ACTION_MIN &&
+      normalizedCore.length + 1 < FAITHFUL_ACTION_MAX_WITH_BONUS
+    ) {
+      normalizedCore.push(buildCoreFaithfulActionFallback(normalizedCore.length));
+    }
+  }
+
+  if (support.length > 0 && normalizedCore.length >= CORE_FAITHFUL_ACTION_MIN) {
+    return [...normalizedCore, support[0]];
+  }
+
+  return normalizedCore.slice(0, CORE_FAITHFUL_ACTION_MAX);
+}
 
 function detectFaithfulActionBodyFormat(body: string): string {
   const normalized = String(body || '').trim();
@@ -883,12 +970,22 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     hardIssues.push(`scripture_note_lines has ${noteCount} items (need exactly 3)`);
   }
 
-  const actionCount = Array.isArray(json.faithful_actions) ? json.faithful_actions.length : 0;
-  if (actionCount < 5) {
-    hardIssues.push(`faithful_actions has ${actionCount} items (need at least 5) — generation failure`);
+  const actions = Array.isArray(json.faithful_actions) ? json.faithful_actions : [];
+  const actionCount = actions.length;
+  const { core: coreActions, support: supportActions } = splitFaithfulActions(actions);
+  const hasSupportBonus = supportActions.length > 0;
+
+  if (actionCount < CORE_FAITHFUL_ACTION_MIN) {
+    hardIssues.push(`faithful_actions has ${actionCount} items (need at least ${CORE_FAITHFUL_ACTION_MIN}) — generation failure`);
   }
-  if (actionCount > 7) {
-    softIssues.push(`faithful_actions has ${actionCount} items (max 7) — will trim`);
+  if (hasSupportBonus && coreActions.length < CORE_FAITHFUL_ACTION_MIN && actionCount >= CORE_FAITHFUL_ACTION_MIN) {
+    softIssues.push(`faithful_actions counted counselor/pastor support as a core action (${coreActions.length}/${CORE_FAITHFUL_ACTION_MIN} core) — will add core fallback action(s) and move support to bonus`);
+  }
+  if (!hasSupportBonus && actionCount > CORE_FAITHFUL_ACTION_MAX) {
+    softIssues.push(`faithful_actions has ${actionCount} core items (max ${CORE_FAITHFUL_ACTION_MAX}) — will trim`);
+  }
+  if (hasSupportBonus && actionCount > FAITHFUL_ACTION_MAX_WITH_BONUS) {
+    softIssues.push(`faithful_actions has ${actionCount} items (max ${FAITHFUL_ACTION_MAX_WITH_BONUS} with counselor/pastor bonus) — will trim`);
   }
 
   if (!json.prayer || String(json.prayer).length < 50) {
@@ -956,25 +1053,27 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   }
 
   // Action sequence quality — check verb sharpness across first 3 actions
-  if (Array.isArray(json.faithful_actions) && json.faithful_actions.length >= 3) {
-    const firstThreeTitles = json.faithful_actions.slice(0, 3).map((a: any) => String(a.title || '').toLowerCase());
+  const qualityActions = Array.isArray(json.faithful_actions)
+    ? normalizeFaithfulActions(json.faithful_actions)
+    : [];
+  if (qualityActions.length >= 3) {
+    const firstThreeTitles = qualityActions.slice(0, 3).map((a: any) => String(a.title || '').toLowerCase());
     const softCount = firstThreeTitles.filter(t => SOFT_ACTION_VERBS.some(v => t.startsWith(v))).length;
     const sharpCount = firstThreeTitles.filter(t => SHARP_ACTION_VERBS.some(v => t.startsWith(v))).length;
     if (softCount >= 2 && sharpCount === 0) {
       softIssues.push(`Action sequence drift — first 3 actions start with soft verbs (${firstThreeTitles.join(' | ')}). Expected sharp diagnostic verbs.`);
     }
 
-    const bodyFormats = json.faithful_actions
-      .slice(0, 7)
+    const coreQualityActions = qualityActions.slice(0, CORE_FAITHFUL_ACTION_MAX);
+    const bodyFormats = coreQualityActions
       .map((action: any) => detectFaithfulActionBodyFormat(String(action?.body || action?.description || '')));
     const distinctBodyFormats = new Set(bodyFormats.filter(format => format !== 'empty'));
-    const requiredFormatCount = requiredFaithfulActionFormatCount(Math.min(json.faithful_actions.length, 7));
+    const requiredFormatCount = requiredFaithfulActionFormatCount(coreQualityActions.length);
     if (requiredFormatCount > 0 && distinctBodyFormats.size < requiredFormatCount) {
       softIssues.push(`Faithful action body format variation missing — detected ${distinctBodyFormats.size}/${requiredFormatCount} formats (${bodyFormats.join(', ')}). Vary faithful_actions.body, because that is the walkthrough text.`);
     }
 
-    const missingExampleIndexes = json.faithful_actions
-      .slice(0, 7)
+    const missingExampleIndexes = coreQualityActions
       .map((action: any, idx: number) => (
         hasActionExampleMarker(String(action?.body || '')) || hasActionExampleMarker(String(action?.description || ''))
           ? -1
@@ -985,13 +1084,12 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
       softIssues.push(`Faithful action example bubble missing — action bodies need Example: markers for steps ${missingExampleIndexes.join(', ')}.`);
     }
 
-    const paragraphExampleCount = json.faithful_actions
-      .slice(0, 7)
+    const paragraphExampleCount = coreQualityActions
       .filter((action: any) => {
         const body = String(action?.body || action?.description || '').trim();
         return body.length > 0 && !/\n/.test(body) && ACTION_EXAMPLE_MARKER_REGEX.test(body);
       }).length;
-    if (paragraphExampleCount >= Math.min(json.faithful_actions.length, 7)) {
+    if (paragraphExampleCount >= coreQualityActions.length) {
       softIssues.push('Faithful action body format variation missing — every action body is a single paragraph followed by Example.');
     }
   }
@@ -1152,9 +1250,8 @@ function repairPlaybook(json: Record<string, any>): Record<string, any> {
     repaired.completion.question = String(repaired.completion.question).trim() + '?';
   }
 
-  // Trim faithful_actions to max 7
-  if (Array.isArray(repaired.faithful_actions) && repaired.faithful_actions.length > 7) {
-    repaired.faithful_actions = repaired.faithful_actions.slice(0, 7);
+  if (Array.isArray(repaired.faithful_actions)) {
+    repaired.faithful_actions = normalizeFaithfulActions(repaired.faithful_actions, { addCoreFallbacks: true });
   }
 
   return repaired;
@@ -2076,7 +2173,8 @@ serve(async (req: Request) => {
         'Fix these structural issues:',
         '  truth_in_love must start directly with the diagnosis, correction, cost, or decision. No emotional setup, throat-clearing, or long pastoral intro.',
         '  truth_in_love first paragraph must be 1-2 direct sentences, then continue only as needed.',
-        '  faithful_actions must be 5-7 specific, concrete steps — not a list of tips.',
+        '  faithful_actions must be 5-7 specific, concrete core steps, plus one optional counselor/pastor support bonus when needed.',
+        '  Counselor, pastor, or biblical community support must not replace one of the 5-7 core faithful actions. Put it last as the bonus action.',
         '  faithful_actions.body is the rendered walkthrough text. Vary the body field itself, not only description.',
         '  Every faithful_actions.body must include one Example: marker after the main assignment so the UI renders a speech-bubble example.',
         '  Example text must be pre-action guidance: a sample action, exact wording, or filled-in field. It is not completion proof.',

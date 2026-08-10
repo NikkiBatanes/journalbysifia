@@ -45,9 +45,30 @@ const hasKeyboardMashingPattern = (input: string) => {
 
 const isNumericOnly = (input: string) => /^[\d\s.,!?'"-]+$/.test(input);
 
+const normalizeAlphaNumericToken = (token: string) =>
+  token.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+
+const isCommonAlphaNumericShorthand = (token: string) => {
+  const normalized = normalizeAlphaNumericToken(token);
+
+  if (!normalized) {
+    return false;
+  }
+
+  const numberUnitPattern = /^\d+(?:[.,]\d+)?[-_/]?(?:k|m|b|mm|sqm|sqft|sqyd|m2|ft2|yd2|ha|hectares?|acres?|lots?|units?|yrs?|years?|mos?|months?|days?|hrs?|hours?|mins?|minutes?|x|percent|pct)$/i;
+  const currencyPattern = /^(?:p|php|usd|aud|cad|eur|gbp|sgd|jpy|peso|pesos|dollars?)\d+(?:[.,]\d+)?(?:k|m|b|mm)?$/i;
+
+  return numberUnitPattern.test(normalized) || currencyPattern.test(normalized);
+};
+
 const hasMixedRandomAlphaNumericToken = (input: string) => {
   const tokens = normalizeInput(input).split(/\s+/);
-  return tokens.some(token => /[a-z]/i.test(token) && /\d/.test(token) && token.length >= 5);
+  return tokens.some(token =>
+    /[a-z]/i.test(token) &&
+    /\d/.test(token) &&
+    normalizeAlphaNumericToken(token).length >= 5 &&
+    !isCommonAlphaNumericShorthand(token)
+  );
 };
 
 const isSingleLikelyGibberishWord = (words: string[]) => {

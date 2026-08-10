@@ -62,13 +62,19 @@ function getTierDisplayName(tier: string): string {
   }
 }
 
-function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
+function getTierLimits(tier: string): {
+  playbooks_limit: number;
+  devotionals_limit: number;
+  wisdom_limit: number;
+  refinement_limit: number;
+  smart_journaling_enabled: boolean;
+} {
   const baseTier = tier.replace('_annual', '');
   switch (baseTier) {
-    case 'spark': return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
-    case 'growth': return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
-    case 'transformation': return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
-    default: return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
+    case 'spark': return { playbooks_limit: 10, devotionals_limit: 10, wisdom_limit: 5, refinement_limit: 3, smart_journaling_enabled: true };
+    case 'growth': return { playbooks_limit: 25, devotionals_limit: 25, wisdom_limit: 12, refinement_limit: 6, smart_journaling_enabled: true };
+    case 'transformation': return { playbooks_limit: 60, devotionals_limit: 60, wisdom_limit: 25, refinement_limit: 15, smart_journaling_enabled: true };
+    default: return { playbooks_limit: 2, devotionals_limit: 1, wisdom_limit: 2, refinement_limit: 1, smart_journaling_enabled: true };
   }
 }
 
@@ -277,6 +283,8 @@ serve(async () => {
             billing_cycle: (entitlement.transaction.productId || '').includes('annual') ? 'annual' : 'monthly',
             playbooks_limit: limits.playbooks_limit,
             devotionals_limit: limits.devotionals_limit,
+            wisdom_limit: limits.wisdom_limit,
+            refinement_limit: limits.refinement_limit,
             smart_journaling_enabled: limits.smart_journaling_enabled,
             show_dashboard_counts: true,
             platform_transaction_id: entitlement.transaction.transactionId,
@@ -296,6 +304,8 @@ serve(async () => {
           if (transactionChanged) {
             updateData.playbooks_used = 0;
             updateData.devotionals_used = 0;
+            updateData.wisdom_count = 0;
+            updateData.refinement_count = 0;
             updateData.last_usage_reset = purchaseDateIso;
             updateData.subscription_start_date = purchaseDateIso;
           }

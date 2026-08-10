@@ -272,21 +272,27 @@ function getTierFromProductId(productId: string): string {
 }
 
 // Get tier limits for subscription tiers (handles annual variants)
-function getTierLimits(tier: string): { playbooks_limit: number; devotionals_limit: number; smart_journaling_enabled: boolean } {
+function getTierLimits(tier: string): {
+  playbooks_limit: number;
+  devotionals_limit: number;
+  wisdom_limit: number;
+  refinement_limit: number;
+  smart_journaling_enabled: boolean;
+} {
   // Map annual variants to base tier for limits
   const baseTier = tier.replace('_annual', '');
 
   switch (baseTier) {
     case 'seeker':
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
+      return { playbooks_limit: 2, devotionals_limit: 1, wisdom_limit: 2, refinement_limit: 1, smart_journaling_enabled: true };
     case 'spark':
-      return { playbooks_limit: 10, devotionals_limit: 10, smart_journaling_enabled: true };
+      return { playbooks_limit: 10, devotionals_limit: 10, wisdom_limit: 5, refinement_limit: 3, smart_journaling_enabled: true };
     case 'growth':
-      return { playbooks_limit: 25, devotionals_limit: 25, smart_journaling_enabled: true };
+      return { playbooks_limit: 25, devotionals_limit: 25, wisdom_limit: 12, refinement_limit: 6, smart_journaling_enabled: true };
     case 'transformation':
-      return { playbooks_limit: 60, devotionals_limit: 60, smart_journaling_enabled: true };
+      return { playbooks_limit: 60, devotionals_limit: 60, wisdom_limit: 25, refinement_limit: 15, smart_journaling_enabled: true };
     default:
-      return { playbooks_limit: 2, devotionals_limit: 1, smart_journaling_enabled: true };
+      return { playbooks_limit: 2, devotionals_limit: 1, wisdom_limit: 2, refinement_limit: 1, smart_journaling_enabled: true };
   }
 }
 
@@ -558,8 +564,12 @@ serve(async (req) => {
             billing_cycle: billingCycle, // Store billing cycle
             playbooks_limit: paidLimits.playbooks_limit,
             devotionals_limit: paidLimits.devotionals_limit,
+            wisdom_limit: paidLimits.wisdom_limit,
+            refinement_limit: paidLimits.refinement_limit,
             playbooks_used: 0, // Reset usage
             devotionals_used: 0,
+            wisdom_count: 0,
+            refinement_count: 0,
             last_usage_reset: now.toISOString(), // Track when usage was reset
             smart_journaling_enabled: paidLimits.smart_journaling_enabled,
             show_dashboard_counts: true,
@@ -592,6 +602,8 @@ serve(async (req) => {
             billing_cycle: billingCycle, // Update billing cycle in case it changed
             playbooks_limit: paidLimits.playbooks_limit,
             devotionals_limit: paidLimits.devotionals_limit,
+            wisdom_limit: paidLimits.wisdom_limit,
+            refinement_limit: paidLimits.refinement_limit,
             smart_journaling_enabled: paidLimits.smart_journaling_enabled,
             show_dashboard_counts: true,
             platform_transaction_id: transactionId,
@@ -599,6 +611,8 @@ serve(async (req) => {
             grace_period_end_date: null,
             playbooks_used: 0, // Reset usage on renewal
             devotionals_used: 0,
+            wisdom_count: 0,
+            refinement_count: 0,
             last_usage_reset: now.toISOString(), // Track when usage was reset
             subscription_start_date: now.toISOString(),
             subscription_end_date: subscriptionEndDate, // Set expiration

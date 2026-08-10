@@ -81,8 +81,12 @@ export class TrialManagementService {
           billing_cycle: billingCycle || 'monthly', // Store billing cycle for conversion
           playbooks_limit: trialLimits.playbooks_limit,
           devotionals_limit: trialLimits.devotionals_limit,
+          wisdom_limit: trialLimits.wisdom_limit,
+          refinement_limit: trialLimits.refinement_limit,
           playbooks_used: 0, // Reset usage for trial
           devotionals_used: 0,
+          wisdom_count: 0,
+          refinement_count: 0,
           smart_journaling_enabled: trialLimits.smart_journaling_enabled,
           platform_subscription_id: platformSubscriptionId,
           platform_transaction_id: transactionId,
@@ -180,8 +184,12 @@ export class TrialManagementService {
           subscription_display_name: `siFia ${this.getTierName(chosenTier)}`,
           playbooks_limit: paidLimits.playbooks_limit,
           devotionals_limit: paidLimits.devotionals_limit,
+          wisdom_limit: paidLimits.wisdom_limit,
+          refinement_limit: paidLimits.refinement_limit,
           playbooks_used: 0, // Reset usage on conversion
           devotionals_used: 0,
+          wisdom_count: 0,
+          refinement_count: 0,
           last_usage_reset: conversionNow, // Initialize reset anchor for first billing cycle
           smart_journaling_enabled: paidLimits.smart_journaling_enabled,
           platform_transaction_id: transactionId,

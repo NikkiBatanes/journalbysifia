@@ -151,13 +151,128 @@ const stripVerseQuotes = (text: string): string => {
   return text;
 };
 
-const USER_NAME_PLACEHOLDER_REGEX = /\[(?:User's Name|First Name|Last Name)\](?:'s|’s)?/gi;
+const USER_NAME_PLACEHOLDER_REGEX = /\[(?:User's Name|Name|First Name|Last Name)\](?:'s|’s)?/gi;
 
 const nameReplacementFor = (match: string): string =>
   match.endsWith("'s") || match.endsWith('’s') ? 'your' : 'you';
 
 const capitalizeFirstLetter = (text: string): string =>
   text.replace(/^(\s*)([a-z])/, (_match, space, letter) => `${space}${letter.toUpperCase()}`);
+
+const firstWord = (value?: string | null): string => String(value || '').trim().split(/\s+/)[0] || '';
+
+const getUserFirstName = (rawUser: any): string => {
+  const metadata = rawUser?.user_metadata || {};
+  const candidates = [
+    metadata.first_name,
+    rawUser?.firstName,
+    metadata.given_name,
+    firstWord(metadata.full_name),
+    firstWord(metadata.name),
+    firstWord(rawUser?.displayName),
+    rawUser?.email?.split('@')[0],
+  ];
+
+  return candidates
+    .map(candidate => String(candidate || '').trim())
+    .find(Boolean) || '';
+};
+
+const getUserDisplayName = (rawUser: any): string => {
+  const metadata = rawUser?.user_metadata || {};
+  const joinedName = [metadata.first_name, metadata.last_name].filter(Boolean).join(' ').trim();
+  const candidates = [
+    metadata.full_name,
+    joinedName,
+    metadata.name,
+    rawUser?.displayName,
+    getUserFirstName(rawUser),
+  ];
+
+  return candidates
+    .map(candidate => String(candidate || '').trim())
+    .find(Boolean) || '';
+};
+
+const OPENING_NAME_COMMON_WORDS = new Set([
+  'A', 'An', 'And', 'As', 'At', 'But', 'By', 'For', 'From', 'God', 'He', 'Here',
+  'His', 'I', 'In', 'It', 'Jesus', 'Lord', 'Now', 'Of', 'On', 'Or', 'She',
+  'So', 'That', 'The', 'Then', 'There', 'They', 'This', 'Today', 'Tomorrow',
+  'We', 'When', 'Where', 'While', 'With', 'Without', 'You', 'Your',
+]);
+
+const isOpeningNameCandidate = (value: string): boolean => {
+  const candidate = value.trim();
+  if (!candidate || OPENING_NAME_COMMON_WORDS.has(candidate)) {
+    return false;
+  }
+
+  return /^[A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,2}$/.test(candidate);
+};
+
+const replaceOpeningHardcodedName = (
+  text: string,
+  userName: string,
+  options: { replaceCommaAddress?: boolean } = {}
+): string => {
+  const cleanName = userName.trim();
+  if (!text || cleanName.length < 2) {
+    return text;
+  }
+
+  const replaceCandidate = (
+    match: string,
+    leading: string,
+    detectedName: string,
+    possessive?: string
+  ) => {
+    if (
+      detectedName.toLowerCase() === cleanName.toLowerCase() ||
+      !isOpeningNameCandidate(detectedName)
+    ) {
+      return match;
+    }
+
+    return `${leading}${cleanName}${possessive || ''}`;
+  };
+
+  const processed = text.replace(
+    /^(\s*)([A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,2})(?:(['’]s)|(?=\s+you\b))/,
+    (match, leading: string, detectedName: string, possessive: string | undefined) => {
+      return replaceCandidate(match, leading, detectedName, possessive);
+    }
+  );
+
+  if (options.replaceCommaAddress === false) {
+    return processed;
+  }
+
+  return processed.replace(
+    /^(\s*)([A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,2})(?=,\s*)/,
+    (match, leading: string, detectedName: string) => replaceCandidate(match, leading, detectedName)
+  );
+};
+
+const replaceNamePlaceholdersWith = (text: string, userName: string): string =>
+  text.replace(USER_NAME_PLACEHOLDER_REGEX, (match) =>
+    match.endsWith("'s") || match.endsWith('’s') ? `${userName}'s` : userName
+  );
+
+const personalizeEntryTitle = (text: string, userName: string): string => {
+  const cleanName = userName.trim();
+  let processed = replaceAllNamePlaceholders(
+    text,
+    { displayName: cleanName, firstName: cleanName },
+    { replaceHardcodedNames: false }
+  );
+
+  if (cleanName.length < 2) {
+    return processed;
+  }
+
+  processed = replaceNamePlaceholdersWith(processed, cleanName);
+  return replaceOpeningHardcodedName(processed, cleanName, { replaceCommaAddress: false });
+};
 
 const userNameRegex = (userName: string): RegExp | null => {
   const cleanName = userName.trim();
@@ -192,6 +307,8 @@ const keepOnlyOpeningUserName = (text: string, userName: string): string => {
   if (cleanName.length < 2) {
     return processed.replace(USER_NAME_PLACEHOLDER_REGEX, nameReplacementFor);
   }
+
+  processed = replaceOpeningHardcodedName(processed, cleanName);
 
   // Simple approach: replace all occurrences of the name after the first one with "you"
   // First, find the first occurrence and keep it
@@ -300,6 +417,7 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
+  const personalizedTitle = personalizeEntryTitle(title, userName);
   const personalized = keepOnlyOpeningUserName(summary, userName);
   // Cap to 2 paragraphs — this is an entry moment, not the full truth section
   const paragraphs = splitParagraphs(personalized).slice(0, 2);
@@ -411,14 +529,14 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       <StepFadeIn delay={80}>
         {Platform.OS === 'ios' ? (
           <TextInput
-            value={title}
+            value={personalizedTitle}
             editable={false}
             multiline={true}
             scrollEnabled={false}
             style={[styles.title, { fontWeight: '500' as any, fontFamily }]}
           />
         ) : (
-          <ThemedText weight="medium" style={styles.title} selectable={true}>{title}</ThemedText>
+          <ThemedText weight="medium" style={styles.title} selectable={true}>{personalizedTitle}</ThemedText>
         )}
       </StepFadeIn>
 
@@ -4849,7 +4967,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             const response = await getActionWisdom({
               playbookId: playbookId || '',
               userId: userId,
-              userName: (user as any)?.user_metadata?.full_name?.split(' ')[0] || (user as any)?.email?.split('@')[0] || '',
+              userName: getUserFirstName(user),
               actionId: currentStep.id || '',
               actionTitle: currentStep.title || '',
               actionBody: actionGuidanceBody || '',
@@ -5614,13 +5732,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [, setJournalCollapseComplete] = useState(true);
 
-  const userName: string = React.useMemo(
-    () =>
-      (user as any)?.user_metadata?.full_name?.split(' ')[0] ||
-      (user as any)?.email?.split('@')[0] ||
-      '',
-    [user]
-  );
+  const userName: string = React.useMemo(() => getUserFirstName(user), [user]);
   const userId: string = user?.id || '';
 
   // Detect if the route playbook is a lightweight list object (missing full content).
@@ -5918,12 +6030,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!playbook) { return; }
 
     // Get user metadata for name replacement
-    const metaUser: any = (user as any)?.user_metadata || {};
-    const metaFirstName = metaUser.first_name || (user as any)?.displayName?.split(' ')[0] || '';
-    const metaDisplayName = (user as any)?.displayName ||
-                          metaUser.full_name ||
-                          [metaUser.first_name, metaUser.last_name].filter(Boolean).join(' ').trim() ||
-                          '';
+    const metaFirstName = getUserFirstName(user);
+    const metaDisplayName = getUserDisplayName(user);
 
     // Get bible version from user preferences or default to NASB
     const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';

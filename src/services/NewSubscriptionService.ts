@@ -493,6 +493,8 @@ export class NewSubscriptionService {
           subscription_display_name: 'siFia Seeker',
           playbooks_limit: seekerLimits.playbooks_limit,
           devotionals_limit: seekerLimits.devotionals_limit,
+          wisdom_limit: seekerLimits.wisdom_limit,
+          refinement_limit: seekerLimits.refinement_limit,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
           show_dashboard_counts: seekerLimits.show_dashboard_counts,
           playbooks_used: 0,
@@ -560,6 +562,8 @@ export class NewSubscriptionService {
         subscription_display_name: displayName, // e.g., "siFia Spark Trial"
         playbooks_limit: trialLimits.playbooks_limit,
         devotionals_limit: trialLimits.devotionals_limit,
+        wisdom_limit: trialLimits.wisdom_limit,
+        refinement_limit: trialLimits.refinement_limit,
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
         devotionals_used: 0,
@@ -662,6 +666,8 @@ export class NewSubscriptionService {
             subscription_display_name: displayName,
             playbooks_limit: trialLimits.playbooks_limit,
             devotionals_limit: trialLimits.devotionals_limit,
+            wisdom_limit: trialLimits.wisdom_limit,
+            refinement_limit: trialLimits.refinement_limit,
             smart_journaling_enabled: trialLimits.smart_journaling_enabled,
             playbooks_used: 0,
             devotionals_used: 0,
@@ -713,6 +719,8 @@ export class NewSubscriptionService {
           subscription_display_name: displayName, // e.g., "siFia Spark" (no "Trial")
           playbooks_limit: limits.playbooks_limit,
           devotionals_limit: limits.devotionals_limit,
+          wisdom_limit: limits.wisdom_limit,
+          refinement_limit: limits.refinement_limit,
           smart_journaling_enabled: limits.smart_journaling_enabled,
           playbooks_used: 0, // Reset usage when converting from trial to paid
           devotionals_used: 0,
@@ -780,6 +788,8 @@ export class NewSubscriptionService {
         subscription_display_name: displayName,
         playbooks_limit: limits.playbooks_limit,
         devotionals_limit: limits.devotionals_limit,
+        wisdom_limit: limits.wisdom_limit,
+        refinement_limit: limits.refinement_limit,
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0, // ALWAYS reset usage for trial
         devotionals_used: 0, // ALWAYS reset usage for trial
@@ -824,6 +834,8 @@ export class NewSubscriptionService {
       subscription_display_name: displayName, // e.g., "siFia Spark", "siFia Growth"
       playbooks_limit: limits.playbooks_limit,
       devotionals_limit: limits.devotionals_limit,
+      wisdom_limit: limits.wisdom_limit,
+      refinement_limit: limits.refinement_limit,
       smart_journaling_enabled: limits.smart_journaling_enabled,
       updated_at: new Date().toISOString(),
     };
@@ -845,6 +857,7 @@ export class NewSubscriptionService {
     updateData.playbooks_used = 0;
     updateData.devotionals_used = 0;
     updateData.wisdom_count = 0;
+    updateData.refinement_count = 0;
     updateData.last_usage_reset = new Date().toISOString(); // Track when usage was reset
     updateData.subscription_start_date = new Date().toISOString(); // Set billing anchor for monthly resets
     updateData.billing_cycle = to_tier.includes('_annual') ? 'annual' : 'monthly'; // Track billing frequency
@@ -1139,6 +1152,8 @@ export class NewSubscriptionService {
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
         devotionals_limit: seekerLimits.devotionals_limit,
+        wisdom_limit: seekerLimits.wisdom_limit,
+        refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
@@ -1176,6 +1191,8 @@ export class NewSubscriptionService {
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
         devotionals_limit: seekerLimits.devotionals_limit,
+        wisdom_limit: seekerLimits.wisdom_limit,
+        refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,
@@ -1206,6 +1223,8 @@ export class NewSubscriptionService {
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
         devotionals_limit: seekerLimits.devotionals_limit,
+        wisdom_limit: seekerLimits.wisdom_limit,
+        refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
         devotionals_used: 0,
         wisdom_count: 0,

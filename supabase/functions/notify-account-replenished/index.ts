@@ -122,6 +122,10 @@ serve(async (req) => {
         const { error: resetError } = await supabase
           .from('user_subscriptions_new')
           .update({
+            playbooks_limit: 2,
+            devotionals_limit: 1,
+            wisdom_limit: 2,
+            refinement_limit: 1,
             playbooks_used: 0,
             devotionals_used: 0,
             wisdom_count: 0,
