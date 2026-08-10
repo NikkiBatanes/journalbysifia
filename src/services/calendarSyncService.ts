@@ -81,6 +81,18 @@ export interface LocationSearchResult {
   };
 }
 
+const getCalendarPermissionDeniedMessage = (): string => (
+  Platform.OS === 'android'
+    ? 'Calendar permission denied. Please enable calendar access in Settings > Apps > siFia > Permissions > Calendar.'
+    : 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia.'
+);
+
+const getCalendarUnavailableMessage = (): string => (
+  Platform.OS === 'android'
+    ? 'Could not access a writable device calendar. Please make sure Calendar is available on this Android device, then try again.'
+    : 'Could not access calendar.'
+);
+
 const showLocationPermissionDisclosure = (): Promise<boolean> => (
   new Promise(resolve => {
     Alert.alert(
@@ -129,21 +141,20 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
 
       return status === 'authorized';
     } else {
-      const granted = await PermissionsAndroid.request(
+      const grants = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.READ_CALENDAR,
         PermissionsAndroid.PERMISSIONS.WRITE_CALENDAR,
-        {
-          title: 'Calendar Permission',
-          message: 'siFia needs access to your calendar to sync time blocks',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        const status = await RNCalendarEvents.requestPermissions();
-        return status === 'authorized';
+      ]);
+
+      const readGranted = grants[PermissionsAndroid.PERMISSIONS.READ_CALENDAR] === PermissionsAndroid.RESULTS.GRANTED;
+      const writeGranted = grants[PermissionsAndroid.PERMISSIONS.WRITE_CALENDAR] === PermissionsAndroid.RESULTS.GRANTED;
+
+      if (!readGranted || !writeGranted) {
+        return false;
       }
-      return false;
+
+      const status = await RNCalendarEvents.requestPermissions();
+      return status === 'authorized';
     }
   } catch (error) {
     Logger.error('Calendar permission error', error as Error, {
@@ -168,13 +179,13 @@ export const updateTimeBlockInCalendar = async (
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
       Logger.warn('updateTimeBlockInCalendar: Permission denied');
-      return { success: false, error: 'Calendar permission denied' };
+      return { success: false, error: getCalendarPermissionDeniedMessage() };
     }
 
     const calendarId = await getSiFiaCalendar();
     if (!calendarId) {
       Logger.warn('updateTimeBlockInCalendar: No calendar ID');
-      return { success: false, error: 'Could not access calendar' };
+      return { success: false, error: getCalendarUnavailableMessage() };
     }
 
     // Create recurrence rule if needed
@@ -262,7 +273,7 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
     Logger.info('getSiFiaCalendar: Found calendars', { count: calendars.length });
 
     // 1) Prefer an existing 'siFia' calendar
-    const existingSiFia = calendars.find(cal => cal.title === 'siFia');
+    const existingSiFia = calendars.find(cal => cal.title === 'siFia' && cal.allowsModifications);
     if (existingSiFia) {
       Logger.info('getSiFiaCalendar: Using existing siFia calendar', { calendarId: existingSiFia.id });
       return existingSiFia.id;
@@ -273,8 +284,11 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       Logger.warn('getSiFiaCalendar: No calendars found on device, attempting to create siFia calendar');
     }
 
-    // 3) Get default calendar for source reference (if available)
-    const defaultCalendar = calendars.find(cal => (cal as any).isPrimary) || calendars[0];
+    // 3) Get writable calendar for source/fallback reference (if available)
+    const writableCalendar =
+      calendars.find(cal => cal.allowsModifications && (cal as any).isPrimary) ||
+      calendars.find(cal => cal.allowsModifications);
+    const defaultCalendar = writableCalendar || calendars.find(cal => (cal as any).isPrimary) || calendars[0];
 
     // 4) Try to create a dedicated 'siFia' calendar
     try {
@@ -303,11 +317,21 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
         }
       } else {
         // Android requires ownerAccount and accessLevel for local calendars
-        const ownerAccount = (defaultCalendar as any)?.ownerAccount || 'local';
+        const sourceName = typeof (defaultCalendar as any)?.source === 'string' && (defaultCalendar as any).source
+          ? (defaultCalendar as any).source
+          : 'siFia';
+        const sourceType = typeof (defaultCalendar as any)?.type === 'string' && (defaultCalendar as any).type
+          ? (defaultCalendar as any).type
+          : undefined;
+        const ownerAccount = (defaultCalendar as any)?.ownerAccount || sourceName;
+        const source = sourceType
+          ? { name: sourceName, type: sourceType }
+          : { name: sourceName, isLocalAccount: true };
+
+        config.source = source;
         config.ownerAccount = ownerAccount;
         config.accessLevel = 'owner';
-        config.accountType = baseSource?.type || 'LOCAL';
-        Logger.info('getSiFiaCalendar: Android config:', { ownerAccount, accountType: config.accountType });
+        Logger.info('getSiFiaCalendar: Android config:', { ownerAccount, source });
       }
 
       Logger.info('getSiFiaCalendar: Attempting to create siFia calendar with config:', config);
@@ -329,10 +353,14 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
       });
     }
 
-    // 5) Last resort: use default calendar if available
+    // 5) Last resort: use an existing writable calendar if available
+    if (writableCalendar?.id) {
+      Logger.warn('getSiFiaCalendar: Falling back to writable calendar', { calendarId: writableCalendar.id });
+      return writableCalendar.id;
+    }
+
     if (defaultCalendar?.id) {
-      Logger.warn('getSiFiaCalendar: Falling back to default calendar', { calendarId: defaultCalendar.id });
-      return defaultCalendar.id;
+      Logger.warn('getSiFiaCalendar: Calendar exists but is not writable', { calendarId: defaultCalendar.id });
     }
 
     Logger.error('getSiFiaCalendar: No calendar available and could not create one');
@@ -373,7 +401,7 @@ export const syncTimeBlockToCalendar = async (
       Logger.warn('syncTimeBlockToCalendar: Permission denied');
       return {
         success: false,
-        error: 'Calendar permission denied. Please enable calendar access in Settings > Privacy & Security > Calendars > siFia',
+        error: getCalendarPermissionDeniedMessage(),
       };
     }
 
@@ -381,7 +409,7 @@ export const syncTimeBlockToCalendar = async (
 
     if (!calendarId) {
       Logger.warn('syncTimeBlockToCalendar: No calendar ID');
-      return { success: false, error: 'Could not access calendar' };
+      return { success: false, error: getCalendarUnavailableMessage() };
     }
 
     // Create recurrence rule if needed
@@ -492,7 +520,7 @@ export const removeTimeBlockFromCalendar = async (
   try {
     const hasPermission = await requestCalendarPermissions();
     if (!hasPermission) {
-      return { success: false, error: 'Calendar permission denied' };
+      return { success: false, error: getCalendarPermissionDeniedMessage() };
     }
 
     // Parse virtual calendar event ID format: "realEventId:targetDate"

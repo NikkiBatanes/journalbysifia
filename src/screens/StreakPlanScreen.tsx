@@ -23,6 +23,7 @@ interface RouteParams {
   source?: string;
   onboarding?: boolean;
   dismissRouteCount?: number;
+  returnTo?: 'journal';
 }
 
 const StreakPlanScreen: React.FC = () => {
@@ -274,6 +275,11 @@ const StreakPlanScreen: React.FC = () => {
         onboardingFlow: true,
         skipNotificationPreference: false,
       });
+    } else if (params.returnTo === 'journal') {
+      (navigation as any).navigate('MainTabs', {
+        screen: 'Journal',
+        params: { screen: 'JournalMain' },
+      });
     } else {
       const fallbackDismissCount = params.source === 'playbook_walkthrough' ? 2 : 1;
       const dismissRouteCount = Math.max(
@@ -347,6 +353,9 @@ const StreakPlanScreen: React.FC = () => {
       >
         {/* Streak animation / celebration icon */}
         <Animated.View style={[styles.iconContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          {Platform.OS === 'android' && (
+            <Animated.View style={[styles.iconGlow, { opacity: iconBgAnim, transform: [{ scale: iconBgAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]} />
+          )}
           <Animated.View style={[styles.iconCircle, { opacity: iconBgAnim, transform: [{ scale: iconBgAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]}>
             <Animated.View style={{ opacity: iconAnim, transform: [{ scale: iconAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }}>
               <Ionicons name="sparkles" size={48} color={Colors.faithGold} />
@@ -430,6 +439,21 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginBottom: 32,
+    ...(Platform.OS === 'android'
+      ? {
+          width: 116,
+          height: 116,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }
+      : {}),
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    backgroundColor: 'rgba(250, 190, 88, 0.08)',
   },
   iconCircle: {
     width: 96,
@@ -440,9 +464,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: Colors.faithGold,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: Platform.OS === 'ios' ? 0.4 : 0,
+    shadowRadius: Platform.OS === 'ios' ? 20 : 0,
+    elevation: Platform.OS === 'android' ? 0 : 8,
+    ...(Platform.OS === 'android'
+      ? {
+          borderWidth: 1,
+          borderColor: 'rgba(250, 190, 88, 0.16)',
+        }
+      : {}),
   },
   textContainer: {
     alignItems: 'center',

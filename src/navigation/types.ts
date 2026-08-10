@@ -221,6 +221,7 @@ export type RootStackParamList = {
     source?: string;
     onboarding?: boolean;
     dismissRouteCount?: number;
+    returnTo?: 'journal';
   } | undefined;
 
   // Admin Dashboard

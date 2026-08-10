@@ -286,23 +286,24 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     // Keep modal open for continued editing
   };
   return (
-    <Modal
-      visible={visible}
-      animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
-      presentationStyle="fullScreen"
-      transparent={Platform.OS === 'android'}
-      statusBarTranslucent={Platform.OS === 'android'}
-      navigationBarTranslucent={Platform.OS === 'android'}
-      onRequestClose={() => {
-        Keyboard.dismiss();
-        // Small delay to ensure keyboard is fully dismissed before closing
-        setTimeout(() => {
-          onCancel();
-          // Handled by success modal hook
-        }, 10);
-      }}
-      onDismiss={() => {}}
-    >
+    <>
+      <Modal
+        visible={visible}
+        animationType={Platform.OS === 'android' ? 'fade' : 'slide'}
+        presentationStyle="fullScreen"
+        transparent={Platform.OS === 'android'}
+        statusBarTranslucent={Platform.OS === 'android'}
+        navigationBarTranslucent={Platform.OS === 'android'}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          // Small delay to ensure keyboard is fully dismissed before closing
+          setTimeout(() => {
+            onCancel();
+            // Handled by success modal hook
+          }, 10);
+        }}
+        onDismiss={() => {}}
+      >
         <View style={[styles.modalView, Platform.OS === 'android' && styles.androidFullScreenModalView]}>
           <ReflectionLogEditor
             initialTitle={question}
@@ -333,16 +334,17 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
             dayTitle={dayTitle}
             questionNumber={questionNumber}
           />
-
-          {/* New success modal system - completely isolated and robust */}
-          <NewSuccessModal
-            visible={successModal.isVisible}
-            config={successModal.config}
-            onDone={successModal.handleDone}
-            onEdit={successModal.handleEdit}
-          />
         </View>
-    </Modal>
+      </Modal>
+
+      {/* Keep the success overlay outside the Android editor modal so its backdrop fills the whole screen. */}
+      <NewSuccessModal
+        visible={successModal.isVisible}
+        config={successModal.config}
+        onDone={successModal.handleDone}
+        onEdit={successModal.handleEdit}
+      />
+    </>
   );
 };
 

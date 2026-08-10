@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -129,6 +129,8 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
       visible={visible}
       transparent
       animationType="none"
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={onDone}
     >
       <View style={styles.overlay}>
@@ -251,11 +253,21 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 50,
     minWidth: 100,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      },
+    }),
   },
   editButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',

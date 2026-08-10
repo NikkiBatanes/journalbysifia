@@ -1184,7 +1184,6 @@ const createStyles = (fonts: {
     borderWidth: 0,
     backgroundColor: Colors.hopeWhite,
     zIndex: 1, // Ensure current day appears above other elements
-    elevation: 1, // For Android
   },
   selectedDayContainer: {
     backgroundColor: Colors.alertCoral,
@@ -1263,7 +1262,13 @@ const createStyles = (fonts: {
         shadowOpacity: 0.3,
         shadowRadius: 8,
       },
-      android: { elevation: 8 },
+      android: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      },
     }),
   },
   modalTitle: {
@@ -1287,7 +1292,13 @@ const createStyles = (fonts: {
         shadowOpacity: 0.2,
         shadowRadius: 4,
       },
-      android: { elevation: 4 },
+      android: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      },
     }),
   },
   // Cancel-style button matching Todos
@@ -1297,11 +1308,21 @@ const createStyles = (fonts: {
     paddingHorizontal: 20,
     borderRadius: 12,
     marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        shadowColor: 'transparent',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      },
+    }),
   },
   cancelButton: {
     flexDirection: 'row',

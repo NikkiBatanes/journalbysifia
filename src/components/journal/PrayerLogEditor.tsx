@@ -141,14 +141,28 @@ const defaultStyles = {
     backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.65,
+      },
+      android: {
+        overflow: 'hidden',
+        elevation: 0,
+        shadowColor: 'transparent',
+        shadowOffset: {
+          width: 0,
+          height: 0,
+        },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+      },
+    }),
   },
   saveFab: {
     backgroundColor: Colors.anchorBlue,
