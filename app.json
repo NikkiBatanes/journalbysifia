@@ -1,7 +1,7 @@
 {
   "name": "siFia",
   "displayName": "siFia",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "orientation": "portrait",
   "icon": "./assets/images/siFiaAppIcon.png",
   "splash": {

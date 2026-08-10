@@ -94,7 +94,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.4.3"
+        versionName "1.4.4"
         resValue "string", "build_config_package", "app.sifia.com"
         resValue "string", "facebook_app_id", facebookAppId
         resValue "string", "fb_login_protocol_scheme", "fb${facebookAppId}"
