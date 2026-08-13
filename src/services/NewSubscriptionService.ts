@@ -728,6 +728,7 @@ export class NewSubscriptionService {
           refinement_count: 0,
           subscription_start_date: new Date().toISOString(),
           last_usage_reset: new Date().toISOString(), // Initialize reset anchor for paid billing cycle
+          trial_converted_date: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)

@@ -75,6 +75,10 @@ interface ValidationData {
   purchaseDate: Date | null;
   expiresAt: Date | null;
   isTrialPeriod: boolean;
+  hasUsedTrialOffer: boolean;
+  hasPriorTrialOffer: boolean;
+  trialStartDate: Date | null;
+  trialEndDate: Date | null;
   isActive: boolean;
   isExpired: boolean;
   environment: string;
@@ -266,7 +270,7 @@ serve(async (req) => {
     // Get user's current subscription tier and trial info
     const { data: currentSub } = await supabase
       .from('user_subscriptions_new')
-      .select('tier, trial_start_date, trial_end_date, trial_chosen_tier, billing_cycle, playbooks_limit, devotionals_limit, wisdom_limit, refinement_limit')
+      .select('tier, trial_start_date, trial_end_date, trial_chosen_tier, trial_converted_date, trial_cancelled_date, original_transaction_id, billing_cycle, playbooks_limit, devotionals_limit, wisdom_limit, refinement_limit')
       .eq('user_id', userId)
       .single();
 
@@ -275,6 +279,12 @@ serve(async (req) => {
     const isAppleTrialPeriod = validationResult.data?.isTrialPeriod || false;
     const isExpired = validationResult.data?.isExpired || false;
     const isActive = validationResult.data?.isActive || false;
+    const hasLocalTrialHistory = Boolean(
+      currentSub?.trial_start_date ||
+      currentSub?.trial_converted_date ||
+      currentSub?.trial_cancelled_date ||
+      currentSub?.original_transaction_id
+    );
 
     // DEBUG: Log all detection variables
     console.log('[ValidateReceipt] TRIAL DETECTION DEBUG:', {
@@ -285,6 +295,9 @@ serve(async (req) => {
       isAppleTrialPeriod,
       isActive,
       isExpired,
+      hasLocalTrialHistory,
+      hasPriorTrialOffer: validationResult.data?.hasPriorTrialOffer,
+      hasUsedTrialOffer: validationResult.data?.hasUsedTrialOffer,
       expiresAt: validationResult.data?.expiresAt?.toISOString(),
       expectedTrialLogic: 'seeker + eligible + no previous trial + Apple trial period = NEW TRIAL'
     });
@@ -340,10 +353,12 @@ serve(async (req) => {
     // source of truth. Keep the product-id fallback only for sandbox instability.
     const isFreeTrial = (validationResult.data?.productId || '').includes('freetrial');
     const canUseProductIdTrialFallback =
-      validationResult.data?.environment === 'Sandbox' && isFreeTrial;
+      validationResult.data?.environment === 'Sandbox' &&
+      isFreeTrial &&
+      !validationResult.data?.hasPriorTrialOffer;
     const shouldCreateNewTrial =
       currentTier === 'seeker' &&
-      !currentSub?.trial_start_date &&
+      !hasLocalTrialHistory &&
       isEligibleForTrial === true &&
       (isAppleTrialPeriod || canUseProductIdTrialFallback);
 
@@ -552,16 +567,30 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
   }
 
   // Sort by purchase_date_ms descending to get the most recent transaction
-  const latestReceipt = receipts.sort((a, b) => {
+  const sortedReceipts = receipts.sort((a, b) => {
     const aTime = parseInt(a.purchase_date_ms || '0');
     const bTime = parseInt(b.purchase_date_ms || '0');
     return bTime - aTime; // Descending order (newest first)
+  });
+  const latestReceipt = sortedReceipts[0];
+  const trialReceipts = sortedReceipts.filter(receipt =>
+    receipt.is_trial_period === 'true' || receipt.is_in_intro_offer_period === 'true'
+  );
+  const priorTrialReceipts = trialReceipts.filter(receipt =>
+    receipt.transaction_id !== latestReceipt.transaction_id
+  );
+  const firstTrialReceipt = [...trialReceipts].sort((a, b) => {
+    const aTime = parseInt(a.purchase_date_ms || a.original_purchase_date_ms || '0');
+    const bTime = parseInt(b.purchase_date_ms || b.original_purchase_date_ms || '0');
+    return aTime - bTime;
   })[0];
 
   console.log('[ValidateReceipt] Selected most recent transaction:', {
     productId: latestReceipt.product_id,
     purchaseDate: latestReceipt.purchase_date,
     transactionId: latestReceipt.transaction_id?.substring(0, 10) + '...',
+    hasUsedTrialOffer: trialReceipts.length > 0,
+    hasPriorTrialOffer: priorTrialReceipts.length > 0,
     totalTransactions: receipts.length,
   });
 
@@ -592,6 +621,14 @@ async function validateAppleReceipt(receiptData: string): Promise<ValidationResu
       purchaseDate: latestReceipt.purchase_date_ms ? new Date(parseInt(latestReceipt.purchase_date_ms)) : null,
       expiresAt,
       isTrialPeriod,
+      hasUsedTrialOffer: trialReceipts.length > 0,
+      hasPriorTrialOffer: priorTrialReceipts.length > 0,
+      trialStartDate: firstTrialReceipt?.purchase_date_ms
+        ? new Date(parseInt(firstTrialReceipt.purchase_date_ms))
+        : null,
+      trialEndDate: firstTrialReceipt?.expires_date_ms
+        ? new Date(parseInt(firstTrialReceipt.expires_date_ms))
+        : null,
       isActive,
       isExpired,
       environment: response.environment,
@@ -682,6 +719,7 @@ async function updateUserSubscription(
       trial_start_date: string | null;
       trial_end_date: string | null;
       trial_chosen_tier: string | null;
+      trial_converted_date: string | null;
       updated_at: string;
       playbooks_limit: number;
       devotionals_limit: number;
@@ -706,9 +744,16 @@ async function updateUserSubscription(
       original_transaction_id: validationData.originalTransactionId,
       subscription_display_name: getTierDisplayName(tier),
       billing_cycle: tier.includes('_annual') ? 'annual' : 'monthly',
-      trial_start_date: null, // Clear trial dates when converting to paid
-      trial_end_date: null,
-      trial_chosen_tier: null,
+      // Preserve trial history so former trial users are never offered a second intro trial.
+      // The tier/status, not these historical dates, determine active access.
+      trial_start_date: existingSub?.trial_start_date || validationData.trialStartDate?.toISOString() || null,
+      trial_end_date: existingSub?.trial_end_date || validationData.trialEndDate?.toISOString() || null,
+      trial_chosen_tier: existingSub?.trial_chosen_tier || null,
+      trial_converted_date: existingSub?.trial_converted_date || (
+        isTrialConversion || validationData.hasUsedTrialOffer
+          ? (validationData.purchaseDate?.toISOString() || new Date().toISOString())
+          : null
+      ),
       updated_at: new Date().toISOString(),
     };
 

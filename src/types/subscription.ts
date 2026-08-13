@@ -51,6 +51,8 @@ export interface Subscription {
   trial_start_date?: string;
   trial_end_date?: string;
   trial_chosen_tier?: SubscriptionTier; // The plan user chose during trial signup
+  trial_converted_date?: string | null;
+  trial_cancelled_date?: string | null;
   subscription_start_date?: string;
   subscription_end_date?: string;
 
@@ -58,6 +60,7 @@ export interface Subscription {
   platform?: PaymentPlatform;
   platform_subscription_id?: string;
   platform_transaction_id?: string;
+  original_transaction_id?: string | null;
   platform_receipt_data?: any;
 
   // POST-LAUNCH: Family subscription support

@@ -533,14 +533,22 @@ export class AppleStoreKitService {
       if (productId.includes('freetrial') && this.currentPurchaseEligibility === true) {
         const { data: existingSub } = await supabase
           .from('user_subscriptions_new')
-          .select('tier, trial_start_date')
+          .select('tier, trial_start_date, trial_converted_date, trial_cancelled_date, original_transaction_id')
           .eq('user_id', userId)
           .single();
-        if (existingSub?.trial_start_date && existingSub?.tier !== 'free_trial') {
+        const hasTrialHistory = Boolean(
+          existingSub?.trial_start_date ||
+          existingSub?.trial_converted_date ||
+          existingSub?.trial_cancelled_date ||
+          existingSub?.original_transaction_id
+        );
+        if (hasTrialHistory && existingSub?.tier !== 'free_trial') {
           Logger.warn('[StoreKit] Trial eligibility rejected - user already used a trial', {
             component: 'AppleStoreKitService',
             userId,
-            previousTrialStart: existingSub.trial_start_date,
+            previousTrialStart: existingSub?.trial_start_date,
+            previousTrialConverted: existingSub?.trial_converted_date,
+            previousTrialCancelled: existingSub?.trial_cancelled_date,
             productId,
           });
           this.currentPurchaseEligibility = undefined;
@@ -1754,11 +1762,17 @@ export class AppleStoreKitService {
         if (isTrialProduct) {
           const { data: currentSub } = await supabase
             .from('user_subscriptions_new')
-            .select('tier, trial_start_date')
+            .select('tier, trial_start_date, trial_converted_date, trial_cancelled_date, original_transaction_id')
             .eq('user_id', userId)
             .single();
 
-          isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !currentSub.trial_start_date);
+          const hasTrialHistory = Boolean(
+            currentSub?.trial_start_date ||
+            currentSub?.trial_converted_date ||
+            currentSub?.trial_cancelled_date ||
+            currentSub?.original_transaction_id
+          );
+          isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !hasTrialHistory);
         }
 
         const validationResult = await this.validateReceiptServerSide(
@@ -2230,11 +2244,17 @@ export class AppleStoreKitService {
             // Check if user is eligible for trial
             const { data: currentSub } = await supabase
               .from('user_subscriptions_new')
-              .select('tier, trial_start_date')
+              .select('tier, trial_start_date, trial_converted_date, trial_cancelled_date, original_transaction_id')
               .eq('user_id', userId)
               .single();
 
-            isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !currentSub.trial_start_date);
+            const hasTrialHistory = Boolean(
+              currentSub?.trial_start_date ||
+              currentSub?.trial_converted_date ||
+              currentSub?.trial_cancelled_date ||
+              currentSub?.original_transaction_id
+            );
+            isEligibleForTrial = !currentSub || (currentSub.tier === 'seeker' && !hasTrialHistory);
           }
 
           const validationResult = await Promise.race([

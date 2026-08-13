@@ -214,7 +214,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   }, [navigation, navigateToNotificationSetup, resetToUserInput]);
 
   const subscription = devotionalGating.subscription;
-  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
+  const hasEverStartedTrial = Boolean(
+    subscription?.trial_start_date ||
+    subscription?.trial_converted_date ||
+    subscription?.trial_cancelled_date ||
+    subscription?.original_transaction_id
+  );
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
 
   // Test mode: override trial status if provided

@@ -585,7 +585,10 @@ ${Platform.OS === 'android'
             const isLocallyTrialEligible =
               routeParams?.isTrialEligible !== false &&
               !isAlreadyOnTrial &&
-              !currentSubscription?.trial_start_date;
+              !currentSubscription?.trial_start_date &&
+              !currentSubscription?.trial_converted_date &&
+              !currentSubscription?.trial_cancelled_date &&
+              !currentSubscription?.original_transaction_id;
             storeKit.setPurchaseEligibility(isLocallyTrialEligible);
           } catch (error) {
             logger.warn('Failed to set purchase eligibility before iOS purchase', { error: error as Error });

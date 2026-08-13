@@ -5239,6 +5239,8 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
   const jesusNameIdx = fullPrayer.search(/In Jesus'? [Nn]ame/i);
   const prayerBodyText = jesusNameIdx > 0 ? capitalizeFirstLetter(fullPrayer.slice(0, jesusNameIdx).trimEnd()) : capitalizeFirstLetter(fullPrayer);
   const prayerClosing = jesusNameIdx > 0 ? fullPrayer.slice(jesusNameIdx) : null;
+  const prayerBodyParagraphs = splitParagraphs(prayerBodyText);
+  const prayerClosingParagraphs = prayerClosing ? splitParagraphs(prayerClosing) : [];
 
   return (
     <>
@@ -5252,8 +5254,11 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
 
         {/* Vertically centered prayer block — sits in the space between label and floating button */}
         <StepFadeIn delay={100} style={styles.prayerBlock}>
-          {splitParagraphs(prayerBodyText).map((line, i) => (
-            <View key={i}>
+          {prayerBodyParagraphs.map((line, i) => (
+            <View
+              key={i}
+              style={i < prayerBodyParagraphs.length - 1 ? styles.prayerParagraph : undefined}
+            >
               {Platform.OS === 'ios' ? (
                 <TextInput
                   value={line}
@@ -5265,13 +5270,12 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
               ) : (
                 <ThemedText style={styles.prayerText} selectable={true}>{line}</ThemedText>
               )}
-              {i === 0 && <View style={{ height: 16 }} />}
             </View>
           ))}
           {prayerClosing && (
             <>
               <View style={{ height: 24 }} />
-              {splitParagraphs(prayerClosing).map((line, i) => (
+              {prayerClosingParagraphs.map((line, i) => (
                 Platform.OS === 'ios' ? (
                   <TextInput
                     key={`closing-${i}`}
@@ -8507,6 +8511,9 @@ const styles = StyleSheet.create({
   // Prayer
   prayerBlock: {
     marginTop: 28,
+  },
+  prayerParagraph: {
+    marginBottom: 16,
   },
   prayerText: {
     fontSize: 18,
