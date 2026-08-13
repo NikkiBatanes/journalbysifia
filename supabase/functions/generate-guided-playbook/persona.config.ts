@@ -872,6 +872,41 @@ export function detectChurchOrder(input: string): boolean {
   return result;
 }
 
+export const SPIRITUAL_DISCERNMENT_RULES = `=== SPIRITUAL DISCERNMENT RULES MODULE ===
+Use this module when the user's input involves dreams, visions, voices, spiritual impressions, spiritual warfare, rebuking spirits, demonic activity, angels, sleep paralysis, occult practices, new age practices, or the question "is this from God?"
+
+VERDICT CLARITY:
+When the reported experience already contradicts Scripture, Christ's character, or the fruit of the Spirit, do not leave the reader in open-ended uncertainty. Give the biblical verdict first, then explain how testing confirms it.
+
+If the experience includes deceptive, grotesque, accusatory, terrifying, occult, new age, or confusing imagery, distortion of a spouse or family member, a voice/impression commanding sin or fear, spirit guides, angels detached from Christ, or anything that pulls the user away from trust and obedience to Jesus, state plainly: "This is not from God and should be rejected."
+
+Use "test the spirits" as biblical discernment with a conclusion, not as indefinite curiosity. Do not write as if every strange experience remains undecided after Scripture has already exposed it. Say the test clearly: God does not author confusion, deception, fear-driven fixation, occult practice, or images that distort what He has made.
+
+Distinguish the experience from the user's response. It is correct to say, "Your response to rebuke evil in Jesus' name was right." Do not say, "The vision led you to rebuke evil, so the vision aligns with Scripture." The rebuke may align with Scripture while the vision itself is not from God.
+
+FORBIDDEN:
+- Do not encourage decoding symbols, chasing hidden meanings, or treating the dream/vision as a message to interpret.
+- Do not imply the user needs more information before rejecting clearly unbiblical or disturbing spiritual content.
+- Do not use vague lines like "seek clarity" as the main answer when the biblical verdict should already be clear.
+- Do not create fear or sensational demonology. Be firm, calm, and Christ-centered.
+- Do not say every unusual dream is demonic. Be precise: if the content is confusing, deceptive, occult, fear-driving, or opposed to Christ's revealed truth, reject it.
+
+RESPONSE ORDER:
+1. Name the verdict in truth_summary and the opening of truth_in_love.
+2. Explain that testing the spirits means submitting the experience to Scripture, not entertaining it.
+3. Affirm any obedient response separately, such as praying, resisting fear, or rebuking evil in Jesus' name.
+4. Call the user away from fixation and toward Scripture, prayer, peace, and wise biblical counsel if the pattern repeats.
+
+FAITHFUL ACTION REQUIREMENTS:
+When this module is triggered, faithful_actions should include concrete steps when relevant:
+- reject the experience plainly under Christ's authority
+- write the simple verdict, "This is not from God; I reject it in Jesus' name"
+- stop replaying or decoding the imagery
+- replace fear with a specific Scripture and prayer
+- tell a spouse, pastor, biblical counselor, or mature believer if the experiences keep recurring
+- remove occult/new age practices, media, objects, or teaching if they are involved
+`;
+
 // ─── Layer 3: Optional Examples (Only on Retry/Validation Failure) ─────────
 
 // Examples moved to separate constants to reduce token cost for normal playbooks
@@ -938,6 +973,17 @@ export function detectJudaism(input: string): boolean {
   return result;
 }
 
+export function detectSpiritualDiscernment(input: string): boolean {
+  const text = input.toLowerCase();
+  const explicitSpiritualExperience = /\b(spiritual experience|spiritual attack|spiritual warfare|evil spirit|unclean spirit|demon|demonic|rebuke|rebuking|deliverance|sleep paralysis|occult|new age|witchcraft|tarot|crystal|chakra|third eye|astral|psychic|medium|spirit guide|spirit guides)\b/i.test(text);
+  const discernmentQuestion = /\b(from god|not from god|is this god|is this from god|test(?:ing)? the spirits?|discern(?:ing)? (?:the )?spirits?)\b/i.test(text);
+  const unusualExperienceWithFaithContext = /\b(dream|nightmare|vision|visions|voice|voices|angel|angels|apparition|supernatural)\b/i.test(text)
+    && /\b(god|jesus|christ|lord|scripture|bible|pray|prayer|spirit|spiritual|rebuke|evil|fear|confusion)\b/i.test(text);
+  const result = explicitSpiritualExperience || discernmentQuestion || unusualExperienceWithFaithContext;
+  if (result) console.log('[Detection] SPIRITUAL_DISCERNMENT module triggered');
+  return result;
+}
+
 // ─── Prompt Builder Function ───────────────────────────────────────────────────
 
 export function buildGuidedPlaybookPrompt(
@@ -947,13 +993,17 @@ export function buildGuidedPlaybookPrompt(
   const modules = [BASE_PROMPT];
   console.log('[Prompt Builder] BASE_PROMPT included | chars:', BASE_PROMPT.length, '| est. tokens:', Math.round(BASE_PROMPT.length / 4));
 
-  // Priority order: SAFETY > DOCTRINE > JUDAISM > CHURCH_ORDER > MINISTRY_STEWARDSHIP > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
+  // Priority order: SAFETY > DOCTRINE > SPIRITUAL_DISCERNMENT > JUDAISM > CHURCH_ORDER > MINISTRY_STEWARDSHIP > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
   if (detectSafety(userInput)) {
     modules.push(SAFETY_RULES);
   }
 
   if (detectDoctrine(userInput)) {
     modules.push(DOCTRINE_RULES);
+  }
+
+  if (detectSpiritualDiscernment(userInput)) {
+    modules.push(SPIRITUAL_DISCERNMENT_RULES);
   }
 
   if (detectJudaism(userInput)) {

@@ -7,8 +7,11 @@
 import { Logger } from './ProductionLogger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { monitoring } from './monitoring';
+import type { SubscriptionTier as AppSubscriptionTier } from '../types/subscription';
 
-export type SubscriptionTier = 'seeker' | 'spark' | 'growth' | 'transformation' | 'family';
+export type SubscriptionTier = AppSubscriptionTier | 'family' | 'family_annual';
+
+type RateLimitedTier = 'seeker' | 'free_trial' | 'spark' | 'growth' | 'transformation' | 'family';
 
 export interface RateLimitConfig {
   perMinute: number;
@@ -23,14 +26,23 @@ export interface RateLimitConfig {
  * PHILOSOPHY: Only prevent abuse, not restrict normal usage
  * Paying users should NEVER hit these limits in normal use
  */
-export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
-  // Free tier - Prevent abuse (they already have subscription limits)
+export const TIER_RATE_LIMITS: Record<RateLimitedTier, RateLimitConfig> = {
+  // Free tier - prevent rapid retries only; subscription service handles quota
   seeker: {
-    perMinute: 1,
-    perHour: 3,
-    perDay: 10,
+    perMinute: 3,
+    perHour: 15,
+    perDay: 30,
     perMonth: 999999, // High ceiling; subscription service handles monthly quota
-    cooldownSeconds: 30, // Prevent button mashing
+    cooldownSeconds: 5, // Prevent button mashing
+  },
+
+  // Trial tier - trial limits depend on chosen plan; this only prevents abuse
+  free_trial: {
+    perMinute: 3,
+    perHour: 15,
+    perDay: 30,
+    perMonth: 999999, // High ceiling; subscription service handles trial quota
+    cooldownSeconds: 5, // Prevent accidental duplicate requests
   },
 
   // Spark tier - 10 playbooks/month (subscription handles limit)
@@ -72,6 +84,24 @@ export const TIER_RATE_LIMITS: Record<SubscriptionTier, RateLimitConfig> = {
   },
 };
 
+const RATE_LIMIT_TIER_ALIASES: Record<string, RateLimitedTier> = {
+  seeker: 'seeker',
+  free_trial: 'free_trial',
+  trial: 'free_trial',
+  spark: 'spark',
+  spark_annual: 'spark',
+  growth: 'growth',
+  growth_annual: 'growth',
+  transformation: 'transformation',
+  transformation_annual: 'transformation',
+  family: 'family',
+  family_annual: 'family',
+};
+
+function normalizeRateLimitTier(tier: SubscriptionTier | string | null | undefined): RateLimitedTier {
+  return RATE_LIMIT_TIER_ALIASES[String(tier || 'seeker')] || 'seeker';
+}
+
 interface RateLimitEntry {
   timestamp: number;
   count: number;
@@ -109,7 +139,9 @@ class RateLimiter {
       month: number;
     };
   }> {
-    const limits = TIER_RATE_LIMITS[tier];
+    const rateLimitTier = normalizeRateLimitTier(tier);
+    const limits = TIER_RATE_LIMITS[rateLimitTier];
+    const operationName = operationType === 'playbook' ? 'playbook' : 'devotional';
     const state = await this.getState(userId, operationType);
     const now = Date.now();
 
@@ -120,14 +152,14 @@ class RateLimiter {
 
       // Track rate limit hit (no UI impact)
       monitoring.trackMetric('rate_limit_hit', 1, {
-        tier,
+        tier: rateLimitTier,
         limitType: 'cooldown',
         waitSeconds,
       });
 
       return {
         allowed: false,
-        reason: `Unusual activity detected. Please wait ${waitSeconds} seconds to ensure quality.`,
+        reason: `Please wait ${waitSeconds} seconds before starting another ${operationName}.`,
         waitSeconds,
       };
     }
@@ -142,7 +174,7 @@ class RateLimiter {
       const waitSeconds = Math.ceil(waitMs / 1000);
       return {
         allowed: false,
-        reason: `Unusual activity detected. Please wait ${waitSeconds} seconds while we ensure quality.`,
+        reason: `You started several ${operationName}s very quickly. Please wait ${waitSeconds} seconds and try again.`,
         waitSeconds,
       };
     }
@@ -154,7 +186,7 @@ class RateLimiter {
       const waitMinutes = Math.ceil(waitMs / 60000);
       return {
         allowed: false,
-        reason: `Unusual activity detected. Please wait ${waitMinutes} minutes while we ensure quality for everyone.`,
+        reason: `You started several ${operationName}s in the last hour. Please wait ${waitMinutes} minutes before trying again.`,
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -166,7 +198,7 @@ class RateLimiter {
       const waitHours = Math.ceil(waitMs / 3600000);
       return {
         allowed: false,
-        reason: `Unusual activity detected today. This helps us maintain quality for everyone. Please try again in ${waitHours} hours.`,
+        reason: `You've reached today's ${operationName} safety limit. Please try again in ${waitHours} hours.`,
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -178,7 +210,7 @@ class RateLimiter {
       // const waitDays = Math.ceil(waitMs / 86400000); // Unused but kept for reference
       return {
         allowed: false,
-        reason: 'Unusual activity detected this month. This helps us maintain service quality. Please contact support if you need assistance.',
+        reason: 'This account reached a monthly generation safety limit. Please contact support if you need assistance.',
         waitSeconds: Math.ceil(waitMs / 1000),
       };
     }
@@ -363,8 +395,7 @@ class RateLimiter {
     reason: string,
     _waitSeconds?: number // Prefixed with _ to indicate intentionally unused
   ): string {
-    // All messages now use "unusual activity" language
-    // Just return the reason as-is since it's already user-friendly
+    // Reasons are already phrased for the user at the point of each limit check.
     return reason;
   }
 
@@ -445,6 +476,7 @@ export async function checkAndRecordRequest(
       component: 'rateLimiting',
       data: {
         tier,
+        rateLimitTier: normalizeRateLimitTier(tier),
         operationType,
         reason: check.reason,
         waitSeconds: check.waitSeconds,
