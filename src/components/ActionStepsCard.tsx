@@ -94,6 +94,98 @@ const cleanMarkdown = (text: string | undefined): string => {
     .trim();
 };
 
+const isExampleApostrophe = (text: string, index: number): boolean => {
+  const char = text[index];
+  if (char !== "'" && char !== '‘' && char !== '’') { return false; }
+  return /[A-Za-z0-9]/.test(text[index - 1] || '') && /[A-Za-z0-9]/.test(text[index + 1] || '');
+};
+
+const stripBalancedExampleQuotes = (text: string): string => {
+  let out = String(text || '')
+    .trim()
+    .replace(/"{2,}/g, '"')
+    .replace(/“{2,}/g, '“')
+    .replace(/”{2,}/g, '”');
+
+  const quotePairs: Array<[string, string]> = [
+    ['"', '"'],
+    ["'", "'"],
+    ['`', '`'],
+    ['“', '”'],
+    ['‘', '’'],
+  ];
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [open, close] of quotePairs) {
+      if (out.startsWith(open) && out.endsWith(close)) {
+        out = out.slice(1, -1).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return out.replace(/,\s*([.!?])/g, '$1');
+};
+
+const cleanExampleItem = (text: string): string =>
+  stripBalancedExampleQuotes(String(text || '')
+    .trim()
+    .replace(/^[,;]+/g, '')
+    .replace(/[,;.!?]+$/g, '')
+    .trim());
+
+const extractStandaloneQuotedExampleItems = (text: string): string[] => {
+  const source = String(text || '').trim();
+  const items: string[] = [];
+  let outside = '';
+
+  for (let i = 0; i < source.length; i++) {
+    const open = source[i];
+    if ((open !== '"' && open !== "'" && open !== '“' && open !== '‘') || isExampleApostrophe(source, i)) {
+      outside += open;
+      continue;
+    }
+
+    const close = open === '“' ? '”' : open === '‘' ? '’' : open;
+    let end = -1;
+    for (let cursor = i + 1; cursor < source.length; cursor++) {
+      if (source[cursor] === close && source[cursor - 1] !== '\\' && !isExampleApostrophe(source, cursor)) {
+        end = cursor;
+        break;
+      }
+    }
+
+    if (end === -1) {
+      outside += open;
+      continue;
+    }
+
+    const item = cleanExampleItem(source.slice(i + 1, end));
+    if (item) {
+      items.push(`"${item}"`);
+    }
+    i = end;
+  }
+
+  const nonSeparatorText = outside
+    .replace(/\b(?:and|or)\b/gi, '')
+    .replace(/[,;\s]+/g, '')
+    .trim();
+
+  return items.length >= 2 && !nonSeparatorText ? items : [];
+};
+
+const cleanActionExampleText = (text: string): string => {
+  const source = cleanMarkdown(String(text || ''))
+    .replace(/^Example:\s*/i, '')
+    .trim();
+  const quotedItems = extractStandaloneQuotedExampleItems(source);
+  return quotedItems.length >= 2 ? quotedItems.join('; ') : stripBalancedExampleQuotes(source);
+};
+
 const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTask[] => {
   if (!subTasks) {
     return [];
@@ -1038,13 +1130,13 @@ export default function ActionStepsCard({
                 const exampleMatches = exampleText.split(/Example:\s*/i).filter((text: string) => text.trim().length > 0);
                 examples = exampleMatches.map((ex: string, i: number) => ({
                   id: `ex-${i}`,
-                  text: ex.trim(),
+                  text: cleanActionExampleText(ex),
                 }));
               } else if (Array.isArray((step as any).examples)) {
                 // Handle array format (legacy)
                 examples = (step as any).examples.map((ex: string, i: number) => ({
                   id: `ex-${i}`,
-                  text: ex.replace(/^"+|"+$/g, ''),
+                  text: cleanActionExampleText(ex),
                 }));
               } else {
                 // Fallback: extract from sub-tasks that start with legacy "Example:"
@@ -1052,7 +1144,7 @@ export default function ActionStepsCard({
                   .filter((st) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
                   .map((st, i) => ({
                     id: st.id || `ex-${i}`,
-                    text: st.text.replace(/^Example:/i, '').trim(),
+                    text: cleanActionExampleText(st.text),
                   }));
               }
 
@@ -1077,8 +1169,7 @@ export default function ActionStepsCard({
               if (showExampleSubtasksInline && examples.length > 0) {
                 const exampleSubtasks = examples.map((ex) => ({
                   id: ex.id,
-                  // Ensure any lingering quotes are stripped from example text
-                  text: `Suggestion: ${ex.text.replace(/^"+|"+$/g, '')}`,
+                  text: `Suggestion: ${cleanActionExampleText(ex.text)}`,
                   completed: false,
                   isExample: true,
                   is_example: true,

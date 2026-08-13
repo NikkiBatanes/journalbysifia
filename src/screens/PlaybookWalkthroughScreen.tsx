@@ -1529,10 +1529,110 @@ function displayHintLabel(label: string | undefined, itemCount = 2): string {
 }
 
 function splitHintDisplayItems(text: string): string[] {
-  return String(text || '')
-    .split(/\s*(?:;|,)\s*/)
+  const quotedItems = extractStandaloneQuotedHintItems(text);
+  if (quotedItems.length >= 2) {
+    return quotedItems;
+  }
+
+  return splitHintTextOnSeparators(text)
     .map(part => part.trim())
     .filter(Boolean);
+}
+
+function cleanHintItem(text: string): string {
+  return stripBalancedActionQuotes(String(text || '')
+    .trim()
+    .replace(/^[,;]+/g, '')
+    .replace(/[,;.!?]+$/g, '')
+    .trim());
+}
+
+function splitHintTextOnSeparators(text: string): string[] {
+  const items: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+  let quoteClose = '';
+  const source = String(text || '').replace(/,\s*([.!?])/g, '$1');
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+
+    if (quoteClose) {
+      current += char;
+      if (char === quoteClose && !isActionApostrophe(source, i)) {
+        quoteClose = '';
+      }
+      continue;
+    }
+
+    if ((char === '"' || char === "'" || char === '“' || char === '‘') && !isActionApostrophe(source, i)) {
+      quoteClose = char === '“' ? '”' : char === '‘' ? '’' : char;
+      current += char;
+      continue;
+    }
+
+    if (char === '(') {
+      parenDepth++;
+    } else if (char === ')' && parenDepth > 0) {
+      parenDepth--;
+    }
+
+    if ((char === ',' || char === ';') && parenDepth === 0) {
+      if (current.trim()) {
+        items.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) {
+    items.push(current.trim());
+  }
+
+  return items;
+}
+
+function extractStandaloneQuotedHintItems(text: string): string[] {
+  const source = String(text || '').trim();
+  const items: string[] = [];
+  let outside = '';
+
+  for (let i = 0; i < source.length; i++) {
+    const open = source[i];
+    if ((open !== '"' && open !== "'" && open !== '“' && open !== '‘') || isActionApostrophe(source, i)) {
+      outside += open;
+      continue;
+    }
+
+    const close = open === '“' ? '”' : open === '‘' ? '’' : open;
+    let end = -1;
+    for (let cursor = i + 1; cursor < source.length; cursor++) {
+      if (source[cursor] === close && source[cursor - 1] !== '\\' && !isActionApostrophe(source, cursor)) {
+        end = cursor;
+        break;
+      }
+    }
+
+    if (end === -1) {
+      outside += open;
+      continue;
+    }
+
+    const item = cleanHintItem(source.slice(i + 1, end));
+    if (item) {
+      items.push(`"${item}"`);
+    }
+    i = end;
+  }
+
+  const nonSeparatorText = outside
+    .replace(/\b(?:and|or)\b/gi, '')
+    .replace(/[,;\s]+/g, '')
+    .trim();
+
+  return items.length >= 2 && !nonSeparatorText ? items : [];
 }
 
 function splitParentheticalActionHint(line: string): string[] | null {
@@ -1556,13 +1656,17 @@ function splitParentheticalActionHint(line: string): string[] | null {
 }
 
 function splitListHintItems(value: string): string[] {
-  return String(value || '')
+  const quotedItems = extractStandaloneQuotedHintItems(value);
+  if (quotedItems.length >= 2) {
+    return quotedItems;
+  }
+
+  return splitHintTextOnSeparators(String(value || '')
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
-    .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', ')
-    .split(/\s*,\s*/)
+    .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', '))
     .map(part => {
-      const cleaned = part.trim().replace(/^(?:and|or)\s+/i, '').replace(/[.!?]+$/g, '');
+      const cleaned = cleanHintItem(part.replace(/^(?:and|or)\s+/i, ''));
       if (/^["“]/.test(cleaned)) {
         return `"${stripBalancedActionQuotes(cleaned)}"`;
       }
@@ -2530,7 +2634,7 @@ function isCheckInLabelValueLine(line: string): { label: string; text: string } 
   }
 
   const looksLikeCheckIn =
-    /^(?:today|areas?|what|where|when|who|why|how|wins?|setbacks?|progress|notes?|action|fear|lie|truth|helped|next|specifics?|journal|discipline|temptation|response|replacement)\b/i.test(label) ||
+    /^(?:today|areas?|what|where|when|who|why|how|wins?|setbacks?|progress|notes?|action|fact|fear|obedience|lie|truth|helped|next|specifics?|journal|discipline|temptation|response|replacement)\b/i.test(label) ||
     /^(?:yes\s*\/\s*no|list\b|note\b|name\b|choose\b|write\b|fill\b|mark\b|track\b|specifics?\b)/i.test(text);
 
   return looksLikeCheckIn ? { label, text } : null;
