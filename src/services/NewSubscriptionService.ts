@@ -19,6 +19,20 @@ import {
 } from '../types/subscription';
 
 export class NewSubscriptionService {
+  private static readonly PAID_EXPIRATION_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+
+  private static getPaidExpirationGraceEnd(subscriptionEndDate?: string | null): Date | null {
+    if (!subscriptionEndDate) {
+      return null;
+    }
+
+    const endDate = new Date(subscriptionEndDate);
+    if (Number.isNaN(endDate.getTime())) {
+      return null;
+    }
+
+    return new Date(endDate.getTime() + this.PAID_EXPIRATION_GRACE_MS);
+  }
 
   // ===== TIER CONFIGURATION =====
   /**
@@ -201,19 +215,19 @@ export class NewSubscriptionService {
 
     const subscription = this.enrichSubscriptionData(data);
 
-    // FAILSAFE: If a paid subscription has already expired but the webhook has not
-    // downgraded it yet, normalize the row immediately so stale paid users do not
-    // keep appearing as active in the app or admin views.
+    // FAILSAFE: Match the backend grace window before downgrading locally.
+    // Apple webhooks can arrive late, and sandbox renewals expire within minutes.
     const isPaidSubscription = subscription.tier !== 'seeker' && subscription.tier !== 'free_trial';
     if (isPaidSubscription && subscription.subscription_end_date) {
-      const endDate = new Date(subscription.subscription_end_date);
-      if (!Number.isNaN(endDate.getTime()) && endDate < new Date()) {
-        Logger.warn('[NewSubscriptionService] Expired paid subscription detected during fetch; downgrading to seeker', {
+      const graceEnd = this.getPaidExpirationGraceEnd(subscription.subscription_end_date);
+      if (graceEnd && graceEnd < new Date()) {
+        Logger.warn('[NewSubscriptionService] Expired paid subscription is past grace during fetch; downgrading to seeker', {
           component: 'NewSubscriptionService',
           userId,
           tier: subscription.tier,
           status: subscription.status,
           subscriptionEndDate: subscription.subscription_end_date,
+          expirationGraceEnd: graceEnd.toISOString(),
         });
 
         await this.handleExpiredSubscription(userId);
@@ -1010,17 +1024,18 @@ export class NewSubscriptionService {
       }
     }
 
-    // CRITICAL: Check if paid subscription has expired (webhook failsafe)
-    // Webhook should handle this via EXPIRED, but check as failsafe
+    // CRITICAL: Check if paid subscription is past the backend grace window.
+    // Webhook/Apple sync should handle expiration first; this is only a late failsafe.
     if (subscription.tier !== 'seeker' && subscription.tier !== 'free_trial' && subscription.subscription_end_date) {
-      const subEnd = new Date(subscription.subscription_end_date);
-      if (subEnd < new Date()) {
-        // Subscription expired but webhook didn't arrive - downgrade now
-        Logger.warn('[NewSubscriptionService] Subscription expired (webhook failsafe triggered)', {
+      const graceEnd = this.getPaidExpirationGraceEnd(subscription.subscription_end_date);
+      if (graceEnd && graceEnd < new Date()) {
+        // Subscription is past the grace window and webhook did not downgrade it.
+        Logger.warn('[NewSubscriptionService] Subscription past grace (webhook failsafe triggered)', {
           component: 'NewSubscriptionService',
           userId,
           tier: subscription.tier,
           expiration: subscription.subscription_end_date,
+          expirationGraceEnd: graceEnd.toISOString(),
         });
 
         await this.handleExpiredSubscription(userId);

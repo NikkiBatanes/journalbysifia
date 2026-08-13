@@ -1941,19 +1941,53 @@ function splitTwoColumnInstructionLine(line: string): string[] | null {
   ];
 }
 
+function splitScriptureReferenceAndText(value: string): { reference: string; text: string } | null {
+  const source = String(value || '').trim();
+  const match = source.match(/^(.{2,160}\([^)]+\)):\s*(.+)$/)
+    || source.match(/^(.+?\d+:\d+(?:-\d+)?):\s*(.+)$/)
+    || source.match(/^(.{2,120}?):\s*(.+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    reference: match[1].trim(),
+    text: match[2].trim(),
+  };
+}
+
+function formatScriptureReadText(text: string): string {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length < 520) {
+    return normalized;
+  }
+
+  const sentences = normalized
+    .split(/(?<=[.!?])\s+(?=[A-Z"“])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+
+  return sentences.length >= 4 ? sentences.join('\n\n') : normalized;
+}
+
 function parseScriptureReadLine(line: string): BodyLine | null {
   const trimmed = String(line || '').trim();
-  const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*["'“‘](.+)["'”’]?$/i)
-    || trimmed.match(/^(?:Scripture|Passage)\s+(.{2,120}?):\s*(.+)$/i);
+  const scriptureOnlyMatch = trimmed.match(/^(?:Scripture|Passage)\s+(.+)$/i);
   if (scriptureOnlyMatch) {
-    const reference = scriptureOnlyMatch[1].trim();
-    const verseText = stripBalancedActionQuotes(scriptureOnlyMatch[2].trim());
+    const parsed = splitScriptureReferenceAndText(scriptureOnlyMatch[1]);
+    if (!parsed) {
+      return null;
+    }
+
+    const reference = parsed.reference;
+    const verseText = stripBalancedActionQuotes(parsed.text);
     if (!reference || !verseText) {
       return null;
     }
 
     return {
-      text: verseText,
+      text: formatScriptureReadText(verseText),
       type: 'scriptureRead',
       reference,
     };
@@ -2539,6 +2573,10 @@ function parseBareSpokenScriptLine(line: string): BodyLine | null {
     return null;
   }
 
+  if (looksLikeBareScriptureLine(text)) {
+    return null;
+  }
+
   const isQuestion = /\?\s*$/.test(text);
   const startsWithQuestion = /^(?:can|could|would|will|do|does|did|what|how|when|where|why|is|are|should|may)\b/i.test(text);
   const hasEmbeddedQuestion = /[.!]\s+(?:can|could|would|will|do|does|did|what|how|when|where|why|is|are|should|may)\b.+\?\s*$/i.test(text);
@@ -2558,6 +2596,26 @@ function parseBareSpokenScriptLine(line: string): BodyLine | null {
   }
 
   return null;
+}
+
+function looksLikeBareScriptureLine(text: string): boolean {
+  const normalized = String(text || '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (/^(?:I will say to the Lord|I am the Lord\b|I am the way\b|I am the good shepherd\b)/i.test(normalized)) {
+    return true;
+  }
+
+  return /^I\s+(?:will|am|have|can)\b/i.test(normalized)
+    && /\b(?:the Lord|my refuge|my fortress|my God|the Almighty|Most High)\b/i.test(normalized)
+    && !/\b(?:sorry|apologize|need|want|hope|feel|understand|please forgive)\b/i.test(normalized);
 }
 
 function parseScheduleLine(line: string): BodyLine | null {

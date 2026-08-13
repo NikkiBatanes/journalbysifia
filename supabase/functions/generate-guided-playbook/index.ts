@@ -630,39 +630,6 @@ function isCounselorSupportBonusAction(action: any): boolean {
   return COUNSELOR_SUPPORT_PERSON_REGEX.test(text) && COUNSELOR_SUPPORT_ACTION_REGEX.test(text);
 }
 
-function buildCoreFaithfulActionFallback(index: number) {
-  const fallbacks = [
-    {
-      title: 'Write the facts',
-      description: 'Put the facts, fear, and obedience in front of you.',
-      body: [
-        'Write three lines before asking anyone else what to do.',
-        'Fact: What is actually happening?',
-        'Fear: What are you tempted to believe?',
-        'Obedience: What is one step you can take today?',
-        'Example: Fact: This is harder than I expected.\nFear: I am tempted to call delay failure.\nObedience: I will face the next concrete step without rushing or hiding.',
-      ].join('\n'),
-      primary_button: 'I wrote it',
-      secondary_button: 'Not yet',
-    },
-    {
-      title: 'Choose one step',
-      description: 'Turn conviction into one concrete act of obedience.',
-      body: [
-        'Choose one action you can complete today. Keep it small enough to obey and specific enough to measure.',
-        'Step: Write the action.',
-        'Time: Choose when you will do it.',
-        'Limit: Name what you will not do today.',
-        'Example: Step: Review the facts honestly.\nTime: Tonight after dinner.\nLimit: I will not make a fear-driven decision today.',
-      ].join('\n'),
-      primary_button: 'I chose',
-      secondary_button: 'Not yet',
-    },
-  ];
-
-  return fallbacks[index % fallbacks.length];
-}
-
 function splitFaithfulActions(actions: any[]): { core: any[]; support: any[] } {
   return actions.reduce((acc, action) => {
     if (isCounselorSupportBonusAction(action)) {
@@ -674,7 +641,7 @@ function splitFaithfulActions(actions: any[]): { core: any[]; support: any[] } {
   }, { core: [] as any[], support: [] as any[] });
 }
 
-function normalizeFaithfulActions(actions: any[], options: { addCoreFallbacks?: boolean } = {}): any[] {
+function normalizeFaithfulActions(actions: any[]): any[] {
   const nonEmptyActions = actions.filter((action: any) => {
     const title = String(action?.title || '').trim();
     const body = String(action?.body || action?.description || '').trim();
@@ -683,16 +650,7 @@ function normalizeFaithfulActions(actions: any[], options: { addCoreFallbacks?: 
   const { core, support } = splitFaithfulActions(nonEmptyActions);
   const normalizedCore = core.slice(0, CORE_FAITHFUL_ACTION_MAX);
 
-  if (options.addCoreFallbacks && support.length > 0) {
-    while (
-      normalizedCore.length < CORE_FAITHFUL_ACTION_MIN &&
-      normalizedCore.length + 1 < FAITHFUL_ACTION_MAX_WITH_BONUS
-    ) {
-      normalizedCore.push(buildCoreFaithfulActionFallback(normalizedCore.length));
-    }
-  }
-
-  if (support.length > 0 && normalizedCore.length >= CORE_FAITHFUL_ACTION_MIN) {
+  if (support.length > 0) {
     return [...normalizedCore, support[0]];
   }
 
@@ -979,7 +937,7 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
     hardIssues.push(`faithful_actions has ${actionCount} items (need at least ${CORE_FAITHFUL_ACTION_MIN}) — generation failure`);
   }
   if (hasSupportBonus && coreActions.length < CORE_FAITHFUL_ACTION_MIN && actionCount >= CORE_FAITHFUL_ACTION_MIN) {
-    softIssues.push(`faithful_actions counted counselor/pastor support as a core action (${coreActions.length}/${CORE_FAITHFUL_ACTION_MIN} core) — will add core fallback action(s) and move support to bonus`);
+    softIssues.push(`faithful_actions counted counselor/pastor support as a core action (${coreActions.length}/${CORE_FAITHFUL_ACTION_MIN} core) — will preserve generated actions and move support to bonus without local filler`);
   }
   if (!hasSupportBonus && actionCount > CORE_FAITHFUL_ACTION_MAX) {
     softIssues.push(`faithful_actions has ${actionCount} core items (max ${CORE_FAITHFUL_ACTION_MAX}) — will trim`);
@@ -1251,7 +1209,7 @@ function repairPlaybook(json: Record<string, any>): Record<string, any> {
   }
 
   if (Array.isArray(repaired.faithful_actions)) {
-    repaired.faithful_actions = normalizeFaithfulActions(repaired.faithful_actions, { addCoreFallbacks: true });
+    repaired.faithful_actions = normalizeFaithfulActions(repaired.faithful_actions);
   }
 
   return repaired;

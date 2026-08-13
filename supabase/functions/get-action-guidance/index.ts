@@ -296,9 +296,21 @@ function formatScriptureDisplayReference(reference: string, version: string): st
   return cleanVersion ? `${cleanReference} (${cleanVersion})` : cleanReference;
 }
 
-function formatScriptureCardStep(_reference: string, _version: string, scriptureText: string): string {
+function formatScriptureCardReference(reference: string, version: string): string {
+  const displayReference = formatScriptureDisplayReference(reference, version);
+  return displayReference.replace(
+    /^(.+\s\d+):(\d+(?:-\d+)?)(\s+\([^)]+\))?$/i,
+    (_match, bookChapter: string, versePart: string, versionPart = '') => {
+      const verseLabel = String(versePart).includes('-') ? 'verses' : 'verse';
+      return `${bookChapter} ${verseLabel} ${versePart}${versionPart}`;
+    },
+  );
+}
+
+function formatScriptureCardStep(reference: string, version: string, scriptureText: string): string {
+  const displayReference = formatScriptureCardReference(reference, version);
   const text = cleanLongOutputText(scriptureText);
-  return text;
+  return `Scripture ${displayReference}: ${text}`;
 }
 
 function extractScriptureLineSegments(scriptureText: string, maxSegments = 6): string[] {
@@ -553,7 +565,32 @@ function calculateAgeFromDate(dateOfBirth?: string): number | null {
   return age;
 }
 
-function detectScriptureRequest(question: string, actionContext?: string): { isScripture: boolean; reference?: string; isFullChapter: boolean } {
+type ScriptureDetectionResult = {
+  isScripture: boolean;
+  reference?: string;
+  references?: string[];
+  isFullChapter: boolean;
+};
+
+const BIBLE_REFERENCE_REGEX = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+(?::\d+(?:-\d+)?)?/gi;
+
+function extractScriptureReferences(value: string): string[] {
+  const seen = new Set<string>();
+  const references: string[] = [];
+
+  for (const match of String(value || '').matchAll(BIBLE_REFERENCE_REGEX)) {
+    const reference = match[0].replace(/\s+/g, ' ').trim();
+    const key = reference.toLowerCase();
+    if (reference && !seen.has(key)) {
+      seen.add(key);
+      references.push(reference);
+    }
+  }
+
+  return references;
+}
+
+function detectScriptureRequest(question: string, actionContext?: string): ScriptureDetectionResult {
   const q = question.toLowerCase();
   const context = actionContext?.toLowerCase() || '';
   
@@ -570,9 +607,9 @@ function detectScriptureRequest(question: string, actionContext?: string): { isS
   // Detect if asking for scripture - more flexible keywords
   const scriptureKeywords = /\b(scripture|bible|verse|verses|chapter|passage|read|text|full|entire|whole|complete|show|give|what|what's|whats)\b/i.test(q);
   
-  // Check for book reference in question OR action context - match both "Book Chapter:Verse" and "Book Chapter" formats
-  const hasBookReference = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+/i.test(q) ||
-                          /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+/i.test(context);
+  const questionReferences = extractScriptureReferences(q);
+  const contextReferences = extractScriptureReferences(context);
+  const hasBookReference = questionReferences.length > 0 || contextReferences.length > 0;
   
   console.log('[Get-Action-Guidance] scriptureKeywords:', scriptureKeywords, 'hasBookReference:', hasBookReference);
   
@@ -580,37 +617,38 @@ function detectScriptureRequest(question: string, actionContext?: string): { isS
     return { isScripture: false, isFullChapter: false };
   }
 
-  // Extract reference - check question first, then context
-  // Match both "Book Chapter:Verse" and "Book Chapter" formats
-  let referenceMatch = q.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+(?::\d+(-\d+)?)?/i);
-  
-  if (!referenceMatch && context) {
-    referenceMatch = context.match(/\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+(?::\d+(-\d+)?)?/i);
-  }
-  
-  if (!referenceMatch) {
+  const wantsMultipleReferences = /\b(?:verses|scriptures|passages|references|all|both|these|those)\b/i.test(q);
+  const references = questionReferences.length > 0
+    ? (wantsMultipleReferences ? questionReferences : [questionReferences[0]])
+    : (wantsMultipleReferences ? contextReferences.slice(0, 4) : [contextReferences[0]]);
+
+  if (references.length === 0 || !references[0]) {
     console.log('[Get-Action-Guidance] No reference match found');
     return { isScripture: false, isFullChapter: false };
   }
 
-  let reference = referenceMatch[0].replace(/\s+/g, ' ');
-  console.log('[Get-Action-Guidance] Reference extracted:', reference);
+  const reference = references[0];
+  console.log('[Get-Action-Guidance] References extracted:', references);
   
-  // If reference is just "Book Chapter" without verses, convert to full chapter range
-  if (!/:/.test(reference)) {
-    console.log('[Get-Action-Guidance] Reference has no verses, converting to full chapter range');
-    reference = `${reference}:1-12`; // Default to 1-12, will be adjusted by BibleVerse service
-  }
+  // Keep bare chapter references intact so the Bible provider can return the full chapter.
+  references.forEach(ref => {
+    if (!/:/.test(ref)) {
+      console.log('[Get-Action-Guidance] Reference has no verses, keeping as full chapter reference:', ref);
+    }
+  });
+
+  const explicitFullChapterRequest = /\b(full|entire|whole|complete)\b.*chapter/i.test(q) ||
+                                    /\bchapter.*\b(full|entire|whole|complete)\b/i.test(q);
+  const explicitVerseRangeRequest = /\b\d+:\d+-\d+\b/.test(q) ||
+                                    /\b\d+:\d+-\d+\b/.test(context) ||
+                                    references.some(ref => /\b\d+:\d+-\d+\b/.test(ref));
+  const bareChapterRequest = references.some(ref => !/:/.test(ref)) && /\bchapter\b/i.test(q);
   
   // Detect if asking for full chapter
-  const isFullChapter = /\b(full|entire|whole|complete)\b.*chapter/i.test(q) || 
-                        /\bchapter.*\b(full|entire|whole|complete)\b/i.test(q) ||
-                        /\b\d+:\d+-\d+\b/.test(q) ||
-                        /\b\d+:\d+-\d+\b/.test(context) ||
-                        !/:/.test(q); // Also treat "Book Chapter" without verses as full chapter
+  const isFullChapter = explicitFullChapterRequest || explicitVerseRangeRequest || bareChapterRequest;
 
   console.log('[Get-Action-Guidance] isFullChapter:', isFullChapter);
-  return { isScripture: true, reference, isFullChapter };
+  return { isScripture: true, reference, references, isFullChapter };
 }
 
 async function fetchScriptureText(reference: string, preferredTranslation?: string): Promise<{ text: string; reference: string; version: string }> {
@@ -899,37 +937,54 @@ serve(async (req: Request) => {
     // Check if user is asking for scripture text before charging wisdom
     const scriptureRequest = detectScriptureRequest(userQuestion, actionContext);
     let scriptureText = '';
-    let scriptureReference = scriptureRequest.reference || '';
-    let scriptureVersion = preferredBibleTranslation || 'NASB';
+    const scriptureResults: Array<{ text: string; reference: string; version: string }> = [];
     let isPureScriptureRequest = false;
 
     if (scriptureRequest.isScripture && scriptureRequest.reference) {
-      console.log('[Get-Action-Guidance] Scripture request detected:', scriptureRequest.reference);
+      const requestedReferences = scriptureRequest.references?.length
+        ? scriptureRequest.references
+        : [scriptureRequest.reference];
+      console.log('[Get-Action-Guidance] Scripture request detected:', requestedReferences);
 
       // Check if it's a pure scripture request (no explanation asked)
       isPureScriptureRequest = !isScriptureExplanationRequest(userQuestion);
 
-      try {
-        const scriptureResult = await fetchScriptureText(scriptureRequest.reference, preferredBibleTranslation);
-        scriptureText = scriptureResult.text;
-        scriptureReference = scriptureResult.reference;
-        scriptureVersion = scriptureResult.version;
-        console.log('[Get-Action-Guidance] Scripture fetched successfully, length:', scriptureText.length);
-      } catch (error) {
-        console.error('[Get-Action-Guidance] Failed to fetch scripture, falling back to OpenAI:', error);
-        // Fall through to OpenAI if scripture fetch fails
-        scriptureText = '';
+      for (const requestedReference of requestedReferences) {
+        try {
+          const scriptureResult = await fetchScriptureText(requestedReference, preferredBibleTranslation);
+          scriptureResults.push(scriptureResult);
+          console.log('[Get-Action-Guidance] Scripture fetched successfully', {
+            reference: scriptureResult.reference,
+            length: scriptureResult.text.length,
+          });
+        } catch (error) {
+          console.error('[Get-Action-Guidance] Failed to fetch scripture reference:', requestedReference, error);
+        }
+      }
+
+      if (scriptureResults.length > 0) {
+        scriptureText = scriptureResults.map(result => result.text).join('\n\n');
       }
     }
 
     // If scripture was fetched, return it in the same thread format as normal wisdom.
-    if (scriptureText) {
+    if (scriptureResults.length > 0) {
       console.log('[Get-Action-Guidance] Scripture fetched, returning formatted scripture wisdom');
-      const displayReference = formatScriptureDisplayReference(scriptureReference, scriptureVersion);
-      const scriptureCardStep = formatScriptureCardStep(scriptureReference, scriptureVersion, scriptureText);
+      const displayReference = scriptureResults
+        .map(result => formatScriptureDisplayReference(result.reference, result.version))
+        .join('; ');
+      const scriptureCardSteps = scriptureResults.map(result =>
+        formatScriptureCardStep(result.reference, result.version, result.text)
+      );
+      const scriptureTextForExplanation = scriptureResults
+        .map(result => [
+          formatScriptureDisplayReference(result.reference, result.version),
+          result.text,
+        ].join('\n'))
+        .join('\n\n');
       let wisdom = formatWisdomText({
         intro: '',
-        steps: [scriptureCardStep],
+        steps: scriptureCardSteps,
       });
 
       // If explanation is requested, get it from OpenAI and append
@@ -939,7 +994,7 @@ serve(async (req: Request) => {
         const explanationPrompt = [
           `Here is the full text of ${displayReference}:`,
           '',
-          scriptureText,
+          scriptureTextForExplanation,
           '',
           `User asks: ${userQuestion}`,
           '',
@@ -1006,7 +1061,7 @@ serve(async (req: Request) => {
 
         wisdom = formatWisdomText({
           intro: parsedExplanation?.intro || (isLineByLineRequest ? 'Here is a line-by-line explanation.' : 'Here is a clear explanation.'),
-          steps: [scriptureCardStep, ...explanationSteps],
+          steps: [...scriptureCardSteps, ...explanationSteps],
         });
       }
 

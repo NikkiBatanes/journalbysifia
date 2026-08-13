@@ -292,10 +292,35 @@ class BibleGatewayScraper {
     let startVerse: number | undefined;
     let endVerse: number | undefined;
 
+    const recordDetectedVerse = (verseNum: number, source: string) => {
+      if (isNaN(verseNum)) {
+        return;
+      }
+
+      console.log(`[BibleGateway] Verse detected from ${source}: ${verseNum}`);
+
+      if (startVerse === undefined || verseNum < startVerse) {
+        startVerse = verseNum;
+        console.log(`[BibleGateway] Updated startVerse to ${startVerse}`);
+      }
+      if (endVerse === undefined || verseNum > endVerse) {
+        endVerse = verseNum;
+        console.log(`[BibleGateway] Updated endVerse to ${endVerse}`);
+      }
+    };
+
     // For MSG, verse filtering is complex and can fail - just get all text
     // BibleGateway's context is actually helpful for understanding
     for (const span of verseSpans) {
       const spanElement = span as Element;
+
+      // BibleGateway often marks verse 1 with a chapter number in the visible
+      // text, while the real verse number lives in the span class (e.g. Ps-91-1).
+      const className = spanElement.getAttribute('class') || '';
+      const classVerseMatch = className.match(/(?:^|\s)[A-Za-z0-9]+-\d+-(\d+)(?=\s|$)/);
+      if (classVerseMatch) {
+        recordDetectedVerse(parseInt(classVerseMatch[1], 10), `class "${className}"`);
+      }
 
       // Capture ALL verse numbers BEFORE removing them so we can detect full ranges
       const allVerseElements = spanElement.querySelectorAll('.versenum');
@@ -332,17 +357,7 @@ class BibleGatewayScraper {
           // It's a single number like "5"
           const verseNum = parseInt(verseText, 10);
           console.log(`[BibleGateway] Verse element is SINGLE: "${verseText}" (${verseNum})`);
-          
-          if (!isNaN(verseNum)) {
-            if (startVerse === undefined || verseNum < startVerse) {
-              startVerse = verseNum;
-              console.log(`[BibleGateway] Updated startVerse to ${startVerse}`);
-            }
-            if (endVerse === undefined || verseNum > endVerse) {
-              endVerse = verseNum;
-              console.log(`[BibleGateway] Updated endVerse to ${endVerse}`);
-            }
-          }
+          recordDetectedVerse(verseNum, 'visible verse number');
         }
       });
 
